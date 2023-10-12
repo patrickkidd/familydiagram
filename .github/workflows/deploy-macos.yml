@@ -28,10 +28,17 @@ jobs:
     - name: Install Developer ID certificate
       run: |
         echo "${{ secrets.DISTRIBUTION_CERT }}" | base64 --decode > developer_id.p12
+        echo "Creating keychain..."
         security create-keychain -p actions build.keychain
+        echo "Defaulting keychain..."
         security default-keychain -s build.keychain
+        echo "Unlocking keychain..."
         security unlock-keychain -p actions build.keychain
+        echo "Importing certificate..."
         security import developer_id.p12 -A -t cert -f pkcs12 -k build.keychain
+        echo "Listing certificate..."
+        security list-keychain -d user -s build.keychain
+        echo "Done"
         # security import developer_id.p12 -k build.keychain -T /usr/bin/codesign
         # security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain  
           
