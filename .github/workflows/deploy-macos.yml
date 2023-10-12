@@ -17,7 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.PATRICKKIDD_CI_TOKEN }}
         submodules: true
 
     - name: Set up Python
@@ -44,6 +43,21 @@ jobs:
         brew install qt@5
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
+    - name: Install provisioning profile
+      run: |
+        echo "${{ secrets.PROVISIONING_PROFILE }}" | base64 --decode > FD.provisionprofile
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles/
+        cp FD.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/
+
+    - name: Install Developer ID certificate
+      run: |
+        echo "${{ secrets.DISTRIBUTION_CERT }}" | base64 --decode > developer_id.p12
+        security create-keychain -p actions build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p actions build.keychain
+        security import developer_id.p12 -k build.keychain -P "" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain  
+        
     - name: Cache _pkdiagram generated sources
       id: cache-private-plugins
       uses: actions/cache@v2
