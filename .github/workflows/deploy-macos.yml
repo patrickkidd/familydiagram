@@ -31,8 +31,9 @@ jobs:
         security create-keychain -p actions build.keychain
         security default-keychain -s build.keychain
         security unlock-keychain -p actions build.keychain
-        security import developer_id.p12 -k build.keychain -T /usr/bin/codesign
-        security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain  
+        security import developer_id.p12 -A -t cert -f pkcs12 -k build.keychain
+        # security import developer_id.p12 -k build.keychain -T /usr/bin/codesign
+        # security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain  
           
     - name: Set up Python
       uses: actions/setup-python@v2
