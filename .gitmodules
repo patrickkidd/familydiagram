@@ -1,0 +1,12 @@
+[submodule "3rdparty/.\\winsparkle"]
+	path = 3rdparty/.\\winsparkle
+	url = git@github.com:patrickkidd/winsparkle.git
+[submodule "3rdparty/winsparkle"]
+	path = lib/winsparkle
+	url = git@github.com:patrickkidd/winsparkle.git
+[submodule "vedana"]
+	path = vedana
+	url = git@github.com:patrickkidd/vedana.git
+[submodule "lib/site-packages/pyqtdeploy"]
+	path = lib/site-packages/pyqtdeploy
+	url = git@github.com:patrickkidd/pyqtdeploy-patched.git

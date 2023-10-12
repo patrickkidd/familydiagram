@@ -1,0 +1,186 @@
+1.5.2
+-------------------------------------------------------------------------------
+- Flash associated items on the diagram for newly highlighted events in next / previous event.
+- Fixed deleting a large selection of events in the timeline.
+- Fix emotions not fanning out when changing search tags
+
+1.5.1
+-------------------------------------------------------------------------------
+- Shift-Command-F (Shift-Ctrl-F on Windows) to search
+- Toward description now says: "Person A to Person B" instead of "Person A & Person B"
+- Away description now says: "Person A from Person B" instead of "Person A & Person B"
+- Add "Is Date Range" checkbox to Relationships.
+- Added preferences setting to override OS dark mode setting.
+- Fixed bug preventing new users being unable to run the app.
+
+1.5.0
+-------------------------------------------------------------------------------
+- Setting a tag on a relationship symbol sets it on start/end events, and vice-versa.
+- Add button to Stripe customer web portal in account manager view.
+- Added tags column to timeline.
+- Stretch parent column somewhat in timeline view.
+- Renamed all remaining instances of "Layer" to "View"
+- Graphical timeline
+  - View now limited to entered search date range.
+  - Shows day date under mouse cursor.
+  - Click to jump to current date in graphical timeline
+  - Fixed wheel-scrolling for graphical timeline on Windows.
+- Fix bug making it difficult to double-click and edit variable values.
+
+1.4.3
+-------------------------------------------------------------------------------
+- Fix using tags in visual timeline.
+
+1.4.3
+-------------------------------------------------------------------------------
+- FIx some problems loading app in strange deployments.
+
+1.4.2
+-------------------------------------------------------------------------------
+- Fixed automatic updates.
+
+1.4.1
+-------------------------------------------------------------------------------
+- Don't encrypt files unless saving to free diagram.
+
+1.4.0
+-------------------------------------------------------------------------------
+- Store free diagram on server for better backups
+- Added important update button in top tool bar
+
+1.3.3
+-------------------------------------------------------------------------------
+- Much easier to follow Relationship symbols as they animate for shifts.
+
+1.3.2
+-------------------------------------------------------------------------------
+- Fixed multiple emotions between the same people.
+- Fixed clearing dates for emotions.
+- Fixed bug in person color animations.
+
+
+1.3.1
+-------------------------------------------------------------------------------
+- Fixed zoom-fit button.
+
+1.3.0
+-------------------------------------------------------------------------------
+- New more accurate symbols for Toward and Away as singular moves.
+  - Old "Toward" and "Away" symbols become new "Inside" and "Outside" symbols, respectively.
+- Made defined self symbol more visually accurate as a momentary move.
+- Duplicate rows are not added when symbol start/end dates are the same. Makes it easier to track momentary shifts.
+- Allow setting time of day on events for tracking rapid emotional process. Allows for daily/vignette logging.
+- Reorganize Layers, Tags, Search
+  - Renamed Layers to "Views"
+  - Views become diagram/structure only, and don't have tags any more
+  - Tags become timeline/function only
+  - People don't have tags now, they are just added to Views.
+    - Replace tag list on Person Properties with views list
+  - Only one search panel for entire app now, includes "Views" list.
+  - Search tab replaces "Meta" Tab under family timeline
+- Top, Left, and Right toolbars are scrollable now.
+- Simplified timeline buttons with only inspect, delete.
+- Only one add event button / add emotion button now, found in timeline.
+- Moved diagram delete button from top tool bar to right tool bar.
+- Better selection aura on the diagram
+
+1.2.8
+-------------------------------------------------------------------------------
+- Fixed miscellaneous bug.
+
+1.2.6
+-------------------------------------------------------------------------------
+- Next/Prev event honor timeline tags.
+
+1.2.5
+-------------------------------------------------------------------------------
+- Fixed freeze when clicking on bottom timeline.
+
+1.2.4
+-------------------------------------------------------------------------------
+- Included Bugsnag reporting for python and ObjectiveC.
+
+1.2.3
+-------------------------------------------------------------------------------
+- Patched Qt-5.15.2 to fix font rendering.
+
+1.2.2
+-------------------------------------------------------------------------------
+- Fixed some names not showing up in the timeline.
+- Improved labels for layers and tags list, timeline search.
+- Added help text to Layer list and Scene Tags list.
+- Improved clicking to select items when the item text overlaps the item.
+- Fixed scrolling for notes fields.
+- Fixed excel export.
+
+1.2.0
+-------------------------------------------------------------------------------
+*New features*
+
+- First windows release.
+- Allow adding arbitrary events to Pair-Bonds
+  - Renamed married, separated, divorced checkboxes to "Show XXX" for pairbond.
+    - Useful for showing a state the pair-bond achieved prior to knowing specific dates
+  - Added new event types: Bonded, Married, Separated, Divorced, Moved
+  - Added "On Diagram" checkbox to include the event in the Pair-Bond's diagram notes
+- Added ability to show which items have notes (Ctrl-Shift-N)
+- Stop on all events when timeline is shown.
+- Added Stinson data model.
+- Always fan out multiple emotions between the same people (no more mouse hover)
+
+*Bug fixes:*
+
+- Fixed bugs in pair-bond events.
+- Fix cutoff symbol filling with black on click in timeline.
+- Fix user manual on windows.
+- Fixed emotion|layeritem properties getting stuck open.
+- Fixed help tips not lining up correctly.
+- Tidied up drawing for married events.
+- Fix showing person/pair-bond name in add event / emotion dialogs.
+- Don't show very high age when age at death is unknown.
+- Fixed excel export.
+- Invert pencil drawings when black in dark mode.
+- Made the account dialog work on smaller screens.
+
+
+1.1.3
+-------------------------------------------------------------------------------
+- Added notes indicator to timeline
+- Fix bug preventing quit or show account when using free license.
+- Fixed timeline search drawer and bug preventing closing of timeline.
+
+1.1.2
+-------------------------------------------------------------------------------
+- Fixed bug that rejected CVC code with a leading zero.
+
+1.1.1
+-------------------------------------------------------------------------------
+- Fix printing.
+- Add help tip to age box.
+- Retain selected person properties tab when selecting new person (e.g. for timeline).
+- Upgrade to Qt-5.15.0.
+
+
+1.1.0
+-------------------------------------------------------------------------------
+- Show variable values on diagram!
+    - Checkbox to hide variables on diagram.
+    - Checkbox to show variable states on diagram versus just changes.
+    - Variable changes bold on diagram, steady states semi-opaque.
+- Unify timeline search into single search for whole diagram.
+- Add help overlay in Help -> Show tips... or command-shift-H
+- Fade items when animating diagram.
+- Fade labels when zooming in and out.
+- Hide item details when too small to read.
+- Fix timeline search for person and marriage.
+- Remove meta tab from pair-bond properties.
+- Confirm discarding changes for add event or emotion dialog.
+- Fixed clearing timeline search when clicking "Reset Diagram"
+- Fixed clearing timeline search when opening a second diagram.
+- Decrease width of person column in timeline.
+- Additions to user manual.
+- Other bug fixes.
+
+1.0.0
+-------------------------------------------------------------------------------
+- Initial release

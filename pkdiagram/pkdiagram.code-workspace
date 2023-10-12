@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "/Users/patrick/dev/pkdiagram"
+		}
+	],
+	"settings": {
+		"python.linting.enabled": false,
+		"python.unitTest.pyTestEnabled": true,
+		"python.unitTest.pyTestPath": "/Users/patrick/dev/vendor/sysroot-dev/bin/pytest",
+		"python.unitTest.cwd": "/Users/patrick/dev/pkdiagram/tests"
+	}
+}

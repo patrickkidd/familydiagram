@@ -1,0 +1,693 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Authenticating REST Requests</title>
+<style type="text/css">
+
+body {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  color: #000;
+  background-color: #fff;
+}
+
+body.toc {
+  margin: 0;
+  padding: 0;
+}
+
+a         { color: #036; text-decoration: underline; }
+a:visited { color: #666;  text-decoration: underline; }
+a:hover   { color: #c60; text-decoration: none; }
+
+h1 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #c60;
+  margin-bottom: 25px;
+  padding-bottom: 5px;
+  border-bottom-width: 1px;
+  border-bottom-style: dashed;
+  border-bottom-color: #95a8a6;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #c60;
+  margin-top: 25px;
+  padding-bottom: 10px;
+}
+
+h3 {
+  font-size: 12px;
+  font-weight: bold;
+  color: #c60;
+  margin-top: 25px;
+}
+
+h4 {
+  font-size: 12px;
+  font-weight: normal;
+  color: #c60;
+  margin-top: 25px;
+}
+
+div.example {
+  border: 1px solid #999;
+  padding: 10px;
+  margin: 10px 0 10px 0;
+}
+
+.example-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #c60;
+  margin: 0 0 10px 0;
+}
+
+pre.programlisting {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  margin: 0 0 20px 0;
+}
+
+div.example pre.programlisting {
+  color: #000066;
+  background-color: #eff7ff;
+  padding: 10px;
+  border: 1px dashed #333;
+  margin-bottom: 0;
+}
+
+ul {
+	font-size: 12px;
+	list-style-position: outside;
+  list-style-type: circle;
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+ul.nobullet {
+  list-style-type: none;
+}
+
+ul.nobullet * p {
+  margin: 0;
+}
+
+ul.noindent li {
+  margin-left: -25px;
+}
+
+ul.noindent * p{
+  margin: 0;
+}
+
+ol * ol {
+  list-style-type: lower-alpha;
+}
+
+#header {
+  font-size: 10px;
+  color: #999;
+  border-bottom: 1px dotted #999;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#footer {
+  font-size: 10px;
+  color: #999;
+  border-top: 1px dotted #999;
+  text-align: center;
+  margin-top: 20px;
+}
+
+dt {
+  font-weight: bold;
+  font-style: italic;
+}
+
+table {
+  border-top: 1px solid #999;
+  border-left: 1px solid #999;
+}
+
+p.table-title {
+  font-weight: bold;
+  margin: 10px 0 5px 5px;
+}
+
+td, th {
+  font-size: 12px;
+  padding: 5px 10px 5px 10px;
+  border-bottom: 1px solid #999;
+  border-right: 1px solid #999;
+  vertical-align: top;
+}
+
+th {
+  background-color: #999;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 10px;
+  text-align: left;
+}
+
+tr td {
+  background-color: #fff;
+}
+
+tr.odd td {
+  background-color: #f4f4f4;
+}
+
+td p:first-child {
+  margin-top: 0;
+}
+
+td pre.programlisting {
+  margin-bottom: 0;
+}
+
+kbd {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  font-weight: bold;
+  color: #040;
+}
+
+.replaceable {
+  font-weight: bold;
+  color: #f00;
+}
+
+code.markup {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+code.sgmltag {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+code.filename {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+code.errorname {
+  font-family: "Courier New", Courier, mono;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+div.note,
+div.tip,
+div.important,
+div.warning,
+div.caution {
+  margin: 10px;
+  padding: 10px;
+  background-color: #eee;
+}
+
+div.note p,
+div.tip p,
+div.caution p {
+  margin-bottom: 0;
+}
+
+p.admonition-title {
+  margin: 0;
+}
+
+div.note pre.programlisting,
+div.tip pre.programlisting,
+div.caution pre.programlisting {
+  margin: 10px 0 0 0;
+}
+
+strong.caution {
+  color: #f00;
+}
+
+strong.required,
+strong.optional,
+strong.sometimes {
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+strong.required {
+  color: #c60;
+}
+
+strong.optional {
+  color: #999;
+}
+
+strong.sometimes {
+  color: #036;
+}
+
+p.blockquote {
+  margin: 0 20px 0 20px;
+}
+
+div.requestparams,
+div.samplerequest {
+  border: 1px solid #999;
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+div.requestparams h2,
+div.samplerequest h2 {
+  margin: 0;
+  padding: 10px;
+}
+
+div.samplerequest div.example {
+  margin: 0 -1px -1px -1px;
+}
+
+div.requestparams h2 {
+  border-bottom: 1px solid #999;
+}
+
+div.requestparams p,
+div.requestparams ul {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+div.requestparams table {
+  margin: 0 -1px -1px -1px;
+}
+
+div.tableheader {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: bold;
+  color: #999;
+  text-align: center;
+  margin: 15px 0 15px 0;
+}
+
+div.breadcrumb {
+  font-size: 10px;
+  color: #999;
+  padding-bottom: 10px;
+  text-align: right;
+}
+
+.navcontainer { width: 100%; }
+
+.navcontainer a {
+  display: block;
+  padding: 5px;
+  background-color: #fff;
+}
+
+.navcontainer a:link {
+  color: #036;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.navcontainer  a:visited {
+  color: #036;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.navcontainer a:hover {
+  background-color: #fff;
+  color: #c60;
+  padding: 5px;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.navdiv {
+  font-size: 10px;
+  line-height: 12px;
+  color: #036;
+  list-style-position: outside;
+  list-style-type: none;
+  margin-bottom: 10px;
+}
+
+a.breadcrumb {
+  font-size: 10px;
+}
+
+.navdiv a:link { text-decoration: none; }
+
+.navdiv a:hover {
+  color: #000;
+}
+
+table.navcontainer,
+table.topnavcontainer {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+table.navcontainer * td,
+table.topnavcontainer * td,
+table.navcontainer * table {
+  padding: 0;
+  border: 0;
+}
+
+p.figure-caption {
+  font-style: italic;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+img.figure {
+  border: 1px solid #999;
+}
+
+img.inline {
+  border: 0;
+}
+.collapse {font-size: 9px}
+    </style>
+<script language="javascript">
+				function shoh (id, a){
+					if(document.getElementById(id).style.display =='none'){
+						document.getElementById(id).style.display ='inline';
+						document.getElementById(a).innerHTML = "Hide";
+					}
+					else {
+						document.getElementById(id).style.display = 'none';
+						document.getElementById(a).innerHTML = "Show";
+					}
+				}
+				</script>
+</head>
+<body>
+	
+<h1 id="top">Authenticating REST Requests</h1>
+	
+<p>Every non-anonymous request to S3 must contain authentication information to establish the identity of the principal making the request.  In REST, this is done by first putting the headers in a canonical format, then signing the headers using your AWS Secret Access Key.</p>
+	
+<p>There are two ways to send your signature with a request.  The first is to put your AWS Access Key ID and the signature you computed into the Authorization header:</p>
+	
+<div class="example">
+		
+<p class="example-title">Example</p>
+		
+<pre class="programlisting">"Authorization: AWS " + AWSAccessKeyId + ":"  + base64(hmac-sha1(VERB + "\n" 
+							     + CONTENT-MD5 + "\n" 
+							     + CONTENT-TYPE + "\n" 
+							     + DATE + "\n" 
+							     + CanonicalizedAmzHeaders + "\n" 
+							     + CanonicalizedResource))</pre>
+
+	
+</div>
+	
+<p>You can also send a signature as a URL-encoded query-string parameter in the URL for the request. This is useful if you want to enable a third party to access S3 on your behalf without your having to proxy the data transfer. For example, if you want to enable a user to download your private data directly from S3, you can insert a pre-signed URL into a web page before giving it to your user. The canonicalized string that you sign is the same, except that you replace the DATE field in the string with an Expires field that indicates when you want the signature to expire. The Expires field is given as the number of seconds since epoch time, and is also included as a query string parameter along with your AWS Access Key ID:</p>
+	
+<div class="example">
+		
+<p class="example-title">Example</p>
+		
+<pre class="programlisting">GET /my-bucket/foo
+                             ?Signature=&lt;urlencode(base64(hmac-sha1(VERB + "\n" + CONTENT-MD5 + "\n" + CONTENT-TYPE + "\n" + Expires + "\n" + CanonicalizedAmzHeaders + "\n" + CanonicalizedResource)))&gt;
+                             &amp;Expires=&lt;seconds since epoch&gt;
+                             &amp;AWSAccessKeyId=&lt;aws-id&gt;</pre>
+	
+</div>
+	
+	
+<a id="RESTCanonicalization"></a>
+		
+<h2>Canonicalization for Authorization Header Authentication</h2>
+		
+<p>When authenticating through the Authorization header, you create the string to be signed by concatenating the request verb with canonicalized headers and the resource that the request is targeting.</p>
+		
+<p>The headers used for request signing are: content-md5, content-type, date, and anything that starts with x-amz-. The string to be signed is formed by appending the REST verb, content-md5 value, content-type value, date value, canonicalized x-amz headers (see recipe below), and the resource; all separated by newlines. (If you cannot set the Date header, use the x-amz-date header as described below.)</p>
+		
+<p>The resource is the bucket and key (if applicable), separated by a '/'. If the request you are signing is for an ACL or a torrent file, you should include ?acl or ?torrent in the resource part of the canonical string. No other query string parameters should be included, however.</p>
+	
+	
+		
+<h2>Canonicalization for Query String Authentication</h2>
+		
+<p>When authenticating via query string parameters, you create the string to be signed by concatenating the request verb with canonicalized headers and the resource that the request is targeting.</p>
+		
+<p>The headers used for request signing are the same as those for authorization header authentication, except that the Date field is replaced by the Expires parameter.  The Expires parameter is the time when you want the signature to expire, specified as the number of seconds since the epoch time.</p>
+		
+<p>Thus, the string to be signed is formed by appending the REST verb, content-md5 value, content-type value, expires parameter value, canonicalized x-amz headers (see recipe below), and the resource; all separated by newlines.</p>
+		
+<p>The resource is the same as that for authorization header authentication:  the bucket and key (if applicable), separated by a '/'.  If the request you are signing is for an ACL or a torrent file, you should include ?acl or ?torrent in the resource part of the canonical string.  No other query string parameters should be included, however.</p>
+	
+	
+		
+<h2>x-amz headers are canonicalized by:</h2>
+		
+<ul>
+			
+<li>
+<p>Lower-case header name</p>
+			
+</li>
+			
+<li>
+<p>Headers sorted by header name</p>
+			
+</li>
+			
+<li>
+<p>The values of headers whose names occur more than once should be white space-trimmed and concatenated with comma separators to be compliant with section 4.2 of RFC 2616.</p>
+			
+</li>
+			
+<li>
+<p>remove any whitespace around the colon in the header</p>
+			
+</li>
+			
+<li>
+<p>remove any newlines ('\n') in continuation lines</p>
+			
+</li>
+			
+<li>
+<p>separate headers by newlines ('\n')</p>
+</li>
+		
+</ul>
+	
+	
+		
+<h2>Some important points:</h2>
+		
+<ul>
+			
+<li>
+<p>The string to sign (verb, headers, resource) must be UTF-8 encoded.</p>
+			
+</li>
+			
+<li>
+<p>The content-type and content-md5 values are optional, but if you do not include them you must still insert a newline at the point where these values would normally be inserted.</p>
+			
+</li>
+			
+<li>
+<p>Some toolkits may insert headers that you do not know about beforehand, such as adding the header 'Content-Type' during a PUT.  In most of these cases, the value of the inserted header remains constant, allowing you to discover the missing headers using tools such as Ethereal or tcpmon.</p>
+			
+</li>
+			
+<li>
+<p>Some toolkits make it difficult to manually set the date.  If you have trouble including the value of the 'Date' header in the canonicalized headers, you can include an 'x-amz-date' header prior to canonicalization.  The value of the x-amz-date header must be in one of the RFC 2616 formats (http://www.ietf.org/rfc/rfc2616.txt).  If S3 sees an x-amz-date header in the request, it will ignore the Date header when validating the request signature.  If you include the x-amz-date header, you must still include a newline character in the canonicalized string at the point where the Date value would normally be inserted.</p>
+			
+</li>
+			
+<li>
+<p>The value of the Date or, if applicable, x-amz-date header must specify a time no more than 15 minutes away from the S3 webserver's clock.</p>
+			
+</li>
+			
+<li>
+<p>The hash function to compute the signature is HMAC-SHA1 defined in RFC 2104 (http://www.ietf.org/rfc/rfc2104.txt), using your Secret Access Key as the key.</p>
+			
+</li>
+		
+</ul>
+	
+	
+		
+<h2>REST Authentication: Example 1</h2>
+		
+<div class="example">
+			
+<p class="example-title">Example</p>
+			
+<p>For example, imagine that you want to sign the following request:</p>
+			
+<pre class="programlisting">PUT /quotes/nelson HTTP/1.0
+Content-Md5: c8fdb181845a4ca6b8fec737b3581d76
+Content-Type: text/html
+Date: Thu, 17 Nov 2005 18:49:58 GMT
+X-Amz-Meta-Author: foo@bar.com
+X-Amz-Magic: abracadabra</pre>
+			
+<p>The canonical string to be signed is:</p>
+			
+<pre class="programlisting">PUT\nc8fdb181845a4ca6b8fec737b3581d76\ntext/html\nThu, 17 Nov 2005 18:49:58 GMT\nx-amz-magic:abracadabra\nx-amz-meta-author:foo@bar.com\n/quotes/nelson</pre>
+			
+<p>Suppose your AWS Access Key ID is "44CF9590006BF252F707"  and your AWS Secret Access Key is "OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV".  Then you could compute the signature as follows:</p>
+			
+<pre class="programlisting">import base64
+import hmac
+import sha
+h = hmac.new("OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV",
+             "PUT\nc8fdb181845a4ca6b8fec737b3581d76\ntext/html\nThu, 17 Nov 2005 18:49:58 GMT\nx-amz-magic:abracadabra\nx-amz-meta-author:foo@bar.com\n/quotes/nelson", 
+             sha)
+base64.encodestring(h.digest()).strip()</pre>
+			
+<p>The resulting signature would be "jZNOcbfWmD/A/f3hSvVzXZjM2HU=", and, you would add the Authorization header to your request to come up with the following result:</p>
+			
+<pre class="programlisting">PUT /quotes/nelson HTTP/1.0
+Authorization: AWS 44CF9590006BF252F707:jZNOcbfWmD/A/f3hSvVzXZjM2HU=
+Content-Md5: c8fdb181845a4ca6b8fec737b3581d76
+Content-Type: text/html
+Date: Thu, 17 Nov 2005 18:49:58 GMT
+X-Amz-Meta-Author: foo@bar.com
+X-Amz-Magic: abracadabra</pre>
+		
+</div>
+	
+	
+		
+<h2>REST Authentication: Example 2</h2>
+		
+<div class="example">
+			
+<p class="example-title">Example</p>
+			
+<p>Imagine that you can't set the Date header, and don't know what value your toolkit will assign that header.  Then you need to include the x-amz-date header in your request:</p>
+			
+<pre class="programlisting">GET /quotes/nelson HTTP/1.0
+Date: XXXXXXXXX
+X-Amz-Magic: abracadabra
+X-Amz-Date: Thu, 17 Nov 2005 18:49:58 GMT</pre>
+			
+<p>The canonical string to be signed is (note the included newlines even though there is no Content-Md5 or Content-Type header in the request):</p>
+			
+<pre class="programlisting">GET\n\n\n\nx-amz-date:Thu, 17 Nov 2005 18:49:58 GMT\nx-amz-magic:abracadabra\n/quotes/nelson</pre>
+			
+<p>Suppose your AWS Access Key ID is "44CF9590006BF252F707"  and your AWS Secret Access Key is "OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV".  Then you could compute the signature as follows:</p>
+			
+<pre class="programlisting">import base64
+import hmac
+import sha
+h = hmac.new("OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV", 
+             "GET\n\n\n\nx-amz-date:Thu, 17 Nov 2005 18:49:58 GMT\nx-amz-magic:abracadabra\n/quotes/nelson", 
+             sha)
+base64.encodestring(h.digest()).strip()</pre>
+			
+<p>The resulting signature would be "5m+HAmc5JsrgyDelh9+a2dNrzN8=", and, you would add the Authorization header to your request to come up with the following result:</p>
+			
+<pre class="programlisting">GET /quotes/nelson HTTP/1.0
+Authorization: AWS 44CF9590006BF252F707:5m+HAmc5JsrgyDelh9+a2dNrzN8=
+Date: XXXXXXXXX
+X-Amz-Magic: abracadabra
+X-Amz-Date: Thu, 17 Nov 2005 18:49:58 GMT</pre>
+		
+</div>
+	
+	
+		
+<h2>REST Authentication Example 3:  Query String Authentication Example</h2>
+		
+<div class="example">
+			
+<p class="example-title">Example</p>
+			
+<p>Let's say you want to let someone else access http://s3.amazonaws.com/quotes/nelson via a web browser.  Query String Auth URLs all have an Expires parameter which specifies until when the URL is still valid.  The value of this parameter is expressed in seconds since epoch.  On unix, you can run the command "date +%s", or in java, you can divide the result of System.currentTimeMillis() by 1000. So, if it's 1141889060 right now, and you want the url to be valid for 60 seconds, your Expires parameter would be 1141889120. This value will be used in place of the Date header when computing the canonical string.</p>
+			
+<p>The canonical string to be signed is:</p>
+			
+<pre class="programlisting">GET\n\n\n1141889120\n/quotes/nelson</pre>
+			
+<p>You know that when the browser makes the GET request, it won't provide a Content-Md5 or a Content-Type hader, nor will it set any x-amz- headers, so those parts are all kept empty.</p>
+			
+<p>Suppose your AWS Access Key ID is "44CF9590006BF252F707"  and your AWS Secret Access Key is "OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV".  Then you could compute the signature as follows:</p>
+			
+<pre class="programlisting">
+import base64
+import hmac
+import sha
+import urllib
+h = hmac.new("OtxrzxIsfpFjA7SwPzILwy8Bw21TLhquhboDYROV",
+             "GET\n\n\n1141889120\n/quotes/nelson",
+             sha)
+urllib.quote_plus(base64.encodestring(h.digest()).strip())
+</pre>
+			
+<p>Note that we also url-encoded the result this time.  This is because the output from the base64 algorithm is not suitable for use as a query string parameter, so we add an additional layer of armor to make it acceptable.
+</p>
+			
+<p>The resulting signature would be "vjbyPxybdZaNmGa%2ByT272YEAiv4%3D", so the
+parameters we will use are:</p>
+			
+<table cellspacing="0">
+				
+					
+					
+					
+						
+<tr>
+							
+<th>Key</th>
+							<th>Value</th>
+						
+</tr>
+					
+					
+<tr class="odd">
+							
+<td>AWSAccessKeyId</td>
+							<td>44CF9590006BF252F707</td>
+						
+</tr>
+<tr>
+							
+<td>Expires</td>
+							<td>1141889120</td>
+						
+</tr>
+<tr class="odd">
+							
+<td>Signature</td>
+							<td>vjbyPxybdZaNmGa%2ByT272YEAiv4%3D</td>
+						
+</tr>
+				
+			
+</table>
+			
+<p>And the resulting URL would be:</p>
+			
+<pre class="programlisting">http://s3.amazonaws.com/quotes/nelson?AWSAccessKeyId=44CF9590006BF252F707&amp;Expires=1141889120&amp;Signature=vjbyPxybdZaNmGa%2ByT272YEAiv4%3D</pre>
+		
+</div>
+	
+
+</body>
+</html>

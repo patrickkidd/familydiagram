@@ -1,0 +1,221 @@
+## This file contains all the build statements describing the
+# compilation DAG.
+
+# =============================================================================
+# Write statements declared in CMakeLists.txt:
+# 
+# Which is the root file.
+# =============================================================================
+
+# =============================================================================
+# Project: FamilyDiagram
+# Configurations: Debug
+# =============================================================================
+
+#############################################
+# Minimal version of Ninja required by this file
+
+ninja_required_version = 1.5
+
+
+#############################################
+# Set configuration variable for custom commands.
+
+CONFIGURATION = Debug
+# =============================================================================
+# Include auxiliary files.
+
+
+#############################################
+# Include rules file.
+
+include CMakeFiles/rules.ninja
+
+# =============================================================================
+
+#############################################
+# Logical path to working directory; prefix for absolute paths.
+
+cmake_ninja_workdir = /Users/patrick/dev/familydiagram/build/
+
+#############################################
+# Utility command for _pkdiagram
+
+build _pkdiagram: phony CMakeFiles/_pkdiagram .venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so pkdiagram/_pkdiagram/build
+
+
+#############################################
+# Utility command for pkdiagram
+
+build pkdiagram: phony CMakeFiles/pkdiagram pkdiagram/mainwindow_form.py pkdiagram/preferences_form.py pkdiagram/welcome_form.py
+
+
+#############################################
+# Utility command for run
+
+build run: phony CMakeFiles/run _pkdiagram
+
+
+#############################################
+# Utility command for run-attach
+
+build run-attach: phony CMakeFiles/run-attach _pkdiagram
+
+
+#############################################
+# Utility command for server
+
+build server: phony CMakeFiles/server _pkdiagram
+
+
+#############################################
+# Utility command for server-attach
+
+build server-attach: phony CMakeFiles/server-attach _pkdiagram
+
+
+#############################################
+# Utility command for edit_cache
+
+build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && /usr/local/Cellar/cmake/3.24.2/bin/ccmake -S/Users/patrick/dev/familydiagram -B/Users/patrick/dev/familydiagram/build
+  DESC = Running CMake cache editor...
+  pool = console
+  restat = 1
+
+build edit_cache: phony CMakeFiles/edit_cache.util
+
+
+#############################################
+# Utility command for rebuild_cache
+
+build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && /usr/local/Cellar/cmake/3.24.2/bin/cmake --regenerate-during-build -S/Users/patrick/dev/familydiagram -B/Users/patrick/dev/familydiagram/build
+  DESC = Running CMake to regenerate build system...
+  pool = console
+  restat = 1
+
+build rebuild_cache: phony CMakeFiles/rebuild_cache.util
+
+
+#############################################
+# Phony custom command for CMakeFiles/_pkdiagram
+
+build CMakeFiles/_pkdiagram | ${cmake_ninja_workdir}CMakeFiles/_pkdiagram: phony /Users/patrick/dev/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+
+
+#############################################
+# Custom command for .venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+
+build .venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so pkdiagram/_pkdiagram/build | ${cmake_ninja_workdir}.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so ${cmake_ninja_workdir}pkdiagram/_pkdiagram/build: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/pkdiagram/_pkdiagram/pyproject.toml /Users/patrick/dev/familydiagram/pkdiagram/_pkdiagram/sip/_pkdiagram/_pkdiagrammod.sip pkdiagram/_pkdiagram/*.cpp pkdiagram/_pkdiagram/*.h pkdiagram/_pkdiagram/*.mm
+  COMMAND = cd /Users/patrick/dev/familydiagram/build/pkdiagram/_pkdiagram && sip-install --jobs 8 --build-dir build
+  DESC = Generating .venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+  restat = 1
+
+
+#############################################
+# Phony custom command for CMakeFiles/pkdiagram
+
+build CMakeFiles/pkdiagram | ${cmake_ninja_workdir}CMakeFiles/pkdiagram: phony /Users/patrick/dev/familydiagram/pkdiagram/mainwindow_form.py /Users/patrick/dev/familydiagram/pkdiagram/preferences_form.py /Users/patrick/dev/familydiagram/pkdiagram/welcome_form.py
+
+
+#############################################
+# Custom command for pkdiagram/mainwindow_form.py
+
+build pkdiagram/mainwindow_form.py | ${cmake_ninja_workdir}pkdiagram/mainwindow_form.py: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/pkdiagram/mainwindow.ui
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && pyuic5 pkdiagram/mainwindow.ui -o pkdiagram/mainwindow_form.py
+  DESC = Generating pkdiagram/mainwindow_form.py
+  restat = 1
+
+
+#############################################
+# Custom command for pkdiagram/preferences_form.py
+
+build pkdiagram/preferences_form.py | ${cmake_ninja_workdir}pkdiagram/preferences_form.py: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/pkdiagram/preferences.ui
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && pyuic5 pkdiagram/preferences.ui -o pkdiagram/preferences_form.py
+  DESC = Generating pkdiagram/preferences_form.py
+  restat = 1
+
+
+#############################################
+# Custom command for pkdiagram/welcome_form.py
+
+build pkdiagram/welcome_form.py | ${cmake_ninja_workdir}pkdiagram/welcome_form.py: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/pkdiagram/welcome.ui
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && pyuic5 pkdiagram/welcome.ui -o pkdiagram/welcome_form.py
+  DESC = Generating pkdiagram/welcome_form.py
+  restat = 1
+
+
+#############################################
+# Custom command for CMakeFiles/run
+
+build CMakeFiles/run | ${cmake_ninja_workdir}CMakeFiles/run: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/vedanaprivate || _pkdiagram
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && python main.py
+
+
+#############################################
+# Custom command for CMakeFiles/run-attach
+
+build CMakeFiles/run-attach | ${cmake_ninja_workdir}CMakeFiles/run-attach: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/vedanaprivate || _pkdiagram
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && python main.py --attach
+
+
+#############################################
+# Custom command for CMakeFiles/server
+
+build CMakeFiles/server | ${cmake_ninja_workdir}CMakeFiles/server: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/vedanaprivate || _pkdiagram
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && cd server && FLASK_CONFIG=development FLASK_APP=flaskr flask run --host 0.0.0.0 --without-threads --port=8888
+
+
+#############################################
+# Custom command for CMakeFiles/server-attach
+
+build CMakeFiles/server-attach | ${cmake_ninja_workdir}CMakeFiles/server-attach: CUSTOM_COMMAND /Users/patrick/dev/familydiagram/vedanaprivate || _pkdiagram
+  COMMAND = cd /Users/patrick/dev/familydiagram/build && cd server && FLASK_CONFIG=development FLASK_APP=flaskr flask run --host 0.0.0.0 --port=8888 --attach
+
+# =============================================================================
+# Target aliases.
+
+# =============================================================================
+# Folder targets.
+
+# =============================================================================
+
+#############################################
+# Folder: /Users/patrick/dev/familydiagram/build
+
+build all: phony _pkdiagram pkdiagram
+
+# =============================================================================
+# Built-in targets
+
+
+#############################################
+# Re-run CMake if any of its inputs changed.
+
+build build.ninja: RERUN_CMAKE | /Users/patrick/dev/familydiagram/CMakeLists.txt /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5Config.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5ConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5ModuleLocation.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreMacros.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QCocoaIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QGifPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICNSPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICOPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QJpegPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacHeifPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacJp2Plugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMinimalIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QOffscreenIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgIconPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTgaPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTiffPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QVirtualKeyboardPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWbmpPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWebpPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QXdgDesktopPortalThemePlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsMacros.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5Widgets_QMacStylePlugin.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeParseArguments.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/AppleClang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-AppleClang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.24.2/CMakeCCompiler.cmake CMakeFiles/3.24.2/CMakeCXXCompiler.cmake CMakeFiles/3.24.2/CMakeSystem.cmake
+  pool = console
+
+
+#############################################
+# A missing CMake input file is not an error.
+
+build /Users/patrick/dev/familydiagram/CMakeLists.txt /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5Config.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5ConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5/Qt5ModuleLocation.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreMacros.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QCocoaIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QGifPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICNSPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICOPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QJpegPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacHeifPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacJp2Plugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMinimalIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QOffscreenIntegrationPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgIconPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTgaPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTiffPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QVirtualKeyboardPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWbmpPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWebpPlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QXdgDesktopPortalThemePlugin.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfig.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigExtras.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigVersion.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsMacros.cmake /Users/patrick/dev/lib/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5Widgets_QMacStylePlugin.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeParseArguments.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/AppleClang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-AppleClang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang-C.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.24.2/share/cmake/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.24.2/CMakeCCompiler.cmake CMakeFiles/3.24.2/CMakeCXXCompiler.cmake CMakeFiles/3.24.2/CMakeSystem.cmake: phony
+
+
+#############################################
+# Clean all the built files.
+
+build clean: CLEAN
+
+
+#############################################
+# Print all primary targets available.
+
+build help: HELP
+
+
+#############################################
+# Make the all target the default.
+
+default all

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:../pkdiagram/_pkdiagram">
+   </FileRef>
+   <FileRef
+      location = "group:">
+   </FileRef>
+   <FileRef
+      location = "group:../doc">
+   </FileRef>
+   <FileRef
+      location = "group:../pkdiagram">
+   </FileRef>
+   <FileRef
+      location = "group:../tests">
+   </FileRef>
+</Workspace>

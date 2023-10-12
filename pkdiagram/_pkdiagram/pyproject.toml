@@ -1,0 +1,24 @@
+[build-system]
+requires = [ "sip >=5, <6" ]
+requires-dist = "PyQt5 (>=5.15)"
+build-backend = "sipbuild.api"
+
+# [tool.sip]
+# project-factory = "pyqtbuild:PyQtProject"
+
+# Specify the PEP 566 metadata for the project.
+[tool.sip.metadata]
+name = "_pkdiagram"
+
+[tool.sip.project]
+abi-version = "12.11"
+verbose = true
+
+[tool.sip.builder]
+# qmake-settings = ["QT -= gui", "LIBS += -lstdc++", "CONFIG += c++11"] # "QMAKE_CXXFLAGS += -fno-sized-deallocation"]
+
+[tool.sip.bindings._pkdiagram]
+headers = [ "_pkdiagram.h", "unsafearea.h" ]
+sources = [ "_pkdiagram.cpp", "unsafearea.cpp" ]
+qmake-QT = ["gui", "widgets"]
+include-dirs = [".", "C:\\Qt\\5.15.2\\msvc2019_64\\include\\QtGui\\5.15.2", "C:\\Qt\\5.15.2\\msvc2019_64\\include\\QtCore\\5.15.2"]

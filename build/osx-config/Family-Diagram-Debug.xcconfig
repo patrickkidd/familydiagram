@@ -1,0 +1,7 @@
+#include "Family-Diagram.xcconfig"
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Patrick Stinson
+PROVISIONING_PROFILE = ad2c99d5-4c7d-4b6d-807e-91bafa49c92d
+PROVISIONING_PROFILE_SPECIFIER = Patrick Stinson Development Profile
+

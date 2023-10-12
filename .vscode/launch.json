@@ -1,0 +1,399 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "App",
+            "type": "python",
+            "request": "launch",
+            "--preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            }
+        },
+        {
+            "name": "App (prefs: 'free')",
+            "type": "python",
+            "request": "launch",
+            "--preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--prefs-name=free"
+            ],
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            }
+        },
+        {
+            "name": "App (prefs: 'client')",
+            "type": "python",
+            "request": "launch",
+            "--preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--prefs-name=client"
+            ],
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            }
+        },
+        {
+            "name": "App (Windows)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "nmake",
+            "program": "${workspaceFolder}\\main.py",
+            "console": "integratedTerminal",
+            "python": "C:\\Users\\patrick\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
+            "justMyCode": false,
+            "envFile": "/.vscode/.windows-env"
+        },
+        {
+            "name": "Server",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "server/fdserver",
+                "FLASK_CONFIG": "development",
+                "FLASK_DEBUG": "0"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload",
+                "--without-threads",
+                "-p",
+                "8888"
+            ],
+            "justMyCode": false,
+            "jinja": true
+        },
+        {
+            "name": "sysroot-dev attach (macOS)",
+            "type": "python",
+            "request": "attach",
+            "port": 3001,
+            "host": "127.0.0.1",
+            "redirectOutput": true
+        },
+        {
+            "name": "sysroot-dev CaseProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "CaseProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev PersonProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "PersonProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev MarriageProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "MarriageProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev EventProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "EventProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev EmotionProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "EmotionProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev LayerItemProperties (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "LayerItemProperties"
+            ]
+        },
+        {
+            "name": "sysroot-dev TimelineView (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "TimelineView"
+            ]
+        },
+        {
+            "name": "sysroot-dev GraphicalTimelineView (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "GraphicalTimelineView"
+            ]
+        },
+        {
+            "name": "sysroot-dev test.py (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/test.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "envFile": "/Users/patrick/dev/familydiagram/.env"
+        },
+        {
+            "name": "sysroot-dev scenemodel (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--module",
+                "scenemodel"
+            ]
+        },
+        {
+            "name": "sysroot-dev addemotiondialog (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--module",
+                "addemotiondialog"
+            ]
+        },
+        {
+            "name": "sysroot-dev AccountDialog (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "AccountDialog"
+            ]
+        },
+        {
+            "name": "sysroot-dev LayerView (macOS)",
+            "type": "python",
+            "request": "launch",
+            "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "args": [
+                "--qml-module",
+                "LayerView"
+            ]
+        },
+        {
+            "name": "sysroot-dev (Windows)",
+            "type": "python",
+            "request": "launch",
+            "program": "C:\\familydiagram\\main.py",
+            "console": "integratedTerminal",
+            "--python": "C:\\familydiagram\\vendor\\sysroot-dev\\Python-3.7.2\\PCBuild\\amd64\\python_d.exe"
+        },
+        {
+            "name": "sysroot-dev: Current File (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python"
+        },
+        {
+            "name": "pyqtdeploy-sysroot",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "--sysroots-dir",
+                "C:\\",
+                "sysroot/sysroot.toml"
+            ]
+        },
+        {
+            "name": "pyqtdeploy-build",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-build-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
+            "name": "sip-build (_pkdiagram)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/sip-build-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/pkdiagram/_pkdiagram"
+        },        
+        {
+            "name": "Python: Remote Attach",
+            "type": "python",
+            "request": "attach",
+            "port": 3001,
+            "host": "localhost",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ]
+        },
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "enter-your-module-name-here",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Terminal (integrated)",
+            "type": "python",
+            "request": "launch",
+            "program": "Z:\\dev\\familydiagram\\main.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Current File (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+//            "--python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File (win32)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "C:\\Users\\patrick\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
+            "justMyCode": false,
+            "envFile": "${workspaceFolder}/.vscode/.windows-env"
+        },
+        {
+            "name": "Python: sip-build (PyQt5)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "C:\\familydiagram\\vendor\\sysroot-dev\\PyQt5-5.15.1",
+            "args": [
+                "--qmake",
+                "C:\\familydiagram\\vendor\\sysroot-dev\\qt-everywhere-src-5.15.1\\qtbase\\bin\\qmake.exe",
+                "--verbose",
+                "--no-dbus-python",
+                "--no-designer-plugin",
+                "--no-qml-plugin",
+                "--confirm-license"
+            ],
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.vscode/.windows-env"
+        },
+        {
+            "name": "Debug Unit Test",
+            "type": "python",
+            "purpose": "debug-test",
+            "justMyCode": false,
+        },        
+        {
+            "name": "(gdb) Attach",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/.direnv/python-3.7.8/bin/python", /* My virtual env */
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "MIDebuggerPath": "/usr/bin/lldb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },        
+        {
+            "name": "Bash-Debug (current file)",
+            "type": "bashdb",
+            "request": "launch",
+            "program": "${file}",
+            "--commandLineArguments": "osx"
+        },
+   ]
+}

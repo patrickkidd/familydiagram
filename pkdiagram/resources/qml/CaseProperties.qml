@@ -1,0 +1,790 @@
+import QtQuick 2.12
+import QtQuick.Controls 2.5
+import QtQuick.Controls 2.5 as QQC
+import QtQuick.Layouts 1.12
+import QtQuick.Window 2.2
+import "./PK" 1.0 as PK
+import PK.Models 1.0
+
+
+PK.Drawer {
+    
+    id: root
+    objectName: 'caseProps'
+
+    signal addEvent
+    signal hidden
+
+    property int margin: util.QML_MARGINS
+    property bool isDrawerOpen: eventPropertiesDrawer.visible
+    property bool canRemove: tabBar.currentIndex == 0 && timelineView.canRemove
+    property bool canInspect: tabBar.currentIndex == 0 && timelineView.canInspect
+    property bool notJustFreeLicense: {
+        sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
+            vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
+        )) : false
+    }
+
+    signal clearSearch;
+
+    Connections {
+        target: sceneModel
+        function onSceneChanged() {
+            eventPropertiesDrawer.hide()
+        }
+    }
+
+    onHidden: {
+        eventPropertiesDrawer.hide()
+    }
+
+    onCanRemoveChanged: sceneModel.selectionChanged()
+
+    function removeSelection() {
+        timelineView.removeSelection()
+    }
+
+    function setCurrentTab(tab) {
+        var index = 0
+        if(tab == 'timeline')
+            index = 0
+        else if(tab == 'search')
+            index = 1
+        else if(tab == 'settings')
+            index = 2
+        tabBar.setCurrentIndex(index)
+    }
+
+    function currentTab() {
+        return {
+            0: 'timeline',
+            1: 'search',
+            2: 'settings'
+        }[tabBar.currentIndex]
+    }
+    
+    function inspectEvents(events) {
+        commands.trackView('Edit timeline events')
+        eventProperties.eventModel.items = events
+        eventPropertiesDrawer.visible = true
+    }
+
+    function onInspect(tab) {
+        if(canInspect && timelineView.selectedEvents.length) {
+            if(tab !== undefined) {
+                eventProperties.setCurrentTab(tab)
+            } else {
+                eventProperties.setCurrentTab('item')
+            }
+            root.inspectEvents(timelineView.selectedEvents)
+        }
+    }
+
+    function onInspectNotes(row) {
+        commands.trackView('Edit event notes')
+        eventProperties.eventModel.items = timelineView.selectedEvents
+        eventProperties.setCurrentTab('notes')
+        eventPropertiesDrawer.visible = true
+    }
+
+    function scrollSettingsToBottom() {
+        // for testing
+        settingsView.contentY = settingsView.contentHeight - root.height - util.QML_MARGINS
+    }
+
+    QQC.Drawer {
+
+        id: eventPropertiesDrawer
+        width: util.DRAWER_OVER_WIDTH
+        height: root.height
+        dragMargin: 0
+        edge: Qt.RightEdge
+        PK.EventProperties {
+            id: eventProperties
+            anchors.fill: parent
+        }
+        background: Rectangle {
+            Rectangle {
+                height: parent.height
+                width: 1
+                color: util.QML_ITEM_BORDER_COLOR
+            }
+        }
+        onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
+        Connections {
+            target: eventProperties
+            function onDone() { eventPropertiesDrawer.visible = false }
+        }
+        function hide() {
+            position = 0
+            visible = false
+        }
+    }
+    
+    header: PK.ToolBar {
+        id: toolBar
+        Layout.fillWidth: true
+        PK.ToolButton {
+            id: resizeButton
+            objectName: 'resizeButton'
+            text: root.expanded ? "Contract" : "Expand"
+            anchors.left: parent.left
+            anchors.leftMargin: margin
+            onClicked: resize()
+        }
+        PK.ToolButton {
+            id: resetSearchButton
+            objectName: 'resetSearchButton'
+            text: "Reset"
+            visible: ! root.sceneModel.searchModel.isBlank
+            x: resizeButton.x + width + margin
+            onClicked: root.sceneModel.searchModel.clear()
+        }
+
+        PK.Label {
+            text: 'Entire Family'
+            elide: Text.ElideRight
+            anchors.centerIn: parent
+            font.family: util.FONT_FAMILY_TITLE
+            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+            dropShadow: true
+        }
+        PK.ToolButton {
+            id: doneButton
+            text: "Done"
+            objectName: 'doneButton'
+            anchors.right: parent.right
+            anchors.rightMargin: margin
+            onClicked: done()
+        }
+    }
+
+    footer: PK.TabBar {
+        id: tabBar
+        objectName: 'tabBar'
+        currentIndex: stack.currentIndex
+        Layout.fillWidth: true
+        PK.TabButton { text: "Timeline" }
+        PK.TabButton { text: "Search" }
+        PK.TabButton { text: "Settings" }
+        /* onCurrentIndexChanged: { */
+        /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
+        /* } */
+    }
+
+    Rectangle {
+        color: util.QML_WINDOW_BG
+        anchors.fill: parent
+    }
+
+    StackLayout {
+        id: stack
+        objectName: 'stack'
+        anchors.fill: parent
+        currentIndex: tabBar.currentIndex
+        // hack to avoid "implicitWidth must be greater than zero" warning when timeline is shown but not yet sized to parent QWidget
+        /* Timer { */
+        /*     id: hackTimer */
+        /*     running: true; repeat: false; interval: 0 */
+        /*     onTriggered: stack.currentIndex = 0 */
+        /* } */
+
+        PK.TimelineView {
+            id: timelineView
+            objectName: 'caseProps_timelineView'
+            enabled: Qt.binding(function() { model.count > 0 })
+            model: sceneModel.timelineModel
+            showFilterButton: false
+            Connections {
+                target: sceneModel.timelineModel
+                function onItemsChanged() { timelineView.clearSelection() }
+            }
+            margin: root.margin
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            onSelectionChanged: {
+                sceneModel.selectionChanged()
+                sceneModel.flashTimelineItems(timelineView.selectionModel)
+            }
+            onRowClicked: function(row) {
+                sceneModel.flashTimelineItem(row)
+            }
+            onInspect: root.onInspect()
+            onInspectNotes: root.onInspectNotes(row)
+        }
+
+        Rectangle {            
+            id: searchPage
+            color: util.QML_WINDOW_BG
+            
+            PK.SearchView {
+                id: timelineSearch
+                objectName: 'timelineSearch'
+                headerLabel: 'Search'
+                anchors.fill: parent
+            }
+        }
+        
+        Flickable {
+
+            id: settingsView
+            objectName: 'settingsView'
+            flickableDirection: Flickable.VerticalFlick
+            contentHeight: settingsLayout.implicitHeight + root.margin * 2
+            contentWidth: width
+            clip: true
+
+            Rectangle {
+                color: util.QML_WINDOW_BG
+                anchors.fill: parent
+            }
+
+            ColumnLayout {
+                id: settingsLayout
+                y: margin
+                x: margin
+                width: parent.width - margin * 2
+                
+                PK.GroupBox {
+                    title: 'Timeline Variables'
+                    objectName: "variablesBox"
+                    enabled: !sceneModel.readOnly
+                    Layout.fillWidth: true
+                    padding: 1 // bring variables ListView flush with group box
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 0
+                        RowLayout {
+                            spacing: 0
+                            ListView {
+                                id: variablesList
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 230
+                                Layout.minimumHeight: 150
+                                property bool readOnly: sceneModel.readOnly
+                                currentIndex: -1
+                                clip: true
+                                model: SceneVariablesModel {
+                                    scene: sceneModel.scene
+                                    onSceneChanged: variablesList.currentIndex = -1
+                                }
+                                delegate: Item {
+                                    property bool selected: variablesList.currentIndex == index
+                                    property bool current: false
+                                    property bool alternate: index % 2 == 1
+                                    
+                                    width: variablesList.width
+                                    height: util.QML_ITEM_HEIGHT
+                                    property bool editMode: false
+                                    Rectangle { // background
+                                        anchors.fill: parent
+                                        color: util.itemBgColor(selected, current, alternate)
+                                    }
+                                    PK.TextInput {
+                                        id: nameEdit
+                                        color: util.textColor(selected, current)
+                                        anchors.fill: parent
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        readOnly: !editMode
+                                        text: display
+                                        leftPadding: margin
+                                        onEditingFinished: {
+                                            display = text
+                                            editMode = false
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: !editMode
+                                        onClicked: {
+                                            if(mouse.modifiers & Qt.ControlModifier) {
+                                                variablesList.currentIndex = -1
+                                            } else {
+                                                variablesList.currentIndex = index
+                                            }
+                                            
+                                        }
+                                        onDoubleClicked: {
+                                            if(variablesList.readOnly)
+                                                return
+                                            editMode = true
+                                            nameEdit.selectAll()
+                                            nameEdit.forceActiveFocus()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle { // border-bottom for variables ListView
+                            color: util.QML_ITEM_BORDER_COLOR
+                            height: 1
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            spacing: 0
+
+                            PK.CrudButtons {
+                                Layout.fillWidth: true
+                                bottomBorder: true
+                                addButton: true
+                                addButtonEnabled: !sceneModel.readOnly
+                                removeButton: true
+                                removeButtonEnabled: variablesList.currentIndex > -1 && !sceneModel.readOnly
+                                onAdd: sceneModel.addEventProperty()
+                                onRemove: {
+                                    // workaround to possibly prevent QQuickTableView assertion when removing visible column
+                                    timelineView.delayUpdates = true
+                                    sceneModel.removeEventProperty(variablesList.currentIndex)
+                                    timelineView.delayUpdates = false
+                                    variablesList.currentIndex = -1
+                                }
+                            }
+
+                            PK.ComboBox {
+                                id: templateBox
+                                Layout.minimumWidth: 180
+                                currentIndex: -1
+                                displayText: currentIndex == -1 ? 'Set from template' : model.get(currentIndex)
+                                model: ['Havstad Model', 'Papero Model', "Stinson Model"]
+                                onCurrentIndexChanged: {
+                                    sceneModel.eventPropertiesTemplateIndex = currentIndex
+                                    currentIndex = -1 // change back
+                                    variablesList.currentIndex = -1
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.margins: viewSettingsBox.padding
+
+                            PK.CheckBox {
+                                id: hideVariablesOnDiagramBox
+                                text: "Hide Variables on Diagram"
+                                enabled: !sceneModel.readOnly
+                                checked: sceneModel.hideVariablesOnDiagram
+                                Layout.fillWidth: true
+                                onCheckedChanged: sceneModel.hideVariablesOnDiagram = checked
+                            }
+
+                            PK.Text {
+                                text: "This prevents variable values from being shown on the diagram. This can clean up the diagram for presentation purposes.";
+                                font.pixelSize: util.HELP_FONT_SIZE
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+
+                            PK.CheckBox {
+                                text: "Hide Variable Steady States"
+                                enabled: !sceneModel.readOnly && !hideVariablesOnDiagramBox.checked
+                                checked: sceneModel.hideVariableSteadyStates
+                                Layout.fillWidth: true
+                                onCheckedChanged: sceneModel.hideVariableSteadyStates = checked
+                            }
+                            PK.Text {
+                                text: "This makes it so variable values are only shown when the diagram shows the exact date that a variable shift occured. For example, if a variable has the value `up` on 1/1/1970, and `down` on 1/1/1980, then be no value shown on the diagram for 1/1/1972." ;
+                                enabled: !sceneModel.readOnly && !hideVariablesOnDiagramBox.checked
+                                font.pixelSize: util.HELP_FONT_SIZE
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
+                
+                PK.GroupBox {
+                    id: viewSettingsBox
+                    title: 'View'
+                    Layout.fillWidth: true
+                    Layout.topMargin: margin
+                    ColumnLayout {
+                        anchors.fill: parent                        
+                        PK.CheckBox {
+                            text: "Hide Names"
+                            enabled: !sceneModel.readOnly || sceneModel.useRealNames
+                            checked: sceneModel.showAliases
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.trySetShowAliases(checked)
+                        }
+                        PK.Text {
+                            text: "This ensures anonymity for presentations. <b>NOTE:</b> Event descriptions and notes are not hidden and may reveal names if you have entered them into those fields." ;
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        PK.CheckBox {
+                            text: "Hide Relationships"
+                            checked: sceneModel.hideEmotionalProcess
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.hideEmotionalProcess = checked
+                        }
+                        PK.Text {
+                            text: "This is useful when you want to focus on geoneological data and not emotional process."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        PK.CheckBox {
+                            text: "Hide Relationship Colors"
+                            checked: sceneModel.hideEmotionColors
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.hideEmotionColors = checked
+                        }
+                        PK.Text {
+                            text: "Check this to show all emotional process symbols in black instead of their own color."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        PK.CheckBox {
+                            text: "Hide Diagram Views"
+                            checked: sceneModel.hideLayers
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.hideLayers = checked
+                        }
+                        PK.Text {
+                            text: "Hide all layers and just show the plain diagram."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        
+                        PK.CheckBox {
+                            text: "Hide tool bars"
+                            checked: sceneModel.hideToolBars
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.hideToolBars = checked
+                        }
+                        PK.Text {
+                            text: "Don't show toolbars for use in presentations."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+
+                PK.GroupBox {
+                    id: serverBox
+                    objectName: 'serverBox'
+                    title: {
+                        if(sceneModel.isOnServer) {
+                            if(enabled) {
+                                'Server Settings for Diagram'
+                            } else {
+                                'Server Settings (Client or Pro license required)'
+                            }
+                        } else {
+                            'Upload Diagram to Server'
+                        }
+                    }
+                    enabled: root.notJustFreeLicense && util.ENABLE_SERVER_VIEW
+                    Layout.fillWidth: true
+                    Layout.topMargin: margin
+                    padding: 1 // bring variables ListView flush with group box
+                    // enabled: shouldShow // false when obscured so not usable in tests
+                    property bool showAccessRightsBox: sceneModel.isOnServer && ! sceneModel.readOnly && sceneModel.isMyDiagram
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: util.QML_MARGINS
+
+                        PK.Text {
+                            visible: sceneModel.isOnServer
+                            enabled: accessRightsBox.enabled
+                            property string header: "This diagram is stored securely on the server. ";
+                            text: {
+                                if(sceneModel.readOnly)
+                                    header + "It is owned by " + sceneModel.accessRightsModel.owner + "\n\nYou have been granted read-only access by the owner. You have access to all of the data, but cannot save your changes and cannot make a copy of this diagram."
+                                else if(sceneModel.isMyDiagram)
+                                    header + "You own it.";
+                                else
+                                    header + "It is owned by " + sceneModel.accessRightsModel.owner + "\n\nYou are able to save changes to it, but only the owner can who can view and save changes to it."
+                            }
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                            padding: util.QML_MARGINS / 2
+                        }
+
+                        RowLayout {
+                            spacing: 0
+                            visible: serverBox.showAccessRightsBox
+                            ListView {
+                                id: accessRightsBox
+                                objectName: 'accessRightsBox'
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 230
+                                Layout.minimumHeight: 150
+
+                                enabled: sceneModel.isOnServer && root.notJustFreeLicense && util.ENABLE_SERVER_VIEW
+                                // onEnabledChanged: print('serverAccessRightsBox.onEnabledChanged()[' + enabled + ']:', 'isOnServer:', sceneModel.isOnServer, 'notJustFreeLicense:', root.notJustFreeLicense)
+                                currentIndex: -1
+                                clip: true
+                                model: sceneModel.accessRightsModel
+
+                                property var accessRightItems: { // for testing
+                                    var ret = []
+                                    for(var i=0; i < contentItem.children.length; i++) {
+                                        var child = contentItem.children[i]
+                                        if(child.accessRightIndex !== undefined) {
+                                            ret.push(child)
+                                        }
+                                    }
+                                    return ret
+                                }
+
+                                delegate: Item {
+
+                                    id: dRoot
+                                    property bool selected: accessRightsBox.currentIndex == index
+                                    property bool current: false
+                                    property bool alternate: index % 2 == 1
+                                    property int accessRightIndex: index
+                                    width: accessRightsBox.width
+                                    height: rightBox.height // util.QML_ITEM_HEIGHT
+
+                                    Rectangle { // background
+                                        anchors.fill: parent
+                                        color: util.itemBgColor(selected, current, alternate)
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if(mouse.modifiers & Qt.ControlModifier) {
+                                                accessRightsBox.currentIndex = -1
+                                            } else {
+                                                accessRightsBox.currentIndex = index
+                                            }
+                                            
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        spacing: 0
+
+                                        PK.Text {
+                                            text: username
+                                            objectName: 'userBox'
+                                            Layout.leftMargin: util.QML_MARGINS / 2
+                                        }
+
+                                        PK.ComboBox {
+                                            id: rightBox
+                                            objectName: 'rightBox'
+                                            model: ['Read Only', 'Read+Write']
+                                            // Layout.rightMargin: -(util.QML_MARGINS * 2) // no idea
+                                            Layout.alignment: Qt.AlignRight
+                                            currentIndex: {
+                                                if(rightCode == undefined) {
+                                                    return -1
+                                                } else if (rightCode == vedana.ACCESS_READ_ONLY) {
+                                                    return 0
+                                                } else if (rightCode == vedana.ACCESS_READ_WRITE) {
+                                                    return 1
+                                                }
+                                            }
+                                            onCurrentIndexChanged: {
+                                                if(currentIndex == -1) {
+                                                    rightCode = undefined
+                                                } else if(currentIndex == 0) {
+                                                    rightCode = vedana.ACCESS_READ_ONLY
+                                                } else if(currentIndex == 1) {
+                                                    rightCode = vedana.ACCESS_READ_WRITE
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            // enabled: accessRightsBox.enabled
+                            visible: serverBox.showAccessRightsBox
+                            spacing: 0
+
+                            PK.CrudButtons {
+                                objectName: 'accessRightsCrudButtons'
+                                Layout.fillWidth: true
+                                bottomBorder: true
+                                addButton: true
+                                addButtonEnabled: addAccessRightBox.isValidUsername && !sceneModel.readOnly
+                                removeButton: true
+                                removeButtonEnabled: accessRightsBox.currentIndex > -1 && !sceneModel.readOnly
+                                onAdd: addAccessRightBox.addAccessRight()
+                                onRemove: {
+                                    accessRightsBox.model.deleteRight(accessRightsBox.currentIndex)
+                                    accessRightsBox.currentIndex = -1
+                                }
+                            }
+
+                            PK.TextField {
+                                id: addAccessRightBox
+                                objectName: 'addAccessRightBox'
+                                placeholderText: 'some.user@somewhere.com'
+                                Layout.minimumWidth: 180
+                                property bool isValidUsername: accessRightsBox.model.findUser(text) !== undefined
+                                property var greenColor: util.IS_UI_DARK_MODE ? '#801aa260' : '#8056d366'
+                                property var redColor: util.IS_UI_DARK_MODE ? '#80ff0000' : '#80e8564e'
+                                property var currentUser: accessRightsBox.model.findUser(text)
+                                // onCurrentUserChanged: print(currentUser ? currentUser.username : currentUser)
+                                palette.base: {
+                                    if(text == '') {
+                                        'transparent'
+                                    } else if (currentUser) {
+                                        greenColor
+                                    } else {
+                                        redColor
+                                    }
+                                }
+                                validator: RegExpValidator { regExp:/\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/ }
+                                function addAccessRight() {
+                                    if(text) {
+                                        var success = accessRightsBox.model.addRight(text)
+                                        if(success)
+                                            text = ''
+                                    }
+                                }
+                                Keys.onReturnPressed: addAccessRight()
+                            }
+
+                        }
+
+                        PK.Text {
+                            visible: serverBox.showAccessRightsBox
+                            enabled: accessRightsBox.enabled
+                            text: "Here you can set access rights for other users using their email. Each person you add can either have read-only access or write access. In either case, your diagram will appear in their own server view in the app and you will be listed as the diagram\'s owner.\n\nEnter the username of the account you want to share this diagram with, and hit enter or click the add button. The text input will turn from red to green when a matching user is found."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                            padding: util.QML_MARGINS / 2
+                            topPadding: 0
+                        }
+
+                        RowLayout {
+                            id: uploadBox
+                            objectName: 'uploadBox'
+                            visible: !sceneModel.isOnServer
+                            // enabled: !sceneModel.isOnServer
+                            spacing: 0
+                            Rectangle {
+                                color: 'transparent'
+                                Layout.fillWidth: true
+                            }
+                            PK.Button {
+                                id: uploadButton
+                                objectName: 'uploadButton'
+                                text: 'Upload to Server'
+                                Layout.fillWidth: true
+                                Layout.margins: util.QML_MARGINS / 2
+                                Layout.bottomMargin: 0
+                                onClicked: sceneModel.uploadToServer()
+                            }
+                        }
+
+                        PK.Text {
+                            visible: uploadBox.visible
+                            // enabled: uploadBox.enabled
+                            text: 'Click upload if you want to copy this diagram to the server so that you can share it with others. You will have an option to keep the copy on your local computer if you wish.'
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                            padding: util.QML_MARGINS / 2
+                            topPadding: 0
+                        }
+                    }
+                }
+
+                PK.GroupBox {
+                    title: 'Research'
+                    Layout.fillWidth: true
+                    Layout.topMargin: margin
+                    visible: false // util.ENABLE_SERVER_VIEW
+                    ColumnLayout {
+                        id: columnLayout
+                        anchors.fill: parent
+
+                        PK.CheckBox {
+                            id: contributeBox
+                            text: "Contribute this project to research."
+                            enabled: !sceneModel.readOnly
+                            checked: sceneModel.contributeToResearch
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.contributeToResearch = checked
+                        }
+
+                        RowLayout {
+                            PK.Text { text: "Server Alias:" }
+                            PK.Text { id: aliasText; text: "[%1]".arg(sceneModel.alias) ; wrapMode: Text.WordWrap }
+                            Layout.fillWidth: true
+                        }
+
+                        PK.Text {
+                            text: "If this option is checked then an anonymized copy of this diagram will be maintained on the research server. All names will be replaced with aliases and notes will be excluded unless \"Use real names for research\" is checked below. It will be accessible on the server using the alias above."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        PK.CheckBox {
+                            text: "Use real names for research."
+                            enabled: contributeBox.checked && !sceneModel.readOnly
+                            checked: sceneModel.useRealNames
+                            Layout.fillWidth: true
+                            onCheckedChanged: sceneModel.useRealNames = checked
+                        }
+
+                        PK.Text {
+                            enabled: contributeBox.checked
+                            text: "Family identities are protected by default on diagrams that are contributed to family systems research. However, it makes sense to use real names when the family has consented to their release, or when using data that is publically availble as in the case of celebrities or political figures."
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                        }
+
+                        PK.CheckBox {
+                            id: passwordBox
+                            text: "Require password to view real names."
+                            enabled: contributeBox.checked && sceneModel.useRealNames &&!sceneModel.readOnly
+                            checked: sceneModel.requirePasswordForRealNames
+                            onCheckedChanged: sceneModel.requirePasswordForRealNames = checked
+                            Layout.fillWidth: true
+                        }
+                        RowLayout {
+                            id: passwordEditor
+                            enabled: contributeBox.checked && passwordBox.checked && sceneModel.requirePasswordForRealNames && !sceneModel.readOnly
+                            Layout.fillWidth: true
+                            Button {
+                                id: resetPasswordButton
+                                text: "Reset"
+                                onClicked: sceneModel.password = util.newPassword()
+                            }
+                            PK.TextEdit {
+                                id: passwordText
+                                text: "PASSWORD: %1".arg(sceneModel.password)
+                                readOnly: true
+                                selectByMouse: true
+                            }
+                        }
+
+                        PK.Text {
+                            text: "If checked, this will allow only people with this password to view the real names stored in this case. This can be useful when using the server to share sensitive case data with others. The server administrators will also not be able to see identifying information unless you provide them with the password."
+                            enabled: contributeBox.checked && passwordBox.checked && sceneModel.useRealNames
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

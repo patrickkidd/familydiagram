@@ -1,0 +1,42 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyqt5 = "5.15.7"
+sip = "*"
+apscheduler = "*"
+bugsnag = "*"
+bcrypt = "*"
+flask = "*"
+flask-bcrypt = "*"
+flask-cli = "*"
+flask-graphql = "*"
+flask-mail = "*"
+flask-sqlalchemy = "*"
+flask-wtf = "*"
+graphene-sqlalchemy = "*"
+pygments = "*"
+python-dateutil = "*"
+psycopg2 = "*"
+requests = "*"
+stripe = "*"
+pylint = "*"
+bandit = "*"
+pyqtdeploy = "==3.2.0"
+pyqt-builder = "*"
+autopep8 = "*"
+
+[dev-packages]
+coverage = "*"
+mock = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-qt = "*"
+pytest-mock = "*"
+pytest-xdist = "*"
+snapshottest = "*"
+
+[requires]
+python_version = "3.10.4"

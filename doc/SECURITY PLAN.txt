@@ -1,0 +1,7 @@
+- Encryption only on cached server assets
+    - cached license (i.e. session) status
+    - cached server diagram, e.g. free diagram
+        - Pops error for free diagram w/o internet anyway
+
+- Client <= 1.4.4 encrypts data with the server
+    - Need to phase out - send warning email

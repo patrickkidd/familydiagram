@@ -1,0 +1,25 @@
+v1.5.0 (Server 2.0)
+=============================================================================
+USER STORIES / FUNCTIONAL REQUIREMENTS
+
+- Show server view (Client + Pro)
+  - Search by owner in toolbar
+    - Autocomplete search field for diagrams in index
+- Button to move local file to server.
+  - Set diagram name on Upload
+  - Add owner column + filter option
+  - Add owner label to Server box
+- Only allow one access_right for Client license, none for free
+  - Create pkdiagram.Session object to handle http requests, licenses etc.
+  - Move licenses|features to pkdiagram.Session
+- Diagram share list in settings (Client + Pro)
+  - "Client" license can only share to one other account (r/w access)
+    - "Import Diagram..." still overwrites free diagram as before, no updates server to too
+  - Upload to server on share
+    - Dlg: "Delete local copy?" Yes|No
+  - List of share accounts + read|write access
+  - Once shared, show button to submit for public access
+    - Store dated revisions of accepted submissions
+    - Add revisions to UI + "revert" button
+    - "Research Admin" user can approve/revert submissions
+      - Implies adding user roles.

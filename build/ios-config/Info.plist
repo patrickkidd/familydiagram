@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>CFBundleDisplayName</key>
+	<string>${PRODUCT_NAME}</string>
+	<key>CFBundleExecutable</key>
+	<string>Family Diagram</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Created by Vedanā Media</string>
+	<key>CFBundleIconFile</key>
+	<string>PKDiagram.png</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.vedanamedia.familydiagram</string>
+	<key>CFBundleName</key>
+	<string>Family Diagram</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.com.vedanamedia.familydiagram</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>Family Diagram</string>
+			<key>NSUbiquitousContainerSupportedFolderLevels</key>
+			<string>Any</string>
+		</dict>
+	</dict>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>fd</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>PKDiagram-Document.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>application/x-fd</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Family Diagram</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>FD</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.vedanamedia.familydiagram</string>
+			</array>
+			<key>LSTypeIsPackage</key>
+			<true/>
+			<key>NSDocumentClass</key>
+			<string>DiagramDocument</string>
+		</dict>
+	</array>
+
+	<key>UIStatusBarHidden</key>
+	<false/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+				<string>public.composite-content</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Family Diagram</string>
+			<key>UTTypeIconFile</key>
+			<string>PKDiagram-Document</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.vedanamedia.familydiagram</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>fd</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

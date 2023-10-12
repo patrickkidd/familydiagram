@@ -1,0 +1,361 @@
+Strange bugs
+-----------------------------------------------------------------------------
+
+
+- Traceback (most recent call last):
+    File ":/pkdiagram/widgets/drawer.py", line 304, in doCallback
+    File ":/pkdiagram/qmldrawer.py", line 60, in onHidden
+    File ":/pkdiagram/documentview.py", line 274, in <lambda>
+  TypeError: show() got an unexpected keyword argument 'tab'
+
+
+- items/qquicktableview.cpp:458:void QQuickTableViewPrivate::dumpTable() const(): "table cells: (1,4) -> (5,27), item count: 72, table rect: 0,120 x 390,720"
+  scenegraph/coreapi/qsgbatchrenderer.cpp:2591:None(): ASSERT: "m_context->openglContext() == QOpenGLContext::currentContext()" in file scenegraph/coreapi/qsgbatchrenderer.cpp, line 2591
+
+- Editing EmotionProperties
+  - qrc:/qml/PK/TimelineView.qml:609:None(): qrc:/qml/PK/TimelineView.qml:609:13: QML TextInput: Binding loop detected for property "color"
+
+
+- Can't close diagram when internet connection stalls
+  - Test on parallels when host is not connected to internet.
+  - Add cancel button?
+
+- Resize button doesn't work on BCSF iMac?
+
+- FM sorting not always consistent on init, open/close file?
+
+- Sort FM by date doesn't work on Parallels High Sierra?
+
+- DatePicker buttons wouldn't allow typing date; would toggle date/null when char typed (can't reproduce)
+
+- Assertions in property.py, timelinemodel.py when adding/removing variables. Hard to reproduce
+
+- On add event (maybe without setting parent?)
+    Traceback (most recent call last):
+      File "/Users/patrick/dev/pkdiagram/pkdiagram/commands.py", line 539, in redo
+        self.event.setParent(self.parent)
+      File "/Users/patrick/dev/pkdiagram/pkdiagram/objects/event.py", line 133, in setParent
+        was.onRemoveEvent(self)
+    AttributeError: 'Scene' object has no attribute 'onRemoveEvent'
+
+- ../../include/QtCore/../../src/corelib/tools/qlist.h:720:None(): ASSERT failure in QList<T>::move: "index out of range", file ../../include/QtCore/../../src/corelib/tools/qlist.h, line 720
+  - On deselect emotion with props open?
+
+- qrc:/qml/PK/TagEdit.qml:56:None(): qrc:/qml/PK/TagEdit.qml:56:17: QML CheckBox: Binding loop detected for property "checked"
+
+
+
+- Date roll-over thing broken
+   Traceback (most recent call last):
+     File "/Users/patrick/dev/pkdiagram/pkdiagram/scene.py", line 738, in timerEvent
+       self.nowEvent.setDate(QDate.currentDate())
+     File "/Users/patrick/dev/pkdiagram/pkdiagram/objects/property.py", line 106, in set
+       self.item.onProperty(self)
+   AttributeError: 'NoneType' object has no attribute 'onProperty'
+
+
+
+Traceback (most recent call last):
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/models/qobjecthelper.py", line 165, in refreshAllProperties
+    self.refreshProperty(attr)
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/models/qobjecthelper.py", line 173, in refreshProperty
+    x = self.get(attr)
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/models/eventpropertiesmodel.py", line 57, in get
+    ret = self.sameOf(lambda item: item.prop(attr).get())
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/models/modelhelper.py", line 46, in sameOf
+    ret = util.sameOf(self._items, getter)
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/util.py", line 563, in sameOf
+    stuff = [getter(item) for item in items]
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/util.py", line 563, in <listcomp>
+    stuff = [getter(item) for item in items]
+  File "/Users/patrick/dev/pkdiagram/pkdiagram/models/eventpropertiesmodel.py", line 57, in <lambda>
+    ret = self.sameOf(lambda item: item.prop(attr).get())
+AttributeError: 'NoneType' object has no attribute 'get'
+
+
+- When removing event variable in middle of list:
+   items/qquicktableview.cpp:455:void QQuickTableViewPrivate::dumpTable() const(): "******* TABLE DUMP *******"
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(3,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(4,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(5,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(6,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(9,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(10,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(11,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(12,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(13,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(14,19)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,0)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,1)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,2)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,3)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,4)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,5)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,6)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,7)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,8)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,9)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,10)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,11)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,12)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,13)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,14)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,15)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,16)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,17)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,18)
+   items/qquicktableview.cpp:457:void QQuickTableViewPrivate::dumpTable() const(): QPoint(15,19)
+   items/qquicktableview.cpp:458:void QQuickTableViewPrivate::dumpTable() const(): "table cells: (3,0) -> (15,19), item count: 220, table rect: 120,0 x 1220,600"
+   scenegraph/coreapi/qsgbatchrenderer.cpp:2591:None(): ASSERT: "m_context->openglContext() == QOpenGLContext::currentContext()" in file scenegraph/coreapi/qsgbatchrenderer.cpp, line 2591
+
+
+
+
+Thread 0 Crashed:: Dispatch queue: com.apple.main-thread
+0   libsystem_kernel.dylib        	0x00007fff654e247a __pthread_kill + 10
+1   libsystem_pthread.dylib       	0x00007fff6559f707 pthread_kill + 384
+2   libsystem_c.dylib             	0x00007fff6546aa08 abort + 120
+3   libQt5Core_debug.5.13.1.dylib 	0x00000001100ac568 qt_message_fatal(QtMsgType, QMessageLogContext const&, QString const&) + 24
+4   libQt5Core_debug.5.13.1.dylib 	0x00000001105bcceb QMessageLogger::fatal(char const*, ...) const + 443 (qlogging.cpp:888)
+5   libQt5Core_debug.5.13.1.dylib 	0x00000001105bbc87 qt_assert(char const*, char const*, int) + 87 (qglobal.cpp:3261)
+6   libQt5Quick_debug.5.13.1.dylib	0x00000001177cce62 QSGBatchRenderer::Renderer::render() + 98 (qsgbatchrenderer.cpp:2593)
+7   libQt5Quick_debug.5.13.1.dylib	0x00000001177b870d QSGRenderer::renderScene(QSGBindable const&) + 493 (qsgrenderer.cpp:245)
+8   libQt5Quick_debug.5.13.1.dylib	0x00000001177b84d5 QSGRenderer::renderScene(unsigned int) + 69 (qsgrenderer.cpp:191)
+9   libQt5Quick_debug.5.13.1.dylib	0x0000000117825f54 QSGDefaultRenderContext::renderNextFrame(QSGRenderer*, unsigned int) + 68 (qsgdefaultrendercontext.cpp:182)
+10  libQt5Quick_debug.5.13.1.dylib	0x00000001178b7562 QQuickWindowPrivate::renderSceneGraph(QSize const&) + 946 (qquickwindow.cpp:489)
+11  libQt5Quick_debug.5.13.1.dylib	0x00000001179f59bb QQuickRenderControl::render() + 107 (qquickrendercontrol.cpp:345)
+12  libQt5Quick_debug.5.13.1.dylib	0x00000001179f5ab1 QQuickRenderControl::grab() + 225 (qquickrendercontrol.cpp:389)
+13  libQt5Quick_debug.5.13.1.dylib	0x00000001178ca979 QQuickWindow::grabWindow() + 1049 (qquickwindow.cpp:3937)
+14  libQt5Quick_debug.5.13.1.dylib	0x0000000117a350df QQuickTableViewPrivate::dumpTable() const + 607 (qquicktableview.cpp:462)
+15  libQt5Quick_debug.5.13.1.dylib	0x0000000117a35bf3 QQuickTableViewPrivate::modelIndexAtCell(QPoint const&) const::$_3::operator()() const + 35 (qquicktableview.cpp:476)
+16  libQt5Quick_debug.5.13.1.dylib	0x0000000117a35b8e QQuickTableViewPrivate::modelIndexAtCell(QPoint const&) const + 142 (qquicktableview.cpp:476)
+17  libQt5Quick_debug.5.13.1.dylib	0x0000000117a38e4f QQuickTableViewPrivate::unloadItem(QPoint const&) + 47 (qquicktableview.cpp:912)
+18  libQt5Quick_debug.5.13.1.dylib	0x0000000117a3c13a QQuickTableViewPrivate::unloadEdge(Qt::Edge) + 666 (qquicktableview.cpp:1589)
+19  libQt5Quick_debug.5.13.1.dylib	0x0000000117a3bc0d QQuickTableViewPrivate::loadAndUnloadVisibleEdges() + 221
+20  libQt5Quick_debug.5.13.1.dylib	0x0000000117a3d240 QQuickTableViewPrivate::updatePolish() + 352 (qquicktableview.cpp:1757)
+21  libQt5Quick_debug.5.13.1.dylib	0x0000000117a409af QQuickTableView::viewportMoved(QFlags<Qt::Orientation>) + 543 (qquicktableview.cpp:2267)
+22  libQt5Quick_debug.5.13.1.dylib	0x00000001179a5a2b QQuickFlickablePrivate::itemGeometryChanged(QQuickItem*, QQuickGeometryChange, QRectF const&) + 203 (qquickflickable.cpp:326)
+23  libQt5Quick_debug.5.13.1.dylib	0x000000011788fdae QQuickItem::geometryChanged(QRectF const&, QRectF const&) + 558 (qquickitem.cpp:3799)
+24  libQt5Quick_debug.5.13.1.dylib	0x00000001178975bb QQuickItem::setY(double) + 283 (qquickitem.cpp:6613)
+25  libQt5Quick_debug.5.13.1.dylib	0x00000001179a5060 QQuickFlickablePrivate::setViewportY(double) + 256 (qquickflickable.cpp:1687)
+26  libQt5Quick_debug.5.13.1.dylib	0x00000001179a80cc QQuickTimeLineValueProxy<QQuickFlickablePrivate>::setValue(double) + 156 (qquicktimeline_p_p.h:187)
+27  libQt5Quick_debug.5.13.1.dylib	0x00000001179a82d7 QQuickFlickable::setContentY(double) + 295 (qquickflickable.cpp:809)
+28  libQt5Quick_debug.5.13.1.dylib	0x00000001179b1405 QQuickFlickable::qt_static_metacall(QObject*, QMetaObject::Call, int, void**) + 6037 (moc_qquickflickable_p.cpp:1001)
+29  libQt5Quick_debug.5.13.1.dylib	0x00000001179b1a30 QQuickFlickable::qt_metacall(QMetaObject::Call, int, void**) + 240 (moc_qquickflickable_p.cpp:1064)
+30  libQt5Quick_debug.5.13.1.dylib	0x0000000117a414c3 QQuickTableView::qt_metacall(QMetaObject::Call, int, void**) + 51 (moc_qquicktableview_p.cpp:316)
+31  libQt5Qml_debug.5.13.1.dylib  	0x0000000118639e55 QQmlVMEMetaObject::metaCall(QObject*, QMetaObject::Call, int, void**) + 6741 (qqmlvmemetaobject.cpp:981)
+32  libQt5Qml_debug.5.13.1.dylib  	0x0000000118639e20 QQmlVMEMetaObject::metaCall(QObject*, QMetaObject::Call, int, void**) + 6688 (qqmlvmemetaobject.cpp:979)
+33  libQt5Core_debug.5.13.1.dylib 	0x00000001103bd474 QMetaObject::metacall(QObject*, QMetaObject::Call, int, void**) + 100 (qmetaobject.cpp:307)
+34  libQt5Qml_debug.5.13.1.dylib  	0x00000001184dad43 QV4::QObjectWrapper::setProperty(QV4::ExecutionEngine*, QObject*, QQmlPropertyData*, QV4::Value const&) + 4035 (qv4qobjectwrapper.cpp:538)
+35  libQt5Qml_debug.5.13.1.dylib  	0x00000001184d9d69 QV4::QObjectWrapper::setQmlProperty(QV4::ExecutionEngine*, QQmlContextData*, QObject*, QV4::String*, QV4::QObjectWrapper::RevisionMode, QV4::Value const&) + 265 (qv4qobjectwrapper.cpp:438)
+36  libQt5Qml_debug.5.13.1.dylib  	0x00000001184dc810 QV4::QObjectWrapper::virtualPut(QV4::Managed*, QV4::PropertyKey, QV4::Value const&, QV4::Value*) + 304 (qv4qobjectwrapper.cpp:723)
+37  libQt5Qml_debug.5.13.1.dylib  	0x000000011843a742 QV4::Object::put(QV4::StringOrSymbol*, QV4::Value const&, QV4::Value*) + 114 (qv4object_p.h:318)
+38  libQt5Qml_debug.5.13.1.dylib  	0x000000011843faac QV4::Lookup::setterFallback(QV4::Lookup*, QV4::ExecutionEngine*, QV4::Value&, QV4::Value const&) + 188 (qv4lookup.cpp:492)
+39  libQt5Qml_debug.5.13.1.dylib  	0x0000000118603cd5 QV4::JIT::Helpers::setLookupSloppy(QV4::Function*, int, QV4::Value&, QV4::Value const&) + 101 (qv4jithelpers.cpp:106)
+40  ???                           	0x0000000122216d99 0 + 4867583385
+41  libQt5Qml_debug.5.13.1.dylib  	0x000000011850f32e QV4::Moth::VME::exec(QV4::CppStackFrame*, QV4::ExecutionEngine*) + 254 (qv4vme_moth.cpp:503)
+42  libQt5Qml_debug.5.13.1.dylib  	0x000000011847070d QV4::Function::call(QV4::Value const*, QV4::Value const*, int, QV4::ExecutionContext const*) + 301 (qv4function.cpp:69)
+43  libQt5Qml_debug.5.13.1.dylib  	0x00000001186fd4e3 QQmlJavaScriptExpression::evaluate(QV4::CallData*, bool*) + 851 (qqmljavascriptexpression.cpp:211)
+44  libQt5Qml_debug.5.13.1.dylib  	0x0000000118675a00 QQmlBoundSignalExpression::evaluate(void**) + 1504 (qqmlboundsignal.cpp:227)
+45  libQt5Qml_debug.5.13.1.dylib  	0x00000001186761b6 QQmlBoundSignal_callback(QQmlNotifierEndpoint*, void**) + 374 (qqmlboundsignal.cpp:359)
+46  libQt5Qml_debug.5.13.1.dylib  	0x00000001186d7c5a QQmlNotifier::emitNotify(QQmlNotifierEndpoint*, void**) + 522 (qqmlnotifier.cpp:105)
+47  libQt5Qml_debug.5.13.1.dylib  	0x0000000118644222 QQmlData::signalEmitted(QAbstractDeclarativeData*, QObject*, int, void**) + 1138
+48  libQt5Core_debug.5.13.1.dylib 	0x000000011040e5ce QMetaObject::activate(QObject*, int, int, void**) + 174 (qobject.cpp:3682)
+49  libQt5Core_debug.5.13.1.dylib 	0x000000011040e50d QMetaObject::activate(QObject*, QMetaObject const*, int, void**) + 61 (qobject.cpp:3661)
+50  QtQml.so                      	0x00000001192c3786 QPyQmlObjectProxy::qt_metacall(QMetaObject::Call, int, void**) + 374 (qpyqmlobject.cpp:123)
+51  libQt5Core_debug.5.13.1.dylib 	0x00000001103bd49b QMetaObject::metacall(QObject*, QMetaObject::Call, int, void**) + 139 (qmetaobject.cpp:309)
+52  libQt5Core_debug.5.13.1.dylib 	0x000000011040eeb4 QMetaObject::activate(QObject*, int, int, void**) + 2452 (qobject.cpp:3825)
+53  libQt5Core_debug.5.13.1.dylib 	0x000000011040e50d QMetaObject::activate(QObject*, QMetaObject const*, int, void**) + 61 (qobject.cpp:3661)
+54  libQt5Core_debug.5.13.1.dylib 	0x000000011040f857 QMetaObject::activate(QObject*, int, void**) + 135 (qobject.cpp:3860)
+55  QtCore.so                     	0x000000010fd3a150 do_emit(QObject*, int, Chimera::Signature const*, char const*, _object*) + 704 (qpycore_pyqtboundsignal.cpp:802)
+56  QtCore.so                     	0x000000010fd38cd3 pyqtBoundSignal_emit(_object*, _object*) + 483 (qpycore_pyqtboundsignal.cpp:742)

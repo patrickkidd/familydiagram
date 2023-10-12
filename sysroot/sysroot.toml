@@ -1,0 +1,184 @@
+# OpenSSL ########################################################################
+
+[OpenSSL]
+disabled_targets = ["ios"]
+version = "1.1.1g"
+
+# zlib ########################################################################
+
+[zlib]
+version = "1.2.11"
+install_from_source = true
+
+[zlib.android]
+version = "1.2.7"
+
+[zlib.win]
+install_from_source = true
+static_msvc_runtime = true
+
+# Python ########################################################################
+
+[Python]
+version = "3.10.4"
+
+[Python.macos]
+install_host_from_source = false
+
+[Python.ios]
+install_host_from_source = true
+
+[Python.win]
+install_host_from_source = false
+
+# SIP ########################################################################
+
+[SIP]
+version = "12.11.0"
+module_name = "PyQt5.sip"
+# Required for pyqtdeploy-3.3.0
+# abi_major_version = "12"
+
+# Qt ########################################################################
+
+[Qt]
+version = "5.15.10"
+edition = "opensource"
+skip = [
+    "qt3d",
+    "qtactiveqt",
+    "qtcanvas3d",
+    "qtgamepad",
+    "qtlocation",
+    "qtremoteobjects",
+    "qtscript",
+    "qtserialbus",
+    "qtserialport",
+    "qtspeech",
+    "qtwayland",
+    "qtwebchannel",
+    "qtwebengine",
+    "qtwebglplugin",
+    "qtwebsockets",
+    "qtwebview",
+    "qtlottie",
+    "qtdatavis3d",
+    "qtconnectivity",
+    "qtcharts",
+    "qtandroidextras",
+    "qtdoc",
+    "qtnetworkauth",
+    "qtqa",
+    "qtrepotools",
+    "qtscxml",
+    "qtsensors",
+    "qtsvg",
+    "qttools",
+    "qttranslations",
+    "qtx11extras",
+    "qtxmlpatterns",
+    "qtmultimedia",
+    "qtpurchasing",
+    "qtimageformats"
+]
+
+[Qt.macos]
+install_from_source = false # required for static build
+ssl = "openssl-linked"
+configure_options = [
+    "-debug-and-release",
+    "-nomake", "examples",
+    "-nomake", "tests",
+    "-no-sql-mysql",
+    "-no-sql-psql",
+    "-opengl", "desktop"
+]
+
+[Qt.win]
+ssl = "openssl-linked"
+static_msvc_runtime = true
+install_from_source = true
+configure_options = [
+    "-debug-and-release",
+    "-nomake", "examples",
+    "-nomake", "tests",
+    "-opengl", "desktop", "-no-angle",
+    "-no-sql-mysql",
+    "-no-sql-psql"
+]
+
+[Qt.ios]
+install_from_source = false
+ssl = "securetransport"
+
+# PyQt ########################################################################
+
+[PyQt]
+version = "5.15.7"
+installed_modules = [ ]
+
+[PyQt.macos]
+installed_modules = [
+    "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
+]
+
+[PyQt.ios]
+disabled_features = [
+    "PyQt_Desktop_OpenGL", "PyQt_MacOSXOnly",
+    "PyQt_MacCocoaViewContainer", "PyQt_Printer",
+    "PyQt_PrintDialog", "PyQt_PrintPreviewDialog",
+    "PyQt_PrintPreviewWidget", "PyQt_Process",
+    "PyQt_NotBootstrapped"
+]
+installed_modules = [
+    "QtCore", "QtGui", "QtNetwork", "QtWidgets",
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
+]
+
+[PyQt.win]
+disabled_features = [ "PyQt_Desktop_OpenGL" ]
+installed_modules = [
+    "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
+    "QtQml", "QtQuick", "QtQuickWidgets", "QtWinExtras"
+]
+
+
+# Misc Third-Party ####################################################################
+
+[bugsnag]
+version = "6.9.2"
+
+[six]
+version = "1.14.0"
+
+[pydantic]
+version = "1.8.2"
+
+[typing_extensions]
+version = "4.0.0"
+
+[dateutil]
+version = "2.8.0"
+
+[sortedcontainers]
+version = "2.2.2"
+
+[xlsxwriter]
+version = "0.9.8"
+
+# App Modules ########################################################################
+
+[vedana]
+version = "1.0.0"
+
+[vedanaprivate]
+version = "1.0.0"
+
+[_vedanaprivate]
+version = "1.0.0"
+
+[_pkdiagram]
+version = "1.0.0"
+
+

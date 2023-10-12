@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="pkdiagram/resources/misc">
+        <file alias="WinSparkle.dll">..\..\pkdiagram\resources\misc\WinSparkle.dll</file>
+    </qresource>
+</RCC>

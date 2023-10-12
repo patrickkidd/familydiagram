@@ -1,0 +1,1463 @@
+version = 0
+sysroot = "sysroot/sysroot.toml"
+sysroots_dir = ""
+parts = [ "Python:time", "Python:pickle", "Python:queue", "Python:datetime", "Python:inspect", "Python:pprint", "Python:zipfile", "Python:decimal", "Python:tempfile", "Python:logging", "Python:smtplib", "Python:_socket", "Python:encodings.idna", "Python:platform", "Python:posix", "Python:zlib", "Python:wsgiref", "Python:wsgiref.handlers", "Python:wsgiref.headers", "Python:wsgiref.simple_server", "Python:wsgiref.util", "Python:wsgiref.validate", "Python:optparse", "Python:xml.parsers.expat", "Python:math", "Python:profile", "Python:cProfile", "Python:json", "Python:pkgutil", "PyQt:PyQt5.Qt", "PyQt:PyQt5.QtGui", "PyQt:PyQt5.QtWidgets", "PyQt:PyQt5.QtNetwork", "PyQt:PyQt5.QtQuick", "PyQt:PyQt5.QtQuickWidgets", "PyQt:PyQt5.QtPrintSupport", "six:six", "dateutil:dateutil", "sortedcontainers:sortedcontainers", "xlsxwriter:xlsxwriter", "Python:uuid", "bugsnag:bugsnag", "Python:sysconfig", "Python:typing", "Python:urllib.request", "pydantic:pydantic", "Python:pathlib", "typing_extensions:typing_extensions", "Python:ipaddress", "Python:colorsys", "Python:dataclasses", "Python:urllib.parse", "vedana:vedana", "Python:__future__", "vedanaprivate:vedanaprivate", "_vedanaprivate:_vedanaprivate", "_pkdiagram:_pkdiagram",]
+
+[Application]
+entry_point = "pkdiagram.app:main"
+is_console = false
+is_bundle = true
+name = "Family Diagram"
+qmake_configuration = "include($$PWD/../../build/common-config/common.pri)\n"
+script = ""
+syspath = ""
+
+[Application.Package]
+name = "pkdiagram"
+exclude = [ "*.pyc", "*.pyd", "*.pyo", "*.pyx", "*.pxi", "__pycache__", "*-info", "EGG_INFO", "*.so", "*.ui", "*.code-workspace", "*.cpp", "*.h", "*.dylib", "*.so", "*.pro", "Makefile*", "qrc_*.py", "*.o", "build", "doc", "*.xcworkspace", "CMake*", "*.qrc", "*.xcf", "*.psd",]
+[[Application.Package.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "accountdialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "addemotiondialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "addeventdialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "app.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "appconfig.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "appcontroller.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "appdirs.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "application.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "build_uuid.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "commands.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "compat.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "documentcontroller.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "documentview.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "dragpan.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "filemanager.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "graphicaltimeline.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "graphicaltimelinecanvas.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "graphicaltimelineview.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "helpoverlay.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "itemgarbage.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "legend.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "mainwindow.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "mainwindow_form.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "models"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "accessrightsmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "emotionpropertiesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "eventpropertiesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "eventvariablesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "filemanagermodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layeritempropertiesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "localfilemanagermodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "marriagepropertiesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "modelhelper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "peoplemodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "personpropertiesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qobjecthelper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "scenelayermodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "scenemodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "scenevariablesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "searchmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "serverfilemanagermodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "tagsmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "timelinemodel.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
+name = "objects"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "callout.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "childof.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "emotions.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "event.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "item.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemanimationhelper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemdetails.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layer.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layeritem.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "marriage.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "multiplebirth.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pathitem.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pencilstroke.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "person.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "property.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "variablesdatabase.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
+name = "panzoom.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "pepper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "_pkdiagram"
+included = false
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "_pkdiagram_mac.mm"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "project.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pyproject.toml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "sip"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "_pkdiagram"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "_pkdiagrammod.sip"
+included = false
+is_directory = false
+
+
+
+
+[[Application.Package.Content]]
+name = "pkdiagram.pro.user"
+included = false
+is_directory = false
+
+[[Application.Package.Content]]
+name = "preferences.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "preferences_form.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "pyqt.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmldrawer.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmlengine.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmlhelpers.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmlutil.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmlvedana.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "qmlwidgethelper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "random_names.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "resources"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "add-emotion-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "add-event-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "add-parents.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "all-black.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "all-trans.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "all-white.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "away.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "back-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "callout.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "cart-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "child-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "clear-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "cloud.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "conflict.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "contract-down-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "cutoff.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "date-slider-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "defined-self.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "delete-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "details-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "distance.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "divorce.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "down-arrow.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "download.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "duplicate-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "eraser-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "expand-up-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "Family-Diagram-User-License-Agreement.txt"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "female-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "fonts"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "Helvetica65Medium_22443.ttf"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "HelveticaNeueBold.otf"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "SF-Pro-Display-Bold.otf"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "SF-Pro-Text-Bold.otf"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "SF-Pro-Text-Regular.otf"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "forward-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "free-version-CTA.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "fusion.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "help-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "help-tips"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "add-event.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "add-relationship.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "alignment.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "away.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "child.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "conflict.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "cutoff.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "defined-self.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "delete-item.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "diagram-settings.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "distance.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "expand-timeline.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "family-timeline.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "female.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "fusion.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "home.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "inside.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "inspect-selection.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "layers.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "male.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "misalignment.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "next-change.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "next-layer.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "next-view.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "outside.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "pair-bond.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "parents.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "pencil-drawing.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "presentation-mode.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "previous-change.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "previous-layer.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "previous-view.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "projection.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "reciprocity.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "redo.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "reset-diagram.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "search.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "show-account.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "show-items-with-notes.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "text-callout.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "timeline-slider.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "toward.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "undo.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "zoom-to-fit.png"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "hide-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "home-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "icloud-cancel.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "icloud-download.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "inside.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "iOS-disclosure-arrow.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layers-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "Legend-Scene.fd"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "diagram.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "lock-icon.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "male-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "marriage-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "misc"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "Desktop.ini"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "PKDiagram-Filled.ico"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "User-Manual"
+included = false
+is_directory = true
+Content = []
+
+[[Application.Package.Content.Content.Content]]
+name = "WinSparkle.dll"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "new-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "next-layer-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "notes-indicator.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "outside.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "paper-clip-disabled.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "paper-clip.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pencil-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "PKDiagram.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "plus-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "presentation-mode.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "prev-layer-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "projection.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "purchase-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qml"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "AccountDialog.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "CaseProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "EmotionPropertiesDrawer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "EventPropertiesDrawer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "FileManager.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "js"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "date-en-US.js"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Global.js"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "moment.js"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Underscore.js"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "LayerItemProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "MarriageProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "PersonProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "PK"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "Button.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ButtonEdit.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "CheckBox.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ColorPicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ComboBox.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "CrudButtons.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "DatePicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "DatePickerButtons.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "DraggableItem.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Drawer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "EmotionProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "EventProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "FDListView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Globals.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "GroupBox.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Image.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ItemLayerList.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Label.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ListPicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "qmldir"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "SceneLayerView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "SearchBar.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "SearchView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TabBar.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TabButton.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TableView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TagEdit.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Text.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TextEdit.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TextField.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TextInput.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TimelineView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TimePicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ToolBar.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ToolButton.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Tumbler.qml"
+included = true
+is_directory = false
+
+
+
+[[Application.Package.Content.Content]]
+name = "reciprocity.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "redo-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "reset-all-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "search-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "settings-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "share-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "swap-refresh.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "tests"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "qml"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "DatePickerTest.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "EventPropertiesTest.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "SearchViewTest.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TimelineViewTest.qml"
+included = false
+is_directory = false
+
+
+
+[[Application.Package.Content.Content]]
+name = "timeline-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "toward.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "undo-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "unlock-icon.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "up-arrow.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "update-available-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "wavey-line.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "zoom-fit-button.png"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
+name = "scene.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "server_types.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "session.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "slugify.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "toolbars.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "util.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "version.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "view.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "welcome.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "welcome_form.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "wheelzoom.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "widgets"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "button.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "buttongroup.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "colorbox.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "dialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "drawer.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "popup.py"
+included = true
+is_directory = false
+
+

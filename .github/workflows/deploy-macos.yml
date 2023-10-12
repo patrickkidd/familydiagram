@@ -1,0 +1,97 @@
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [ fdserver-cd ]
+
+# defaults:
+#   run:
+#     working-directory: /Users/patrick/dev/familydiagram
+
+jobs:
+  build-osx:
+    runs-on: macos-12
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.PATRICKKIDD_CI_TOKEN }}
+        submodules: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.4
+        cache: 'pipenv'
+        # cache-dependency-path: '**/Pipfile.lock'        
+    - run: |
+        pip install pipenv
+        pipenv install
+
+    # Wasn't working for some reason
+    # - name: Cache Qt@5
+    #   id: cache-qt
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: /usr/local/opt/qt@5
+    #     key: qt-${{ runner.os }}-1 # increment to re-populate
+    
+    - name: brew install qt@5
+      # if: steps.cache-qt.outputs.cache-hit != 'true'
+      run: |
+        brew install qt@5
+        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
+
+    - name: Cache _pkdiagram generated sources
+      id: cache-private-plugins
+      uses: actions/cache@v2
+      with:
+        path: |
+          pkdiagram/_pkdiagram/build
+        key: private-plugins-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp', './vedanaprivate/sip/*.sip', './vedanaprivate/*.h', './vedanaprivate/*.cpp') }}
+    
+    - name: sip-build for _pkdiagram
+      if: steps.cache-private-plugins.outputs.cache-hit != 'true'
+      run: |
+        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
+        cd pkdiagram/_pkdiagram && pipenv run sip-build
+        
+    - name: Cache sysroot
+      id: cache-sysroot
+      uses: actions/cache@v2
+      with:
+        path: ./sysroot/sysroot-macos-64
+        key: sysroot-macOS-020dfd0a8e6a2c8cf19554a6ab0f76fee27d114c05f3ff406377875191ad6e82
+        # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
+    
+    - name: Build sysroot
+      if: steps.cache-sysroot.outputs.cache-hit != 'true'
+      run: |
+        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
+        wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
+        which qmake
+        pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
+  
+    # # - name: Install Qt
+    # #   uses: jurplel/install-qt-action@v2
+    # #   with:
+    # #     # version:      ${{ env.QT_VERSION }}
+    # #     version:      5.15.2
+    # #     host:         mac
+    # #     target:       desktop
+    # #     dir:          ${{ runner.temp }}
+    # #     modules:      qtcore qtgui qtwidgets qtprintsupport qtnetwork qtmacextras qtqml qtquick qtquickwidgets
+    # #     setup-python: false
+  
+    - name: Build app
+      run: |
+        pipenv run bin/build.sh osx-release
+
+    # # - name: Upload Artifact
+    # #   uses: actions/upload-artifact@v2
+    # #   with:
+    # #     name: familydiagram-macos
+    # #     path: build/osx/Release/  # Replace with the actual path to your app's build artifacts
+  

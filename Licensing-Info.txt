@@ -1,0 +1,20 @@
+This software uses the following libraries under the LGPLv3:
+
+- Qt
+
+You can download the source code for Qt here:
+
+https://vedanamedia.com/projects/Family-Diagram/Licensing/qt-everywhere-src-5.14.0.tar.xz
+
+The LGPL requires that the full source code for this application be provided to you. You can download the full source code for this application here:
+
+https://vedanamedia.com/projects/Family-Diagram/Licensing/family-diagram-1.0.0.tar.gz
+
+You can find a copy of the LGPLv3 here:
+
+https://vedanamedia.com/projects/Family-Diagram/Licensing/LICENSE.LGPLv3
+
+You can find a copy of the GPLv3 here:
+
+https://vedanamedia.com/projects/Family-Diagram/Licensing/LICENSE.GPLv3
+
