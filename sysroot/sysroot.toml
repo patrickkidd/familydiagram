@@ -42,7 +42,7 @@ module_name = "PyQt5.sip"
 # Qt ########################################################################
 
 [Qt]
-version = "5.15.10"
+version = "5.15.2"
 edition = "opensource"
 skip = [
     "qt3d",
