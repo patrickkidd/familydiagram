@@ -4,7 +4,7 @@ name: Build macOS
 
 on:
   push:
-    branches: [ cache-build ]
+    branches: [ main ]
 
 # defaults:
 #   run:
