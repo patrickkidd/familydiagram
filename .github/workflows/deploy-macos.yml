@@ -4,7 +4,7 @@ name: Build macOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ cache-build ]
 
 # defaults:
 #   run:
@@ -76,7 +76,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS-020dfd0a8e6a2c8cf19554a6ab0f76fee27d114c05f3ff406377875191ad6e82
+        key: sysroot-macOS-2
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
     
     - name: Build sysroot

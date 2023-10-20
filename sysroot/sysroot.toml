@@ -83,7 +83,7 @@ skip = [
 ]
 
 [Qt.macos]
-install_from_source = false # required for static build
+install_from_source = true # required for static build
 ssl = "openssl-linked"
 configure_options = [
     "-debug-and-release",
