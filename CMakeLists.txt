@@ -40,38 +40,6 @@ add_custom_target(
 
 
 ##
-## vedanaprivate
-##
-
-if(EXISTS vedanaprivate/_vedanaprivate.cpp)
-
-    if(APPLE)
-        set(VEDANA_MOD_FILENAME ".venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so")
-    elseif(WIN32)
-        set(VEDANA_MOD_FILENAME "vedanaprivate/build/_vedanaprivate/_vedanaprivate.pyd")
-    else()
-        set(VEDANA_MOD_FILENAME "vedanaprivate/build/_vedanaprivate/lib_vedanaprivate.so")
-    endif (APPLE)
-
-    add_custom_command(
-        OUTPUT ${VEDANA_MOD_FILENAME}
-        COMMAND sip-install --build-dir build
-        DEPENDS vedanaprivate/pyproject.toml vedanaprivate/sip/_vedanaprivate/_vedanaprivatemod.sip vedanaprivate/*.cpp vedanaprivate/*.h
-        BYPRODUCTS vedanaprivate/build
-        WORKING_DIRECTORY vedanaprivate
-    )
-
-    add_custom_target(
-        vedanaprivate
-        ALL
-        DEPENDS ${VEDANA_MOD_FILENAME}
-    )
-
-endif (EXISTS vedanaprivate/_vedanaprivate.cpp)
-
-
-
-##
 ## pkdiagram
 ##
 
@@ -106,24 +74,24 @@ add_custom_target(
 
 add_custom_target(
     run
-    DEPENDS _pkdiagram vedanaprivate
+    DEPENDS _pkdiagram
     COMMAND python main.py
 )
 
 add_custom_target(
     run-attach
-    DEPENDS _pkdiagram vedanaprivate
+    DEPENDS _pkdiagram
     COMMAND python main.py --attach
 )
 
 add_custom_target(
     server
-    DEPENDS _pkdiagram vedanaprivate
+    DEPENDS _pkdiagram
     COMMAND cd server && FLASK_CONFIG=development FLASK_APP=fdserver flask run --host 0.0.0.0 --without-threads --port=8888
 )
 
 add_custom_target(
     server-attach
-    DEPENDS _pkdiagram vedanaprivate
+    DEPENDS _pkdiagram
     COMMAND cd server && FLASK_CONFIG=development FLASK_APP=fdserver flask run --host 0.0.0.0 --port=8888 --attach
 )

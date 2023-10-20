@@ -99,5 +99,4 @@ def main(attach=False, prefsName=None):
 
 
 # def main(*args, **kwargs):
-#     import _vedanaprivate
 #     import _pkdiagram

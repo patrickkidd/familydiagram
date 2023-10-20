@@ -4,7 +4,7 @@ name: Build macOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main-cd ]
 
 # defaults:
 #   run:
@@ -12,67 +12,58 @@ on:
 
 jobs:
   build-osx:
-    runs-on: macos-12
+    runs-on: macos-latest
+
+    env:
+      FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
+      FD_BUILD_APPLE_ID_PASSWORD: "${{ secrets.FD_BUILD_APPLE_ID_PASSWORD }}"
+      FD_BUILD_PROVISIONING_PROFILE_BASE64: "${{ secrets.FD_BUILD_PROVISIONING_PROFILE_BASE64 }}"
+      FD_BUILD_CERTIFICATE_BASE64: "${{ secrets.FD_BUILD_CERTIFICATE_BASE64 }}"
+      FD_BUILD_PRIVATE_KEY_BASE64: "${{ secrets.FD_BUILD_PRIVATE_KEY_BASE64 }}"
+      FD_BUILD_CERTIFICATE_PASSWORD: "${{ secrets.FD_BUILD_CERTIFICATE_PASSWORD }}"
+      FD_BUILD_AC_AUTH_KEY_ID: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ID }}"
+      FD_BUILD_AC_AUTH_KEY_BASE64: "${{ secrets.FD_BUILD_AC_AUTH_KEY_BASE64 }}"
+      FD_BUILD_AC_AUTH_KEY_ISSUER: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ISSUER }}"
+      FD_BUILD_PEPPER: "${{ secrets.FD_BUILD_PEPPER }}"
+      FD_BUILD_BUGSNAG_API_KEY: "${{ secrets.FD_BUILD_BUGSNAG_API_KEY }}"
 
     steps:
+              
     - uses: actions/checkout@v2
       with:
         submodules: true
 
-    - name: Install provisioning profile
+    - name: Setup Provisioning Profile
       run: |
-        echo "${{ secrets.PROVISIONING_PROFILE }}" | base64 --decode > FD.provisionprofile
-        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles/
-        cp FD.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/
+        $GITHUB_WORKSPACE/bin/setup_provisioning_profile.sh
+  
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3        
 
-    - name: Install Developer ID certificate
-      run: |
-        echo "${{ secrets.DISTRIBUTION_CERT }}" | base64 --decode > developer_id.p12
-        echo "Creating keychain..."
-        security create-keychain -p actions build.keychain
-        echo "Defaulting keychain..."
-        security default-keychain -s build.keychain
-        echo "Unlocking keychain..."
-        security unlock-keychain -p actions build.keychain
-        echo "Importing certificate..."
-        security import developer_id.p12 -A -t cert -f pkcs12 -k build.keychain
-        echo "Listing certificate..."
-        security list-keychain -d user -s build.keychain
-        echo "Done"
-        # security import developer_id.p12 -k build.keychain -T /usr/bin/codesign
-        # security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain  
-          
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: 3.10.4
         cache: 'pipenv'
-        # cache-dependency-path: '**/Pipfile.lock'        
     - run: |
         pip install pipenv
         pipenv install
-
-    # Wasn't working for some reason
-    # - name: Cache Qt@5
-    #   id: cache-qt
-    #   uses: actions/cache@v2
-    #   with:
-    #     path: /usr/local/opt/qt@5
-    #     key: qt-${{ runner.os }}-1 # increment to re-populate
     
-    - name: brew install qt@5
-      # if: steps.cache-qt.outputs.cache-hit != 'true'
+    # Probably a better way: https://github.com/jurplel/install-qt-action
+    - name: brew install qt@5, create-dmg
       run: |
-        brew install qt@5
+        brew install create-dmg
+        brew install qt@5        
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
-    - name: Cache _pkdiagram generated sources
+    - name: Setup _pkdiagram caching
       id: cache-private-plugins
       uses: actions/cache@v2
       with:
         path: |
           pkdiagram/_pkdiagram/build
-        key: private-plugins-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp', './vedanaprivate/sip/*.sip', './vedanaprivate/*.h', './vedanaprivate/*.cpp') }}
+        key: private-plugins-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
     
     - name: sip-build for _pkdiagram
       if: steps.cache-private-plugins.outputs.cache-hit != 'true'
@@ -80,7 +71,7 @@ jobs:
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
         cd pkdiagram/_pkdiagram && pipenv run sip-build
         
-    - name: Cache sysroot
+    - name: Setup sysroot caching
       id: cache-sysroot
       uses: actions/cache@v2
       with:
@@ -96,24 +87,13 @@ jobs:
         which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
-    # # - name: Install Qt
-    # #   uses: jurplel/install-qt-action@v2
-    # #   with:
-    # #     # version:      ${{ env.QT_VERSION }}
-    # #     version:      5.15.2
-    # #     host:         mac
-    # #     target:       desktop
-    # #     dir:          ${{ runner.temp }}
-    # #     modules:      qtcore qtgui qtwidgets qtprintsupport qtnetwork qtmacextras qtqml qtquick qtquickwidgets
-    # #     setup-python: false
-  
     - name: Build app
       run: |
-        pipenv run bin/build.sh osx-release
+        pipenv run bin/build.sh
 
-    # # - name: Upload Artifact
-    # #   uses: actions/upload-artifact@v2
-    # #   with:
-    # #     name: familydiagram-macos
-    # #     path: build/osx/Release/  # Replace with the actual path to your app's build artifacts
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: familydiagram-macos
+        path: build/osx/Release/Family Diagram.dmg
   

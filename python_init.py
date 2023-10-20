@@ -32,7 +32,6 @@ def init_dev():
 
         # import_from_path(os.path.join(sitepackages_path, 'typing_extensions'))
         # import_from_path('vedana', os.path.join(familydiagram_path, 'vedana', '__init__.py'))
-        # import_from_path('vedanaprivate', os.path.join(familydiagram_path, 'vedanaprivate', '__init__.py'))
 
         familydiagram_path = os.path.dirname(__file__)
         for path in list(sys.path):
@@ -40,8 +39,6 @@ def init_dev():
                 sys.path.remove(path)
         # _pkdiagram_path = os.path.join(familydiagram_path, 'pkdiagram', '_pkdiagram', 'build', '_pkdiagram', 'build', 'lib.macosx-12.6-x86_64-cpython-310')
         # sys.path.insert(0, _pkdiagram_path)
-        # vedanaprivate_path = os.path.join(familydiagram_path, 'vedanaprivate', 'build', '_vedanaprivate', 'build', 'lib.macosx-12.6-x86_64-cpython-310')
-        # sys.path.insert(0, vedanaprivate_path)
         vendor_path = os.path.join(familydiagram_path, 'lib', 'site-packages')
         sys.path.insert(0, vendor_path)
         sys.path.append(familydiagram_path)

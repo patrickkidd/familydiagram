@@ -3,7 +3,7 @@
 <plist version="1.0">  
 <dict>  
     <key>destination</key>  
-    <string>upload</string>  
+    <string>export</string>  
     <key>method</key>  
     <string>developer-id</string>
     <key>signingStyle</key>  
@@ -11,11 +11,11 @@
     <key>teamID</key>  
     <string>8KJB799CU7</string>
     <key>signingCertificate</key>
-	<string>Developer ID Application</string>
+	<string>Developer ID Application: Patrick Stinson (8KJB799CU7)</string>
     <key>provisioningProfiles</key>
 	<dict>
 		<key>com.vedanamedia.familydiagrammac</key>
-		<string>Family Diagram Distribution Developer ID</string>
+		<string>Family Diagram Distribution</string>
 	</dict>    
 </dict>  
 </plist>  

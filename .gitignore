@@ -1,5 +1,3 @@
-vedanaprivate
-
 ## Operating System
 
 .DS_Store*
@@ -72,6 +70,8 @@ CMakeCache.txt
 *.xcscmblueprint
 xcuserdata
 pepper.py
+private_keys
+Family\ Diagram.app.zip
 
 ## Server
 server/instance
