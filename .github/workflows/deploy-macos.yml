@@ -87,13 +87,13 @@ jobs:
         which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
-    # - name: Build app
-    #   run: |
-    #     pipenv run bin/build.sh
+    - name: Build app
+      run: |
+        pipenv run bin/build.sh
 
-    # - name: Upload Artifact
-    #   uses: actions/upload-artifact@v2
-    #   with:
-    #     name: familydiagram-macos
-    #     path: build/osx/Release/Family Diagram.dmg
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: familydiagram-macos
+        path: build/osx/Release/Family Diagram.dmg
   
