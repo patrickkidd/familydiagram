@@ -54,7 +54,6 @@ jobs:
     - name: brew install qt@5, create-dmg
       run: |
         brew install create-dmg
-        brew install qt@5        
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
     - name: Setup _pkdiagram caching

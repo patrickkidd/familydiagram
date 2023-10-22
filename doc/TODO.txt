@@ -5,6 +5,8 @@ BUGS
   -> Title bar fpath w/ diagram ID in server cache, doesn't save to server.
 - Can't select all events on timeline and delete (Kathy's `Fann In Bug.fd`)
 - graphical timeline doesn't show within-day time granularity
+- Edit event description field in prop sheet doesn't update timeline
+- Timeline events
 
 - R symbols don't fan in when new tags selected in search
   Traceback (most recent call last):
