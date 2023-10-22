@@ -32,8 +32,8 @@ security default-keychain -s $FD_BUILD_KEYCHAIN_NAME
 echo "PKS Unlocking keychain"
 security unlock-keychain -p my_password $FD_BUILD_KEYCHAIN_NAME
 
-echo "PKS Extending keychain timeout"
-security set-keychain-settings -lut 1200
+# echo "PKS Extending keychain timeout"
+# security set-keychain-settings -lut 1200
 
 echo "PKS Importing private key"
 security import $FD_BUILD_PRIVATE_KEY_FPATH -t priv -P "${FD_BUILD_CERTIFICATE_PASSWORD}" -A -T /usr/bin/codesign -k $FD_BUILD_KEYCHAIN_NAME 
