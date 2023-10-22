@@ -45,7 +45,6 @@ echo "PKS Storing password in the keychain"
 xcrun altool --store-password-in-keychain-item "${FD_BUILD_APPLE_ID}" -u "${FD_BUILD_APPLE_ID}" -p "${FD_BUILD_APPLE_ID_PASSWORD}"
 
 echo "PKS Setting keychain partitions list"
-# security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
 security set-key-partition-list -S apple-tool:,apple: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Adding provisioning profile to local machine"

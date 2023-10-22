@@ -37,10 +37,6 @@ jobs:
       run: |
         $GITHUB_WORKSPACE/bin/setup_provisioning_profile.sh
   
-    # # Will provide an SSH command in the logs that you can use to access the runner.
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3        
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -51,11 +47,33 @@ jobs:
         pipenv install
     
     # Probably a better way: https://github.com/jurplel/install-qt-action
-    - name: brew install qt@5, create-dmg
+    - name: brew install create-dmg
       run: |
         brew install create-dmg
-        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        host: 'macos'
+        target: 'desktop'
+        arch: 'clang_64'
+        dir: '${{ github.workspace }}/Qt/'
+        install-deps: 'true'
+        # modules: 'qtwigets qtnetwork qtprintsupport qtmacextras qtqml qtquick qtquickwidgets'
+        setup-python: 'false'
+        examples: 'false'
+        cache: 'true'
+        cache-key-prefix: 'qt-5.15.2-macos'
+        
+    - name: Setup sysroot caching
+      id: cache-sysroot
+      uses: actions/cache@v2
+      with:
+        path: ./sysroot/sysroot-macos-64
+        key: sysroot-macOS-2
+        # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}      
+  
     - name: Setup _pkdiagram caching
       id: cache-private-plugins
       uses: actions/cache@v2
@@ -69,23 +87,13 @@ jobs:
       run: |
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
         cd pkdiagram/_pkdiagram && pipenv run sip-build
-        
-    - name: Setup sysroot caching
-      id: cache-sysroot
-      uses: actions/cache@v2
-      with:
-        path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS-2
-        # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
-    
+      
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
-        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
         wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
-        which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
-  
+      
     - name: Build app
       run: |
         pipenv run bin/build.sh
