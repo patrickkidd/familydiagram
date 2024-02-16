@@ -1,4 +1,4 @@
-import os, shutil, random, logging
+import os, shutil, random, logging, math
 from ..pyqt import *
 from .. import util, random_names
 from . import Property
@@ -13,8 +13,37 @@ from .layer import Layer
 from .variablesdatabase import VariablesDatabase
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
+KIND_MALE = 'male'
+KIND_FEMALE = 'female'
+
+
+ATTR_ANXIETY = 'Anxiety'
+ATTR_FUNCTIONING = 'Functioning'
+ATTR_SYMPTOM = 'Symptom'
+
+LOW = 'low'
+MEDIUM = 'medium'
+HIGH = 'high'
+
+ANXIETY_LOW = LOW
+ANXIETY_MED = MEDIUM
+ANXIETY_HIGH = HIGH
+
+FUNCTIONING_LOW = LOW
+FUNCTIONING_MED = MEDIUM
+FUNCTIONING_HIGH = HIGH
+
+SYMPTOM_LOW = LOW
+SYMPTOM_MED = MEDIUM
+SYMPTOM_HIGH = HIGH
+
+ANXIETY_COLORS = {
+    ANXIETY_LOW: 'green',
+    ANXIETY_MED: 'yellow',
+    ANXIETY_HIGH: 'red',
+}
 
 class Person(PathItem):
 
@@ -32,12 +61,13 @@ class Person(PathItem):
         { 'attr': 'deceased', 'default': False, 'onset': 'updateGeometryAndDetails' },
         { 'attr': 'deceasedReason', 'onset': 'updateDetails' },
         { 'attr': 'adopted', 'default': False, 'onset': 'updateDetailsAndChild' },
-        { 'attr': 'gender', 'default': 'male', 'onset': 'updateGeometryAndDetails' },
+        { 'attr': 'gender', 'default': KIND_MALE, 'onset': 'updateGeometryAndDetails' },
         { 'attr': 'diagramNotes', 'onset': 'updateDetails' },
         { 'attr': 'notes' },
         { 'attr': 'showLastName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
         { 'attr': 'showMiddleName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
         { 'attr': 'showNickName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
+        { 'attr': 'showVariableColors', 'type': bool, 'default': True, 'onset': 'updateGeometry' },
         { 'attr': 'hideDetails', 'default': False, 'layered': True },
         { 'attr': 'color', 'layered': True, 'onset': 'updatePenAndGeometry' },
         { 'attr': 'itemOpacity', 'type': float, 'layered': True },
@@ -47,24 +77,88 @@ class Person(PathItem):
     ))
     
     @staticmethod
-    def pathFor(kind, pos, size=None, primary=False):
+    def pathFor(kind, pos, size=None, primary=False, anxiety=None, functioning=None, symptom=None):
         rect = QRectF(util.PERSON_RECT)
         path = QPainterPath()
         scale = 1.0
+
+        ANXIETY_JAGGEDNESS_LOW = 3
+        ANXIETY_JAGGEDNESS_MED = 5
+        ANXIETY_JAGGEDNESS_HIGH = 10
+
+        ANXIETY_STEP_LOW = 15
+        ANXIETY_STEP_MED = 10
+        ANXIETY_STEP_HIGH = 5
+
+        if anxiety == ANXIETY_LOW:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_LOW
+            STEP = ANXIETY_STEP_LOW
+        elif anxiety == ANXIETY_MED:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_MED
+            STEP = ANXIETY_STEP_MED
+        elif anxiety == ANXIETY_HIGH:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_HIGH
+            STEP = ANXIETY_STEP_HIGH
+
         if size is not None:
             scale = util.scaleForPersonSize(size)
-        if kind == 'male':
-            path.addRect(rect)
-            if primary:
-                m = 10 * scale
-                rect = rect.marginsAdded(QMarginsF(m, m, m, m))
+        if kind == KIND_MALE:
+            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+                WIDTH = int(rect.width() * scale)
+                CENTER_X, CENTER_Y = 0, 0
+                start_x = int(CENTER_X - WIDTH / 2)
+                start_y = int(CENTER_Y - WIDTH / 2)
+                path.moveTo(start_x, start_y)
+                # top
+                for i, x in enumerate(range(int(WIDTH * -.5), int(WIDTH * .5), STEP)):
+                    y = WIDTH * -.5 + random.uniform(-JAGGEDNESS, JAGGEDNESS)
+                    path.lineTo(x, y)
+                    # _log.info(f"top, x: {x}, y: {y}")
+                # right
+                for i, y in enumerate(range(int(WIDTH * -.5), int(WIDTH * .5), STEP)):
+                    x = (WIDTH * .5) + random.uniform(-JAGGEDNESS, JAGGEDNESS)
+                    path.lineTo(x, y)
+                    # _log.info(f"right, x: {x}, y: {y}")
+                # bottom
+                for i, x in enumerate(reversed(range(int(WIDTH * -.5), int(WIDTH * .5), STEP))):
+                    y = WIDTH * .5 + random.uniform(-JAGGEDNESS, JAGGEDNESS)
+                    path.lineTo(x, y)
+                    # _log.info(f"bottom, x: {x}, y: {y}")
+                # left
+                for i, y in enumerate(reversed(range(int(WIDTH * -.5), int(WIDTH * .5), STEP))):
+                    x = (WIDTH * -.5) + random.uniform(-JAGGEDNESS, JAGGEDNESS)
+                    path.lineTo(x, y)
+                    # _log.info(f"left, x: {x}, y: {y}")
+                path.closeSubpath()
+            else:
                 path.addRect(rect)
-        elif kind == 'female':
-            path.addEllipse(rect)
-            if primary:
-                m = 10 * scale
-                rect = rect.marginsAdded(QMarginsF(m, m, m, m))
+                if primary:
+                    m = 10 * scale
+                    rect = rect.marginsAdded(QMarginsF(m, m, m, m))
+                    path.addRect(rect)
+                path.closeSubpath()
+        elif kind == KIND_FEMALE:
+            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+                CENTER_X, CENTER_Y = 0, 0
+                radius = (rect.width() / 2) * scale
+                start_angle = 90
+                for angle in range(start_angle, 360 + start_angle, STEP):
+                    radians = angle * (3.14159 / 180)
+                    random_offset = random.uniform(-JAGGEDNESS, JAGGEDNESS)
+                    x = CENTER_X + (radius + random_offset) * math.cos(radians)
+                    y = CENTER_Y + (radius + random_offset) * math.sin(radians)
+                    if angle == start_angle:
+                        path.moveTo(x, y)
+                    else:
+                        path.lineTo(x, y)
+                path.closeSubpath()
+            else:
                 path.addEllipse(rect)
+                if primary:
+                    m = 10 * scale
+                    rect = rect.marginsAdded(QMarginsF(m, m, m, m))
+                    path.addEllipse(rect)
+                path.closeSubpath()
         elif kind in ['abortion', 'miscarriage']:
             midX = rect.topRight().x() - ((rect.topRight().x() - rect.topLeft().x()) / 2)
             topMiddle = QPointF(midX, rect.topRight().y())
@@ -167,12 +261,12 @@ class Person(PathItem):
         if self.scene():
             allAliases = [person.alias() for person in self.scene().people()]
             while alias is None or alias in allAliases:
-                if self.gender() == 'male':
+                if self.gender() == KIND_MALE:
                     alias = random.choice(random_names.MALE_NAMES)
                 else:
                     alias = random.choice(random_names.FEMALE_NAMES)
         else:
-            if self.gender() == 'male':
+            if self.gender() == KIND_MALE:
                 alias = random.choice(random_names.MALE_NAMES)
             else:
                 alias = random.choice(random_names.FEMALE_NAMES)
@@ -219,7 +313,7 @@ class Person(PathItem):
         #
         self.marriages = list(set([byId(id) for id in chunk.get('marriages', [])]))
         if None in self.marriages:
-            log.warning('*** None in self.marriages!')
+            _log.warning('*** None in self.marriages!')
             self.marriages = [m for m in self.marriages if m]
         #
         self._events = []
@@ -229,7 +323,7 @@ class Person(PathItem):
                 skip = False
                 for e in self._events:
                     if e.id == eChunk['id']:
-                        log.warning('Ignoring duplicate event: %s' % e.id)
+                        _log.warning('Ignoring duplicate event: %s' % e.id)
                         skip = True
                         break
                 if skip:
@@ -392,6 +486,33 @@ class Person(PathItem):
             age = int(self.birthDateTime().daysTo(self.scene() and self.scene().currentDateTime() or QDateTime.currentDateTime())/ 365)
             return age
 
+    def anxietyLevelNow(self):
+        """
+        Formalize dynamic variable since drawing uses it now.
+        """
+        if self.scene() and not self.scene().hideVariableSteadyStates():
+            anxiety, ok = self.variablesDatabase.get(ATTR_ANXIETY.lower(), self.scene().currentDateTime())
+            if ok:
+                return anxiety
+
+    def functioningLevelNow(self):
+        """
+        Formalize dynamic variable since drawing uses it now.
+        """
+        if self.scene() and not self.scene().hideVariableSteadyStates():
+            functioning, ok = self.variablesDatabase.get(ATTR_FUNCTIONING.lower(), self.scene().currentDateTime())
+            if ok:
+                return functioning
+
+    def symptomLevelNow(self):
+        """
+        Formalize dynamic variable since drawing uses it now.
+        """
+        if self.scene() and not self.scene().hideVariableSteadyStates():
+            symptom, ok = self.variablesDatabase.get(ATTR_SYMPTOM.lower(), self.scene().currentDateTime())
+            if ok:
+                return symptom
+
     ## Scene Events
 
     def multipleBirth(self):
@@ -530,7 +651,7 @@ class Person(PathItem):
             else:
                 oldBrushColor = self.brush().color()
             # new
-            newPenColor = self.currentPenColor()
+            newPenColor = self.currentBasePen().color()
             if prop.isset():
                 newBrushColor = QColor(newPenColor)
                 newBrushColor.setAlpha(100)
@@ -737,28 +858,25 @@ class Person(PathItem):
 
     def updatePen(self):
         super().updatePen()
-        pen = QPen(util.PEN)
-        if not self.isSelected() and not self.hover:
-            if self.color() is not None:
-                pen.setColor(QColor(self.color()))
-            else:
-                pen.setColor(util.PEN.color())
-        if self.color() is not None:
-            c = QColor(self.color())
-            c.setAlpha(100)
-            brush = QBrush(c)
+        pen = self.currentBasePen()
+        if self.hover:
+            brush = QBrush(util.HOVER_BRUSH)
+            pen = QPen(util.HOVER_PEN)
         elif self.isSelected():
             brush = QBrush(util.SELECTION_BRUSH)
             pen.setColor(util.contrastTo(brush.color()))
-        elif self.hover:
-            brush = QBrush(util.HOVER_BRUSH)
         else:
-            brush = QBrush(util.WINDOW_BG)
-        if self.hover:
-            pen = QPen(util.HOVER_PEN)
-        else:
-            pen = QPen(util.PEN)
-        pen.setColor(self.currentPenColor())
+            anxiety = self.anxietyLevelNow()
+            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+                c = QColor(ANXIETY_COLORS[anxiety])
+                pen.setColor(c)
+                c.setAlpha(100)
+                brush = QBrush(c)
+            else:
+                brush = QBrush(util.WINDOW_BG)
+        self.setBrush(brush)
+        self.setPen(pen)
+        # Children items
         if self.childOf:
             self.childOf.updatePen()
         if self.gender() == 'unknown':
@@ -787,16 +905,18 @@ class Person(PathItem):
                 newColor.setAlphaF(.7)
             self.detailsText.setExtraLineColor(iLine, newColor)
 
-    def currentPenColor(self):
+    def currentBasePen(self):
         """ Return the layered color otherwise the default pen color. """
+        pen = QPen(util.PEN)
         if self.prop('color').isset():
-            ret = QColor(self.color())
+            c = QColor(self.color())
         else:
             if self.hover:
-                ret = util.HOVER_PEN.color()
+                c = util.HOVER_PEN.color()
             else:
-                ret = util.PEN.color()
-        return ret
+                c = util.PEN.color()
+        pen.setColor(c)
+        return pen
 
     def updateGeometryAndDependents(self):
         """ Also update dependents. """
@@ -841,7 +961,13 @@ class Person(PathItem):
             currentDateTime = self.scene().currentDateTime()
         else:
             currentDateTime = QDateTime()
-        path = self.pathFor(self.gender(), self.pos(), primary=self.primary())
+        path = self.pathFor(
+            self.gender(), self.pos(),
+            primary=self.primary(),
+            anxiety=self.anxietyLevelNow(),
+            functioning=self.functioningLevelNow(),
+            symptom=self.symptomLevelNow()
+        )
         rect = path.controlPointRect()
         ignoreDeath = self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
         if self.deceased() and not ignoreDeath:
@@ -932,6 +1058,8 @@ class Person(PathItem):
             for i, entry in enumerate(self.scene().eventProperties()):
                 value, isChange = self.variablesDatabase.get(entry['attr'], currentDateTime)
                 if value is None or (not isChange and hideVariableSteadyStates):
+                    continue
+                if entry['attr'] in (ATTR_ANXIETY.lower(), ) and value in (LOW, MEDIUM, HIGH):
                     continue
                 variableLines.append('%s: %s' % (entry['name'], value))
                 if isChange:

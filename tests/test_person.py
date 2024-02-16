@@ -1,7 +1,14 @@
+import pytest
+
 from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util, Scene, Person, Marriage, MultipleBirth, Layer, Person, Event
-
-
+from pkdiagram.objects.person import (
+    KIND_MALE, KIND_FEMALE,
+    ATTR_ANXIETY, ATTR_FUNCTIONING, ATTR_SYMPTOM,
+    ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH,
+    FUNCTIONING_LOW, FUNCTIONING_MED, FUNCTIONING_HIGH,
+    SYMPTOM_LOW, SYMPTOM_MED, SYMPTOM_HIGH
+)
 
 def test_init():
     person = Person(name='personA')
@@ -266,3 +273,34 @@ def test_new_event_adds_variable_values():
     assert person.variablesDatabase.get('var1', event.dateTime().addYears(-1)) == (None, False)
     assert person.variablesDatabase.get('var1', event.dateTime()) == ('123', True)
     assert person.variablesDatabase.get('var1', event.dateTime().addYears(1)) == ('123', False)
+
+
+@pytest.mark.parametrize('anxiety', (None, ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH))
+def test_draw_male_anxiety(anxiety):
+    scene = Scene()
+    scene.addEventProperty(ATTR_ANXIETY)
+
+    person = Person(kind=KIND_MALE)
+    scene.addItems(person)
+
+    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
+    event.addDynamicProperty(ATTR_ANXIETY)
+    event.dynamicProperties[0].set(anxiety)
+    person.updateGeometry()
+    
+    # Failure state is exception
+
+@pytest.mark.parametrize('anxiety', (None, ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH))
+def test_draw_female_anxiety(anxiety):
+    scene = Scene()
+    scene.addEventProperty(ATTR_ANXIETY)
+
+    person = Person(kind=KIND_FEMALE)
+    scene.addItems(person)
+
+    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
+    event.addDynamicProperty(ATTR_ANXIETY)
+    event.dynamicProperties[0].set(anxiety)
+    person.updateGeometry()
+    
+    # Failure state is exception

@@ -30,7 +30,7 @@ class Application(QApplication):
         util.prefs().setAutoSave(True)
         util.prefs().setValue('lastVersion', version.VERSION)
 
-        if not util.IS_DEV and pepper.BUGSNAG_API_KEY:
+        if pepper.BUGSNAG_API_KEY:
 
             import bugsnag
             from bugsnag.handlers import BugsnagHandler

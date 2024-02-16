@@ -47,6 +47,8 @@ ENABLE_STRIPE = False
 
 log = logging.getLogger(__name__)
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
 
 def pytest_addoption(parser):
     parser.addoption("--attach", action="store_true", help="Wait for an attached debugger before running test")
