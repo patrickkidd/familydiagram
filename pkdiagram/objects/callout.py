@@ -14,7 +14,7 @@ class PointHandle(QGraphicsEllipseItem):
         super().__init__(callout)
         self.mousedown = False
         w = self.RADIUS
-        self.setRect(QRectF(-w, -w, w*2, w*2))
+        self.setRect(QRectF(-w, -w, w * 2, w * 2))
         self.setPen(QPen(QBrush(Qt.black), self.PEN_WIDTH))
         if pos is not None:
             self.setPos(pos)
@@ -24,7 +24,7 @@ class PointHandle(QGraphicsEllipseItem):
             self.isnew = True
             self.setBrush(QBrush(Qt.cyan))
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True) # after setPos()
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)  # after setPos()
 
     def mousePressEvent(self, e):
         if self.scene().view().dragMode() == QGraphicsView.ScrollHandDrag:
@@ -56,7 +56,6 @@ class PointHandle(QGraphicsEllipseItem):
         return super().itemChange(change, variant)
 
 
-
 class Callout(LayerItem):
 
     DEFAULT_RECT = QRectF(-50, -15, 200, 30)
@@ -65,11 +64,13 @@ class Callout(LayerItem):
 
     ANCHOR_HANDLE_SIZE = 10
 
-    LayerItem.registerProperties((
-        { 'attr': 'text', 'default': '' },
-        { 'attr': 'width', 'default': DEFAULT_RECT.width() },
-        { 'attr': 'points', 'default': [] },
-    ))
+    LayerItem.registerProperties(
+        (
+            {"attr": "text", "default": ""},
+            {"attr": "width", "default": DEFAULT_RECT.width()},
+            {"attr": "points", "default": []},
+        )
+    )
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -95,7 +96,7 @@ class Callout(LayerItem):
         self.anchoredDrag = None
         self.modifiers = None
         self.mousePressPoints = None
-        self.mouseMovePoints = None # undo
+        self.mouseMovePoints = None  # undo
         self.setShapeMargin(0)
         self.setProperties(**kwargs)
         self.textItem.setTextWidth(self.width())
@@ -115,8 +116,8 @@ class Callout(LayerItem):
             item = PointHandle(self, p)
             self.pointHandles.append(item)
             item.setVisible(False)
-        self.onProperty(self.prop('text'))
-        self.onProperty(self.prop('width'))
+        self.onProperty(self.prop("text"))
+        self.onProperty(self.prop("width"))
 
     def write(self, chunk):
         super().write(chunk)
@@ -127,8 +128,8 @@ class Callout(LayerItem):
             item = PointHandle(x, p)
             item.setVisible(True)
             x.pointHandles.append(item)
-        self.onProperty(self.prop('width'))
-        self.onProperty(self.prop('text'))
+        self.onProperty(self.prop("width"))
+        self.onProperty(self.prop("text"))
         return x
 
     ## QGraphicsItem
@@ -152,8 +153,10 @@ class Callout(LayerItem):
         # path
         path = QPainterPath()
         path.setFillRule(Qt.WindingFill)
-        path.addRoundedRect(self.bubbleRect, Callout.BORDER_MARGIN, Callout.BORDER_MARGIN)
-        center = self.bubbleRect.center() # should be (0, 0)
+        path.addRoundedRect(
+            self.bubbleRect, Callout.BORDER_MARGIN, Callout.BORDER_MARGIN
+        )
+        center = self.bubbleRect.center()  # should be (0, 0)
         # points
         for handle in self.pointHandles:
             if handle.parentItem() == self:
@@ -164,7 +167,7 @@ class Callout(LayerItem):
             marker.moveTo(p)
             side = QLineF(self.bubbleRect.center(), p)
             side = side.normalVector()
-            side.setLength(side.length() * .05)
+            side.setLength(side.length() * 0.05)
             marker.lineTo(self.bubbleRect.center() + QPointF(side.dx(), side.dy()))
             marker.lineTo(self.bubbleRect.center() - QPointF(side.dx(), side.dy()))
             marker.closeSubpath()
@@ -186,9 +189,13 @@ class Callout(LayerItem):
 
     def updateBubbleRect(self):
         m = self.BORDER_MARGIN
-        textRect = self.mapFromItem(self.textItem, self.textItem.boundingRect()).boundingRect()
-        self.bubbleRect = QRectF(0, 0, max(textRect.width(), 50), textRect.height()).marginsAdded(QMarginsF(m, m, m, m))
-        
+        textRect = self.mapFromItem(
+            self.textItem, self.textItem.boundingRect()
+        ).boundingRect()
+        self.bubbleRect = QRectF(
+            0, 0, max(textRect.width(), 50), textRect.height()
+        ).marginsAdded(QMarginsF(m, m, m, m))
+
     def mouseDoubleClickEvent(self, e):
         super().mouseDoubleClickEvent(e)
         # TOOD: maybe only handle in bubble?
@@ -216,24 +223,26 @@ class Callout(LayerItem):
 
     @util.blocked
     def onProperty(self, prop):
-        if prop.name() == 'text':
+        if prop.name() == "text":
             if self.textItem.toPlainText() != self.text():
                 self.textItem.setPlainText(self.text())
-                self.textItem.setTextWidth(self.width()) # redundant?
+                self.textItem.setTextWidth(self.width())  # redundant?
                 self.updateBubbleRect()
                 self.updateGeometry()
-        elif prop.name() == 'width':
+        elif prop.name() == "width":
             self.textItem.setTextWidth(self.width())
             self.updateBubbleRect()
             for handle in self.pointHandles:
                 if handle.isnew:
                     handle.setPos(self.defaultNextPointHandlePos())
-            self.updateGeometry() # call again to repaint
-        elif prop.name() == 'points':
+            self.updateGeometry()  # call again to repaint
+        elif prop.name() == "points":
             for handle in self.pointHandles:
                 self.scene().removeItem(handle)
             if self.points():
-                self.pointHandles = [PointHandle(self, pos=pos) for pos in self.points()]
+                self.pointHandles = [
+                    PointHandle(self, pos=pos) for pos in self.points()
+                ]
             else:
                 self.pointHandles = []
             nextHandle = PointHandle(self)
@@ -242,7 +251,7 @@ class Callout(LayerItem):
             self.updateGeometry()
         self._blocked = False
         super().onProperty(prop)
-    
+
     def onTextEdited(self):
         self.setText(self.textItem.toPlainText(), undo=self.setTextCmdId)
         self.updateBubbleRect()
@@ -253,22 +262,24 @@ class Callout(LayerItem):
 
     def onStartMovePoint(self, handle):
         pass
-        
+
     def onUpdateMovePoint(self, handle):
         self.updateGeometry()
 
     @util.blocked
     def onStopMovePoint(self, handle):
-        if handle.isnew: # create
+        if handle.isnew:  # create
             handle.setBrush(QBrush(Qt.white))
-            self.setPoints([h.pos() for h in self.pointHandles], undo=True) # don't add new one
+            self.setPoints(
+                [h.pos() for h in self.pointHandles], undo=True
+            )  # don't add new one
             handle.isnew = False
             newHandle = PointHandle(self)
             newHandle.setPos(self.defaultNextPointHandlePos())
             self.pointHandles.append(newHandle)
             self.updateGeometry()
             return
-        if self.bubbleRect.contains(handle.pos()): # delete
+        if self.bubbleRect.contains(handle.pos()):  # delete
             self.pointHandles.remove(handle)
             self.scene().removeItem(handle)
             handle.setParentItem(None)
@@ -284,15 +295,17 @@ class Callout(LayerItem):
     def widthHandle(self):
         northEastHandle = self.northEastHandle()
         height = self.southEastHandle().y() - northEastHandle.bottomLeft().y()
-        return QRectF(northEastHandle.x(),
-                      northEastHandle.bottomLeft().y(),
-                      northEastHandle.width(),
-                      height)
+        return QRectF(
+            northEastHandle.x(),
+            northEastHandle.bottomLeft().y(),
+            northEastHandle.width(),
+            height,
+        )
 
     def hoverMoveEvent(self, e):
         super().hoverMoveEvent(e)
         cursor = self.handleCursorFor(e.pos())
-        if cursor is None: # no cursor
+        if cursor is None:  # no cursor
             if self.widthHandle().contains(e.pos()):
                 cursor = Qt.SizeHorCursor
             elif e.modifiers() & Qt.AltModifier:
@@ -307,17 +320,19 @@ class Callout(LayerItem):
         self.unsetCursor()
 
     def setScale(self, x, notify=True, undo=None):
-        x = max(.07, x)
+        x = max(0.07, x)
         super().setScale(x)
-        self.prop('scale').set(x, notify=notify, undo=undo)
+        self.prop("scale").set(x, notify=notify, undo=undo)
 
     def mousePressEvent(self, e):
-        self.mousePressPoints = list(self.points()) # undo
+        self.mousePressPoints = list(self.points())  # undo
         # anchor mouse press
-        if self.northWestHandle().contains(e.pos()) or \
-           self.northEastHandle().contains(e.pos()) or \
-           self.southEastHandle().contains(e.pos()) or \
-           self.southWestHandle().contains(e.pos()):
+        if (
+            self.northWestHandle().contains(e.pos())
+            or self.northEastHandle().contains(e.pos())
+            or self.southEastHandle().contains(e.pos())
+            or self.southWestHandle().contains(e.pos())
+        ):
             self._anchorPressRect = self.bubbleRect
             self._anchorPressScenePos = e.scenePos()
             self._anchorPressWidgetPos = self.pos()
@@ -335,13 +350,15 @@ class Callout(LayerItem):
             self.setWidthCmdId = commands.nextId()
         else:
             super().mousePressEvent(e)
-            if e.modifiers() & Qt.AltModifier: # anchored-drag
+            if e.modifiers() & Qt.AltModifier:  # anchored-drag
                 for handle in self.pointHandles:
                     if not handle.isnew:
                         p = handle.scenePos()
                         handle.setParentItem(None)
                         handle.setPos(p)
-                self.anchoredDrag = dict([(h, h.scenePos()) for h in self.pointHandles if not h.isnew])
+                self.anchoredDrag = dict(
+                    [(h, h.scenePos()) for h in self.pointHandles if not h.isnew]
+                )
                 self.setCursor(Qt.ClosedHandCursor)
 
     def mouseMoveEvent(self, e):
@@ -354,27 +371,23 @@ class Callout(LayerItem):
             delta = e.scenePos() - self._anchorPressScenePos
             newPos = None
             newSize = None
-            if handle == 'north-west':
-                newSize = QSizeF(size.width() - delta.x() / 2,
-                                 size.height())
+            if handle == "north-west":
+                newSize = QSizeF(size.width() - delta.x() / 2, size.height())
                 # widthDiff = (size.width() - newSize.width())
                 # ratio = newSize.width() / size.width()
                 # newPos = QPointF(widgetPos.x() + widthDiff * 2,
                 #                  widgetPos.y())
-            elif handle == 'north-east':
+            elif handle == "north-east":
                 # newPos = QPointF(widgetPos.x(),
                 #                  widgetPos.y())
-                newSize = QSizeF(size.width() + delta.x(),
-                                 size.height() - delta.y())
-            elif handle == 'south-east':
+                newSize = QSizeF(size.width() + delta.x(), size.height() - delta.y())
+            elif handle == "south-east":
                 # newPos = widgetPos
-                newSize = QSizeF(size.width() + delta.x(),
-                                 size.height() + delta.y())
-            elif handle == 'south-west':
+                newSize = QSizeF(size.width() + delta.x(), size.height() + delta.y())
+            elif handle == "south-west":
                 # newPos = QPointF(widgetPos.x() + delta.x(),
                 #                  widgetPos.y())
-                newSize = QSizeF(size.width() - delta.x(),
-                                 size.height() + delta.y())
+                newSize = QSizeF(size.width() - delta.x(), size.height() + delta.y())
             newScale = self._anchorPressScale * (newSize.width() / size.width())
             # self.setPos(newPos)
             self.setScale(newScale, notify=False, undo=self._anchorUndoId)
@@ -389,7 +402,7 @@ class Callout(LayerItem):
     def mouseReleaseEvent(self, e):
         self.mousePressPoints = None
         self.mouseMovePoints = None
-        if self._anchorResizing:            
+        if self._anchorResizing:
             self._anchorResizing = False
             cursor = self.handleCursorFor(e.pos())
             if cursor:
@@ -418,7 +431,11 @@ class Callout(LayerItem):
             if self.scene() and not self.scene().isInitializing:
                 if self.scene().mousePressOnDraggable:
                     if self.anchoredDrag:
-                        self.mouseMovePoints = [self.mapFromScene(h.pos()) for h in self.pointHandles if not h.isnew]
+                        self.mouseMovePoints = [
+                            self.mapFromScene(h.pos())
+                            for h in self.pointHandles
+                            if not h.isnew
+                        ]
                     else:
                         self.mouseMovePoints = []
                     self.scene().checkItemDragged(self, variant)
@@ -441,62 +458,70 @@ class Callout(LayerItem):
     ## Anchors
 
     def northWestHandle(self):
-        return QRectF(self.bubbleRect.x(),
-                      self.bubbleRect.y(),
-                      self.ANCHOR_HANDLE_SIZE, self.ANCHOR_HANDLE_SIZE)
-    
+        return QRectF(
+            self.bubbleRect.x(),
+            self.bubbleRect.y(),
+            self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+        )
+
     def northEastHandle(self):
-        return QRectF(self.bubbleRect.topRight().x() - self.ANCHOR_HANDLE_SIZE,
-                      self.bubbleRect.y(),
-                      self.ANCHOR_HANDLE_SIZE, self.ANCHOR_HANDLE_SIZE)
-    
+        return QRectF(
+            self.bubbleRect.topRight().x() - self.ANCHOR_HANDLE_SIZE,
+            self.bubbleRect.y(),
+            self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+        )
+
     def southEastHandle(self):
-        return QRectF(self.bubbleRect.topRight().x() - self.ANCHOR_HANDLE_SIZE,
-                      self.bubbleRect.bottomRight().y() - self.ANCHOR_HANDLE_SIZE,
-                      self.ANCHOR_HANDLE_SIZE, self.ANCHOR_HANDLE_SIZE)
-    
+        return QRectF(
+            self.bubbleRect.topRight().x() - self.ANCHOR_HANDLE_SIZE,
+            self.bubbleRect.bottomRight().y() - self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+        )
+
     def southWestHandle(self):
-        return QRectF(self.bubbleRect.x(),
-                      self.bubbleRect.bottomRight().y() - self.ANCHOR_HANDLE_SIZE,
-                      self.ANCHOR_HANDLE_SIZE, self.ANCHOR_HANDLE_SIZE)
-    
+        return QRectF(
+            self.bubbleRect.x(),
+            self.bubbleRect.bottomRight().y() - self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+            self.ANCHOR_HANDLE_SIZE,
+        )
+
     def handleFor(self, pos):
         if self.northWestHandle().contains(pos):
-            return 'north-west', self.northWestHandle()
+            return "north-west", self.northWestHandle()
         elif self.northEastHandle().contains(pos):
-            return 'north-east', self.northEastHandle()
+            return "north-east", self.northEastHandle()
         elif self.southWestHandle().contains(pos):
-            return 'south-west', self.southWestHandle()
+            return "south-west", self.southWestHandle()
         elif self.southEastHandle().contains(pos):
-            return'south-east', self.southEastHandle()
+            return "south-east", self.southEastHandle()
 
     def handleCursorFor(self, pos):
         handle = self.handleFor(pos)
         if handle is None:
             cursor = None
-        elif handle[0] == 'north-west':
+        elif handle[0] == "north-west":
             cursor = Qt.SizeFDiagCursor
-        elif handle[0] == 'south-east':
+        elif handle[0] == "south-east":
             cursor = Qt.SizeFDiagCursor
-        elif handle[0] == 'north-east':
+        elif handle[0] == "north-east":
             cursor = Qt.SizeBDiagCursor
-        elif handle[0] == 'south-west':
+        elif handle[0] == "south-west":
             cursor = Qt.SizeBDiagCursor
         return cursor
 
 
-
-
-
-        
 TEST_NO_FILE = True
 
 
 def __test__(scene, parent):
     from ..pyqt import QGraphicsView
+
     view = QGraphicsView(parent)
-    callout = Callout(text='here we are',
-                      points=[QPointF(-200, -100)])
+    callout = Callout(text="here we are", points=[QPointF(-200, -100)])
     callout.setSelected(True)
     scene.addItem(callout)
     view.show()
@@ -504,10 +529,11 @@ def __test__(scene, parent):
     parent.resize(500, 500)
 
     def again():
-        callout.setText(callout.text() + '\nagain')
+        callout.setText(callout.text() + "\nagain")
         callout.updateGeometry()
+
     again.timer = QTimer()
     again.timer.timeout.connect(again)
     again.timer.start(1000)
-    
+
     return view

@@ -5,7 +5,7 @@ from .. import util
 class ButtonGroup(QObject):
 
     changed = pyqtSignal(int)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.buttons = {}
@@ -26,11 +26,12 @@ class ButtonGroup(QObject):
                 return v
 
     def setCheckedButton(self, i):
-        if self.blocked: return
+        if self.blocked:
+            return
         self.blocked = True
         if i in self.buttons:
             button = self.buttons[i]
-            button.setChecked(True) # should be blocked by onClick
+            button.setChecked(True)  # should be blocked by onClick
             self.currentButton = i
             for k, v in self.buttons.items():
                 if v != button:
@@ -41,7 +42,8 @@ class ButtonGroup(QObject):
         return self.currentButton
 
     def clear(self):
-        if self.blocked: return
+        if self.blocked:
+            return
         self.blocked = True
         button = self.buttons.get(self.currentButton, None)
         if button:
@@ -49,12 +51,13 @@ class ButtonGroup(QObject):
         self.currentButton = None
         self.blocked = False
 
-#    @blocked
+    #    @blocked
     def onClicked(self, i):
-        if self.blocked: return
+        if self.blocked:
+            return
         self.blocked = True
         button = self.buttons[i]
-        if i == self.currentButton: # allow toggle
+        if i == self.currentButton:  # allow toggle
             button.setChecked(False)
             self.currentButton = None
         else:
@@ -64,4 +67,3 @@ class ButtonGroup(QObject):
                     v.setChecked(False)
         self.changed.emit(self.currentButton)
         self.blocked = False
-

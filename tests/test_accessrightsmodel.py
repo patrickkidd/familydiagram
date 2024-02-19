@@ -55,7 +55,7 @@ def test_read_rows(model, test_session, test_user, test_user_2):
     assert model.index(1, 0).data(model.RightRole) == diagram.access_rights[1].right
 
 
-@pytest.mark.usefixtures('blockingRequest_200')
+@pytest.mark.usefixtures("blockingRequest_200")
 def test_set_right(model, test_user):
     # mocker.patch.object(util, 'blockingRequest')
     diagram = Diagram(
@@ -65,7 +65,7 @@ def test_set_right(model, test_user):
         access_rights=[
             AccessRight(id=1, user_id=5, right=vedana.ACCESS_READ_ONLY),
             AccessRight(id=2, user_id=6, right=vedana.ACCESS_READ_WRITE),
-        ]
+        ],
     )
     model.setServerDiagram(diagram)
     assert model.index(0, 0).data(role=model.RightRole) == vedana.ACCESS_READ_ONLY
@@ -83,10 +83,7 @@ def test_set_right(model, test_user):
 
 def test_add_right(test_user_2, model):
     diagram = pkdiagram.Diagram(
-        id=1,
-        user_id=123,
-        created_at=datetime.datetime.now(),
-        access_rights=[]
+        id=1, user_id=123, created_at=datetime.datetime.now(), access_rights=[]
     )
     model.setServerDiagram(diagram)
     model.addRight(test_user_2.username)
@@ -95,29 +92,28 @@ def test_add_right(test_user_2, model):
     assert model.index(0, 0).data(role=model.RightRole) == vedana.ACCESS_READ_ONLY
 
 
-@pytest.mark.usefixtures('blockingRequest_200')
+@pytest.mark.usefixtures("blockingRequest_200")
 def test_add_right_not_exist(qtbot, model, test_session, test_user_2):
-    model.setServerDiagram(Diagram(
-        id=1,
-        user_id=123,
-        created_at=datetime.datetime.now(),
-        access_rights=[]
-    ))
-    qtbot.clickOkAfter(lambda: model.addRight('no@user.com'), text="does not exist")
+    model.setServerDiagram(
+        Diagram(id=1, user_id=123, created_at=datetime.datetime.now(), access_rights=[])
+    )
+    qtbot.clickOkAfter(lambda: model.addRight("no@user.com"), text="does not exist")
     assert model.rowCount() == 0
 
 
-@pytest.mark.usefixtures('blockingRequest_200')
+@pytest.mark.usefixtures("blockingRequest_200")
 def test_add_right_already_exists(qtbot, model, test_session, test_user, test_user_2):
     test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
     diagram_json = Diagram.query.get(test_user.free_diagram.id).as_dict()
     diagram = pkdiagram.Diagram.create(diagram_json)
     model.setServerDiagram(diagram)
-    qtbot.clickOkAfter(lambda: model.addRight(test_user_2.username), text="already exists")
+    qtbot.clickOkAfter(
+        lambda: model.addRight(test_user_2.username), text="already exists"
+    )
     assert model.rowCount() == 1
 
 
-@pytest.mark.usefixtures('blockingRequest_200')
+@pytest.mark.usefixtures("blockingRequest_200")
 def test_delete_right(model, test_user, test_user_2):
     test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
     free_diagram = Diagram.query.get(test_user.free_diagram_id)

@@ -3,9 +3,8 @@ from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, Event, Person
 
 
-
 def test_init():
-    """ Try to break ctor. """
+    """Try to break ctor."""
     person = Person()
     event = Event(parent=person)
     assert event in person.events()
@@ -14,7 +13,7 @@ def test_init():
 def test___lt__nowEvent():
     # test now event listed after dates on same day
     now = QDateTime.currentDateTime()
-    nowEvent = Event(uniqueId='now', dateTime=now)
+    nowEvent = Event(uniqueId="now", dateTime=now)
     today = Event(dateTime=now)
     assert nowEvent > today
     assert today < nowEvent
@@ -27,8 +26,8 @@ def test___lt__nowEvent():
 
 def __test___lt__():
     parent = Person()
-    birth = Event(uniqueId='birth')
-    death = Event(uniqueId='death')
+    birth = Event(uniqueId="birth")
+    death = Event(uniqueId="death")
     eventA = Event()
 
     birth.setParent(parent)
@@ -48,8 +47,9 @@ def __test___lt__():
     assert eventA < death
     assert not (death < eventA)
 
+
 def test_sorted_every_other():
-    """ Test sorting a list where every other has no date. """
+    """Test sorting a list where every other has no date."""
     dateTime = util.Date(2001, 1, 1)
     events = []
     for i in range(10):
@@ -58,7 +58,7 @@ def test_sorted_every_other():
             event.setDateTime(dateTime)
             dateTime = dateTime.addDays(1)
         events.append(event)
-    nowEvent = Event(uniqueId='Now', dateTime=QDateTime.currentDateTime())
+    nowEvent = Event(uniqueId="Now", dateTime=QDateTime.currentDateTime())
     events.append(nowEvent)
     sortedEvents = sorted(events)
 
@@ -73,123 +73,123 @@ def test_sorted_every_other():
 
 
 def test_QDate_lt():
-    d1 = util.Date(2000,1,2)
-    d2 = util.Date(2000,1,2)
+    d1 = util.Date(2000, 1, 2)
+    d2 = util.Date(2000, 1, 2)
     assert not (d1 < d2)
 
-    d1 = util.Date(2001,12,4)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 12, 4)
+    d2 = util.Date(2001, 12, 5)
     assert d1 < d2
 
-    d1 = util.Date(2001,11,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 11, 5)
+    d2 = util.Date(2001, 12, 5)
     assert d1 < d2
 
-    d1 = util.Date(2000,12,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2000, 12, 5)
+    d2 = util.Date(2001, 12, 5)
     assert d1 < d2
 
-    d1 = util.Date(2002,12,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2002, 12, 5)
+    d2 = util.Date(2001, 12, 5)
     assert not (d1 < d2)
 
-    d1 = util.Date(2001,12,5)
-    d2 = util.Date(2001,11,5)
+    d1 = util.Date(2001, 12, 5)
+    d2 = util.Date(2001, 11, 5)
     assert not (d1 < d2)
 
-    d1 = util.Date(2001,12,6)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 12, 6)
+    d2 = util.Date(2001, 12, 5)
     assert not (d1 < d2)
 
 
 def test_QDate_lt_eq():
 
-    d1 = util.Date(2000,1,2)
-    d2 = util.Date(2000,1,2)
+    d1 = util.Date(2000, 1, 2)
+    d2 = util.Date(2000, 1, 2)
     assert d1 <= d2
 
-    d1 = util.Date(2001,12,4)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 12, 4)
+    d2 = util.Date(2001, 12, 5)
     assert d1 <= d2
 
-    d1 = util.Date(2001,11,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 11, 5)
+    d2 = util.Date(2001, 12, 5)
     assert d1 <= d2
 
-    d1 = util.Date(2000,12,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2000, 12, 5)
+    d2 = util.Date(2001, 12, 5)
     assert d1 <= d2
 
-    d1 = util.Date(2002,12,5)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2002, 12, 5)
+    d2 = util.Date(2001, 12, 5)
     assert not (d1 <= d2)
 
-    d1 = util.Date(2001,12,5)
-    d2 = util.Date(2001,11,5)
+    d1 = util.Date(2001, 12, 5)
+    d2 = util.Date(2001, 11, 5)
     assert not (d1 <= d2)
 
-    d1 = util.Date(2001,12,6)
-    d2 = util.Date(2001,12,5)
+    d1 = util.Date(2001, 12, 6)
+    d2 = util.Date(2001, 12, 5)
     assert not (d1 <= d2)
-
 
 
 def test_lt():
-    d1 = Event(dateTime=util.Date(2000,1,2))
-    d2 = Event(dateTime=util.Date(2000,1,2))
+    d1 = Event(dateTime=util.Date(2000, 1, 2))
+    d2 = Event(dateTime=util.Date(2000, 1, 2))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001,12,4))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 4))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2001,11,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 11, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2000,12,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2000, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2002,12,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2002, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001,12,5))
-    d2 = Event(dateTime=util.Date(2001,11,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 11, 5))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001,12,6))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 6))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert not (d1 < d2)
 
-@pytest.mark.skip('__le__ not supported yet')
+
+@pytest.mark.skip("__le__ not supported yet")
 def test_lt_eq():
 
-    d1 = Event(dateTime=util.Date(2000,1,2))
-    d2 = Event(dateTime=util.Date(2000,1,2))
+    d1 = Event(dateTime=util.Date(2000, 1, 2))
+    d2 = Event(dateTime=util.Date(2000, 1, 2))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2001,12,4))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 4))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2001,11,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 11, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2000,12,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2000, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2002,12,5))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2002, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert not (d1 <= d2)
 
-    d1 = Event(dateTime=util.Date(2001,12,5))
-    d2 = Event(dateTime=util.Date(2001,11,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 5))
+    d2 = Event(dateTime=util.Date(2001, 11, 5))
     assert not (d1 <= d2)
 
-    d1 = Event(dateTime=util.Date(2001,12,6))
-    d2 = Event(dateTime=util.Date(2001,12,5))
+    d1 = Event(dateTime=util.Date(2001, 12, 6))
+    d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert not (d1 <= d2)

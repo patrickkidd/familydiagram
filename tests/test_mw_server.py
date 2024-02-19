@@ -6,25 +6,35 @@ from sqlalchemy import inspect
 
 from conftest import _open_server_file_item, _scene_data
 import vedana
-from pkdiagram import util, mainwindow, Scene, Person, AppConfig, Session, AppController, MainWindow
+from pkdiagram import (
+    util,
+    mainwindow,
+    Scene,
+    Person,
+    AppConfig,
+    Session,
+    AppController,
+    MainWindow,
+)
 from pkdiagram.pyqt import Qt, QFileInfo, QSettings
 
 from fdserver.extensions import db
 from fdserver.models import Diagram
 
 
-
-@pytest.mark.parametrize('license', (vedana.LICENSE_FREE, vedana.LICENSE_CLIENT))
+@pytest.mark.parametrize("license", (vedana.LICENSE_FREE, vedana.LICENSE_CLIENT))
 def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, license):
     if license == vedana.LICENSE_CLIENT:
-        request.getfixturevalue('test_client_activation')
-        
+        request.getfixturevalue("test_client_activation")
+
     ac, mw = create_ac_mw(session=False)
     assert mw.accountDialog.isShown()
 
     qtbot.clickOkAfter(
-        lambda: ac.session.login(username=test_user.username, password=test_user._plaintext_password),
-        contains=AppController.S_USING_FREE_LICENSE
+        lambda: ac.session.login(
+            username=test_user.username, password=test_user._plaintext_password
+        ),
+        contains=AppController.S_USING_FREE_LICENSE,
     )
     assert ac.session.isLoggedIn()
     # assert mw.accountDialog.isShown() == False
@@ -33,10 +43,11 @@ def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, licen
     assert mw.documentView.sceneModel.isOnServer == True
 
 
+@pytest.mark.parametrize("is_server_down", (True, False))
+def test_init_open_n_reopen_server_file(
+    test_activation, test_user_diagrams, create_ac_mw, server_down, is_server_down
+):
 
-@pytest.mark.parametrize('is_server_down', (True, False))
-def test_init_open_n_reopen_server_file(test_activation, test_user_diagrams, create_ac_mw, server_down, is_server_down):
- 
     # Load a file from the server in one MainWindow
     ac1, mw1 = create_ac_mw()
     util.wait(mw1.serverFileModel.updateFinished)
@@ -47,7 +58,7 @@ def test_init_open_n_reopen_server_file(test_activation, test_user_diagrams, cre
     mw1.deinit()
 
     with server_down(is_server_down):
-       # Load a second window to see if it loads the same file from the server
+        # Load a second window to see if it loads the same file from the server
         ac2, mw2 = create_ac_mw()
         util.wait(mw2.serverFileModel.updateFinished)
         assert mw2.document
@@ -56,7 +67,9 @@ def test_init_open_n_reopen_server_file(test_activation, test_user_diagrams, cre
         mw2.deinit()
 
 
-def test_open_server_file_no_server(test_activation, test_user_diagrams, server_down, create_ac_mw):
+def test_open_server_file_no_server(
+    test_activation, test_user_diagrams, server_down, create_ac_mw
+):
     # Populate server file cache
     ac1, mw1 = create_ac_mw()
     util.wait(mw1.serverFileModel.updateFinished)
@@ -73,17 +86,21 @@ def test_open_server_file_no_server(test_activation, test_user_diagrams, server_
         mw2.deinit()
 
 
-def test_rw_edit_on_client_diagram(test_user, test_activation, test_user_2, create_ac_mw):
-    data = Scene(items=[Person(name='you')]).data()
+def test_rw_edit_on_client_diagram(
+    test_user, test_activation, test_user_2, create_ac_mw
+):
+    data = Scene(items=[Person(name="you")]).data()
     test_user_2.set_free_diagram(pickle.dumps(data), _commit=True)
-    test_user_2.free_diagram.grant_access(test_user, vedana.ACCESS_READ_WRITE, _commit=True)
+    test_user_2.free_diagram.grant_access(
+        test_user, vedana.ACCESS_READ_WRITE, _commit=True
+    )
 
     # Edit from user with rw access
     ac, mw = create_ac_mw()
     util.wait(mw.serverFileModel.updateFinished)
     row = mw.serverFileModel.rowForDiagramId(test_user_2.free_diagram_id)
     _open_server_file_item(mw, row)
-    mw.scene.addItems(Person(name='me'))
+    mw.scene.addItems(Person(name="me"))
     mw.save()
 
     # Ensure change made it to database
@@ -91,15 +108,15 @@ def test_rw_edit_on_client_diagram(test_user, test_activation, test_user_2, crea
     scene = Scene()
     scene.read(pickle.loads(free_diagram.data))
     assert len(scene.people()) == 2
-    assert scene.people()[0].name() == 'you'
-    assert scene.people()[1].name() == 'me'
+    assert scene.people()[0].name() == "you"
+    assert scene.people()[1].name() == "me"
 
 
-@pytest.mark.parametrize('delete_local', [True, False])
+@pytest.mark.parametrize("delete_local", [True, False])
 def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete_local):
     ac, mw = create_ac_mw()
-    tmp_fd_path = os.path.join(tmp_path, 'test.fd')
-    util.touchFD(os.path.join(tmp_path, 'test.fd'))
+    tmp_fd_path = os.path.join(tmp_path, "test.fd")
+    util.touchFD(os.path.join(tmp_path, "test.fd"))
     mw.open(tmp_fd_path)
     data = mw.scene.data()
     local_bdata = pickle.dumps(data)
@@ -109,13 +126,13 @@ def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete
     if delete_local:
         qtbot.clickYesAfter(
             lambda: qtbot.clickYesAfter(
-                lambda: mw.documentView.caseProps.mouseClick('uploadButton')
+                lambda: mw.documentView.caseProps.mouseClick("uploadButton")
             )
         )
     else:
         qtbot.clickYesAfter(
             lambda: qtbot.clickNoAfter(
-                lambda: mw.documentView.caseProps.mouseClick('uploadButton')
+                lambda: mw.documentView.caseProps.mouseClick("uploadButton")
             )
         )
     diagram_id = mw.scene.serverDiagram().id
@@ -126,12 +143,14 @@ def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete
     assert os.path.exists(tmp_fd_path) == (not delete_local)
 
 
-@pytest.mark.parametrize('is_owner', [(True, False)])
-@pytest.mark.parametrize('has_write', [(True, False)])
-def test_server_diagram_access(test_activation, test_user, test_user_diagrams, create_ac_mw, is_owner, has_write):
+@pytest.mark.parametrize("is_owner", [(True, False)])
+@pytest.mark.parametrize("has_write", [(True, False)])
+def test_server_diagram_access(
+    test_activation, test_user, test_user_diagrams, create_ac_mw, is_owner, has_write
+):
     diagram_id = None
     for _diagram in test_user_diagrams:
-        db.session.add(_diagram) # these diagrams lost their session somehow
+        db.session.add(_diagram)  # these diagrams lost their session somehow
         if is_owner and _diagram.user_id == test_user.id:
             diagram_id = _diagram.id
             break
@@ -173,14 +192,16 @@ def test_delete_server_file(test_user_diagrams, qtbot, create_ac_mw):
     assert Diagram.query.get(diagram_id) == None
 
 
-@pytest.mark.parametrize('dontShowServerFileUpdated', [True, False])
-def test_current_server_file_updated_elsewhere(qtbot, test_user, create_ac_mw, dontShowServerFileUpdated):
+@pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])
+def test_current_server_file_updated_elsewhere(
+    qtbot, test_user, create_ac_mw, dontShowServerFileUpdated
+):
     diagram_id = test_user.free_diagram_id
     ac, mw = create_ac_mw()
     model = mw.fileManager.serverFileModel
     util.wait(mw.serverFileModel.updateFinished)
 
-    mw.prefs.setValue('dontShowServerFileUpdated', dontShowServerFileUpdated)
+    mw.prefs.setValue("dontShowServerFileUpdated", dontShowServerFileUpdated)
     _open_server_file_item(mw, 0)
     assert mw.scene.query1(name="Patrick") == None
 
@@ -198,7 +219,6 @@ def test_current_server_file_updated_elsewhere(qtbot, test_user, create_ac_mw, d
     else:
         qtbot.clickOkAfter(
             lambda: util.wait(mw.serverFileModel.updateFinished),
-            contains=MainWindow.S_DIAGRAM_UPDATED_FROM_SERVER
+            contains=MainWindow.S_DIAGRAM_UPDATED_FROM_SERVER,
         )
     assert mw.scene.query1(name="Patrick")
-    

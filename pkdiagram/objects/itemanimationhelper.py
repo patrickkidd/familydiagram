@@ -1,7 +1,12 @@
-
-from ..pyqt import QAbstractAnimation, QVariantAnimation, QParallelAnimationGroup, QBrush, QPen, Qt
+from ..pyqt import (
+    QAbstractAnimation,
+    QVariantAnimation,
+    QParallelAnimationGroup,
+    QBrush,
+    QPen,
+    Qt,
+)
 from .. import util
-
 
 
 class ItemAnimationHelper:
@@ -27,22 +32,22 @@ class ItemAnimationHelper:
         self.itemAnimationGroup.addAnimation(self.scaleAnimation)
 
     def flash(self):
-        """ flash a color to draw attention. """
+        """flash a color to draw attention."""
         if self.itemAnimationGroup.state() == QAbstractAnimation.Running:
-            self.itemAnimationGroup.stop() # premature
+            self.itemAnimationGroup.stop()  # premature
             # self.onAnimatedPenColorChanged(self._flashAnimData['orig_pen'])
             # self.onAnimatedBrushColorChanged(self._flashAnimData['orig_brush'])
-            self.setScale(self._flashAnimData['orig_scale'])
+            self.setScale(self._flashAnimData["orig_scale"])
         self._flashAnimData = {
             # 'orig_pen': self.pen().color(),
             # 'orig_brush': self.brush().color(),
-            'orig_scale': self.scale(),
+            "orig_scale": self.scale(),
         }
         # self.penAnimation.setStartValue(util.FLASH_COLOR)
-        self.penAnimation.setStartValue(self.pen().color()) # noop
+        self.penAnimation.setStartValue(self.pen().color())  # noop
         self.penAnimation.setEndValue(self.pen().color())
         # self.brushAnimation.setStartValue(util.FLASH_COLOR.lighter(110))
-        self.brushAnimation.setStartValue(self.brush().color()) # noop
+        self.brushAnimation.setStartValue(self.brush().color())  # noop
         self.brushAnimation.setEndValue(self.brush().color())
         self.scaleAnimation.setStartValue(self.scale() * util.FLASH_SCALE_DELTA)
         self.scaleAnimation.setEndValue(self.scale())
@@ -70,4 +75,3 @@ class ItemAnimationHelper:
 
     def onFlashColorFinished(self):
         pass
-

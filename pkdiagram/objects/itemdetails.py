@@ -1,4 +1,21 @@
-from ..pyqt import QBrush, QGraphicsItem, QGraphicsSimpleTextItem, QGraphicsLineItem, QLineF, Qt, QRectF, QGraphicsView, QColor, QPainterPath, QFontMetrics, QRect, QPen, QMarginsF, QFont, QPointF
+from ..pyqt import (
+    QBrush,
+    QGraphicsItem,
+    QGraphicsSimpleTextItem,
+    QGraphicsLineItem,
+    QLineF,
+    Qt,
+    QRectF,
+    QGraphicsView,
+    QColor,
+    QPainterPath,
+    QFontMetrics,
+    QRect,
+    QPen,
+    QMarginsF,
+    QFont,
+    QPointF,
+)
 from .. import util
 from .pathitem import PathItem
 from .itemanimationhelper import ItemAnimationHelper
@@ -14,11 +31,11 @@ class FlashableTextItem(QGraphicsSimpleTextItem, ItemAnimationHelper):
     def setText(self, text):
         super().setText(text)
         self.nominalBoundingRect = self.boundingRect()
-    
+
 
 class ItemDetails(PathItem):
-    """ Contain a stack of child QGraphicsSimpleTextItems which can
-        be colored, opacitied, and flashed independently.
+    """Contain a stack of child QGraphicsSimpleTextItems which can
+    be colored, opacitied, and flashed independently.
     """
 
     PathItem.registerProperties([])
@@ -38,9 +55,11 @@ class ItemDetails(PathItem):
         self.variablesLineItem.setPen(util.PEN)
         self.extraTextItems = []
         self._growUp = growUp
-        self._parentRequestsToShow = True # normal visible state prior to being hidden for scaling too small.
-        self._shouldHideForSmallSize = False # item is too small to be legible
-        self._mouseDown = None # Mouse clicks without drags were often meant to select the overlapped parent item
+        self._parentRequestsToShow = (
+            True  # normal visible state prior to being hidden for scaling too small.
+        )
+        self._shouldHideForSmallSize = False  # item is too small to be legible
+        self._mouseDown = None  # Mouse clicks without drags were often meant to select the overlapped parent item
 
     # Events
 
@@ -53,7 +72,7 @@ class ItemDetails(PathItem):
         pen.setCapStyle(self.penCapStyle)
         self.setPen(pen)
         self.variablesLineItem.setPen(self.mainTextItem.pen())
-        
+
     def updateGeometry(self):
         self.updatePathItemData()
         super().updateGeometry()
@@ -65,7 +84,10 @@ class ItemDetails(PathItem):
             e.ignore()
             return
         currentDrawer = self.scene().view().parent().currentDrawer
-        if currentDrawer and currentDrawer is not self.scene().view().parent().caseProps:
+        if (
+            currentDrawer
+            and currentDrawer is not self.scene().view().parent().caseProps
+        ):
             return
         super().mousePressEvent(e)
         self.scene().clearSelection()
@@ -75,14 +97,17 @@ class ItemDetails(PathItem):
             e.ignore()
             return
         currentDrawer = self.scene().view().parent().currentDrawer
-        if currentDrawer and currentDrawer is not self.scene().view().parent().caseProps:
+        if (
+            currentDrawer
+            and currentDrawer is not self.scene().view().parent().caseProps
+        ):
             return
         super().mouseMoveEvent(e)
 
     def mouseReleaseEvent(self, e):
         if e.screenPos() == self._mouseDown:
             if self.parentItem().sceneBoundingRect().contains(e.scenePos()):
-                ## Clicks without drags were 
+                ## Clicks without drags were
                 self.parentItem().setSelected(True)
         self._mouseDown = None
         return super().mouseReleaseEvent(e)
@@ -99,15 +124,15 @@ class ItemDetails(PathItem):
         return super().itemChange(change, variant)
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
-        """ virtual """
-        return True # let parent show|hide 
+        """virtual"""
+        return True  # let parent show|hide
         # if self.parentItem():
         #     return self.parentItem().shouldShowFor(date, tags=tags, layers=layers)
         # else:
         #     return False
 
     def setParentRequestsToShow(self, on):
-        """ The parent item says it should show, though onVisibleSizeChanged() may still hide it. """
+        """The parent item says it should show, though onVisibleSizeChanged() may still hide it."""
         self._parentRequestsToShow = on
         if self.scene():
             # upstream hack
@@ -119,24 +144,24 @@ class ItemDetails(PathItem):
                 self.updatePathItemVisible()
 
     def onVisibleSizeChanged(self, view, visibleSceneRectRatio):
-        """ Hiding here trumps all other conditions. """
+        """Hiding here trumps all other conditions."""
         ratio = visibleSceneRectRatio * self.parentItem().scale()
-        if ratio <= .28:
+        if ratio <= 0.28:
             self._shouldHideForSmallSize = True
         else:
             self._shouldHideForSmallSize = False
         self.updatePathItemVisible()
 
     def updatePathItemVisible(self):
-        """ Override to aggregate the following into the fade in|out:
-            - shouldShowForDateAndLayerTags()
-            - setParentRequestsToShow()
-            - onVisibleSizeChanged()
+        """Override to aggregate the following into the fade in|out:
+        - shouldShowForDateAndLayerTags()
+        - setParentRequestsToShow()
+        - onVisibleSizeChanged()
         """
         if self._shouldHideForSmallSize:
-            on = False # trumps all
+            on = False  # trumps all
         elif not self.shouldShowForDateAndLayerTags() or not self._parentRequestsToShow:
-            on = False # `not shouldShowForDateAndLayerTags` means parent is hidden
+            on = False  # `not shouldShowForDateAndLayerTags` means parent is hidden
         else:
             on = True
         self.setPathItemVisible(on)
@@ -176,8 +201,10 @@ class ItemDetails(PathItem):
         return len([i for i in self.extraTextItems if (i.isVisible() and i.text())])
 
     def text(self):
-        lines = [self.mainTextItem.text()] + [item.text() for item in self.extraTextItems]
-        return '\n'.join(lines)
+        lines = [self.mainTextItem.text()] + [
+            item.text() for item in self.extraTextItems
+        ]
+        return "\n".join(lines)
 
     def setText(self, mainText, extraLines=[]):
         oldBL = self.boundingRect().bottomLeft()
@@ -191,7 +218,9 @@ class ItemDetails(PathItem):
         # Variables line
         if extraLines:
             self.variablesLineItem.setVisible(True)
-            textItemRect = self.mapFromItem(self.mainTextItem, self.mainTextItem.boundingRect()).boundingRect()
+            textItemRect = self.mapFromItem(
+                self.mainTextItem, self.mainTextItem.boundingRect()
+            ).boundingRect()
             spacing = 5
             self.variablesLineItem.setPos(0, textItemRect.bottomLeft().y() + spacing)
             lastItem = self.variablesLineItem
@@ -204,12 +233,16 @@ class ItemDetails(PathItem):
             if i < len(extraLines):
                 line = extraLines[i]
             else:
-                line = ''
+                line = ""
             textItem.setText(line)
             if isinstance(lastItem, FlashableTextItem):
-                textItemRect = self.mapFromItem(lastItem, lastItem.nominalBoundingRect).boundingRect()
+                textItemRect = self.mapFromItem(
+                    lastItem, lastItem.nominalBoundingRect
+                ).boundingRect()
             else:
-                textItemRect = self.mapFromItem(lastItem, lastItem.boundingRect()).boundingRect()
+                textItemRect = self.mapFromItem(
+                    lastItem, lastItem.boundingRect()
+                ).boundingRect()
             textItem.setPos(0, textItemRect.bottomLeft().y() + spacing)
             spacing = 0
             lastItem = textItem
@@ -223,4 +256,3 @@ class ItemDetails(PathItem):
     def flashExtraLine(self, iLine):
         if iLine >= 0 and iLine < len(self.extraTextItems):
             self.extraTextItems[iLine].flash()
-

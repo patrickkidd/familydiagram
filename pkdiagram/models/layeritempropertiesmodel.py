@@ -5,23 +5,23 @@ from .modelhelper import ModelHelper
 
 
 class LayerItemLayersModel(QAbstractListModel, ModelHelper):
-    """ Something for the layers drop-downs. """
+    """Something for the layers drop-downs."""
 
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
     ActiveRole = NameRole + 1
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._layers = []
-        self._sortedIds = []    # same order
+        self._sortedIds = []  # same order
         self._sortedNames = []  # same order
         self.initModelHelper()
 
     ## QObjectHelper
 
     def set(self, attr, value):
-        if attr == 'scene':
+        if attr == "scene":
             if self._scene:
                 self._scene.layerAdded.disconnect(self.onLayerAdded)
                 self._scene.layerChanged.disconnect(self.onLayerChanged)
@@ -39,9 +39,9 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                 self._sort()
             self.modelReset.emit()
         super().set(attr, value)
-        if attr == 'scene':
+        if attr == "scene":
             self.modelReset.emit()
-        elif attr == 'items':
+        elif attr == "items":
             self.modelReset.emit()
 
     ## ModelHelper
@@ -53,7 +53,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
 
     def onLayerAdded(self, layer):
         newLayers = self._layers + [layer]
-        sortedLayers = sorted(newLayers, key=lambda x: x.name() and x.name() or '')
+        sortedLayers = sorted(newLayers, key=lambda x: x.name() and x.name() or "")
         newRow = sortedLayers.index(layer)
         self.beginInsertRows(QModelIndex(), newRow, newRow)
         self._layers.append(layer)
@@ -61,7 +61,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
         self.endInsertRows()
 
     def onLayerChanged(self, prop):
-        if prop.name() == 'name':
+        if prop.name() == "name":
             row = self.rowForId(prop.item.id)
             if self._sortedNames[row] != prop.item.name():
                 self._sortedNames[row] = prop.item.name()
@@ -71,7 +71,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                 # self.beginMoveRows(QModelIndex(), row, row, QModelIndex(), newRow)
                 # index = self.index(newRow, 0)
                 # self.dataChanged.emit(index, index)
-        
+
     def onLayerRemoved(self, layer):
         row = self.rowForId(layer.id)
         self.beginRemoveRows(QModelIndex(), row, row)
@@ -88,9 +88,9 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
     #         return self._sortedIds[row]
     #     return -1
 
-    # @pyqtSlot(int, result=int)        
+    # @pyqtSlot(int, result=int)
     def rowForId(self, id):
-        if not id in self._sortedIds: # could be blank
+        if not id in self._sortedIds:  # could be blank
             return -1
         else:
             return self._sortedIds.index(id)
@@ -106,22 +106,18 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
             if layer.name():
                 self._sortedIds.append(layer.id)
                 self._sortedNames.append(layer.name())
-    
+
     ## Qt Virtuals
 
     def roleNames(self):
-        return {
-            self.IdRole: b'id',
-            self.NameRole: b'name',
-            self.ActiveRole: b'active'
-        }
+        return {self.IdRole: b"id", self.NameRole: b"name", self.ActiveRole: b"active"}
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._sortedNames)
 
     def columnCount(self, parent=QModelIndex()):
         return 1
-    
+
     def data(self, index, role=Qt.DisplayRole):
         ret = None
         if role == self.IdRole:
@@ -143,7 +139,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
         success = False
         if role == self.ActiveRole:
             if not isinstance(value, bool) and value == Qt.PartiallyChecked:
-                pass # never set on click right?
+                pass  # never set on click right?
             else:
                 layer = self.layerForRow(index.row())
                 id = commands.nextId()
@@ -151,7 +147,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                     if not value:
                         newLayers = [id for id in item.layers() if id != layer.id]
                         if not item.isPerson and len(newLayers) == 0:
-                            success = True # cancel
+                            success = True  # cancel
                             continue
                     else:
                         if layer.id in item.layers():
@@ -165,20 +161,22 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
         return success
 
 
-
 class LayerItemPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(objects.LayerItem, [
-        { 'attr': 'active', 'type': Qt.CheckState },
-        { 'attr': 'parentId', 'type': int, 'default': -1 }
-    ])
-    
+    PROPERTIES = objects.Item.adjustedClassProperties(
+        objects.LayerItem,
+        [
+            {"attr": "active", "type": Qt.CheckState},
+            {"attr": "parentId", "type": int, "default": -1},
+        ],
+    )
+
     ModelHelper.registerQtProperties(PROPERTIES)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.initModelHelper()
 
-        
-qmlRegisterType(LayerItemPropertiesModel, 'PK.Models', 1, 0, 'LayerItemPropertiesModel')
-qmlRegisterType(LayerItemLayersModel, 'PK.Models', 1, 0, 'LayerItemLayersModel')
+
+qmlRegisterType(LayerItemPropertiesModel, "PK.Models", 1, 0, "LayerItemPropertiesModel")
+qmlRegisterType(LayerItemLayersModel, "PK.Models", 1, 0, "LayerItemLayersModel")

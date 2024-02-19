@@ -1,6 +1,20 @@
-from ..pyqt import Qt, QPen, QFileInfo, QPushButton, QToolButton, pyqtSignal, QIcon, QPixmap, QSize, QPainter, QColor, QRect, QMargins, QPalette
+from ..pyqt import (
+    Qt,
+    QPen,
+    QFileInfo,
+    QPushButton,
+    QToolButton,
+    pyqtSignal,
+    QIcon,
+    QPixmap,
+    QSize,
+    QPainter,
+    QColor,
+    QRect,
+    QMargins,
+    QPalette,
+)
 from .. import util
-
 
 
 class PixmapButtonHelper:
@@ -8,7 +22,9 @@ class PixmapButtonHelper:
     PADDING = 12
     RADIUS = 2
 
-    def __init__(self, uncheckedPixmapPath=None, checkedPixmapPath=None, autoInvertColor=True):
+    def __init__(
+        self, uncheckedPixmapPath=None, checkedPixmapPath=None, autoInvertColor=True
+    ):
         self._autoInvertColor = autoInvertColor
         self._uncheckedPixmapPath = uncheckedPixmapPath
         self._checkedPixmapPath = checkedPixmapPath
@@ -21,7 +37,7 @@ class PixmapButtonHelper:
         self.setCheckedPixmapPath(self._checkedPixmapPath)
 
     def onApplicationPaletteChanged(self):
-        """ Called from toolbars.py """
+        """Called from toolbars.py"""
         self.updateAll()
 
     def setAutoInvertColor(self, on):
@@ -29,7 +45,7 @@ class PixmapButtonHelper:
 
     def setUncheckedPixmapPath(self, path):
         if path is None:
-            path = ''
+            path = ""
         if QFileInfo(path).isFile():
             self._uncheckedPixmapPath = path
         elif QFileInfo(util.QRC + path).isFile():
@@ -37,14 +53,16 @@ class PixmapButtonHelper:
         else:
             self._uncheckedPixmapPath = None
         if util.IS_UI_DARK_MODE and self._autoInvertColor:
-            self._uncheckedPixmap = util.invertPixmap(QPixmap(self._uncheckedPixmapPath))
+            self._uncheckedPixmap = util.invertPixmap(
+                QPixmap(self._uncheckedPixmapPath)
+            )
         else:
             self._uncheckedPixmap = QPixmap(self._uncheckedPixmapPath)
         self._uncheckedIcon = QIcon(self._uncheckedPixmap)
-    
+
     def setCheckedPixmapPath(self, path):
         if path is None:
-            path = ''
+            path = ""
         if QFileInfo(path).isFile():
             self._checkedPixmapPath = path
         elif QFileInfo(util.QRC + path).isFile():
@@ -60,14 +78,14 @@ class PixmapButtonHelper:
     def paintPixmapButton(self, e):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
-        if not self.isEnabled(): # hack
-            p.setOpacity(.5)
+        if not self.isEnabled():  # hack
+            p.setOpacity(0.5)
 
         if self.isDown() or self.isChecked():
             if self.isDown():
                 p.setBrush(util.CONTROL_BG)
             if self.isChecked():
-                p.setPen(QPen(QColor('#5a9adb'), 1))
+                p.setPen(QPen(QColor("#5a9adb"), 1))
             borderRect = self.rect()
             borderRect.setX(1)
             borderRect.setY(1)
@@ -75,7 +93,12 @@ class PixmapButtonHelper:
             borderRect.setHeight(borderRect.height() - 2)
             p.drawRoundedRect(borderRect, self.RADIUS, self.RADIUS)
 
-        iconRect = QRect(self.PADDING, self.PADDING, self.width() - self.PADDING, self.height() - self.PADDING)
+        iconRect = QRect(
+            self.PADDING,
+            self.PADDING,
+            self.width() - self.PADDING,
+            self.height() - self.PADDING,
+        )
         iconRect.moveCenter(self.rect().center())
         if self.isChecked() and not self._checkedIcon.isNull():
             icon = self._checkedIcon
@@ -95,7 +118,7 @@ class PixmapPushButton(QPushButton, PixmapButtonHelper):
     def paintEvent(self, e):
         self.paintPixmapButton(e)
 
-        
+
 class PixmapToolButton(QToolButton, PixmapButtonHelper):
 
     def __init__(self, parent=None, **kwargs):
@@ -103,4 +126,3 @@ class PixmapToolButton(QToolButton, PixmapButtonHelper):
 
     def paintEvent(self, e):
         self.paintPixmapButton(e)
-    

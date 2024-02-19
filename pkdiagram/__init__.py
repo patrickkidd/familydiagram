@@ -4,6 +4,7 @@ app.init()
 
 import os
 from . import pepper
+
 PEPPER = pepper.PEPPER
 
 from . import version, util, pepper
@@ -11,9 +12,11 @@ from .util import CUtil
 from .util import EventKind
 
 
-
-
-if not os.environ.get('PK_IS_SERVER') and not util.IS_BAREBONES and not os.environ.get('FAMILYDIAGRAM_BUILD'):
+if (
+    not os.environ.get("PK_IS_SERVER")
+    and not util.IS_BAREBONES
+    and not os.environ.get("FAMILYDIAGRAM_BUILD")
+):
 
     PathItemBase = util.PathItemBase
     from .qmlhelpers import *
@@ -36,4 +39,11 @@ if not os.environ.get('PK_IS_SERVER') and not util.IS_BAREBONES and not os.envir
     from .appcontroller import AppController
     from .accountdialog import AccountDialog
     from .documentview import DocumentView, CaseProperties
-    from .server_types import Diagram, User, AccessRight, HTTPError, HTTPResponse, Server
+    from .server_types import (
+        Diagram,
+        User,
+        AccessRight,
+        HTTPError,
+        HTTPResponse,
+        Server,
+    )

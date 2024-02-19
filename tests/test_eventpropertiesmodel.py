@@ -1,6 +1,6 @@
 from pkdiagram import util, Person, Event, Scene, EventPropertiesModel
 
-    
+
 def test_numWritable():
     scene = Scene()
     model = EventPropertiesModel()
@@ -9,20 +9,27 @@ def test_numWritable():
 
     # writable
     parent = Person()
-    event = Event(parent=parent, description='Something happened', dateTime=util.Date(2019, 5, 11))
+    event = Event(
+        parent=parent, description="Something happened", dateTime=util.Date(2019, 5, 11)
+    )
     model.items = [event]
     assert model.numWritable == 1
 
     # non-writable
-    event2 = Event(parent=parent, description='Something happened', dateTime=util.Date(2019, 5, 11), uniqueId='blah')
+    event2 = Event(
+        parent=parent,
+        description="Something happened",
+        dateTime=util.Date(2019, 5, 11),
+        uniqueId="blah",
+    )
     model.items = [event2]
-    assert model.numWritable == 0    
+    assert model.numWritable == 0
 
     # just for good measure
     # writable
     model.items = [event]
     assert model.numWritable == 1
-    
+
     # reset
     model.resetItems()
     assert model.numWritable == 0
@@ -30,8 +37,8 @@ def test_numWritable():
 
 def test_parentId():
     scene = Scene()
-    personA = Person(name='A')
-    personB = Person(name='B')
+    personA = Person(name="A")
+    personB = Person(name="B")
     event = Event(parent=personA)
     scene.addItems(personA, personB)
     model = EventPropertiesModel()
@@ -42,4 +49,3 @@ def test_parentId():
     model.parentId = personB.id
     assert model.parentId == personB.id
     assert event.parent == personB
-    

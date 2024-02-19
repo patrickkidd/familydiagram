@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 
 class AppController(QObject):
-    """ App-level singleton that manages MainWindows verbs.
+    """App-level singleton that manages MainWindows verbs.
 
     Handles pre-window init like appconfig, cached session creds login, EULA
 
@@ -17,21 +17,13 @@ class AppController(QObject):
     cluttering it up with all the app-level init and event handling.
     """
 
-    S_APPCONFIG_TAMPERED_WITH = (
-        "The license info on this computer has been tampered with. You will be logged out and will need to log in again."
-    )
+    S_APPCONFIG_TAMPERED_WITH = "The license info on this computer has been tampered with. You will be logged out and will need to log in again."
 
-    S_VERSION_DEACTIVATED = (
-        'The app has been disabled due to a critical bug fix. Please update to the newest version to continue using it. We are sorry for the inconvenience but this is to ensure the safety of your data and your computer.'
-    )
+    S_VERSION_DEACTIVATED = "The app has been disabled due to a critical bug fix. Please update to the newest version to continue using it. We are sorry for the inconvenience but this is to ensure the safety of your data and your computer."
 
-    S_UPGRADED_TO_PRO_LICENSE = (
-        'You have upgraded to a subscription which gives you full access to all features.\n\nIf you were working on your free diagram, you can find it listed in the server files view as "Free Diagram". We hope you find Family Diagram useful.'
-    )
+    S_UPGRADED_TO_PRO_LICENSE = 'You have upgraded to a subscription which gives you full access to all features.\n\nIf you were working on your free diagram, you can find it listed in the server files view as "Free Diagram". We hope you find Family Diagram useful.'
 
-    S_USING_FREE_LICENSE = (
-        'You are now using the free license. You will only have access to a single diagram which cannot be saved or transfered from this computer. This makes it possible for anyone to research their own family.\n\nYou can import a diagram from another person, though this will overwrite any previous contents of your free diagram. This allows you to import your diagram from a coach, for example. You cannot send or use your free diagram outside of this computer.\n\nIf you want to create more diagrams or access the research server, you will need to purchase the full version of this app by clicking "Family Diagram" -> "Show Account" in the menu bar. An option to export to a coach or to make a backup is to purchase a monthly subscription and immediately cancel it, giving you one month to export as many copies as you like.'
-    )
+    S_USING_FREE_LICENSE = 'You are now using the free license. You will only have access to a single diagram which cannot be saved or transfered from this computer. This makes it possible for anyone to research their own family.\n\nYou can import a diagram from another person, though this will overwrite any previous contents of your free diagram. This allows you to import your diagram from a coach, for example. You cannot send or use your free diagram outside of this computer.\n\nIf you want to create more diagrams or access the research server, you will need to purchase the full version of this app by clicking "Family Diagram" -> "Show Account" in the menu bar. An option to export to a coach or to make a backup is to purchase a monthly subscription and immediately cancel it, giving you one month to export as many copies as you like.'
 
     def __init__(self, app, prefs, prefsName=None):
         super().__init__(app)
@@ -73,20 +65,18 @@ class AppController(QObject):
         assert mw.isInitialized
         assert self.mw is None
         self.mw = mw
-        
+
         # AppConfig Protection
 
         if self.appConfig.wasTamperedWith:
             QMessageBox.warning(
-                None, 
-                "App configuration tampered with.",
-                self.S_APPCONFIG_TAMPERED_WITH
+                None, "App configuration tampered with.", self.S_APPCONFIG_TAMPERED_WITH
             )
             os.remove(self.appConfig.filePath)
 
         # Syncronous init from AppConfig or else from Network
-        
-        lastSessionData = self.appConfig.get('lastSessionData', pickled=True)
+
+        lastSessionData = self.appConfig.get("lastSessionData", pickled=True)
         if lastSessionData and not self.appConfig.wasTamperedWith:
             self.session.init(sessionData=lastSessionData)
         else:
@@ -94,31 +84,39 @@ class AppController(QObject):
 
         # EULA
 
-        acceptedEULA = not self.prefs.value('acceptedEULA', defaultValue=False)
+        acceptedEULA = not self.prefs.value("acceptedEULA", defaultValue=False)
         if acceptedEULA:
             if not mw.showEULA():
-                return # TODO: Move showEULA out of MainWindow
+                return  # TODO: Move showEULA out of MainWindow
 
         # Read Preferences
 
-        checkForUpdatesAutomatically = self.prefs.value('checkForUpdatesAutomatically', defaultValue=True)
+        checkForUpdatesAutomatically = self.prefs.value(
+            "checkForUpdatesAutomatically", defaultValue=True
+        )
         if checkForUpdatesAutomatically:
             CUtil.instance().checkForUpdates()
 
-        util.ENABLE_PINCH_PAN_ZOOM = self.prefs.value('enablePinchPanZoom', type=bool, defaultValue=util.ENABLE_PINCH_PAN_ZOOM)
-        util.ENABLE_WHEEL_PAN = self.prefs.value('enableWheelPan', defaultValue=True)
+        util.ENABLE_PINCH_PAN_ZOOM = self.prefs.value(
+            "enablePinchPanZoom", type=bool, defaultValue=util.ENABLE_PINCH_PAN_ZOOM
+        )
+        util.ENABLE_WHEEL_PAN = self.prefs.value("enableWheelPan", defaultValue=True)
 
-        showCurrentDate = self.prefs.value('showCurrentDate', type=bool, defaultValue=False)
+        showCurrentDate = self.prefs.value(
+            "showCurrentDate", type=bool, defaultValue=False
+        )
         mw.onShowCurrentDateTime(showCurrentDate)
 
-        size = self.prefs.value('windowSize', type=QSize, defaultValue=QSize(900, 650))
+        size = self.prefs.value("windowSize", type=QSize, defaultValue=QSize(900, 650))
         mw.resize(size)
 
         ## Welcome Modal
 
-        dontShowWelcome = self.prefs.value('dontShowWelcome', defaultValue=False, type=bool)
+        dontShowWelcome = self.prefs.value(
+            "dontShowWelcome", defaultValue=False, type=bool
+        )
         # show welcome no matter what
-        if not dontShowWelcome: # disable welcome screen for now
+        if not dontShowWelcome:  # disable welcome screen for now
             mw.showWelcome()
         elif not self.session.activeFeatures():
             mw.showAccount()
@@ -129,12 +127,14 @@ class AppController(QObject):
         mw.show()
 
         # Open file requested by OS on launch (and override saved last opened file)
-        if self._pendingOpenFilePath and self.session.hasFeature(vedana.LICENSE_PROFESSIONAL):
+        if self._pendingOpenFilePath and self.session.hasFeature(
+            vedana.LICENSE_PROFESSIONAL
+        ):
             # Means OS requested opening file before mw was ready
             self.onFileOpen(self._pendingOpenFilePath)
             self._pendingOpenFilePath = None
         else:
-            if self.prefs.value('reopenLastFile', defaultValue=True, type=bool):
+            if self.prefs.value("reopenLastFile", defaultValue=True, type=bool):
                 mw.openLastFile()
 
     def _event_loop(self, mw):
@@ -143,16 +143,18 @@ class AppController(QObject):
         mw.closed.disconnect(self.app.quit)
 
     def _post_event_loop(self, mw):
-        """ Everything after the event loop. Releases MW ref. """
+        """Everything after the event loop. Releases MW ref."""
 
         ## Write Preferences
 
         was = self.prefs.setAutoSave(False)
-        self.prefs.setValue('windowSize', mw.size())
-        lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(vedana.LICENSE_FREE)
-        self.prefs.setValue('lastFileWasOpen', lastFileWasOpen)
+        self.prefs.setValue("windowSize", mw.size())
+        lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(
+            vedana.LICENSE_FREE
+        )
+        self.prefs.setValue("lastFileWasOpen", lastFileWasOpen)
         showCurrentDate = mw.ui.actionShow_Current_Date.isChecked()
-        self.prefs.setValue('showCurrentDate', showCurrentDate)
+        self.prefs.setValue("showCurrentDate", showCurrentDate)
         self.prefs.sync()
         self.prefs.setAutoSave(was)
 
@@ -170,13 +172,12 @@ class AppController(QObject):
 
         self._post_event_loop(mw)
 
-
     ## Events
 
     def onOSFileOpen(self, fpath):
-        """ Called from QEvent.FileOpen (Drop from Finder). """
+        """Called from QEvent.FileOpen (Drop from Finder)."""
         if util.suffix(fpath) != util.EXTENSION:
-            log.debug(f'Ignoring command line argument: {fpath}')
+            log.debug(f"Ignoring command line argument: {fpath}")
             return
 
         if self.mw:
@@ -185,10 +186,10 @@ class AppController(QObject):
             self._pendingOpenFilePath = fpath
 
     def onSessionChanged(self, oldFeatures, newFeatures):
-        """ Called on login, logout, invalidated token. """
+        """Called on login, logout, invalidated token."""
 
         if self.session.isLoggedIn():
-            self.appConfig.set('lastSessionData', self.session.data(), pickled=True)
+            self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
 
             # If logged in, activeFeatures will always be at least vedana.LICENSE_FREE
             # If not logged in, there is always the possibility that lastSessionData will set activeFeatures
@@ -197,26 +198,38 @@ class AppController(QObject):
             if self.session.activeFeatures() == []:
                 if self.session.isVersionDeactivated():
                     QMessageBox.information(
-                        None, 'Version Deactivated',
-                        self.S_VERSION_DEACTIVATED
+                        None, "Version Deactivated", self.S_VERSION_DEACTIVATED
                     )
             elif self.session.hasFeature(vedana.LICENSE_FREE):
-                if not oldFeatures or vedana.any_license_match(oldFeatures, (vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA)):
+                if not oldFeatures or vedana.any_license_match(
+                    oldFeatures,
+                    (
+                        vedana.LICENSE_PROFESSIONAL,
+                        vedana.LICENSE_BETA,
+                        vedana.LICENSE_ALPHA,
+                    ),
+                ):
                     if not self.session.isInitializing():
                         QMessageBox.information(
-                            None, 'Using free license',
-                            self.S_USING_FREE_LICENSE
+                            None, "Using free license", self.S_USING_FREE_LICENSE
                         )
 
                     if self.mw:
-                        self.mw.serverFileModel.syncDiagramFromServer(self.session.user.free_diagram_id)
+                        self.mw.serverFileModel.syncDiagramFromServer(
+                            self.session.user.free_diagram_id
+                        )
                         self.mw.openFreeLicenseDiagram()
 
-            elif self.session.hasFeature(vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA):
+            elif self.session.hasFeature(
+                vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA
+            ):
                 if vedana.any_license_match(oldFeatures, [vedana.LICENSE_FREE]):
                     if not self.session.isInitializing():
-                        QMessageBox.information(None, 'Upgraded to Pro License.',
-                                                self.S_UPGRADED_TO_PRO_LICENSE)
+                        QMessageBox.information(
+                            None,
+                            "Upgraded to Pro License.",
+                            self.S_UPGRADED_TO_PRO_LICENSE,
+                        )
                     if self.mw:
                         self.mw.serverFileModel.update()
             else:
@@ -224,8 +237,8 @@ class AppController(QObject):
 
         else:
             # When the user logs out, already promted to confirm via Qml.
-            self.appConfig.delete('lastSessionData')
+            self.appConfig.delete("lastSessionData")
         self.appConfig.write()
-        
+
         if self.mw:
             self.mw.onActiveFeaturesChanged(newFeatures, oldFeatures)

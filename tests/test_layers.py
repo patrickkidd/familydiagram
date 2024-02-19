@@ -3,12 +3,10 @@ from pkdiagram.pyqt import QPointF
 from pkdiagram import util, commands, Scene, Layer, PathItem, Person, Property, Callout
 
 
-
 @pytest.fixture
 def undoStack():
     commands.stack().clear()
     return commands.stack()
-
 
 
 def test_scene_layersForPerson():
@@ -26,9 +24,8 @@ def test_scene_layersForPerson():
     assert scene.layersForPerson(person) == [layer1, layer2]
 
 
-
 def test_layer_shows_hides_person():
-    tags = ['here', 'we', 'are']
+    tags = ["here", "we", "are"]
     scene = Scene(tags=tags)
     layer1 = Layer()
     layer2 = Layer()
@@ -56,32 +53,31 @@ def test_layer_shows_hides_person():
 
 def test_add_layers_retain_order():
     scene = Scene()
-    scene.addItem(Layer(name='View 1'))
-    scene.addItem(Layer(name='View 2'))
-    scene.addItem(Layer(name='View 3'))
-    scene.addItem(Layer(name='View 4'))
+    scene.addItem(Layer(name="View 1"))
+    scene.addItem(Layer(name="View 2"))
+    scene.addItem(Layer(name="View 3"))
+    scene.addItem(Layer(name="View 4"))
 
-    scene.query1(name='View 1').order() == 0
-    scene.query1(name='View 2').order() == 1
-    scene.query1(name='View 3').order() == 2
-    scene.query1(name='View 4').order() == 3
+    scene.query1(name="View 1").order() == 0
+    scene.query1(name="View 2").order() == 1
+    scene.query1(name="View 3").order() == 2
+    scene.query1(name="View 4").order() == 3
 
 
 def test_layerOrderChanged():
     scene = Scene()
-    scene.addItem(Layer(name='View 1'))
-    scene.addItem(Layer(name='View 2'))
-    scene.addItem(Layer(name='View 3'))
-    scene.addItem(Layer(name='View 4'))
+    scene.addItem(Layer(name="View 1"))
+    scene.addItem(Layer(name="View 2"))
+    scene.addItem(Layer(name="View 3"))
+    scene.addItem(Layer(name="View 4"))
     layerOrderChanged = util.Condition(scene.layerOrderChanged)
 
-    scene.resortLayersFromOrder() # noop
+    scene.resortLayersFromOrder()  # noop
     assert layerOrderChanged.callCount == 0
 
-    scene.query1(name='View 2').setOrder(10) # way above
+    scene.query1(name="View 2").setOrder(10)  # way above
     scene.resortLayersFromOrder()
     assert layerOrderChanged.callCount == 1
-
 
 
 def test_scene_signals(simpleScene, undoStack):
@@ -93,10 +89,10 @@ def test_scene_signals(simpleScene, undoStack):
     simpleScene.layerRemoved[Layer].connect(onLayerRemoved)
 
     # add
-    for i in range(3):        
+    for i in range(3):
         layer = Layer()
         simpleScene.addItem(layer)
-        assert onLayerAdded.callCount == i+1
+        assert onLayerAdded.callCount == i + 1
         assert onLayerAdded.lastCallArgs == (layer,)
     assert len(simpleScene.layers()) == 3
     assert onLayerAdded.callCount == 3
@@ -106,10 +102,10 @@ def test_scene_signals(simpleScene, undoStack):
     # change
     for i in range(3):
         layer = simpleScene.layers()[i]
-        name = 'here %i' % i
+        name = "here %i" % i
         layer.setName(name)
-        prop = layer.prop('name')
-        assert onLayerChanged.callCount == i+1
+        prop = layer.prop("name")
+        assert onLayerChanged.callCount == i + 1
         assert onLayerChanged.lastCallArgs == (prop,)
     assert onLayerAdded.callCount == 3
     assert onLayerChanged.callCount == 3
@@ -119,7 +115,7 @@ def test_scene_signals(simpleScene, undoStack):
     for i in range(3):
         layer = simpleScene.layers()[-1]
         simpleScene.removeItem(layer)
-        assert onLayerRemoved.callCount == i+1
+        assert onLayerRemoved.callCount == i + 1
         assert onLayerRemoved.lastCallArgs == (layer,)
     assert onLayerAdded.callCount == 3
     assert onLayerChanged.callCount == 3
@@ -127,47 +123,47 @@ def test_scene_signals(simpleScene, undoStack):
 
 
 def test_undo_commands(simpleScene, undoStack):
-    """ Test merging multiple undo commands values. """
-    person1 = simpleScene.query1(name='p1')
-    person2 = simpleScene.query1(name='p2')
-    
-    layer = Layer(name='View 1')
+    """Test merging multiple undo commands values."""
+    person1 = simpleScene.query1(name="p1")
+    person2 = simpleScene.query1(name="p2")
+
+    layer = Layer(name="View 1")
     simpleScene.addItem(layer)
     layer.setActive(True)
-    
-    id = commands.nextId()
-    person1.setColor('#ABCABC', undo=id)
-    person2.setColor('#DEFDEF', undo=id)
 
     id = commands.nextId()
-    person1.setColor('#123123', undo=id)
-    person2.setColor('#456456', undo=id)
+    person1.setColor("#ABCABC", undo=id)
+    person2.setColor("#DEFDEF", undo=id)
 
-    assert person1.color() == '#123123'
-    assert person2.color() == '#456456'
+    id = commands.nextId()
+    person1.setColor("#123123", undo=id)
+    person2.setColor("#456456", undo=id)
+
+    assert person1.color() == "#123123"
+    assert person2.color() == "#456456"
 
     undoStack.undo()
-    assert person1.color() == '#ABCABC'
-    assert person2.color() == '#DEFDEF'
+    assert person1.color() == "#ABCABC"
+    assert person2.color() == "#DEFDEF"
 
     undoStack.undo()
     assert person1.color() == None
     assert person2.color() == None
 
-    
+
 def test_person_props(simpleScene):
     layer = Layer()
     person = Person()
     simpleScene.addItem(layer)
-    simpleScene.addItem(person)        
+    simpleScene.addItem(person)
 
     # layer on
     layer.setActive(True)
     assert simpleScene.activeLayers() == [layer]
 
     # set props
-    person.setColor('#FF0000')
-    assert person.color() == '#FF0000'
+    person.setColor("#FF0000")
+    assert person.color() == "#FF0000"
 
     # layer off
     layer.setActive(False)
@@ -177,7 +173,7 @@ def test_person_props(simpleScene):
     # layer back on
     layer.setActive(True)
     assert simpleScene.activeLayers() == [layer]
-    assert person.color() == '#FF0000'
+    assert person.color() == "#FF0000"
 
 
 def test_person_pen_multiple_layers():
@@ -193,8 +189,8 @@ def test_person_pen_multiple_layers():
 
     # set color on layer1
     layer1.setActive(True)
-    person.setColor('#FF0000')
-    assert person.pen().color().name() == '#ff0000'
+    person.setColor("#FF0000")
+    assert person.pen().color().name() == "#ff0000"
 
     layer1.setActive(False)
     layer2.setActive(True)
@@ -206,39 +202,39 @@ def test_person_pen_multiple_layers():
 
 
 def test_same_value_multiple_layers(simpleScene):
-    """ Property._value was caching the set value from the previous layer, preventing the next layer to set it.  """
+    """Property._value was caching the set value from the previous layer, preventing the next layer to set it."""
 
-    layer1 = Layer(name='layer1')
-    layer2 = Layer(name='layer2')
+    layer1 = Layer(name="layer1")
+    layer2 = Layer(name="layer2")
     simpleScene.addItem(layer1)
     simpleScene.addItem(layer2)
 
-    person = simpleScene.query1(name='p1')
+    person = simpleScene.query1(name="p1")
 
     # default
     assert person.itemOpacity() is None
 
     layer1.setActive(True)
-    person.setItemOpacity(.1)
-    x, ok = layer1.getItemProperty(person.id, 'itemOpacity')
+    person.setItemOpacity(0.1)
+    x, ok = layer1.getItemProperty(person.id, "itemOpacity")
     assert ok
-    assert x == .1
-    assert person.itemOpacity() == .1
+    assert x == 0.1
+    assert person.itemOpacity() == 0.1
 
     layer1.setActive(False)
     layer2.setActive(True)
-    person.setItemOpacity(.1)
-    x, ok = layer2.getItemProperty(person.id, 'itemOpacity')
+    person.setItemOpacity(0.1)
+    x, ok = layer2.getItemProperty(person.id, "itemOpacity")
     assert ok
-    assert x == .1
-    assert person.itemOpacity() == .1
+    assert x == 0.1
+    assert person.itemOpacity() == 0.1
 
     layer2.setActive(False)
     assert person.itemOpacity() is None
 
-    
+
 def test_layer_callout(simpleScene):
-    layer = Layer(name='layer')
+    layer = Layer(name="layer")
     simpleScene.addItem(layer)
 
     # add
@@ -260,7 +256,7 @@ def test_layer_callout(simpleScene):
     assert callout.isVisible()
     assert callout.opacity() == 1.0
 
-    
+
 def test_add_default_layer_with_first_LayerItem(simpleScene):
     assert simpleScene.layers() == []
 
@@ -274,12 +270,12 @@ def test_write_read_active_layer_items():
 
     scene = Scene()
     layer = Layer(active=True)
-    personA = Person(name='personA')
-    personB = Person(name='personB')
+    personA = Person(name="personA")
+    personB = Person(name="personB")
     scene.addItems(layer, personA, personB)
     personB.setLayers([layer.id])
-    assert scene.query1(name='personA').isVisible() == False
-    assert scene.query1(name='personB').isVisible() == True
+    assert scene.query1(name="personA").isVisible() == False
+    assert scene.query1(name="personB").isVisible() == True
     data = {}
     scene.write(data)
 
@@ -288,8 +284,8 @@ def test_write_read_active_layer_items():
     assert len(scene.find(types=Layer)) == 1
     assert len(scene.find(types=Person)) == 2
     assert scene.find(types=Layer)[0].active() == True
-    assert scene.query1(name='personA').isVisible() == False
-    assert scene.query1(name='personB').isVisible() == True
+    assert scene.query1(name="personA").isVisible() == False
+    assert scene.query1(name="personB").isVisible() == True
 
 
 def test_remove_layers_with_layerItems(simpleScene, undoStack):
@@ -302,16 +298,16 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     layer1.setActive(True)
     callout1 = Callout()
-    simpleScene.addItem(callout1) # layer1, layer2
+    simpleScene.addItem(callout1)  # layer1, layer2
 
     layer1.setActive(False)
     layer2.setActive(True)
     callout2 = Callout()
-    simpleScene.addItem(callout2) # layer2
+    simpleScene.addItem(callout2)  # layer2
 
     layer1.setActive(True)
     callout3 = Callout()
-    simpleScene.addItem(callout3) # layer1, layer2
+    simpleScene.addItem(callout3)  # layer1, layer2
 
     commands.removeItems(simpleScene, [layer1])
     assert not (layer1 in simpleScene.layers())
@@ -374,39 +370,36 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert sorted(callout3.layers()) == [layer1.id, layer2.id]
 
 
-
 class LayeredPathItem(PathItem):
 
-    PathItem.registerProperties((
-        { 'attr': 'something', 'layered': True },
-    ))
+    PathItem.registerProperties(({"attr": "something", "layered": True},))
 
-    
+
 def test_delete_layer_prop_with_items(qtbot):
     scene = Scene()
     item = LayeredPathItem()
     item.setFlag(item.ItemIsSelectable, True)
     layer = Layer(active=True)
     scene.addItems(layer, item)
-    item.setSomething('here', undo=True) # 0
-    value, ok = layer.getItemProperty(item.id, 'something')
+    item.setSomething("here", undo=True)  # 0
+    value, ok = layer.getItemProperty(item.id, "something")
     assert ok == True
-    assert value == 'here'
+    assert value == "here"
     assert len(layer.itemProperties().items()) == 1
-    
+
     item.setSelected(True)
-    qtbot.clickYesAfter(lambda: scene.removeSelection()) # 1
-    value, ok = layer.getItemProperty(item.id, 'something')
+    qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
+    value, ok = layer.getItemProperty(item.id, "something")
     assert ok == False
     assert value == None
     assert len(layer.itemProperties().items()) == 0
 
-    commands.stack().undo() # 0
-    value, ok = layer.getItemProperty(item.id, 'something')
+    commands.stack().undo()  # 0
+    value, ok = layer.getItemProperty(item.id, "something")
     assert ok == True
-    assert value == 'here'
+    assert value == "here"
     assert len(layer.itemProperties().items()) == 1
-    
+
 
 def test_store_geometry(qtbot, monkeypatch):
     scene = Scene()
@@ -414,7 +407,7 @@ def test_store_geometry(qtbot, monkeypatch):
     person = Person()
     scene.addItems(layer, person)
     layer.setStoreGeometry(False)
-    monkeypatch.setattr(scene, 'isMovingSomething', lambda: True)
+    monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
     # Each assert should have all three cases; current visible, no layers, layer.
 
@@ -489,13 +482,14 @@ def test_store_geometry(qtbot, monkeypatch):
     # test values are not stored in layer, even if layer active
     person.setPos(QPointF(400, 400))
     person.setSize(4)
-    assert person.itemPos() == QPointF(400, 400) # value still stored in layer
-    assert person.itemPos(forLayers=[]) == QPointF(400, 400) # new default value
+    assert person.itemPos() == QPointF(400, 400)  # value still stored in layer
+    assert person.itemPos(forLayers=[]) == QPointF(400, 400)  # new default value
     assert person.itemPos(forLayers=[layer]) == None
     assert person.size() == 4
     assert person.size(forLayers=[]) == 4
-    assert person.size(forLayers=[layer]) == None # should reset layer value when setting default value
-
+    assert (
+        person.size(forLayers=[layer]) == None
+    )  # should reset layer value when setting default value
 
 
 def test_dont_store_positions(monkeypatch):
@@ -504,7 +498,7 @@ def test_dont_store_positions(monkeypatch):
     item = PathItem()
     scene.addItems(layer, item)
     layer.setStoreGeometry(False)
-    monkeypatch.setattr(scene, 'isMovingSomething', lambda: True)
+    monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
     item.setPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
@@ -524,18 +518,20 @@ def test_dont_store_positions(monkeypatch):
     assert item.itemPos(forLayers=[layer]) == QPointF(300, 300)
 
     layer.setStoreGeometry(False)
-    item.setPos(QPointF(400, 400)) # layer still active
+    item.setPos(QPointF(400, 400))  # layer still active
     assert item.itemPos() == QPointF(400, 400)
-    assert item.itemPos(forLayers=[layer]) == None # layer value deleted when setting storeGeometry = False
+    assert (
+        item.itemPos(forLayers=[layer]) == None
+    )  # layer value deleted when setting storeGeometry = False
 
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(500, 500)) # layer still active
+    item.setPos(QPointF(500, 500))  # layer still active
     assert item.itemPos() == QPointF(500, 500)
     assert item.itemPos(forLayers=[layer]) == QPointF(500, 500)
 
-    item.prop('itemPos').reset()
-    assert item.itemPos() == QPointF(400, 400) # value still stored in layer
-    assert item.itemPos(forLayers=[layer]) == None # layer value is cleared now
+    item.prop("itemPos").reset()
+    assert item.itemPos() == QPointF(400, 400)  # value still stored in layer
+    assert item.itemPos(forLayers=[layer]) == None  # layer value is cleared now
 
 
 def test_storeGeometry_dont_reset_LayerItem_pos(monkeypatch):
@@ -543,7 +539,7 @@ def test_storeGeometry_dont_reset_LayerItem_pos(monkeypatch):
     layer = Layer()
     item = LayeredPathItem()
     scene.addItems(layer, item)
-    monkeypatch.setattr(scene, 'isMovingSomething', lambda: True)
+    monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
     item.setPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
@@ -562,7 +558,7 @@ def test_storeGeometry_dont_reset_LayerItem_pos(monkeypatch):
     # test no change
     layer.setActive(True)
     assert item.itemPos() == QPointF(100, 100)
-    assert item.itemPos(forLayers=[layer]) == None # redundant, but no biggie
+    assert item.itemPos(forLayers=[layer]) == None  # redundant, but no biggie
 
 
 # not sure this makes sense now that setting storeGeometry = False clears geo props in layer
@@ -571,14 +567,14 @@ def __test_dont_reset_positions_on_activate_layer(monkeypatch):
     layer = Layer()
     item = PathItem()
     scene.addItems(layer, item)
-    monkeypatch.setattr(scene, 'isMovingSomething', lambda: True)
+    monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
     layer.setStoreGeometry(True)
-    
+
     item.setPos(QPointF(100, 100))
 
     layer.setActive(True)
     item.setPos(QPointF(200, 200))
-    
+
     layer.setStoreGeometry(False)
     layer.setActive(False)
     assert item.itemPos() == QPointF(100, 100)
@@ -587,7 +583,7 @@ def __test_dont_reset_positions_on_activate_layer(monkeypatch):
     layer.setActive(True)
     assert item.itemPos() == QPointF(200, 200)
     assert item.itemPos(forLayers=[layer]) == None
-    
+
 
 def tests_duplicate():
     scene = Scene()
@@ -597,6 +593,6 @@ def tests_duplicate():
     scene.addItem(layer1)
     scene.addItems(item, callout)
     assert layer1.id in callout.layers()
-    
+
     layer2 = layer1.clone(scene)
     assert layer2.id in callout.layers()

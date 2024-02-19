@@ -4,10 +4,12 @@ import sys, os.path
 def init_dev():
 
     try:
-        import pdytools # only exists for app bundle
+        import pdytools  # only exists for app bundle
+
         IS_BUNDLE = True
     except:
         import os.path
+
         IS_BUNDLE = False
 
     ## Import Paths
@@ -39,8 +41,8 @@ def init_dev():
                 sys.path.remove(path)
         # _pkdiagram_path = os.path.join(familydiagram_path, 'pkdiagram', '_pkdiagram', 'build', '_pkdiagram', 'build', 'lib.macosx-12.6-x86_64-cpython-310')
         # sys.path.insert(0, _pkdiagram_path)
-        vendor_path = os.path.join(familydiagram_path, 'lib', 'site-packages')
+        vendor_path = os.path.join(familydiagram_path, "lib", "site-packages")
         sys.path.insert(0, vendor_path)
         sys.path.append(familydiagram_path)
-        server_path = os.path.join(familydiagram_path, 'server')
+        server_path = os.path.join(familydiagram_path, "server")
         sys.path.append(server_path)

@@ -1,11 +1,27 @@
 import pickle
-from .pyqt import QGraphicsView, QGraphicsTextItem, QPropertyAnimation, pyqtSignal, QPoint, QSize, QEvent, Qt, QHBoxLayout, QAbstractAnimation, QTransform, QGraphicsRectItem, QFile, QIODevice, QBuffer
+from .pyqt import (
+    QGraphicsView,
+    QGraphicsTextItem,
+    QPropertyAnimation,
+    pyqtSignal,
+    QPoint,
+    QSize,
+    QEvent,
+    Qt,
+    QHBoxLayout,
+    QAbstractAnimation,
+    QTransform,
+    QGraphicsRectItem,
+    QFile,
+    QIODevice,
+    QBuffer,
+)
 from . import util, scene, objects, widgets
 from .objects import emotions
 
 
 class LegendView(QGraphicsView):
-        pass
+    pass
 
 
 class Legend(widgets.PopUp):
@@ -22,18 +38,20 @@ class Legend(widgets.PopUp):
         self.legendView.setScene(self.legendScene)
         self.legendView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.legendView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
         border-radius: 0;
         border: 2px solid black;
-        """)
-        self.posAnimation = QPropertyAnimation(self, b'pos')
+        """
+        )
+        self.posAnimation = QPropertyAnimation(self, b"pos")
         self.posAnimation.setDuration(util.ANIM_DURATION_MS)
         self.posAnimation.finished.connect(self.onPosAnimationDone)
         Layout = QHBoxLayout(self)
         Layout.addWidget(self.legendView)
         Layout.setContentsMargins(0, 0, 0, 0)
 
-        file = QFile(util.QRC + 'Legend-Scene.fd/diagram.pickle')
+        file = QFile(util.QRC + "Legend-Scene.fd/diagram.pickle")
         file.open(QIODevice.ReadOnly)
         bdata = file.readAll().data()
         data = pickle.loads(bdata)
@@ -42,7 +60,7 @@ class Legend(widgets.PopUp):
         for item in self.legendScene.items():
             if item.isVisible():
                 items.append(item)
-        x = .2
+        x = 0.2
         self.legendView.setTransform(QTransform.fromScale(x, x))
         self.legendScene.setScaleFactor(x)
 
@@ -66,9 +84,7 @@ class Legend(widgets.PopUp):
             self.posAnimation.setStartValue(self.pos())
             self.posAnimation.setEndValue(QPoint(x, y))
             self.posAnimation.start()
-        
 
-    
 
 def __test__(scene, parent):
     w = Legend(parent)

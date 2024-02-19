@@ -7,7 +7,7 @@ from PyQt5.QtQuickWidgets import *
 
 
 class Yours(QObject):
-    
+
     theirsChanged = pyqtSignal(int)
 
     def __init__(self, parent, theirs):
@@ -42,12 +42,12 @@ app = QApplication([])
 engine = QQmlEngine()
 searchView = QQuickWidget()
 searchView.setSource(QUrl.fromLocalFile("test_qml.qml"))
-mine = searchView.rootObject().property('mine')
+mine = searchView.rootObject().property("mine")
 
 mine.setYours(1)
-assert searchView.rootObject().property('theirs') == mine.yours.theirs
+assert searchView.rootObject().property("theirs") == mine.yours.theirs
 
 mine2 = Mine()
 mine2.setYours(2)
-searchView.rootObject().setProperty('mine', mine2)
-assert searchView.rootObject().property('theirs') == mine2.yours.theirs
+searchView.rootObject().setProperty("mine", mine2)
+assert searchView.rootObject().property("theirs") == mine2.yours.theirs

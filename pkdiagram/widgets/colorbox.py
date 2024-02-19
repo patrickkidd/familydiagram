@@ -2,15 +2,14 @@ from ..pyqt import pyqtSignal, QColor, Qt, QPalette, QPainter, QPen, QComboBox
 from .. import util
 
 
-
 class ColorBox(QComboBox):
 
     currentColorChanged = pyqtSignal(QColor)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         for row, c in enumerate(util.ABLETON_COLORS):
-            self.addItem('')
+            self.addItem("")
             model = self.model()
             idx = model.index(row, 0)
             model.setData(idx, QColor(c), Qt.BackgroundColorRole)
@@ -19,7 +18,9 @@ class ColorBox(QComboBox):
         p = self.palette()
         p.setColor(QPalette.Highlight, Qt.transparent)
         self.setPalette(p)
-        self.setStyleSheet("QComboBox QAbstractItemView { selection-background-color:rgba(0,0,0,0);}")
+        self.setStyleSheet(
+            "QComboBox QAbstractItemView { selection-background-color:rgba(0,0,0,0);}"
+        )
 
     def paintEvent(self, e):
         if self.isEnabled():
@@ -52,8 +53,8 @@ class ColorBox(QComboBox):
         if row == self.currentIndex():
             return
         if row == -1:
-            self.addItem('')
-            row = self.count()-1
+            self.addItem("")
+            row = self.count() - 1
             index = self.model().index(row, 0)
             self.model().setData(index, c, Qt.BackgroundColorRole)
             self.setItemData(row, c)

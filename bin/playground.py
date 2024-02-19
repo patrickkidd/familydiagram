@@ -24,22 +24,22 @@ class Request:
         status_code = self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
 
     async def __aenter__(self):
-        Debug('__aenter__')
+        Debug("__aenter__")
 
         def onFinished():
             status_code = self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-            Debug('status_code: ', status_code)
+            Debug("status_code: ", status_code)
             self.cond.notify()
-            Debug('status_code: ', status_code)
+            Debug("status_code: ", status_code)
+
         request = QNetworkRequest(QUrl(self.url))
-        self.reply = qnam.sendCustomRequest(request, 'GET')
+        self.reply = qnam.sendCustomRequest(request, "GET")
         self.reply.connect(onFinished)
         Debug(f"{self.index} waiting...")
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb):
-        Debug('__aexit__', self.index, status_code)
-
+        Debug("__aexit__", self.index, status_code)
 
 
 # def main():
@@ -51,8 +51,9 @@ class Request:
 #     app.exec()
 
 
-
 import contextlib
+
+
 def test_basic():
     exit_count = 0
 
@@ -68,7 +69,7 @@ def test_basic():
     async with group as yielded_values:
         assert yielded_values == tuple(range(3))
 
-    assert exit_count == 3 
+    assert exit_count == 3
 
 
 test_basic()

@@ -9,10 +9,9 @@ class CommandsWrapper(QObject):
         commands.trackView(s)
 
 
-
 class QmlEngine(QQmlEngine):
-    """ The global singleton; Manage global objects. """
-    
+    """The global singleton; Manage global objects."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         for path in util.QML_IMPORT_PATHS:
@@ -20,7 +19,7 @@ class QmlEngine(QQmlEngine):
         self.commands = CommandsWrapper(self)
         self.util = qmlutil.QmlUtil(self)
         self.vedana = qmlvedana.QmlVedana(self)
-        self.rootContext().setContextProperty('util', self.util)
-        self.rootContext().setContextProperty('commands', self.commands)
-        self.rootContext().setContextProperty('vedana', self.vedana)
+        self.rootContext().setContextProperty("util", self.util)
+        self.rootContext().setContextProperty("commands", self.commands)
+        self.rootContext().setContextProperty("vedana", self.vedana)
         self.util.initColors()

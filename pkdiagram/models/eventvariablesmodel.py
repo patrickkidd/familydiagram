@@ -15,17 +15,17 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
     ## Item
 
     def onItemProperty(self, prop):
-        if prop.name() == 'eventProperties':
+        if prop.name() == "eventProperties":
             self._values = []
             for i, entry in prop.get():
-                self._entries[entry['attr']] = entry
+                self._entries[entry["attr"]] = entry
             self.modelReset()
 
     ## Qt Virtuals
-                
+
     def roleNames(self):
         ret = super().roleNames()
-        ret[self.FlagsRole] = b'flags'
+        ret[self.FlagsRole] = b"flags"
         return ret
 
     def rowCount(self, parent=QModelIndex()):
@@ -36,11 +36,11 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
 
     def set(self, attr, value):
         super().set(attr, value)
-        if attr == 'items':
+        if attr == "items":
             self.modelReset.emit()
 
     def columnCount(self, parent=QModelIndex()):
-        return 2 # name, value
+        return 2  # name, value
 
     def flags(self, index):
         if index.column() == 0:
@@ -54,16 +54,18 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
             return self.flags(index)
         elif index.column() == 0:
             entry = self._scene.eventProperties()[index.row()]
-            ret = entry['name']
+            ret = entry["name"]
         elif index.column() == 1:
             entry = self._scene.eventProperties()[index.row()]
-            ret = util.sameOf(self.items, lambda item: item.dynamicProperty(entry['attr']).get())
+            ret = util.sameOf(
+                self.items, lambda item: item.dynamicProperty(entry["attr"]).get()
+            )
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):
         if index.column() == 1:
             eventProperties = self._scene.eventProperties()
-            attr = eventProperties[index.row()]['attr']
+            attr = eventProperties[index.row()]["attr"]
             if attr:
                 id = commands.nextId()
                 for item in self.items:
@@ -77,7 +79,5 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
         self.dataChanged.emit(index, index, [role])
         return True
 
-    
 
-
-qmlRegisterType(EventVariablesModel, 'PK.Models', 1, 0, 'EventVariablesModel')
+qmlRegisterType(EventVariablesModel, "PK.Models", 1, 0, "EventVariablesModel")

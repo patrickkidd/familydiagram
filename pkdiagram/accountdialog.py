@@ -11,13 +11,13 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         self._sizeHint = QSize()
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
-        self.initQmlWidgetHelper('qml/AccountDialog.qml', session=session)
+        self.initQmlWidgetHelper("qml/AccountDialog.qml", session=session)
 
     def init(self):
         self.checkInitQml()
         self.qml.rootObject().done.connect(self.onDone)
-        width = int(self.qml.rootObject().property('width'))
-        height = int(self.qml.rootObject().property('height'))
+        width = int(self.qml.rootObject().property("width"))
+        height = int(self.qml.rootObject().property("height"))
         self._sizeHint = QSize(width, height)
         self.setMaximumSize(self.sizeHint())
         self.resize(self.sizeHint())
@@ -36,9 +36,7 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         self.hide()
 
     def hide(self):
-        """ Don't allow to close dialog from escape key unless logged in. """
+        """Don't allow to close dialog from escape key unless logged in."""
         if not self.canClose():
             return
         super().hide()
-
-        

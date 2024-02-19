@@ -1,13 +1,26 @@
-from .pyqt import Qt, QWidget, QEvent, QLabel, QColor, QPixmap, QBitmap, QPainter, QRect, QAbstractAnimation, QVariantAnimation, QPropertyAnimation, QGraphicsOpacityEffect
+from .pyqt import (
+    Qt,
+    QWidget,
+    QEvent,
+    QLabel,
+    QColor,
+    QPixmap,
+    QBitmap,
+    QPainter,
+    QRect,
+    QAbstractAnimation,
+    QVariantAnimation,
+    QPropertyAnimation,
+    QGraphicsOpacityEffect,
+)
 from . import util
 
 
-
 class HelpOverlay(QWidget):
-    """ A semi-opaque screen which is parent to tip pixmaps,
-        under which view toolbars are shown. """
+    """A semi-opaque screen which is parent to tip pixmaps,
+    under which view toolbars are shown."""
 
-    SHOWN_OPACITY = .7
+    SHOWN_OPACITY = 0.7
 
     def __init__(self, view):
         super().__init__(view)
@@ -58,4 +71,3 @@ class HelpOverlay(QWidget):
             super().setVisible(False)
         else:
             self.update()
-

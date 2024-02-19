@@ -1,7 +1,6 @@
 from .pyqt import *
 from . import util
 
-        
 
 class LineEditBackEnd(QLineEdit):
 
@@ -17,7 +16,7 @@ class LineEditBackEnd(QLineEdit):
     @pyqtSlot(result=str)
     def getText(self):
         return self.text()
-    
+
     @pyqtSlot(str, QQuickItem, int, int, int)
     def beginFocus(self, text, item, cursorPos, selectionStart, selectionEnd):
         if self.parent() is None:
@@ -25,11 +24,11 @@ class LineEditBackEnd(QLineEdit):
         self.blockSignals(True)
         self.setText(text)
         self.setCursorPosition(cursorPos)
-        super().setSelection(selectionStart, selectionEnd-selectionStart)
+        super().setSelection(selectionStart, selectionEnd - selectionStart)
         self.setFocus()
         self.blockSignals(False)
         self.show()
-        QTimer.singleShot(1, lambda: item.forceActiveFocus()) # not sure why a timer
+        QTimer.singleShot(1, lambda: item.forceActiveFocus())  # not sure why a timer
 
     @pyqtSlot()
     def endFocus(self):
@@ -40,20 +39,20 @@ class LineEditBackEnd(QLineEdit):
         self.blockSignals(True)
         if text != self.text():
             self.setText(text)
-        super().setSelection(start, end-start)
+        super().setSelection(start, end - start)
         self.blockSignals(False)
 
     @pyqtSlot(int, int, int)
     def do_setCursorPosition(self, pos, start, end):
         self.blockSignals(True)
         super().setCursorPosition(pos)
-        super().setSelection(start, end-start)
+        super().setSelection(start, end - start)
         self.blockSignals(False)
 
     @pyqtSlot(result=int)
     def getCursorPosition(self):
         return self.cursorPosition()
-        
+
     @pyqtSlot(result=int)
     def selectionStart(self):
         return super().selectionStart()
@@ -62,8 +61,8 @@ class LineEditBackEnd(QLineEdit):
     def selectionEnd(self):
         return super().selectionEnd()
 
-qmlRegisterType(LineEditBackEnd, 'LineEditBackEnd', 1, 0, 'LineEditBackEnd')
 
+qmlRegisterType(LineEditBackEnd, "LineEditBackEnd", 1, 0, "LineEditBackEnd")
 
 
 class TextEditBackEnd(QTextEdit):
@@ -79,7 +78,7 @@ class TextEditBackEnd(QTextEdit):
     @pyqtSlot(result=str)
     def getPlainText(self):
         return self.toPlainText()
-    
+
     @pyqtSlot(str, QQuickItem, int, int, int)
     def beginFocus(self, text, item, cursorPos, selectionStart, selectionEnd):
         if self.parent() is None:
@@ -93,7 +92,7 @@ class TextEditBackEnd(QTextEdit):
         self.setFocus()
         self.blockSignals(False)
         self.show()
-        QTimer.singleShot(1, lambda: item.forceActiveFocus()) # not sure why a timer
+        QTimer.singleShot(1, lambda: item.forceActiveFocus())  # not sure why a timer
 
     @pyqtSlot()
     def endFocus(self):
@@ -122,7 +121,7 @@ class TextEditBackEnd(QTextEdit):
     @pyqtSlot(result=int)
     def getCursorPosition(self):
         return self.cursorPosition()
-        
+
     @pyqtSlot(result=int)
     def selectionStart(self):
         return super().selectionStart()
@@ -131,8 +130,5 @@ class TextEditBackEnd(QTextEdit):
     def selectionEnd(self):
         return super().selectionEnd()
 
-qmlRegisterType(TextEditBackEnd, 'TextEditBackEnd', 1, 0, 'TextEditBackEnd')
 
-
-
-                 
+qmlRegisterType(TextEditBackEnd, "TextEditBackEnd", 1, 0, "TextEditBackEnd")

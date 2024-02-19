@@ -1,6 +1,18 @@
 import uuid, pickle, logging, copy
 import vedana
-from .pyqt import Qt, QObject, QTimer, pyqtSignal, QVariant, pyqtSlot, pyqtProperty, QNetworkRequest, QDateTime, QMessageBox, QApplication
+from .pyqt import (
+    Qt,
+    QObject,
+    QTimer,
+    pyqtSignal,
+    QVariant,
+    pyqtSlot,
+    pyqtProperty,
+    QNetworkRequest,
+    QDateTime,
+    QMessageBox,
+    QApplication,
+)
 from . import util, version
 from .models import QObjectHelper
 from .server_types import User, License, Server, HTTPError
@@ -10,9 +22,9 @@ log = logging.getLogger(__name__)
 
 
 class Session(QObject, QObjectHelper):
-    """ Current state of licenses, features, server state (e.g. users, deactivated versions)
-        - Current license (offline storage)
-        - Version deactivation.
+    """Current state of licenses, features, server state (e.g. users, deactivated versions)
+    - Current license (offline storage)
+    - Version deactivation.
     """
 
     changed = pyqtSignal(list, list)
@@ -20,10 +32,9 @@ class Session(QObject, QObjectHelper):
     logoutFailed = pyqtSignal()
     logoutFinished = pyqtSignal()
 
-    QObjectHelper.registerQtProperties([
-        { 'attr': 'hash', 'type': str },
-        { 'attr': 'isAdmin', 'type': bool }
-    ])
+    QObjectHelper.registerQtProperties(
+        [{"attr": "hash", "type": str}, {"attr": "isAdmin", "type": bool}]
+    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,36 +49,44 @@ class Session(QObject, QObjectHelper):
         self._initialized = False
         self._hash = str(uuid.uuid4())
         self._updateTimer = QTimer(self)
-        self._updateTimer.setInterval(60 * 60 * 1000) # every hour
+        self._updateTimer.setInterval(60 * 60 * 1000)  # every hour
         self._updateTimer.timeout.connect(self.update)
         self.initQObjectHelper()
 
     # Verbs
 
     def init(self, sessionData=None, syncWithServer=True):
-        """ Check what to do after all of the following have completed:
-                1) lastSessionData are verified with the server
-                2) The session is logged in and licenses are updated.
-                3) The deactivated versions from the server are updated.
-            This allows the person to work offline while keeping licenses as current as possible.
+        """Check what to do after all of the following have completed:
+            1) lastSessionData are verified with the server
+            2) The session is logged in and licenses are updated.
+            3) The deactivated versions from the server are updated.
+        This allows the person to work offline while keeping licenses as current as possible.
         """
         if not sessionData:
             sessionData = {}
 
         self._isInitializing = True
         if sessionData:
-            self.setData(sessionData) # won't send signals b/c isInitializing is True
-            lastLicenses = [x for x in sessionData.get('licenses', []) if x['policy']['code'] != vedana.LICENSE_FREE]
+            self.setData(sessionData)  # won't send signals b/c isInitializing is True
+            lastLicenses = [
+                x
+                for x in sessionData.get("licenses", [])
+                if x["policy"]["code"] != vedana.LICENSE_FREE
+            ]
         else:
             lastLicenses = []
 
         if syncWithServer and sessionData:
-            args = pickle.dumps({
-                'licenses': lastLicenses,
-                'token': sessionData['session']['token'],
-            })
+            args = pickle.dumps(
+                {
+                    "licenses": lastLicenses,
+                    "token": sessionData["session"]["token"],
+                }
+            )
             try:
-                response = self.server().blockingRequest('GET', '/init', args, anonymous=True)
+                response = self.server().blockingRequest(
+                    "GET", "/init", args, anonymous=True
+                )
             except HTTPError as e:
                 if e.status_code == 404:
                     self.setData(None)
@@ -84,7 +103,7 @@ class Session(QObject, QObjectHelper):
         self._isInitializing = False
 
     def deinit(self):
-        self._server.deinit() # Required so latent HTTP requests don't return after Server C++ obejct is deleted
+        self._server.deinit()  # Required so latent HTTP requests don't return after Server C++ obejct is deleted
 
     def setData(self, data):
         oldFeatures = self.activeFeatures()
@@ -93,22 +112,23 @@ class Session(QObject, QObjectHelper):
 
             # 1. Active Licenses
             activeLicenses = []
-            if data['session']:
-                for license in data['session']['user']['licenses']:
-                    if license['active']:
-                        for activation in license['activations']:
-                            if not activation.get('_mock') and activation['machine']['code'] == util.HARDWARE_UUID:
+            if data["session"]:
+                for license in data["session"]["user"]["licenses"]:
+                    if license["active"]:
+                        for activation in license["activations"]:
+                            if (
+                                not activation.get("_mock")
+                                and activation["machine"]["code"] == util.HARDWARE_UUID
+                            ):
                                 if not license in activeLicenses:
                                     activeLicenses.append(license)
                 if not activeLicenses:
-                    activeLicenses = [ {
-                        'policy': {
-                            'code': vedana.LICENSE_FREE
-                        }
-                    } ]
+                    activeLicenses = [{"policy": {"code": vedana.LICENSE_FREE}}]
 
             # 2. Active Features
-            self._isVersionDeactivated = bool(version.VERSION in data['deactivated_versions'])
+            self._isVersionDeactivated = bool(
+                version.VERSION in data["deactivated_versions"]
+            )
             if self._isVersionDeactivated:
                 features = []
             else:
@@ -116,7 +136,9 @@ class Session(QObject, QObjectHelper):
                 if features is None:
                     features = []
             # Only allow alpha licenses on alpha builds
-            if version.IS_ALPHA: # Given the current feature set of one (i.e. 'professional'), alpha license is the only one honored for alpha builds
+            if (
+                version.IS_ALPHA
+            ):  # Given the current feature set of one (i.e. 'professional'), alpha license is the only one honored for alpha builds
                 for x in list(features):
                     if x != vedana.LICENSE_ALPHA:
                         features.remove(x)
@@ -127,31 +149,36 @@ class Session(QObject, QObjectHelper):
             if not version.IS_BETA:
                 while vedana.LICENSE_BETA in features:
                     features.remove(vedana.LICENSE_BETA)
-            if version.IS_BETA: # Given the current feature set of one (i.e. 'professional'), beta license is the only one honored for beta builds
+            if (
+                version.IS_BETA
+            ):  # Given the current feature set of one (i.e. 'professional'), beta license is the only one honored for beta builds
                 for x in list(features):
                     if x != vedana.LICENSE_BETA:
                         features.remove(x)
 
-            self.users = [User(
-                id=x['id'],
-                username=x['username'],
-                first_name=x['first_name'],
-                last_name=x['last_name'],
-                roles=x['roles'],
-                free_diagram_id=x['free_diagram_id'],
-                licenses=[]
-            ) for x in data['users']]
-            if data['session']:
-                userData = data['session']['user']
+            self.users = [
+                User(
+                    id=x["id"],
+                    username=x["username"],
+                    first_name=x["first_name"],
+                    last_name=x["last_name"],
+                    roles=x["roles"],
+                    free_diagram_id=x["free_diagram_id"],
+                    licenses=[],
+                )
+                for x in data["users"]
+            ]
+            if data["session"]:
+                userData = data["session"]["user"]
                 self._user = User(
-                    id=userData['id'],
-                    first_name=userData['first_name'],
-                    last_name=userData['last_name'],
-                    username=userData['username'],
-                    secret=userData['secret'],
-                    roles=userData['roles'],
-                    free_diagram_id=userData['free_diagram_id'],
-                    licenses=[License(**x) for x in userData['licenses']]
+                    id=userData["id"],
+                    first_name=userData["first_name"],
+                    last_name=userData["last_name"],
+                    username=userData["username"],
+                    secret=userData["secret"],
+                    roles=userData["roles"],
+                    free_diagram_id=userData["free_diagram_id"],
+                    licenses=[License(**x) for x in userData["licenses"]],
                 )
                 self._userDict = self._user.dict()
             else:
@@ -175,9 +202,9 @@ class Session(QObject, QObjectHelper):
     # Attrs
 
     def get(self, attr):
-        if attr == 'hash':
+        if attr == "hash":
             ret = self._hash
-        elif attr == 'isAdmin':
+        elif attr == "isAdmin":
             ret = bool(self.user and vedana.ROLE_ADMIN in self.user.roles)
         else:
             ret = super().get(attr)
@@ -185,14 +212,14 @@ class Session(QObject, QObjectHelper):
 
     def _updateHash(self):
         self._hash = str(uuid.uuid4())
-        self.refreshProperty('hash')
+        self.refreshProperty("hash")
 
     @pyqtProperty(str)
     def token(self):
-        if self._data and self._data['session']:
-            return self._data['session']['token']
+        if self._data and self._data["session"]:
+            return self._data["session"]["token"]
 
-    @pyqtProperty('QVariantMap', notify=changed)
+    @pyqtProperty("QVariantMap", notify=changed)
     def userDict(self):
         return self._userDict
         # user = self.user
@@ -210,7 +237,7 @@ class Session(QObject, QObjectHelper):
 
     @property
     def user(self):
-        return self._user    
+        return self._user
 
     @pyqtSlot(result=QVariant)
     def data(self):
@@ -224,7 +251,7 @@ class Session(QObject, QObjectHelper):
 
     def isVersionDeactivated(self):
         return self._isVersionDeactivated
-        
+
     def server(self):
         return self._server
 
@@ -238,7 +265,7 @@ class Session(QObject, QObjectHelper):
 
     @staticmethod
     def hasFeatureIn(activeFeatures, *codes):
-        """ Return an OR match for all passed codes. """
+        """Return an OR match for all passed codes."""
         if isinstance(codes, str):
             codes = (codes,)
         # Handle alpha/beta
@@ -246,12 +273,18 @@ class Session(QObject, QObjectHelper):
             if vedana.LICENSE_FREE in codes or vedana.LICENSE_CLIENT in codes:
                 return False
             if version.IS_ALPHA:
-                if vedana.LICENSE_ALPHA in activeFeatures and not vedana.LICENSE_FREE in codes:
+                if (
+                    vedana.LICENSE_ALPHA in activeFeatures
+                    and not vedana.LICENSE_FREE in codes
+                ):
                     return True
                 else:
                     return False
             if version.IS_BETA:
-                if vedana.LICENSE_BETA in activeFeatures and not vedana.LICENSE_FREE in codes:
+                if (
+                    vedana.LICENSE_BETA in activeFeatures
+                    and not vedana.LICENSE_FREE in codes
+                ):
                     return True
                 else:
                     return False
@@ -271,7 +304,7 @@ class Session(QObject, QObjectHelper):
     @pyqtSlot(QVariant, QVariant, result=bool)
     @pyqtSlot(QVariant, QVariant, QVariant, result=bool)
     def hasFeature(self, *codes):
-        """ Return an OR match for all passed codes. """
+        """Return an OR match for all passed codes."""
         return self.hasFeatureIn(self.activeFeatures(), *codes)
 
     @pyqtSlot(result=bool)
@@ -287,7 +320,7 @@ class Session(QObject, QObjectHelper):
     def login(self, username=None, password=None, token=None):
         if token:
             try:
-                response = self.server().blockingRequest('GET', f"/sessions/{token}")
+                response = self.server().blockingRequest("GET", f"/sessions/{token}")
             except HTTPError as e:
                 self.loginFailed.emit()
                 self.setData(None)
@@ -295,12 +328,9 @@ class Session(QObject, QObjectHelper):
                 data = pickle.loads(response.body)
                 self.setData(data)
         else:
-            args = {
-                'username': username,
-                'password': password
-            }
+            args = {"username": username, "password": password}
             try:
-                response = self.server().blockingRequest('POST', "/sessions", data=args)
+                response = self.server().blockingRequest("POST", "/sessions", data=args)
             except HTTPError as e:
                 self.loginFailed.emit()
                 self.setData(None)
@@ -312,7 +342,7 @@ class Session(QObject, QObjectHelper):
     def logout(self):
         if self._data:
             try:
-                self.server().blockingRequest('DELETE', f"/sessions/{self.token}")
+                self.server().blockingRequest("DELETE", f"/sessions/{self.token}")
             except HTTPError as e:
                 self.logoutFailed.emit()
             finally:
@@ -321,13 +351,13 @@ class Session(QObject, QObjectHelper):
 
     @pyqtSlot()
     def update(self):
-        """ Pull down the latest data from current session.
-        Called from AccountDialog whenever something changes; Remote-logout, cart screen, etc. """
-        if self._data and self._data['session']['token']:
-            self.login(token=self._data['session']['token'])
-
+        """Pull down the latest data from current session.
+        Called from AccountDialog whenever something changes; Remote-logout, cart screen, etc.
+        """
+        if self._data and self._data["session"]["token"]:
+            self.login(token=self._data["session"]["token"])
 
 
 from .pyqt import qmlRegisterType
 
-qmlRegisterType(Session, 'PK.Models', 1, 0, 'Session')
+qmlRegisterType(Session, "PK.Models", 1, 0, "Session")

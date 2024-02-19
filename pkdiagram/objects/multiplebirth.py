@@ -4,13 +4,14 @@ from .pathitem import PathItem
 from .childof import ChildOf
 
 
-
 class MultipleBirth(PathItem):
 
     @staticmethod
     def pathFor(children, marriage):
         path = QPainterPath()
-        marriageSceneRect = marriage.mapToScene(marriage.path().boundingRect()).boundingRect()
+        marriageSceneRect = marriage.mapToScene(
+            marriage.path().boundingRect()
+        ).boundingRect()
 
         children = [c for c in children if c.isVisible()]
         each = [(children[i], x) for i, x in enumerate(children[1:])]
@@ -43,7 +44,7 @@ class MultipleBirth(PathItem):
                 xMax = max(xMax, max(aP.x(), bP.x()))
 
         jigY = None
-        for child in children: # not always set when loading
+        for child in children:  # not always set when loading
             if child.childOf.multipleBirth:
                 jigY = children[0].childOf.multipleBirth.jigY()
                 break
@@ -67,7 +68,7 @@ class MultipleBirth(PathItem):
     def __init__(self, marriage=None, firstChildOf=None, secondChild=None):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-        self.prop('itemPos').setLayered(False)
+        self.prop("itemPos").setLayered(False)
         self.isMultipleBirth = True
         self._children = []
         if firstChildOf:
@@ -82,13 +83,13 @@ class MultipleBirth(PathItem):
 
     def write(self, chunk):
         super().write(chunk)
-        chunk['children'] = [c.id for c in self._children]
-        chunk['parents'] = self._parents.id
+        chunk["children"] = [c.id for c in self._children]
+        chunk["parents"] = self._parents.id
 
     def read(self, chunk, byId):
         super().read(chunk, byId)
-        self._children = [byId(id) for id in chunk['children']]
-        self._parents = byId(chunk['parents'])
+        self._children = [byId(id) for id in chunk["children"]]
+        self._parents = byId(chunk["parents"])
 
     def clone(self, scene):
         x = super().clone(scene)
@@ -98,9 +99,9 @@ class MultipleBirth(PathItem):
 
     def remap(self, map):
         self._parents = map.find(self._cloned_parents_id)
-        delattr(self, '_cloned_parents_id')
+        delattr(self, "_cloned_parents_id")
         self._children = [map.find(x) for x in self._cloned_children_ids]
-        delattr(self, '_cloned_children_ids')
+        delattr(self, "_cloned_children_ids")
         if not self._parents:
             return False
         else:
@@ -123,7 +124,7 @@ class MultipleBirth(PathItem):
     def _onRemoveChild(self, person):
         if person in self._children:
             self._children.remove(person)
-        if len(self._children) < 2: # deinit
+        if len(self._children) < 2:  # deinit
             # self._parents = None # never clear so undo works
             self._children = []
         else:
@@ -138,7 +139,7 @@ class MultipleBirth(PathItem):
             pen = QPen(util.PEN)
         pen.setCapStyle(self.penCapStyle)
         self.setPen(pen)
-            
+
     ##
 
     def jigY(self):
@@ -202,7 +203,7 @@ class MultipleBirth(PathItem):
         if scale != self.scale():
             self.setScale(scale)
             self.updateGeometry()
-        
+
     def setHover(self, on):
         if self._settingHover:
             return
@@ -211,4 +212,3 @@ class MultipleBirth(PathItem):
         for person in self._children:
             person.childOf.setHover(on)
         self._settingHover = False
-

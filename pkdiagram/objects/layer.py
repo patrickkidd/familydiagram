@@ -4,25 +4,27 @@ from .item import Item
 
 class Layer(Item):
 
-    Item.registerProperties((
-        { 'attr': 'name' },
-        { 'attr': 'description' },
-        { 'attr': 'order', 'type': int, 'default': -1 },
-        { 'attr': 'notes' },
-        { 'attr': 'active', 'type': bool, 'default': False },
-        { 'attr': 'itemProperties', 'type': dict },
-        { 'attr': 'storeGeometry', 'type': bool, 'default': False }
-    ))
+    Item.registerProperties(
+        (
+            {"attr": "name"},
+            {"attr": "description"},
+            {"attr": "order", "type": int, "default": -1},
+            {"attr": "notes"},
+            {"attr": "active", "type": bool, "default": False},
+            {"attr": "itemProperties", "type": dict},
+            {"attr": "storeGeometry", "type": bool, "default": False},
+        )
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.isLayer = True
-        self._scene = kwargs.get('scene')
-        if not 'itemProperties' in kwargs: # avoid shared default value instance
-            self.prop('itemProperties').set({}, notify=False)
+        self._scene = kwargs.get("scene")
+        if not "itemProperties" in kwargs:  # avoid shared default value instance
+            self.prop("itemProperties").set({}, notify=False)
 
     def __repr__(self):
-        return super().__repr__(exclude='itemProperties')
+        return super().__repr__(exclude="itemProperties")
 
     def __lt__(self, other):
         if self.name() is not None and other.name() is None:
@@ -37,10 +39,11 @@ class Layer(Item):
 
     def clone(self, scene):
         from .layeritem import LayerItem
+
         x = super().clone(scene)
         stuff = copy.deepcopy(self.itemProperties())
-        x.prop('itemProperties').set(None, notify=False) # avoid equality check
-        x.prop('itemProperties').set(stuff, notify=False)
+        x.prop("itemProperties").set(None, notify=False)  # avoid equality check
+        x.prop("itemProperties").set(stuff, notify=False)
         for layerItem in scene.find(types=LayerItem):
             if self.id in layerItem.layers():
                 layers = list(layerItem.layers())
@@ -49,29 +52,28 @@ class Layer(Item):
         return x
 
     def remap(self, map):
-        """ TODO: Map itemProperties. """
+        """TODO: Map itemProperties."""
         return False
 
     ## Properties
 
     def onProperty(self, prop):
         isChanged = False
-        if prop.name() == 'storeGeometry' and not prop.get():
+        if prop.name() == "storeGeometry" and not prop.get():
             # Setting `storeGeometry` to False clears geometry values
             itemProps = copy.deepcopy(self.itemProperties())
             for itemId, values in itemProps.items():
-                if 'size' in values:
-                    del values['size']
+                if "size" in values:
+                    del values["size"]
                     isChanged = True
-                if 'itemPos' in values:
-                    del values['itemPos']
+                if "itemPos" in values:
+                    del values["itemPos"]
                     isChanged = True
         super().onProperty(prop)
         if isChanged:
             self.setItemProperties(itemProps)
             if self.scene():
                 self.scene().updateActiveLayers(force=True)
-
 
     ## Item property storage
 
@@ -107,11 +109,11 @@ class Layer(Item):
             values = {}
             props[itemId] = values
         values[propName] = value
-        self.setItemProperties(props, notify=False) # noop?
+        self.setItemProperties(props, notify=False)  # noop?
         item = self.scene().find(itemId)
 
     def resetItemProperty(self, prop):
-        """ Called from Property.reset. """
+        """Called from Property.reset."""
         props = self.itemProperties()
         itemProps = props.get(prop.item.id)
         if not itemProps:
@@ -132,5 +134,3 @@ class Layer(Item):
             for propName in list(propValues.keys()):
                 item.prop(propName).reset(notify=notify, undo=undo)
         self.setItemProperties({})
-
-

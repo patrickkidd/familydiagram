@@ -4,7 +4,7 @@ import time
 
 
 class ItemGarbage(QObject):
-    """ A garbage collector that runs in idle time. """
+    """A garbage collector that runs in idle time."""
 
     CHUNK_SIZE = 10
     ASYNC = True

@@ -1,19 +1,30 @@
-from .pyqt import QGraphicsOpacityEffect, QPropertyAnimation, QAbstractAnimation, QRect, Qt, QPoint, QVariantAnimation, QFrame, pyqtSignal, QApplication, QDateTime
+from .pyqt import (
+    QGraphicsOpacityEffect,
+    QPropertyAnimation,
+    QAbstractAnimation,
+    QRect,
+    Qt,
+    QPoint,
+    QVariantAnimation,
+    QFrame,
+    pyqtSignal,
+    QApplication,
+    QDateTime,
+)
 from . import util, widgets, objects
 from .graphicaltimeline import GraphicalTimeline
 
 
-
 class GraphicalTimelineView(QFrame):
-    """ Contracts into a dateslider, expands into full-blown graphical timeline. """
+    """Contracts into a dateslider, expands into full-blown graphical timeline."""
 
     MARGIN_X = util.MARGIN_X
     MARGIN_Y = util.MARGIN_Y
 
-    EXPANDED = 'expanded'
-    EXPANDING = 'expanding'
-    CONTRACTING = 'contracting'
-    CONTRACTED = 'contracted'
+    EXPANDED = "expanded"
+    EXPANDING = "expanding"
+    CONTRACTING = "contracting"
+    CONTRACTED = "contracted"
 
     LIGHT_MODE_SS = """
     GraphicalTimelineView {
@@ -33,15 +44,15 @@ class GraphicalTimelineView(QFrame):
     prevTaggedDate = pyqtSignal()
     expandedChanged = pyqtSignal(bool)
     dateTimeClicked = pyqtSignal(QDateTime)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.scene = None
-        self.documentView = parent if util.isInstance(parent, 'DocumentView') else None
+        self.documentView = parent if util.isInstance(parent, "DocumentView") else None
 
         self.timeline = GraphicalTimeline(self)
-        self.timeline.setStyleSheet('background-color: transparent')
-        self.timeline.canvas.setStyleSheet('background-color: transparent')
+        self.timeline.setStyleSheet("background-color: transparent")
+        self.timeline.canvas.setStyleSheet("background-color: transparent")
         self.lastScaleFactor = self.timeline.scaleFactor
         self.lastHScrollCoeff = self.timeline.horizontalScrollBar().value()
 
@@ -50,37 +61,47 @@ class GraphicalTimelineView(QFrame):
         self.scaleAnimation.setDuration(util.ANIM_DURATION_MS * 2)
         self.scaleAnimation.setEasingCurve(util.ANIM_EASING)
         self.scaleAnimation.valueChanged.connect(self.onScaleAnimationTick)
-        
-        self.prevButton = widgets.PixmapToolButton(self, uncheckedPixmapPath='back-button.png')
+
+        self.prevButton = widgets.PixmapToolButton(
+            self, uncheckedPixmapPath="back-button.png"
+        )
         self.prevButtonOpacityEffect = QGraphicsOpacityEffect(self)
         self.prevButton.setGraphicsEffect(self.prevButtonOpacityEffect)
         self.prevButton.clicked.connect(self.prevTaggedDate)
-        
-        self.nextButton = widgets.PixmapToolButton(self, uncheckedPixmapPath='forward-button.png')
+
+        self.nextButton = widgets.PixmapToolButton(
+            self, uncheckedPixmapPath="forward-button.png"
+        )
         self.nextButtonOpacityEffect = QGraphicsOpacityEffect(self)
-        self.nextButton.setGraphicsEffect(self.nextButtonOpacityEffect)        
+        self.nextButton.setGraphicsEffect(self.nextButtonOpacityEffect)
         self.nextButton.clicked.connect(self.nextTaggedDate)
-        
-        self.expandButton = widgets.PixmapToolButton(self,
-                                                     uncheckedPixmapPath='expand-up-button.png',
-                                                     checkedPixmapPath='contract-down-button.png')
+
+        self.expandButton = widgets.PixmapToolButton(
+            self,
+            uncheckedPixmapPath="expand-up-button.png",
+            checkedPixmapPath="contract-down-button.png",
+        )
         self.expandButton.setCheckable(True)
         self.expandButton.toggled[bool].connect(self.setExpanded)
-        
-        self.searchButton = widgets.PixmapToolButton(self, uncheckedPixmapPath='search-button.png')
+
+        self.searchButton = widgets.PixmapToolButton(
+            self, uncheckedPixmapPath="search-button.png"
+        )
         self.searchButtonOpacityEffect = QGraphicsOpacityEffect(self)
         self.searchButton.setGraphicsEffect(self.searchButtonOpacityEffect)
 
-        self.animation = QPropertyAnimation(self, b'geometry')
+        self.animation = QPropertyAnimation(self, b"geometry")
         self.animation.setDuration(util.ANIM_DURATION_MS * 2)
         self.animation.setEasingCurve(util.ANIM_EASING)
-        self.animation.valueChanged.connect(self.onAnimationTick)  
+        self.animation.valueChanged.connect(self.onAnimationTick)
         self.animation.finished.connect(self.onAnimationFinished)
 
         if util.ENABLE_DROP_SHADOWS:
-            self.setGraphicsEffect(util.makeDropShadow(offset=0,
-                                                       blurRadius=2,
-                                                       color=QColor(100, 100, 100, 70)))
+            self.setGraphicsEffect(
+                util.makeDropShadow(
+                    offset=0, blurRadius=2, color=QColor(100, 100, 100, 70)
+                )
+            )
         self.setMinimumHeight(self.timeline.height())
         self.state = self.CONTRACTED
 
@@ -91,14 +112,16 @@ class GraphicalTimelineView(QFrame):
 
     def setScene(self, scene):
         if self.scene:
-            self.scene.propertyChanged[objects.Property].disconnect(self.onSceneProperty)
-        self.expandButton.setChecked(False) # triggers signal + contract
+            self.scene.propertyChanged[objects.Property].disconnect(
+                self.onSceneProperty
+            )
+        self.expandButton.setChecked(False)  # triggers signal + contract
         self.scene = scene
         if scene:
             scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
         self.timeline.setScene(self.scene)
-        self.state = self.CONTRACTING # hack.1
-        self.onAnimationFinished() # hack.2
+        self.state = self.CONTRACTING  # hack.1
+        self.onAnimationFinished()  # hack.2
 
     @util.blocked
     def setExpanded(self, on):
@@ -111,9 +134,9 @@ class GraphicalTimelineView(QFrame):
 
     @util.blocked
     def onSceneProperty(self, prop):
-        if prop.name() == 'currentDateTime':
+        if prop.name() == "currentDateTime":
             self.update()
-        elif prop.name() == 'showAliases':
+        elif prop.name() == "showAliases":
             self.timeline.updatePersonNames()
 
     def contract(self):
@@ -129,9 +152,14 @@ class GraphicalTimelineView(QFrame):
         if self.animation.state() == QAbstractAnimation.Running:
             self.animation.stop()
         self.animation.setStartValue(self.geometry())
-        self.animation.setEndValue(QRect(0, self.parent().height() - util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
-                                         self.geometry().width(),
-                                         self.timeline.height()))
+        self.animation.setEndValue(
+            QRect(
+                0,
+                self.parent().height() - util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
+                self.geometry().width(),
+                self.timeline.height(),
+            )
+        )
         self.animation.start()
         self.lastScaleFactor = self.timeline.scaleFactor
         self.scaleAnimation.setStartValue(self.lastScaleFactor)
@@ -182,7 +210,7 @@ class GraphicalTimelineView(QFrame):
             self.searchButton.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.onApplicationPaletteChanged()
         if self.timeline.isSlider() and self.documentView:
-            self.documentView.adjust() # wasn't updating after contracting
+            self.documentView.adjust()  # wasn't updating after contracting
         else:
             self.adjust()
         self.expandedChanged.emit(self.isExpanded())
@@ -211,22 +239,30 @@ class GraphicalTimelineView(QFrame):
         elif self.state == self.EXPANDED:
             expanded = 1.0
 
-        self.expandButton.move(self.width() - self.expandButton.width() - self.MARGIN_X, self.MARGIN_Y)
-        self.searchButton.move(self.expandButton.x() - self.searchButton.width() - self.MARGIN_X,
-                               self.expandButton.y())
+        self.expandButton.move(
+            self.width() - self.expandButton.width() - self.MARGIN_X, self.MARGIN_Y
+        )
+        self.searchButton.move(
+            self.expandButton.x() - self.searchButton.width() - self.MARGIN_X,
+            self.expandButton.y(),
+        )
         self.searchButtonOpacityEffect.setOpacity(expanded)
-        
+
         prevButtonIn = self.MARGIN_X
         prevButtonOut = -self.prevButton.width() - self.MARGIN_X
         prevButtonStride = prevButtonIn - prevButtonOut
         nextButtonIn = self.searchButton.x()
         nextButtonOut = self.width() + self.nextButton.width() + self.MARGIN_X
         nextButtonStride = nextButtonOut - nextButtonIn
-        self.prevButton.move(round(prevButtonOut + (prevButtonStride * (1 - expanded))), self.MARGIN_Y)
-        self.nextButton.move(round(nextButtonIn + (nextButtonStride * expanded)), self.MARGIN_Y)
+        self.prevButton.move(
+            round(prevButtonOut + (prevButtonStride * (1 - expanded))), self.MARGIN_Y
+        )
+        self.nextButton.move(
+            round(nextButtonIn + (nextButtonStride * expanded)), self.MARGIN_Y
+        )
         self.prevButtonOpacityEffect.setOpacity(1 - expanded)
         self.nextButtonOpacityEffect.setOpacity(1 - expanded)
-        
+
         if self.state in (self.CONTRACTING, self.EXPANDING):
             # keep the canvas in place visually
             y = self.mapFromParent(QPoint(0, 0)).y()
@@ -241,16 +277,15 @@ class GraphicalTimelineView(QFrame):
         self.timeline._freezeScroll = freezeScroll
         self.timeline.setGeometry(new)
         self.timeline._freezeScroll = False
-        
 
 
 def __test__(scene, parent):
-    scene.setTags(['Tag 1', 'Tag 2'])
+    scene.setTags(["Tag 1", "Tag 2"])
     for i, event in enumerate(scene.events()):
         if i % 2:
-            event.setTag('Tag 1')
+            event.setTag("Tag 1")
         else:
-            event.setTag('Tag 2')
+            event.setTag("Tag 2")
     w = GraphicalTimelineView(parent)
     w.setScene(scene)
     w.expand()

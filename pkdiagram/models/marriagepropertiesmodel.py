@@ -5,23 +5,26 @@ from .modelhelper import ModelHelper
 
 class MarriagePropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(objects.Marriage, [
-        { 'attr': 'hideDetails', 'convertTo': Qt.CheckState },
-        { 'attr': 'bigFont', 'convertTo': Qt.CheckState },
-        { 'attr': 'personAName' },
-        { 'attr': 'personBName' },
-        { 'attr': 'personAId', 'type': int },
-        { 'attr': 'personBId', 'type': int },
-        { 'attr': 'married', 'convertTo': Qt.CheckState },
-        { 'attr': 'separated', 'convertTo': Qt.CheckState },
-        { 'attr': 'divorced', 'convertTo': Qt.CheckState },
-        { 'attr': 'everSeparated', 'type': bool },
-        { 'attr': 'everDivorced', 'type': bool },
-        { 'attr': 'anyMarriedEvents', 'type': bool },
-        { 'attr': 'anySeparatedEvents', 'type': bool },
-        { 'attr': 'anyDivorcedEvents', 'type': bool },
-        { 'attr': 'numEvents', 'type': int }
-    ])
+    PROPERTIES = objects.Item.adjustedClassProperties(
+        objects.Marriage,
+        [
+            {"attr": "hideDetails", "convertTo": Qt.CheckState},
+            {"attr": "bigFont", "convertTo": Qt.CheckState},
+            {"attr": "personAName"},
+            {"attr": "personBName"},
+            {"attr": "personAId", "type": int},
+            {"attr": "personBId", "type": int},
+            {"attr": "married", "convertTo": Qt.CheckState},
+            {"attr": "separated", "convertTo": Qt.CheckState},
+            {"attr": "divorced", "convertTo": Qt.CheckState},
+            {"attr": "everSeparated", "type": bool},
+            {"attr": "everDivorced", "type": bool},
+            {"attr": "anyMarriedEvents", "type": bool},
+            {"attr": "anySeparatedEvents", "type": bool},
+            {"attr": "anyDivorcedEvents", "type": bool},
+            {"attr": "numEvents", "type": int},
+        ],
+    )
 
     ModelHelper.registerQtProperties(PROPERTIES)
 
@@ -30,47 +33,47 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         self.initModelHelper()
 
     def onItemEventAddedOrRemoved(self, event):
-        """ Undo+redo wasn't resetting date fields because it
-            wasn't getting the added|removed signals.
+        """Undo+redo wasn't resetting date fields because it
+        wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == 'married':
-            self.refreshProperty('anyMarriedEvents')
-            self.refreshProperty('everMarried')
-        elif event.uniqueId() == 'separated':
-            self.refreshProperty('anySeparatedEvents')
-            self.refreshProperty('everSeparated')
-        elif event.uniqueId() == 'divorced':
-            self.refreshProperty('everMarried')
-            self.refreshProperty('everSeparated')
-            self.refreshProperty('anyDivorcedEvents')
-            self.refreshProperty('everDivorced')
+        if event.uniqueId() == "married":
+            self.refreshProperty("anyMarriedEvents")
+            self.refreshProperty("everMarried")
+        elif event.uniqueId() == "separated":
+            self.refreshProperty("anySeparatedEvents")
+            self.refreshProperty("everSeparated")
+        elif event.uniqueId() == "divorced":
+            self.refreshProperty("everMarried")
+            self.refreshProperty("everSeparated")
+            self.refreshProperty("anyDivorcedEvents")
+            self.refreshProperty("everDivorced")
 
     def get(self, attr):
         ret = None
         if self._items:
             marriage = self._items[0]
             x = None
-            if attr == 'personAName':
+            if attr == "personAName":
                 x = marriage.personA().name()
-            elif attr == 'personBName':
+            elif attr == "personBName":
                 x = marriage.personB().name()
-            if attr == 'personAId':
+            if attr == "personAId":
                 x = marriage.personA().id
-            elif attr == 'personBId':
+            elif attr == "personBId":
                 x = marriage.personB().id
-            elif attr == 'everMarried':
+            elif attr == "everMarried":
                 x = marriage.everMarried()
-            elif attr == 'everSeparated':
+            elif attr == "everSeparated":
                 x = marriage.everSeparated()
-            elif attr == 'everDivorced':
+            elif attr == "everDivorced":
                 x = marriage.everDivorced()
-            elif attr == 'anyMarriedEvents':
+            elif attr == "anyMarriedEvents":
                 x = marriage.anyMarriedEvents()
-            elif attr == 'anySeparatedEvents':
+            elif attr == "anySeparatedEvents":
                 x = marriage.anySeparatedEvents()
-            elif attr == 'anyDivorcedEvents':
+            elif attr == "anyDivorcedEvents":
                 x = marriage.anyDivorcedEvents()
-            elif attr == 'numEvents':
+            elif attr == "numEvents":
                 x = len(marriage.events())
             if x is not None:
                 ret = self.getterConvertTo(attr, x)
@@ -81,7 +84,7 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         return ret
 
     def set(self, attr, value):
-        if attr == 'items':
+        if attr == "items":
             if self._items:
                 for item in self._items:
                     item.addPropertyListener
@@ -92,13 +95,12 @@ class MarriagePropertiesModel(QObject, ModelHelper):
                     item.eventAdded.connect(self.onItemEventAddedOrRemoved)
                     item.eventRemoved.connect(self.onItemEventAddedOrRemoved)
         super().set(attr, value)
-        if attr == 'married':
-            self.refreshProperty('everMarried')
-        elif attr == 'separated':
-            self.refreshProperty('everSeparated')
-        elif attr == 'divorced':
-            self.refreshProperty('everDivorced')
+        if attr == "married":
+            self.refreshProperty("everMarried")
+        elif attr == "separated":
+            self.refreshProperty("everSeparated")
+        elif attr == "divorced":
+            self.refreshProperty("everDivorced")
 
 
-
-qmlRegisterType(MarriagePropertiesModel, 'PK.Models', 1, 0, 'MarriagePropertiesModel')
+qmlRegisterType(MarriagePropertiesModel, "PK.Models", 1, 0, "MarriagePropertiesModel")

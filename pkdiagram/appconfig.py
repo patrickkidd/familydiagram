@@ -9,9 +9,9 @@ log = logging.getLogger(__name__)
 
 
 class AppConfig(QObject):
-    """ Encrypted disk storage to keep user from tampering with keys, etc.
-        Currently uses hardware ID to invalidate session, which is unreliable. So
-        But it only invlidates the session which is fine.
+    """Encrypted disk storage to keep user from tampering with keys, etc.
+    Currently uses hardware ID to invalidate session, which is unreliable. So
+    But it only invlidates the session which is fine.
     """
 
     def __init__(self, parent=None, filePath=None, prefsName=None):
@@ -39,31 +39,34 @@ class AppConfig(QObject):
 
     def isFirstRun(self):
         return self.savedYet()
-        
+
     def read(self):
-        """ Read the cache file. """
+        """Read the cache file."""
         if not os.path.isfile(self.filePath):
             return
         try:
             bdata = util.readWithHash(self.filePath)
         except util.FileTamperedWithError:
             self.wasTamperedWith = True
-            log.debug('appconfig not encrypted; resetting...')
+            log.debug("appconfig not encrypted; resetting...")
             self.data = {}
             return
         self.data = pickle.loads(bdata)
-        if self.data.get('lastAppVersion') != version.VERSION:
-            self.data['versionDeactivated'] = False
+        if self.data.get("lastAppVersion") != version.VERSION:
+            self.data["versionDeactivated"] = False
             # TODO: maybe handle new app version?
-        if self.data.get('hardwareUUID') != self.hardwareUUID:
-            log.info('Hardware UUID %s != %s (appconfig transfered from another machine; resetting...)' % (self.data.get('hardwareUUID'), self.hardwareUUID))
+        if self.data.get("hardwareUUID") != self.hardwareUUID:
+            log.info(
+                "Hardware UUID %s != %s (appconfig transfered from another machine; resetting...)"
+                % (self.data.get("hardwareUUID"), self.hardwareUUID)
+            )
             self.wasTamperedWith = True
             self.data = {}
             return
 
     def write(self):
-        self.data['hardwareUUID'] = self.hardwareUUID
-        self.data['lastAppVersion'] = version.VERSION
+        self.data["hardwareUUID"] = self.hardwareUUID
+        self.data["lastAppVersion"] = version.VERSION
         bdata = pickle.dumps(self.data)
         util.writeWithHash(self.filePath, bdata)
 
