@@ -43,6 +43,17 @@ def __test__TimelineView(scene, parent, sceneModel):
     return w
 
 
+def __test__AddAnythingDialog(scene, parent, sceneModel):
+    scene.setTags(['Here', 'we', 'are'])
+    pp = QmlDrawer("qml/AddAnythingDialog.qml",
+                   parent=parent,
+                   sceneModel=sceneModel)
+    pp.setScene(scene)
+    parent.resize(400, 600)
+    parent.show()
+    return pp
+
+
 def __test__CaseProperties(scene, parent, sceneModel):
     w = QmlDrawer("qml/CaseProperties.qml",
                   parent=parent,

@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "App",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "--preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -19,7 +19,7 @@
         },
         {
             "name": "App (prefs: 'free')",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "--preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -35,7 +35,7 @@
         },
         {
             "name": "App (prefs: 'client')",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "--preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -51,7 +51,7 @@
         },
         {
             "name": "App (Windows)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "nmake",
             "program": "${workspaceFolder}\\main.py",
@@ -62,7 +62,7 @@
         },
         {
             "name": "Server",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "env": {
@@ -83,15 +83,27 @@
         },
         {
             "name": "sysroot-dev attach (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "attach",
             "port": 3001,
             "host": "127.0.0.1",
             "redirectOutput": true
         },
         {
+            "name": "sysroot-dev AddAnythingDialog (macOS)",
+            "type": "debugpy",
+            "request": "launch",
+            // "preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--qml-module",
+                "AddAnythingDialog"
+            ]
+        },
+        {
             "name": "sysroot-dev CaseProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -104,7 +116,7 @@
         },
         {
             "name": "sysroot-dev PersonProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -117,7 +129,7 @@
         },
         {
             "name": "sysroot-dev MarriageProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -130,7 +142,7 @@
         },
         {
             "name": "sysroot-dev EventProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -143,7 +155,7 @@
         },
         {
             "name": "sysroot-dev EmotionProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -156,7 +168,7 @@
         },
         {
             "name": "sysroot-dev LayerItemProperties (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -169,7 +181,7 @@
         },
         {
             "name": "sysroot-dev TimelineView (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -182,7 +194,7 @@
         },
         {
             "name": "sysroot-dev GraphicalTimelineView (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -195,7 +207,7 @@
         },
         {
             "name": "sysroot-dev test.py (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/test.py",
@@ -205,7 +217,7 @@
         },
         {
             "name": "sysroot-dev scenemodel (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -218,7 +230,7 @@
         },
         {
             "name": "sysroot-dev addemotiondialog (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -231,7 +243,7 @@
         },
         {
             "name": "sysroot-dev AccountDialog (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -244,7 +256,7 @@
         },
         {
             "name": "sysroot-dev LayerView (macOS)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
@@ -257,7 +269,7 @@
         },
         {
             "name": "sysroot-dev (Windows)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "C:\\familydiagram\\main.py",
             "console": "integratedTerminal",
@@ -265,7 +277,7 @@
         },
         {
             "name": "sysroot-dev: Current File (Integrated Terminal)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -273,7 +285,7 @@
         },
         {
             "name": "pyqtdeploy-sysroot",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
             "console": "integratedTerminal",
@@ -287,7 +299,7 @@
         },
         {
             "name": "pyqtdeploy-build",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bin/pyqtdeploy-build-debuggable.py",
             "console": "integratedTerminal",
@@ -295,7 +307,7 @@
         },
         {
             "name": "sip-build (_pkdiagram)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bin/sip-build-debuggable.py",
             "console": "integratedTerminal",
@@ -304,7 +316,7 @@
         },        
         {
             "name": "Python: Remote Attach",
-            "type": "python",
+            "type": "debugpy",
             "request": "attach",
             "port": 3001,
             "host": "localhost",
@@ -317,21 +329,21 @@
         },
         {
             "name": "Python: Module",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "enter-your-module-name-here",
             "console": "integratedTerminal"
         },
         {
             "name": "Python: Terminal (integrated)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "Z:\\dev\\familydiagram\\main.py",
             "console": "integratedTerminal"
         },
         {
             "name": "Python: Current File (Integrated Terminal)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -340,7 +352,7 @@
         },
         {
             "name": "Python: Current File (win32)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -350,7 +362,7 @@
         },
         {
             "name": "Python: sip-build (PyQt5)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "cwd": "C:\\familydiagram\\vendor\\sysroot-dev\\PyQt5-5.15.1",
@@ -368,7 +380,7 @@
         },
         {
             "name": "Debug Unit Test",
-            "type": "python",
+            "type": "debugpy",
             "purpose": "debug-test",
             "justMyCode": false,
         },        

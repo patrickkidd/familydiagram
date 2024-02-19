@@ -1,4 +1,4 @@
-import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, urllib.parse, wsgiref.handlers, bisect, contextlib
+import sys, os, os.path, enum, pickle, subprocess, hashlib, bisect, logging, urllib.parse, wsgiref.handlers, bisect, contextlib
 from functools import wraps
 
 
@@ -327,6 +327,23 @@ they may indicate a period of time where there was mutual conflict, distance, po
 When a discrete move, they may be a move toward, away, or defined self by a single person at a particular time.
 <br>Together with events, relationships are the backbone of the timeline.
 """)
+
+S_PERSON_NOT_FOUND = LONG_TEXT("""A person with that name does not exist. Do you want to add it?""")
+
+class EventKind(enum.StrEnum):
+    # Person
+    Born = 'born'
+    Adopted = 'adopted'
+    Deceased = 'deceased'
+
+    # Pair-Bond
+    Bonded = 'bonded'
+    Married = 'married'
+    Separated = 'separated'
+    Divorced = 'divorced'
+
+    Custom = None
+
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None
@@ -1009,7 +1026,7 @@ def modTest(__test__, loadfile=True, useMW=False):
     """ Run a test app with __test__(scene) as callback. """
     global IS_MOD_TEST
     IS_MOD_TEST = True
-    import sys
+    import sys, inspect
     from .util import CUtil
     from .scene import Scene
     from .pyqt import QTimer
@@ -1072,7 +1089,7 @@ def modTest(__test__, loadfile=True, useMW=False):
     def onInit():
         ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 
-        filePath = os.path.join(ROOT, 'tests', 'data', 'TIMELINE_TEST.fd')
+        filePath = os.path.join(ROOT, 'tests', 'data', 'mod_test.fd')
         CUtil.instance().openExistingFile(QUrl.fromLocalFile(filePath))
     if loadfile:
         QTimer.singleShot(0, onInit)

@@ -97,6 +97,8 @@ class QmlUtil(QObject, QObjectHelper):
         'ITEM_OUTSIDE',
         'ITEM_RECIPROCITY',
 
+        'S_PERSON_NOT_FOUND',
+
     ]
     QObjectHelper.registerQtProperties([ { 'attr': attr,
                                            'global': True,
