@@ -556,6 +556,49 @@ def paint_event(painter):
         painter.end()
 
 
+def _perimeter_lightning_bolt(degrees, width, length=50):
+    """
+    Create a lightning bolt path at a specified angle.
+    """
+    path = QPainterPath()
+    path.addPolygon(QPolygonF([
+        QPointF(0, 0),
+        QPointF(width * -.2, width * .4),
+        QPointF(width / 10, width * .35),
+        QPointF(width * -.2, width * .9), # peak
+        # QPointF(width / -5, width * .55),
+        # QPointF(width / -2, width * .60),
+        # QPointF(width * -.2, 0),
+        # QPointF(0, 0),
+    ]))
+
+    nudge = QTransform()
+    nudge.rotate(-10)
+    path *= nudge
+
+    # Ensure bolt starts from center and goes outward
+    path.translate(0, -length * 2)
+
+    transform = QTransform()
+    transform.rotate(degrees)
+    return path * transform
+
+
+def bolts_path(width, num):
+    WIDTH = width * .2
+    SPACING = 11
+    path = QPainterPath()
+    for angle in [45, 135, 225, 315]:
+        if num == 1:
+            path.addPath(_perimeter_lightning_bolt(angle, WIDTH))
+        elif num == 2:
+            path.addPath(_perimeter_lightning_bolt(angle - SPACING * .5, WIDTH))
+            path.addPath(_perimeter_lightning_bolt(angle + SPACING * .5, WIDTH))
+        elif num == 3:
+            path.addPath(_perimeter_lightning_bolt(angle - SPACING, WIDTH))
+            path.addPath(_perimeter_lightning_bolt(angle, WIDTH))
+            path.addPath(_perimeter_lightning_bolt(angle + SPACING, WIDTH))
+    return path
 
 
 def Date(year, month, day, hour=None, minute=None, seconds=None):

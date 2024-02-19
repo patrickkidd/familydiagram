@@ -646,14 +646,14 @@ def test_undo_add_remove_layered_item_props(qtbot):
     # marriage.setDivorced(True, undo=False)
     marriage.separationIndicator.setItemPos(unlayered['marriageSep'], undo=False)
     marriage.detailsText.setItemPos(unlayered['marriageDetails'], undo=False)
-    assert len(scene.items()) == 22
+    assert len(scene.items()) == 24
 
     scene.selectAll()
     qtbot.clickYesAfter(lambda: scene.removeSelection())
     assert len(scene.items()) == 0
 
     commands.stack().undo()
-    assert len(scene.items()) == 22
+    assert len(scene.items()) == 24
 
     commands.stack().redo()
     assert len(scene.items()) == 0

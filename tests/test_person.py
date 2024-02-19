@@ -5,9 +5,9 @@ from pkdiagram import util, Scene, Person, Marriage, MultipleBirth, Layer, Perso
 from pkdiagram.objects.person import (
     KIND_MALE, KIND_FEMALE,
     ATTR_ANXIETY, ATTR_FUNCTIONING, ATTR_SYMPTOM,
-    ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH,
-    FUNCTIONING_LOW, FUNCTIONING_MED, FUNCTIONING_HIGH,
-    SYMPTOM_LOW, SYMPTOM_MED, SYMPTOM_HIGH
+    ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP,
+    FUNCTIONING_DOWN, FUNCTIONING_SAME, FUNCTIONING_UP,
+    SYMPTOM_DOWN, SYMPTOM_SAME, SYMPTOM_UP
 )
 
 def test_init():
@@ -275,32 +275,26 @@ def test_new_event_adds_variable_values():
     assert person.variablesDatabase.get('var1', event.dateTime().addYears(1)) == ('123', False)
 
 
-@pytest.mark.parametrize('anxiety', (None, ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH))
-def test_draw_male_anxiety(anxiety):
-    scene = Scene()
-    scene.addEventProperty(ATTR_ANXIETY)
+KINDS = ['male', 'female']
+BUILTIN_VARS = {
+    'anxiety': (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP),
+    'functioning': (FUNCTIONING_DOWN, FUNCTIONING_SAME, FUNCTIONING_UP),
+    'symptom': (SYMPTOM_DOWN, SYMPTOM_SAME, SYMPTOM_UP),
+}
 
-    person = Person(kind=KIND_MALE)
+@pytest.mark.parametrize('kind, attr, value', [(kind, var, value) for kind in ['male', 'female'] for var, values in BUILTIN_VARS.items() for value in values])
+def test_draw_builtin_vars(kind, attr, value):
+    DATE = util.Date(2021, 5, 11)
+    scene = Scene()
+    scene.addEventProperty(attr)
+    scene.setCurrentDateTime(DATE)
+
+    person = Person(kind=kind)
     scene.addItems(person)
 
-    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
-    event.addDynamicProperty(ATTR_ANXIETY)
-    event.dynamicProperties[0].set(anxiety)
-    person.updateGeometry()
-    
-    # Failure state is exception
-
-@pytest.mark.parametrize('anxiety', (None, ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH))
-def test_draw_female_anxiety(anxiety):
-    scene = Scene()
-    scene.addEventProperty(ATTR_ANXIETY)
-
-    person = Person(kind=KIND_FEMALE)
-    scene.addItems(person)
-
-    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
-    event.addDynamicProperty(ATTR_ANXIETY)
-    event.dynamicProperties[0].set(anxiety)
+    event = Event(parent=person, dateTime=DATE)
+    event.addDynamicProperty(attr)
+    event.dynamicProperties[0].set(value)
     person.updateGeometry()
     
     # Failure state is exception

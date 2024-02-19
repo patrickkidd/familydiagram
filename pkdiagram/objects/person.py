@@ -23,26 +23,32 @@ ATTR_ANXIETY = 'Anxiety'
 ATTR_FUNCTIONING = 'Functioning'
 ATTR_SYMPTOM = 'Symptom'
 
-LOW = 'low'
-MEDIUM = 'medium'
-HIGH = 'high'
+DOWN = 'down'
+SAME = 'same'
+UP = 'up'
 
-ANXIETY_LOW = LOW
-ANXIETY_MED = MEDIUM
-ANXIETY_HIGH = HIGH
+ANXIETY_DOWN = DOWN
+ANXIETY_SAME = SAME
+ANXIETY_UP = UP
 
-FUNCTIONING_LOW = LOW
-FUNCTIONING_MED = MEDIUM
-FUNCTIONING_HIGH = HIGH
+FUNCTIONING_DOWN = DOWN
+FUNCTIONING_SAME = SAME
+FUNCTIONING_UP = UP
 
-SYMPTOM_LOW = LOW
-SYMPTOM_MED = MEDIUM
-SYMPTOM_HIGH = HIGH
+SYMPTOM_DOWN = DOWN
+SYMPTOM_SAME = SAME
+SYMPTOM_UP = UP
 
 ANXIETY_COLORS = {
-    ANXIETY_LOW: 'green',
-    ANXIETY_MED: 'yellow',
-    ANXIETY_HIGH: 'red',
+    UP: 'red',
+    SAME: QColor(0, 0, 255, 127),
+    DOWN: 'green',
+}
+
+FUNCTIONING_COLORS = {
+    UP: 'green',
+    SAME: QColor(0, 0, 255, 127),
+    DOWN: 'red',
 }
 
 class Person(PathItem):
@@ -82,28 +88,28 @@ class Person(PathItem):
         path = QPainterPath()
         scale = 1.0
 
-        ANXIETY_JAGGEDNESS_LOW = 3
-        ANXIETY_JAGGEDNESS_MED = 5
-        ANXIETY_JAGGEDNESS_HIGH = 10
+        ANXIETY_JAGGEDNESS_DOWN = 3
+        ANXIETY_JAGGEDNESS_SAME = 5
+        ANXIETY_JAGGEDNESS_UP = 10
 
-        ANXIETY_STEP_LOW = 15
-        ANXIETY_STEP_MED = 10
-        ANXIETY_STEP_HIGH = 5
+        ANXIETY_STEP_DOWN = 15
+        ANXIETY_STEP_SAME = 10
+        ANXIETY_STEP_UP = 5
 
-        if anxiety == ANXIETY_LOW:
-            JAGGEDNESS = ANXIETY_JAGGEDNESS_LOW
-            STEP = ANXIETY_STEP_LOW
-        elif anxiety == ANXIETY_MED:
-            JAGGEDNESS = ANXIETY_JAGGEDNESS_MED
-            STEP = ANXIETY_STEP_MED
-        elif anxiety == ANXIETY_HIGH:
-            JAGGEDNESS = ANXIETY_JAGGEDNESS_HIGH
-            STEP = ANXIETY_STEP_HIGH
+        if anxiety == ANXIETY_DOWN:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_DOWN
+            STEP = ANXIETY_STEP_DOWN
+        elif anxiety == ANXIETY_SAME:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_SAME
+            STEP = ANXIETY_STEP_SAME
+        elif anxiety == ANXIETY_UP:
+            JAGGEDNESS = ANXIETY_JAGGEDNESS_UP
+            STEP = ANXIETY_STEP_UP
 
         if size is not None:
             scale = util.scaleForPersonSize(size)
         if kind == KIND_MALE:
-            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
                 WIDTH = int(rect.width() * scale)
                 CENTER_X, CENTER_Y = 0, 0
                 start_x = int(CENTER_X - WIDTH / 2)
@@ -136,9 +142,9 @@ class Person(PathItem):
                     m = 10 * scale
                     rect = rect.marginsAdded(QMarginsF(m, m, m, m))
                     path.addRect(rect)
-                path.closeSubpath()
+            path.closeSubpath()
         elif kind == KIND_FEMALE:
-            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
                 CENTER_X, CENTER_Y = 0, 0
                 radius = (rect.width() / 2) * scale
                 start_angle = 90
@@ -151,14 +157,13 @@ class Person(PathItem):
                         path.moveTo(x, y)
                     else:
                         path.lineTo(x, y)
-                path.closeSubpath()
             else:
                 path.addEllipse(rect)
                 if primary:
                     m = 10 * scale
                     rect = rect.marginsAdded(QMarginsF(m, m, m, m))
                     path.addEllipse(rect)
-                path.closeSubpath()
+            path.closeSubpath()
         elif kind in ['abortion', 'miscarriage']:
             midX = rect.topRight().x() - ((rect.topRight().x() - rect.topLeft().x()) / 2)
             topMiddle = QPointF(midX, rect.topRight().y())
@@ -168,6 +173,7 @@ class Person(PathItem):
             path.lineTo(topMiddle)
         elif kind == 'unknown':
             path.addRoundedRect(rect, 40, 40, Qt.RelativeSize)
+        
         return path
 
     eventAdded = pyqtSignal(Event)
@@ -194,6 +200,7 @@ class Person(PathItem):
         self.ageItem = QGraphicsSimpleTextItem(self)
         self.ageItem.setFont(font)
         self.ageItem.setAcceptedMouseButtons(Qt.NoButton)
+        self.functioningItem = QGraphicsPathItem(self)
         self._delegate = util.PersonDelegate(self)
         self.setPathItemDelegate(self._delegate)
         #
@@ -867,7 +874,7 @@ class Person(PathItem):
             pen.setColor(util.contrastTo(brush.color()))
         else:
             anxiety = self.anxietyLevelNow()
-            if anxiety in (ANXIETY_LOW, ANXIETY_MED, ANXIETY_HIGH):
+            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
                 c = QColor(ANXIETY_COLORS[anxiety])
                 pen.setColor(c)
                 c.setAlpha(100)
@@ -988,6 +995,21 @@ class Person(PathItem):
                 path.moveTo(rect.bottomRight())
                 path.lineTo(rect.bottomRight().x() - w, rect.bottomRight().y() - w)        
         self.setPath(path)
+
+        functioning = self.functioningLevelNow()
+        if functioning in (FUNCTIONING_DOWN, FUNCTIONING_SAME, FUNCTIONING_UP):
+            if functioning == FUNCTIONING_DOWN:
+                num = 1
+            elif functioning == FUNCTIONING_SAME:
+                num = 2
+            elif functioning == FUNCTIONING_UP:
+                num = 3
+            functioningPath = util.bolts_path(self.boundingRect().width(), num)
+            self.functioningItem.setPath(functioningPath)
+            self.functioningItem.setPen(QPen(QColor(FUNCTIONING_COLORS[functioning]), util.PEN.widthF(), join=Qt.PenJoinStyle.MiterJoin))
+        else:
+            self.functioningItem.setPath(QPainterPath())
+
         self.updatePen()
         self.updateDetails()
 
@@ -1059,7 +1081,9 @@ class Person(PathItem):
                 value, isChange = self.variablesDatabase.get(entry['attr'], currentDateTime)
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                if entry['attr'] in (ATTR_ANXIETY.lower(), ) and value in (LOW, MEDIUM, HIGH):
+                if entry['attr'] in (ATTR_ANXIETY.lower(), ) and value in (DOWN, SAME, UP):
+                    continue
+                if entry['attr'] in (ATTR_FUNCTIONING.lower(), ) and value in (DOWN, SAME, UP):
                     continue
                 variableLines.append('%s: %s' % (entry['name'], value))
                 if isChange:
