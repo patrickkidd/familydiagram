@@ -2,10 +2,9 @@ from pkdiagram.pyqt import QPointF
 from pkdiagram import util, Scene, Person, Emotion, EmotionPropertiesModel
 
 
-
 def test_init(simpleScene):
     scene = Scene()
-    p1, p2 = Person(name='p1'), Person(name='p2')
+    p1, p2 = Person(name="p1"), Person(name="p2")
     conflict = Emotion(kind=util.ITEM_CONFLICT, personA=p1, personB=p2)
     scene.addItems(p1, p2, conflict)
     model = EmotionPropertiesModel()
@@ -17,8 +16,8 @@ def test_init(simpleScene):
 
 def test_swap_people(simpleScene):
 
-    p1 = simpleScene.query1(name='p1')
-    p2 = simpleScene.query1(name='p2')
+    p1 = simpleScene.query1(name="p1")
+    p2 = simpleScene.query1(name="p2")
     conflict = Emotion(kind=util.ITEM_CONFLICT, personA=p1, personB=p2)
     simpleScene.addItem(conflict)
     assert conflict in p1.emotions()
@@ -31,7 +30,7 @@ def test_swap_people(simpleScene):
     model.items = [conflict]
     assert model.personAId == p1.id
     assert model.personBId == p2.id
-    
+
     model.personAId, model.personBId = model.personBId, model.personAId
     assert model.personAId == p2.id
     assert model.personBId == p1.id

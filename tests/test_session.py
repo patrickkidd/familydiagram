@@ -13,17 +13,17 @@ def create_session(request):
     def _create_session(db_session=True):
         ret = Session()
         if db_session:
-            test_session = request.getfixturevalue('test_session')
+            test_session = request.getfixturevalue("test_session")
             ret.init(test_session.account_editor_dict(), syncWithServer=False)
         return ret
-    
-    return _create_session 
+
+    return _create_session
 
 
 def test_init(test_session, create_session):
     session = create_session()
     assert session.isLoggedIn() == True
-    assert len(test_session.account_editor_dict()['users']) == len(session.users)
+    assert len(test_session.account_editor_dict()["users"]) == len(session.users)
     assert session.activeFeatures() == [vedana.LICENSE_FREE]
 
 
@@ -48,7 +48,7 @@ def test_login_with_username_password(test_user):
 
 def test_login_expired_session(test_session):
     sessionData = test_session.account_editor_dict()
-    sessionData['session']['token'] = 'something-expired'
+    sessionData["session"]["token"] = "something-expired"
 
     session = Session()
     session.init(sessionData=sessionData)
@@ -73,7 +73,7 @@ def test_logout_failed(test_session):
     finished = util.Condition(session.logoutFinished)
     session.init(test_session.account_editor_dict(), syncWithServer=False)
     db_session = inspect(test_session).session
-    db_session.delete(test_session) # makes it fail
+    db_session.delete(test_session)  # makes it fail
     db_session.commit()
     session.logout()
     assert failed.wait() == True
@@ -90,14 +90,18 @@ def test_Diagram_get(test_user, create_session):
 def test_hasFeature_alpha(create_session):
     session = create_session(db_session=False)
 
-    with mock.patch.object(version, 'IS_ALPHA', True):
-        with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_ALPHA]):
+    with mock.patch.object(version, "IS_ALPHA", True):
+        with mock.patch.object(
+            session, "activeFeatures", return_value=[vedana.LICENSE_ALPHA]
+        ):
             assert session.hasFeature(vedana.LICENSE_ALPHA) == True
             assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
             assert session.hasFeature(vedana.LICENSE_FREE) == False
             assert session.hasFeature(vedana.LICENSE_CLIENT) == False
-        
-        with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_PROFESSIONAL]):
+
+        with mock.patch.object(
+            session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+        ):
             assert session.hasFeature(vedana.LICENSE_ALPHA) == False
             assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
             assert session.hasFeature(vedana.LICENSE_FREE) == False
@@ -107,14 +111,18 @@ def test_hasFeature_alpha(create_session):
 def test_hasFeature_beta(create_session):
     session = create_session(db_session=False)
 
-    with mock.patch.object(version, 'IS_BETA', True):
-        with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_BETA]):
+    with mock.patch.object(version, "IS_BETA", True):
+        with mock.patch.object(
+            session, "activeFeatures", return_value=[vedana.LICENSE_BETA]
+        ):
             assert session.hasFeature(vedana.LICENSE_BETA) == True
             assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
             assert session.hasFeature(vedana.LICENSE_FREE) == False
             assert session.hasFeature(vedana.LICENSE_CLIENT) == False
-        
-        with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_PROFESSIONAL]):
+
+        with mock.patch.object(
+            session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+        ):
             assert session.hasFeature(vedana.LICENSE_BETA) == False
             assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
             assert session.hasFeature(vedana.LICENSE_FREE) == False
@@ -124,9 +132,11 @@ def test_hasFeature_beta(create_session):
 def test_hasFeature_professional():
     session = Session()
 
-    with mock.patch.object(version, 'IS_ALPHA', False):
-        with mock.patch.object(version, 'IS_BETA', False):
-            with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_PROFESSIONAL]):
+    with mock.patch.object(version, "IS_ALPHA", False):
+        with mock.patch.object(version, "IS_BETA", False):
+            with mock.patch.object(
+                session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+            ):
                 assert session.hasFeature(vedana.LICENSE_BETA) == False
                 assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
                 assert session.hasFeature(vedana.LICENSE_FREE) == False
@@ -136,9 +146,13 @@ def test_hasFeature_professional():
 def test_hasFeature_client():
     session = Session()
 
-    with mock.patch.object(version, 'IS_ALPHA', False):
-        with mock.patch.object(version, 'IS_BETA', False):
-            with mock.patch.object(session, 'activeFeatures', return_value=[vedana.LICENSE_FREE, vedana.LICENSE_CLIENT]):
+    with mock.patch.object(version, "IS_ALPHA", False):
+        with mock.patch.object(version, "IS_BETA", False):
+            with mock.patch.object(
+                session,
+                "activeFeatures",
+                return_value=[vedana.LICENSE_FREE, vedana.LICENSE_CLIENT],
+            ):
                 assert session.hasFeature(vedana.LICENSE_BETA) == False
                 assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
                 assert session.hasFeature(vedana.LICENSE_FREE) == True
@@ -146,7 +160,11 @@ def test_hasFeature_client():
 
 
 def test_version_deactivated(test_session):
-    with mock.patch.object(fdserver_util, 'DEACTIVATED_VERSIONS', list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION]):
+    with mock.patch.object(
+        fdserver_util,
+        "DEACTIVATED_VERSIONS",
+        list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION],
+    ):
         session = Session()
         session.init(sessionData=test_session.account_editor_dict())
         assert session.isVersionDeactivated() == True
@@ -156,7 +174,3 @@ def test_version_not_deactivated():
     session = Session()
     session.init()
     assert session.isVersionDeactivated() == False
-
-
-
-

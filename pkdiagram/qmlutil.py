@@ -18,95 +18,99 @@ log = logging.getLogger(__name__)
 
 def find_global_type(attr):
     value = getattr(util, attr)
-    if isinstance(value, int): # true for int's and PyQt enums
+    if isinstance(value, int):  # true for int's and PyQt enums
         return int
     else:
         return type(value)
 
 
 class QmlUtil(QObject, QObjectHelper):
-    """ This module exposed to qml. """
+    """This module exposed to qml."""
 
     CONSTANTS = [
-        'QRC', 'QRC_QML',
-        'IS_IOS',
-        'IS_DEV',
-        'EMPTY_TEXT',
-        'DEFAULT_USE_TIME',
-        'ENABLE_DATE_BUDDIES',
-        'ENABLE_SERVER_UPLOADER',
-        'ENABLE_SERVER_VIEW',
-        'HARDWARE_UUID',
-        'MACHINE_NAME',
-        'IS_UI_DARK_MODE',
-        'DRAWER_WIDTH',
-        'DRAWER_OVER_WIDTH',
-        'BLANK_DATE_TEXT',
-        'BLANK_TIME_TEXT',
-        'PERSON_SIZE_NAMES',
-        'PERSON_KIND_NAMES',
-        'EMOTION_INTENSITY_NAMES',
-        'ABLETON_COLORS',
-        'ANIM_DURATION_MS',
-        'ANIM_EASING',
-        'FONT_FAMILY',
-        'FONT_FAMILY_TITLE',
-        'TEXT_FONT_SIZE',
-        'HELP_FONT_SIZE',
-        'NODAL_COLOR',
-        'QML_MARGINS',
-        'QML_SPACING',
-        'QML_FIELD_WIDTH',
-        'QML_TITLE_FONT_SIZE',
-        'QML_SMALL_TITLE_FONT_SIZE',
-        'QML_ITEM_HEIGHT',
-        'QML_ITEM_LARGE_HEIGHT',
-        'QML_SMALL_BUTTON_WIDTH',
-        'QML_HEADER_HEIGHT',
-        
-        'QML_ITEM_BG',
-        'QML_HEADER_BG',
-        'QML_WINDOW_BG',
-        'QML_CONTROL_BG',
-        'QML_TEXT_COLOR',
-        'QML_DROP_SHADOW_COLOR',
-        'QML_SELECTION_TEXT_COLOR',
-        'QML_HIGHLIGHT_TEXT_COLOR',
-        'QML_ACTIVE_TEXT_COLOR',
-        'QML_INACTIVE_TEXT_COLOR',
-        'QML_HIGHLIGHT_COLOR',
-        'QML_SELECTION_COLOR',
-        'QML_ITEM_ALTERNATE_BG',
-        'QML_ITEM_BORDER_COLOR',
-        'QML_SAME_DATE_HIGHLIGHT_COLOR',
-        'QML_NODAL_COLOR',
-
-        'EVENT_PROPS_HELP_TEXT',
-        'EMOTION_PROPS_HELP_TEXT',
-        
-        'CURRENT_DATE_INDICATOR_WIDTH',
-        'ITEM_CUTOFF',
-        'ITEM_FUSION',
-        'ITEM_CONFLICT',
-        'ITEM_PROJECTION',
-        'ITEM_DISTANCE',
-        'ITEM_AWAY',
-        'ITEM_TOWARD',
-        'ITEM_DEFINED_SELF',
-        'ITEM_INSIDE',
-        'ITEM_OUTSIDE',
-        'ITEM_RECIPROCITY',
-
+        "QRC",
+        "QRC_QML",
+        "IS_IOS",
+        "IS_DEV",
+        "EMPTY_TEXT",
+        "DEFAULT_USE_TIME",
+        "ENABLE_DATE_BUDDIES",
+        "ENABLE_SERVER_UPLOADER",
+        "ENABLE_SERVER_VIEW",
+        "HARDWARE_UUID",
+        "MACHINE_NAME",
+        "IS_UI_DARK_MODE",
+        "DRAWER_WIDTH",
+        "DRAWER_OVER_WIDTH",
+        "BLANK_DATE_TEXT",
+        "BLANK_TIME_TEXT",
+        "PERSON_SIZE_NAMES",
+        "PERSON_KIND_NAMES",
+        "EMOTION_INTENSITY_NAMES",
+        "ABLETON_COLORS",
+        "ANIM_DURATION_MS",
+        "ANIM_EASING",
+        "FONT_FAMILY",
+        "FONT_FAMILY_TITLE",
+        "TEXT_FONT_SIZE",
+        "HELP_FONT_SIZE",
+        "NODAL_COLOR",
+        "QML_MARGINS",
+        "QML_SPACING",
+        "QML_FIELD_WIDTH",
+        "QML_TITLE_FONT_SIZE",
+        "QML_SMALL_TITLE_FONT_SIZE",
+        "QML_ITEM_HEIGHT",
+        "QML_ITEM_LARGE_HEIGHT",
+        "QML_SMALL_BUTTON_WIDTH",
+        "QML_HEADER_HEIGHT",
+        "QML_ITEM_BG",
+        "QML_HEADER_BG",
+        "QML_WINDOW_BG",
+        "QML_CONTROL_BG",
+        "QML_TEXT_COLOR",
+        "QML_DROP_SHADOW_COLOR",
+        "QML_SELECTION_TEXT_COLOR",
+        "QML_HIGHLIGHT_TEXT_COLOR",
+        "QML_ACTIVE_TEXT_COLOR",
+        "QML_INACTIVE_TEXT_COLOR",
+        "QML_HIGHLIGHT_COLOR",
+        "QML_SELECTION_COLOR",
+        "QML_ITEM_ALTERNATE_BG",
+        "QML_ITEM_BORDER_COLOR",
+        "QML_SAME_DATE_HIGHLIGHT_COLOR",
+        "QML_NODAL_COLOR",
+        "EVENT_PROPS_HELP_TEXT",
+        "EMOTION_PROPS_HELP_TEXT",
+        "CURRENT_DATE_INDICATOR_WIDTH",
+        "ITEM_CUTOFF",
+        "ITEM_FUSION",
+        "ITEM_CONFLICT",
+        "ITEM_PROJECTION",
+        "ITEM_DISTANCE",
+        "ITEM_AWAY",
+        "ITEM_TOWARD",
+        "ITEM_DEFINED_SELF",
+        "ITEM_INSIDE",
+        "ITEM_OUTSIDE",
+        "ITEM_RECIPROCITY",
     ]
-    QObjectHelper.registerQtProperties([ { 'attr': attr,
-                                           'global': True,
-                                           # 'constant': True,
-                                           'type': find_global_type(attr)
-                                           } for attr in CONSTANTS], globalContext=util.__dict__)
+    QObjectHelper.registerQtProperties(
+        [
+            {
+                "attr": attr,
+                "global": True,
+                # 'constant': True,
+                "type": find_global_type(attr),
+            }
+            for attr in CONSTANTS
+        ],
+        globalContext=util.__dict__,
+    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName('util')
+        self.setObjectName("util")
         QApplication.instance().paletteChanged.connect(self.initColors)
         self._httpReplies = {}
         self._lastHttpRequestId = 0
@@ -114,7 +118,9 @@ class QmlUtil(QObject, QObjectHelper):
         self.initQObjectHelper()
 
     def initColors(self):
-        darkLightMode = util.prefs().value('darkLightMode', defaultValue=util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE)
+        darkLightMode = util.prefs().value(
+            "darkLightMode", defaultValue=util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE
+        )
         if darkLightMode == util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE:
             util.IS_UI_DARK_MODE = CUtil.instance().isUIDarkMode()
         elif darkLightMode == util.PREFS_UI_DARK_MODE:
@@ -125,18 +131,22 @@ class QmlUtil(QObject, QObjectHelper):
         util.HIGHLIGHT_COLOR = None
         util.SAME_DATE_HIGHLIGHT_COLOR = None
         if QApplication.instance():
-            util.SELECTION_COLOR = CUtil.instance().appleControlAccentColor() # requires app instance?
+            util.SELECTION_COLOR = (
+                CUtil.instance().appleControlAccentColor()
+            )  # requires app instance?
             # attempt to make very light selection colors show up better on white background
             # if not IS_UI_DARK_MODE and luminanceOf(SELECTION_COLOR) > .7:
             #     SELECTION_COLOR = QColor(255, 0, 0, 150) # from 1.0.0b9
-            util.HIGHLIGHT_COLOR = util.lightenOpacity(util.SELECTION_COLOR, .5)
-            util.SAME_DATE_HIGHLIGHT_COLOR = util.lightenOpacity(util.SELECTION_COLOR, .35)
+            util.HIGHLIGHT_COLOR = util.lightenOpacity(util.SELECTION_COLOR, 0.5)
+            util.SAME_DATE_HIGHLIGHT_COLOR = util.lightenOpacity(
+                util.SELECTION_COLOR, 0.35
+            )
             if QApplication.activeWindow():
                 palette = QApplication.activeWindow().palette()
             else:
-                palette = QApplication.palette() # should probably replace with
+                palette = QApplication.palette()  # should probably replace with
         else:
-            util.SELECTION_COLOR = QColor(255, 0, 0, 150) # from 1.0.0b9
+            util.SELECTION_COLOR = QColor(255, 0, 0, 150)  # from 1.0.0b9
             palette = QPalette()
         # QColor
         # util.TEXT_COLOR = palette.color(QPalette.Text)
@@ -147,41 +157,43 @@ class QmlUtil(QObject, QObjectHelper):
         else:
             util.TEXT_COLOR = QColor(Qt.black)
             util.ACTIVE_TEXT_COLOR = QColor(Qt.black)
-        util.PEN = QPen(QBrush(util.TEXT_COLOR), 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        util.PEN = QPen(
+            QBrush(util.TEXT_COLOR), 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin
+        )
         if util.HIGHLIGHT_COLOR is None:
             util.HIGHLIGHT_COLOR = palette.color(QPalette.Highlight)
         if util.SAME_DATE_HIGHLIGHT_COLOR is None:
-            util.SAME_DATE_HIGHLIGHT_COLOR = lightenOpacity(util.SELECTION_COLOR, .7)
+            util.SAME_DATE_HIGHLIGHT_COLOR = lightenOpacity(util.SELECTION_COLOR, 0.7)
         util.SELECTION_TEXT_COLOR = util.contrastTo(util.SELECTION_COLOR)
         util.HIGHLIGHT_TEXT_COLOR = util.contrastTo(util.HIGHLIGHT_COLOR)
         util.HOVER_COLOR = util.SELECTION_COLOR
         # Dark mode theming
         if util.IS_UI_DARK_MODE:
-            util.WINDOW_BG = QColor('#1e1e1e')
-            util.SNAP_PEN = QPen(util.SELECTION_COLOR.lighter(150), .5)
-            util.GRID_COLOR = QColor('#767676')
-            util.NODAL_COLOR = QColor('#fcf5c9')
-            util.QML_ITEM_BG = '#373534'
-            util.QML_ITEM_ALTERNATE_BG = '#2d2b2a'
-            util.QML_ITEM_BORDER_COLOR = '#4d4c4c'
-            util.QML_HEADER_BG = '#323232'
+            util.WINDOW_BG = QColor("#1e1e1e")
+            util.SNAP_PEN = QPen(util.SELECTION_COLOR.lighter(150), 0.5)
+            util.GRID_COLOR = QColor("#767676")
+            util.NODAL_COLOR = QColor("#fcf5c9")
+            util.QML_ITEM_BG = "#373534"
+            util.QML_ITEM_ALTERNATE_BG = "#2d2b2a"
+            util.QML_ITEM_BORDER_COLOR = "#4d4c4c"
+            util.QML_HEADER_BG = "#323232"
             util.CONTROL_BG = QColor(util.QML_ITEM_ALTERNATE_BG)
             # util.INACTIVE_TEXT_COLOR = palette.color(QPalette.Disabled, QPalette.Text) # doesn't work
-            util.INACTIVE_TEXT_COLOR = util.CONTROL_BG.lighter(160) # workaround
+            util.INACTIVE_TEXT_COLOR = util.CONTROL_BG.lighter(160)  # workaround
             util.DROP_SHADOW_COLOR = QColor(util.QML_HEADER_BG).lighter(110)
         else:
-            util.WINDOW_BG = QColor('white')
-            util.CONTROL_BG = QColor('#e0e0e0')
-            util.GRID_COLOR = QColor('lightGrey')
-            util.SNAP_PEN = QPen(QColor(0, 0, 255, 100), .5)
-            util.NODAL_COLOR = QColor('pink')
-            util.QML_ITEM_BG = 'white'
-            util.QML_ITEM_ALTERNATE_BG = '#eee'
-            util.QML_ITEM_BORDER_COLOR = 'lightGrey'
-            util.QML_HEADER_BG = 'white'
+            util.WINDOW_BG = QColor("white")
+            util.CONTROL_BG = QColor("#e0e0e0")
+            util.GRID_COLOR = QColor("lightGrey")
+            util.SNAP_PEN = QPen(QColor(0, 0, 255, 100), 0.5)
+            util.NODAL_COLOR = QColor("pink")
+            util.QML_ITEM_BG = "white"
+            util.QML_ITEM_ALTERNATE_BG = "#eee"
+            util.QML_ITEM_BORDER_COLOR = "lightGrey"
+            util.QML_HEADER_BG = "white"
             # util.QML_CONTROL_BG = '#ffffff'
             # util.INACTIVE_TEXT_COLOR = palette.color(QPalette.Disabled, QPalette.Text) # doesn't work
-            util.INACTIVE_TEXT_COLOR = QColor('grey') # workaround
+            util.INACTIVE_TEXT_COLOR = QColor("grey")  # workaround
             util.DROP_SHADOW_COLOR = QColor(util.QML_HEADER_BG).darker(105)
         util.SELECTION_PEN = QPen(util.SELECTION_COLOR, 3)
         # c = QColor(util.SELECTION_COLOR.lighter(150))
@@ -199,7 +211,7 @@ class QmlUtil(QObject, QObjectHelper):
         util.QML_SELECTION_COLOR = util.SELECTION_COLOR.name()
         util.QML_SELECTION_TEXT_COLOR = util.SELECTION_TEXT_COLOR.name()
         util.QML_HIGHLIGHT_TEXT_COLOR = util.HIGHLIGHT_TEXT_COLOR.name()
-        util.QML_HIGHLIGHT_COLOR = util.HIGHLIGHT_COLOR.name() # also current
+        util.QML_HIGHLIGHT_COLOR = util.HIGHLIGHT_COLOR.name()  # also current
         util.QML_SAME_DATE_HIGHLIGHT_COLOR = util.SAME_DATE_HIGHLIGHT_COLOR.name()
         util.QML_NODAL_COLOR = util.NODAL_COLOR.name()
         #
@@ -213,7 +225,7 @@ class QmlUtil(QObject, QObjectHelper):
     # So add the tz offset so the time is local but also represents the actual string parsed.
     @pyqtSlot(str, str, result=QDateTime)
     def validatedDateTimeText(self, dateText, timeText=None):
-        """ Parse a date as if it were local TZ, instead of JS Date which assumes
+        """Parse a date as if it were local TZ, instead of JS Date which assumes
         UTC and then automatically adjusting to to local time resulting in incorrect
         mm, dd, yyyy values.
         """
@@ -225,20 +237,19 @@ class QmlUtil(QObject, QObjectHelper):
         else:
             return QDateTime()
 
-
     @pyqtSlot(QDateTime, result=str)
     def dateString(self, dateTime):
         if dateTime.isNull():
             return util.BLANK_DATE_TEXT
         else:
-            return dateTime.toString('MM/dd/yyyy')
+            return dateTime.toString("MM/dd/yyyy")
 
     @pyqtSlot(QDateTime, result=str)
     def timeString(self, dateTime):
         if dateTime.isNull():
             return util.BLANK_DATE_TEXT
         else:
-            return dateTime.toString('h:mm ap')
+            return dateTime.toString("h:mm ap")
 
     @pyqtSlot(QVariant, str, result=QVariant)
     def pyCall(self, o, attr):
@@ -254,7 +265,7 @@ class QmlUtil(QObject, QObjectHelper):
 
     @pyqtSlot(QItemSelectionModel, QModelIndex, QModelIndex, int)
     def doItemSelection(self, selectionModel, fromIndex, toIndex, flags):
-        """ Don't know how to call `select(selection, flags)` from Qml. """
+        """Don't know how to call `select(selection, flags)` from Qml."""
         _flags = QItemSelectionModel.SelectionFlags(flags)
         selectionModel.select(QItemSelection(fromIndex, toIndex), _flags)
 
@@ -270,10 +281,12 @@ class QmlUtil(QObject, QObjectHelper):
 
     @pyqtSlot(QItemSelectionModel, int, result=bool)
     def isRowSelected(self, selectionModel, row):
-        if row >= selectionModel.model().rowCount(): # occurs on deinit
+        if row >= selectionModel.model().rowCount():  # occurs on deinit
             return False
         else:
-            return selectionModel.isRowSelected(row, selectionModel.model().index(-1, -1))
+            return selectionModel.isRowSelected(
+                row, selectionModel.model().index(-1, -1)
+            )
 
     @pyqtSlot(int, result=str)
     def personSizeNameFromSize(self, size):
@@ -285,7 +298,7 @@ class QmlUtil(QObject, QObjectHelper):
 
     @pyqtSlot(bool, bool, bool, result=str)
     def itemBgColor(self, selected, current, alternate):
-        """ Dynamic color depends on item disposition. """
+        """Dynamic color depends on item disposition."""
         if selected:
             return self.QML_SELECTION_COLOR
         elif current:
@@ -294,10 +307,10 @@ class QmlUtil(QObject, QObjectHelper):
             return self.QML_ITEM_ALTERNATE_BG
         else:
             return self.QML_ITEM_BG
-    
+
     @pyqtSlot(bool, bool, result=str)
     def textColor(self, selected, current):
-        """ Dynamic color depends on item disposition. """
+        """Dynamic color depends on item disposition."""
         if selected:
             return self.QML_SELECTION_TEXT_COLOR
         elif current:
@@ -312,9 +325,9 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(str)
     def openUrl(self, urlString):
         QDesktopServices.openUrl(QUrl(urlString))
-            
-    jsServerHttpFinished = pyqtSignal(int, QJSValue, arguments=['id', 'response'])
-    
+
+    jsServerHttpFinished = pyqtSignal(int, QJSValue, arguments=["id", "response"])
+
     @pyqtSlot(QVariant, int, str, str)
     @pyqtSlot(QVariant, int, str, str, QVariant)
     def jsServerHttp(self, session, requestId, method, path, args=None):
@@ -323,7 +336,7 @@ class QmlUtil(QObject, QObjectHelper):
             data = args.toVariant()
             bdata = pickle.dumps(data)
         else:
-            bdata = b''
+            bdata = b""
         reply = session.server().nonBlockingRequest(method, path, bdata)
 
         class HTTPRequest:
@@ -333,15 +346,17 @@ class QmlUtil(QObject, QObjectHelper):
                 self.reply = reply
                 self.reply.sslErrors.connect(self._onSSLErrors)
                 self.reply.finished.connect(self.onFinished)
+
             def _onSSLErrors(self):
                 pass
+
             def onFinished(self):
                 self.reply.sslErrors.disconnect(self._onSSLErrors)
                 self.reply.finished.disconnect(self.onFinished)
                 # Super janky signal-and-id based callback-based mechanism because
                 # `callback` (QJSValue) was becoming not callable by the time the http
                 # request finished!  WTF!?!?!
-                # Can maybe try QJSValue(callback) to retain callable status? 
+                # Can maybe try QJSValue(callback) to retain callable status?
                 # - https://wiki.python.org/moin/PyQt/QML%20callback%20function
                 # self.here(requestId, reply.url(), reply.attribute(QNetworkRequest.HttpStatusCodeAttribute))
                 args = QApplication.instance().qmlEngine().newObject()
@@ -354,21 +369,28 @@ class QmlUtil(QObject, QObjectHelper):
                     try:
                         data = pickle.loads(bdata)
                     except pickle.UnpicklingError:
-                        data = bdata.decode('utf-8')
+                        data = bdata.decode("utf-8")
+
                     def myconverter(o):
                         if isinstance(o, datetime.datetime):
                             return o.isoformat()
-                    jsonString = json.dumps(data, default=myconverter) # How to PyObject to QJSValue?
-                    args.setProperty('_data', jsonString)
+
+                    jsonString = json.dumps(
+                        data, default=myconverter
+                    )  # How to PyObject to QJSValue?
+                    args.setProperty("_data", jsonString)
                 httpCode = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
                 if httpCode is None:
                     httpCode = 0
-                args.setProperty('status_code', httpCode)
-                if httpCode != 200 and reply.hasRawHeader(b'FD-User-Message'):
-                    user_message = bytes(reply.rawHeader(b'FD-User-Message')).decode('utf-8')
-                    args.setProperty('user_message', user_message)
+                args.setProperty("status_code", httpCode)
+                if httpCode != 200 and reply.hasRawHeader(b"FD-User-Message"):
+                    user_message = bytes(reply.rawHeader(b"FD-User-Message")).decode(
+                        "utf-8"
+                    )
+                    args.setProperty("user_message", user_message)
                 self.qmlUtil.jsServerHttpFinished.emit(self.jsId, args)
                 self.qmlUtil._httpRequests.remove(self)
+
         self._httpRequests.append(HTTPRequest(self, requestId, reply))
 
     @pyqtSlot(str, str, result=bool)
@@ -395,4 +417,3 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(result=float)
     def time(self):
         return time.time()
-

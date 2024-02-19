@@ -22,7 +22,7 @@ def create_fm(qtbot, request):
         _session = Session()
         if session:
             if session is True:
-                test_session = request.getfixturevalue('test_session')
+                test_session = request.getfixturevalue("test_session")
             else:
                 test_session = session
             _session.init(sessionData=test_session.account_editor_dict())
@@ -65,51 +65,57 @@ def test_local_filter(tmp_path, create_fm):
     QApplication.processEvents()
 
     fm = create_fm()
-    assert fm.rootProp('localFilesShown') == True
-    
-    localFileModel = fm.rootProp('localFileModel')
+    assert fm.rootProp("localFilesShown") == True
+
+    localFileModel = fm.rootProp("localFileModel")
     assert localFileModel.rowCount() == NUM_FILES
 
-    fm.keyClicks('localSearchBar.searchBox', '-odd')
-    fm.itemProp('localSearchBar.searchBox', 'text') == '-odd'
-    assert localFileModel.searchText == '-odd'
+    fm.keyClicks("localSearchBar.searchBox", "-odd")
+    fm.itemProp("localSearchBar.searchBox", "text") == "-odd"
+    assert localFileModel.searchText == "-odd"
     assert localFileModel.rowCount() == NUM_FILES / 2
 
 
-def test_server_filter_owner(test_user, test_user_diagrams, test_session, test_activation, test_user_2, create_fm):
+def test_server_filter_owner(
+    test_user, test_user_diagrams, test_session, test_activation, test_user_2, create_fm
+):
     for diagram in test_user_diagrams:
         if diagram.user_id == test_user_2.id:
             diagram.grant_access(test_user, vedana.ACCESS_READ_ONLY)
     db.session.commit()
 
     fm = create_fm()
-    serverFileModel = fm.rootProp('serverFileModel')
+    serverFileModel = fm.rootProp("serverFileModel")
     updateFinished = util.Condition(serverFileModel.updateFinished)
-    fm.session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
+    fm.session.init(
+        sessionData=test_session.account_editor_dict(), syncWithServer=False
+    )
     assert updateFinished.wait() == True
 
-    assert fm.itemProp('tabBar', 'visible') == True
-    assert fm.itemProp('tabBar.serverViewButton', 'visible') == True
-    fm.mouseClick('tabBar.serverViewButton')
-    assert fm.rootProp('localFilesShown') == False
+    assert fm.itemProp("tabBar", "visible") == True
+    assert fm.itemProp("tabBar.serverViewButton", "visible") == True
+    fm.mouseClick("tabBar.serverViewButton")
+    assert fm.rootProp("localFilesShown") == False
     assert serverFileModel.rowCount() == len(test_user_diagrams) + 1
 
-    fm.keyClicks('serverSearchBar.searchBox', 'patrickkidd+unittest+2@gmail.com')
+    fm.keyClicks("serverSearchBar.searchBox", "patrickkidd+unittest+2@gmail.com")
     assert serverFileModel.rowCount() == len(test_user_diagrams) / 2
 
 
-def test_server_doesnt_init_in_edit_mode_admin_user(test_user, test_user_diagrams, create_fm):
-    test_user.roles = 'admin'
+def test_server_doesnt_init_in_edit_mode_admin_user(
+    test_user, test_user_diagrams, create_fm
+):
+    test_user.roles = "admin"
     db.session.commit()
 
     fm = create_fm()
     assert fm.session.isAdmin
-    assert fm.findItem('serverFileList').property('editMode') == False
+    assert fm.findItem("serverFileList").property("editMode") == False
 
 
 def test_free_licence_hides_server_view(test_user, create_fm):
     fm = create_fm()
-    assert fm.findItem('serverViewButton').property('visible') == False
+    assert fm.findItem("serverViewButton").property("visible") == False
 
 
 # TODO:

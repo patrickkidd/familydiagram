@@ -1,6 +1,14 @@
 from ..pyqt import (
-    Qt, QAbstractListModel, qmlRegisterUncreatableType, QModelIndex, QVariant,
-    pyqtSlot, QMessageBox, QApplication, qmlRegisterType, QMessageBox
+    Qt,
+    QAbstractListModel,
+    qmlRegisterUncreatableType,
+    QModelIndex,
+    QVariant,
+    pyqtSlot,
+    QMessageBox,
+    QApplication,
+    qmlRegisterType,
+    QMessageBox,
 )
 from .. import util, objects, commands
 from ..objects import Item, Property, Layer
@@ -8,13 +16,11 @@ from ..scene import Scene
 from .modelhelper import ModelHelper
 
 
-
 class TagsModel(QAbstractListModel, ModelHelper):
-    """ Manages a list of tags from the scene and their active state pulled from the items.
-    """
+    """Manages a list of tags from the scene and their active state pulled from the items."""
 
-    NEW_NAME_TMPL = 'New Tag %i'
-    
+    NEW_NAME_TMPL = "New Tag %i"
+
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
     ActiveRole = NameRole + 1
@@ -27,7 +33,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
         self.initModelHelper()
 
     def set(self, attr, value):
-        if attr == 'scene':
+        if attr == "scene":
             if self._scene:
                 self._scene.searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
             super().set(attr, value)
@@ -37,7 +43,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
             else:
                 self._sceneTags = []
             self.modelReset.emit()
-        elif attr == 'items':
+        elif attr == "items":
             super().set(attr, value)
             self.modelReset.emit()
         else:
@@ -48,13 +54,13 @@ class TagsModel(QAbstractListModel, ModelHelper):
     def onItemProperty(self, prop):
         if self._settingTags:
             return
-        if prop.name() == 'tags':
+        if prop.name() == "tags":
             startIndex = self.index(0, 0)
-            endIndex = self.index(self.rowCount()-1, 0)
+            endIndex = self.index(self.rowCount() - 1, 0)
             self.dataChanged.emit(startIndex, endIndex, [self.ActiveRole])
 
     def onSceneProperty(self, prop):
-        if prop.name() == 'tags':
+        if prop.name() == "tags":
             self._sceneTags = sorted(self._scene.tags())
             self._blocked = True
             self.modelReset.emit()
@@ -62,12 +68,12 @@ class TagsModel(QAbstractListModel, ModelHelper):
 
     def onSearchTagsChanged(self):
         startIndex = self.index(0, 0)
-        endIndex = self.index(self.rowCount()-1, 0)
+        endIndex = self.index(self.rowCount() - 1, 0)
         self.dataChanged.emit(startIndex, endIndex, [self.ActiveRole])
 
     def tagAtRow(self, row):
         if row < 0 or row >= len(self._sceneTags):
-            raise KeyError('No tag at row: %s' % row)
+            raise KeyError("No tag at row: %s" % row)
         return self._sceneTags[row]
 
     @pyqtSlot()
@@ -81,24 +87,31 @@ class TagsModel(QAbstractListModel, ModelHelper):
         items = self._scene.find(tags=tag)
         ok = QMessageBox.Yes
         if items:
-            ok = QMessageBox.question(QApplication.activeWindow(), 'Are you sure?',
-                                      'Deleting this tag will also remove it from the %i items that use it. Are you sure you want to do this?' % len(items))
+            ok = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                "Deleting this tag will also remove it from the %i items that use it. Are you sure you want to do this?"
+                % len(items),
+            )
         else:
-            ok = QMessageBox.question(QApplication.activeWindow(), 'Are you sure?',
-                                      'Are you sure you want to remove this tag?')
+            ok = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                "Are you sure you want to remove this tag?",
+            )
         if ok == QMessageBox.Yes:
             self._blocked = True
             commands.deleteTag(self._scene, tag)
             self._blocked = False
-            
+
     ## Qt Virtuals
 
     def roleNames(self):
         return {
-            self.NameRole: b'name',
-            self.ActiveRole: b'active',
-            self.IdRole: b'id',
-            self.FlagsRole: b'flags'
+            self.NameRole: b"name",
+            self.ActiveRole: b"active",
+            self.IdRole: b"id",
+            self.FlagsRole: b"flags",
         }
 
     @pyqtSlot(result=int)
@@ -139,17 +152,17 @@ class TagsModel(QAbstractListModel, ModelHelper):
         else:
             ret = super().data(index, role)
         return ret
-        
+
     def setData(self, index, value, role=NameRole):
         success = False
         emit = True
         tag = self.tagAtRow(index.row())
         if role == self.NameRole:
-            if value and value not in self._scene.tags(): # must be valid + unique
+            if value and value not in self._scene.tags():  # must be valid + unique
                 commands.renameTag(self._scene, tag, value)
                 emit = False
                 success = True
-            else: # trigger a cancel
+            else:  # trigger a cancel
                 self.dataChanged.emit(index, index)
         elif role == self.ActiveRole:
             if self._items and self._items[0] == self._scene:
@@ -191,7 +204,4 @@ class TagsModel(QAbstractListModel, ModelHelper):
         return success
 
 
-
-qmlRegisterType(TagsModel, 'PK.Models', 1, 0, 'TagsModel')
-
-
+qmlRegisterType(TagsModel, "PK.Models", 1, 0, "TagsModel")

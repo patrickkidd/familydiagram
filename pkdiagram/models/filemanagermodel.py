@@ -1,5 +1,14 @@
 import os
-from ..pyqt import Qt, QModelIndex, QVariant, pyqtSlot, pyqtSignal, QMessageBox, QApplication, QAbstractListModel
+from ..pyqt import (
+    Qt,
+    QModelIndex,
+    QVariant,
+    pyqtSlot,
+    pyqtSignal,
+    QMessageBox,
+    QApplication,
+    QAbstractListModel,
+)
 from .. import util
 from .qobjecthelper import QObjectHelper
 
@@ -15,11 +24,10 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
     StatusRole = IDRole + 1
     ShownRole = StatusRole + 1
     OwnerRole = ShownRole + 1
-    
-    QObjectHelper.registerQtProperties([
-        { 'attr': 'sortBy' },
-        { 'attr': 'searchText', 'type': str }
-    ])
+
+    QObjectHelper.registerQtProperties(
+        [{"attr": "sortBy"}, {"attr": "searchText", "type": str}]
+    )
 
     cleared = pyqtSignal()
 
@@ -32,32 +40,32 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         self._searchText = None
 
     def initFileManagerModel(self):
-        sortBy = self.get('sortBy')
+        sortBy = self.get("sortBy")
         self.sortByRoleName(sortBy)
         self.initQObjectHelper()
 
     ## Data
 
     def set(self, attr, x):
-        if attr == 'searchText':
+        if attr == "searchText":
             self.beginResetModel()
             self._searchText = x
             self._resort()
-            self.refreshProperty('searchText')
+            self.refreshProperty("searchText")
             self.endResetModel()
         else:
             super().set(attr, x)
 
     def reset(self, attr):
         super().reset(attr)
-        if attr == 'searchText':
+        if attr == "searchText":
             self.beginResetModel()
             self._searchText = None
             self._resort()
             self.endResetModel()
 
     def get(self, attr):
-        if attr == 'searchText':
+        if attr == "searchText":
             ret = self._searchText
         else:
             ret = super().get(attr)
@@ -67,7 +75,7 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         for row, entry in enumerate(self._entries):
             if entry[self.PathRole] == filePath:
                 return row
-            
+
     def roleForName(self, name):
         for role, roleName in self.roleNames().items():
             if name == roleName.decode():
@@ -93,19 +101,19 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         return self._entries[row]
 
     @pyqtSlot()
-
     def _sorted(self):
         def key(entry):
             if self._sortRole in entry and entry[self._sortRole]:
                 return entry[self._sortRole]
             else:
                 return 0
+
         entries = [x for x in self._unfilteredEntries if self._shouldShowEntry(x)]
         entries = sorted(entries, key=key)
         if self._sortOrder == Qt.DescendingOrder:
             entries.reverse()
         return entries
-        
+
     def _resort(self):
         self._entries = self._sorted()
 
@@ -146,11 +154,15 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
                     oldRow = row
                     break
             if oldRow != newRow:
-                self.rowsAboutToBeMoved.emit(QModelIndex(), oldRow, oldRow, QModelIndex(), newRow)
+                self.rowsAboutToBeMoved.emit(
+                    QModelIndex(), oldRow, oldRow, QModelIndex(), newRow
+                )
                 self._entries = entries
-                self.rowsMoved.emit(QModelIndex(), oldRow, oldRow, QModelIndex(), newRow)
+                self.rowsMoved.emit(
+                    QModelIndex(), oldRow, oldRow, QModelIndex(), newRow
+                )
         else:
-            pass # exists
+            pass  # exists
 
     def removeFileEntry(self, path):
         entry = None
@@ -189,21 +201,21 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         self.cleared.emit()
 
     ## Qt Virtuals
-    
+
     def rowCount(self, index=QModelIndex()):
         return len(self._entries)
 
     def roleNames(self):
         return {
-            self.PathRole: b'path',
-            self.NameRole: b'name',
-            self.AliasRole: b'alias',
-            self.ModifiedRole: b'modified',
-            self.PinnedRole: b'pinned',
-            self.IDRole: b'id',
-            self.StatusRole: b'status',
-            self.ShownRole: b'shown',
-            self.OwnerRole: b'owner'
+            self.PathRole: b"path",
+            self.NameRole: b"name",
+            self.AliasRole: b"alias",
+            self.ModifiedRole: b"modified",
+            self.PinnedRole: b"pinned",
+            self.IDRole: b"id",
+            self.StatusRole: b"status",
+            self.ShownRole: b"shown",
+            self.OwnerRole: b"owner",
         }
 
     def data(self, index, role=Qt.DisplayRole):
@@ -223,4 +235,3 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         self.beginResetModel()
         self._resort()
         self.endResetModel()
-

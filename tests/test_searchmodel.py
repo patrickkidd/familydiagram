@@ -7,9 +7,21 @@ from pkdiagram import util, Scene, Person, Event, Layer, Emotion
 def model():
     scene = Scene()
     person = Person()
-    event1 = Event(parent=person, loggedDateTime=util.Date(2000, 1, 10), dateTime=util.Date(1900, 1, 1))
-    event2 = Event(parent=person, loggedDateTime=util.Date(2000, 2, 10), dateTime=util.Date(1900, 1, 1))
-    event3 = Event(parent=person, loggedDateTime=util.Date(2000, 3, 10), dateTime=util.Date(1900, 1, 1))
+    event1 = Event(
+        parent=person,
+        loggedDateTime=util.Date(2000, 1, 10),
+        dateTime=util.Date(1900, 1, 1),
+    )
+    event2 = Event(
+        parent=person,
+        loggedDateTime=util.Date(2000, 2, 10),
+        dateTime=util.Date(1900, 1, 1),
+    )
+    event3 = Event(
+        parent=person,
+        loggedDateTime=util.Date(2000, 3, 10),
+        dateTime=util.Date(1900, 1, 1),
+    )
     scene.addItem(person)
     scene.searchModel.items = [person]
     return scene.searchModel, event1, event2, event3
@@ -20,16 +32,16 @@ def test_isBlank_separate(model):
 
     assert model.isBlank == True
 
-    model.tags = ['here']
+    model.tags = ["here"]
     assert model.isBlank == False
 
-    model.description = 'also here'
+    model.description = "also here"
     assert model.isBlank == False
 
-    model.reset('description')
+    model.reset("description")
     assert model.isBlank == False
 
-    model.reset('tags')
+    model.reset("tags")
     assert model.isBlank == True
 
 
@@ -38,10 +50,10 @@ def test_isBlank_clear(model):
 
     assert model.isBlank == True
 
-    model.tags = ['here']
+    model.tags = ["here"]
     assert model.isBlank == False
 
-    model.description = 'also here'
+    model.description = "also here"
     assert model.isBlank == False
 
     model.clear()
@@ -136,6 +148,7 @@ def test_loggedStartDateTime_loggedEndDateTime(model):
 
 def test_ignores_layer_tags(model):
     model, event1, event2, event3 = model
+
     def num_shown():
         total = 0
         for row in range(scene.timelineModel.rowCount()):
@@ -145,10 +158,10 @@ def test_ignores_layer_tags(model):
         return total
 
     scene = model.scene
-    layer = Layer(name='View 1')
+    layer = Layer(name="View 1")
     scene.addItems(layer)
     assert num_shown() == scene.timelineModel.rowCount()
-    
+
     layer.setActive(True)
     assert num_shown() == scene.timelineModel.rowCount()
 
@@ -156,8 +169,8 @@ def test_ignores_layer_tags(model):
 @pytest.fixture
 def emotion_model():
     scene = Scene()
-    personA = Person(name='Person A')
-    personB = Person(name='Person B')
+    personA = Person(name="Person A")
+    personB = Person(name="Person B")
     conflict = Emotion(
         personA=personA,
         personB=personB,
@@ -178,26 +191,26 @@ def test_loggedStartDateTime_emotions(emotion_model):
     # before first date
     model.loggedStartDateTime = QDateTime(util.Date(2000, 1, 1))
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False
 
     # one day before last date
     model.loggedStartDateTime = QDateTime(util.Date(2000, 2, 9))
     assert model.shouldHide(startEvent) == True
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False
 
     # same day as last date
     model.loggedStartDateTime = QDateTime(util.Date(2000, 2, 10))
     assert model.shouldHide(startEvent) == True
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False
 
     # one day after last date
     model.loggedStartDateTime = QDateTime(util.Date(2000, 2, 11))
     assert model.shouldHide(startEvent) == True
-    assert model.shouldHide(endEvent)   == True
+    assert model.shouldHide(endEvent) == True
 
     model.resetLoggedStartDateTime()
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False
 
 
 def test_loggedEndDateTime_emotions(emotion_model):
@@ -206,23 +219,23 @@ def test_loggedEndDateTime_emotions(emotion_model):
     # after last date
     model.loggedEndDateTime = QDateTime(util.Date(2000, 2, 12))
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False
 
     # one day after first date
     model.loggedEndDateTime = QDateTime(util.Date(2000, 1, 11))
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == True
+    assert model.shouldHide(endEvent) == True
 
     # same day as first date
     model.loggedEndDateTime = QDateTime(util.Date(2000, 1, 10))
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == True
+    assert model.shouldHide(endEvent) == True
 
     # one day before first date
     model.loggedEndDateTime = QDateTime(util.Date(2000, 1, 9))
     assert model.shouldHide(startEvent) == True
-    assert model.shouldHide(endEvent)   == True
+    assert model.shouldHide(endEvent) == True
 
     model.resetLoggedEndDateTime()
     assert model.shouldHide(startEvent) == False
-    assert model.shouldHide(endEvent)   == False
+    assert model.shouldHide(endEvent) == False

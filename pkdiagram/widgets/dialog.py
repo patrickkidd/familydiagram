@@ -1,10 +1,21 @@
-from ..pyqt import QWidget, QFrame, QPropertyAnimation, QPoint, QRect, QEvent, Qt, QColor, QPainter, pyqtSignal
+from ..pyqt import (
+    QWidget,
+    QFrame,
+    QPropertyAnimation,
+    QPoint,
+    QRect,
+    QEvent,
+    Qt,
+    QColor,
+    QPainter,
+    pyqtSignal,
+)
 from .. import util
 
 
 class Backdrop(QWidget):
 
-    OPACITY = .5
+    OPACITY = 0.5
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,7 +26,7 @@ class Backdrop(QWidget):
         self.update()
 
     def paintEvent(self, e):
-        c = QColor('black')
+        c = QColor("black")
         c.setAlphaF(self._opacity)
         p = QPainter(self)
         p.fillRect(self.rect(), c)
@@ -34,7 +45,7 @@ class Dialog(QFrame):
         self._shown = False
         self.setFrameShape(QFrame.StyledPanel)
         self.setFrameShadow(QFrame.Plain)
-        self.posAnimation = QPropertyAnimation(self, b'pos')
+        self.posAnimation = QPropertyAnimation(self, b"pos")
         self.posAnimation.setDuration(util.ANIM_DURATION_MS)
         self.posAnimation.valueChanged.connect(self.onPosAnimationTick)
         self.posAnimation.finished.connect(self.onPosAnimationFinished)
@@ -65,7 +76,7 @@ class Dialog(QFrame):
         return QPoint(self._x(), -self.height())
 
     def adjust(self):
-        """" Keep centered. """
+        """ " Keep centered."""
         if self.parent():
             if self._shown:
                 pos = self._shownPos()
@@ -84,7 +95,9 @@ class Dialog(QFrame):
             if self._shown:
                 opacity = self.posAnimation.currentTime() / self.posAnimation.duration()
             else:
-                opacity = 1 - (self.posAnimation.currentTime() / self.posAnimation.duration())
+                opacity = 1 - (
+                    self.posAnimation.currentTime() / self.posAnimation.duration()
+                )
             self.backdrop.setOpacity(opacity)
 
     def onPosAnimationFinished(self):

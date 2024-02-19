@@ -9,8 +9,8 @@ class NotesIcon(QGraphicsPixmapItem):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setPixmap(QPixmap(util.QRC + 'notes-indicator.png'))
-        self.setScale(.5)
+        self.setPixmap(QPixmap(util.QRC + "notes-indicator.png"))
+        self.setScale(0.5)
 
     def mousePressEvent(self, e):
         e.accept()
@@ -24,13 +24,21 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
 
     # ITEM_Z = 0
 
-    Item.registerProperties((
-        { 'attr': 'itemPos', 'type': QPointF, 'default': QPointF(), 'layered': True, 'layerIgnoreAttr': 'storeGeometry' },
-    ))
+    Item.registerProperties(
+        (
+            {
+                "attr": "itemPos",
+                "type": QPointF,
+                "default": QPointF(),
+                "layered": True,
+                "layerIgnoreAttr": "storeGeometry",
+            },
+        )
+    )
 
     def __init__(self, parent=None, **kwargs):
-        if 'pos' in kwargs:
-            kwargs['itemPos'] = kwargs['pos']
+        if "pos" in kwargs:
+            kwargs["itemPos"] = kwargs["pos"]
         super().__init__(parent, **kwargs)
         self.isPathItem = True
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -40,7 +48,9 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self.hover = False
         self._boundingRect = QRectF()
         self._isUpdatingAll = False
-        self._isPathItemVisible = True # central pathway for show|hide; forces fade in|out
+        self._isPathItemVisible = (
+            True  # central pathway for show|hide; forces fade in|out
+        )
         self._shouldShowForDateLayersAndTags = False
         # Set in the past to avoid false positives in tests
         self.lastMouseRelease = QTime.currentTime().addSecs(-60)
@@ -49,11 +59,11 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self.boundingRectDirty = False
         self.emitDoubleClick = True
         self.initItemAnimationHelper()
-        self.opacityAnimation = QPropertyAnimation(self, b'opacity')
+        self.opacityAnimation = QPropertyAnimation(self, b"opacity")
         self.opacityAnimation.setDuration(util.LAYER_ANIM_DURATION_MS)
         self.opacityAnimation.finished.connect(self.onOpacityAnimationFinished)
         # pos
-        self.posAnimation = QPropertyAnimation(self, b'pos')
+        self.posAnimation = QPropertyAnimation(self, b"pos")
         self.posAnimation.setDuration(util.LAYER_ANIM_DURATION_MS)
         # note icon
         self._notesIcon = NotesIcon(self)
@@ -71,7 +81,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         return super(QGraphicsObject, self).scene()
 
     def view(self):
-        if self.scene():        
+        if self.scene():
             return self.scene().view()
 
     ## Paint animations
@@ -85,8 +95,11 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self.setBrushColor(c)
 
     def startLayerAnimation(self, anim):
-        """ Placeholder for when scene() is None. """
-        if self.scene() and (self.scene().isResettingSomeLayerProps() or (self.scene()._areActiveLayersChanging and not self.isUpdatingAll())):
+        """Placeholder for when scene() is None."""
+        if self.scene() and (
+            self.scene().isResettingSomeLayerProps()
+            or (self.scene()._areActiveLayersChanging and not self.isUpdatingAll())
+        ):
             self.scene().startLayerAnimation(anim)
         else:
             if isinstance(anim, QParallelAnimationGroup):
@@ -102,7 +115,12 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         if self.opacity() != x:
             self.opacityAnimation.setStartValue(self.opacity())
             self.opacityAnimation.setEndValue(x)
-            if not self.scene() or self.scene().isUpdatingAll() or self.isUpdatingAll() or util.IS_TEST:
+            if (
+                not self.scene()
+                or self.scene().isUpdatingAll()
+                or self.isUpdatingAll()
+                or util.IS_TEST
+            ):
                 self.onOpacityAnimationFinished()
             elif self.scene().areActiveLayersChanging():
                 self.startLayerAnimation(self.opacityAnimation)
@@ -122,8 +140,8 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self.updatePen()
 
     def onProperty(self, prop):
-        if prop.name() == 'itemPos' and prop.layered and prop.get() != self.pos():
-            if self.isUpdatingAll() or util.ANIM_DURATION_MS == 0: # test
+        if prop.name() == "itemPos" and prop.layered and prop.get() != self.pos():
+            if self.isUpdatingAll() or util.ANIM_DURATION_MS == 0:  # test
                 self.setPos(prop.get())
             else:
                 self.posAnimation.setStartValue(self.pos())
@@ -133,7 +151,11 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
-            if self.scene() and self.scene().isMovingSomething() and not self.scene().areActiveLayersChanging():
+            if (
+                self.scene()
+                and self.scene().isMovingSomething()
+                and not self.scene().areActiveLayersChanging()
+            ):
                 self.setItemPos(value, notify=True)
             # if self.posAnimation.state() == QAbstractAnimation.Running or \
             #     (self.scene() and (self.scene().isInitializing or self.scene().isUpdatingAll())) or \
@@ -163,7 +185,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     ## Internal Data
 
     def notesIconPos(self):
-        return QPointF(0, self._notesIcon.boundingRect().height() * -.5)
+        return QPointF(0, self._notesIcon.boundingRect().height() * -0.5)
 
     def clone(self, scene):
         ret = super().clone(scene)
@@ -177,7 +199,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     def layeredSceneBoundingRect(self, forLayers, forTags):
         ret = super().sceneBoundingRect()
         offset = None
-        itemPos = self.prop('itemPos')
+        itemPos = self.prop("itemPos")
         if itemPos.layered:
             itemPos = itemPos.get(forLayers=forLayers)
             if itemPos is not None and self.hasTags(forTags):
@@ -185,7 +207,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
                 ret.moveCenter(itemPos)
                 offset = itemPos - origPos
         for child in self.childItems():
-            if isinstance(child, PathItem) and child.isChildOf: # hack
+            if isinstance(child, PathItem) and child.isChildOf:  # hack
                 continue
             childRect = child.sceneBoundingRect()
             if offset is not None:
@@ -195,13 +217,17 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         return ret
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
-        """ virtual """
+        """virtual"""
         return True
 
     def shouldShowRightNow(self):
         scene = self.scene()
         if scene:
-            return self.shouldShowFor(scene.currentDateTime(), tags=scene.searchModel.tags, layers=scene.activeLayers())
+            return self.shouldShowFor(
+                scene.currentDateTime(),
+                tags=scene.searchModel.tags,
+                layers=scene.activeLayers(),
+            )
         else:
             return False
 
@@ -217,7 +243,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self._n_updateDetails = 0
 
     def onUpdateAll(self):
-        """ Virtual """
+        """Virtual"""
         self._n_onUpdateAll += 1
         self.onActiveLayersChanged()
         self.updateGeometry()
@@ -237,7 +263,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         return self._isUpdatingAll
 
     def onActiveLayersChanged(self):
-        """ Update selected state and visible state for date + tags if necessary. """
+        """Update selected state and visible state for date + tags if necessary."""
         super().onActiveLayersChanged()
         on = self.shouldShowRightNow()
         self._shouldShowForDateLayersAndTags = on
@@ -251,15 +277,15 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         return self._shouldShowForDateLayersAndTags
 
     def updatePathItemVisible(self):
-        """ Virtual - Final endpoint for fading to show/hide. """
+        """Virtual - Final endpoint for fading to show/hide."""
         if self.shouldShowForDateAndLayerTags():
             self.setPathItemVisible(True)
         else:
             self.setPathItemVisible(False)
 
     def setPathItemVisible(self, on, opacity=None):
-        """ A show|hide replacement that fades. Should be the only way to show and hide a PathItem.
-            Prevents restarting animation many times (at least) in zooms.
+        """A show|hide replacement that fades. Should be the only way to show and hide a PathItem.
+        Prevents restarting animation many times (at least) in zooms.
         """
         if on != self._isPathItemVisible or (on and opacity is not None):
             self._isPathItemVisible = on
@@ -271,7 +297,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
                 self.fadeToOpacity(0.0)
 
     def onCurrentDateTime(self):
-        """ Virtual. How is this different from onUpdateAll() ? """
+        """Virtual. How is this different from onUpdateAll() ?"""
         if not self.scene():
             return
         on = self.shouldShowRightNow()
@@ -282,20 +308,20 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self.updateGeometry()
 
     def updateDetails(self):
-        """ Virtual """
+        """Virtual"""
         self._n_updateDetails = 0
 
     def updatePen(self):
-        """ Virtual """
+        """Virtual"""
         self._n_updatePen = 0
 
     def mouseReleaseEvent(self, e):
-        """ double click edit """
+        """double click edit"""
         super().mouseReleaseEvent(e)
         diff = self.lastMouseRelease.elapsed()
         self.lastMouseRelease.start()
         if self.emitDoubleClick and diff < QApplication.doubleClickInterval():
-            if hasattr(self.scene(), 'onItemDoubleClicked'):
+            if hasattr(self.scene(), "onItemDoubleClicked"):
                 self.scene().onItemDoubleClicked(self)
 
     def setHover(self, on):
@@ -311,4 +337,3 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     def setShowNotesIcon(self, on):
         if on != self._notesIcon.isVisible():
             self._notesIcon.setVisible(on)
-

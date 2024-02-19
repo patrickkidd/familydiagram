@@ -18,12 +18,12 @@ class UndoStack(QUndoStack):
         self.lastId = None
 
     def push(self, cmd):
-        """ Track analytics for non-compressed commands. """
+        """Track analytics for non-compressed commands."""
         s = None
         if isinstance(cmd.ANALYTICS, str):
-            s = 'Commands: ' + cmd.ANALYTICS
+            s = "Commands: " + cmd.ANALYTICS
         elif cmd.ANALYTICS is True and (cmd.id() == -1 or cmd.id() != self.lastId):
-            s = 'Commands: ' + cmd.text()
+            s = "Commands: " + cmd.text()
         if s:
             self.track(s, cmd.analyticsProperties())
         super().push(cmd)
@@ -33,30 +33,39 @@ class UndoStack(QUndoStack):
         if not util.prefs() or util.IS_DEV or util.IS_IOS:
             return
         log.info(eventName)
-        enableAppUsageAnalytics = util.prefs().value('enableAppUsageAnalytics', defaultValue=True, type=bool)
+        enableAppUsageAnalytics = util.prefs().value(
+            "enableAppUsageAnalytics", defaultValue=True, type=bool
+        )
         if enableAppUsageAnalytics:
             return util.CUtil.instance().trackAnalyticsEvent(eventName, properties)
+
 
 def track(eventName, properties={}):
     return stack().track(eventName, properties)
 
+
 def trackApp(eventName, properties={}):
-    return track('Application: ' + eventName, properties)
+    return track("Application: " + eventName, properties)
+
 
 def trackAction(eventName, properties={}):
-    return track('Action: ' + eventName, properties)
+    return track("Action: " + eventName, properties)
+
 
 def trackView(eventName, properties={}):
-    return track('View: ' + eventName, properties)
+    return track("View: " + eventName, properties)
 
 
 _stack = UndoStack()
+
 
 def stack():
     return _stack
 
 
 lastId = START_ID
+
+
 def nextId():
     global lastId
     lastId = lastId + 1
@@ -80,7 +89,7 @@ class UndoCommand(QUndoCommand):
 
 class AddPerson(UndoCommand):
     def __init__(self, scene, gender, pos, size):
-        super().__init__('Add person')
+        super().__init__("Add person")
         self.scene = scene
         self.person = objects.Person(gender=gender, size=size)
         self.person.setItemPos(pos, notify=False)
@@ -91,16 +100,17 @@ class AddPerson(UndoCommand):
     def undo(self):
         self.scene.removeItem(self.person)
 
+
 def addPerson(*args):
     cmd = AddPerson(*args)
     stack().push(cmd)
     return cmd.person
-    
-    
+
+
 class RemoveItems(UndoCommand):
 
     def __init__(self, scene, items):
-        super().__init__('Remove items')
+        super().__init__("Remove items")
         self.scene = scene
         if isinstance(items, list):
             self.items = list(items)
@@ -110,78 +120,79 @@ class RemoveItems(UndoCommand):
         # Keep track of a list of each kind of items at the top level to
         # detach their relationships and then re-attach them after an
         # undo.
-            
+
         self._unmapped = {
-            'marriages': [],
-            'children': [],
-            'multipleBirths': [],
-            'events': [],
-            'emotions': [],
-            'parents': [],
-            'layerItems': [],
-            'layers': [],
-            'layerProperties': {}
+            "marriages": [],
+            "children": [],
+            "multipleBirths": [],
+            "events": [],
+            "emotions": [],
+            "parents": [],
+            "layerItems": [],
+            "layers": [],
+            "layerProperties": {},
         }
 
         def mapChildOf(item):
             if item.multipleBirth and item.multipleBirth.isSelected():
-                return # Handled in mapMultipleBirth
-            for entry in self._unmapped['children']:
-                if entry['person'] is item.person:
+                return  # Handled in mapMultipleBirth
+            for entry in self._unmapped["children"]:
+                if entry["person"] is item.person:
                     return
             item._undo_mapping = {
-                'person': item.person,
-                'birthPartners': item.multipleBirth and [p for p in item.multipleBirth.children() if p.childOf != item] or [],
-                'parents': item.parents()
+                "person": item.person,
+                "birthPartners": item.multipleBirth
+                and [p for p in item.multipleBirth.children() if p.childOf != item]
+                or [],
+                "parents": item.parents(),
             }
-            self._unmapped['children'].append(item._undo_mapping)
+            self._unmapped["children"].append(item._undo_mapping)
 
         def mapMultipleBirth(item):
-            for entry in self._unmapped['multipleBirths']:
-                if entry['multipleBirth'] is item:
+            for entry in self._unmapped["multipleBirths"]:
+                if entry["multipleBirth"] is item:
                     return
             item._undo_mapping = {
-                'multipleBirth': item,
-                'parents': item.parents(),
-                'children': [child for child in item.children()]
+                "multipleBirth": item,
+                "parents": item.parents(),
+                "children": [child for child in item.children()],
             }
-            self._unmapped['multipleBirths'].append(item._undo_mapping)
+            self._unmapped["multipleBirths"].append(item._undo_mapping)
 
         def mapMarriage(item):
-            for entry in self._unmapped['marriages']:
-                if entry['marriage'] is item:
+            for entry in self._unmapped["marriages"]:
+                if entry["marriage"] is item:
                     return
-            self._unmapped['marriages'].append({
-                'marriage': item,
-                'people': list(item.people)
-            })
+            self._unmapped["marriages"].append(
+                {"marriage": item, "people": list(item.people)}
+            )
             for child in list(item.children):
                 mapChildOf(child.childOf)
 
         def mapEvent(item):
-            for entry in self._unmapped['events']:
-                if entry['event'] is item:
+            for entry in self._unmapped["events"]:
+                if entry["event"] is item:
                     return
-            if item.uniqueId(): # just clear date for built-in events
+            if item.uniqueId():  # just clear date for built-in events
                 parent = None
                 dateTime = item.dateTime()
             else:
                 parent = item.parent
                 dateTime = None
-            self._unmapped['events'].append({
-                'event': item,
-                'parent': parent,
-                'dateTime': dateTime
-            })
+            self._unmapped["events"].append(
+                {"event": item, "parent": parent, "dateTime": dateTime}
+            )
 
         def mapEmotion(item):
-            for entry in self._unmapped['emotions']:
-                if entry['emotion'] is item:
+            for entry in self._unmapped["emotions"]:
+                if entry["emotion"] is item:
                     return
-            self._unmapped['emotions'].append({
-                'emotion': item,
-                'people': list(item.people),
-            })
+            self._unmapped["emotions"].append(
+                {
+                    "emotion": item,
+                    "people": list(item.people),
+                }
+            )
 
         def mapItem(item):
             for layer in scene.layers():
@@ -193,13 +204,13 @@ class RemoveItems(UndoCommand):
                             if not item.id in layerEntries:
                                 layerEntries[item.id] = {}
                             layerEntries[item.id][prop.name()] = {
-                                'prop': prop,
-                                'was': value
+                                "prop": prop,
+                                "was": value,
                             }
                 if layerEntries:
-                    if not layer in self._unmapped['layerProperties']:
-                        self._unmapped['layerProperties'][layer] = {}
-                    self._unmapped['layerProperties'][layer].update(layerEntries)
+                    if not layer in self._unmapped["layerProperties"]:
+                        self._unmapped["layerProperties"][layer] = {}
+                    self._unmapped["layerProperties"][layer].update(layerEntries)
 
         # Map anything that will be directly removed or removed as a dependency.
         # Do the mappings first before the data structure is altered
@@ -224,23 +235,27 @@ class RemoveItems(UndoCommand):
             elif item.isEmotion:
                 mapEmotion(item)
             elif item.isLayerItem:
-                self._unmapped['layerItems'].append({
-                    'item': item,
-                    'parent': item.parentItem()
-                })
+                self._unmapped["layerItems"].append(
+                    {"item": item, "parent": item.parentItem()}
+                )
             elif item.isLayer:
-                self._unmapped['layers'].append({
-                    'layer': item,
-                    'layerItems': [li for li in self.scene.layerItems() if item.id in li.layers()]
-                })
-            
-            mapItem(item)
+                self._unmapped["layers"].append(
+                    {
+                        "layer": item,
+                        "layerItems": [
+                            li
+                            for li in self.scene.layerItems()
+                            if item.id in li.layers()
+                        ],
+                    }
+                )
 
+            mapItem(item)
 
     def redo(self):
         self.scene.setBatchAddingRemovingItems(True)
         for item in self.items:
-            
+
             if item.isPerson:
                 for marriage in list(item.marriages):
                     for child in list(marriage.children):
@@ -251,31 +266,33 @@ class RemoveItems(UndoCommand):
 
                 for emotion in list(item.emotions()):
                     for person in list(emotion.people):
-                        if person: # ! dyadic
+                        if person:  # ! dyadic
                             person._onRemoveEmotion(emotion)
                     self.scene.removeItem(emotion)
 
                 if item.childOf:
                     item.setParents(None)
-                    
+
                 if self.scene.document():
                     for relativePath in self.scene.document().fileList():
-                        personDocPath = item.documentsPath().replace(self.scene.document().url().toLocalFile() + os.sep, '')
+                        personDocPath = item.documentsPath().replace(
+                            self.scene.document().url().toLocalFile() + os.sep, ""
+                        )
                         for relativePath in self.scene.document().fileList():
                             if relativePath.startswith(personDocPath):
                                 self.scene.document().removeFile(relativePath)
                 self.scene.removeItem(item)
-            
+
             elif item.isChildOf:
-                if hasattr(item, '_undo_mapping'):
-                    item._undo_mapping['person'].setParents(None)
+                if hasattr(item, "_undo_mapping"):
+                    item._undo_mapping["person"].setParents(None)
 
             elif item.isMultipleBirth:
-                for child in item._undo_mapping['children']:
+                for child in item._undo_mapping["children"]:
                     child.setParents(None)
-                    
+
             elif item.isMarriage:
-                for child in list(item.children): # after undo setup
+                for child in list(item.children):  # after undo setup
                     child.setParents(None)
                 for person in list(item.people):
                     person._onRemoveMarriage(item)
@@ -283,34 +300,34 @@ class RemoveItems(UndoCommand):
 
             elif item.isEvent:
                 docsPath = item.documentsPath()
-                if docsPath and os.path.isdir(docsPath): # this cannot be undone
+                if docsPath and os.path.isdir(docsPath):  # this cannot be undone
                     shutil.rmtree(docsPath)
                 if item.uniqueId() and not item.parent.isMarriage:
-                    item.prop('dateTime').reset()
+                    item.prop("dateTime").reset()
                 else:
                     item.setParent(None)
-                    
+
             elif item.isEmotion:
                 for person in list(item.people):
                     if person:
                         person._onRemoveEmotion(item)
                         self.scene.removeItem(item)
-                    
+
             elif item.isLayerItem:
                 self.scene.removeItem(item)
-                
+
             elif item.isLayer:
                 for layerItem in self.scene.layerItems():
                     if item.id in layerItem.layers():
                         layerItem.layers().remove(item.id)
-                    if not layerItem.layers(): # orphaned now
+                    if not layerItem.layers():  # orphaned now
                         self.scene.removeItem(layerItem)
                 self.scene.removeItem(item)
 
-        for layer, itemEntries in self._unmapped['layerProperties'].items():
+        for layer, itemEntries in self._unmapped["layerProperties"].items():
             for itemId, propEntries in itemEntries.items():
                 for propName, entry in propEntries.items():
-                    layer.resetItemProperty(entry['prop'])
+                    layer.resetItemProperty(entry["prop"])
 
             ## Ignore ItemDetails, SeparationIndicator
 
@@ -324,91 +341,92 @@ class RemoveItems(UndoCommand):
             if not item.isLayer and not item.isEvent:
                 item.setSelected(False)
         #
-        for layer, itemEntries in self._unmapped['layerProperties'].items():
+        for layer, itemEntries in self._unmapped["layerProperties"].items():
             for itemId, propEntries in itemEntries.items():
                 for propName, entry in propEntries.items():
-                    layer.setItemProperty(itemId, entry['prop'].name(), entry['was'])
+                    layer.setItemProperty(itemId, entry["prop"].name(), entry["was"])
         #
-        for entry in self._unmapped['marriages']:
-            entry['people'][0]._onAddMarriage(entry['marriage'])
-            entry['people'][1]._onAddMarriage(entry['marriage'])
-            self.scene.addItem(entry['marriage'])
+        for entry in self._unmapped["marriages"]:
+            entry["people"][0]._onAddMarriage(entry["marriage"])
+            entry["people"][1]._onAddMarriage(entry["marriage"])
+            self.scene.addItem(entry["marriage"])
         #
-        for entry in self._unmapped['children']:
+        for entry in self._unmapped["children"]:
             # person.multipleBirth is not None when undeleting one of the
             # birthPartners already remapped this ChildOf.
-            if entry['birthPartners'] and not entry['person'].multipleBirth():
+            if entry["birthPartners"] and not entry["person"].multipleBirth():
                 # check if the previous MultipleBirth still exists on two or more birthPartners
                 mb = None
-                for person in entry['birthPartners']:
+                for person in entry["birthPartners"]:
                     if person.multipleBirth():
                         mb = person.multipleBirth()
                         break
                 if mb:
                     # Just re-attach to the prior MultipleBirth
-                    entry['person'].setParents(mb)
+                    entry["person"].setParents(mb)
                 else:
                     # Map the entire MultipleBirth
-                    entry['person'].setParents(entry['parents'])
-                    for child in entry['birthPartners']:
-                        child.setParents(entry['person'].childOf)
-            elif not entry['birthPartners']:
-                entry['person'].setParents(entry['parents'])
+                    entry["person"].setParents(entry["parents"])
+                    for child in entry["birthPartners"]:
+                        child.setParents(entry["person"].childOf)
+            elif not entry["birthPartners"]:
+                entry["person"].setParents(entry["parents"])
         #
-        for entry in self._unmapped['multipleBirths']:
-            entry['children'][0].setParents(entry['parents'])
-            for child in entry['children'][1:]:
-                child.setParents(entry['children'][0].childOf)
+        for entry in self._unmapped["multipleBirths"]:
+            entry["children"][0].setParents(entry["parents"])
+            for child in entry["children"][1:]:
+                child.setParents(entry["children"][0].childOf)
         #
-        for entry in self._unmapped['parents']:
-            entry['person'].setParents(entry['parents'])
+        for entry in self._unmapped["parents"]:
+            entry["person"].setParents(entry["parents"])
         #
-        for entry in self._unmapped['events']:
-            if entry['dateTime']:
-                entry['event'].setDateTime(entry['dateTime'])
+        for entry in self._unmapped["events"]:
+            if entry["dateTime"]:
+                entry["event"].setDateTime(entry["dateTime"])
             else:
-                entry['event'].setParent(entry['parent'])
+                entry["event"].setParent(entry["parent"])
         #
-        for entry in self._unmapped['emotions']:
-            entry['people'][0]._onAddEmotion(entry['emotion'])
-            entry['emotion'].setPersonA(entry['people'][0])
-            if entry['people'][1]: # ! dyadic
-                entry['people'][1]._onAddEmotion(entry['emotion'])
-                entry['emotion'].setPersonB(entry['people'][1])
-            if not entry['emotion'].isDyadic():
-                entry['emotion'].setParentItem(entry['people'][0])
-            self.scene.addItem(entry['emotion'])
+        for entry in self._unmapped["emotions"]:
+            entry["people"][0]._onAddEmotion(entry["emotion"])
+            entry["emotion"].setPersonA(entry["people"][0])
+            if entry["people"][1]:  # ! dyadic
+                entry["people"][1]._onAddEmotion(entry["emotion"])
+                entry["emotion"].setPersonB(entry["people"][1])
+            if not entry["emotion"].isDyadic():
+                entry["emotion"].setParentItem(entry["people"][0])
+            self.scene.addItem(entry["emotion"])
         #
-        for entry in self._unmapped['layers']: # before layer items
-            for layerItem in entry['layerItems']:
+        for entry in self._unmapped["layers"]:  # before layer items
+            for layerItem in entry["layerItems"]:
                 layers = layerItem.layers()
                 readd = not layers
-                layers.append(entry['layer'].id)
+                layers.append(entry["layer"].id)
                 layerItem.setLayers(layers)
                 if readd:
                     self.scene.addItem(layerItem)
-                self.scene.addItem(entry['layer'])
+                self.scene.addItem(entry["layer"])
         #
-        for entry in self._unmapped['layerItems']:
-            entry['item'].setParentItem(entry['parent'])
+        for entry in self._unmapped["layerItems"]:
+            entry["item"].setParentItem(entry["parent"])
         # again, after others are updated
-        for entry in self._unmapped['children']:
-            birthPartners = entry.get('birthPartners', [])
+        for entry in self._unmapped["children"]:
+            birthPartners = entry.get("birthPartners", [])
             if birthPartners:
                 for child in birthPartners:
                     child.childOf.updateGeometry()
         self.scene.setBatchAddingRemovingItems(False)
 
+
 def removeItems(*args):
     stack().push(RemoveItems(*args))
 
-            
+
 class MoveItems(UndoCommand):
 
     ANALYTICS = False
 
     def __init__(self, item, pos, id):
-        super().__init__('Move items', id)
+        super().__init__("Move items", id)
         if isinstance(item, objects.Callout):
             calloutPoints = item.mouseMovePoints
             calloutPoints_was = item.mousePressPoints
@@ -417,10 +435,10 @@ class MoveItems(UndoCommand):
             calloutPoints_was = None
         self.data = {
             item: {
-                'pos': pos, # latest
-                'pos_was': item.pos(),
-                'calloutPoints': calloutPoints, # latest
-                'calloutPoints_was': calloutPoints_was
+                "pos": pos,  # latest
+                "pos_was": item.pos(),
+                "calloutPoints": calloutPoints,  # latest
+                "calloutPoints_was": calloutPoints_was,
             }
         }
         self.scene = item.scene()
@@ -432,53 +450,52 @@ class MoveItems(UndoCommand):
             self.firstRun = False
         else:
             for item, entry in self.data.items():
-                item.setPos(entry['pos'])
-                if isinstance(item, objects.Callout) and entry['calloutPoints']:
-                    item.setPoints(entry['calloutPoints'])
+                item.setPos(entry["pos"])
+                if isinstance(item, objects.Callout) and entry["calloutPoints"]:
+                    item.setPoints(entry["calloutPoints"])
             # after set pos
             for item, entry in self.data.items():
-                if hasattr(item, 'updateGeometry'): # needed?
+                if hasattr(item, "updateGeometry"):  # needed?
                     item.updateGeometry()
 
     def undo(self):
         for item, entry in self.data.items():
-            item.setPos(entry['pos_was'])
-            if isinstance(item, objects.Callout) and entry['calloutPoints_was']:
-                item.setPoints(entry['calloutPoints_was'])
+            item.setPos(entry["pos_was"])
+            if isinstance(item, objects.Callout) and entry["calloutPoints_was"]:
+                item.setPoints(entry["calloutPoints_was"])
         # after
         for item, entry in self.data.items():
-            if hasattr(item, 'updateGeometry'): # needed?
+            if hasattr(item, "updateGeometry"):  # needed?
                 item.updateGeometry()
 
     def mergeWith(self, other):
         for item, entry in other.data.items():
             if item in self.data:
-                self.data[item].update({
-                    'pos': entry['pos'],
-                    'calloutPoints': entry['calloutPoints']
-                })
+                self.data[item].update(
+                    {"pos": entry["pos"], "calloutPoints": entry["calloutPoints"]}
+                )
             else:
                 self.data[item] = {
-                    'pos': entry['pos'],
-                    'pos_was': entry['pos_was'],
-                    'calloutPoints': entry['calloutPoints'],
-                    'calloutPoints_was': entry['calloutPoints_was']
+                    "pos": entry["pos"],
+                    "pos_was": entry["pos_was"],
+                    "calloutPoints": entry["calloutPoints"],
+                    "calloutPoints_was": entry["calloutPoints_was"],
                 }
         return True
 
-    
+
 def moveItem(item, pos, id):
     stack().push(MoveItems(item, pos, id))
-        
-    
+
+
 class AddMarriage(UndoCommand):
     def __init__(self, scene, item1, item2):
-        super().__init__('Add marriage')
+        super().__init__("Add marriage")
         self.scene = scene
         self.item1 = item1
         self.item2 = item2
         self.marriage = objects.Marriage(self.item1, self.item2)
-        
+
     def redo(self):
         self.item1._onAddMarriage(self.marriage)
         self.item2._onAddMarriage(self.marriage)
@@ -498,35 +515,34 @@ def addMarriage(scene, a, b):
 
 
 class SetItemProperty(UndoCommand):
-    """ Only called from Property.set(). """
-    
-    ANALYTICS = 'SetItemProperty'
-    
+    """Only called from Property.set()."""
+
+    ANALYTICS = "SetItemProperty"
+
     def __init__(self, prop, value, layers=[], id=-1):
         if layers:
-            super().__init__('Set %s on layers' % prop.name(), id)
+            super().__init__("Set %s on layers" % prop.name(), id)
         else:
-            super().__init__('Set %s' % prop.name(), id)
+            super().__init__("Set %s" % prop.name(), id)
         self.data = {}
+
         def _addEntry(layer, prop, value, was):
             if not layer in self.data:
                 self.data[layer] = {}
             if not prop.item.id in self.data[layer]:
                 self.data[layer][prop.item.id] = {}
-            self.data[layer][prop.item.id][prop.name()] = {
-                'value': value,
-                'prop': prop
-            }
-            self.data[layer][prop.item.id][prop.name()]['wasSet'] = prop.isset()
+            self.data[layer][prop.item.id][prop.name()] = {"value": value, "prop": prop}
+            self.data[layer][prop.item.id][prop.name()]["wasSet"] = prop.isset()
             if not was is None:
-                self.data[layer][prop.item.id][prop.name()]['was'] = was
+                self.data[layer][prop.item.id][prop.name()]["was"] = was
+
         if layers:
             for layer in layers:
                 was, ok = layer.getItemProperty(prop.item.id, prop.name())
                 _addEntry(layer, prop, value, was)
         else:
             _addEntry(None, prop, value, prop.get())
-        self.firstTime = True # yep
+        self.firstTime = True  # yep
 
     def redo(self):
         if self.firstTime:
@@ -536,38 +552,38 @@ class SetItemProperty(UndoCommand):
             for itemId, props in itemData.items():
                 for propName, data in props.items():
                     if layer:
-                        layer.setItemProperty(itemId, propName, data['value'])
-                        data['prop'].onActiveLayersChanged()
+                        layer.setItemProperty(itemId, propName, data["value"])
+                        data["prop"].onActiveLayersChanged()
                     else:
-                        data['prop'].set(data['value'], force=True)
+                        data["prop"].set(data["value"], force=True)
 
     def undo(self):
         for layer, itemData in self.data.items():
             for itemId, props in itemData.items():
                 for propName, data in props.items():
                     if layer:
-                        if data['wasSet'] and 'was' in data:
-                            layer.setItemProperty(itemId, propName, data['was'])
+                        if data["wasSet"] and "was" in data:
+                            layer.setItemProperty(itemId, propName, data["was"])
                         else:
-                            layer.resetItemProperty(data['prop'])
-                        data['prop'].onActiveLayersChanged()
+                            layer.resetItemProperty(data["prop"])
+                        data["prop"].onActiveLayersChanged()
                     else:
-                        if data['wasSet'] and 'was' in data:
-                            data['prop'].set(data['was'], force=True)
+                        if data["wasSet"] and "was" in data:
+                            data["prop"].set(data["was"], force=True)
                         else:
-                            data['prop'].reset()
-
+                            data["prop"].reset()
 
     def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore='was')
+        util.deepMerge(self.data, other.data, ignore="was")
         return True
 
 
 class ResetItemProperty(UndoCommand):
-    """ Only used from Property.reset(. """
+    """Only used from Property.reset(."""
+
     def __init__(self, prop, layers=[], id=-1):
         item = prop.item
-        super().__init__('Reset %s' % prop.name(), id)
+        super().__init__("Reset %s" % prop.name(), id)
         self.data = {}
         if prop.layered:
             # only take `was` values stored on selected layers
@@ -575,13 +591,9 @@ class ResetItemProperty(UndoCommand):
                 self.data[layer] = {}
                 x, ok = layer.getItemProperty(prop.item.id, prop.name())
                 if ok:
-                    self.data[layer] = {
-                        prop: x
-                    }
+                    self.data[layer] = {prop: x}
         else:
-            self.data[None] = {
-                prop: prop.get()
-            }
+            self.data[None] = {prop: prop.get()}
         self.firstTime = True
 
     def redo(self):
@@ -605,13 +617,13 @@ class ResetItemProperty(UndoCommand):
                     prop.set(was)
 
     def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore='was')
+        util.deepMerge(self.data, other.data, ignore="was")
         return True
 
-    
+
 class AddEvent(UndoCommand):
     def __init__(self, parent, event=None):
-        super().__init__('Add event to %s' % parent.__class__.__name__)
+        super().__init__("Add event to %s" % parent.__class__.__name__)
         self.parent = parent
         self.event = event
 
@@ -627,84 +639,72 @@ def addEvent(parent, **kwargs):
     stack().push(cmd)
     return cmd.event
 
-    
+
 class SetParents(UndoCommand):
     def __init__(self, person, target, id=-1):
-        super().__init__('Set child', id=id)
+        super().__init__("Set child", id=id)
         #
         if target is None:
-            data = {
-                'state': None
-            }
+            data = {"state": None}
         elif target.isMarriage:
-            data = {
-                'state': 'marriage',
-                'parents': target
-            }
+            data = {"state": "marriage", "parents": target}
         elif target.isChildOf and target.multipleBirth is None:
             data = {
-                'state': 'multipleBirth.person',
-                'parents': target.parents(),
-                'otherPerson': target.person,
+                "state": "multipleBirth.person",
+                "parents": target.parents(),
+                "otherPerson": target.person,
             }
         elif target.isChildOf and target.multipleBirth:
             data = {
-                'state': 'multipleBirth.children',
-                'parents': target.parents(),
-                'people': list(target.multipleBirth.children())
+                "state": "multipleBirth.children",
+                "parents": target.parents(),
+                "people": list(target.multipleBirth.children()),
             }
         elif target.isMultipleBirth:
             data = {
-                'state': 'multipleBirth.children',
-                'parents': target.parents(),
-                'people': list(target.children())
+                "state": "multipleBirth.children",
+                "parents": target.parents(),
+                "people": list(target.children()),
             }
         # was
         if person.multipleBirth():
             was_data = {
-                'was_state': 'multipleBirth.children',
-                'was_parents': person.parents(),
-                'was_people': list(person.multipleBirth().children())
+                "was_state": "multipleBirth.children",
+                "was_parents": person.parents(),
+                "was_people": list(person.multipleBirth().children()),
             }
         elif person.parents():
-            was_data = {
-                'was_state': 'marriage',
-                'was_parents': person.parents()
-            }
+            was_data = {"was_state": "marriage", "was_parents": person.parents()}
         else:
-            was_data = {
-                'was_state': None
-            }
+            was_data = {"was_state": None}
         #
         data.update(was_data)
-        self.data = {
-            person: data
-        }
+        self.data = {person: data}
 
     def redo(self):
         for person, data in self.data.items():
-            if data['state'] == 'marriage':
-                person.setParents(data['parents'])
-            elif data['state'] == 'multipleBirth.children':
-                data['people'][0].setParents(data['parents'])
-                for child in data['people'][1:]:
-                    child.setParents(data['people'][0].childOf)
-                person.setParents(data['people'][0].childOf)
-            elif data['state'] == 'multipleBirth.person':
-                data['otherPerson'].setParents(data['parents'])
-                person.setParents(data['otherPerson'].childOf)
-            elif data['state'] is None:
+            if data["state"] == "marriage":
+                person.setParents(data["parents"])
+            elif data["state"] == "multipleBirth.children":
+                data["people"][0].setParents(data["parents"])
+                for child in data["people"][1:]:
+                    child.setParents(data["people"][0].childOf)
+                person.setParents(data["people"][0].childOf)
+            elif data["state"] == "multipleBirth.person":
+                data["otherPerson"].setParents(data["parents"])
+                person.setParents(data["otherPerson"].childOf)
+            elif data["state"] is None:
                 person.setParents(None)
 
     def undo(self):
         for person, data in self.data.items():
-            if data['was_state'] == 'marriage':
-                person.setParents(data['was_parents'])
-            elif data['was_state'] == 'multipleBirth.children':
-                data['was_people'][0].setParents(data['was_parents'])
-                for person in data['was_people'][1:]:
-                    person.setParents(data['was_people'][0].childOf)
-            elif data['was_state'] is None:
+            if data["was_state"] == "marriage":
+                person.setParents(data["was_parents"])
+            elif data["was_state"] == "multipleBirth.children":
+                data["was_people"][0].setParents(data["was_parents"])
+                for person in data["was_people"][1:]:
+                    person.setParents(data["was_people"][0].childOf)
+            elif data["was_state"] is None:
                 person.setParents(None)
 
     def mergeWith(self, other):
@@ -717,16 +717,14 @@ def setParents(*args, **kwargs):
     stack().push(cmd)
 
 
-
 def setMultipleBirth(*args, **kwargs):
     cmd = SetParents(*args, **kwargs)
     stack().push(cmd)
-    
-    
-        
+
+
 class AddEmotion(UndoCommand):
     def __init__(self, scene, emotion):
-        super().__init__('Add ' + emotion.__class__.__name__)
+        super().__init__("Add " + emotion.__class__.__name__)
         self.scene = scene
         self.emotion = emotion
         self.personA = emotion.personA()
@@ -747,14 +745,15 @@ class AddEmotion(UndoCommand):
             self.personB._onRemoveEmotion(self.emotion)
         self.scene.removeItem(self.emotion)
 
+
 def addEmotion(*args):
     cmd = AddEmotion(*args)
     stack().push(cmd)
 
-    
+
 class AddPencilStroke(UndoCommand):
     def __init__(self, scene, item):
-        super().__init__('Pencil stroke')
+        super().__init__("Pencil stroke")
         self.scene = scene
         self.item = item
         self.item.setLayers([layer.id for layer in self.scene.activeLayers()])
@@ -774,7 +773,7 @@ def addPencilStroke(*args, **kwargs):
 
 class ErasePencilStroke(UndoCommand):
     def __init__(self, scene, item):
-        super().__init__('Erase pencil stroke')
+        super().__init__("Erase pencil stroke")
         self.scene = scene
         self.item = item
 
@@ -788,25 +787,25 @@ class ErasePencilStroke(UndoCommand):
 class CutItems(RemoveItems):
     def __init__(self, scene, items):
         super().__init__(scene, items)
-        self.setText('Cut items')
-        
+        self.setText("Cut items")
+
 
 def cutItems(*args):
     stack().push(CutItems(*args))
 
 
 class Clipboard:
-    """ Represents a remaped hiarchy of Items in the clipboard.
-    Seperates out the copy action from UndoCommand. """
-    
+    """Represents a remaped hiarchy of Items in the clipboard.
+    Seperates out the copy action from UndoCommand."""
+
     def __init__(self, items):
-        """ Clone them in memory only, so they are all set up to register.
+        """Clone them in memory only, so they are all set up to register.
         That way PasteItems() can clone the clones over and over again
-        even if the original items have been deleted. Hence `Clipboard`. """
+        even if the original items have been deleted. Hence `Clipboard`."""
         self.map = {}
         self.items = list(items)
         for item in self.items:
-            item._cloned_was_selected = True # just leave the attribute there...
+            item._cloned_was_selected = True  # just leave the attribute there...
             assert item.isSelected()
 
     def copy(self, scene):
@@ -835,8 +834,10 @@ class Clipboard:
         # ChildOfs after marriages.
         for clone in others + childOfs:
             if clone.remap(self) is False:
-                clones.remove(clone) # when emotions|marriage can't find a person
-                scene.removeItem(clone) # this is messy, maybe clone(scene) shouldn't call register() if it won't be used?
+                clones.remove(clone)  # when emotions|marriage can't find a person
+                scene.removeItem(
+                    clone
+                )  # this is messy, maybe clone(scene) shouldn't call register() if it won't be used?
                 for k, v in dict(self.map).items():
                     if v == clone:
                         del self.map[k]
@@ -850,31 +851,29 @@ class Clipboard:
         return clones
 
     def find(self, id):
-        """ 'item' will be the original object, and self.map has the clone. """
+        """'item' will be the original object, and self.map has the clone."""
         if id is not None:
             return self.map.get(id)
 
 
 class PasteItems(UndoCommand):
     def __init__(self, scene, items):
-        super().__init__('Paste items')
+        super().__init__("Paste items")
         self.scene = scene
         self.items = {}
         for item in items:
-            self.items[item] = {
-                'pos_was': item.pos()
-            }
+            self.items[item] = {"pos_was": item.pos()}
 
     def redo(self):
         for item in self.scene.selectedItems():
             item.setSelected(False)
         for item, info in self.items.items():
-            if item.scene() != self.scene: # scene set on copy()
+            if item.scene() != self.scene:  # scene set on copy()
                 item.setParentItem(None)
                 self.scene.addItem(item)
             if isinstance(item, objects.LayerItem):
                 item.setLayers([layer.id for layer in self.scene.activeLayers()])
-            pos = info['pos_was']
+            pos = info["pos_was"]
             item.setPos(pos.x() + util.PASTE_OFFSET, pos.y() + util.PASTE_OFFSET)
             item.updateGeometry()
             item.updateDetails()
@@ -889,25 +888,26 @@ class PasteItems(UndoCommand):
         for item in self.items:
             self.scene.removeItem(item)
 
+
 def pasteItems(*args):
     stack().push(PasteItems(*args))
 
-    
+
 class ImportItems(PasteItems):
 
     def __init__(self, scene, items):
         super().__init__(scene, items)
-        self.setText('Import items')
+        self.setText("Import items")
+
 
 def importItems(*args):
     stack().push(ImportItems(*args))
-    
 
 
 class CreateTag(UndoCommand):
 
-    ANALYTICS = 'Create tag'
-    
+    ANALYTICS = "Create tag"
+
     def __init__(self, scene, tag):
         super().__init__('Create tag "%s"' % tag)
         self.scene = scene
@@ -919,14 +919,15 @@ class CreateTag(UndoCommand):
     def undo(self):
         self.scene.removeTag(self.tag)
 
+
 def createTag(*args):
     stack().push(CreateTag(*args))
 
 
 class DeleteTag(UndoCommand):
 
-    ANALYTICS = 'Delete tag'
-    
+    ANALYTICS = "Delete tag"
+
     def __init__(self, scene, tag):
         super().__init__('Delete tag "%s"' % tag)
         self.scene = scene
@@ -951,8 +952,8 @@ def deleteTag(*args):
 
 class RenameTag(UndoCommand):
 
-    ANALYTICS = 'Rename tag'
-    
+    ANALYTICS = "Rename tag"
+
     def __init__(self, scene, old, new):
         super().__init__('Rename tag "%s" to "%s"' % (old, new))
         self.scene = scene
@@ -972,8 +973,8 @@ def renameTag(*args):
 
 class SetTag(UndoCommand):
 
-    ANALYTICS = 'Set tag'
-    
+    ANALYTICS = "Set tag"
+
     def __init__(self, item, tag):
         super().__init__('Set tag "%s" on <%s>' % (tag, item.itemName()))
         self.item = item
@@ -992,8 +993,8 @@ def setTag(*args):
 
 class UnsetTag(UndoCommand):
 
-    ANALYTICS = 'Unset tag'
-    
+    ANALYTICS = "Unset tag"
+
     def __init__(self, item, tag):
         super().__init__('Unset tag "%s" on <%s>' % (tag, item.itemName()))
         self.item = item
@@ -1010,12 +1011,10 @@ def unsetTag(*args):
     stack().push(UnsetTag(*args))
 
 
-
-
 class CreateEventProperty(UndoCommand):
 
-    ANALYTICS = 'Create event property'
-    
+    ANALYTICS = "Create event property"
+
     def __init__(self, scene, propName):
         super().__init__('Create event property "%s"' % propName)
         self.scene = scene
@@ -1027,28 +1026,29 @@ class CreateEventProperty(UndoCommand):
     def undo(self):
         self.scene.removeEventProperty(self.propName)
 
+
 def createEventProperty(*args):
     stack().push(CreateEventProperty(*args))
 
 
 class RemoveEventProperty(UndoCommand):
 
-    ANALYTICS = 'Remove event property'
+    ANALYTICS = "Remove event property"
 
     @staticmethod
     def readValueCache(scene, onlyAttr=None):
-        """ Returns cache of attrs in order of variable listing. """
+        """Returns cache of attrs in order of variable listing."""
         ret = []
         for entry in scene.eventProperties():
-            attr = entry['attr']
+            attr = entry["attr"]
             if onlyAttr is not None and attr != onlyAttr:
                 continue
             attrEntries = {}
             for event in scene.events():
-                if event.uniqueId() != 'now':
+                if event.uniqueId() != "now":
                     attrEntries[event.id] = {
-                        'value': event.dynamicProperty(attr).get(),
-                        'event': event
+                        "value": event.dynamicProperty(attr).get(),
+                        "event": event,
                     }
             ret.append((attr, attrEntries))
         return ret
@@ -1059,9 +1059,11 @@ class RemoveEventProperty(UndoCommand):
             if onlyAttr is not None and attr != onlyAttr:
                 continue
             for id, entry in attrEntries.items():
-                if entry['value'] is not None:
-                    entry['event'].dynamicProperty(attr).set(entry['value'], notify=False)    
-    
+                if entry["value"] is not None:
+                    entry["event"].dynamicProperty(attr).set(
+                        entry["value"], notify=False
+                    )
+
     def __init__(self, scene, propName):
         super().__init__('Remove event property "%s"' % propName)
         self.scene = scene
@@ -1069,8 +1071,8 @@ class RemoveEventProperty(UndoCommand):
         self.attr = None
         self.propIndex = None
         for i, entry in enumerate(self.scene.eventProperties()):
-            if entry['name'] == self.propName:
-                self.attr = entry['attr']
+            if entry["name"] == self.propName:
+                self.attr = entry["attr"]
                 self.propIndex = i
                 break
         self.valueCache = self.readValueCache(scene, onlyAttr=self.attr)
@@ -1085,11 +1087,11 @@ class RemoveEventProperty(UndoCommand):
 
 def removeEventProperty(*args):
     stack().push(RemoveEventProperty(*args))
-    
+
 
 class RenameEventProperty(UndoCommand):
-    
-    ANALYTICS = 'Rename event property'
+
+    ANALYTICS = "Rename event property"
 
     def __init__(self, scene, old, new):
         super().__init__('Rename event property "%s" to "%s"' % (old, new))
@@ -1102,21 +1104,20 @@ class RenameEventProperty(UndoCommand):
 
     def undo(self):
         self.scene.renameEventProperty(self.new, self.old)
-        
+
 
 def renameEventProperty(*args):
     stack().push(RenameEventProperty(*args))
 
 
-
 class ReplaceEventProperties(UndoCommand):
 
-    ANALYTICS = 'Replace event properties'
-    
+    ANALYTICS = "Replace event properties"
+
     def __init__(self, scene, newPropNames):
         super().__init__('Create event properties with "%s"' % newPropNames)
         self.scene = scene
-        self.oldPropNames = [entry['name'] for entry in scene.eventProperties()]
+        self.oldPropNames = [entry["name"] for entry in scene.eventProperties()]
         self.newPropNames = newPropNames
         self.valueCache = RemoveEventProperty.readValueCache(scene)
 
@@ -1127,61 +1128,70 @@ class ReplaceEventProperties(UndoCommand):
         self.scene.replaceEventProperties(self.oldPropNames)
         RemoveEventProperty.writeValueCache(self.scene, self.valueCache)
 
+
 def replaceEventProperties(*args):
     stack().push(ReplaceEventProperties(*args))
 
 
-
 class SetEmotionPerson(UndoCommand):
 
-    ANALYTICS = 'Set emotion person'
-    
+    ANALYTICS = "Set emotion person"
+
     def __init__(self, emotion, personA=None, personB=None, id=-1):
         if personA and personB:
-            super().__init__('Set %s on <%s> and <%s>' % (emotion.__class__.__name__,
-                                                          personA.itemName(),
-                                                          personB.itemName()), id)
+            super().__init__(
+                "Set %s on <%s> and <%s>"
+                % (emotion.__class__.__name__, personA.itemName(), personB.itemName()),
+                id,
+            )
         elif personA:
-            super().__init__('Set person A on %s on <%s>' % (emotion.__class__.__name__,
-                                                             personA.itemName()), id)
+            super().__init__(
+                "Set person A on %s on <%s>"
+                % (emotion.__class__.__name__, personA.itemName()),
+                id,
+            )
         elif personB:
-            super().__init__('Set person B on %s on <%s>' % (emotion.__class__.__name__,
-                                                             personB.itemName()), id)
+            super().__init__(
+                "Set person B on %s on <%s>"
+                % (emotion.__class__.__name__, personB.itemName()),
+                id,
+            )
         if personA == emotion.personB() and personB == emotion.personA():
             swap = True
         else:
             swap = False
         self.data = {
             emotion: {
-                'swap': swap,
-                'personA': personA,
-                'personB': personB,
-                'personA_was': emotion.personA(),
-                'personB_was': emotion.personB()
+                "swap": swap,
+                "personA": personA,
+                "personB": personB,
+                "personA_was": emotion.personA(),
+                "personB_was": emotion.personB(),
             }
         }
 
     def redo(self):
         for emotion, entry in self.data.items():
-            if entry['swap']:
+            if entry["swap"]:
                 emotion.swapPeople()
             else:
-                if entry['personA']:
-                    emotion.setPersonA(entry['personA'])
-                if entry['personB']:
-                    emotion.setPersonB(entry['personB'])
+                if entry["personA"]:
+                    emotion.setPersonA(entry["personA"])
+                if entry["personB"]:
+                    emotion.setPersonB(entry["personB"])
 
     def undo(self):
         for emotion, entry in self.data.items():
-            if entry['swap']:
+            if entry["swap"]:
                 emotion.swapPeople()
             else:
-                emotion.setPersonA(entry['personA_was'])
-                emotion.setPersonB(entry['personB_was'])
+                emotion.setPersonA(entry["personA_was"])
+                emotion.setPersonB(entry["personB_was"])
 
     def mergeWith(self, other):
         self.data.update(other.data)
         return True
+
 
 def setEmotionPerson(*args, **kwargs):
     stack().push(SetEmotionPerson(*args, **kwargs))
@@ -1189,26 +1199,25 @@ def setEmotionPerson(*args, **kwargs):
 
 class SetEventParent(UndoCommand):
 
-    ANALYTICS = 'Set event parent'
-    
+    ANALYTICS = "Set event parent"
+
     def __init__(self, event, parent, id=-1):
-        super().__init__('Add <%s> to <%s>' % (event.itemName(),
-                                               parent.itemName()), id)
+        super().__init__("Add <%s> to <%s>" % (event.itemName(), parent.itemName()), id)
         self.events = {
             event: {
-                'parent_was': event.parent,
-                'parent': parent,
+                "parent_was": event.parent,
+                "parent": parent,
             }
         }
 
     def redo(self):
         for event, entry in self.events.items():
-            if entry['parent']:
-                event.setParent(entry['parent'])
+            if entry["parent"]:
+                event.setParent(entry["parent"])
 
     def undo(self):
         for event, entry in self.events.items():
-            event.setParent(entry['parent_was'])
+            event.setParent(entry["parent_was"])
 
     def mergeWith(self, cmd):
         if cmd.id() != self.id():
@@ -1217,23 +1226,24 @@ class SetEventParent(UndoCommand):
         self.events.update(cmd.events)
         return True
 
+
 def setEventParent(event, parent, undo=-1):
     stack().push(SetEventParent(event, parent, id=undo))
 
 
 class AddLayer(UndoCommand):
 
-    ANALYTICS = 'Add layer'
-    
+    ANALYTICS = "Add layer"
+
     def __init__(self, scene, layer):
-        super().__init__('Add layer %s' % layer.itemName())
+        super().__init__("Add layer %s" % layer.itemName())
         self.scene = scene
         self.layer = layer
 
     def redo(self):
         layers = self.scene.layers()
         iOrder = len(self.scene.layers())
-        self.layer.setOrder(iOrder) # append
+        self.layer.setOrder(iOrder)  # append
         self.scene.addItem(self.layer)
 
     def undo(self):
@@ -1250,23 +1260,24 @@ def addLayer(scene, layer):
 
 class SetLayerOrder(UndoCommand):
 
-    ANALYTICS = 'Set layer order'
+    ANALYTICS = "Set layer order"
 
     def __init__(self, scene, layers):
-        super().__init__('Set layer order')
+        super().__init__("Set layer order")
         self.scene = scene
-        self.oldLayers = scene.layers() # sorted
-        self.newLayers = layers # new sorted
+        self.oldLayers = scene.layers()  # sorted
+        self.newLayers = layers  # new sorted
 
     def redo(self):
         for i, layer in enumerate(self.newLayers):
             layer.setOrder(i)
         self.scene.resortLayersFromOrder()
-        
+
     def undo(self):
-        for i, layer in enumerate(self.oldLayers): # re-init order
+        for i, layer in enumerate(self.oldLayers):  # re-init order
             layer.setOrder(i)
         self.scene.resortLayersFromOrder()
+
 
 def setLayerOrder(scene, layers):
     stack().push(SetLayerOrder(scene, layers))
@@ -1274,7 +1285,7 @@ def setLayerOrder(scene, layers):
 
 class AddCallout(UndoCommand):
     def __init__(self, scene, mouseScenePos, parentPerson=None):
-        super().__init__('Add callout')
+        super().__init__("Add callout")
         self.scene = scene
         self.callout = objects.Callout()
         self.parentPerson = parentPerson
@@ -1285,11 +1296,14 @@ class AddCallout(UndoCommand):
         self.callout.setPos(self.mouseScenePos)
         self.callout.setItemPos(self.mouseScenePos)
         if self.parentPerson:
-            self.callout.setParentId(self.parentPerson.id) # handles position translation
+            self.callout.setParentId(
+                self.parentPerson.id
+            )  # handles position translation
 
     def undo(self):
         self.scene.removeItem(self.callout)
-        self.callout.setParentId(None) # disable callbacks in Person.itemChange
+        self.callout.setParentId(None)  # disable callbacks in Person.itemChange
+
 
 def addCallout(*args, **kwargs):
     cmd = AddCallout(*args, **kwargs)
@@ -1299,40 +1313,36 @@ def addCallout(*args, **kwargs):
 
 class SetLayerItemParent(UndoCommand):
 
-    ANALYTICS = 'Set LayerItem parent'
-    
+    ANALYTICS = "Set LayerItem parent"
+
     def __init__(self, item, parent, id=-1):
         parentName = parent and parent.itemName() or None
-        super().__init__('Reparent %s parent to <%s>' % (item.itemName(), parentName), id)
-        self.data = {
-            item: {
-                'parent': parent,
-                'parent_was': item.parentPerson()
-            }
-        }
+        super().__init__(
+            "Reparent %s parent to <%s>" % (item.itemName(), parentName), id
+        )
+        self.data = {item: {"parent": parent, "parent_was": item.parentPerson()}}
 
     def redo(self):
         for item, data in self.data.items():
-            if data['parent']:
-                parentId = data['parent']
+            if data["parent"]:
+                parentId = data["parent"]
             else:
                 parentId = None
             item.setParentId(parentId)
 
     def undo(self):
         for item, data in self.data.items():
-            if data['parent_was']:
-                parentId = data['parent_was']
+            if data["parent_was"]:
+                parentId = data["parent_was"]
             else:
                 parentId = None
             item.setParentId(parentId)
 
     def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore='parent_was')
+        util.deepMerge(self.data, other.data, ignore="parent_was")
         return True
+
 
 def setLayerItemParent(*args, **kwargs):
     cmd = SetLayerItemParent(*args, **kwargs)
     stack().push(cmd)
-
-    

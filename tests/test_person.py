@@ -2,21 +2,19 @@ from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util, Scene, Person, Marriage, MultipleBirth, Layer, Person, Event
 
 
-
 def test_init():
-    person = Person(name='personA')
+    person = Person(name="personA")
     assert person.birthEvent not in person.events()
 
 
 def test_write_read():
     chunk = {}
-    person1 = Person(name='personA', lastName='bleh')
+    person1 = Person(name="personA", lastName="bleh")
     person1.write(chunk)
     person2 = Person()
     person2.read(chunk, lambda id: None)
     assert person1.name() == person2.name()
     assert person1.lastName() == person2.lastName()
-
 
 
 def test_childItem_parent():
@@ -36,21 +34,14 @@ def test_childItem_parent():
 
 
 def test_Cutoff_parent():
-    """ Cutoff.parentItem() was being reset by Scene.addItem if it was listed
+    """Cutoff.parentItem() was being reset by Scene.addItem if it was listed
     before it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
     """
     data = {
-        'items': [
+        "items": [
             # put the cutoff first so that addItem() clears the parentItem added.
-            {
-                'id': 2,
-                'kind': 'Cutoff',
-                'person_a': 1
-            },
-            {
-                'id': 1,
-                'kind': 'Person'
-            },
+            {"id": 2, "kind": "Cutoff", "person_a": 1},
+            {"id": 1, "kind": "Person"},
         ]
     }
     scene = Scene()
@@ -66,10 +57,10 @@ def test_Cutoff_parent():
 
 def test_multiple_births(simpleScene):
     scene = simpleScene
-    parentA = scene.query1(name='p1')
-    parentB = scene.query1(name='p2')
+    parentA = scene.query1(name="p1")
+    parentB = scene.query1(name="p2")
     marriage = parentA.marriages[0]
-    
+
     childA = Person()
     childB = Person()
     childC = Person()
@@ -96,7 +87,7 @@ def test_detailsText_pos():
     assert person.detailsText.pos() == person.initialDetailsPos()
 
     # test that showing doesn't change pos
-    person.setDiagramNotes('here are some notes')
+    person.setDiagramNotes("here are some notes")
     assert person.detailsText.isVisible() == True
     assert person.detailsText.pos() == person.initialDetailsPos()
 
@@ -108,36 +99,27 @@ def test_hide_age_when_no_deceased_date():
     scene.setCurrentDateTime(QDateTime.currentDateTime())
     person.setBirthDateTime(util.Date(1990, 1, 1))
     person.setDeceased(True)
-    assert person.ageItem.text() == ''
+    assert person.ageItem.text() == ""
     assert person.ageItem.isVisible() == False
 
     person.setDeceasedDateTime(util.Date(2000, 1, 1))
-    assert person.ageItem.text() == '10'
+    assert person.ageItem.text() == "10"
     assert person.ageItem.isVisible() == True
 
 
 def test_updateAll_layer_props_init():
-    """ itemOpacity was not set directly in Person.updateAll(). """
+    """itemOpacity was not set directly in Person.updateAll()."""
     data = {
-        'items': [
+        "items": [
+            {"id": 1, "kind": "Person", "size": 5, "layers": [2]},
             {
-                'id': 1,
-                'kind': 'Person',
-                'size': 5,
-                'layers': [2]
+                "id": 2,
+                "kind": "Layer",
+                "active": True,
+                "itemProperties": {
+                    1: {"itemOpacity": 0.1, "color": "#f0f0f0", "size": 3}
+                },
             },
-            {
-                'id': 2,
-                'kind': 'Layer',
-                'active': True,
-                'itemProperties': {
-                    1: {
-                        'itemOpacity': .1,
-                        'color': '#f0f0f0',
-                        'size': 3
-                    }
-                }
-            }
         ]
     }
     scene = Scene()
@@ -148,7 +130,7 @@ def test_updateAll_layer_props_init():
     assert person.opacity() == 0.1
     assert person.opacity() == person.itemOpacity()
     assert person.size() == 3
-    assert person.color() == '#f0f0f0'
+    assert person.color() == "#f0f0f0"
 
     layer.setActive(False)
     assert person.opacity() == 1.0
@@ -156,26 +138,25 @@ def test_updateAll_layer_props_init():
     assert person.color() == None
 
 
-    
 def test_layered_properties():
-    """ Ensure correct layered prop updates for marriage+marriage-indicators. """
+    """Ensure correct layered prop updates for marriage+marriage-indicators."""
     scene = Scene()
     person = Person()
     person.setPos(QPointF(-100, -50))
-    layer = Layer(name='View 1', storeGeometry=True)
+    layer = Layer(name="View 1", storeGeometry=True)
     scene.addItems(person, layer)
     #
     unlayered = {
-        'itemPos': person.pos(),
-        'color': None,
-        'itemOpacity': None,
-        'size': util.DEFAULT_PERSON_SIZE,
+        "itemPos": person.pos(),
+        "color": None,
+        "itemOpacity": None,
+        "size": util.DEFAULT_PERSON_SIZE,
     }
     layered = {
-        'itemPos': QPointF(-200, -150),
-        'color': '#ff0000',
-        'itemOpacity': .3,
-        'size': 2,
+        "itemPos": QPointF(-200, -150),
+        "color": "#ff0000",
+        "itemOpacity": 0.3,
+        "size": 2,
     }
     for k, v in unlayered.items():
         person.prop(k).set(v)
@@ -185,13 +166,13 @@ def test_layered_properties():
         assert person.prop(k).get() == v
     assert person.size() == util.DEFAULT_PERSON_SIZE
     assert person.scale() == util.scaleForPersonSize(util.DEFAULT_PERSON_SIZE)
-    
+
     layer.setActive(True)
     for k, v in layered.items():
         assert person.prop(k).get() == v
     assert person.size() == person.size()
     assert person.scale() == util.scaleForPersonSize(person.size())
-    
+
     layer.setActive(False)
     for k, v in unlayered.items():
         assert person.prop(k).get() == v
@@ -207,20 +188,19 @@ def test_layered_properties():
     person.setSize(3)
     assert person.size() == person.size()
     assert person.scale() == util.scaleForPersonSize(person.size())
-    
+
     # ...and then make sure it goes back to normal again.
     layer.setActive(False)
     for k, v in unlayered.items():
         assert person.prop(k).get() == v
     assert person.size() == util.DEFAULT_PERSON_SIZE
     assert person.scale() == util.scaleForPersonSize(util.DEFAULT_PERSON_SIZE)
-    
 
 
 def test_shouldShowFor():
     scene = Scene()
-    person = Person(name='A')
-    layer = Layer(name='View 1')
+    person = Person(name="A")
+    layer = Layer(name="View 1")
     scene.addItems(person, layer)
 
     assert person.shouldShowFor(QDateTime(), [], []) == True
@@ -246,10 +226,11 @@ def test_person_setLayers():
     person.setLayers([layer1.id])
     assert set(person.layers()) == set([layer1.id])
 
+
 def test_new_event_adds_variable_values():
 
     scene = Scene()
-    scene.addEventProperty('var1')
+    scene.addEventProperty("var1")
 
     person = Person()
     scene.addItems(person)
@@ -257,12 +238,18 @@ def test_new_event_adds_variable_values():
     # Simulate AddEventDialog setup.
     event = Event(addDummy=True, dateTime=util.Date(2021, 5, 11))
     for entry in scene.eventProperties():
-        event.addDynamicProperty(entry['attr'])
+        event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
-    prop.set('123')
+    prop.set("123")
     event.addDummy = False
     event.setParent(person)
 
-    assert person.variablesDatabase.get('var1', event.dateTime().addYears(-1)) == (None, False)
-    assert person.variablesDatabase.get('var1', event.dateTime()) == ('123', True)
-    assert person.variablesDatabase.get('var1', event.dateTime().addYears(1)) == ('123', False)
+    assert person.variablesDatabase.get("var1", event.dateTime().addYears(-1)) == (
+        None,
+        False,
+    )
+    assert person.variablesDatabase.get("var1", event.dateTime()) == ("123", True)
+    assert person.variablesDatabase.get("var1", event.dateTime().addYears(1)) == (
+        "123",
+        False,
+    )

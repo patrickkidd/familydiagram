@@ -17,8 +17,6 @@ class TabBar(QTabBar):
         return QSize(w, 30)
 
 
-        
-
 class TabWidget(QTabWidget):
 
     def __init__(self, parent=None):
@@ -66,12 +64,12 @@ LayerItemProperties QTabBar::tab {
         self.setStyleSheet(ss)
 
     def paintEvent(self, e):
-        """ Don't call super impl to avoid drawing QTabWidget frame. """
+        """Don't call super impl to avoid drawing QTabWidget frame."""
         h = self.tabBar().height()
         rect = QRect(0, h, self.width(), 1)
         if e.rect().intersects(rect):
             p = QPainter(self)
-            pen = QPen(QColor('#d0cfd1'), 1)
+            pen = QPen(QColor("#d0cfd1"), 1)
             p.setPen(pen)
             p.drawLine(rect.topLeft(), rect.topRight())
             p = None
@@ -83,10 +81,10 @@ LayerItemProperties QTabBar::tab {
     #                             stop: 0 #E1E1E1, stop: 0.4 #DDDDDD,
     #                             stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
 
-            # width: %ipx;
-            # background-color: #ffffff;
-            # color: #000000;
-            # border-right: 1px solid grey;        
+    # width: %ipx;
+    # background-color: #ffffff;
+    # color: #000000;
+    # border-right: 1px solid grey;
 
     # def resizeEvent(self, e):
     #     super().resizeEvent(e)
@@ -115,13 +113,13 @@ class PlainTextEdit(QPlainTextEdit):
             self.editingFinished.emit()
             self.dirty = False
 
-        
+
 class Stylesheeter(QWidget):
     def paintEvent(self, event):
         opt = QStyleOption()
         opt.initFrom(self)
         painter = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)    
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
 
 class UndoView(QUndoView):
@@ -131,11 +129,14 @@ class UndoView(QUndoView):
 class ListView(QListView):
     pass
 
+
 class TableView(QTableView):
     pass
 
+
 class ListWidget(QListWidget):
     pass
+
 
 class TableWidget(QTableWidget):
     pass
@@ -148,17 +149,17 @@ class DocTableWidget(TableWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setDefaultDropAction(Qt.CopyAction)
-    
+
     def mimeData(self, items):
         urls = {}
-        for item in items: # unique by row
+        for item in items:  # unique by row
             urls[self.row(item)] = QUrl(item.fpath)
         data = QMimeData()
         data.setUrls(urls.values())
         return data
 
     def startDrag(self, actions):
-        """ Override to only use copy action. """
+        """Override to only use copy action."""
         return super().startDrag(Qt.CopyAction)
 
     def canDeleteSelection(self):
@@ -166,7 +167,6 @@ class DocTableWidget(TableWidget):
 
     def onDeleteSelection(self):
         self.deleteSelection.emit()
-    
 
 
 from .button import PixmapButtonHelper, PixmapPushButton, PixmapToolButton

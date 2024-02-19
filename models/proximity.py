@@ -31,7 +31,6 @@ class FunctionalSelfModel(Model):
         self.scheduler.step()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     empty_model = FunctionalSelfModel(10)
     empty_model.step()
-

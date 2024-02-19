@@ -3,7 +3,7 @@ from .. import commands, util
 
 
 class Property:
-    """ Track changes and automatically write to file. """
+    """Track changes and automatically write to file."""
 
     _nextId = 0
 
@@ -15,12 +15,14 @@ class Property:
             if x is not None:
                 default = type(x)()
                 break
+
         def getKey(x):
             y = getattr(x, attr)()
             if y is not None:
                 return y
             else:
                 return default
+
         return sorted(stuff, key=getKey)
 
     def __init__(self, item, **kwargs):
@@ -30,31 +32,31 @@ class Property:
         Property._nextId = Property._nextId + 1
         self.item = item
         self.isDynamic = False
-        self.attr = kwargs['attr']
-        self.onset = kwargs.get('onset', None)
-        self.default = kwargs.get('default', None)
+        self.attr = kwargs["attr"]
+        self.onset = kwargs.get("onset", None)
+        self.default = kwargs.get("default", None)
         if isinstance(self.default, (list, dict)):
             self.default = copy.deepcopy(self.default)
-        self.isDynamic = kwargs.get('dynamic', False)
+        self.isDynamic = kwargs.get("dynamic", False)
         self._value = None
         self._currentLayerValue = None
-        self._usingLayer = False # updated on activeLayersChanged
+        self._usingLayer = False  # updated on activeLayersChanged
         self._activeLayers = []
         self._isResetting = False
-        self.strip = kwargs.get('strip', False)
-        self.layered = kwargs.get('layered', False)
-        self.notify = kwargs.get('notify', True)
-        if 'type' in kwargs:
-            self.type = kwargs['type']
+        self.strip = kwargs.get("strip", False)
+        self.layered = kwargs.get("layered", False)
+        self.notify = kwargs.get("notify", True)
+        if "type" in kwargs:
+            self.type = kwargs["type"]
         else:
-            self.type = 'default' in kwargs and type(self.default) or str
-            kwargs['type'] = self.type
+            self.type = "default" in kwargs and type(self.default) or str
+            kwargs["type"] = self.type
 
     def __repr__(self):
         s = str(self.get())
         if len(s):
-            s = ': ' + s
-        return '<Property[%i, %s]%s>' % (self.id(), self.name(), s)
+            s = ": " + s
+        return "<Property[%i, %s]%s>" % (self.id(), self.name(), s)
 
     def name(self):
         return self.attr
@@ -63,7 +65,7 @@ class Property:
         return self._kwargs
 
     def deinit(self):
-        """ For circular refs. """
+        """For circular refs."""
         self.item = None
 
     def setAttr(self, attr):
@@ -92,7 +94,9 @@ class Property:
             elif self._activeLayers:
                 ok = False
                 # last active layer takes precidence
-                value, ok = self._activeLayers[-1].getItemProperty(self.item.id, self.name()) # because properties don't have reliable id's. nuts...
+                value, ok = self._activeLayers[-1].getItemProperty(
+                    self.item.id, self.name()
+                )  # because properties don't have reliable id's. nuts...
                 if ok:
                     self._currentLayerValue = value
                     self._usingLayer = True
@@ -104,11 +108,13 @@ class Property:
                 self._usingLayer = False
 
     def get(self, forLayers=None):
-        """ Cache value(s). """
+        """Cache value(s)."""
         ret = None
-        if self.layered and forLayers: # non-cached query
+        if self.layered and forLayers:  # non-cached query
             # last active layer takes precidence
-            value, ok = forLayers[-1].getItemProperty(self.item.id, self.name()) # because properties don't have reliable id's. nuts...
+            value, ok = forLayers[-1].getItemProperty(
+                self.item.id, self.name()
+            )  # because properties don't have reliable id's. nuts...
             if ok:
                 ret = value
         # forLayers == [] means force no layer in Item.read()
@@ -124,10 +130,10 @@ class Property:
         return ret
 
     def set(self, x, notify=True, undo=None, forLayers=None, force=False):
-        """ Return True if value was changed, otherwise False.
-            forLayers == None: current visible value
-            forLayers == []: non-layer value
-            force = True for commands.SetItemProperty so notifications are sent
+        """Return True if value was changed, otherwise False.
+        forLayers == None: current visible value
+        forLayers == []: non-layer value
+        force = True for commands.SetItemProperty so notifications are sent
         """
         if x is None:
             y = None
@@ -144,15 +150,19 @@ class Property:
                 # do this before setting the value so `was` can be extracted from layers
                 if undo is True:
                     undo = commands.nextId()
-                cmd = commands.SetItemProperty(self, y, layers=self._activeLayers, id=undo)
+                cmd = commands.SetItemProperty(
+                    self, y, layers=self._activeLayers, id=undo
+                )
                 commands.stack().push(cmd)
             if forLayers is None:
                 layers = self._activeLayers
             else:
                 layers = forLayers
-            if layers and self._kwargs.get('layerIgnoreAttr'):
-                layerIgnoreAttr = self._kwargs.get('layerIgnoreAttr')
-                layers = [layer for layer in layers if getattr(layer, layerIgnoreAttr)()]
+            if layers and self._kwargs.get("layerIgnoreAttr"):
+                layerIgnoreAttr = self._kwargs.get("layerIgnoreAttr")
+                layers = [
+                    layer for layer in layers if getattr(layer, layerIgnoreAttr)()
+                ]
             if self.layered and layers:
                 appliesRightNow = False
                 for layer in layers:
@@ -194,12 +204,11 @@ class Property:
             if self.onset and hasattr(self.item, self.onset):
                 getattr(self.item, self.onset)()
         self._isResetting = False
-        
+
     def isUsingLayer(self):
-        """ Return True if value is currently being pulled from the layer versus this props's internal value. """
+        """Return True if value is currently being pulled from the layer versus this props's internal value."""
         return self._usingLayer
 
     def isResetting(self):
-        """ Item.onProperty can respond differently in some cases, e.g. to animate when resetting itemPos. """
+        """Item.onProperty can respond differently in some cases, e.g. to animate when resetting itemPos."""
         return self._isResetting
-

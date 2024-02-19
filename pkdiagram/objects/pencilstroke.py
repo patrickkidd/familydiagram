@@ -1,14 +1,28 @@
-from ..pyqt import QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsView, QBuffer, QGraphicsItem, Qt, QByteArray, QImage, QColor, QMarginsF, QRectF, QPen, QBrush, QPainterPathStroker
+from ..pyqt import (
+    QGraphicsPixmapItem,
+    QGraphicsRectItem,
+    QGraphicsView,
+    QBuffer,
+    QGraphicsItem,
+    Qt,
+    QByteArray,
+    QImage,
+    QColor,
+    QMarginsF,
+    QRectF,
+    QPen,
+    QBrush,
+    QPainterPathStroker,
+)
 from .. import util
 from . import Item
 
 
-
 def bbox(p):
-    """ bounding-box-of-an-image """
+    """bounding-box-of-an-image"""
     l = p.width()
     t = p.height()
-    r = 0 
+    r = 0
     b = 0
 
     for y in range(p.height()):
@@ -28,10 +42,11 @@ def bbox(p):
 from .layeritem import LayerItem
 from ..util import CUtil
 
+
 class PencilStroke(LayerItem):
 
     class Canvas(QGraphicsRectItem):
-        
+
         def __init__(self):
             super().__init__()
             self.rect = QRectF()
@@ -41,15 +56,17 @@ class PencilStroke(LayerItem):
 
         def isDrawing(self):
             return bool(self.item)
-            
+
         def start(self, pos, pressure, parentItem=None):
-            """ Adjust to fix the view size every time - leave visible to ensure it's larger than the vsr. """
+            """Adjust to fix the view size every time - leave visible to ensure it's larger than the vsr."""
             vsr = self.scene().view().viewableSceneRect()
-            rect = vsr.marginsAdded(QMarginsF(2, 2, 2, 2)) # just a nudge to avoid being a partial pixel under the view
+            rect = vsr.marginsAdded(
+                QMarginsF(2, 2, 2, 2)
+            )  # just a nudge to avoid being a partial pixel under the view
             self.setRect(rect)
             self.item = PencilStroke()
             self.item.setScale(self.scale())
-            self.item.prop('scale').set(self.scale())
+            self.item.prop("scale").set(self.scale())
             self.item.setColor(self.color().name())
             if parentItem:
                 self.item.setParentItem(parentItem)
@@ -76,17 +93,17 @@ class PencilStroke(LayerItem):
         def color(self):
             return self._color
 
-    LayerItem.registerProperties((
-        { 'attr': 'points', 'type': list, 'onset': 'updateGeometry' },
-    ))
-    
+    LayerItem.registerProperties(
+        ({"attr": "points", "type": list, "onset": "updateGeometry"},)
+    )
+
     def __init__(self, **kwargs):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.isPencilStroke = True
         self.selectionOutline = None
         self.setProperties(**kwargs)
-        if not 'points' in kwargs: # avoid all objects using same default [] object
+        if not "points" in kwargs:  # avoid all objects using same default [] object
             self.setPoints([], notify=False, undo=False)
         self.setShapeMargin(1)
         self.setShapePathIsClosed(False)
@@ -103,7 +120,7 @@ class PencilStroke(LayerItem):
         return x
 
     def itemName(self):
-        return 'Pencil Stroke'
+        return "Pencil Stroke"
 
     def addPoint(self, p):
         if self.parentItem() or self.scale() != 1.0:
@@ -123,7 +140,7 @@ class PencilStroke(LayerItem):
             pen.setColor(QColor(self.color()))
         # Invert for dark mode
         color = pen.color()
-        if color.red() == color.green() == color.blue(): # monochrome
+        if color.red() == color.green() == color.blue():  # monochrome
             x = color.red()
             if util.IS_UI_DARK_MODE and x < 100:
                 y = min(255, 255 - color.red())
@@ -132,7 +149,7 @@ class PencilStroke(LayerItem):
 
     def onProperty(self, prop):
         super().onProperty(prop)
-        if prop.name() == 'color':
+        if prop.name() == "color":
             self.updatePenAndGeometry()
 
     def itemChange(self, change, variant):
@@ -179,4 +196,3 @@ class PencilStroke(LayerItem):
             painter.setPen(QPen(Qt.red))
             painter.drawPath(self.selectionOutline)
             painter.restore()
-        

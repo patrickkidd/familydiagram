@@ -1,4 +1,13 @@
-from .pyqt import QGraphicsView, QTimeLine, QObject, QVariantAnimation, QGraphicsRectItem, Qt, QRectF, QGraphicsItem
+from .pyqt import (
+    QGraphicsView,
+    QTimeLine,
+    QObject,
+    QVariantAnimation,
+    QGraphicsRectItem,
+    Qt,
+    QRectF,
+    QGraphicsItem,
+)
 from . import util
 
 
@@ -28,7 +37,7 @@ class DragPanner:
         #     if item.flags() & QGraphicsItem.ItemIsSelectable:
         #         item.setFlag(QGraphicsItem.ItemIsSelectable, False)
         #         self.selectables.append(item)
-        QGraphicsView.mousePressEvent(self.view, e) # necessary for drag mod to work
+        QGraphicsView.mousePressEvent(self.view, e)  # necessary for drag mod to work
         self._begun = True
 
     def update(self, e):
@@ -59,7 +68,3 @@ class DragPanner:
             item.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.selectables = []
         self._begun = False
-
-
-
-

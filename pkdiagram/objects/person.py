@@ -21,31 +21,54 @@ class Person(PathItem):
     VARIABLE_BASE_COLOR_LIGHT_MODE = QColor(0, 0, 255)
     VARIABLE_BASE_COLOR_DARK_MODE = QColor(100, 255, 100)
 
-    PathItem.registerProperties((
-        { 'attr': 'name', 'onset': 'updateDetails', 'strip': True },
-        { 'attr': 'middleName', 'onset': 'updateDetails', 'strip': True },
-        { 'attr': 'lastName', 'onset': 'updateDetails', 'strip': True },
-        { 'attr': 'nickName', 'onset': 'updateDetails', 'strip': True },
-        { 'attr': 'birthName', 'onset': 'updateDetails', 'strip': True },
-        { 'attr': 'alias' },
-        { 'attr': 'primary', 'default': False, 'onset': 'updateGeometry' },
-        { 'attr': 'deceased', 'default': False, 'onset': 'updateGeometryAndDetails' },
-        { 'attr': 'deceasedReason', 'onset': 'updateDetails' },
-        { 'attr': 'adopted', 'default': False, 'onset': 'updateDetailsAndChild' },
-        { 'attr': 'gender', 'default': 'male', 'onset': 'updateGeometryAndDetails' },
-        { 'attr': 'diagramNotes', 'onset': 'updateDetails' },
-        { 'attr': 'notes' },
-        { 'attr': 'showLastName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
-        { 'attr': 'showMiddleName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
-        { 'attr': 'showNickName', 'type': bool, 'default': True, 'onset': 'updateDetails' },
-        { 'attr': 'hideDetails', 'default': False, 'layered': True },
-        { 'attr': 'color', 'layered': True, 'onset': 'updatePenAndGeometry' },
-        { 'attr': 'itemOpacity', 'type': float, 'layered': True },
-        { 'attr': 'size', 'type': int, 'default': util.DEFAULT_PERSON_SIZE, 'layered': True, 'layerIgnoreAttr': 'storeGeometry' },
-        { 'attr': 'bigFont', 'type': bool, 'default': False, 'layered': True },
-        { 'attr': 'layers', 'default': [] }, # [id, id, id]
-    ))
-    
+    PathItem.registerProperties(
+        (
+            {"attr": "name", "onset": "updateDetails", "strip": True},
+            {"attr": "middleName", "onset": "updateDetails", "strip": True},
+            {"attr": "lastName", "onset": "updateDetails", "strip": True},
+            {"attr": "nickName", "onset": "updateDetails", "strip": True},
+            {"attr": "birthName", "onset": "updateDetails", "strip": True},
+            {"attr": "alias"},
+            {"attr": "primary", "default": False, "onset": "updateGeometry"},
+            {"attr": "deceased", "default": False, "onset": "updateGeometryAndDetails"},
+            {"attr": "deceasedReason", "onset": "updateDetails"},
+            {"attr": "adopted", "default": False, "onset": "updateDetailsAndChild"},
+            {"attr": "gender", "default": "male", "onset": "updateGeometryAndDetails"},
+            {"attr": "diagramNotes", "onset": "updateDetails"},
+            {"attr": "notes"},
+            {
+                "attr": "showLastName",
+                "type": bool,
+                "default": True,
+                "onset": "updateDetails",
+            },
+            {
+                "attr": "showMiddleName",
+                "type": bool,
+                "default": True,
+                "onset": "updateDetails",
+            },
+            {
+                "attr": "showNickName",
+                "type": bool,
+                "default": True,
+                "onset": "updateDetails",
+            },
+            {"attr": "hideDetails", "default": False, "layered": True},
+            {"attr": "color", "layered": True, "onset": "updatePenAndGeometry"},
+            {"attr": "itemOpacity", "type": float, "layered": True},
+            {
+                "attr": "size",
+                "type": int,
+                "default": util.DEFAULT_PERSON_SIZE,
+                "layered": True,
+                "layerIgnoreAttr": "storeGeometry",
+            },
+            {"attr": "bigFont", "type": bool, "default": False, "layered": True},
+            {"attr": "layers", "default": []},  # [id, id, id]
+        )
+    )
+
     @staticmethod
     def pathFor(kind, pos, size=None, primary=False):
         rect = QRectF(util.PERSON_RECT)
@@ -53,26 +76,28 @@ class Person(PathItem):
         scale = 1.0
         if size is not None:
             scale = util.scaleForPersonSize(size)
-        if kind == 'male':
+        if kind == "male":
             path.addRect(rect)
             if primary:
                 m = 10 * scale
                 rect = rect.marginsAdded(QMarginsF(m, m, m, m))
                 path.addRect(rect)
-        elif kind == 'female':
+        elif kind == "female":
             path.addEllipse(rect)
             if primary:
                 m = 10 * scale
                 rect = rect.marginsAdded(QMarginsF(m, m, m, m))
                 path.addEllipse(rect)
-        elif kind in ['abortion', 'miscarriage']:
-            midX = rect.topRight().x() - ((rect.topRight().x() - rect.topLeft().x()) / 2)
+        elif kind in ["abortion", "miscarriage"]:
+            midX = rect.topRight().x() - (
+                (rect.topRight().x() - rect.topLeft().x()) / 2
+            )
             topMiddle = QPointF(midX, rect.topRight().y())
             path.moveTo(topMiddle)
             path.lineTo(rect.bottomLeft())
             path.lineTo(rect.bottomRight())
             path.lineTo(topMiddle)
-        elif kind == 'unknown':
+        elif kind == "unknown":
             path.addRoundedRect(rect, 40, 40, Qt.RelativeSize)
         return path
 
@@ -87,7 +112,7 @@ class Person(PathItem):
     fileAdded = pyqtSignal(str)
 
     ITEM_Z = util.PERSON_Z
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.isPerson = True
@@ -107,24 +132,28 @@ class Person(PathItem):
         self.isUpdatingDependents = False
         self.childOf = None
         self.marriages = []
-        self.setShapeMargin(0) # override from PathItem
+        self.setShapeMargin(0)  # override from PathItem
         self.setShapeIsBoundingRect(True)
         self._events = []
         self._eventsCache = []
         self._emotions = []
-        self._layers = [] # cache for &.prop('layers')
+        self._layers = []  # cache for &.prop('layers')
         self._layerItems = []
         self._aliasNotes = None
         self._onShowAliases = False
         self._lastVariableLines = []
         self.variablesDatabase = VariablesDatabase()
-        self.birthEvent = Event(self, uniqueId='birth')
-        self.deathEvent = Event(self, uniqueId='death')
-        self.adoptedEvent = Event(self, uniqueId='adopted')
-        self.snappedOther = None # person this item is snapped to; set on master person only
+        self.birthEvent = Event(self, uniqueId="birth")
+        self.deathEvent = Event(self, uniqueId="death")
+        self.adoptedEvent = Event(self, uniqueId="adopted")
+        self.snappedOther = (
+            None  # person this item is snapped to; set on master person only
+        )
         self.draggingWithMe_origPos = None
         self.draggingWithMe = []
-        self.draggingMaster = None # the person that recieved the mouse down for multi-select-drag
+        self.draggingMaster = (
+            None  # the person that recieved the mouse down for multi-select-drag
+        )
         self.mouseDownPos = None
         self.mouseMovePos = None
         self.mouseDownPersonPos = None
@@ -143,15 +172,19 @@ class Person(PathItem):
         self.detailsText.setPos(pos)
         self.detailsText.setItemPos(pos, notify=False)
         self.detailsText.setParentRequestsToShow(False)
-        if not 'alias' in kwargs:
+        if not "alias" in kwargs:
             self.initAlias()
-        if 'birthDateTime' in kwargs:
-            self.setBirthDateTime(kwargs['birthDateTime'])
-        if 'name' in kwargs:
-            for event in self._events + [self.birthEvent, self.adoptedEvent, self.deathEvent]:
+        if "birthDateTime" in kwargs:
+            self.setBirthDateTime(kwargs["birthDateTime"])
+        if "name" in kwargs:
+            for event in self._events + [
+                self.birthEvent,
+                self.adoptedEvent,
+                self.deathEvent,
+            ]:
                 event.updateParentName()
-        if 'layers' in kwargs:
-            layers = kwargs['layers']
+        if "layers" in kwargs:
+            layers = kwargs["layers"]
             if not isinstance(layers, list):
                 layers = [layers]
             layerIds = [x.id for x in layers]
@@ -159,20 +192,20 @@ class Person(PathItem):
         self.isInit = True
 
     def initialDetailsPos(self):
-        ret = util.PERSON_RECT.topRight() + QPointF(util.PERSON_RECT.width() * .2, 0)
+        ret = util.PERSON_RECT.topRight() + QPointF(util.PERSON_RECT.width() * 0.2, 0)
         return ret
-    
+
     def initAlias(self):
         alias = None
         if self.scene():
             allAliases = [person.alias() for person in self.scene().people()]
             while alias is None or alias in allAliases:
-                if self.gender() == 'male':
+                if self.gender() == "male":
                     alias = random.choice(random_names.MALE_NAMES)
                 else:
                     alias = random.choice(random_names.FEMALE_NAMES)
         else:
-            if self.gender() == 'male':
+            if self.gender() == "male":
                 alias = random.choice(random_names.MALE_NAMES)
             else:
                 alias = random.choice(random_names.FEMALE_NAMES)
@@ -182,23 +215,23 @@ class Person(PathItem):
 
     def write(self, chunk):
         super().write(chunk)
-        chunk['marriages'] = [m.id for m in self.marriages]        
-        chunk['events'] = []
-        chunk['birthEvent'] = {}
-        self.birthEvent.write(chunk['birthEvent'])
-        chunk['deathEvent'] = {}
-        self.deathEvent.write(chunk['deathEvent'])
-        chunk['adoptedEvent'] = {}
-        self.adoptedEvent.write(chunk['adoptedEvent'])
+        chunk["marriages"] = [m.id for m in self.marriages]
+        chunk["events"] = []
+        chunk["birthEvent"] = {}
+        self.birthEvent.write(chunk["birthEvent"])
+        chunk["deathEvent"] = {}
+        self.deathEvent.write(chunk["deathEvent"])
+        chunk["adoptedEvent"] = {}
+        self.adoptedEvent.write(chunk["adoptedEvent"])
         for i in self._events:
             x = {}
             i.write(x)
-            chunk['events'].append(x)
-        chunk['childOf'] = {}
+            chunk["events"].append(x)
+        chunk["childOf"] = {}
         if self.childOf:
-            self.childOf.write(chunk['childOf'])
-        chunk['detailsText'] = {}
-        self.detailsText.write(chunk['detailsText'])
+            self.childOf.write(chunk["childOf"])
+        chunk["detailsText"] = {}
+        self.detailsText.write(chunk["detailsText"])
 
     def read(self, chunk, byId):
         self.isInit = False
@@ -208,41 +241,41 @@ class Person(PathItem):
         if self.name() is not None and not self.name():
             self.setName(None, notify=False)
         #
-        if chunk.get('childOf', {}):
+        if chunk.get("childOf", {}):
             self.childOf = ChildOf(self, None)
-            self.childOf.read(chunk['childOf'], byId)
+            self.childOf.read(chunk["childOf"], byId)
         #
-        if 'detailsText' in chunk:
-            self.detailsText.read(chunk['detailsText'], byId)
+        if "detailsText" in chunk:
+            self.detailsText.read(chunk["detailsText"], byId)
         if self.alias() is None:
             self.initAlias()
         #
-        self.marriages = list(set([byId(id) for id in chunk.get('marriages', [])]))
+        self.marriages = list(set([byId(id) for id in chunk.get("marriages", [])]))
         if None in self.marriages:
-            log.warning('*** None in self.marriages!')
+            log.warning("*** None in self.marriages!")
             self.marriages = [m for m in self.marriages if m]
         #
         self._events = []
-        for eChunk in chunk.get('events', []):
+        for eChunk in chunk.get("events", []):
             if util.IS_DEV:
                 # test for duplicates created from some bugs in dev
                 skip = False
                 for e in self._events:
-                    if e.id == eChunk['id']:
-                        log.warning('Ignoring duplicate event: %s' % e.id)
+                    if e.id == eChunk["id"]:
+                        log.warning("Ignoring duplicate event: %s" % e.id)
                         skip = True
                         break
                 if skip:
                     continue
-            event = Event(self, id=eChunk['id'])
+            event = Event(self, id=eChunk["id"])
             event.read(eChunk, byId)
-        self.birthEvent.read(chunk.get('birthEvent', {}), byId)
-        self.deathEvent.read(chunk.get('deathEvent', {}), byId)
-        self.adoptedEvent.read(chunk.get('adoptedEvent', {}), byId)
+        self.birthEvent.read(chunk.get("birthEvent", {}), byId)
+        self.deathEvent.read(chunk.get("deathEvent", {}), byId)
+        self.adoptedEvent.read(chunk.get("adoptedEvent", {}), byId)
         # re-set props in case they change in future versions
-        self.birthEvent.setUniqueId('birth')
-        self.deathEvent.setUniqueId('death')
-        self.adoptedEvent.setUniqueId('adopted')
+        self.birthEvent.setUniqueId("birth")
+        self.deathEvent.setUniqueId("death")
+        self.adoptedEvent.setUniqueId("adopted")
         self.birthEvent.setDescription(util.BIRTH_TEXT)
         self.deathEvent.setDescription(util.DEATH_TEXT)
         self.adoptedEvent.setDescription(util.ADOPTED_TEXT)
@@ -259,7 +292,9 @@ class Person(PathItem):
     def clone(self, scene):
         x = super().clone(scene)
         self.initAlias()
-        for event in list(self._events): # I wonder if excluding events would be a good idea?
+        for event in list(
+            self._events
+        ):  # I wonder if excluding events would be a good idea?
             newEvent = event.clone(scene)
             newEvent._cloned_parent_id = self.id
             x._events.append(newEvent)
@@ -273,25 +308,25 @@ class Person(PathItem):
         else:
             x._cloned_childOf_id = None
         x.setScale(util.scaleForPersonSize(x.size()))
-        x.variablesDatabase = self.variablesDatabase.clone() # does a deep copy
+        x.variablesDatabase = self.variablesDatabase.clone()  # does a deep copy
         return x
 
     def remap(self, map):
         for event in self._events:
             parent = map.find(event._cloned_parent_id)
             event.setParent(parent)
-            delattr(event, '_cloned_parent_id')
+            delattr(event, "_cloned_parent_id")
         self.birthEvent.setParent(self)
         self.adoptedEvent.setParent(self)
         self.deathEvent.setParent(self)
         self.marriages = [map.find(id) for id in self._cloned_marriage_ids]
         self.marriages = [i for i in self.marriages if i is not None]
-        delattr(self, '_cloned_marriage_ids')
+        delattr(self, "_cloned_marriage_ids")
         self._emotions = [map.find(id) for id in self._cloned_emotion_ids]
         self._emotions = [i for i in self._emotions if i is not None]
-        delattr(self, '_cloned_emotion_ids')
+        delattr(self, "_cloned_emotion_ids")
         self.childOf = map.find(self._cloned_childOf_id)
-        delattr(self, '_cloned_childOf_id')
+        delattr(self, "_cloned_childOf_id")
         return True
 
     ## Attributes
@@ -302,36 +337,36 @@ class Person(PathItem):
 
     def firstNameOrAlias(self):
         if self.scene() and self.scene().hideNames():
-            return ''
+            return ""
         elif self.scene() and self.scene().shouldShowAliases():
-            return '[%s]' % self.alias()
+            return "[%s]" % self.alias()
         else:
             return self.name()
 
     def fullNameOrAlias(self):
-        ret = ''
+        ret = ""
         if self.scene() and self.scene().hideNames():
             pass
         elif self.scene() and self.scene().shouldShowAliases():
             if self.name():
-                ret = '[%s]' % self.alias()
+                ret = "[%s]" % self.alias()
         else:
-            ret = ''
+            ret = ""
             if self.name():
                 ret += self.name()
             if self.middleName() and self.showMiddleName():
-                ret += ' ' + self.middleName()
+                ret += " " + self.middleName()
             if self.lastName() and self.showLastName():
-                ret += ' ' + self.lastName()
+                ret += " " + self.lastName()
             if self.nickName() and self.showNickName():
                 if ret:
-                    ret += ' '
-                ret += '(%s)' % self.nickName()
+                    ret += " "
+                ret += "(%s)" % self.nickName()
         return ret
 
     def itemName(self):
         return self.fullNameOrAlias()
-    
+
     def birthDateTime(self, string=False):
         if string:
             return util.dateString(self.birthEvent.dateTime())
@@ -348,7 +383,7 @@ class Person(PathItem):
             return util.dateString(self.deathEvent.dateTime())
         else:
             return self.deathEvent.dateTime()
-    
+
     def setDeceasedDateTime(self, x, **kwargs):
         self.deathEvent.setDateTime(x, **kwargs)
         self.deathEvent.setLoggedDateTime(QDateTime.currentDateTime())
@@ -366,7 +401,7 @@ class Person(PathItem):
             return util.dateString(self.adoptedEvent.dateTime())
         else:
             return self.adoptedEvent.dateTime()
-    
+
     def setAdoptedDateTime(self, x, **kwargs):
         self.adoptedEvent.setDateTime(x, **kwargs)
         self.adoptedEvent.setLoggedDateTime(QDateTime.currentDateTime())
@@ -384,12 +419,33 @@ class Person(PathItem):
             age = int(self.birthDateTime().daysTo(self.scene().currentDateTime()) / 365)
             return age
         elif self.birthDateTime() and self.deceased() and not self.deceasedDateTime():
-            return None # don't show very high age when age at death is unknown.
-        elif self.birthDateTime() and self.deceased() and (self.deceasedDateTime() and self.deceasedDateTime() <= self.scene().currentDateTime()):
+            return None  # don't show very high age when age at death is unknown.
+        elif (
+            self.birthDateTime()
+            and self.deceased()
+            and (
+                self.deceasedDateTime()
+                and self.deceasedDateTime() <= self.scene().currentDateTime()
+            )
+        ):
             age = int(self.birthDateTime().daysTo(self.deceasedDateTime()) / 365)
             return age
-        elif self.birthDateTime() and (self.birthDateTime() <= (self.scene() and self.scene().currentDateTime() or QDateTime.currentDateTime())):
-            age = int(self.birthDateTime().daysTo(self.scene() and self.scene().currentDateTime() or QDateTime.currentDateTime())/ 365)
+        elif self.birthDateTime() and (
+            self.birthDateTime()
+            <= (
+                self.scene()
+                and self.scene().currentDateTime()
+                or QDateTime.currentDateTime()
+            )
+        ):
+            age = int(
+                self.birthDateTime().daysTo(
+                    self.scene()
+                    and self.scene().currentDateTime()
+                    or QDateTime.currentDateTime()
+                )
+                / 365
+            )
             return age
 
     ## Scene Events
@@ -399,20 +455,25 @@ class Person(PathItem):
             return self.childOf.multipleBirth
 
     def setParents(self, parentItem):
-        """ The single entry point for adding+removing a person to a pair-bond.
-            `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
+        """The single entry point for adding+removing a person to a pair-bond.
+        `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
         if self.childOf:
             if self.childOf.multipleBirth:
                 multipleBirth = self.childOf.multipleBirth
                 parents = multipleBirth.parents()
                 children = list(multipleBirth.children())
-                if self in children: # children is empty when this is called recursively from just below
+                if (
+                    self in children
+                ):  # children is empty when this is called recursively from just below
                     children.remove(self)
                 self.childOf.multipleBirth._onRemoveChild(self)
                 if len(children) == 1:
                     children[0].setParents(parents)
-                if len(multipleBirth.children()) == 0 and multipleBirth.scene() is self.scene():
+                if (
+                    len(multipleBirth.children()) == 0
+                    and multipleBirth.scene() is self.scene()
+                ):
                     self.scene().removeItem(multipleBirth)
                 self.childOf._onRemoveMultipleBirth()
             self.parents()._onRemoveChild(self)
@@ -436,7 +497,9 @@ class Person(PathItem):
                     parentItem.parents()._onAddChild(self)
                     parentItem.multipleBirth._onAddChild(self)
                 else:
-                    multipleBirth = MultipleBirth(parentItem.parents(), parentItem, self)
+                    multipleBirth = MultipleBirth(
+                        parentItem.parents(), parentItem, self
+                    )
                     parentItem.parents()._onAddChild(self)
                     parentItem._onSetMultipleBirth(multipleBirth)
                     self.childOf._onSetMultipleBirth(multipleBirth)
@@ -464,7 +527,7 @@ class Person(PathItem):
     def onShowAliases(self):
         self._onShowAliases = True
         self.updateDetails()
-        prop = self.prop('notes')
+        prop = self.prop("notes")
         if prop.get() != self._aliasNotes:
             self.onProperty(prop)
         self._onShowAliases = False
@@ -477,8 +540,8 @@ class Person(PathItem):
 
     @util.fblocked
     def updateNotes(self):
-        """ Force re-write of aliases. """
-        prop = self.prop('notes')
+        """Force re-write of aliases."""
+        prop = self.prop("notes")
         notes = prop.get()
         if notes is not None and self.scene():
             self._aliasNotes = self.scene().anonymize(notes)
@@ -487,20 +550,20 @@ class Person(PathItem):
 
     def notes(self):
         if self.shouldShowAliases():
-            if self._aliasNotes is None and self.prop('notes').get(): # first time
+            if self._aliasNotes is None and self.prop("notes").get():  # first time
                 self.updateNotes()
             return self._aliasNotes
         else:
-            return self.prop('notes').get()        
+            return self.prop("notes").get()
 
     def notesIconPos(self):
-        return QPointF(0, self._notesIcon.boundingRect().height() * -.5)
+        return QPointF(0, self._notesIcon.boundingRect().height() * -0.5)
 
     ## Properties
 
     @util.blocked
     def onProperty(self, prop):
-        if prop.name() in ('name', 'middleName', 'lastName', 'nickName'):
+        if prop.name() in ("name", "middleName", "lastName", "nickName"):
             for marriage in self.marriages:
                 marriage.onPersonNameChanged(self)
             for event in self.events():
@@ -512,16 +575,16 @@ class Person(PathItem):
                 self.adoptedEvent.updateParentName()
             if self.deceased():
                 self.deathEvent.updateParentName()
-            self.setObjectName('Person_' + self.fullNameOrAlias())
-        elif prop.name() == 'gender':
+            self.setObjectName("Person_" + self.fullNameOrAlias())
+        elif prop.name() == "gender":
             self._delegate.setGender(prop.get())
             self.updateAgeText()
             self.initAlias()
-        elif prop.name() in ('adopted', 'deceased'):
-            if prop.name() == 'deceased':
+        elif prop.name() in ("adopted", "deceased"):
+            if prop.name() == "deceased":
                 self.onAgeChanged()
             self.updateEvents()
-        elif prop.name() == 'color' and prop.get() != self.pen().color().name():
+        elif prop.name() == "color" and prop.get() != self.pen().color().name():
             # old
             oldPenColor = self.pen().color()
             if self.itemAnimationGroup.state() == QAbstractAnimation.Running:
@@ -536,7 +599,9 @@ class Person(PathItem):
                 newBrushColor.setAlpha(100)
             else:
                 newBrushColor = QColor(Qt.transparent)
-            self.penAnimation.blockSignals(True) # setEndValue was calling callback with final value
+            self.penAnimation.blockSignals(
+                True
+            )  # setEndValue was calling callback with final value
             self.penAnimation.setStartValue(oldPenColor)
             self.penAnimation.setEndValue(newPenColor)
             self.penAnimation.blockSignals(False)
@@ -547,37 +612,37 @@ class Person(PathItem):
             self.scaleAnimation.setStartValue(None)
             self.scaleAnimation.setEndValue(None)
             self.startLayerAnimation(self.itemAnimationGroup)
-        elif prop.name() == 'itemOpacity' and prop.get() != self.opacity():
+        elif prop.name() == "itemOpacity" and prop.get() != self.opacity():
             self.updatePathItemVisible()
             # x = prop.isset() and prop.get() or 1.0
             # self.fadeToOpacity(x)
             # for item in self.dependents():
             #     item.fadeToOpacity(x)
-        elif prop.name() == 'size':
+        elif prop.name() == "size":
             endScale = util.scaleForPersonSize(prop.get())
             if endScale != self.scale():
-                self.sizeAnimation.blockSignals(True) 
+                self.sizeAnimation.blockSignals(True)
                 self.sizeAnimation.setStartValue(self.scale())
                 self.sizeAnimation.setEndValue(endScale)
                 self.sizeAnimation.blockSignals(False)
                 self.startLayerAnimation(self.sizeAnimation)
-        elif prop.name() == 'hideDetails':
+        elif prop.name() == "hideDetails":
             self.updateDetails()
-        elif prop.name() == 'bigFont':
+        elif prop.name() == "bigFont":
             if prop.get():
                 self.detailsText.setFont(util.DETAILS_BIG_FONT)
             else:
                 self.detailsText.setFont(util.DETAILS_FONT)
             self.updateDetails()
-        elif prop.name() == 'notes':
+        elif prop.name() == "notes":
             if not self._onShowAliases:
                 self.updateNotes()
-        elif prop.name() == 'primary':
+        elif prop.name() == "primary":
             self._delegate.setPrimary(prop.get())
             for emotion in self.emotions():
                 if emotion.kind() == util.ITEM_CUTOFF:
                     emotion.updateGeometry()
-        elif prop.name() == 'layers':
+        elif prop.name() == "layers":
             if self.scene():
                 self._layers = [self.scene().find(id=x) for x in prop.get()]
                 self.onActiveLayersChanged()
@@ -598,7 +663,7 @@ class Person(PathItem):
         return ret + self._events
 
     def updateEvents(self):
-        """ handle add|remove changes. """
+        """handle add|remove changes."""
         added = []
         removed = []
         newEvents = self.events()
@@ -621,10 +686,10 @@ class Person(PathItem):
                 self.variablesDatabase.unset(prop.attr, event.dateTime())
             self.eventRemoved.emit(event)
         return {
-            'oldEvents': oldEvents,
-            'newEvents': newEvents,
-            'added': added,
-            'removed': removed
+            "oldEvents": oldEvents,
+            "newEvents": newEvents,
+            "added": added,
+            "removed": removed,
         }
 
     def onEventProperty(self, prop):
@@ -635,16 +700,19 @@ class Person(PathItem):
             self.updateGeometry()
             self.onAgeChanged()
             self.updatePathItemVisible()
-        if prop.item in (self.birthEvent, self.deathEvent) and prop.name() == 'dateTime':
+        if (
+            prop.item in (self.birthEvent, self.deathEvent)
+            and prop.name() == "dateTime"
+        ):
             self.onAgeChanged()
-        if prop.item in changes['newEvents'] and not prop.item in changes['added']:
+        if prop.item in changes["newEvents"] and not prop.item in changes["added"]:
             self.eventChanged.emit(prop)
         if prop.isDynamic:
             self.variablesDatabase.set(prop.attr, prop.item.dateTime(), prop.get())
 
-    @util.fblocked # needed to avoid recursion in multiple births
+    @util.fblocked  # needed to avoid recursion in multiple births
     def updatePathItemVisible(self):
-        """ Override. """
+        """Override."""
         if self.shouldShowForDateAndLayerTags():
             opacity = self.itemOpacity()
             if opacity is None:
@@ -677,10 +745,10 @@ class Person(PathItem):
         if self.scene():
             self.updateAgeText()
             self.updatePen()
-            
+
     def _onAddEvent(self, x):
-        """ Called from Event.setParent. """
-        if x.uniqueId() in ('birth', 'adopted', 'death'): # called from Person()
+        """Called from Event.setParent."""
+        if x.uniqueId() in ("birth", "adopted", "death"):  # called from Person()
             return
         if x not in self._events:
             self._events.append(x)
@@ -689,7 +757,7 @@ class Person(PathItem):
             self.updateEvents()
 
     def _onRemoveEvent(self, x):
-        """ Called from Event.setParent. """
+        """Called from Event.setParent."""
         if x in self._events:
             self._events.remove(x)
             if self.scene():
@@ -707,14 +775,14 @@ class Person(PathItem):
         return list(self._emotions)
 
     def _onAddEmotion(self, emotion):
-        if not emotion in self._emotions: # wasn't allowing swap action
+        if not emotion in self._emotions:  # wasn't allowing swap action
             if not emotion.isDyadic():
                 emotion.setParentItem(self)
             self._emotions.append(emotion)
             self.emotionAdded.emit(emotion)
 
     def _onRemoveEmotion(self, emotion):
-        if emotion in self._emotions: # wasn't allowing swap action
+        if emotion in self._emotions:  # wasn't allowing swap action
             if not emotion.isDyadic():
                 emotion.setParentItem(None)
             self._emotions.remove(emotion)
@@ -761,7 +829,7 @@ class Person(PathItem):
         pen.setColor(self.currentPenColor())
         if self.childOf:
             self.childOf.updatePen()
-        if self.gender() == 'unknown':
+        if self.gender() == "unknown":
             c = pen.color()
             c.setAlpha(100)
             pen.setColor(c)
@@ -784,12 +852,12 @@ class Person(PathItem):
             oldColor = self.detailsText.extraLineColor(iLine)
             newColor = QColor(vBaseColor)
             if oldColor.alphaF() < 1.0:
-                newColor.setAlphaF(.7)
+                newColor.setAlphaF(0.7)
             self.detailsText.setExtraLineColor(iLine, newColor)
 
     def currentPenColor(self):
-        """ Return the layered color otherwise the default pen color. """
-        if self.prop('color').isset():
+        """Return the layered color otherwise the default pen color."""
+        if self.prop("color").isset():
             ret = QColor(self.color())
         else:
             if self.hover:
@@ -799,13 +867,13 @@ class Person(PathItem):
         return ret
 
     def updateGeometryAndDependents(self):
-        """ Also update dependents. """
+        """Also update dependents."""
         self.updateGeometry()
         self.updateDetails()
         self.updateDependents()
 
     def updateDependents(self):
-        """ in order """
+        """in order"""
         self.isUpdatingDependents = True
         dependents = self.dependents()
         for item in dependents:
@@ -813,7 +881,7 @@ class Person(PathItem):
         self.isUpdatingDependents = False
 
     def dependents(self):
-        """ The main graphical dependency graph for updateGeometry(). """
+        """The main graphical dependency graph for updateGeometry()."""
         ret = []
         for m in self.marriages:
             ret.append(m)
@@ -837,13 +905,15 @@ class Person(PathItem):
 
     def updateGeometry(self):
         super().updateGeometry()
-        if self.scene(): # get this from somewhere else
+        if self.scene():  # get this from somewhere else
             currentDateTime = self.scene().currentDateTime()
         else:
             currentDateTime = QDateTime()
         path = self.pathFor(self.gender(), self.pos(), primary=self.primary())
         rect = path.controlPointRect()
-        ignoreDeath = self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
+        ignoreDeath = (
+            self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
+        )
         if self.deceased() and not ignoreDeath:
             if self.age() is None:
                 path.moveTo(rect.topLeft())
@@ -852,7 +922,7 @@ class Person(PathItem):
                 path.lineTo(rect.bottomLeft())
             else:
                 # leave space for age
-                w = (rect.topRight().x() - rect.topLeft().x()) * .3
+                w = (rect.topRight().x() - rect.topLeft().x()) * 0.3
                 path.moveTo(rect.topLeft())
                 path.lineTo(rect.topLeft().x() + w, rect.topLeft().y() + w)
                 path.moveTo(rect.topRight())
@@ -860,7 +930,7 @@ class Person(PathItem):
                 path.moveTo(rect.bottomLeft())
                 path.lineTo(rect.bottomLeft().x() + w, rect.bottomLeft().y() - w)
                 path.moveTo(rect.bottomRight())
-                path.lineTo(rect.bottomRight().x() - w, rect.bottomRight().y() - w)        
+                path.lineTo(rect.bottomRight().x() - w, rect.bottomRight().y() - w)
         self.setPath(path)
         self.updatePen()
         self.updateDetails()
@@ -868,15 +938,15 @@ class Person(PathItem):
     def updateAgeText(self):
         if not self.scene():
             return
-        # age text        
-        if self.gender() == 'unknown':
-            self.ageItem.setText('?')
+        # age text
+        if self.gender() == "unknown":
+            self.ageItem.setText("?")
         else:
             age = self.age()
             if age is not None and age > -1:
                 self.ageItem.setText(str(age))
             else:
-                self.ageItem.setText('')
+                self.ageItem.setText("")
                 self.ageItem.hide()
         if self.ageItem.text():
             r = self.ageItem.boundingRect()
@@ -902,25 +972,29 @@ class Person(PathItem):
         if name:
             lines.append(name)
         if self.birthDateTime():
-            lines.append('b. ' + util.dateString(self.birthDateTime()))
-        if self.gender() == 'abortion':
-            lines.append('(abortion)')
-        elif self.gender() == 'miscarriage':
-            lines.append('(miscarriage)')
+            lines.append("b. " + util.dateString(self.birthDateTime()))
+        if self.gender() == "abortion":
+            lines.append("(abortion)")
+        elif self.gender() == "miscarriage":
+            lines.append("(miscarriage)")
         if self.deceased():
-            ignoreDeath = self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
+            ignoreDeath = (
+                self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
+            )
             if self.deceasedDateTime() and not ignoreDeath:
-                lines.append('d. ' + util.dateString(self.deceasedDateTime()))
+                lines.append("d. " + util.dateString(self.deceasedDateTime()))
             if self.deceasedReason() and not ignoreDeath:
                 lines.append(self.deceasedReason())
         if self.adopted():
-            ignoreAdoption = self.adoptedDateTime() and self.adoptedDateTime() > currentDateTime
+            ignoreAdoption = (
+                self.adoptedDateTime() and self.adoptedDateTime() > currentDateTime
+            )
             if self.adoptedDateTime() and not ignoreAdoption:
-                lines.append('a. ' + util.dateString(self.adoptedDateTime()))
+                lines.append("a. " + util.dateString(self.adoptedDateTime()))
         if self.diagramNotes():
-            for line in self.diagramNotes().split('\n'):
+            for line in self.diagramNotes().split("\n"):
                 lines.append(line)
-        mainText = '\n'.join(lines)
+        mainText = "\n".join(lines)
         variableLines = []
         variableColors = []
         if self.scene():
@@ -930,14 +1004,16 @@ class Person(PathItem):
                 vBaseColor = QColor(self.VARIABLE_BASE_COLOR_LIGHT_MODE)
             hideVariableSteadyStates = self.scene().hideVariableSteadyStates()
             for i, entry in enumerate(self.scene().eventProperties()):
-                value, isChange = self.variablesDatabase.get(entry['attr'], currentDateTime)
+                value, isChange = self.variablesDatabase.get(
+                    entry["attr"], currentDateTime
+                )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                variableLines.append('%s: %s' % (entry['name'], value))
+                variableLines.append("%s: %s" % (entry["name"], value))
                 if isChange:
                     alpha = 1.0
                 else:
-                    alpha = .4
+                    alpha = 0.4
                 color = QColor(vBaseColor)
                 color.setAlphaF(alpha)
                 variableColors.append(color)
@@ -966,7 +1042,7 @@ class Person(PathItem):
         self.updateGeometry()
 
     def updateDetailsAndChild(self):
-        """ Adopted """
+        """Adopted"""
         self.updateDetails()
         if self.childOf:
             self.childOf.updateGeometry()
@@ -976,7 +1052,9 @@ class Person(PathItem):
         self.updateDetails()
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
-        if self.isSelected(): # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
+        if (
+            self.isSelected()
+        ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
             # if self.name(): self.here('True:isSelected', self.name())
             return True
         found = False
@@ -985,7 +1063,7 @@ class Person(PathItem):
         elif self.birthDateTime():
             ret = self.birthDateTime() <= dateTime
         else:
-            ret = True            
+            ret = True
         # failed attempt at linking people without birthdates
         # elif not self.marriages and not self.parents():
         #     return True
@@ -1011,13 +1089,13 @@ class Person(PathItem):
         painter.drawPath(path)
         painter.restore()
         super().paint(painter, option, widget)
-        if self.gender() == 'unknown':
+        if self.gender() == "unknown":
             painter.save()
             painter.setPen(self.pen())
             font = QFont(util.AGE_FONT)
             font.setPointSize(font.pointSize() * 2)
             painter.setFont(font)
-            painter.drawText(self.boundingRect(), Qt.AlignCenter, '?')
+            painter.drawText(self.boundingRect(), Qt.AlignCenter, "?")
             painter.restore()
         elif self.age() is not None:
             painter.save()
@@ -1035,7 +1113,9 @@ class Person(PathItem):
         if self.view().dragMode() == QGraphicsView.ScrollHandDrag:
             e.ignore()
             return
-        super().mousePressEvent(e) # must come first to select before updating draggingWithMe
+        super().mousePressEvent(
+            e
+        )  # must come first to select before updating draggingWithMe
         self.mouseDownPos = e.scenePos()
         self.mouseMovePos = e.scenePos()
         self.mouseDownPersonPos = self.pos()
@@ -1059,7 +1139,9 @@ class Person(PathItem):
         if self.view().dragMode() == QGraphicsView.ScrollHandDrag:
             e.ignore()
             return
-        super().mouseReleaseEvent(e) # must come first to deselect before updating draggingWithMe
+        super().mouseReleaseEvent(
+            e
+        )  # must come first to deselect before updating draggingWithMe
         self.mouseDownPos = None
         self.mouseMovePos = None
         self.mouseDownPersonPos = None
@@ -1074,7 +1156,7 @@ class Person(PathItem):
             self.draggingWithMe.remove(person)
 
     def itemChange(self, change, variant):
-        if hasattr(self, 'isInit') and not self.isInit:
+        if hasattr(self, "isInit") and not self.isInit:
             return super().itemChange(change, variant)
         if change == QGraphicsItem.ItemSceneChange:
             if self.scene():
@@ -1109,14 +1191,20 @@ class Person(PathItem):
         elif change == QGraphicsItem.ItemPositionChange:
             if self.scene() and not self.scene().isInitializing:
                 if self.scene().mousePressOnDraggable:
-                    self.scene().checkItemDragged(self, variant) # update compressed move command
+                    self.scene().checkItemDragged(
+                        self, variant
+                    )  # update compressed move command
             # snap-drag
             if self.draggingMaster is not None:
                 pass
             elif self.scene() and self.scene().readOnly():
                 # Prevent moving person after double-click and hold when drawer is animating open
                 variant = self.pos()
-            elif self.scene() and self.scene().isAnimatingDrawer() and self.scene().isDraggingSomething():
+            elif (
+                self.scene()
+                and self.scene().isAnimatingDrawer()
+                and self.scene().isDraggingSomething()
+            ):
                 # Prevent moving person after double-click and hold when drawer is animating open
                 variant = self.pos()
             elif self.scene() and self.scene().canSnapDrag and self.mouseDownPos:
@@ -1126,20 +1214,29 @@ class Person(PathItem):
                 rectWouldBe = QRectF(self.mouseDownSceneBoundingRect)
                 rectWouldBe.setY(self.mouseDownSceneBoundingRect.y() + yDelta)
                 otherSceneRect = None
-                THRESHOLD = util.SNAP_THRESHOLD_PERCENT * self.mouseDownSceneBoundingRect.height()
+                THRESHOLD = (
+                    util.SNAP_THRESHOLD_PERCENT
+                    * self.mouseDownSceneBoundingRect.height()
+                )
                 snapTo = None
                 diffs = []
                 for other in self.scene().people():
-                    if other is not self and not other.isSelected() and other.isVisible():
+                    if (
+                        other is not self
+                        and not other.isSelected()
+                        and other.isVisible()
+                    ):
                         # TODO: don't use Person.boundingRect() because we want to ignore the outer shape when `primary`
-                        _otherSceneRect = other.mapToScene(other.boundingRect()).boundingRect()
+                        _otherSceneRect = other.mapToScene(
+                            other.boundingRect()
+                        ).boundingRect()
                         diff = abs(_otherSceneRect.y() - rectWouldBe.y())
                         diffs.append((other, _otherSceneRect, diff))
                 diffs = sorted(diffs, key=lambda x: x[2])
                 other, _otherSceneRect, diff = diffs[0]
                 if diff < THRESHOLD:
                     otherSceneRect = _otherSceneRect
-                    snapTo = other # sync frames after pos has changed                
+                    snapTo = other  # sync frames after pos has changed
                 # stop old snap
                 if self.snappedOther and self.snappedOther is not snapTo:
                     self.scene().onPersonUnsnapped(self)
@@ -1147,27 +1244,31 @@ class Person(PathItem):
                 # start or continue snap
                 if snapTo:
                     selfSceneRect = self.mapToScene(self.boundingRect()).boundingRect()
-                    diffY = selfSceneRect.height() * .5
+                    diffY = selfSceneRect.height() * 0.5
                     variant.setY(otherSceneRect.y() + diffY)
                     if snapTo is not self.snappedOther:
                         self.snappedOther = snapTo
                         self.scene().onPersonSnapped(self, self.snappedOther, variant)
                     else:
-                        self.scene().onPersonSnapUpdated(self, self.snappedOther, variant)
+                        self.scene().onPersonSnapUpdated(
+                            self, self.snappedOther, variant
+                        )
             if self.mouseDownPersonPos:
                 diffX2 = variant.x() - self.mouseDownPersonPos.x()
                 diffY2 = variant.y() - self.mouseDownPersonPos.y()
                 for person in self.draggingWithMe:
-                    person.setPos(person.draggingWithMe_origPos + QPointF(diffX2, diffY2))
+                    person.setPos(
+                        person.draggingWithMe_origPos + QPointF(diffX2, diffY2)
+                    )
                 # else:
                 #     variant.setY(yWouldBe)
             self.cachedPosChangeOldPos = self.pos()
         elif change == QGraphicsItem.ItemPositionHasChanged:
-            if self.scene(): # None when commands.AddPerson
+            if self.scene():  # None when commands.AddPerson
                 for emotion in self.emotions():
                     # update emotions fanned box offsets before updating their geometry
                     if emotion.fannedBox:
-                        emotion.fannedBox.updateOffsets() # double calls when more than one person/emotion moved...
+                        emotion.fannedBox.updateOffsets()  # double calls when more than one person/emotion moved...
                 self.updateDependents()
                 posDelta = self.cachedPosChangeOldPos - variant
                 for layerItem in self._layerItems:
@@ -1182,7 +1283,7 @@ class Person(PathItem):
                 self.childOf.updatePen()
                 self.childOf.updateGeometry()
             if variant is False:
-                self.updateAll() # update after override in shouldShowFor
+                self.updateAll()  # update after override in shouldShowFor
         return super().itemChange(change, variant)
 
     ## Paint animations
@@ -1219,7 +1320,7 @@ class Person(PathItem):
                     return
         self.here()
         e.acceptProposedAction()
-    
+
     def __dropEvent(self, e):
         self.here()
         for url in e.mimeData().urls():
@@ -1231,22 +1332,22 @@ class Person(PathItem):
             if not destDir.exists():
                 os.makedirs(destDir.absolutePath())
             if e.dropAction() == Qt.CopyAction:
-                self.here('Copied', dest)
+                self.here("Copied", dest)
                 shutil.copyfile(src, dest)
                 self.fileAdded.emit(dest)
-                
+
     def documentsPath(self):
         if self.scene() and self.scene().document():
             documentUrl = self.scene().document().url().toLocalFile()
-            return os.path.join(documentUrl, 'People', str(self.id))
+            return os.path.join(documentUrl, "People", str(self.id))
 
     ## Actions
 
     def setVisible(self, on):
         super().setVisible(on)
         self.updateDetails()
-    
+
 
 from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlEngine
-    
-qmlRegisterType(Person, 'Person', 1, 0, 'Person')
+
+qmlRegisterType(Person, "Person", 1, 0, "Person")

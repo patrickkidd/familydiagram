@@ -8,17 +8,17 @@ log = logging.getLogger(__name__)
 
 
 class GraphicalTimeline(QScrollArea):
-    """ Scroll area container for a GraphicalTimelineView that contains a GraphicalTimelineCanvas. """
-    
+    """Scroll area container for a GraphicalTimelineView that contains a GraphicalTimelineCanvas."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        
+
         self.scene = None
         self.nominalWidth = 0
         self.scaleFactor = 1.0
-        self.tags = [] # cache to maintain click order        
+        self.tags = []  # cache to maintain click order
         self.heightMultiplier = None
         self._freezeScroll = False
         self._isResizeEvent = False
@@ -30,10 +30,10 @@ class GraphicalTimeline(QScrollArea):
         ControlsLayout = QHBoxLayout(self.controls)
         m = util.MARGIN_X
         ControlsLayout.setContentsMargins(m, m, m, m)
-        
-        self.heightLabel = QLabel('Height', self.controls)
+
+        self.heightLabel = QLabel("Height", self.controls)
         ControlsLayout.addWidget(self.heightLabel)
-        
+
         self.heightSlider = QSlider(Qt.Horizontal, self.controls)
         self.heightSlider.setMinimum(100)
         self.heightSlider.setMaximum(175)
@@ -41,7 +41,7 @@ class GraphicalTimeline(QScrollArea):
         self.heightSlider.setMinimumWidth(150)
         ControlsLayout.addWidget(self.heightSlider)
 
-        self.sullivanianTimeBox = QCheckBox('Sullivanian Time', self.controls)
+        self.sullivanianTimeBox = QCheckBox("Sullivanian Time", self.controls)
         ControlsLayout.addWidget(self.sullivanianTimeBox)
 
         self.canvas = GraphicalTimelineCanvas(self)
@@ -87,46 +87,59 @@ class GraphicalTimeline(QScrollArea):
             delta = e.pixelDelta().y()
         if e.modifiers() & Qt.AltModifier and delta:
             e.accept()
-            self.scaleFactor = self.scaleFactor + delta * -.002
+            self.scaleFactor = self.scaleFactor + delta * -0.002
             if self.scaleFactor < 1.0:
                 self.scaleFactor = 1.0
                 self.nominalWidth = self.rect().width()
             self.zoomAbsolute(self.scaleFactor, forWheelEvent=True)
         else:
-            super().wheelEvent(e)    
+            super().wheelEvent(e)
         self._isWheelEvent = False
 
     def resizeEvent(self, e):
         self._isResizeEvent = True
         # maintain scroll on manual resize (1)
-        if self.parent() and self.parent().animation.state() != QAbstractAnimation.Running:
+        if (
+            self.parent()
+            and self.parent().animation.state() != QAbstractAnimation.Running
+        ):
             hScroll = self.horizontalScrollBar()
             if hScroll.maximum() != hScroll.minimum():
-                hCoeff = hScroll.value() / (hScroll.maximum() - hScroll.minimum()) # save relative scroll position
+                hCoeff = hScroll.value() / (
+                    hScroll.maximum() - hScroll.minimum()
+                )  # save relative scroll position
             else:
                 hCoeff = 1.0
         super().resizeEvent(e)
         self.adjust()
         self._isResizeEvent = False
         # maintain scroll on manual resize (2)
-        if self.parent() and self.parent().animation.state() != QAbstractAnimation.Running:
+        if (
+            self.parent()
+            and self.parent().animation.state() != QAbstractAnimation.Running
+        ):
             newHScroll = (hScroll.maximum() - hScroll.minimum()) * hCoeff
             hScroll.setValue(round(newHScroll))
 
     def onHScroll(self, x):
         return
-        if self._isResizeEvent or self.parent().animation.state() == QAbstractAnimation.Running:
+        if (
+            self._isResizeEvent
+            or self.parent().animation.state() == QAbstractAnimation.Running
+        ):
             return
         hScroll = self.horizontalScrollBar()
         if hScroll.maximum() != hScroll.minimum():
-            self._expandedHScrollCoeff = hScroll.value() / (hScroll.maximum() - hScroll.minimum()) # save relative scroll position
+            self._expandedHScrollCoeff = hScroll.value() / (
+                hScroll.maximum() - hScroll.minimum()
+            )  # save relative scroll position
         else:
             self._expandedHScrollCoeff = 1.0
 
     def showEvent(self, e):
         self.adjustCanvas()
         self.sullivanianTimeBox.adjustSize()
-        
+
     def zoomAbsolute(self, x, forWheelEvent=False):
         self.scaleFactor = x
         self.adjustCanvas(forWheelEvent=forWheelEvent)
@@ -144,7 +157,9 @@ class GraphicalTimeline(QScrollArea):
             xCoeffOrig = 1
         #
         height = self.viewport().height()
-        width = round(self.viewport().width() * self.scaleFactor) # self.canvas.RIGHT_MARGIN
+        width = round(
+            self.viewport().width() * self.scaleFactor
+        )  # self.canvas.RIGHT_MARGIN
         if self.heightMultiplier is not None:
             height = round(height * self.heightMultiplier)
         self.canvas.resize(width, height)
@@ -161,7 +176,7 @@ class GraphicalTimeline(QScrollArea):
         xCanvasNew = xCanvasOrig * xScaleDelta
         xCanvasDelta = xCanvasNew - xCanvasOrig
         hScroll = self.horizontalScrollBar()
-        hNew = hScroll.value() + xCanvasDelta        
+        hNew = hScroll.value() + xCanvasDelta
         hScroll.setValue(round(hNew))
 
     def adjust(self):
@@ -172,7 +187,7 @@ class GraphicalTimeline(QScrollArea):
         # self.heightSlider.move(self.sullivanianTimeBox.x() + self.sullivanianTimeBox.width(), y)
 
     def updatePersonNames(self):
-        self.update() # just repaint
+        self.update()  # just repaint
 
     def setIsSlider(self, on):
         self.canvas.setIsSlider(on)
@@ -199,7 +214,7 @@ class GraphicalTimeline(QScrollArea):
         for tag in tags:
             if not tag in self.tags:
                 self.tags.append(tag)
-        self.canvas.refresh() # min canvas height maybe changed
+        self.canvas.refresh()  # min canvas height maybe changed
         self.updateControls()
 
     def setRowHeight(self, x):
@@ -224,8 +239,11 @@ class GraphicalTimeline(QScrollArea):
             from .pyqt import QPrinter, QPrintDialog
         printer = QPrinter()
         if printer.outputFormat() != QPrinter.NativeFormat:
-            QMessageBox.information(self, 'No printers available',
-                                    'You need to set up a printer on your computer before you use this feature.')
+            QMessageBox.information(
+                self,
+                "No printers available",
+                "You need to set up a printer on your computer before you use this feature.",
+            )
             return
         dlg = QPrintDialog(printer, self)
         ret = dlg.exec()
@@ -234,9 +252,11 @@ class GraphicalTimeline(QScrollArea):
 
     def onSaveAs(self):
         import os.path
+
         desktopPath = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        filePath = util.prefs().value('lastFileSavePath', type=str,
-                                      defaultValue=desktopPath)
+        filePath = util.prefs().value(
+            "lastFileSavePath", type=str, defaultValue=desktopPath
+        )
         if self.scene.shouldShowAliases():
             fileName = "[%s]" % self.scene.alias
         else:
@@ -247,18 +267,21 @@ class GraphicalTimeline(QScrollArea):
             dirPath = filePath
         filePath = os.path.join(dirPath, fileName)
         if util.suffix(filePath) == util.EXTENSION:
-            filePath = filePath[:-len(util.EXTENSION)] + 'jpg'
-        filePath, types = QFileDialog.getSaveFileName(self, "Save File",
-                                                      filePath,
-                                                      "Image JPEG (*.jpg *.jpeg);; Image PNG (*.png)",
-                                                      "Image JPEG (*.jpg *.jpeg)")
+            filePath = filePath[: -len(util.EXTENSION)] + "jpg"
+        filePath, types = QFileDialog.getSaveFileName(
+            self,
+            "Save File",
+            filePath,
+            "Image JPEG (*.jpg *.jpeg);; Image PNG (*.png)",
+            "Image JPEG (*.jpg *.jpeg)",
+        )
         if not filePath:
             return
-        ext = filePath.rsplit('.')[1].lower()
-        if ext in ['jpg', 'jpeg']:
-            format='JPEG'
-        elif ext in ['png']:
-            format='PNG'
+        ext = filePath.rsplit(".")[1].lower()
+        if ext in ["jpg", "jpeg"]:
+            format = "JPEG"
+        elif ext in ["png"]:
+            format = "PNG"
         self.writeImage(imageFormat=format, filePath=filePath)
 
     def writeImage(self, imageFormat=None, filePath=None, printer=None):
@@ -267,8 +290,8 @@ class GraphicalTimeline(QScrollArea):
         size = self.canvas.size() * util.PRINT_DEVICE_PIXEL_RATIO
         image = QImage(size, QImage.Format_RGB32)
         image.setDevicePixelRatio(util.PRINT_DEVICE_PIXEL_RATIO)
-        if imageFormat == 'JPEG':
-            image.fill(QColor('white'))
+        if imageFormat == "JPEG":
+            image.fill(QColor("white"))
         painter = QPainter()
         painter.begin(image)
         painter.setRenderHint(QPainter.Antialiasing, True)
@@ -294,28 +317,33 @@ class GraphicalTimeline(QScrollArea):
             sourceRect = image.rect()
             if sourceRect.width() > sourceRect.height():
                 scale = printRect.width() / sourceRect.width()
-                targetRect = QRect(printRect.x(), printRect.y(),
-                                   sourceRect.width() * scale,
-                                   sourceRect.height() * scale)
+                targetRect = QRect(
+                    printRect.x(),
+                    printRect.y(),
+                    sourceRect.width() * scale,
+                    sourceRect.height() * scale,
+                )
             else:
                 scale = printRect.height() / sourceRect.height()
-                targetRect = QRect(printRect.x(),
-                                   printRect.y(),
-                                   sourceRect.width() * scale,
-                                   sourceRect.height() * scale)
+                targetRect = QRect(
+                    printRect.x(),
+                    printRect.y(),
+                    sourceRect.width() * scale,
+                    sourceRect.height() * scale,
+                )
             p.drawImage(targetRect, image, sourceRect)
             p.end()
-            
-    
-            
+
+
 def __test__(scene, parent):
     from .graphicaltimelineview import SearchModel
-    scene.setTags(['Tag 1', 'Tag 2'])
+
+    scene.setTags(["Tag 1", "Tag 2"])
     for i, event in enumerate(scene.events()):
         if i % 2:
-            event.setTag('Tag 1')
+            event.setTag("Tag 1")
         else:
-            event.setTag('Tag 2')
+            event.setTag("Tag 2")
     w = GraphicalTimeline(parent)
     model = SearchModel()
     model.tags = scene.tags()

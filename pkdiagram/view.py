@@ -1,8 +1,18 @@
 import time
 from .pyqt import *
 from .pyqt import (
-    QWidget, QGraphicsOpacityEffect, QPropertyAnimation, QPainterPath, QPainter, QPen, QBrush, QColor,
-    QPointF, QAbstractAnimation, QFontMetrics, QGraphicsOpacityEffect
+    QWidget,
+    QGraphicsOpacityEffect,
+    QPropertyAnimation,
+    QPainterPath,
+    QPainter,
+    QPen,
+    QBrush,
+    QColor,
+    QPointF,
+    QAbstractAnimation,
+    QFontMetrics,
+    QGraphicsOpacityEffect,
 )
 from . import util, toolbars, objects, widgets, commands
 from . import panzoom, dragpan, wheelzoom
@@ -11,6 +21,7 @@ from .helpoverlay import HelpOverlay
 
 
 HOTSPOT_SIZE = 64
+
 
 class DateLabel(QWidget):
 
@@ -37,14 +48,18 @@ class DateLabel(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
         p.strokePath(self.path, QPen(QBrush(QColor(255, 255, 255, 255)), self.STROKE))
-        p.fillPath(self.path, QBrush(QColor('black')))
+        p.fillPath(self.path, QBrush(QColor("black")))
         p = None
         super().paintEvent(e)
 
     def setText(self, x, flash=True):
         fm = QFontMetrics(util.CURRENT_DATE_FONT, self)
         self.path = QPainterPath()
-        self.path.addText(QPointF(self.STROKE / 2, fm.height() + self.STROKE / 2), util.CURRENT_DATE_FONT, x)
+        self.path.addText(
+            QPointF(self.STROKE / 2, fm.height() + self.STROKE / 2),
+            util.CURRENT_DATE_FONT,
+            x,
+        )
         self.resize(self.sizeHint())
         if flash:
             if self.flashAnimation.state() == QAbstractAnimation.Running:
@@ -52,29 +67,26 @@ class DateLabel(QWidget):
             self.flashAnimation.start()
 
 
-
 def quadrantFor(rect, pos):
-    """ Return which quadrant this point is in,
-        overshot to handle out of bounds coordinates.  """
+    """Return which quadrant this point is in,
+    overshot to handle out of bounds coordinates."""
     qrect = type(rect)
     w = rect.width() / 2
     h = rect.height() / 2
-    topLeft = qrect(-10000, -10000, w+10000, h+10000)
-    topRight = qrect(rect.width() / 2, -10000, 10000, 10000+h)
+    topLeft = qrect(-10000, -10000, w + 10000, h + 10000)
+    topRight = qrect(rect.width() / 2, -10000, 10000, 10000 + h)
     bottomRight = qrect(w, h, 10000, 10000)
-    bottomLeft = qrect(-10000, h, 10000+w, 10000)
+    bottomLeft = qrect(-10000, h, 10000 + w, 10000)
     if topLeft.contains(pos):
-        return 'north-west', topLeft
+        return "north-west", topLeft
     elif topRight.contains(pos):
-        return 'north-east', topRight
+        return "north-east", topRight
     elif bottomLeft.contains(pos):
-        return 'south-west', bottomLeft
+        return "south-west", bottomLeft
     elif bottomRight.contains(pos):
-        return 'south-east', bottomRight
+        return "south-east", bottomRight
     else:
-        raise ValueError('%s is not in a quadrant.' % pos)
-
-
+        raise ValueError("%s is not in a quadrant." % pos)
 
 
 class View(QGraphicsView):
@@ -93,10 +105,10 @@ class View(QGraphicsView):
         self.mousePress = None
         self.touches = []
         self.lastZoomData = {
-            'size': self.size(),
-            'scale': 1.0,
-            'viewableSceneRect': QRectF(),
-            'fitRect': QRectF()
+            "size": self.size(),
+            "scale": 1.0,
+            "viewableSceneRect": QRectF(),
+            "fitRect": QRectF(),
         }
         self._isResizeEvent = False
         self.dragPanner = dragpan.DragPanner(self)
@@ -106,7 +118,7 @@ class View(QGraphicsView):
         self.totalScaleFactor = 1.0
         self.pinchZooming = False
         self.dontInspect = False
-        self.forceRightRBOffRightEdge_x = None # hack to leave rightTB where the right edge will be after the drawer is hidden. Is the same as the drawerShim.width()
+        self.forceRightRBOffRightEdge_x = None  # hack to leave rightTB where the right edge will be after the drawer is hidden. Is the same as the drawerShim.width()
         self._zoomFitDirty = False
         self._zoomFitPendingTimer = QTimer(self, interval=100)
         self._zoomFitPendingTimer.timeout.connect(self.onPendingZoomFitTimer)
@@ -115,7 +127,12 @@ class View(QGraphicsView):
         self.setAcceptDrops(True)
         self.setFrameShape(QFrame.NoFrame)
         self.setFrameShadow(QFrame.Plain)
-        self.setRenderHints(QPainter.Antialiasing | QPainter.HighQualityAntialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
+        self.setRenderHints(
+            QPainter.Antialiasing
+            | QPainter.HighQualityAntialiasing
+            | QPainter.SmoothPixmapTransform
+            | QPainter.TextAntialiasing
+        )
         self.setDragMode(QGraphicsView.RubberBandDrag)
         # well, the bastard crashes when these are shown so just get rid of 'em
         # plus it's faster...
@@ -137,11 +154,14 @@ class View(QGraphicsView):
             self.setViewport(vp)
 
         self.hiddenItemsLabel = QLabel(self)
-        self.hiddenItemsLabel.setStyleSheet("""
+        self.hiddenItemsLabel.setStyleSheet(
+            """
         color: 'grey';
         font-family: '%s';
         font-size: 11px;
-        qproperty-alignment: AlignRight;""" % util.FONT_FAMILY)
+        qproperty-alignment: AlignRight;"""
+            % util.FONT_FAMILY
+        )
 
         self.zoomFitAnim = QVariantAnimation(self)
         self.zoomFitAnim.setDuration(util.ANIM_DURATION_MS)
@@ -150,7 +170,7 @@ class View(QGraphicsView):
         self.zoomFitAnim.finished.connect(self.onZoomFitAnimFinished)
 
         self.undoLabel = QLabel(self)
-        self.undoLabel.setObjectName('undoLabel')
+        self.undoLabel.setObjectName("undoLabel")
         self.undoLabel.resize(HOTSPOT_SIZE, HOTSPOT_SIZE)
         self.undoLabel.setScaledContents(True)
         self.undoLabel.setPixmap(QPixmap(util.QRC + "undo-button.png"))
@@ -165,7 +185,7 @@ class View(QGraphicsView):
         self.undoAnimation.finished.connect(self.onUndoRedoAnimFinished)
 
         self.redoLabel = QLabel(self)
-        self.redoLabel.setObjectName('redoLabel')
+        self.redoLabel.setObjectName("redoLabel")
         self.redoLabel.setPixmap(QPixmap(util.QRC + "redo-button.png"))
         self.redoLabel.resize(HOTSPOT_SIZE, HOTSPOT_SIZE)
         self.redoLabel.setScaledContents(True)
@@ -190,14 +210,18 @@ class View(QGraphicsView):
         self.currentDateTimeLabel.move(self.currentDateTimeNormalPos)
         self.currentDateTimeShown = False
 
-        self.showDateAnimation = QPropertyAnimation(self.currentDateTimeLabel, bytes(b"pos"))
+        self.showDateAnimation = QPropertyAnimation(
+            self.currentDateTimeLabel, bytes(b"pos")
+        )
         self.showDateAnimation.setDuration(util.ANIM_DURATION_MS)
 
         # Legend
         self.anchorIndicator = QWidget(self)
-        self.anchorIndicator.setStyleSheet("""
+        self.anchorIndicator.setStyleSheet(
+            """
         background-color: rgba(0, 20, 255, 15%);
-        """)
+        """
+        )
         self.anchorIndicator.hide()
         self.legend = None
 
@@ -213,7 +237,7 @@ class View(QGraphicsView):
         # if self.mw:
         #     self.purchaseButton.clicked.connect(self.mw.showAccount)
         # self.purchaseButton.hide()
-        
+
         # Toolbars
         self.sceneToolBar = toolbars.SceneToolBar(self, ui)
         self.sceneTBAnimation = QPropertyAnimation(self.sceneToolBar, bytes(b"pos"))
@@ -233,7 +257,9 @@ class View(QGraphicsView):
         self.rightTB_x = self.width() - self.rightToolBar.width()
         self.rightToolBarShown = True
         #
-        self.showToolBarButton = widgets.PixmapPushButton(self, uncheckedPixmapPath=util.QRC + 'hide-button.png')
+        self.showToolBarButton = widgets.PixmapPushButton(
+            self, uncheckedPixmapPath=util.QRC + "hide-button.png"
+        )
         eff = QGraphicsOpacityEffect()
         self.showToolBarButton.setGraphicsEffect(eff)
         eff.setOpacity(0)
@@ -282,9 +308,13 @@ class View(QGraphicsView):
             self.scene().itemDragged.disconnect(self.onItemDragged)
             self.scene().itemRemoved.connect(self.onItemRemoved)
             self.scene().printRectChanged.disconnect(self.onScenePrintRectChanged)
-            self.scene().propertyChanged[objects.Property].disconnect(self.onSceneProperty)
+            self.scene().propertyChanged[objects.Property].disconnect(
+                self.onSceneProperty
+            )
             self.scene().activeLayersChanged.disconnect(self.onActiveLayersChanged)
-            self.scene().layerAnimationGroup.finished.disconnect(self.onLayerAnimationFinished)
+            self.scene().layerAnimationGroup.finished.disconnect(
+                self.onLayerAnimationFinished
+            )
             self.forceRightRBOffRightEdge_x = None
         super().setScene(scene)
         self._scene = scene
@@ -301,18 +331,20 @@ class View(QGraphicsView):
             scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
             scene.activeLayersChanged.connect(self.onActiveLayersChanged)
             scene.layerAnimationGroup.finished.connect(self.onLayerAnimationFinished)
-            self.onSceneProperty(scene.prop('currentDateTime'))
+            self.onSceneProperty(scene.prop("currentDateTime"))
+
             # auto-zoom fit on load screen
             # if this isn't delayed it gets the wrong scene rect, not sure why
             def delayedZoomFit():
                 if self.scene():
                     self.zoomFit(animate=False, forLayers=self.scene().activeLayers())
+
             # One or the other are needed.
             QTimer.singleShot(10, delayedZoomFit)
             QTimer.singleShot(1000, delayedZoomFit)
             # init legend
             data = scene.legendData()
-            if data['shown']:
+            if data["shown"]:
                 self.onShowLegend(True, animate=False)
             else:
                 self.onShowLegend(False, animate=False)
@@ -332,7 +364,7 @@ class View(QGraphicsView):
         #     self.scene().update()
 
     def adjustToolBars(self):
-        """ Parsed out to adjust during show/hide animations. """
+        """Parsed out to adjust during show/hide animations."""
         self.sceneToolBar.onResponsive(self.size())
         margin = (self.width() - self.sceneToolBar.width()) / 2
         self.sceneToolBar.move(round(margin), round(self.sceneTB_y))
@@ -344,7 +376,7 @@ class View(QGraphicsView):
             clipForSTB = True
         # item toolbar
         self.itemToolBar.onResponsive(size)
-        yMiddle = (self.height() - self.itemToolBar.height()) / 2 # after responsive
+        yMiddle = (self.height() - self.itemToolBar.height()) / 2  # after responsive
         if clipForSTB:
             y = yMiddle + (self.sceneToolBar.height() / 2)
         else:
@@ -366,14 +398,20 @@ class View(QGraphicsView):
                 self.rightTB_x = self.width()
             self.rightToolBar.move(self.rightTB_x, self.itemToolBar.y())
         else:
-            self.rightToolBar.move((self.width() - self.rightToolBar.width()) + self.forceRightRBOffRightEdge_x, self.itemToolBar.y())
-        
+            self.rightToolBar.move(
+                (self.width() - self.rightToolBar.width())
+                + self.forceRightRBOffRightEdge_x,
+                self.itemToolBar.y(),
+            )
+
     def adjust(self):
         # toolbars
         self.adjustToolBars()
         self.helpOverlay.adjust()
         #
-        self.hiddenItemsLabel.move(self.width() - (self.hiddenItemsLabel.width() + 3), 0)
+        self.hiddenItemsLabel.move(
+            self.width() - (self.hiddenItemsLabel.width() + 3), 0
+        )
         # hotspots
         x = (self.width() / 2) - (self.undoLabel.width() / 2)
         y = (self.height() / 2) - (self.undoLabel.height() / 2)
@@ -381,15 +419,19 @@ class View(QGraphicsView):
         self.redoLabel.move(round(x), round(y))
         size = HOTSPOT_SIZE
         self.undoHotspot = QRect(0, self.viewport().height() - size, size, size)
-        self.redoHotspot = QRect(self.viewport().width() - size, self.viewport().height() - size, size, size)
+        self.redoHotspot = QRect(
+            self.viewport().width() - size, self.viewport().height() - size, size, size
+        )
         #
-        if not hasattr(self, 'showTBButton_y'):
-            self.showTBButton_y = self.sceneToolBar.hideButton.mapTo(self, QPoint(0, 0)).y()
+        if not hasattr(self, "showTBButton_y"):
+            self.showTBButton_y = self.sceneToolBar.hideButton.mapTo(
+                self, QPoint(0, 0)
+            ).y()
         p = self.sceneToolBar.hideButton.mapTo(self, QPoint(0, 0))
         p.setY(self.showTBButton_y)
         self.showToolBarButton.move(p)
         if self.scene() and self.legend and self.legend.isVisible():
-            anchor = self.scene().legendData()['anchor']
+            anchor = self.scene().legendData()["anchor"]
             pos = self.legendPosForAnchor(anchor)
             self.legend.move(pos, animate=False)
         # #
@@ -403,7 +445,7 @@ class View(QGraphicsView):
         # self.adjust() # must happen here and in viewport event to be synchronous
         if self.scene():
             self.onViewableSceneRectChanged()
-            fitRect = self.lastZoomData['viewableSceneRect']
+            fitRect = self.lastZoomData["viewableSceneRect"]
             # Don't write to self.lastZoomData['viewableSceneRect'] because we are trying to stick to the original
             self.fitInView(fitRect, Qt.KeepAspectRatio)
             self.updateHideSmallItems()
@@ -412,9 +454,9 @@ class View(QGraphicsView):
     def wheelEvent(self, e):
         e.ignore()
         if self.panZoomer.begun():
-            e.ignore() # don't scroll
+            e.ignore()  # don't scroll
         elif self.wheelZoomer.begun():
-            e.ignore() # don't scroll
+            e.ignore()  # don't scroll
         # elif self.scene().isDraggingSomething():
         #     e.ignore()
         elif util.ENABLE_WHEEL_PAN:
@@ -430,13 +472,22 @@ class View(QGraphicsView):
             if t.state() & Qt.TouchPointPressed:
                 ret += 1
         return ret
-    
+
     def viewportEvent(self, e):
         if not self.scene():
             return super().viewportEvent(e)
         # cancel lingering wheel zoom
-        if e.type() in (QEvent.MouseButtonPress, QEvent.MouseMove, QEvent.MouseButtonRelease,
-                        QEvent.TouchBegin, QEvent.TouchEnd) and self.wheelZoomer.begun():
+        if (
+            e.type()
+            in (
+                QEvent.MouseButtonPress,
+                QEvent.MouseMove,
+                QEvent.MouseButtonRelease,
+                QEvent.TouchBegin,
+                QEvent.TouchEnd,
+            )
+            and self.wheelZoomer.begun()
+        ):
             self.wheelZoomer.end()
         #
         if e.type() == QEvent.MouseButtonPress:
@@ -455,7 +506,9 @@ class View(QGraphicsView):
                 return True
             elif e.type() == QEvent.MouseButtonPress:
                 pos = self.mapToScene(e.pos())
-                callouts = [i for i in self.scene().items(pos) if isinstance(i, objects.Callout)]
+                callouts = [
+                    i for i in self.scene().items(pos) if isinstance(i, objects.Callout)
+                ]
                 if not callouts:
                     self.dragPanner.begin(e)
                 else:
@@ -479,7 +532,7 @@ class View(QGraphicsView):
 
         # if not util.ENABLE_PINCH_PAN_ZOOM:
         #     return super().viewportEvent(e)
-        
+
         # pan zoom
         if e.type() == QEvent.TouchBegin and self.scene():
             # trackpad and not mouse on macOS; screen+converted to mouse if canceled on iOS
@@ -491,29 +544,41 @@ class View(QGraphicsView):
                 for point in e.touchPoints():
                     scenePos = self.mapToScene(point.pos().toPoint())
                     if self.scene().selectableUnder(scenePos):
-                        return False # at least one finger on item
+                        return False  # at least one finger on item
                 if self.numTouches() == 1:
-                    return False # one finger on background (rubber band-select)
-            return True # no more conversion to mouse events; disables rubber band-select
-        elif e.type() == QEvent.TouchUpdate and self.scene() and not self.wheelZoomer.begun():
+                    return False  # one finger on background (rubber band-select)
+            return (
+                True  # no more conversion to mouse events; disables rubber band-select
+            )
+        elif (
+            e.type() == QEvent.TouchUpdate
+            and self.scene()
+            and not self.wheelZoomer.begun()
+        ):
             self.updateTouches(e)
             canPinchZoom = False
             if util.IS_IOS:
                 if self.numTouches() == 2 and self.rubberBandRect().isNull():
                     canPinchZoom = True
             else:
-                if self.numTouches() == 2 and self.rubberBandRect().isNull() and not self.mousePress:
+                if (
+                    self.numTouches() == 2
+                    and self.rubberBandRect().isNull()
+                    and not self.mousePress
+                ):
                     canPinchZoom = True
             if canPinchZoom:
                 e.accept()
                 if not self.panZoomer.begun():
                     sceneStartCenter = self.mapToScene(self.viewport().rect().center())
                     sceneStartScale = self.scene().scaleFactor()
-                    crossed = self.panZoomer.test(e.touchPoints(),
-                                                  sceneStartScale, sceneStartCenter)
+                    crossed = self.panZoomer.test(
+                        e.touchPoints(), sceneStartScale, sceneStartCenter
+                    )
                     if crossed:
-                        self.panZoomer.begin(e.touchPoints(),
-                                             sceneStartScale, sceneStartCenter)
+                        self.panZoomer.begin(
+                            e.touchPoints(), sceneStartScale, sceneStartCenter
+                        )
                 if self.panZoomer.begun():
                     self.panZoomer.update(e.touchPoints())
                 return True
@@ -534,7 +599,7 @@ class View(QGraphicsView):
                 e.accept()
                 return True
         if e.type() == QEvent.Resize:
-            self.adjust() # must happen here and in resizeEvent to be synchronous
+            self.adjust()  # must happen here and in resizeEvent to be synchronous
         return super().viewportEvent(e)
 
     def mouseReleaseEvent(self, e):
@@ -560,12 +625,18 @@ class View(QGraphicsView):
         return False
 
     def keyPressEvent(self, e):
-        if QApplication.focusWidget() != self: # how would this be possible
+        if QApplication.focusWidget() != self:  # how would this be possible
             return
-        if e.key() in (Qt.Key_Escape, ):
+        if e.key() in (Qt.Key_Escape,):
             self.onEscape()
-        elif e.key() in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right,
-                         Qt.Key_PageUp, Qt.Key_PageDown):
+        elif e.key() in (
+            Qt.Key_Up,
+            Qt.Key_Down,
+            Qt.Key_Left,
+            Qt.Key_Right,
+            Qt.Key_PageUp,
+            Qt.Key_PageDown,
+        ):
             # disable arrow keys, page up/down, etc
             # These are the only keys the QGraphicsView/QAbstractScrollArea/QScrollArea implement anyway
             # super().keyPressEvent(e)
@@ -577,9 +648,13 @@ class View(QGraphicsView):
         if e.mimeData().hasUrls():
             for url in e.mimeData().urls():
                 fileInfo = QFileInfo(url.toLocalFile())
-                if fileInfo.isDir() and QFileInfo(fileInfo.absolutePath()).suffix() == util.EXTENSION:
+                if (
+                    fileInfo.isDir()
+                    and QFileInfo(fileInfo.absolutePath()).suffix() == util.EXTENSION
+                ):
                     e.acceptProposedAction()
                     return
+
     dragMoveEvent = dragEnterEvent
 
     def dropEvent(self, e):
@@ -591,16 +666,16 @@ class View(QGraphicsView):
 
     @util.blocked
     def onSceneProperty(self, prop):
-        if prop.name() == 'currentDateTime':
+        if prop.name() == "currentDateTime":
             s = util.dateString(prop.get())
             self.currentDateTimeLabel.setText(s)
             self.updateHiddenItemsLabel()
-        elif prop.name() == 'hideToolBars':
+        elif prop.name() == "hideToolBars":
             self.setSceneToolBarShown(not prop.get())
             self.setItemToolBarShown(not prop.get())
             self.setRightToolBarShown(not prop.get())
             self.setCurrentDateShown(not prop.get())
-        elif prop.name() == 'hideEmotionalProcess':
+        elif prop.name() == "hideEmotionalProcess":
             on = not prop.get()
             self.itemToolBar.conflictButton.setEnabled(on)
             self.itemToolBar.projectionButton.setEnabled(on)
@@ -612,10 +687,10 @@ class View(QGraphicsView):
             self.itemToolBar.definedSelfButton.setEnabled(on)
             self.itemToolBar.insideButton.setEnabled(on)
             self.itemToolBar.outsideButton.setEnabled(on)
-        elif prop.name() == 'legendData':
+        elif prop.name() == "legendData":
             if self.legend:
                 self.resetLegend(prop.get(), animate=True)
-        elif prop.name() in ['tags']:
+        elif prop.name() in ["tags"]:
             if not self.isZoomFitDirty():
                 self.zoomFit()
 
@@ -626,15 +701,22 @@ class View(QGraphicsView):
         for item in self.scene().items():
             if isinstance(item, objects.Person) and item.animatingPos:
                 nAnimating += 1
-            elif isinstance(item, objects.PathItem) and item.opacityAnimation.state() == QAbstractAnimation.Running:
+            elif (
+                isinstance(item, objects.PathItem)
+                and item.opacityAnimation.state() == QAbstractAnimation.Running
+            ):
                 nAnimating += 1
         return nAnimating
 
     def onActiveLayersChanged(self):
-        """ Wait to call zoomFit until after the layer animation is completed. """
+        """Wait to call zoomFit until after the layer animation is completed."""
         fitRect = self.getZoomFitRect(forLayers=self.scene().activeLayers())
-        lastFitRect = self.lastZoomData['fitRect']
-        if fitRect != lastFitRect and not self._zoomFitPendingTimer.isActive() and not self.scene().isAddingLayerItem():
+        lastFitRect = self.lastZoomData["fitRect"]
+        if (
+            fitRect != lastFitRect
+            and not self._zoomFitPendingTimer.isActive()
+            and not self.scene().isAddingLayerItem()
+        ):
             self.zoomFit(forLayers=self.scene().activeLayers())
             # Disable this in favor of a synchronous animation.
             # if self.numAnimatingItems() > 0:
@@ -648,16 +730,16 @@ class View(QGraphicsView):
 
     def updateHiddenItemsLabel(self):
         nVisiblePeople = sum([1 for p in self.scene().people() if not p.isVisible()])
-        layerNames = ', '.join([layer.name() for layer in self.scene().activeLayers()])
+        layerNames = ", ".join([layer.name() for layer in self.scene().activeLayers()])
         if nVisiblePeople or layerNames:
-            s = '%s' % util.dateString(self.scene().currentDateTime())
+            s = "%s" % util.dateString(self.scene().currentDateTime())
             if layerNames:
                 if len(self.scene().activeLayers()) > 1:
-                    s = s + ' Views: %s' % layerNames
+                    s = s + " Views: %s" % layerNames
                 else:
-                    s = s + ' View: %s' % layerNames
+                    s = s + " View: %s" % layerNames
             if nVisiblePeople:
-                s = s + '  (Hiding %i people)' % nVisiblePeople
+                s = s + "  (Hiding %i people)" % nVisiblePeople
             self.hiddenItemsLabel.setText(s)
             self.hiddenItemsLabel.adjustSize()
             self.hiddenItemsLabel.show()
@@ -673,17 +755,17 @@ class View(QGraphicsView):
         self._zoomFitPendingTimer.stop()
 
     def onUndo(self):
-        """ Double-tap hotspot """
+        """Double-tap hotspot"""
         self.undoLabel.show()
         self.undoAnimation.stop()
         self.undoAnimation.start()
 
     def onRedo(self):
-        """ Double-tap hotspot """
+        """Double-tap hotspot"""
         self.redoLabel.show()
         self.redoAnimation.stop()
         self.redoAnimation.start()
-        
+
     def onUndoRedoAnimFinished(self):
         self.undoLabel.hide()
         self.redoLabel.hide()
@@ -694,11 +776,11 @@ class View(QGraphicsView):
     ## Legend
 
     def resetLegend(self, data, animate=False):
-        """ Just to keep this with the other legend methods. """
+        """Just to keep this with the other legend methods."""
         # self.legend.resize(data['size'])
-        if data['shown']:
-            newPos = self.legendPosForAnchor(data['anchor'])
-            if data['shown'] != self.legend.isVisible():
+        if data["shown"]:
+            newPos = self.legendPosForAnchor(data["anchor"])
+            if data["shown"] != self.legend.isVisible():
                 self.legend.show(endPos=newPos, animate=animate)
             else:
                 self.legend.move(newPos, animate=animate)
@@ -706,26 +788,32 @@ class View(QGraphicsView):
             self.legend.hide(animate=animate)
 
     def legendPosForAnchor(self, anchor):
-        if anchor == 'north-west':
-            newPos = QPoint(self.LEGEND_MARGIN,
-                            self.LEGEND_MARGIN)
-        elif anchor == 'north-east':
-            newPos = QPoint(self.width() - self.legend.width() - self.LEGEND_MARGIN,
-                            self.LEGEND_MARGIN)
-        elif anchor == 'south-east':
-            newPos = QPoint(self.width() - self.LEGEND_MARGIN - self.legend.width(),
-                            self.height() - self.LEGEND_MARGIN - self.legend.height())
-        elif anchor == 'south-west':
-            newPos = QPoint(self.LEGEND_MARGIN,
-                            self.height() - self.LEGEND_MARGIN - self.legend.height())
+        if anchor == "north-west":
+            newPos = QPoint(self.LEGEND_MARGIN, self.LEGEND_MARGIN)
+        elif anchor == "north-east":
+            newPos = QPoint(
+                self.width() - self.legend.width() - self.LEGEND_MARGIN,
+                self.LEGEND_MARGIN,
+            )
+        elif anchor == "south-east":
+            newPos = QPoint(
+                self.width() - self.LEGEND_MARGIN - self.legend.width(),
+                self.height() - self.LEGEND_MARGIN - self.legend.height(),
+            )
+        elif anchor == "south-west":
+            newPos = QPoint(
+                self.LEGEND_MARGIN,
+                self.height() - self.LEGEND_MARGIN - self.legend.height(),
+            )
         return newPos
 
     def onLegendDragPress(self, globalPos):
         anchor, rect = quadrantFor(self.rect(), self.mapFromGlobal(globalPos))
         self.anchorIndicator.setGeometry(rect)
         self.anchorIndicator.show()
+
     onLegendDragMove = onLegendDragPress
-        
+
     def onLegendDragRelease(self, globalPos):
         anchor, handleRect = quadrantFor(self.rect(), self.mapFromGlobal(globalPos))
         newPos = self.legendPosForAnchor(anchor)
@@ -745,7 +833,7 @@ class View(QGraphicsView):
                 self.legend.hide(animate=False)
                 self.legend.init(self.scene())
                 self.legend.stackUnder(self.itemToolBar)
-            anchor = self.scene().legendData()['anchor']
+            anchor = self.scene().legendData()["anchor"]
             endPos = self.legendPosForAnchor(anchor)
             self.legend.show(endPos=endPos, animate=animate)
         else:
@@ -754,39 +842,49 @@ class View(QGraphicsView):
 
     @util.blocked
     def onLegendChanged(self):
-        if not self.scene(): # closing
+        if not self.scene():  # closing
             return
         anchor = quadrantFor(self.rect(), self.legend.pos())[0]
-        self.scene().setLegendData({
-            'shown': self.legend.isShown(),
-            'size': self.legend.size(),
-            'anchor': anchor
-        }, undo=True)
+        self.scene().setLegendData(
+            {
+                "shown": self.legend.isShown(),
+                "size": self.legend.size(),
+                "anchor": anchor,
+            },
+            undo=True,
+        )
 
     ## Actions
-        
+
     def nudgeLeft(self):
         self.scene().nudgeSelection(QPointF(-1, 0))
+
     def nudgeRight(self):
         self.scene().nudgeSelection(QPointF(1, 0))
+
     def nudgeUp(self):
         self.scene().nudgeSelection(QPointF(-0, -1))
+
     def nudgeDown(self):
         self.scene().nudgeSelection(QPointF(0, 1))
+
     def hardNudgeLeft(self):
         self.scene().nudgeSelection(QPointF(-10, 0))
+
     def hardNudgeRight(self):
         self.scene().nudgeSelection(QPointF(10, 0))
+
     def hardNudgeUp(self):
         self.scene().nudgeSelection(QPointF(0, -10))
+
     def hardNudgeDown(self):
         self.scene().nudgeSelection(QPointF(0, 10))
 
     def zoomAbsolute(self, x, remember=True):
-        """ Set the zoom immediately. Used for anim ticks. """
+        """Set the zoom immediately. Used for anim ticks."""
         if not self.scene():
             return
-        x = min(max(.07, x), 50.0)
+        x = min(max(0.07, x), 50.0)
         self.itemToolBar.onPencilSlider(100 / x)
         self.setTransform(QTransform.fromScale(x, x))
         self.scene().setScaleFactor(x)
@@ -796,27 +894,27 @@ class View(QGraphicsView):
         self.updateHideSmallItems()
 
     def panAbsolute(self, p):
-        """ Set the pan immediately. Used for anim ticks. """
+        """Set the pan immediately. Used for anim ticks."""
         if not self.scene():
             return
         self.centerOn(p)
         self.onViewableSceneRectChanged()
-        
+
     def zoomIn(self):
         x = self.scene().scaleFactor()
-        x = x + (x * .25)
+        x = x + (x * 0.25)
         self.zoomAbsolute(x)
 
     def zoomOut(self):
         x = self.scene().scaleFactor()
-        x = x - (x *.25)
+        x = x - (x * 0.25)
         self.zoomAbsolute(x)
 
     def setShowHelpTips(self, on):
         self.helpOverlay.setVisible(on)
 
     ## Scene rect mgmt
-        
+
     def sceneCenter(self):
         return self.mapToScene(self.viewport().rect().center())
 
@@ -828,26 +926,28 @@ class View(QGraphicsView):
         printRect = self.scene().getPrintRect(forLayers=forLayers)
         # Add extra margins for the toolbars if shown
         if self.itemToolBarShown or self.sceneToolBarShown:
-            hM = printRect.width() * .1
-            vM = printRect.height() * .1
+            hM = printRect.width() * 0.1
+            vM = printRect.height() * 0.1
             adjustedPrintRect = printRect.marginsAdded(QMarginsF(hM, vM, hM, 0))
         else:
             adjustedPrintRect = printRect
         # the items bounding rect will never be centered, so translate
         # the minimum rect to avoid a union displaying the items off center.
-        minimumSceneRect = util.MINIMUM_SCENE_RECT.translated(adjustedPrintRect.center())
+        minimumSceneRect = util.MINIMUM_SCENE_RECT.translated(
+            adjustedPrintRect.center()
+        )
         # ensure that the zoom doesn't go too far into only a few items.
         fitRect = minimumSceneRect.united(adjustedPrintRect)
         return fitRect
 
     def storeLastZoom(self):
-        """ Called when zoomed by wheel or pinch, and by zoom anim. """
-        self.lastZoomData['size'] = self.size()
-        self.lastZoomData['scale'] = self.scene().scaleFactor()
-        self.lastZoomData['viewableSceneRect'] = self.viewableSceneRect()
+        """Called when zoomed by wheel or pinch, and by zoom anim."""
+        self.lastZoomData["size"] = self.size()
+        self.lastZoomData["scale"] = self.scene().scaleFactor()
+        self.lastZoomData["viewableSceneRect"] = self.viewableSceneRect()
 
     def isZoomFitDirty(self):
-        """ Clicking the zoom button would have some effect. """
+        """Clicking the zoom button would have some effect."""
         return self._zoomFitDirty
 
     def setZoomFitDirty(self, on):
@@ -893,21 +993,25 @@ class View(QGraphicsView):
             self.panZoomer.cancel()
 
     def onScroll(self):
-        if self.parent() and not self.parent().isAnimatingDrawer and not self._isResizeEvent: # always retain original for animations+resizes
-            self.lastZoomData['viewableSceneRect'] = self.viewableSceneRect()
+        if (
+            self.parent()
+            and not self.parent().isAnimatingDrawer
+            and not self._isResizeEvent
+        ):  # always retain original for animations+resizes
+            self.lastZoomData["viewableSceneRect"] = self.viewableSceneRect()
 
     def onViewableSceneRectChanged(self):
-        """ Update print rect item. """
+        """Update print rect item."""
         if self.scene():
             if self.zoomFitAnim.state() != QAbstractAnimation.Running:
                 self.setZoomFitDirty(True)
             self.scene().pencilCanvas.setRect(self.viewableSceneRect())
 
     def updateSceneRect(self, emitZoomFitDirty=True):
-        """ Update View.sceneRect (scrollable area) w margin rel. to vsr size when:
-                - Scene.printRect has changed
-                - Scene.printRect is not contained by current View.sceneRect
-                - Zoom changes (not pan)
+        """Update View.sceneRect (scrollable area) w margin rel. to vsr size when:
+        - Scene.printRect has changed
+        - Scene.printRect is not contained by current View.sceneRect
+        - Zoom changes (not pan)
         """
         if not self.scene():
             return
@@ -916,21 +1020,29 @@ class View(QGraphicsView):
         # Prevent view scrolling/jumping of first few people in new diagram.
         if self._finishingZoomFitAnim:
             return
-        elif self.sceneRect() != util.MAXIMUM_SCENE_RECT and self.sceneRect().contains(printRect):
+        elif self.sceneRect() != util.MAXIMUM_SCENE_RECT and self.sceneRect().contains(
+            printRect
+        ):
             return
         vsr = self.viewableSceneRect()
         # set margin size in relation to viewable rect at current zoom
-        mW = vsr.width() * .45
-        mH = vsr.height() * .45
+        mW = vsr.width() * 0.45
+        mH = vsr.height() * 0.45
         potentialSceneRect = printRect.marginsAdded(QMarginsF(mW, mH, mW, mH))
         # the items bounding rect will never be centered, so translate
         # the minimum rect to avoid a union displaying the items off center.
-        minimumSceneRect = util.MINIMUM_SCENE_RECT.translated(potentialSceneRect.center())
+        minimumSceneRect = util.MINIMUM_SCENE_RECT.translated(
+            potentialSceneRect.center()
+        )
         # ensure that the zoom doesn't go too far into only a few items.
         newSceneRect = minimumSceneRect.united(potentialSceneRect)
-        center = vsr.center()               # >>> prevent scrolling from occuring (this method should not change viewable area/center point)
+        center = (
+            vsr.center()
+        )  # >>> prevent scrolling from occuring (this method should not change viewable area/center point)
         self.setSceneRect(newSceneRect)
-        self.centerOn(center)               # <<< prevent scrolling from occuring (this method should not change viewable area/center point)
+        self.centerOn(
+            center
+        )  # <<< prevent scrolling from occuring (this method should not change viewable area/center point)
         self.scene().viewSceneRectItem.setRect(self.sceneRect())
         if emitZoomFitDirty:
             self.setZoomFitDirty(True)
@@ -939,7 +1051,7 @@ class View(QGraphicsView):
         self.updateSceneRect()
 
     def zoomFit(self, dummy=None, animate=True, forLayers=None):
-        """ Move items to fit around scene center and zoom to fit. """
+        """Move items to fit around scene center and zoom to fit."""
         # self.centerOn(QPointF(0, 0))
         if not self.scene():
             return
@@ -948,7 +1060,9 @@ class View(QGraphicsView):
         vsr = self.viewableSceneRect()
         if nPeople == 0:
             self.zoomAbsolute(util.DEFAULT_SCENE_SCALE)
-            self.setZoomFitDirty(False) # so that it re-zoomFits when people are shown again
+            self.setZoomFitDirty(
+                False
+            )  # so that it re-zoomFits when people are shown again
         else:
             # temporarily set sceneRect to super huge to avoid scrollbar limits interfering with zoom-panning
             self.setSceneRect(util.MAXIMUM_SCENE_RECT)
@@ -956,7 +1070,7 @@ class View(QGraphicsView):
             if fitRect == vsr:
                 self.setZoomFitDirty(False)
                 return
-            self.lastZoomData['fitRect'] = fitRect
+            self.lastZoomData["fitRect"] = fitRect
             if self.zoomFitAnim.state() == QAbstractAnimation.Running:
                 self.zoomFitAnim.stop()
             self.zoomFitAnim.setStartValue(vsr)
@@ -968,22 +1082,22 @@ class View(QGraphicsView):
                 self.onZoomFitAnimFinished()
 
     def onZoomFitAnimTick(self, x):
-        if x is not None: # bug somewhere else
+        if x is not None:  # bug somewhere else
             self.fitInView(x, Qt.KeepAspectRatio)
 
     def onZoomFitAnimFinished(self):
-        """ View.updateSceneRect() is called from more than one of these calls.
+        """View.updateSceneRect() is called from more than one of these calls.
         Remember, the goal of updateSceneRect is to update the scrollable area without altering the center point.
         """
-        self._finishingZoomFitAnim = True # Don't call updateSceneRect() because it causes a jump for some reason.
-        self.scene().setScaleFactor(self.transform().m11()) # x scale; y scale = m22()
+        self._finishingZoomFitAnim = True  # Don't call updateSceneRect() because it causes a jump for some reason.
+        self.scene().setScaleFactor(self.transform().m11())  # x scale; y scale = m22()
         self.storeLastZoom()
         self.setZoomFitDirty(False)
-        self.scene().checkPrintRectChanged() # after Item animations
+        self.scene().checkPrintRectChanged()  # after Item animations
         self._finishingZoomFitAnim = False
         self.updateSceneRect()
         self.updateHideSmallItems()
- 
+
     def onShowCurrentDateTime(self, on):
         self.currentDateTimeLabel.setVisible(on)
 
@@ -992,8 +1106,11 @@ class View(QGraphicsView):
     def setCurrentDateShown(self, on):
         self.currentDateTimeShown = on
         if on:
-            self.showDateAnimation.setEndValue(QPoint(self.currentDateTimeLabel.x(),
-                                                      -self.currentDateTimeLabel.height()))
+            self.showDateAnimation.setEndValue(
+                QPoint(
+                    self.currentDateTimeLabel.x(), -self.currentDateTimeLabel.height()
+                )
+            )
         else:
             self.showDateAnimation.setEndValue(self.currentDateTimeNormalPos)
         self.showDateAnimation.setStartValue(self.currentDateTimeLabel.pos())
@@ -1006,7 +1123,7 @@ class View(QGraphicsView):
             self.showTBButtonAnimation.setStartValue(1.0)
             self.showTBButtonAnimation.setEndValue(0)
         else:
-            self.sceneTB_y = -self.sceneToolBar.height() - 10 # for the shadow
+            self.sceneTB_y = -self.sceneToolBar.height() - 10  # for the shadow
             self.showTBButtonAnimation.setStartValue(0)
             self.showTBButtonAnimation.setEndValue(1.0)
         self.sceneTBAnimation.setStartValue(self.sceneToolBar.pos())
@@ -1044,15 +1161,16 @@ class View(QGraphicsView):
             rect = person.mapToScene(person.boundingRect()).boundingRect()
             fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
             motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(self.scene(), 'male', fatherPos, person.size())
-            mother = commands.addPerson(self.scene(), 'female', motherPos, person.size())
+            father = commands.addPerson(self.scene(), "male", fatherPos, person.size())
+            mother = commands.addPerson(
+                self.scene(), "female", motherPos, person.size()
+            )
             marriage = commands.addMarriage(self.scene(), father, mother)
             commands.setParents(person, marriage)
 
     def showItemsWithNotes(self, on):
         if self.scene():
             self.scene().setShowNotesIcons(on)
-
 
 
 def __test__(scene, parent):

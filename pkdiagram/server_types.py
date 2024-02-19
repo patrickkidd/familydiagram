@@ -13,7 +13,15 @@ import wsgiref.handlers
 import pydantic
 
 import vedana
-from .pyqt import QObject, QNetworkRequest, QNetworkReply, QEventLoop, QUrl, QApplication, pyqtSignal
+from .pyqt import (
+    QObject,
+    QNetworkRequest,
+    QNetworkReply,
+    QEventLoop,
+    QUrl,
+    QApplication,
+    pyqtSignal,
+)
 from . import version, util
 
 
@@ -66,19 +74,19 @@ class Diagram(pydantic.BaseModel):
     @classmethod
     def create(cls, data):
         _data = dict(**data)
-        user = _data.pop('user')
-        access_rights = _data.pop('access_rights')
+        user = _data.pop("user")
+        access_rights = _data.pop("access_rights")
         return Diagram(
             access_rights=[AccessRight(**entry) for entry in access_rights],
             user=User(**user),
-            **_data
+            **_data,
         )
 
     @classmethod
     def get(cls, diagram_id, session):
         from .session import Session
 
-        response = session.server().blockingRequest('GET', f"/diagrams/{diagram_id}")
+        response = session.server().blockingRequest("GET", f"/diagrams/{diagram_id}")
         data = pickle.loads(response.body)
         return cls.create(data)
 
@@ -87,9 +95,15 @@ class Diagram(pydantic.BaseModel):
             return True
         for access_right in self.access_rights:
             if access_right.user_id == user_id:
-                if right == vedana.ACCESS_READ_ONLY and access_right.right in (vedana.ACCESS_READ_WRITE, vedana.ACCESS_READ_ONLY):
+                if right == vedana.ACCESS_READ_ONLY and access_right.right in (
+                    vedana.ACCESS_READ_WRITE,
+                    vedana.ACCESS_READ_ONLY,
+                ):
                     return True
-                elif right == vedana.ACCESS_READ_WRITE and access_right.right == vedana.ACCESS_READ_WRITE:
+                elif (
+                    right == vedana.ACCESS_READ_WRITE
+                    and access_right.right == vedana.ACCESS_READ_WRITE
+                ):
                     return True
         return False
 
@@ -106,6 +120,7 @@ class Diagram(pydantic.BaseModel):
 #         reason = self.reason if self.reason else None
 #         return f"{self.__class__.__qualname__}: Code: {self.code}, Reason: {reason}"
 
+
 class HTTPError(Exception):
     def __init__(self, *args, status_code=None, url=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -117,12 +132,15 @@ class HTTPResponse(pydantic.BaseModel):
     body: bytes = None
     status_code: int = None
     headers: Optional[Dict[str, str]]
-    
+
     def __init__(self, _reply=None, **kwargs):
         super().__init__(**kwargs)
         if _reply:
             self.status_code = _reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-            self.headers = {bytes(name).decode(): bytes(_reply.rawHeader(name)).decode() for name in _reply.rawHeaderList()}
+            self.headers = {
+                bytes(name).decode(): bytes(_reply.rawHeader(name)).decode()
+                for name in _reply.rawHeaderList()
+            }
         else:
             self.headers = {}
 
@@ -133,7 +151,7 @@ class Server(QObject):
     object may be deleted before the python object.
     """
 
-    _allRequestsFinished = pyqtSignal() # mostly avoids C++ error in tests
+    _allRequestsFinished = pyqtSignal()  # mostly avoids C++ error in tests
 
     def __init__(self, parent=None, user=None):
         super().__init__(parent)
@@ -152,20 +170,23 @@ class Server(QObject):
 
     @staticmethod
     def checkHTTPReply(reply, statuses=None, quiet=True):
-        """ Generic http code handling. """
+        """Generic http code handling."""
         if statuses is None:
             statuses = [200, 404]
         error = reply.error()
         failMessage = None
         status_code = None
-        if error == QNetworkReply.NoError and reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) in statuses:
+        if (
+            error == QNetworkReply.NoError
+            and reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) in statuses
+        ):
             pass
-        elif error == QNetworkReply.HostNotFoundError: # no internet connection
-            failMessage = 'No internet connection'
+        elif error == QNetworkReply.HostNotFoundError:  # no internet connection
+            failMessage = "No internet connection"
         elif error == QNetworkReply.ConnectionRefusedError and not None in statuses:
             failMessage = f"Connection refused: {reply.url().toString()}"
         elif error == QNetworkReply.ContentAccessDenied:
-            log.info('Access Denied:', reply.url().toString())
+            log.info("Access Denied:", reply.url().toString())
         elif error == QNetworkReply.AuthenticationRequiredError:
             pass
         elif error == QNetworkReply.ContentNotFoundError:
@@ -173,19 +194,35 @@ class Server(QObject):
             #     Debug('404 Not Found: ' + reply.url().toString())
             failMessage = f"404 Not Found: {reply.url().toString()}"
             status_code = 404
-        elif error == QNetworkReply.OperationCanceledError: # reply.abort() called
+        elif error == QNetworkReply.OperationCanceledError:  # reply.abort() called
             failMessage = "QNetworkReply.OperationCanceledError"
         elif error == QNetworkReply.SslHandshakeFailedError:
-            failMessage = 'SSL handshake with server failed.'
+            failMessage = "SSL handshake with server failed."
         else:
             status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
             if status_code not in statuses:
                 failMessage = util.qtHTTPReply2String(reply)
-        log.debug(f"{reply.request().url().toString()}: status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)}, {failMessage}")
+        log.debug(
+            f"{reply.request().url().toString()}: status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)}, {failMessage}"
+        )
         if failMessage:
-            raise HTTPError(failMessage, status_code=status_code, url=reply.request().url().toString())
+            raise HTTPError(
+                failMessage,
+                status_code=status_code,
+                url=reply.request().url().toString(),
+            )
 
-    def nonBlockingRequest(self, verb, path, bdata=b'', data=None, anonymous=False, success=None, error=None, finished=None):
+    def nonBlockingRequest(
+        self,
+        verb,
+        path,
+        bdata=b"",
+        data=None,
+        anonymous=False,
+        success=None,
+        error=None,
+        finished=None,
+    ):
         if data and not bdata:
             bdata = pickle.dumps(data)
         url = util.serverUrl(path)
@@ -194,12 +231,14 @@ class Server(QObject):
         # Do this like AWS
         # http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
         content_md5 = hashlib.md5(bdata).hexdigest()
-        content_type = 'text/html'
+        content_type = "text/html"
         request = QNetworkRequest(QUrl(url))
-        request.setRawHeader(b'Content-Type', content_type.encode('utf-8'))
-        request.setRawHeader(b'Content-MD5', content_md5.encode('utf-8'))
-        date = wsgiref.handlers.format_date_time(time.mktime(datetime.now().timetuple()))
-        request.setRawHeader(b'Date', date.encode('utf-8'))
+        request.setRawHeader(b"Content-Type", content_type.encode("utf-8"))
+        request.setRawHeader(b"Content-MD5", content_md5.encode("utf-8"))
+        date = wsgiref.handlers.format_date_time(
+            time.mktime(datetime.now().timetuple())
+        )
+        request.setRawHeader(b"Date", date.encode("utf-8"))
         if self._user and not anonymous:
             user = self._user.username
             secret = self._user.secret
@@ -207,16 +246,16 @@ class Server(QObject):
             user = vedana.ANON_USER
             secret = vedana.ANON_SECRET
         parts = urllib.parse.urlparse(url)
-        if '?' in url:
-            path = parts.path + '?' + parts.query
+        if "?" in url:
+            path = parts.path + "?" + parts.query
         else:
             path = parts.path
         signature = vedana.sign(secret, verb, content_md5, content_type, date, path)
-        request.setRawHeader(b'FD-Client-Version', bytes(version.VERSION, 'utf-8'))
+        request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
         auth_header = vedana.httpAuthHeader(user, signature)
-        request.setRawHeader(b'FD-Authentication', bytes(auth_header, 'utf-8'))
+        request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
         request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-        request.setAttribute(QNetworkRequest.CustomVerbAttribute, verb.encode('utf-8'))
+        request.setAttribute(QNetworkRequest.CustomVerbAttribute, verb.encode("utf-8"))
         # Debug(verb+':', url)
         # for name in request.rawHeaderList():
         #     Debug('    %s: %s' % (name.data().decode('utf-8'),
@@ -224,10 +263,16 @@ class Server(QObject):
         reply = util.QNAM.instance().sendCustomRequest(request, verb.encode(), bdata)
         # log.info(f"{verb} :: {path}")
         if success or error or finished:
+
             def onFinished():
                 reply = QApplication.instance().sender()
                 # log.info(f"{verb} :: {path}")
-                success, error, finished, server = reply.property('pk_success'), reply.property('pk_error'), reply.property('pk_finished'), reply.property('pk_server')
+                success, error, finished, server = (
+                    reply.property("pk_success"),
+                    reply.property("pk_error"),
+                    reply.property("pk_finished"),
+                    reply.property("pk_server"),
+                )
                 try:
                     server.checkHTTPReply(reply)
                 except HTTPError as e:
@@ -244,26 +289,47 @@ class Server(QObject):
                 finally:
                     if finished:
                         finished(reply)
-                    self._checkRequestsComplete(reply)                        
-            reply.setProperty('pk_success', success)
-            reply.setProperty('pk_error', error)
-            reply.setProperty('pk_finished', finished)
-            reply.setProperty('pk_server', self)
+                    self._checkRequestsComplete(reply)
+
+            reply.setProperty("pk_success", success)
+            reply.setProperty("pk_error", error)
+            reply.setProperty("pk_finished", finished)
+            reply.setProperty("pk_server", self)
             reply.finished.connect(onFinished)
+
         def onSSLErrors(self, errors):
-            log.error('SSL Errors:')
+            log.error("SSL Errors:")
             for e in errors:
                 log.error(f"    {e.errorString()}")
             # sender().ignoreSslErrors()
+
         reply.sslErrors.connect(onSSLErrors)
         self._repliesInFlight.append(reply)
         return reply
 
-    def blockingRequest(self, verb, path, bdata=b'', data=None, success=None, error=None, anonymous=False, statuses=None) -> HTTPResponse:
+    def blockingRequest(
+        self,
+        verb,
+        path,
+        bdata=b"",
+        data=None,
+        success=None,
+        error=None,
+        anonymous=False,
+        statuses=None,
+    ) -> HTTPResponse:
         if statuses is None:
             statuses = [200]
         loop = QEventLoop()
-        reply = self.nonBlockingRequest(verb, path, bdata=bdata, data=data, success=success, error=error, anonymous=anonymous)
+        reply = self.nonBlockingRequest(
+            verb,
+            path,
+            bdata=bdata,
+            data=data,
+            success=success,
+            error=error,
+            anonymous=anonymous,
+        )
         reply.finished.connect(loop.quit)
         loop.exec_()
         self.checkHTTPReply(reply, statuses=statuses)
@@ -275,4 +341,3 @@ class Server(QObject):
         bdata = bytes(reply.readAll())
         response = HTTPResponse(body=bdata, _reply=reply)
         return response
-

@@ -20,18 +20,27 @@ class Welcome(Dialog):
             background-color: %s;
             color: %s;
         }
-        """ % (util.QML_WINDOW_BG, util.QML_ACTIVE_TEXT_COLOR)
+        """ % (
+            util.QML_WINDOW_BG,
+            util.QML_ACTIVE_TEXT_COLOR,
+        )
         if util.IS_UI_DARK_MODE:
-            bb_ss = """
+            bb_ss = (
+                """
             #bottomBar {
                 background: %s;
-            }""" % util.QML_CONTROL_BG
-            tl_ss = """
+            }"""
+                % util.QML_CONTROL_BG
+            )
+            tl_ss = (
+                """
             #titleLabel {
                 padding: 20px;
                 background-color: %s;
             }
-            """ % util.QML_CONTROL_BG
+            """
+                % util.QML_CONTROL_BG
+            )
         else:
             bb_ss = """
             #bottomBar {
@@ -45,14 +54,16 @@ class Welcome(Dialog):
             }
             """
         self.ui.bottomBar.setStyleSheet(bb_ss)
-        self.ui.dontShowBox.setStyleSheet('background-color: transparent')
+        self.ui.dontShowBox.setStyleSheet("background-color: transparent")
         self.setStyleSheet(ss)
         self.ui.titleLabel.setStyleSheet(tl_ss)
         # self.setPalette(QApplication.palette())
 
     @util.blocked
     def init(self):
-        dontShowWelcome = self.prefs.value('dontShowWelcome', type=bool, defaultValue=False)
+        dontShowWelcome = self.prefs.value(
+            "dontShowWelcome", type=bool, defaultValue=False
+        )
         self.ui.dontShowBox.setChecked(dontShowWelcome)
         super().init()
 
@@ -68,5 +79,4 @@ class Welcome(Dialog):
 
     @util.blocked
     def onDontShow(self, on):
-        self.prefs.setValue('dontShowWelcome', on)
-
+        self.prefs.setValue("dontShowWelcome", on)

@@ -4,28 +4,32 @@ from pkdiagram import util, objects, Scene
 from pkdiagram.objects.emotions import Jig, FannedBox
 import pkdiagram.objects.emotions
 
+
 @pytest.fixture
 def TestFannedBox(mocker):
     count = 0
+
     class _TestFannedBox(FannedBox):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             nonlocal count
             count += 1
+
         @staticmethod
         def test_getCount():
             nonlocal count
             return count
-    mocker.patch('pkdiagram.objects.emotions.FannedBox', _TestFannedBox)
+
+    mocker.patch("pkdiagram.objects.emotions.FannedBox", _TestFannedBox)
     return _TestFannedBox
 
 
 def test_divideBy_2():
     personA = objects.Person()
     personA.setPos(QPointF(-10, 10))
-    width=5.0
-    step=2.0
-    circA=6
+    width = 5.0
+    step = 2.0
+    circA = 6
     jig = Jig(personA=personA, pointB=QPointF(-50, 50), width=width, circA=circA)
 
     delta = jig.p1 - jig.aP
@@ -38,13 +42,13 @@ def test_divideBy_2():
     assert jig1.p3 - jig2.p3 == delta
     assert jig1.p4 - jig2.p4 == delta
 
-    
+
 def test_divideBy_3():
     personA = objects.Person()
     personA.setPos(QPointF(-10, 10))
-    width=5.0
-    step=2.0
-    circA=6
+    width = 5.0
+    step = 2.0
+    circA = 6
     jig = Jig(personA=personA, pointB=QPointF(-50, 50), width=width, circA=circA)
 
     delta = jig.p1 - jig.aP
@@ -64,13 +68,13 @@ def test_divideBy_3():
     assert jig2.p3 - jig3.p3 == delta
     assert jig2.p4 - jig3.p4 == delta
 
-    
+
 def test_divideBy_4():
     personA = objects.Person()
     personA.setPos(QPointF(-10, 10))
-    width=5.0
-    step=2.0
-    circA=6
+    width = 5.0
+    step = 2.0
+    circA = 6
     jig = Jig(personA=personA, pointB=QPointF(-50, 50), width=width, circA=circA)
 
     delta = jig.p1 - jig.aP
@@ -103,7 +107,9 @@ def test_FannedBox_add(TestFannedBox):
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION, personA=personA, personB=personB
+    )
     scene.addItems(personA, personB, fusion, projection)
 
     assert fusion.fannedBox is not None
@@ -117,7 +123,9 @@ def test_FannedBox_add_multiple(TestFannedBox):
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION, personA=personA, personB=personB
+    )
     toward = objects.Emotion(kind=util.ITEM_TOWARD, personA=personA, personB=personB)
     scene.addItem(personA, personB)
     # Add these one at a time to better simulate clicking
@@ -147,7 +155,9 @@ def test_FannedBox_remove(TestFannedBox):
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION, personA=personA, personB=personB
+    )
     scene.addItems(personA, personB, fusion, projection)
     scene.removeItem(projection)
     assert fusion.fannedBox is not None
@@ -172,17 +182,26 @@ def test_FannedBox_peers_multiple():
     personA = objects.Person()
     personB = objects.Person()
     personA.birthEvent.setDateTime(util.Date(2001, 1, 1))
-    fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB,
+    fusion = objects.Emotion(
+        kind=util.ITEM_FUSION,
+        personA=personA,
+        personB=personB,
         startDateTime=util.Date(2001, 2, 1),
-        endDateTime=util.Date(2001, 4, 2)
+        endDateTime=util.Date(2001, 4, 2),
     )
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB,
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION,
+        personA=personA,
+        personB=personB,
         isDateRange=True,
-        startDateTime=util.Date(2001, 3, 1)
+        startDateTime=util.Date(2001, 3, 1),
     )
-    toward = objects.Emotion(kind=util.ITEM_TOWARD, personA=personA, personB=personB,
+    toward = objects.Emotion(
+        kind=util.ITEM_TOWARD,
+        personA=personA,
+        personB=personB,
         isDateRange=True,
-        startDateTime=util.Date(2001, 4, 1)
+        startDateTime=util.Date(2001, 4, 1),
     )
     scene.addItems(personA, personB, fusion, projection, toward)
 
@@ -213,18 +232,20 @@ def test_FannedBox_peers_multiple():
 
 
 def test_FannedBox_peers_different_tags():
-    scene = Scene(tags=['tag-1'])
+    scene = Scene(tags=["tag-1"])
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB, tags=['tag-1'])
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION, personA=personA, personB=personB, tags=["tag-1"]
+    )
     scene.addItems(personA, personB, fusion, projection)
     assert fusion.peers() == {projection}
     assert projection.peers() == {fusion}
     assert fusion.isVisible() == True
     assert projection.isVisible() == True
 
-    scene.searchModel.setTags(['tag-1'])
+    scene.searchModel.setTags(["tag-1"])
     assert fusion.peers() == set()
     assert projection.peers() == set()
     assert fusion.isVisible() == False
@@ -238,89 +259,85 @@ def test_FannedBox_peers_different_tags():
     assert fusion.fannedBox.dirty == False
 
 
-
 @pytest.mark.skip("not sure what this should test")
 def test_FannedBox_posDelta_adapt():
     scene = Scene()
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = objects.Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    projection = objects.Emotion(
+        kind=util.ITEM_PROJECTION, personA=personA, personB=personB
+    )
     scene.addItems(personA, personB, fusion, projection)
     personA.setPos(100, 100)
     personB.setPos(-100, -100)
     fannedBox = fusion.fannedBox
     assert fusion.isVisible() == True
     assert projection.isVisible() == True
-    
-    personA.setPos(200, 200) # Should stop anim and snap to end?
+
+    personA.setPos(200, 200)  # Should stop anim and snap to end?
     assert fannedBox.currentOffsetFor(fusion) == fannedBox.endPosDeltaFor(fusion)
-    assert fannedBox.currentOffsetFor(projection) == fannedBox.endPosDeltaFor(projection)
+    assert fannedBox.currentOffsetFor(projection) == fannedBox.endPosDeltaFor(
+        projection
+    )
 
 
 @pytest.mark.skip("Not sure this is needed if the layer test is below")
-def test_shouldShowFor():    
+def test_shouldShowFor():
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
-    conflict = objects.Emotion(
-        personA, personB,
-        kind=util.ITEM_CONFLICT
-    )
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
+    conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT)
     scene.addItems(personA, personB, conflict)
 
     # No tags
     assert conflict.shouldShowFor(QDateTime(), [], []) == True
 
     # Parents not shown
-    conflict.setTags(['tags1'])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == False
+    conflict.setTags(["tags1"])
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
 
     # One parent shown, one not
-    personA.setTags(['tags1'])
-    conflict.setTags(['tags1'])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == False
+    personA.setTags(["tags1"])
+    conflict.setTags(["tags1"])
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
 
     # One parent shown, one not
-    personA.setTags(['tags1'])
-    personB.setTags(['tags2'])
-    conflict.setTags(['tags1'])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == False
+    personA.setTags(["tags1"])
+    personB.setTags(["tags2"])
+    conflict.setTags(["tags1"])
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
 
     # Both parent shown + emotion shown
-    personA.setTags(['tags1'])
-    personB.setTags(['tags1'])
-    conflict.setTags(['tags1'])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == True
+    personA.setTags(["tags1"])
+    personB.setTags(["tags1"])
+    conflict.setTags(["tags1"])
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
 
     # Both parent shown + emotion hidden
-    personA.setTags(['tags1'])
-    personB.setTags(['tags1'])
+    personA.setTags(["tags1"])
+    personB.setTags(["tags1"])
     conflict.setTags([])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == True
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
 
     # Both parent shown + emotion hidden
-    personA.setTags(['tags1'])
-    personB.setTags(['tags1'])
-    conflict.setTags(['tags2'])
-    assert conflict.shouldShowFor(QDateTime(), ['tags1'], []) == True
+    personA.setTags(["tags1"])
+    personB.setTags(["tags1"])
+    conflict.setTags(["tags2"])
+    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
 
 
 def test_honors_searchModel_tags():
-    TAGS = ['triangle']
+    TAGS = ["triangle"]
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
-    conflict = objects.Emotion(
-        personA, personB,
-        kind=util.ITEM_CONFLICT,
-        tags=TAGS
-    )
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
+    conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT, tags=TAGS)
     scene.searchModel.setTags(TAGS)
     scene.addItems(personA, personB, conflict)
     assert conflict.isVisible() == True
 
-    scene.searchModel.tags = ['nowhere']
+    scene.searchModel.tags = ["nowhere"]
     assert conflict.isVisible() == False
 
     scene.searchModel.tags = TAGS
@@ -328,16 +345,17 @@ def test_honors_searchModel_tags():
 
 
 def test_honors_searchModel_tags_plus_dates():
-    TAGS = ['triangle']
+    TAGS = ["triangle"]
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
     conflict = objects.Emotion(
-        personA, personB,
+        personA,
+        personB,
         kind=util.ITEM_CONFLICT,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
-        tags=TAGS
+        tags=TAGS,
     )
     scene.addItems(personA, personB, conflict)
     scene.setCurrentDateTime(util.Date(1990, 1, 1))
@@ -361,22 +379,23 @@ def test_honors_searchModel_tags_plus_dates():
 
 
 def test_persons_hidden_tags_shown():
-    TAGS = ['triangle']
+    TAGS = ["triangle"]
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
     conflict = objects.Emotion(
-        personA, personB,
+        personA,
+        personB,
         kind=util.ITEM_CONFLICT,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
-        tags=TAGS
+        tags=TAGS,
     )
-    layer = objects.Layer(name='View 1')
+    layer = objects.Layer(name="View 1")
     scene.addItems(personA, personB, conflict, layer)
     personA.setLayers([layer.id])
     scene.searchModel.setTags(TAGS)
-    scene.setCurrentDateTime(util.Date(2000, 5, 1)) # during conflict
+    scene.setCurrentDateTime(util.Date(2000, 5, 1))  # during conflict
     assert personA.isVisible() == True
     assert personB.isVisible() == True
     assert conflict.isVisible() == True
@@ -389,40 +408,38 @@ def test_persons_hidden_tags_shown():
 
 def test_descriptions_diff_dates():
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
     conflict = objects.Emotion(
-        personA, personB,
+        personA,
+        personB,
         kind=util.ITEM_CONFLICT,
         startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1)
+        endDateTime=util.Date(2001, 1, 1),
     )
-    assert conflict.startEvent.description() == 'Conflict began'
-    assert conflict.endEvent.description() == 'Conflict ended'
+    assert conflict.startEvent.description() == "Conflict began"
+    assert conflict.endEvent.description() == "Conflict ended"
 
 
 def test_descriptions_same_dates():
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
     conflict = objects.Emotion(
-        personA, personB,
+        personA,
+        personB,
         kind=util.ITEM_CONFLICT,
         startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2000, 1, 1)
+        endDateTime=util.Date(2000, 1, 1),
     )
-    assert conflict.startEvent.description() == 'Conflict'
+    assert conflict.startEvent.description() == "Conflict"
     assert conflict.endEvent.description() == None
 
 
 def test_descriptions_no_dates():
     scene = Scene()
-    personA = objects.Person(name='A')
-    personB = objects.Person(name='B')
-    conflict = objects.Emotion(
-        personA, personB,
-        kind=util.ITEM_CONFLICT
-    )
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
+    conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT)
     assert conflict.startEvent.description() == None
     assert conflict.endEvent.description() == None
-

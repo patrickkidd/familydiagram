@@ -1,4 +1,13 @@
-from ..pyqt import Qt, QAbstractListModel, QModelIndex, pyqtSlot, qmlRegisterType, QVariant, QMessageBox, QApplication
+from ..pyqt import (
+    Qt,
+    QAbstractListModel,
+    QModelIndex,
+    pyqtSlot,
+    qmlRegisterType,
+    QVariant,
+    QMessageBox,
+    QApplication,
+)
 from .. import util, commands
 from ..scene import Scene
 from ..objects import Layer, LayerItem, Property, Person
@@ -7,7 +16,7 @@ from .modelhelper import ModelHelper
 
 class SceneLayerModel(QAbstractListModel, ModelHelper):
 
-    NEW_NAME_TMPL = 'View %i'
+    NEW_NAME_TMPL = "View %i"
 
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
@@ -18,7 +27,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     TagsRole = DataRole + 1
     StoreGeometryRole = TagsRole + 1
     ItemPropertiesRole = StoreGeometryRole + 1
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._layers = []
@@ -26,7 +35,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         self.initModelHelper()
 
     def set(self, attr, value):
-        if attr == 'scene':
+        if attr == "scene":
             if self._scene:
                 self._scene.layerAdded[Layer].disconnect(self.onLayerAdded)
                 self._scene.layerChanged[Property].disconnect(self.onLayerChanged)
@@ -48,31 +57,30 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         self.beginInsertRows(QModelIndex(), layer.order(), layer.order())
         self._layers = self.scene.layers()
         self.endInsertRows()
-        
+
     @util.blocked
     def onLayerChanged(self, prop):
         role = None
-        if prop.name() == 'id':
+        if prop.name() == "id":
             role = self.IdRole
-        elif prop.name() == 'active':
+        elif prop.name() == "active":
             role = self.ActiveRole
-        elif prop.name() == 'name':
+        elif prop.name() == "name":
             role = self.NameRole
-        elif prop.name() == 'description':
+        elif prop.name() == "description":
             role = self.DescriptionRole
-        elif prop.name() == 'notes':
+        elif prop.name() == "notes":
             role = self.NotesRole
-        elif prop.name() == 'storeGeometry':
+        elif prop.name() == "storeGeometry":
             role = self.StoreGeometryRole
-        elif prop.name() == 'order':
+        elif prop.name() == "order":
             if self._reorderingLayers:
                 return
             self._layers = self._scene.layers()
             self.modelReset.emit()
         if role is not None:
             row = self._layers.index(prop.item)
-            self.dataChanged.emit(self.index(row, 0),
-                                  self.index(row, 0), [role])
+            self.dataChanged.emit(self.index(row, 0), self.index(row, 0), [role])
 
     @util.blocked
     def onLayerRemoved(self, layer):
@@ -86,20 +94,22 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
 
     @pyqtSlot()
     def addRow(self):
-        name = util.newNameOf(self._layers, tmpl=self.NEW_NAME_TMPL, key=lambda x: x.name())
+        name = util.newNameOf(
+            self._layers, tmpl=self.NEW_NAME_TMPL, key=lambda x: x.name()
+        )
         layer = Layer(name=name)
         commands.addLayer(self.scene, layer)
-        
+
     @pyqtSlot(int)
     def duplicateRow(self, row):
         oldLayer = self._layers[row]
         newLayer = oldLayer.clone(self._scene)
-        tmpl = oldLayer.name() + ' %i'
+        tmpl = oldLayer.name() + " %i"
         name = util.newNameOf(self._layers, tmpl=tmpl, key=lambda x: x.name())
         newLayer.setName(name)
         commands.addLayer(self._scene, newLayer)
         self._scene.tidyLayerOrder()
-        
+
     @pyqtSlot(int)
     def removeRow(self, row):
         layer = self._layers[row]
@@ -108,11 +118,18 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             if item.layers() == [layer.id]:
                 nItems += 1
         if nItems:
-            btn = QMessageBox.question(QApplication.activeWindow(), "Are you sure?",
-                                       "Are you sure you want to delete this layer and the %i items within it?" % nItems)
+            btn = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                "Are you sure you want to delete this layer and the %i items within it?"
+                % nItems,
+            )
         else:
-            btn = QMessageBox.question(QApplication.activeWindow(), "Are you sure?",
-                                       "Are you sure you want to delete this layer?")
+            btn = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                "Are you sure you want to delete this layer?",
+            )
         if btn == QMessageBox.No:
             return
         commands.removeItems(self.scene, layer)
@@ -126,7 +143,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         return self.layerForIndex(self.createIndex(row, 0))
 
     def indexForLayer(self, layer):
-        """ Just first column """
+        """Just first column"""
         if layer in self._layers:
             row = self._layers.index(layer)
             return self.index(row, 0)
@@ -138,18 +155,18 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         commands.setLayerOrder(self._scene, self._layers)
         self.modelReset.emit()
         self._reorderingLayers = False
-        
+
     ## Qt Virtuals
 
     def roleNames(self):
         return {
-            self.IdRole: b'id',
-            self.NameRole: b'name',
-            self.DescriptionRole: b'description',
-            self.NotesRole: b'notes',
-            self.ActiveRole: b'active',
-            self.StoreGeometryRole: b'storeGeometry',
-            self.ItemPropertiesRole: b'itemProperties',
+            self.IdRole: b"id",
+            self.NameRole: b"name",
+            self.DescriptionRole: b"description",
+            self.NotesRole: b"notes",
+            self.ActiveRole: b"active",
+            self.StoreGeometryRole: b"storeGeometry",
+            self.ItemPropertiesRole: b"itemProperties",
         }
 
     def rowCount(self, index=QModelIndex()):
@@ -179,7 +196,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         else:
             return super().data(index, role)
         return ret
-    
+
     def setData(self, index, value, role=NameRole):
         success = True
         layer = self._layers[index.row()]
@@ -213,7 +230,6 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 self.setData(self.index(_row, 0), True, self.ActiveRole)
             else:
                 self.setData(self.index(_row, 0), False, self.ActiveRole)
-     
 
-qmlRegisterType(SceneLayerModel, 'PK.Models', 1, 0, 'SceneLayerModel')
 
+qmlRegisterType(SceneLayerModel, "PK.Models", 1, 0, "SceneLayerModel")

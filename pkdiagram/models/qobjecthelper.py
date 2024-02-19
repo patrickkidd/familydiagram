@@ -1,44 +1,58 @@
 import inspect
-from ..pyqt import pyqtProperty, pyqtSignal, QVariant, QMetaObject, Qt, Q_ARG, Q_RETURN_ARG, QDate, QDateTime
+from ..pyqt import (
+    pyqtProperty,
+    pyqtSignal,
+    QVariant,
+    QMetaObject,
+    Qt,
+    Q_ARG,
+    Q_RETURN_ARG,
+    QDate,
+    QDateTime,
+)
 from .. import objects
 
 
-CLASS_PROPERTIES = { }
+CLASS_PROPERTIES = {}
+
 
 class QObjectHelper:
-    """ Add QObject properties via python dict. """
+    """Add QObject properties via python dict."""
 
     PRINT_EMITS = False
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
-        """ Dynamically add Qt properties, signals, and slots to match objects.Property.
-            'convertTo' sets the type on the property for the pyqtProperty while leaving 'type' in place. This allows converting types between the model and the items.
+        """Dynamically add Qt properties, signals, and slots to match objects.Property.
+        'convertTo' sets the type on the property for the pyqtProperty while leaving 'type' in place. This allows converting types between the model and the items.
         """
         classAttrs = inspect.currentframe().f_back.f_locals
-        classAttrs['qsignals'] = qsignals = classAttrs.get('qsignals', [])
-        classAttrs['qproperties'] = qproperties = classAttrs.get('qproperties', [])
+        classAttrs["qsignals"] = qsignals = classAttrs.get("qsignals", [])
+        classAttrs["qproperties"] = qproperties = classAttrs.get("qproperties", [])
         # classAttrs['qslots'] = qslots = classAttrs.get('qslots', [])
-        classAttrs['qpropertyNames'] = qpropertyNames = classAttrs.get('qpropertyNames', [])
-        classAttrs['qsignalNames'] = qsignalNames = classAttrs.get('qsignalNames', [])
+        classAttrs["qpropertyNames"] = qpropertyNames = classAttrs.get(
+            "qpropertyNames", []
+        )
+        classAttrs["qsignalNames"] = qsignalNames = classAttrs.get("qsignalNames", [])
         if attrEntries is None:
             attrEntries = objects.Item.classProperties(itemType)
         for kwargs in attrEntries:
-            kwargs['globalContext'] = globalContext
+            kwargs["globalContext"] = globalContext
+
             def closure(kwargs, globalContext):
-                attr = kwargs['attr']
+                attr = kwargs["attr"]
 
-                if not 'type' in kwargs:
-                    kwargs['type'] = str
+                if not "type" in kwargs:
+                    kwargs["type"] = str
 
-                if not 'convertTo' in kwargs:
-                    kind = kwargs['type']
+                if not "convertTo" in kwargs:
+                    kind = kwargs["type"]
                 else:
-                    kind = kwargs.get('convertTo')
+                    kind = kwargs.get("convertTo")
 
-                signalName = '%sChanged' % attr
+                signalName = "%sChanged" % attr
                 getterName = attr
-                setterName = 'set' + attr[0].upper() + attr[1:]
-                resetterName = 'reset' + attr[0].upper() + attr[1:]
+                setterName = "set" + attr[0].upper() + attr[1:]
+                resetterName = "reset" + attr[0].upper() + attr[1:]
                 #
                 qsignal = pyqtSignal(QVariant)
 
@@ -47,34 +61,40 @@ class QObjectHelper:
                 # If they are just closures then there is no way to call them.
                 def propGetter(self):
                     return self._cachedPropGetter(kwargs)
-                
+
                 def propSetter(self, value):
                     self._cachedPropSetter(kwargs, value)
 
                 def propResetter(self):
                     self._cachedPropResetter(kwargs)
-                    
+
                 #
                 if not isinstance(type(kind), type):
-                    raise TypeError("'kind' attribute must be a type, instead got: %" % kind)
-                if kwargs.get('constant'):
-                    qproperty = pyqtProperty(kind,
-                                             fget=propGetter,
-                                             freset=propResetter,
-                                             notify=qsignal,
-                                             constant=True)
+                    raise TypeError(
+                        "'kind' attribute must be a type, instead got: %" % kind
+                    )
+                if kwargs.get("constant"):
+                    qproperty = pyqtProperty(
+                        kind,
+                        fget=propGetter,
+                        freset=propResetter,
+                        notify=qsignal,
+                        constant=True,
+                    )
                 else:
-                    qproperty = pyqtProperty(kind,
-                                             fget=propGetter,
-                                             fset=propSetter,
-                                             freset=propResetter,
-                                             notify=qsignal)
+                    qproperty = pyqtProperty(
+                        kind,
+                        fget=propGetter,
+                        fset=propSetter,
+                        freset=propResetter,
+                        notify=qsignal,
+                    )
                 #
                 ret = {}
                 ret[signalName] = qsignal
                 ret[getterName] = qproperty
                 ret[resetterName] = propResetter
-                if not kwargs.get('constant'):
+                if not kwargs.get("constant"):
                     ret[setterName] = propSetter
                     # qslots.append(propSetter)
                 qsignals.append(qsignal)
@@ -82,12 +102,13 @@ class QObjectHelper:
                 qpropertyNames.append(getterName)
                 qsignalNames.append(signalName)
                 return ret
+
             propAttrs = closure(kwargs, globalContext)
             classAttrs.update(propAttrs)
 
         # inheritance
         global CLASS_PROPERTIES
-        __qualname__ = classAttrs['__qualname__']
+        __qualname__ = classAttrs["__qualname__"]
         CLASS_PROPERTIES[__qualname__] = attrEntries
 
     @staticmethod
@@ -100,42 +121,56 @@ class QObjectHelper:
         return ret
 
     def registerQmlMethods(entries):
-        """ Forwards calls to QObject class methods to their qml-javascript correlates. """
+        """Forwards calls to QObject class methods to their qml-javascript correlates."""
         classAttrs = inspect.currentframe().f_back.f_locals
         for entry in entries:
+
             def make_meth(entry):
                 def meth(self, *args):
                     self.checkInitQml()
                     qobject = self.qml.rootObject()
-                    name = entry['name']
+                    name = entry["name"]
                     qargs = (Q_ARG(QVariant, arg) for arg in args)
                     try:
-                        if entry.get('return'):
+                        if entry.get("return"):
                             if qargs:
-                                return QMetaObject.invokeMethod(qobject, name, Qt.DirectConnection,
-                                                                Q_RETURN_ARG(QVariant),
-                                                                *qargs)
+                                return QMetaObject.invokeMethod(
+                                    qobject,
+                                    name,
+                                    Qt.DirectConnection,
+                                    Q_RETURN_ARG(QVariant),
+                                    *qargs,
+                                )
                             else:
-                                return QMetaObject.invokeMethod(qobject, name, Qt.DirectConnection,
-                                                                Q_RETURN_ARG(QVariant))
+                                return QMetaObject.invokeMethod(
+                                    qobject,
+                                    name,
+                                    Qt.DirectConnection,
+                                    Q_RETURN_ARG(QVariant),
+                                )
                         else:
                             if qargs:
-                                return QMetaObject.invokeMethod(qobject, name, Qt.DirectConnection,
-                                                                *qargs)
+                                return QMetaObject.invokeMethod(
+                                    qobject, name, Qt.DirectConnection, *qargs
+                                )
                             else:
-                                return QMetaObject.invokeMethod(qobject, name, Qt.DirectConnection)
+                                return QMetaObject.invokeMethod(
+                                    qobject, name, Qt.DirectConnection
+                                )
                     except RuntimeError as e:
                         pass
                     # raise RuntimeError('QMetaObject.invokeMethod failed on %s.%s' % (self.__class__.__name__, name))
+
                 return meth
-            name = entry['name']
+
+            name = entry["name"]
             if not name in classAttrs:
                 classAttrs[name] = make_meth(entry)
-    
+
     def initQObjectHelper(self, storage=False):
-        if hasattr(self, '_propCache'):
+        if hasattr(self, "_propCache"):
             return
-        self._propCache = {} # should be the converted (i.e. qml-exposed) value
+        self._propCache = {}  # should be the converted (i.e. qml-exposed) value
         self._refreshingAllProperties = False
         self._refreshingAttr = None
         self._blockRefresh = False
@@ -144,21 +179,21 @@ class QObjectHelper:
             # Set all to defaults. Let's see if this shoudl be reusable.
             attrs = self.classProperties(self.__class__)
             for kwargs in attrs:
-                attr = kwargs['attr']
+                attr = kwargs["attr"]
                 x = self.defaultFor(attr)
                 self._defaultStorage[attr] = x
         self.refreshAllProperties()
 
     def _emitAttrChanged(self, attr, x):
-        """ Provides a way to capture signal emissions in a specific subclass
+        """Provides a way to capture signal emissions in a specific subclass
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
         if self.PRINT_EMITS:
             print(f"{attr}Changed[{x}]")
-        getattr(self, attr + 'Changed').emit(x)
+        getattr(self, attr + "Changed").emit(x)
 
     def refreshingAttr(self):
-        """ Don't emit any changed signals for this prop name. """
+        """Don't emit any changed signals for this prop name."""
         return self._refreshingAttr
 
     def refreshAllProperties(self):
@@ -168,7 +203,7 @@ class QObjectHelper:
             return
         self._refreshingAllProperties = True
         for kwargs in self.classProperties(self.__class__):
-            attr = kwargs['attr']
+            attr = kwargs["attr"]
             self.refreshProperty(attr)
         self._refreshingAllProperties = False
 
@@ -189,25 +224,25 @@ class QObjectHelper:
                     self._emitAttrChanged(attr, x)
 
     def propAttrsFor(self, attr):
-        """ Return the most recent property attributes for property,
+        """Return the most recent property attributes for property,
         potentially updated using registerModelProperties."""
         attrs = self.classProperties(self.__class__)
         for entry in attrs:
-            if entry['attr'] == attr:
+            if entry["attr"] == attr:
                 return entry
 
     def defaultFor(self, attr):
-        """ Calculate a prop's default value based on either ['default'] or ['type']. """
+        """Calculate a prop's default value based on either ['default'] or ['type']."""
         attrs = self.propAttrsFor(attr)
         if attrs:
-            if 'convertTo' in attrs:
-                return attrs.get('convertTo')()
-            elif 'default' in attrs:
-                return attrs.get('default')
+            if "convertTo" in attrs:
+                return attrs.get("convertTo")()
+            elif "default" in attrs:
+                return attrs.get("default")
             else:
-                return attrs.get('type')()
+                return attrs.get("type")()
         else:
-            raise AttributeError('There is no property named %s' % attr)
+            raise AttributeError("There is no property named %s" % attr)
 
     ## Value conversions
 
@@ -216,7 +251,7 @@ class QObjectHelper:
         attrs = self.propAttrsFor(attr)
         if not attrs:
             return value
-        convertTo = attrs.get('convertTo')
+        convertTo = attrs.get("convertTo")
         if convertTo == Qt.CheckState:
             if x is True:
                 value = Qt.Checked
@@ -229,11 +264,11 @@ class QObjectHelper:
         elif convertTo == QDateTime:
             if isinstance(x, QDate):
                 value = QDateTime(x)
-        return value        
+        return value
 
     def setterConvertTo(self, attr, value):
-        """ Must be called explicitly in set(). """
-        convertTo = self.propAttrsFor(attr).get('convertTo')
+        """Must be called explicitly in set()."""
+        convertTo = self.propAttrsFor(attr).get("convertTo")
         x = value
         if convertTo == Qt.CheckState:
             if value == Qt.PartiallyChecked:
@@ -249,19 +284,19 @@ class QObjectHelper:
     # Property behavior
 
     def _cachedPropGetter(self, kwargs):
-        """ The first call directly from the Qt property.
+        """The first call directly from the Qt property.
         Should only access the cache; Cache should be explicitly updated with refreshProperty().
         """
-        attr = kwargs['attr']
-        ret = self._propCache[attr] # should be appropriately updated elsewhere
+        attr = kwargs["attr"]
+        ret = self._propCache[attr]  # should be appropriately updated elsewhere
         return ret
 
     def _cachedPropSetter(self, kwargs, value):
-        """ The first call directly from the Qt property. """
-        attr = kwargs['attr']
-        if kwargs.get('global'):
-            if value != kwargs['globalContext'][attr]:
-                kwargs['globalContext'][attr] = value
+        """The first call directly from the Qt property."""
+        attr = kwargs["attr"]
+        if kwargs.get("global"):
+            if value != kwargs["globalContext"][attr]:
+                kwargs["globalContext"][attr] = value
                 self._emitAttrChanged(attr, value)
         else:
             if value != self._propCache.get(attr):
@@ -273,8 +308,8 @@ class QObjectHelper:
                 self.refreshProperty(attr)
 
     def _cachedPropResetter(self, kwargs):
-        """ The first call directly from the Qt property. """        
-        attr = kwargs['attr']
+        """The first call directly from the Qt property."""
+        attr = kwargs["attr"]
         x = self.defaultFor(attr)
         if x != self._propCache[attr]:
             was = self._refreshingAttr
@@ -286,10 +321,10 @@ class QObjectHelper:
     ## Virtuals
 
     def get(self, attr):
-        """ Virtual. Should never return None. """
+        """Virtual. Should never return None."""
         kwargs = self.propAttrsFor(attr)
-        if kwargs and kwargs.get('global'):
-            x = kwargs['globalContext'][attr]
+        if kwargs and kwargs.get("global"):
+            x = kwargs["globalContext"][attr]
             return x
         elif self._defaultStorage:
             if kwargs:
@@ -297,20 +332,24 @@ class QObjectHelper:
                 x = self.getterConvertTo(attr, x)
                 return x
             else:
-                raise RuntimeError('The property `%s` does not exist on %s' % (attr, self))
+                raise RuntimeError(
+                    "The property `%s` does not exist on %s" % (attr, self)
+                )
 
     def set(self, attr, x):
-        """ Virtual """
+        """Virtual"""
         if self._defaultStorage:
             if self.propAttrsFor(attr):
                 x = self.setterConvertTo(attr, x)
                 self._defaultStorage[attr] = x
                 self.refreshProperty(attr)
             else:
-                raise RuntimeError('The property `%s` does not exist on %s' % (attr, self))        
+                raise RuntimeError(
+                    "The property `%s` does not exist on %s" % (attr, self)
+                )
 
     def reset(self, attr):
-        """ Virtual. Reimplement for new properties defined in model. """
+        """Virtual. Reimplement for new properties defined in model."""
         if self._defaultStorage:
             if self.propAttrsFor(attr):
                 # self._defaultStorage[attr] = self.defaultFor(attr)
@@ -319,6 +358,6 @@ class QObjectHelper:
                     self._defaultStorage[attr] = default
                     self.refreshProperty(attr)
             else:
-                raise RuntimeError('The property `%s` does not exist on %s' % (attr, self))        
-        
-
+                raise RuntimeError(
+                    "The property `%s` does not exist on %s" % (attr, self)
+                )

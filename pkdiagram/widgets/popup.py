@@ -1,4 +1,22 @@
-from ..pyqt import Qt, QPen, QBrush, QColor, QTabWidget, QWidget, QFrame, QGraphicsOpacityEffect, QPropertyAnimation, QEasingCurve, QPointF, QPainter, QStyle, QStyleOption, QRect, pyqtSignal, QPoint
+from ..pyqt import (
+    Qt,
+    QPen,
+    QBrush,
+    QColor,
+    QTabWidget,
+    QWidget,
+    QFrame,
+    QGraphicsOpacityEffect,
+    QPropertyAnimation,
+    QEasingCurve,
+    QPointF,
+    QPainter,
+    QStyle,
+    QStyleOption,
+    QRect,
+    pyqtSignal,
+    QPoint,
+)
 from .. import util
 
 
@@ -14,23 +32,23 @@ class PopUp(QFrame):
 
     def __init__(self, parent, effect=None):
         super().__init__(parent)
-        if util.isInstance(parent, 'View'):
+        if util.isInstance(parent, "View"):
             self.view = parent
         else:
             self.view = None
         self.showOver = None
-        if effect == 'drop-shadow':
+        if effect == "drop-shadow":
             self.effect = util.makeDropShadow()
             self.setGraphicsEffect(self.effect)
-        elif effect == 'opacity':
+        elif effect == "opacity":
             self.effect = QGraphicsOpacityEffect(self)
             self.setGraphicsEffect(self.effect)
         else:
             self.effect = None
         if isinstance(self.effect, QGraphicsOpacityEffect):
-            self.showAnimation = QPropertyAnimation(self.effect, b'opacity')
+            self.showAnimation = QPropertyAnimation(self.effect, b"opacity")
         else:
-            self.showAnimation = QPropertyAnimation(self, b'pos')
+            self.showAnimation = QPropertyAnimation(self, b"pos")
             if self.parent():
                 self.hiddenY = self.parent().height() + self.height() + 10
             else:
@@ -53,7 +71,7 @@ class PopUp(QFrame):
         p = QPainter(self)
         p.setClipRegion(e.region())
         p.setBrush(Qt.white)
-        p.setPen(QPen(QColor('#d8d8d8'), 2))
+        p.setPen(QPen(QColor("#d8d8d8"), 2))
         p.drawRoundedRect(self.rect(), 5, 5)
         p = None
 
@@ -104,19 +122,27 @@ class PopUp(QFrame):
             # try not to cover the selected items.
             rect = QRect()
             for item in items:
-                childrenRect = item.mapToScene(item.childrenBoundingRect()).boundingRect()
+                childrenRect = item.mapToScene(
+                    item.childrenBoundingRect()
+                ).boundingRect()
                 itemRect = item.mapToScene(item.boundingRect()).boundingRect()
                 rect |= self.view.mapFromScene(itemRect | childrenRect).boundingRect()
-            if rect.center().x() > self.view.width() / 2: # put to left
+            if rect.center().x() > self.view.width() / 2:  # put to left
                 x = rect.center().x() - self.width() - self.MARGIN
-            else: # put to right
+            else:  # put to right
                 x = rect.bottomRight().x() + self.MARGIN
-            x = max(self.MARGIN + self.view.itemToolBar.width(), min(x, self.view.width() - self.width() - self.MARGIN))
-            if rect.center().y() > self.view.height() / 2: # put below
+            x = max(
+                self.MARGIN + self.view.itemToolBar.width(),
+                min(x, self.view.width() - self.width() - self.MARGIN),
+            )
+            if rect.center().y() > self.view.height() / 2:  # put below
                 y = rect.center().y() + self.MARGIN
-            else: # put above
+            else:  # put above
                 y = rect.center().y() - self.height() - self.MARGIN
-            y = max(self.MARGIN + self.view.sceneToolBar.height(), min(y, self.view.height() - self.height() - self.MARGIN))
+            y = max(
+                self.MARGIN + self.view.sceneToolBar.height(),
+                min(y, self.view.height() - self.height() - self.MARGIN),
+            )
         if self.parent():
             self.hiddenY = self.parent().height() + 15
         else:

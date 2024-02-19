@@ -3,7 +3,7 @@ from pkdiagram import Person, Scene, PersonPropertiesModel
 
 
 def test_checkStates(simpleScene):
-    
+
     personA = Person(showMiddleName=False)
     personB = Person(showMiddleName=True)
     simpleScene.addItem(personA)
@@ -27,7 +27,8 @@ def _test_prop_returns():
             x = model._cachedPropGetter(kwargs)
             if x is None:
                 Debug(kwargs)
-                assert x == model.defaultFor(kwargs['attr'])
+                assert x == model.defaultFor(kwargs["attr"])
+
     assertNoneAreNone()
 
     personA = Person()
@@ -36,5 +37,3 @@ def _test_prop_returns():
     scene.addItems(personA, personB)
     model.items = [personA, personB]
     assertNoneAreNone()
-
-    

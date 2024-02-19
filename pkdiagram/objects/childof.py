@@ -1,14 +1,17 @@
 from ..pyqt import Qt, QPen, QPointF, QPainterPath, QRectF, QGraphicsItem, QColor
 from .. import util
 from .pathitem import PathItem
-        
+
 
 class ChildOf(PathItem):
 
     @staticmethod
     def personConnectionPoint(person):
         rect = QRectF(util.PERSON_RECT)
-        r = QPointF(rect.topLeft().x() + (rect.topRight().x() - rect.topLeft().x()) / 2, rect.topLeft().y())
+        r = QPointF(
+            rect.topLeft().x() + (rect.topRight().x() - rect.topLeft().x()) / 2,
+            rect.topLeft().y(),
+        )
         return person.mapToScene(r)
 
     @staticmethod
@@ -22,7 +25,9 @@ class ChildOf(PathItem):
             path.lineTo(x, y)
         elif person.childOf and not person.childOf.multipleBirth:
             start = ChildOf.personConnectionPoint(person)
-            marriageSceneRect = marriage.mapToScene(marriage.path().controlPointRect()).boundingRect()
+            marriageSceneRect = marriage.mapToScene(
+                marriage.path().controlPointRect()
+            ).boundingRect()
             y = marriageSceneRect.bottomLeft().y()
             leftP = marriageSceneRect.bottomLeft()
             rightP = marriageSceneRect.bottomRight()
@@ -43,7 +48,7 @@ class ChildOf(PathItem):
     def __init__(self, person, marriage):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-        self.prop('itemPos').setLayered(False)
+        self.prop("itemPos").setLayered(False)
         self.isChildOf = True
         self.person = person
         self._parents = marriage
@@ -54,28 +59,30 @@ class ChildOf(PathItem):
     # set data
 
     def write(self, chunk):
-        chunk['person'] = self.person.id
+        chunk["person"] = self.person.id
         if self._parents:
-            chunk['parents'] = self._parents.id
+            chunk["parents"] = self._parents.id
         else:
-            chunk['parents'] = None
+            chunk["parents"] = None
         if self.multipleBirth:
-            chunk['multipleBirth'] = self.multipleBirth.id
+            chunk["multipleBirth"] = self.multipleBirth.id
         else:
-            chunk['multipleBirth'] = None
+            chunk["multipleBirth"] = None
 
     def read(self, chunk, byId):
-        self.person = byId(chunk['person'])
-        self._parents = byId(chunk['parents'])
+        self.person = byId(chunk["person"])
+        self._parents = byId(chunk["parents"])
         self._parents._onAddChild(self.person)
-        self.multipleBirth = byId(chunk['multipleBirth'])
+        self.multipleBirth = byId(chunk["multipleBirth"])
 
     # Cloning
 
     def clone(self, scene):
         x = super().clone(scene)
         x._cloned_parents_id = self._parents.id
-        x._cloned_multipleBirth_id = self.multipleBirth and self.multipleBirth.id or None
+        x._cloned_multipleBirth_id = (
+            self.multipleBirth and self.multipleBirth.id or None
+        )
         return x
 
     def remap(self, map):
@@ -104,11 +111,13 @@ class ChildOf(PathItem):
             pen = QPen(util.PEN)
         pen.setCapStyle(self.penCapStyle)
         self.setPen(pen)
-            
+
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
         if not self.person.shouldShowFor(dateTime, tags=tags, layers=layers):
             return False
-        if self._parents and not self._parents.shouldShowFor(dateTime, tags=tags, layers=layers):
+        if self._parents and not self._parents.shouldShowFor(
+            dateTime, tags=tags, layers=layers
+        ):
             return False
         else:
             return True
@@ -127,14 +136,16 @@ class ChildOf(PathItem):
         self.setPen(pen)
 
     def updateGeometry(self):
-        if not self.parentItem() is self.person: # just always check
+        if not self.parentItem() is self.person:  # just always check
             self.setParentItem(self.person)
         super().updateGeometry()
         self.updatePen()
         path = ChildOf.pathFor(self.person, marriage=self._parents)
         newPathSceneRect = path.controlPointRect()
-        newScenePos = QPointF(newPathSceneRect.bottomLeft().x() + newPathSceneRect.width() / 2,
-                              newPathSceneRect.bottomLeft().y())
+        newScenePos = QPointF(
+            newPathSceneRect.bottomLeft().x() + newPathSceneRect.width() / 2,
+            newPathSceneRect.bottomLeft().y(),
+        )
         if newScenePos != self.pos():
             self.setPos(newScenePos)
         path = self.mapFromScene(path)

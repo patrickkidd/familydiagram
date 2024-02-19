@@ -1,11 +1,38 @@
 import logging
 import vedana
 from pkdiagram.pyqt import (
-    QObject, QWidget, pyqtSignal, QSizePolicy, QApplication, QVariant, QVariantAnimation, QAbstractAnimation,
-    QTimer, QRect, QRectF, QPoint, QPointF, QActionGroup, QAction, QQuickWidget, QKeySequence,
-    QJSValue
+    QObject,
+    QWidget,
+    pyqtSignal,
+    QSizePolicy,
+    QApplication,
+    QVariant,
+    QVariantAnimation,
+    QAbstractAnimation,
+    QTimer,
+    QRect,
+    QRectF,
+    QPoint,
+    QPointF,
+    QActionGroup,
+    QAction,
+    QQuickWidget,
+    QKeySequence,
+    QJSValue,
 )
-from pkdiagram import util, CUtil, commands, Property, Person, Marriage, Emotion, Event, LayerItem, Layer, ChildOf
+from pkdiagram import (
+    util,
+    CUtil,
+    commands,
+    Property,
+    Person,
+    Marriage,
+    Emotion,
+    Event,
+    LayerItem,
+    Layer,
+    ChildOf,
+)
 
 
 log = logging.getLogger(__name__)
@@ -81,7 +108,9 @@ class DocumentController(QObject):
         self.itemModeActionGroup.addAction(self.ui.actionCallout)
         self.itemModeActionGroup.addAction(self.ui.actionPencilStroke)
         self.itemModeActionGroup.triggered[QAction].connect(self.onItemModeAction)
-        self.ui.actionParents_to_Selection.triggered.connect(self.view.addParentsToSelection)
+        self.ui.actionParents_to_Selection.triggered.connect(
+            self.view.addParentsToSelection
+        )
         self.ui.actionMale.setData(util.ITEM_MALE)
         self.ui.actionFemale.setData(util.ITEM_FEMALE)
         self.ui.actionMarriage.setData(util.ITEM_MARRY)
@@ -110,13 +139,19 @@ class DocumentController(QObject):
         self.ui.actionNext_Layer.triggered.connect(self.onNextLayer)
         self.ui.actionPrevious_Layer.triggered.connect(self.onPrevLayer)
         self.ui.actionDeselect_All_Tags.triggered.connect(self.onDeselectAllTags)
-        self.ui.actionDeactivate_All_Layers.triggered.connect(self.onDeactivateAllLayers)
+        self.ui.actionDeactivate_All_Layers.triggered.connect(
+            self.onDeactivateAllLayers
+        )
         #
         self.ui.actionShow_Diagram.triggered.connect(self.dv.showDiagram)
         self.ui.actionShow_Timeline.triggered.connect(self.dv.showTimeline)
-        self.ui.actionShow_Items_with_Notes.toggled.connect(self.dv.view.showItemsWithNotes)
+        self.ui.actionShow_Items_with_Notes.toggled.connect(
+            self.dv.view.showItemsWithNotes
+        )
         self.ui.actionShow_Search.triggered.connect(self.dv.showSearch)
-        self.ui.actionShow_Search.setShortcuts([self.ui.actionShow_Search.shortcuts()[0], QKeySequence('Shift+Ctrl+f')])
+        self.ui.actionShow_Search.setShortcuts(
+            [self.ui.actionShow_Search.shortcuts()[0], QKeySequence("Shift+Ctrl+f")]
+        )
         self.ui.actionShow_Settings.triggered.connect(self.dv.showSettings)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
@@ -153,7 +188,7 @@ class DocumentController(QObject):
     ## Non-verbal reactive event handlers
 
     def onSceneProperty(self, prop):
-        if prop.name() == 'tags':
+        if prop.name() == "tags":
             self.onSceneTagsChanged()
 
     def onSceneTagsChanged(self):
@@ -171,10 +206,10 @@ class DocumentController(QObject):
             if tag in self.scene.searchModel.tags:
                 action.setChecked(True)
             action.toggled[bool].connect(self.onTagToggled)
-            self.ui.menuTags.addAction(action)            
+            self.ui.menuTags.addAction(action)
         self.ui.menuTags.addSeparator()
         self.ui.menuTags.addAction(self.ui.actionDeselect_All_Tags)
-    
+
     def onSearchTagsChanged(self, tags):
         self._isUpdatingSearchTags = True
         for action in self.ui.menuTags.actions():
@@ -206,7 +241,7 @@ class DocumentController(QObject):
 
     @util.blocked
     def onLayerActionToggled(self, on):
-        """ Exclusive selection. """
+        """Exclusive selection."""
         action = self.sender()
         id = action.data()
         for layer in self.scene.layers():
@@ -218,9 +253,9 @@ class DocumentController(QObject):
                 return
 
     def onLayerChanged(self, prop):
-        if prop.name() == 'active':
+        if prop.name() == "active":
             self.onSceneLayersChanged()
-        elif prop.name() == 'name':
+        elif prop.name() == "name":
             self.onSceneLayersChanged()
 
     def onSceneLayersChanged(self):
@@ -242,7 +277,7 @@ class DocumentController(QObject):
         self.updateActions()
 
     def updateActions(self):
-        """ Idempotent """
+        """Idempotent"""
         session = self.dv.session
         isReadOnly = self.scene and self.scene.readOnly()
         # License-dependent
@@ -257,15 +292,33 @@ class DocumentController(QObject):
         self.ui.actionImport_Diagram.setEnabled(session.hasFeature(vedana.LICENSE_FREE))
         self.ui.menuOpen_Recent.setEnabled(not session.hasFeature(vedana.LICENSE_FREE))
         self.ui.actionSave.setEnabled(bool(self.scene and not isReadOnly))
-        self.ui.actionSave_As.setEnabled(bool(self.scene and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT) and not isReadOnly))
-        self.ui.actionSave_Selection_As.setEnabled(bool(self.scene and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT) and (self.scene and self.scene.selectedItems() and not isReadOnly)))
+        self.ui.actionSave_As.setEnabled(
+            bool(
+                self.scene
+                and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT)
+                and not isReadOnly
+            )
+        )
+        self.ui.actionSave_Selection_As.setEnabled(
+            bool(
+                self.scene
+                and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT)
+                and (self.scene and self.scene.selectedItems() and not isReadOnly)
+            )
+        )
         self.ui.actionFree_License.setChecked(session.hasFeature(vedana.LICENSE_FREE))
-        self.ui.actionProfessional_License.setChecked(session.hasFeature(vedana.LICENSE_PROFESSIONAL))
-        self.ui.actionResearcher_License.setChecked(session.hasFeature(vedana.LICENSE_RESEARCHER))
+        self.ui.actionProfessional_License.setChecked(
+            session.hasFeature(vedana.LICENSE_PROFESSIONAL)
+        )
+        self.ui.actionResearcher_License.setChecked(
+            session.hasFeature(vedana.LICENSE_RESEARCHER)
+        )
         self.ui.actionInstall_Update.setEnabled(CUtil.instance().isUpdateAvailable())
         # License + In-view dependent actions
         on = bool(self.scene)
-        self.ui.actionClose.setEnabled(on and not session.hasFeature(vedana.LICENSE_FREE))
+        self.ui.actionClose.setEnabled(
+            on and not session.hasFeature(vedana.LICENSE_FREE)
+        )
         # In-view actions
         on = bool(self.scene)
         self.ui.actionShow_Tips.setEnabled(on)
@@ -276,7 +329,7 @@ class DocumentController(QObject):
         self.ui.actionDeselect_All_Layers.setEnabled(on)
         self.ui.actionDeselect_All_Tags.setEnabled(on)
         self.ui.actionReset_All.setEnabled(on)
-        self.ui.actionUndo_History.setEnabled(False) # on)
+        self.ui.actionUndo_History.setEnabled(False)  # on)
         self.ui.actionShow_Diagram.setEnabled(on)
         self.ui.actionShow_Timeline.setEnabled(on)
         self.ui.actionShow_Timeline_Search.setEnabled(on)
@@ -310,12 +363,18 @@ class DocumentController(QObject):
         self.ui.actionHide_Emotional_Process.setEnabled(inViewPlusRW)
         self.ui.actionHide_Emotion_Colors.setEnabled(inViewPlusRW)
         self.ui.actionHide_ToolBars.setEnabled(inViewPlusRW)
-        enableShowAliases = bool(inViewPlusRW or (self.scene and self.scene.useRealNames()))
+        enableShowAliases = bool(
+            inViewPlusRW or (self.scene and self.scene.useRealNames())
+        )
         self.ui.actionShow_Aliases.setEnabled(enableShowAliases)
         self.ui.actionDelete.setEnabled(inViewPlusRW)
         # View-focus, read-write dependent actions
         fw = QApplication.focusWidget()
-        if (fw not in (self.view, self.view.itemToolBar, self.view.sceneToolBar)) or (not self.scene) or (self.scene and self.scene.readOnly()):
+        if (
+            (fw not in (self.view, self.view.itemToolBar, self.view.sceneToolBar))
+            or (not self.scene)
+            or (self.scene and self.scene.readOnly())
+        ):
             # added itemToolBar as hack after refactoring as scroll area
             forceOff = True
         else:
@@ -324,7 +383,7 @@ class DocumentController(QObject):
         self.ui.actionPrint.setEnabled(on)
         self.ui.actionZoom_In.setEnabled(on)
         self.ui.actionZoom_Out.setEnabled(on)
-        self.ui.actionZoom_Fit.setEnabled(on) # and self.view.isZoomFitDirty())
+        self.ui.actionZoom_Fit.setEnabled(on)  # and self.view.isZoomFitDirty())
         self.ui.actionMale.setEnabled(on)
         self.ui.actionFemale.setEnabled(on)
         self.ui.actionMarriage.setEnabled(on)
@@ -342,13 +401,17 @@ class DocumentController(QObject):
         self.ui.actionUndo.setEnabled(on)
         self.ui.actionRedo.setEnabled(on)
         self.ui.actionPrimary_Cutoff.setEnabled(on)
-        canNextLayer = numLayers > 0 and (iActiveLayer == -1 or iActiveLayer < (numLayers - 1))
+        canNextLayer = numLayers > 0 and (
+            iActiveLayer == -1 or iActiveLayer < (numLayers - 1)
+        )
         canPrevLayer = numLayers > 0 and (iActiveLayer == -1 or iActiveLayer > 0)
         self.ui.actionNext_Layer.setEnabled(canNextLayer)
         self.ui.actionPrevious_Layer.setEnabled(canPrevLayer)
         if on:
-            on = bool(self.scene and (not self.scene.layers() or self.scene.activeLayers()))
-        self.ui.actionPencilStroke.setEnabled(on) # add default layer now
+            on = bool(
+                self.scene and (not self.scene.layers() or self.scene.activeLayers())
+            )
+        self.ui.actionPencilStroke.setEnabled(on)  # add default layer now
         self.ui.actionCallout.setEnabled(on)
         # self.view.itemToolBar.pencilButton.setEnabled(on)
         # self.view.itemToolBar.calloutButton.setEnabled(on)
@@ -362,9 +425,11 @@ class DocumentController(QObject):
         else:
             people = marriages = emotions = allSelected = []
         # Copy/Nudgables (i.e. People & LayerItems)
-        rootCopyables = [item for item in allSelected if \
-                         isinstance(item, Person) or \
-                         isinstance(item, LayerItem)]
+        rootCopyables = [
+            item
+            for item in allSelected
+            if isinstance(item, Person) or isinstance(item, LayerItem)
+        ]
         if not forceOff:
             on = bool(rootCopyables)
         else:
@@ -396,7 +461,9 @@ class DocumentController(QObject):
         if not forceOff:
             on = (len(people) + len(marriages) + len(emotions) + len(childOfs)) > 0
         # Inspectable|Deletable-dependent action
-        self.ui.actionDelete.setEnabled(self.canDelete() and (not self.scene or not self.scene.readOnly()))
+        self.ui.actionDelete.setEnabled(
+            self.canDelete() and (not self.scene or not self.scene.readOnly())
+        )
         self.ui.actionInspect.setEnabled(self.canInspect())
         self.ui.actionInspect_Item.setEnabled(bool(allSelected))
         self.ui.actionInspect_Timeline.setEnabled(bool(allSelected))
@@ -412,7 +479,7 @@ class DocumentController(QObject):
         self.ui.actionZoom_Fit.setEnabled(on)
 
     def onPrevEvent(self):
-        """ Set the current date to the next visible date. """
+        """Set the current date to the next visible date."""
         # w = QApplication.focusWidget()
         # if isinstance(w, QQuickWidget):
         #     w.parent().prevTab()
@@ -421,7 +488,7 @@ class DocumentController(QObject):
             self.scene.prevTaggedDateTime()
 
     def onNextEvent(self):
-        """ Set the current date to the next visible date. """
+        """Set the current date to the next visible date."""
         # w = QApplication.focusWidget()
         # if isinstance(w, QQuickWidget):
         #     w.parent().nextTab()
@@ -435,7 +502,7 @@ class DocumentController(QObject):
                 action.blockSignals(True)
                 action.setChecked(False)
                 action.blockSignals(False)
-        self.scene.searchModel.reset('tags')
+        self.scene.searchModel.reset("tags")
 
     def onNextLayer(self):
         self.scene.nextActiveLayer()
@@ -483,14 +550,18 @@ class DocumentController(QObject):
         if self.dv.canDeleteSelection():
             return True
         elif isinstance(fw, QQuickWidget):
-            ret = fw.parent().rootProp('canRemove')
+            ret = fw.parent().rootProp("canRemove")
             if ret is None:
                 ret = False
             return ret
-        elif fw in (self.view, self.view.rightToolBar) and self.scene and self.scene.selectedItems():
+        elif (
+            fw in (self.view, self.view.rightToolBar)
+            and self.scene
+            and self.scene.selectedItems()
+        ):
             return True
             # people = self.scene.selectedPeople()
-            # marriages = self.scene.selectedMarriages()            
+            # marriages = self.scene.selectedMarriages()
             # if len(people) > 0:
             #     return True
             # elif not people and len(marriages) == 1:
@@ -503,16 +574,16 @@ class DocumentController(QObject):
             return False
 
     def canInspect(self):
-        """ duplicated in onInspect """
+        """duplicated in onInspect"""
         if not self.scene:
             return False
         fw = QApplication.focusWidget()
         ret = None
         if isinstance(fw, QQuickWidget):
-            ret = fw.parent().rootProp('canInspect')
+            ret = fw.parent().rootProp("canInspect")
             if ret is None:
                 ret = False
-        else: # scene
+        else:  # scene
             people = self.scene.selectedPeople()
             marriages = self.scene.selectedMarriages()
             if len(people) > 0:
@@ -526,25 +597,25 @@ class DocumentController(QObject):
         return ret
 
     def onInspect(self, tab=None):
-        """ duplicated in canInspect """
+        """duplicated in canInspect"""
         fw = QApplication.focusWidget()
         if isinstance(fw, QQuickWidget):
-            if hasattr(fw.parent(), 'onInspect'):
+            if hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
-        else: # scene
+        else:  # scene
             self.dv.inspectSelection(tab=tab)
 
     def onInspectItemTab(self):
-        self.onInspect(tab='item')
+        self.onInspect(tab="item")
 
     def onInspectTimelineTab(self):
-        self.onInspect(tab='timeline')
+        self.onInspect(tab="timeline")
 
     def onInspectNotesTab(self):
-        self.onInspect(tab='notes')
+        self.onInspect(tab="notes")
 
     def onInspectMetaTab(self):
-        self.onInspect(tab='meta')
+        self.onInspect(tab="meta")
 
     def onItemDoubleClicked(self, item):
         self.onInspect()
@@ -565,4 +636,4 @@ class DocumentController(QObject):
         if not pathItem.isSelected():
             pathItem.setSelected(True)
         self._ignoreSelectionChanges = False
-        self.dv.inspectSelection(tab='notes')
+        self.dv.inspectSelection(tab="notes")

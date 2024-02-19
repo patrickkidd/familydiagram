@@ -23,7 +23,7 @@ def test_hasActiveLayers():
 
     layer.setActive(False)
     assert model.hasActiveLayers == scene.hasActiveLayers
-    
+
 
 def __test_valid_props():
     scene = Scene()
@@ -32,6 +32,5 @@ def __test_valid_props():
 
     attrs = model.classProperties(SceneModel)
     for kwargs in attrs:
-        attr = kwargs['attr']
+        attr = kwargs["attr"]
         Debug(attr, model.get(attr))
-        

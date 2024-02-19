@@ -1,15 +1,24 @@
-from .pyqt import QGraphicsView, QTimeLine, QObject, QVariantAnimation, QGraphicsRectItem, Qt, QRectF, QGraphicsItem
+from .pyqt import (
+    QGraphicsView,
+    QTimeLine,
+    QObject,
+    QVariantAnimation,
+    QGraphicsRectItem,
+    Qt,
+    QRectF,
+    QGraphicsItem,
+)
 from . import util
 
 
 class WheelZoomer(QObject):
-    
+
     def __init__(self, view):
         super().__init__(view)
         self.view = view
         self._begun = False
         self.currentScale = None
-        
+
     def begun(self):
         return self._begun
 
@@ -30,11 +39,11 @@ class WheelZoomer(QObject):
             delta = e.pixelDelta().y()
         if not delta:
             return
-        FACTOR = .999
-        if delta < 0: # zoom out
+        FACTOR = 0.999
+        if delta < 0:  # zoom out
             coeff = pow(FACTOR, abs(delta))
             self.currentScale = self.currentScale * coeff
-        else: # zoom in
+        else:  # zoom in
             coeff = pow(1 / FACTOR, abs(delta))
             self.currentScale = self.currentScale * coeff
         self.view.zoomAbsolute(self.currentScale)
@@ -52,7 +61,7 @@ class WheelZoomer(QObject):
         self.view.zoomAbsolute(self.currentScale)
         self._begun = False
         self.currentScale = None
-    
+
     def cancel(self):
         if not self.begun():
             return

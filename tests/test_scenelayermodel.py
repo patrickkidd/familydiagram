@@ -6,20 +6,20 @@ from pkdiagram import util, Scene, SceneLayerModel, Layer, Person
 def test_init_deinit():
     model = SceneLayerModel()
     assert model.rowCount() == 0
-    
+
     scene = Scene()
-    layer1 = Layer(name='View 1')
-    layer2 = Layer(name='View 2', active=True)
-    layer3 = Layer(name='View 3', active=True)
+    layer1 = Layer(name="View 1")
+    layer2 = Layer(name="View 2", active=True)
+    layer3 = Layer(name="View 3", active=True)
     scene.addItems(layer1, layer2, layer3)
     model.scene = scene
     assert model.rowCount() == 3
     assert model.data(model.index(0, 0), model.IdRole) == layer1.id
     assert model.data(model.index(1, 0), model.IdRole) == layer2.id
     assert model.data(model.index(2, 0), model.IdRole) == layer3.id
-    assert model.data(model.index(0, 0)) == 'View 1'
-    assert model.data(model.index(1, 0)) == 'View 2'
-    assert model.data(model.index(2, 0)) == 'View 3'
+    assert model.data(model.index(0, 0)) == "View 1"
+    assert model.data(model.index(1, 0)) == "View 2"
+    assert model.data(model.index(2, 0)) == "View 3"
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.Unchecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.Checked
     assert model.data(model.index(2, 0), model.ActiveRole) == Qt.Checked
@@ -28,8 +28,8 @@ def test_init_deinit():
     assert model.rowCount() == 0
     with pytest.raises(IndexError):
         model.data(model.index(0, 0))
-    
-    
+
+
 def test_add_layer_sceneModel():
     scene = Scene()
     model = SceneLayerModel()
@@ -75,7 +75,7 @@ def test_remove_layer(qtbot):
     rowsRemoved = util.Condition()
     model.rowsRemoved.connect(rowsRemoved)
     qtbot.clickYesAfter(lambda: model.removeRow(0))
-    
+
     assert rowsRemoved.callCount == 1
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0)) == (model.NEW_NAME_TMPL % 2)
@@ -85,9 +85,9 @@ def test_remove_layer(qtbot):
 def test_set_active_sceneModel():
     model = SceneLayerModel()
     scene = Scene()
-    layer1 = Layer(name='View 1')
-    layer2 = Layer(name='View 2')
-    layer3 = Layer(name='View 3')
+    layer1 = Layer(name="View 1")
+    layer2 = Layer(name="View 2")
+    layer3 = Layer(name="View 3")
     scene.addItems(layer1, layer2, layer3)
     model.scene = scene
     model.items = [scene]
@@ -103,17 +103,17 @@ def test_set_active_sceneModel():
     assert layer1.active() == True
     assert layer2.active() == False
     assert layer2.active() == False
-    
+
     set(2, True)
     assert layer1.active() == True
     assert layer2.active() == False
     assert layer3.active() == True
-        
+
     set(0, False)
     assert layer1.active() == False
     assert layer2.active() == False
     assert layer3.active() == True
-    
+
     set(2, False)
     assert layer1.active() == False
     assert layer2.active() == False
@@ -123,9 +123,9 @@ def test_set_active_sceneModel():
 def test_moveLayer():
     scene = Scene()
     model = SceneLayerModel()
-    layer0 = Layer(name='View 0')
-    layer1 = Layer(name='View 1')
-    layer2 = Layer(name='View 2')
+    layer0 = Layer(name="View 0")
+    layer1 = Layer(name="View 1")
+    layer2 = Layer(name="View 2")
     scene.addItems(layer0, layer1, layer2)
     model.scene = scene
 
@@ -150,10 +150,10 @@ def test_moveLayer():
     scene.write(data)
     scene2 = Scene()
     scene2.read(data)
-    
-    _layer0 = scene2.query1(name='View 0')
-    _layer1 = scene2.query1(name='View 1')
-    _layer2 = scene2.query1(name='View 2')
+
+    _layer0 = scene2.query1(name="View 0")
+    _layer1 = scene2.query1(name="View 1")
+    _layer2 = scene2.query1(name="View 2")
     assert _layer0.order() == 2
     assert _layer1.order() == 1
     assert _layer2.order() == 0

@@ -1,5 +1,19 @@
 import logging
-from .pyqt import Qt, QObject, QApplication, QQuickWidget, QQuickItem, QUrl, pyqtSignal, QRectF, QMetaObject, Q_ARG, Q_RETURN_ARG, QAbstractItemModel, QVariant
+from .pyqt import (
+    Qt,
+    QObject,
+    QApplication,
+    QQuickWidget,
+    QQuickItem,
+    QUrl,
+    pyqtSignal,
+    QRectF,
+    QMetaObject,
+    Q_ARG,
+    Q_RETURN_ARG,
+    QAbstractItemModel,
+    QVariant,
+)
 from . import util
 from .models import QObjectHelper
 
@@ -8,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 class QmlWidgetHelper(QObjectHelper):
-    
+
     def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
         self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
@@ -34,24 +48,26 @@ class QmlWidgetHelper(QObjectHelper):
     #         return super().__getattr__(self, o)
 
     def isQmlReady(self):
-        return hasattr(self, 'qml')
-        
+        return hasattr(self, "qml")
+
     def onStatusChanged(self, status):
         pass
         # if util.IS_TEST:
         #     self.here(util.qenum(QQuickWidget, self.qml.status()))
 
     def checkInitQml(self):
-        """ Returns True if initialized on this call. """
-        if hasattr(self, 'qml'):
+        """Returns True if initialized on this call."""
+        if hasattr(self, "qml"):
             return False
         self.qml = QQuickWidget(QApplication.instance().qmlEngine(), self)
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
         if self.layout() is None:
-            raise RuntimeError('A layout must be added to a QmlWidgetHelper prior to calling initQml()')
-        if self._qmlSource.startswith('qrc:'):
+            raise RuntimeError(
+                "A layout must be added to a QmlWidgetHelper prior to calling initQml()"
+            )
+        if self._qmlSource.startswith("qrc:"):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
@@ -60,7 +76,9 @@ class QmlWidgetHelper(QObjectHelper):
             if util.IS_TEST:
                 for error in self.qml.errors():
                     log.error(error.toString(), exc_info=True)
-            raise RuntimeError('Could not load qml component from: %s' % self._qmlSource)
+            raise RuntimeError(
+                "Could not load qml component from: %s" % self._qmlSource
+            )
         # map all signals
 
         # properties = []
@@ -80,7 +98,7 @@ class QmlWidgetHelper(QObjectHelper):
         #         if not hasattr(self, k) and isinstance(v, pyqtSignal):
         #             self.here('Mapped pyqtSignal on [%s]: %s' % (self.objectName(), k))
         #             setattr(self, k, v)
-        
+
         for k, v in self.qml.rootObject().__dict__:
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
@@ -92,14 +110,14 @@ class QmlWidgetHelper(QObjectHelper):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child
         if self.sceneModel:
-            self.qml.rootObject().setProperty('sceneModel', self.sceneModel)
+            self.qml.rootObject().setProperty("sceneModel", self.sceneModel)
         if self.session:
-            self.qml.rootObject().setProperty('session', self.session)
+            self.qml.rootObject().setProperty("session", self.session)
         self.onInitQml()
         return True
 
     def onInitQml(self):
-        """ Virtual """
+        """Virtual"""
 
     ##
     ## Test utils
@@ -110,7 +128,7 @@ class QmlWidgetHelper(QObjectHelper):
 
     @classmethod
     def deepFind(cls, parent, objectName):
-        """ more in-depth recursive QObject search. """
+        """more in-depth recursive QObject search."""
         ret = None
         for child in parent.children():
             if child.objectName() == objectName:
@@ -119,11 +137,11 @@ class QmlWidgetHelper(QObjectHelper):
                 ret = cls.deepFind(child, objectName)
             if ret:
                 return ret
-        
+
     def findItem(self, objectName, noerror=False):
         if objectName in self._qmlItemCache:
             return self._qmlItemCache[objectName]
-        parts = objectName.split('.')
+        parts = objectName.split(".")
         item = self.qml.rootObject()
         for partName in parts:
             _item = item.findChild(QObject, partName)
@@ -133,7 +151,7 @@ class QmlWidgetHelper(QObjectHelper):
             # else:
             #     item = self.deepFind(item, partName)
         if not item and not noerror:
-            raise RuntimeError('Could not find item: %s' % objectName)
+            raise RuntimeError("Could not find item: %s" % objectName)
         self._qmlItemCache[objectName] = item
         return item
 
@@ -153,56 +171,71 @@ class QmlWidgetHelper(QObjectHelper):
     def setItemProp(self, objectName, attr, value):
         item = self.findItem(objectName)
         item.setProperty(attr, value)
-    
+
     def focusItem(self, objectName):
         if not self.isActiveWindow():
             # self.here('Setting active window to %s, currently %s' % (self, QApplication.activeWindow()))
             QApplication.setActiveWindow(self)
             util.qtbot.waitActive(self)
             if not self.isActiveWindow():
-                raise RuntimeError('Could not set activeWindow to %s, currently is %s' % (self, QApplication.activeWindow()))
+                raise RuntimeError(
+                    "Could not set activeWindow to %s, currently is %s"
+                    % (self, QApplication.activeWindow())
+                )
             # else:
             #     Debug('Success setting active window to', self)
         item = self.findItem(objectName)
-        assert item.property('enabled') == True, f"The item {objectName} cannot be focused if it is not enabled."
+        assert (
+            item.property("enabled") == True
+        ), f"The item {objectName} cannot be focused if it is not enabled."
         self.mouseClick(objectName)
         if not item.hasActiveFocus():
-            item.forceActiveFocus() # in case mouse doesn't work if item out of view
+            item.forceActiveFocus()  # in case mouse doesn't work if item out of view
             self.waitUntil(lambda: item.hasActiveFocus())
         if not item.hasFocus():
             item.setFocus(True)
             self.waitUntil(lambda: item.hasFocus())
         if not item.hasActiveFocus():
-            msg = 'Could not set active focus on `%s`' % objectName
+            msg = "Could not set active focus on `%s`" % objectName
             if not self.isActiveWindow():
-                raise RuntimeError(msg + ', window is not active.')
+                raise RuntimeError(msg + ", window is not active.")
             elif not item.isEnabled():
-                raise RuntimeError(msg + ', item is not enabled.')
+                raise RuntimeError(msg + ", item is not enabled.")
             elif not item.isVisible():
-                raise RuntimeError(msg + ', item is not visible.')
+                raise RuntimeError(msg + ", item is not visible.")
             else:
                 if util.IS_TEST:
                     pngPath = util.dumpWidget(self)
                 else:
                     pngPath = None
-                itemRect = QRectF(item.property('x'), item.property('y'),
-                                  item.property('width'), item.property('height'))
-                msg += ', reason unknown (item rect: %s)' % itemRect
+                itemRect = QRectF(
+                    item.property("x"),
+                    item.property("y"),
+                    item.property("width"),
+                    item.property("height"),
+                )
+                msg += ", reason unknown (item rect: %s)" % itemRect
                 if pngPath:
-                    msg += '\n    - Widget dumped to: %s' % pngPath
-                msg += '\n    - self.qml                  : %s' % self.qml
-                msg += '\n    - QApplication.focusWidget(): %s' % QApplication.focusWidget()
-                msg += '\n    - root item size: %s, %s' % (self.qml.rootObject().property('width'), self.qml.rootObject().property('height'))
+                    msg += "\n    - Widget dumped to: %s" % pngPath
+                msg += "\n    - self.qml                  : %s" % self.qml
+                msg += (
+                    "\n    - QApplication.focusWidget(): %s"
+                    % QApplication.focusWidget()
+                )
+                msg += "\n    - root item size: %s, %s" % (
+                    self.qml.rootObject().property("width"),
+                    self.qml.rootObject().property("height"),
+                )
                 raise RuntimeError(msg)
         return item
 
     def resetFocus(self, objectName):
         item = self.findItem(objectName)
-        item.setProperty('focus', False)
+        item.setProperty("focus", False)
         if item.hasActiveFocus():
-            self.qml.rootObject().forceActiveFocus() # TextField?
+            self.qml.rootObject().forceActiveFocus()  # TextField?
             if item.hasActiveFocus():
-                raise RuntimeError('Could not re-set active focus.')
+                raise RuntimeError("Could not re-set active focus.")
 
     def keyClick(self, objectName, key, resetFocus=True):
         self.focusItem(objectName)
@@ -214,7 +247,7 @@ class QmlWidgetHelper(QObjectHelper):
         self.focusItem(objectName)
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
-            util.qtbot.keyClick(self.qml, Qt.Key_Return) # only for TextInput?
+            util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
             self.resetFocus(objectName)
 
@@ -223,32 +256,37 @@ class QmlWidgetHelper(QObjectHelper):
         self.focusItem(objectName)
         item.selectAll()
         count = 0
-        while item.property('text') not in ('', util.BLANK_DATE_TEXT) and count < 200:
+        while item.property("text") not in ("", util.BLANK_DATE_TEXT) and count < 200:
             self.keyClick(objectName, Qt.Key_Backspace)
             count += 1
         self.resetFocus(objectName)
-        itemText = item.property('text')
-        if not (itemText == '' or itemText == util.BLANK_DATE_TEXT):
-            raise RuntimeError('Could not clear text for %s (text = "%s")' % (objectName, itemText))
+        itemText = item.property("text")
+        if not (itemText == "" or itemText == util.BLANK_DATE_TEXT):
+            raise RuntimeError(
+                'Could not clear text for %s (text = "%s")' % (objectName, itemText)
+            )
 
     def mouseClickItem(self, item, buttons=Qt.LeftButton, pos=None):
         if pos is None:
-            rect = item.mapRectToScene(QRectF(0, 0, item.width(), item.height())).toRect()
+            rect = item.mapRectToScene(
+                QRectF(0, 0, item.width(), item.height())
+            ).toRect()
             pos = rect.center()
         util.qtbot.mouseClick(self.qml, buttons, Qt.NoModifier, pos)
-        
+
     def mouseClick(self, objectName, buttons=Qt.LeftButton, pos=None):
         if isinstance(objectName, str):
             item = self.findItem(objectName)
         else:
             item = objectName
-        assert item.property('enabled') == True
+        assert item.property("enabled") == True
         self.mouseClickItem(item)
 
     def clickTabBarButton(self, objectName, iTab):
         item = self.findItem(objectName)
-        rect = item.mapRectToItem(self.qml.rootObject(),
-                                  QRectF(0, 0, item.width(), item.height())).toRect()
+        rect = item.mapRectToItem(
+            self.qml.rootObject(), QRectF(0, 0, item.width(), item.height())
+        ).toRect()
         # count = item.property('count')
         # tabWidth = rect.width() / count
         # tabStartX = tabWidth * iTab
@@ -258,22 +296,28 @@ class QmlWidgetHelper(QObjectHelper):
         # tabCenter = QPoint(tabCenterX, tabCenterY)
         # self.qml.setFocus()
         # util.qtbot.mouseClick(self.qml, Qt.LeftButton, Qt.NoModifier, tabCenter)
-        item.setProperty('currentIndex', iTab)
-        currentIndex = item.property('currentIndex')
+        item.setProperty("currentIndex", iTab)
+        currentIndex = item.property("currentIndex")
         if not currentIndex == iTab:
-            focusItem = self.rootProp('focusItem')
-            raise RuntimeError('Unable to click tab bar button index %i for `%s`. `currentIndex` is still %i (focus widget: %s, focusItem: %s)' % (
-                iTab, objectName, currentIndex,
-                QApplication.focusWidget(), focusItem.objectName()
-            ))
+            focusItem = self.rootProp("focusItem")
+            raise RuntimeError(
+                "Unable to click tab bar button index %i for `%s`. `currentIndex` is still %i (focus widget: %s, focusItem: %s)"
+                % (
+                    iTab,
+                    objectName,
+                    currentIndex,
+                    QApplication.focusWidget(),
+                    focusItem.objectName(),
+                )
+            )
 
     def clickListViewItem(self, objectName, index):
         item = self.findItem(objectName)
-        item.setProperty('currentIndex', index)
+        item.setProperty("currentIndex", index)
 
     def clickListViewItem_actual(self, objectName, rowText, modifiers=Qt.NoModifier):
         item = self.findItem(objectName)
-        model = item.property('model')
+        model = item.property("model")
         text = None
         textRows = []
         for row in range(model.rowCount()):
@@ -281,8 +325,10 @@ class QmlWidgetHelper(QObjectHelper):
             textRows.append(text)
             if text == rowText:
                 break
-        assert text == rowText, f"ListView row with text '{rowText}' not found (rows: {textRows}" # cell found
-        assert self.itemProp(objectName, 'enabled') == True
+        assert (
+            text == rowText
+        ), f"ListView row with text '{rowText}' not found (rows: {textRows}"  # cell found
+        assert self.itemProp(objectName, "enabled") == True
         # calc visual rect
         x = 0
         y = util.QML_ITEM_HEIGHT * row - 1
@@ -292,37 +338,43 @@ class QmlWidgetHelper(QObjectHelper):
         #                                                    Qt.DirectConnection,
         #                                                    Q_ARG(QVariant, row))
         # ensureVisible(row)
-        prevCurrentIndex = item.property('currentIndex')
+        prevCurrentIndex = item.property("currentIndex")
         rect = item.mapRectToScene(QRectF(x, y, w, h))
         self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
 
-    def clickTimelineViewItem(self, objectName, cellText, column=0, modifiers=Qt.NoModifier):
+    def clickTimelineViewItem(
+        self, objectName, cellText, column=0, modifiers=Qt.NoModifier
+    ):
         item = self.findItem(objectName)
-        model = item.property('model')
+        model = item.property("model")
         for row in range(model.rowCount()):
             text = model.data(model.index(row, column))
             if text == cellText:
                 break
-        assert text == cellText # cell found
-        assert self.itemProp(objectName, 'enabled') == True
+        assert text == cellText  # cell found
+        assert self.itemProp(objectName, "enabled") == True
         # calc visual rect
-        columnWidth = lambda x: QMetaObject.invokeMethod(item, 'columnWidthProvider',
-                                                         Qt.DirectConnection,
-                                                         Q_RETURN_ARG(QVariant),
-                                                         Q_ARG(QVariant, x))
+        columnWidth = lambda x: QMetaObject.invokeMethod(
+            item,
+            "columnWidthProvider",
+            Qt.DirectConnection,
+            Q_RETURN_ARG(QVariant),
+            Q_ARG(QVariant, x),
+        )
         x = sum([columnWidth(i) for i in range(column)])
         y = util.QML_ITEM_HEIGHT * row - 1
         w = columnWidth(column)
         h = util.QML_ITEM_HEIGHT
-        self.findItem('ensureVisAnimation').setProperty('duration', 1)
-        ensureVisible = lambda x: QMetaObject.invokeMethod(item, 'ensureVisible',
-                                                           Qt.DirectConnection,
-                                                           Q_ARG(QVariant, row))
+        self.findItem("ensureVisAnimation").setProperty("duration", 1)
+        ensureVisible = lambda x: QMetaObject.invokeMethod(
+            item, "ensureVisible", Qt.DirectConnection, Q_ARG(QVariant, row)
+        )
         ensureVisible(row)
-        forceLayout = lambda: QMetaObject.invokeMethod(item, 'test_updateLayout',
-                                                       Qt.DirectConnection)
+        forceLayout = lambda: QMetaObject.invokeMethod(
+            item, "test_updateLayout", Qt.DirectConnection
+        )
         forceLayout()
-        selModel = item.property('selectionModel')
+        selModel = item.property("selectionModel")
         prevSelection = selModel.selectedRows()
         rect = item.mapRectToScene(QRectF(x, y, w, h))
         self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
@@ -334,29 +386,36 @@ class QmlWidgetHelper(QObjectHelper):
             comboBox = self.findItem(objectName)
         else:
             comboBox = objectName
-        self.mouseClick(objectName) # for focus
-        model = comboBox.property('model')
+        self.mouseClick(objectName)  # for focus
+        model = comboBox.property("model")
         if isinstance(model, list):
             itemTexts = model
         elif isinstance(model, QAbstractItemModel):
-            textRole = comboBox.property('textRole').encode('utf-8')
+            textRole = comboBox.property("textRole").encode("utf-8")
             for role, roleName in model.roleNames().items():
                 if textRole == roleName:
                     break
-            itemTexts = [model.data(model.index(row, 0), role) for row in range(model.rowCount())]
+            itemTexts = [
+                model.data(model.index(row, 0), role) for row in range(model.rowCount())
+            ]
         currentIndex = None
         for i, text in enumerate(itemTexts):
             if text == itemText:
                 currentIndex = i
         if currentIndex is None:
-            raise RuntimeError('Could not find ComboBox item with text "%s" on `%s`' % (itemText, objectName))
-        comboBox.setProperty('currentIndex', -1)
-        comboBox.setProperty('currentIndex', currentIndex)
+            raise RuntimeError(
+                'Could not find ComboBox item with text "%s" on `%s`'
+                % (itemText, objectName)
+            )
+        comboBox.setProperty("currentIndex", -1)
+        comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()
-        if not comboBox.property('currentText') == itemText:
-            raise RuntimeError('Could not set `currentText` to "%s" (currentIndex: %i) on %s' % (
-                itemText, currentIndex, objectName))
-        
+        if not comboBox.property("currentText") == itemText:
+            raise RuntimeError(
+                'Could not set `currentText` to "%s" (currentIndex: %i) on %s'
+                % (itemText, currentIndex, objectName)
+            )
+
         # popup = item.findChildren(QQuickItem, 'popup')[0]
         # self.recursivePrintChildren(item, 0)
         # for child in item.childItems():
@@ -365,18 +424,19 @@ class QmlWidgetHelper(QObjectHelper):
         #         self.here('    ', _child.metaObject().className())
 
     def assertNoTableViewItem(self, objectName, text, column):
-        model = self.itemProp(objectName, 'model')
+        model = self.itemProp(objectName, "model")
         count = 0
         for row in range(model.rowCount()):
             index = model.index(row, column)
             itemS = model.index(row, column).data(Qt.DisplayRole)
             if itemS == text:
                 count += 1
-        assert count == 0        
+        assert count == 0
 
     def recursivePrintChildren(self, item, level):
         for child in item.childItems():
-            self.here('%s%s: %s' % ((' ' * level),
-                                    item.objectName(),
-                                    child.metaObject().className()))
+            self.here(
+                "%s%s: %s"
+                % ((" " * level), item.objectName(), child.metaObject().className())
+            )
             self.recursivePrintChildren(child, level + 1)

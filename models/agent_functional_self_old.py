@@ -1,10 +1,8 @@
-
-
 class Model:
 
     def __init__(self):
         self.lastId = 0
-    
+
     def register(self, agent):
         agent.id = self.lastId + 1
         self.lastId += 1
@@ -16,15 +14,15 @@ class Model:
 
 
 class Agent:
-    """ Represents one person. """
+    """Represents one person."""
 
     def __init__(self):
-        """ Set up the initial state variables. """
+        """Set up the initial state variables."""
         self.id = None
 
         # level of differentiation [0.0 - 100.0]
         self.differentiation = 0.25
-        
+
         # Current anxiety [0.0 - 1.0]
         # Maybe "chronic anxiety" is a high level over time
         self.anxiety = 0.0
@@ -33,7 +31,7 @@ class Agent:
         self.forces = {}
 
     def process(self, environment):
-        """ This is the algorithm of the emotional system, called
+        """This is the algorithm of the emotional system, called
         continuously to process pressure from the environment.
         Emotional shockwave would just be a bigger 'pressure' value.
         """

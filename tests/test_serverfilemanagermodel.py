@@ -16,23 +16,25 @@ def create_model(request):
     created = []
 
     def _create_model(session=True):
-            model = ServerFileManagerModel()
-            _session = pkdiagram.Session()
-            if session:
-                if session is True:
-                    test_session = request.getfixturevalue('test_session')
-                else:
-                    test_session = session
-                _session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
+        model = ServerFileManagerModel()
+        _session = pkdiagram.Session()
+        if session:
+            if session is True:
+                test_session = request.getfixturevalue("test_session")
             else:
-                _session.init(syncWithServer=False)
+                test_session = session
+            _session.init(
+                sessionData=test_session.account_editor_dict(), syncWithServer=False
+            )
+        else:
+            _session.init(syncWithServer=False)
 
-            model.init()
-            model.setSession(_session)
-            assert util.wait(model.updateFinished)
+        model.init()
+        model.setSession(_session)
+        assert util.wait(model.updateFinished)
 
-            created.append(model)
-            return model
+        created.append(model)
+        return model
 
     yield _create_model
 
@@ -86,7 +88,10 @@ def test_disk_cache(test_user, test_user_diagrams, create_model):
     model = create_model()
 
     db.session.add_all((test_user, *test_user_diagrams))
-    assert model.rowCount() == len([x for x in test_user_diagrams if x.user_id == test_user.id]) + 1
+    assert (
+        model.rowCount()
+        == len([x for x in test_user_diagrams if x.user_id == test_user.id]) + 1
+    )
     model.write()
 
     model2 = ServerFileManagerModel(dataPath=model.dataPath)
@@ -143,11 +148,15 @@ def test_dataChanged_on_poll(test_user, create_model):
     # Polled update on this machine
     model.syncDiagramFromServer(test_user.free_diagram_id)
     assert dataChanged.callCount == 1
-    assert dataChanged.callArgs[0] == (model.index(0, 0), model.index(0, 0), [model.DiagramDataRole])
+    assert dataChanged.callArgs[0] == (
+        model.index(0, 0),
+        model.index(0, 0),
+        [model.DiagramDataRole],
+    )
     scene = Scene()
     bdata = model.data(dataChanged.callArgs[0][0], model.DiagramDataRole)
     scene.read(pickle.loads(bdata))
-    assert scene.query1(name='Patrick')
+    assert scene.query1(name="Patrick")
 
     # Test sync idempotence
     model.syncDiagramFromServer(test_user.free_diagram_id)
@@ -157,10 +166,7 @@ def test_dataChanged_on_poll(test_user, create_model):
 def test_add_diagram_file(test_user, create_model):
     data = {}
     Scene().write(data)
-    diagram = Diagram(
-        user_id=test_user.id,
-        data=pickle.dumps(data)
-    )
+    diagram = Diagram(user_id=test_user.id, data=pickle.dumps(data))
     db.session.add(diagram)
     db.session.commit()
 
@@ -185,12 +191,13 @@ def test_helpers(test_user_diagrams, create_model):
     assert model.rowForDiagramId(diagram.id) == ROW
 
 
-
 def test_searchText(test_user_diagrams, test_user, create_model):
-    SEARCH_TERM = 'patrickkidd+unittest+2@gmail.com'
+    SEARCH_TERM = "patrickkidd+unittest+2@gmail.com"
 
     db.session.add_all((test_user, *test_user_diagrams))
-    num_matching_search = len([x for x in test_user_diagrams if SEARCH_TERM in x.user.username])
+    num_matching_search = len(
+        [x for x in test_user_diagrams if SEARCH_TERM in x.user.username]
+    )
     _grant_ro_access(test_user_diagrams, test_user)
 
     model = create_model()
@@ -199,14 +206,17 @@ def test_searchText(test_user_diagrams, test_user, create_model):
     model.searchText = SEARCH_TERM
     assert model.rowCount() == num_matching_search
 
-    model.reset('searchText')
+    model.reset("searchText")
     assert model.rowCount() == len(test_user_diagrams) + 1
 
 
 def test_clear_on_logout(test_user_diagrams, test_user, create_model):
     model = create_model()
     db.session.add_all(test_user_diagrams)
-    assert model.rowCount() == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    assert (
+        model.rowCount()
+        == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    )
 
     cleared = util.Condition(model.cleared)
     model.session.logout()
@@ -214,10 +224,15 @@ def test_clear_on_logout(test_user_diagrams, test_user, create_model):
     assert model.rowCount() == 0
 
 
-def test_dont_clear_cache_on_restart(test_user_diagrams, test_user, test_session, create_model):
+def test_dont_clear_cache_on_restart(
+    test_user_diagrams, test_user, test_session, create_model
+):
     model = create_model()
     db.session.add_all(test_user_diagrams)
-    assert model.rowCount() == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    assert (
+        model.rowCount()
+        == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    )
 
     model.deinit()
     session = pkdiagram.Session()
@@ -226,7 +241,10 @@ def test_dont_clear_cache_on_restart(test_user_diagrams, test_user, test_session
     model2.init()
     model2.setSession(session)
     assert util.wait(model2.updateFinished)
-    assert model2.rowCount() == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    assert (
+        model2.rowCount()
+        == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    )
 
 
 def test_save_free_diagram_persists(test_session):
@@ -241,7 +259,7 @@ def test_save_free_diagram_persists(test_session):
     assert model.rowCount() == 1
 
     # Write free diagram + logout
-    scene = Scene(items=Person(name='Me'))
+    scene = Scene(items=Person(name="Me"))
     bdata = pickle.dumps(scene.data())
     model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
     session.logout()

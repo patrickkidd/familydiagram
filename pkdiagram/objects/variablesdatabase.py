@@ -3,7 +3,7 @@ from sortedcontainers import SortedDict
 
 
 class VariablesDatabase:
-    """ Enables a quick cached lookup of item variable states for a given date.
+    """Enables a quick cached lookup of item variable states for a given date.
     Just returns last variable value for the item in chronological order.
     """
 
@@ -29,7 +29,7 @@ class VariablesDatabase:
             del attrEntry[date]
 
     def get(self, attr, date):
-        """ Returns: (value, changed) """
+        """Returns: (value, changed)"""
         ret = (None, False)
         attrEntry = self._data.get(attr)
         if attrEntry:
@@ -43,7 +43,7 @@ class VariablesDatabase:
                 # defer to prior date entry with a value set for attr
                 dates = attrEntry.keys()
                 index = bisect.bisect_right(dates, date)
-                lastDate = dates[index-1]
+                lastDate = dates[index - 1]
                 ret = (attrEntry[lastDate], False)
         return ret
 

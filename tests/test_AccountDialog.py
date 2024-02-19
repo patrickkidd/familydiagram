@@ -23,7 +23,6 @@ from fdserver.models import License, User, Policy
 #     assert dlg.isLoggedIn() == False
 
 
-
 @pytest.fixture
 def create_dlg(qtbot, request):
 
@@ -38,7 +37,7 @@ def create_dlg(qtbot, request):
         qtbot.waitActive(dlg)
 
         if session:
-            test_session = request.getfixturevalue('test_session')
+            test_session = request.getfixturevalue("test_session")
             db.session.add(test_session)
             dlg.session.init(sessionData=test_session.account_editor_dict())
             assert dlg.session.isLoggedIn() == True
@@ -57,250 +56,291 @@ def create_dlg(qtbot, request):
 def test_init_not_logged_in(create_dlg):
     dlg = create_dlg(session=False)
     dlg.session.init()
-    assert dlg.itemProp('slideView', 'currentIndex') == 0
+    assert dlg.itemProp("slideView", "currentIndex") == 0
 
 
 def test_saved_session_no_licenses(flask_app, test_session, create_dlg):
-    flask_app.config['STRIPE_ENABLED'] = False
+    flask_app.config["STRIPE_ENABLED"] = False
     dlg = create_dlg()
     assert len(test_session.user.licenses) == 0
-    assert dlg.itemProp('slideView', 'currentIndex') == 1
-    assert test_session.user.username in dlg.itemProp('accountUsername', 'text')
+    assert dlg.itemProp("slideView", "currentIndex") == 1
+    assert test_session.user.username in dlg.itemProp("accountUsername", "text")
 
 
 def test_saved_session_one_license(flask_app, test_session, test_license, create_dlg):
-    flask_app.config['STRIPE_ENABLED'] = False
+    flask_app.config["STRIPE_ENABLED"] = False
     dlg = create_dlg()
     assert len(test_session.user.licenses) == 1
-    assert dlg.itemProp('slideView', 'currentIndex') == 2
-    assert test_session.user.username in dlg.itemProp('accountUsername', 'text')
+    assert dlg.itemProp("slideView", "currentIndex") == 2
+    assert test_session.user.username in dlg.itemProp("accountUsername", "text")
 
 
 def test_register(flask_app, qtbot, create_dlg):
 
     # 1. Enter email
 
-    flask_app.config['STRIPE_ENABLED'] = False
+    flask_app.config["STRIPE_ENABLED"] = False
     ARGS = {
-        'username': 'patrickkidd@gmail.com',
-        'password': 'bleh',
-        'first_name': 'Unit',
-        'last_name': 'Tester'
+        "username": "patrickkidd@gmail.com",
+        "password": "bleh",
+        "first_name": "Unit",
+        "last_name": "Tester",
     }
 
     dlg = create_dlg(session=False)
     authStateChanged = util.Condition(dlg.qml.rootObject().authStateChanged)
     sentResetEmail = util.Condition(dlg.qml.rootObject().sentResetEmail)
     with contextlib.ExitStack() as stack:
-        stack.enter_context(mock.patch('uuid.uuid4', return_value='a568655e-072e-459c-b352-871a559426e6'))
-        send = stack.enter_context(mock.patch.object(flask_mail.Mail, 'send', wraps=fdserver.extensions.mail.send))
-        dlg.keyClicks('authUsernameField', ARGS['username'], returnToFinish=False)
-        qtbot.clickOkAfter(lambda: dlg.mouseClick('authSubmitButton'), text='An email was sent with ')
+        stack.enter_context(
+            mock.patch(
+                "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
+            )
+        )
+        send = stack.enter_context(
+            mock.patch.object(
+                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
+            )
+        )
+        dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
+        qtbot.clickOkAfter(
+            lambda: dlg.mouseClick("authSubmitButton"), text="An email was sent with "
+        )
     assert sentResetEmail.wait() == True
-    assert dlg.itemProp('authForm', 'state') == 'code'
+    assert dlg.itemProp("authForm", "state") == "code"
     assert send.call_count == 1
 
     # 2. Enter emailed code
-    
+
     message = send.call_args[0][0]
     authStateChanged.reset()
-    dlg.keyClicks('authCodeField', message.__code, returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authCodeField", message.__code, returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert authStateChanged.wait() == True
-    assert dlg.itemProp('authForm', 'state') == 'update'
+    assert dlg.itemProp("authForm", "state") == "update"
 
     # 3. Enter account details + auto log in
 
     authStateChanged.reset()
-    dlg.keyClicks('authFirstNameField', ARGS['first_name'], returnToFinish=False)
-    dlg.keyClicks('authLastNameField', ARGS['last_name'], returnToFinish=False)
-    dlg.keyClicks('authNewPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.keyClicks('authConfirmPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authFirstNameField", ARGS["first_name"], returnToFinish=False)
+    dlg.keyClicks("authLastNameField", ARGS["last_name"], returnToFinish=False)
+    dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert util.wait(dlg.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email'  # Doesn't really make sense any more?
-    assert dlg.itemProp('slideView', 'currentIndex') == 1
+    assert dlg.itemProp("slideView", "currentIndex") == 1
     assert dlg.session.isLoggedIn() == True
-    user = User.query.filter_by(username=ARGS['username']).first()
+    user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
-    assert user.check_password(ARGS['password'])
-    assert user.status == 'confirmed'
+    assert user.check_password(ARGS["password"])
+    assert user.status == "confirmed"
 
 
 def test_register_pending(flask_app, test_user, qtbot, create_dlg):
-    flask_app.config['STRIPE_ENABLED'] = False
-    test_user.status = 'pending'
+    flask_app.config["STRIPE_ENABLED"] = False
+    test_user.status = "pending"
     db.session.commit()
-    
+
     ARGS = {
-        'username': test_user.username,
-        'password': 'bleh',
-        'first_name': 'Unit',
-        'last_name': 'Tester'
-    }    
+        "username": test_user.username,
+        "password": "bleh",
+        "first_name": "Unit",
+        "last_name": "Tester",
+    }
     dlg = create_dlg(session=False)
     authStateChanged = util.Condition(dlg.qml.rootObject().authStateChanged)
     with contextlib.ExitStack() as stack:
-        stack.enter_context(mock.patch('uuid.uuid4', return_value='a568655e-072e-459c-b352-871a559426e6'))
-        send = stack.enter_context(mock.patch.object(flask_mail.Mail, 'send', wraps=fdserver.extensions.mail.send))
-        dlg.keyClicks('authUsernameField', ARGS['username'], returnToFinish=False)
-        dlg.mouseClick('authSubmitButton')
+        stack.enter_context(
+            mock.patch(
+                "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
+            )
+        )
+        send = stack.enter_context(
+            mock.patch.object(
+                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
+            )
+        )
+        dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
+        dlg.mouseClick("authSubmitButton")
         assert authStateChanged.wait() == True
-        assert dlg.itemProp('authForm', 'state') == 'code'
-            
+        assert dlg.itemProp("authForm", "state") == "code"
+
         sentResetEmail = util.Condition(dlg.qml.rootObject().sentResetEmail)
-        qtbot.clickOkAfter(lambda: dlg.mouseClick('authResendCodeButton'))
+        qtbot.clickOkAfter(lambda: dlg.mouseClick("authResendCodeButton"))
         assert sentResetEmail.wait() == True
         assert send.call_count == 1
-    
+
     # 2. Enter emailed code
 
     message = send.call_args[0][0]
     authStateChanged.reset()
-    dlg.keyClicks('authCodeField', message.__code, returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authCodeField", message.__code, returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert authStateChanged.wait() == True
-    assert dlg.itemProp('authForm', 'state') == 'update'
+    assert dlg.itemProp("authForm", "state") == "update"
 
     # 3. Enter account details + auto log in
 
     authStateChanged.reset()
-    dlg.keyClicks('authFirstNameField', ARGS['first_name'], returnToFinish=False)
-    dlg.keyClicks('authLastNameField', ARGS['last_name'], returnToFinish=False)
-    dlg.keyClicks('authNewPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.keyClicks('authConfirmPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authFirstNameField", ARGS["first_name"], returnToFinish=False)
+    dlg.keyClicks("authLastNameField", ARGS["last_name"], returnToFinish=False)
+    dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert util.wait(dlg.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
-    assert dlg.itemProp('slideView', 'currentIndex') == 1
+    assert dlg.itemProp("slideView", "currentIndex") == 1
     assert dlg.session.isLoggedIn() == True
-    user = User.query.filter_by(username=ARGS['username']).first()
+    user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
-    assert user.check_password(ARGS['password'])
-    assert user.status == 'confirmed'
+    assert user.check_password(ARGS["password"])
+    assert user.status == "confirmed"
 
 
 def test_reset_password(flask_app, test_user, qtbot, create_dlg):
-    flask_app.config['STRIPE_ENABLED'] = False
+    flask_app.config["STRIPE_ENABLED"] = False
 
     ARGS = {
-        'username': test_user.username,
-        'password': 'some new password',
-        'first_name': 'Unit',
-        'last_name': 'Tester'
+        "username": test_user.username,
+        "password": "some new password",
+        "first_name": "Unit",
+        "last_name": "Tester",
     }
     dlg = create_dlg(session=False)
     authStateChanged = util.Condition(dlg.qml.rootObject().authStateChanged)
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(mock.patch('uuid.uuid4', return_value='a568655e-072e-459c-b352-871a559426e6'))
-        send = stack.enter_context(mock.patch.object(flask_mail.Mail, 'send', wraps=fdserver.extensions.mail.send))
-        dlg.keyClicks('authUsernameField', ARGS['username'], returnToFinish=False)
-        dlg.mouseClick('authSubmitButton')
+        stack.enter_context(
+            mock.patch(
+                "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
+            )
+        )
+        send = stack.enter_context(
+            mock.patch.object(
+                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
+            )
+        )
+        dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
+        dlg.mouseClick("authSubmitButton")
         assert authStateChanged.wait(4000) == True
-        assert dlg.itemProp('authForm', 'state') == 'password'
+        assert dlg.itemProp("authForm", "state") == "password"
 
         sentResetEmail = util.Condition(dlg.qml.rootObject().sentResetEmail)
-        dlg.keyClicks('authUsernameField', ARGS['username'], returnToFinish=False)
-        dlg.mouseClick('authResetPasswordLink')
-        qtbot.clickOkAfter(lambda: sentResetEmail.wait(), text='An email was sent with ')
-        assert dlg.itemProp('authForm', 'state') == 'code'
+        dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
+        dlg.mouseClick("authResetPasswordLink")
+        qtbot.clickOkAfter(
+            lambda: sentResetEmail.wait(), text="An email was sent with "
+        )
+        assert dlg.itemProp("authForm", "state") == "code"
         assert send.call_count == 1
 
     message = send.call_args[0][0]
     authStateChanged.reset()
-    dlg.keyClicks('authCodeField', message.__code, returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authCodeField", message.__code, returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert authStateChanged.wait() == True
-    assert dlg.itemProp('authForm', 'state') == 'update'
-    assert dlg.itemProp('authFirstNameField', 'text') == test_user.first_name
-    assert dlg.itemProp('authLastNameField', 'text') == test_user.last_name
+    assert dlg.itemProp("authForm", "state") == "update"
+    assert dlg.itemProp("authFirstNameField", "text") == test_user.first_name
+    assert dlg.itemProp("authLastNameField", "text") == test_user.last_name
 
     authStateChanged.reset()
-    dlg.keyClicks('authFirstNameField', ARGS['first_name'], returnToFinish=False)
-    dlg.keyClicks('authLastNameField', ARGS['last_name'], returnToFinish=False)
-    dlg.keyClicks('authNewPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.keyClicks('authConfirmPasswordField', ARGS['password'], returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authFirstNameField", ARGS["first_name"], returnToFinish=False)
+    dlg.keyClicks("authLastNameField", ARGS["last_name"], returnToFinish=False)
+    dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert util.wait(dlg.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
-    assert dlg.itemProp('slideView', 'currentIndex') == 1
+    assert dlg.itemProp("slideView", "currentIndex") == 1
     assert dlg.session.isLoggedIn() == True
-    user = User.query.filter_by(username=ARGS['username']).first()
+    user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
-    assert user.check_password(ARGS['password'])
-    assert user.status == 'confirmed'
+    assert user.check_password(ARGS["password"])
+    assert user.status == "confirmed"
 
 
 def test_edit_user(flask_app, test_user, create_dlg):
-    flask_app.config['STRIPE_ENABLED'] = False
+    flask_app.config["STRIPE_ENABLED"] = False
     was_first_name = test_user.first_name
     was_last_name = test_user.last_name
     ARGS = {
-        'username': test_user.username,
-        'first_name': 'Someother',
-        'last_name': 'Name'
+        "username": test_user.username,
+        "first_name": "Someother",
+        "last_name": "Name",
     }
 
     dlg = create_dlg()
-    dlg.mouseClick('editAccountButton')
-    assert dlg.itemProp('slideView', 'currentIndex') == 0
-    assert dlg.itemProp('authForm', 'state') == 'update'
+    dlg.mouseClick("editAccountButton")
+    assert dlg.itemProp("slideView", "currentIndex") == 0
+    assert dlg.itemProp("authForm", "state") == "update"
 
     userUpdated = util.Condition(dlg.qml.rootObject().userUpdated)
-    dlg.keyClicks('authFirstNameField', ARGS['first_name'], returnToFinish=False)
-    dlg.keyClicks('authLastNameField', ARGS['last_name'], returnToFinish=False)
-    dlg.mouseClick('authSubmitButton')
+    dlg.keyClicks("authFirstNameField", ARGS["first_name"], returnToFinish=False)
+    dlg.keyClicks("authLastNameField", ARGS["last_name"], returnToFinish=False)
+    dlg.mouseClick("authSubmitButton")
     assert userUpdated.wait(4000) == True
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
-    assert dlg.itemProp('slideView', 'currentIndex') == 2
-    user = User.query.filter_by(username=ARGS['username']).first()
-    assert user.first_name == ARGS['first_name']
-    assert user.last_name == ARGS['last_name']
+    assert dlg.itemProp("slideView", "currentIndex") == 2
+    user = User.query.filter_by(username=ARGS["username"]).first()
+    assert user.first_name == ARGS["first_name"]
+    assert user.last_name == ARGS["last_name"]
 
 
 def test_purchase(test_session, qtbot, create_dlg):
-    p1 = Policy(code=vedana.LICENSE_PROFESSIONAL_MONTHLY, product=vedana.LICENSE_PROFESSIONAL, name='Professional Monthly', amount=100, public=True, active=True)
-    p2 = Policy(code=vedana.LICENSE_PROFESSIONAL_ANNUAL, product=vedana.LICENSE_PROFESSIONAL, name='Professioal Annual', amount=100, public=True, active=True)
+    p1 = Policy(
+        code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
+        product=vedana.LICENSE_PROFESSIONAL,
+        name="Professional Monthly",
+        amount=100,
+        public=True,
+        active=True,
+    )
+    p2 = Policy(
+        code=vedana.LICENSE_PROFESSIONAL_ANNUAL,
+        product=vedana.LICENSE_PROFESSIONAL,
+        name="Professioal Annual",
+        amount=100,
+        public=True,
+        active=True,
+    )
     db.session.add(p1)
     db.session.add(p2)
     db.session.commit()
-    
+
     dlg = create_dlg()
-    dlg.mouseClick('licenseListPurchaseButton')
-    assert dlg.itemProp('slideView', 'currentIndex') == 1
+    dlg.mouseClick("licenseListPurchaseButton")
+    assert dlg.itemProp("slideView", "currentIndex") == 1
 
     hidden = util.Condition(dlg.hidden)
     purchasedLicense = util.Condition(dlg.qml.rootObject().purchasedLicense)
     loggedIn = util.Condition(dlg.session.changed)
-    purchaseButton = dlg.rootProp('purchaseButtons').toVariant()[0]
+    purchaseButton = dlg.rootProp("purchaseButtons").toVariant()[0]
     dlg.mouseClickItem(purchaseButton)
-    assert dlg.itemProp('authForm', 'visible')
+    assert dlg.itemProp("authForm", "visible")
     assert License.query.filter_by(user=test_session.user).count() == 0
 
-    dlg.keyClicks('ccNumField', '4242424242424242')
-    dlg.keyClicks('ccExpMonthField', '12')
-    dlg.keyClicks('ccExpYearField', str(datetime.datetime.now().year + 1))
-    dlg.keyClicks('ccCVCField', '424')
+    dlg.keyClicks("ccNumField", "4242424242424242")
+    dlg.keyClicks("ccExpMonthField", "12")
+    dlg.keyClicks("ccExpYearField", str(datetime.datetime.now().year + 1))
+    dlg.keyClicks("ccCVCField", "424")
     # dlg.keyClicks('ccZipField', '20016')
-    qtbot.clickYesAfter(lambda: dlg.mouseClick('purchaseSubmitButton'))
+    qtbot.clickYesAfter(lambda: dlg.mouseClick("purchaseSubmitButton"))
     qtbot.clickOkAfter(lambda: purchasedLicense.assertWait(maxMS=4000))
     assert License.query.filter_by(user=test_session.user).count() == 1
     assert hidden.wait() == True
-    assert dlg.itemProp('ccNumField', 'text') == ''
-    assert dlg.itemProp('ccExpMonthField', 'text') == ''
-    assert dlg.itemProp('ccExpYearField', 'text') == ''
-    assert dlg.itemProp('ccCVCField', 'text') == ''
+    assert dlg.itemProp("ccNumField", "text") == ""
+    assert dlg.itemProp("ccExpMonthField", "text") == ""
+    assert dlg.itemProp("ccExpYearField", "text") == ""
+    assert dlg.itemProp("ccCVCField", "text") == ""
 
 
-
-@pytest.mark.skip('Must refactor')
+@pytest.mark.skip("Must refactor")
 def test_cancel(qtbot, dlg, test_session, test_license):
     _login(dlg, test_session)
     #
     cancelButton = None
-    for item in dlg.rootProp('purchaseButtons').toVariant():
-        if 'Cancel' in item.property('text'):
+    for item in dlg.rootProp("purchaseButtons").toVariant():
+        if "Cancel" in item.property("text"):
             cancelButton = item
     qtbot.clickYesAfter(lambda: dlg.mouseClickItem(cancelButton))
     db.session.merge(test_license)
@@ -309,23 +349,23 @@ def test_cancel(qtbot, dlg, test_session, test_license):
 
 def test_freeVersionCTA_visible_free_license(create_dlg):
     dlg = create_dlg()
-    userLicenses = dlg.rootProp('userLicenses').toVariant()
+    userLicenses = dlg.rootProp("userLicenses").toVariant()
     hasAnyPaidFeature = dlg.session.hasAnyPaidFeature()
-    assert dlg.itemProp('freeVersionCTA', 'visible') == True
+    assert dlg.itemProp("freeVersionCTA", "visible") == True
 
 
 def test_freeVersionCTA_visible_pro_license(test_activation, create_dlg):
     dlg = create_dlg()
-    userLicenses = dlg.rootProp('userLicenses').toVariant()
+    userLicenses = dlg.rootProp("userLicenses").toVariant()
     hasAnyPaidFeature = dlg.session.hasAnyPaidFeature()
-    assert dlg.itemProp('freeVersionCTA', 'visible') == False
+    assert dlg.itemProp("freeVersionCTA", "visible") == False
 
 
 def test_freeVersionCTA_visible_with_licenses(create_dlg):
     dlg = create_dlg()
-    assert dlg.itemProp('freeVersionCTA', 'visible') == True
+    assert dlg.itemProp("freeVersionCTA", "visible") == True
 
 
 def test_freeVersionCTA_visible_with_licenses_no_activation(test_license, create_dlg):
     dlg = create_dlg()
-    assert dlg.itemProp('freeVersionCTA', 'visible') == False
+    assert dlg.itemProp("freeVersionCTA", "visible") == False
