@@ -360,7 +360,7 @@ S_PERSON_NOT_FOUND = LONG_TEXT(
 )
 
 
-class EventKind(enum.StrEnum):
+class EventKind(enum.Enum):
     # Person
     Born = "born"
     Adopted = "adopted"
@@ -1183,7 +1183,7 @@ def modTest(__test__, loadfile=True, useMW=False):
         )
 
         filePath = os.path.join(ROOT, "tests", "data", "mod_test.fd")
-        filePath = os.path.join(ROOT, "tests", "data", "TIMELINE_TEST.fd")
+        # filePath = os.path.join(ROOT, "tests", "data", "TIMELINE_TEST.fd")
 
         CUtil.instance().openExistingFile(QUrl.fromLocalFile(filePath))
 

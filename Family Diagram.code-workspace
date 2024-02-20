@@ -14,6 +14,8 @@
 		"terminal.integrated.scrollback": 100000,
 		"python.analysis.exclude": [
 			"**/sysroot"
-		]
+		],
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "ms-python.black-formatter"
 	}
 }

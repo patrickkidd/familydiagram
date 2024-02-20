@@ -93,7 +93,6 @@
             "name": "sysroot-dev AddAnythingDialog (macOS)",
             "type": "debugpy",
             "request": "launch",
-            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
             "args": [
@@ -102,13 +101,23 @@
             ]
         },
         {
+            "name": "sysroot-dev PeoplePicker (macOS)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--qml-module",
+                "PeoplePicker"
+            ]
+        },
+        {
             "name": "sysroot-dev CaseProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "CaseProperties"
@@ -118,10 +127,9 @@
             "name": "sysroot-dev PersonProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "PersonProperties"
@@ -131,10 +139,9 @@
             "name": "sysroot-dev MarriageProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "MarriageProperties"
@@ -144,10 +151,9 @@
             "name": "sysroot-dev EventProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "EventProperties"
@@ -157,10 +163,9 @@
             "name": "sysroot-dev EmotionProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "EmotionProperties"
@@ -170,10 +175,9 @@
             "name": "sysroot-dev LayerItemProperties (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "LayerItemProperties"
@@ -183,10 +187,9 @@
             "name": "sysroot-dev TimelineView (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "TimelineView"
@@ -196,10 +199,9 @@
             "name": "sysroot-dev GraphicalTimelineView (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "GraphicalTimelineView"
@@ -209,20 +211,18 @@
             "name": "sysroot-dev test.py (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/test.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "envFile": "/Users/patrick/dev/familydiagram/.env"
         },
         {
             "name": "sysroot-dev scenemodel (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--module",
                 "scenemodel"
@@ -232,10 +232,9 @@
             "name": "sysroot-dev addemotiondialog (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--module",
                 "addemotiondialog"
@@ -245,10 +244,9 @@
             "name": "sysroot-dev AccountDialog (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "AccountDialog"
@@ -258,10 +256,9 @@
             "name": "sysroot-dev LayerView (macOS)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "make",
+            // "preLaunchTask": "make",
             "program": "/Users/patrick/dev/familydiagram/main.py",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "args": [
                 "--qml-module",
                 "LayerView"

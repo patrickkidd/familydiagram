@@ -106,6 +106,9 @@ class QmlWidgetHelper(QObjectHelper):
         # for k, v in self._qmlKWArgs.items():
         #     self.qml.rootObject().setProperty(k, v)
         self.layout().addWidget(self.qml)
+        self.qml.setParent(self)
+        self.qml.resize(800, 600)
+        self.qml.show()
         for child in self.qml.rootObject().findChildren(QQuickItem):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child

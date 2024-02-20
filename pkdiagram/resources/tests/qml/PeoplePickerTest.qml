@@ -1,4 +1,5 @@
 import QtQuick 2.12
+import QtQuick.Layouts 1.15
 import "../../qml/PK" 1.0 as PK
 
 Rectangle {
@@ -6,61 +7,30 @@ Rectangle {
     id: root
     objectName: 'root'
 
-    width: 800
+    anchors.fill: parent
+
+    width: 400
     height: 600
+    onWidthChanged: print(root.width)
+    onHeightChanged: print(root.height)
+
+    Timer {
+        running: true
+        repeat: true
+        onTriggered: print(root.parent.width + ', ' + root.parent.height)
+    }
     
     property var model: null
     property var sceneModel: null; // just a dummy to be a false/null condition
+    signal done;
+    color: 'red';
 
-    function resetModelDateTime() {
-        model.dateTime = undefined
-    }
+    ColumnLayout {
+        anchors.fill: parent
 
-    function resetButtonsDateTimeByProp() {
-        dateButtons.dateTime = undefined
-        datePickerTumbler.dateTime = undefined
-    }
-
-    Item {
-        objectName: 'holder'
-        property var myModel: model
-    }
-    
-    PK.DatePickerButtons {
-        id: dateButtons
-        objectName: 'dateButtons'
-        
-        dateTime: model ? model.dateTime : undefined
-        datePicker: datePickerTumbler
-        timePicker: timePickerTumbler
-        onDateTimeChanged: {
-            if(model) {
-                model.dateTime = dateTime
-            }
+        PK.PeoplePicker {
+            id: peoplePicker
         }
-        // MouseArea {
-        //     anchors.fill: parent
-        //     propagateComposedEvents: true
-        //     onPressed: print('onPressed:', Window.activeFocusItem)
-        //     onReleased: print('onReleased:', Window.activeFocusItem)
-        // }
-    }
-    PK.DatePicker {
-        id: datePickerTumbler
-        objectName: 'datePickerTumbler'
-        dateTime: model ? model.dateTime : undefined
-        onDateTimeChanged: {
-            if(model) {
-                model.dateTime = dateTime
-            }
-        }
-    }
-
-    PK.TimePicker {
-        id: timePickerTumbler
-        objectName: 'timePickerTumbler'
-        dateTime: model ? model.dateTime : undefined
-        onDateTimeChanged: if(model) model.dateTime = dateTime
     }
 
     Connections {

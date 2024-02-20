@@ -154,11 +154,11 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
 
 
 def __test__(scene, parent):
-    from .modelhelper import ModelHelper
+    from pkdiagram import ModelHelper
 
-    w = QmlPropertySheet(parent)
     model = ModelHelper()
-    w.initQml(":/qml/Test.qml", model=model)
-    util.printQObject(w)
+    w = QmlDrawer("tests/qml/PeoplePickerTest.qml", parent, propSheetModel=model)
+    # util.printQObject(w)
     parent.resize(800, 600)
+    parent.show()
     return w

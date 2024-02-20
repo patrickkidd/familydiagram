@@ -10,6 +10,8 @@ from pkdiagram import (
     Layer,
     Diagram,
     FileManager,
+    GraphicalTimelineView,
+    AddAnythingDialog,
 )
 
 
@@ -54,10 +56,19 @@ def __test__TimelineView(scene, parent, sceneModel):
 
 
 def __test__AddAnythingDialog(scene, parent, sceneModel):
-    scene.setTags(['Here', 'we', 'are'])
-    pp = QmlDrawer("qml/AddAnythingDialog.qml",
-                   parent=parent,
-                   sceneModel=sceneModel)
+    scene.setTags(["Here", "we", "are"])
+    pp = AddAnythingDialog(parent=parent, sceneModel=sceneModel)
+    pp.setScene(scene)
+    pp.show(animate=False)
+    pp.clear()
+    parent.resize(400, 600)
+    return pp
+
+
+def __test__PeoplePicker(scene, parent, sceneModel):
+    pp = QmlDrawer(
+        "tests/qml/PeoplePickerTest.qml", parent=parent, sceneModel=sceneModel
+    )
     pp.setScene(scene)
     parent.resize(400, 600)
     parent.show()
@@ -126,7 +137,7 @@ def __test__PersonProperties(scene, parent, sceneModel):
     )
     scene.searchModel.description = "Proj"
     pp.setScene(scene)
-    scene.layers()[0].setActive(True)
+    # scene.layers()[0].setActive(True)
     person = scene.people()[0]
     pp.show([person], animate=False)
     parent.resize(400, 600)
@@ -195,9 +206,6 @@ def __test__LayerItemProperties(scene, parent, sceneModel):
     lip.show(scene.layerItems(), animate=False)
     parent.resize(400, 600)
     return lip
-
-
-from pkdiagram import GraphicalTimelineView
 
 
 def __test__GraphicalTimelineView(scene, parent):

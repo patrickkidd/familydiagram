@@ -13,6 +13,8 @@ from .modelhelper import ModelHelper
 class PeopleModel(QAbstractListModel, ModelHelper):
     """Something for the people drop-downs."""
 
+    ModelHelper.registerQtProperties([{"attr": "autocompleteNames", "type": list}])
+
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
 
@@ -115,6 +117,12 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             self.endRemoveRows()
 
     ## Properties
+
+    def get(self, attr):
+        if attr == "autoCompleteNames":
+            return list(self._sortedNames)
+        else:
+            return super().get(attr)
 
     def set(self, attr, value):
         if attr == "scene":

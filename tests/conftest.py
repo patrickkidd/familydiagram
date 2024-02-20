@@ -31,7 +31,6 @@ from pkdiagram import (
     util,
     Scene,
     objects,
-    commands,
     Application,
     MainWindow,
     SceneModel,
