@@ -4,13 +4,26 @@ import QtQuick.Layouts 1.15
 import "." 1.0 as PK
 import PK.Models 1.0
 
-Rectangle {
+PK.GroupBox {
+
     id: root
+    padding: 1
 
     // Stores the outputed list of people
     property var model: ListModel {}
     property var peopleModel: ListModel {}
+    property int currentIndex: -1
+    property int count: list.count
+
     onPeopleModelChanged: autoCompleteModel.sourceModel = peopleModel
+
+    function onRowClicked(mouse, row) {
+        if(mouse && mouse.modifiers & Qt.ControlModifier) {
+            currentIndex = -1
+        } else {
+            currentIndex = row
+        }
+    }
 
     signal personAdded(string firstName, string lastName, bool isNew)
     signal personRemoved(int index)
@@ -19,15 +32,6 @@ Rectangle {
         root.model.clear()
         autoCompleteModel.updateFilter('')
     }
-
-    // Timer {
-    //     running: true
-    //     repeat: true
-    //     onTriggered: {
-    //         print('height: ' + autoCompletePopup.height + ', ' + autoCompleteModel.rowCount())
-    //     }
-    // }
-
 
     ListModel {
         id: autoCompleteModel
@@ -53,123 +57,115 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        PK.TextField {
-            id: nameInput
-            placeholderText: "Person's name..."
+        ListView {
+            id: list
+            clip: true
+            model: root.model
+            contentWidth: width
             Layout.fillWidth: true
-            Keys.onReturnPressed: nameInput.add()
+            Layout.fillHeight: true
 
-            function add() {
-                var names = nameInput.text.split(" ");
-                root.model.append({"firstName": names[0], "lastName": names[1] || "", "isNew": true});
-                nameInput.text = "";
-                personAdded(names[0], names[1] || "", true);
-            }
+            delegate: Rectangle {
 
-            PK.Button {
-                id: addNewButton
-                objectName: 'addNewButton'
-                source: '../../plus-button.png'
-                onClicked: nameInput.add()
-                visible: nameInput.text.length > 0
-                width: util.QML_MICRO_BUTTON_WIDTH
-                height: util.QML_MICRO_BUTTON_WIDTH
-                anchors.right: nameInput.right
-                anchors.rightMargin: util.QML_MARGINS / 2
-                anchors.verticalCenter: parent.verticalCenter
-            }
+                property bool selected: index == currentIndex
+                property bool current: false
 
-            // // Adjust TextField padding to make space for the button
-            // rightPadding: addButtonContainer.width + 10
+                width: parent ? parent.width : 0
+                height: util.QML_ITEM_HEIGHT
+                onHeightChanged: print('height: ' + height)
+                color: util.itemBgColor(selected, current, index % 2 == 1)
 
-            Popup {
-                id: autoCompletePopup
-                y: nameInput.height
-                width: nameInput.width
-                height: Math.min(autoCompleteModel.count * util.QML_ITEM_HEIGHT, 200)
-                padding: 0
-                contentItem: ListView {
-                    id: popupListView
-                    implicitHeight: model ? (model.count * delegate.height) : 0
-                    model: autoCompleteModel
-                    delegate: ItemDelegate {
-                        text: name // modelData
-                        width: autoCompletePopup.width
-                        palette.text: util.QML_TEXT_COLOR
-                        background: Rectangle {
-                            color: util.QML_ITEM_BG
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: onRowClicked(mouse, index)
+                }
+
+                RowLayout {
+
+                    id: rowLayout
+                    anchors.fill: parent
+                    spacing: 0
+                    PK.TextInput {
+                        property bool editMode: false
+                        
+                        id: textEdit
+                        color: util.textColor(selected, current)
+                        text: fullNameOrAlias + (isNew ? " (New)" : "")
+                        clip: true
+                        width: contentWidth
+                        Layout.leftMargin: util.QML_MARGINS
+                        onEditingFinished: {
+                            print('set name to: ' + text)
+                            // name = text
+                            editMode = false
                         }
-                        onClicked: {
-                            var names = modelData.split(" ");
-                            root.model.append({"firstName": names[0], "lastName": names[1], "isNew": false});
-                            nameInput.text = "";
-                            autoCompletePopup.close();
-                            personAdded(names[0], names[1], false);
+                        MouseArea {
+                            width: parent.contentWidth
+                            height: parent.contentHeight
+                            enabled: !textEdit.editMode
+                            onClicked: onRowClicked(mouse, index)
+                            onDoubleClicked: {
+    //                            if(flags & Qt.ItemIsEditable) {
+                                    textEdit.editMode = true
+                                    textEdit.forceActiveFocus()
+                                    textEdit.selectAll()                                
+    //                          }
+                            }
                         }
                     }
-                }
-            }
-
-            onTextChanged: {
-                if (text.length > 0) {
-                    autoCompleteModel.updateFilter(nameInput.text)
-                    autoCompletePopup.open();
-                } else {
-                    autoCompletePopup.close();
+                    Rectangle { // spacer
+                        height: 1
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        color: 'transparent'
+                    }
                 }
             }
         }
 
-        Rectangle {
+        // Popup {
+        //     id: autoCompletePopup
+        //     y: list.y + list.height
+        //     width: list.width
+        //     height: Math.min(autoCompleteModel.count * util.QML_ITEM_HEIGHT, 200)
+        //     padding: 0
+        //     contentItem: ListView {
+        //         id: popupListView
+        //         implicitHeight: model ? (model.count * delegate.height) : 0
+        //         model: autoCompleteModel
+        //         delegate: ItemDelegate {
+        //             text: name // modelData
+        //             width: autoCompletePopup.width
+        //             palette.text: util.QML_TEXT_COLOR
+        //             background: Rectangle {
+        //                 color: util.QML_ITEM_BG
+        //             }
+        //             onClicked: {
+        //                 var names = modelData.split(" ");
+        //                 root.model.append({"firstName": names[0], "lastName": names[1], "isNew": false});
+        //                 autoCompletePopup.close();
+        //                 personAdded(names[0], names[1], false);
+        //             }
+        //         }
+        //     }
+        // }
+
+        Rectangle { // border-bottom
+            color: util.QML_ITEM_BORDER_COLOR
+            height: 1
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: util.QML_WINDOW_BG
-            border.color: util.QML_ITEM_BORDER_COLOR
+        }
 
-            ListView {
-                anchors.fill: parent
-                clip: true
-                model: root.model
-                contentWidth: width
-                delegate: Rectangle {
-                    width: parent ? parent.width : 0
-                    height: util.QML_ITEM_HEIGHT
-                    onHeightChanged: print('height: ' + height)
-                    color: util.itemBgColor(false, false, index % 2 == 1)
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        PK.Text {
-                            text: firstName + " " + lastName + (isNew ? " (New)" : "")
-                            leftPadding: util.QML_MARGINS / 2
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignLeft                        
-                        }
-
-                        PK.Button {
-                            source: '../../delete-button.png'
-                            objectName: root.objectName + '_removeButton'
-                            Layout.alignment: Qt.AlignRight
-                            Layout.rightMargin: util.QML_MARGINS / 2
-                            Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
-                            Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
-                            onClicked: {
-                                root.model.remove(index);
-                                personRemoved(index);
-                            }
-                        }
-                    }
-                    Rectangle {
-                        border {
-                            width: 1
-                            color: 'grey'
-                        }
-                        color: 'transparent'
-                        anchors.fill: parent
-                    }
-                }
-            }
+        PK.CrudButtons {
+            id: buttons
+            Layout.fillWidth: true
+            bottomBorder: false
+            width: parent.width
+            addButton: true
+            onAdd: model.append({ fullNameOrAlias: '', id: -1, isNew: true })
+            removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
+            removeButton: true
+            onRemove: model.remove(currentIndex)
         }
     }
 }

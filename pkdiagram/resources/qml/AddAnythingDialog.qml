@@ -23,12 +23,13 @@ PK.Drawer {
 
     Keys.onPressed: {
         if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-            submit()
+            done()
         }
     }
 
     property var peopleModel: ListModel {}
     property var peopleToCreate: null; // [id]
+    property var kind: null;
     property var isDateRange: false;
     property var description: null;
     property var location: null;
@@ -48,6 +49,7 @@ PK.Drawer {
     function clear() {
         root.peopleModel.clear()
         root.peopleToCreate = []; // [id]
+        root.kind = null;
         root.startDateTime = null;
         root.startDateUnsure = false
         root.endDateTime = null;
@@ -146,72 +148,38 @@ PK.Drawer {
                         PK.Text { text: "Kind" }
 
                         RowLayout {
-                            // Layout.fillWidth: true
+                            Layout.fillWidth: true
                             PK.ComboBox {
                                 id: kindBox
                                 objectName: "kindBox"
-                                model: ListModel {
-                                    ListElement { header: true; text: "Individual" }
-                                    ListElement { text: "Born" }
-                                    ListElement { text: "Adopted" }
-                                    ListElement { text: "Deceased" }
-                                    ListElement { text: "Cutoff" }
-                                    ListElement { header: true; text: "Pair-Bond" }
-                                    ListElement { text: "Bonded" }
-                                    ListElement { text: "Married" }
-                                    ListElement { text: "Separated" }
-                                    ListElement { text: "Divorced" }
-                                    ListElement { text: "Moved" }
-                                    ListElement { header: true; text: "Dyadic" }
-                                    ListElement { text: "Distance" }
-                                    ListElement { text: "Conflict" }
-                                    ListElement { text: "Reciprocity" }
-                                    ListElement { text: "Projection" }
-                                    ListElement { text: "Inside" }
-                                    ListElement { text: "Outside" }
-                                    ListElement { text: "Toward" }
-                                    ListElement { text: "Away" }
-                                    ListElement { text: "Defined-Self" }
-                                }
+                                Layout.fillWidth: true
+                                model: [
+                                    "Individual - Born",
+                                    "Individual - Adopted",
+                                    "Individual - Deceased",
+                                    "Individual - Cutoff",
+                                    "Pair-Bond - Bonded",
+                                    "Pair-Bond - Married",
+                                    "Pair-Bond - Separated",
+                                    "Pair-Bond - Divorced",
+                                    "Pair-Bond - Moved",
+                                    "Dyad - Distance",
+                                    "Dyad - Conflict",
+                                    "Dyad - Reciprocity",
+                                    "Dyad - Projection",
+                                    "Dyad - Inside",
+                                    "Dyad - Outside",
+                                    "Dyad - Toward",
+                                    "Dyad - Away",
+                                    "Dyad - Defined-Self",
+                                ]
                                 KeyNavigation.tab: startDateButtons
-                                delegate: Item {
-                                    Rectangle {
-                                        width: parent.width
-                                        height: parent.height
-                                        // color: model.header ? "#efefef" : util.itemBgColor(false, false, index % 2 == 1)
-
-                                        Text {
-                                            text: model.text
-                                            font.bold: model.header
-                                            color: model.header ? "#000" : "#333"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: 5
-                                        }
+                                onCurrentIndexChanged: {
+                                    if(root.kind != currentText) {
+                                        root.kind = currentText
                                     }
-
-                                    // Prevent selection of headers
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        enabled: model.type === "header"
-                                        onClicked: {
-                                            comboBox.currentIndex = -1; // Deselect
-                                        }
-                                    }                                    
                                 }
                             }
-                            // Button {
-                            //     id: resetUniqueIdButton
-                            //     text: 'Reset'
-                            //     objectName: 'resetUniqueIdButton'
-                            //     opacity: kindBox.currentIndex > -1 ? 1 : 0
-                            //     enabled: opacity > 0
-                            //     KeyNavigation.tab: includeOnDiagramBox
-                            //     onClicked: eventModel.uniqueId = undefined
-                            //     Behavior on opacity {
-                            //         NumberAnimation { duration: util.ANIM_DURATION_MS; easing.type: Easing.InOutQuad }
-                            //     }
-                            // }
                         }
 
                         PK.Text { text: root.isDateRange ? "Began" : "When" }
