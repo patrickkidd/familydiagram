@@ -98,14 +98,21 @@ Rectangle {
         if(blocked)
             return
         blocked = true
-        monthColumn.currentIndex = root.dateTime.getMonth()
-        dayColumn.currentIndex = root.dateTime.getDate() - 1
-        var year = root.dateTime.getFullYear()
-        for(var i=0; i < yearColumn.model.count; i++) {
-            if(yearColumn.model.get(i).year == year) {
-                yearColumn.currentIndex = i
-                break
+
+        if(root.dateTime) {
+            monthColumn.currentIndex = root.dateTime.getMonth()
+            dayColumn.currentIndex = root.dateTime.getDate() - 1
+            var year = root.dateTime.getFullYear()
+            for(var i=0; i < yearColumn.model.count; i++) {
+                if(yearColumn.model.get(i).year == year) {
+                    yearColumn.currentIndex = i
+                    break
+                }
             }
+        } else {
+            monthColumn.currentIndex = -1
+            dayColumn.currentIndex = -1
+            yearColumn.currentIndex = -1
         }
         blocked = false
     }

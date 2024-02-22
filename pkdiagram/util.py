@@ -325,6 +325,7 @@ QML_SMALL_TITLE_FONT_SIZE = (
 QML_DROP_SHADOW_COLOR = ""
 QML_IMPORT_PATHS = [":/qml"]
 QML_SMALL_BUTTON_WIDTH = 50
+QML_MICRO_BUTTON_WIDTH = 21
 
 EVENT_PROPS_HELP_TEXT = LONG_TEXT(
     """Events are occurrences in time.
@@ -1114,7 +1115,7 @@ def modTest(__test__, loadfile=True, useMW=False):
     """Run a test app with __test__(scene) as callback."""
     global IS_MOD_TEST
     IS_MOD_TEST = True
-    import sys, inspect
+    import sys, inspect, signal
     from .util import CUtil
     from .scene import Scene
     from .pyqt import QTimer
@@ -1125,6 +1126,9 @@ def modTest(__test__, loadfile=True, useMW=False):
     import test_util
 
     app = Application(sys.argv)
+    def _quit(x, y):
+        app.quit()
+    signal.signal(signal.SIGINT, _quit)
 
     if useMW:
         parent = QMainWindow()

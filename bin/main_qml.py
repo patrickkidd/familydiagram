@@ -12,6 +12,7 @@ from pkdiagram import (
     FileManager,
     GraphicalTimelineView,
     AddAnythingDialog,
+    Person,
 )
 
 
@@ -57,6 +58,8 @@ def __test__TimelineView(scene, parent, sceneModel):
 
 def __test__AddAnythingDialog(scene, parent, sceneModel):
     scene.setTags(["Here", "we", "are"])
+    scene.addItem(Person(name="Patrick", lastName="Stinson"))
+    scene.addItem(Person(name="Connie", lastName="Service"))
     pp = AddAnythingDialog(parent=parent, sceneModel=sceneModel)
     pp.setScene(scene)
     pp.show(animate=False)
@@ -70,6 +73,7 @@ def __test__PeoplePicker(scene, parent, sceneModel):
         "tests/qml/PeoplePickerTest.qml", parent=parent, sceneModel=sceneModel
     )
     pp.setScene(scene)
+    pp.show(animate=False)
     parent.resize(400, 600)
     parent.show()
     return pp
@@ -89,6 +93,7 @@ def __test__CaseProperties(scene, parent, sceneModel):
         "username": "patrickkidd@gmail.com",
         "first_name": "Patrick",
         "last_name": "Stinson",
+        "free_diagram_id": 123,
         "roles": [],
         "licenses": [
             {

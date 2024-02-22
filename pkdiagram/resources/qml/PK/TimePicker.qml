@@ -73,14 +73,14 @@ Rectangle {
 
     Component.onCompleted: {
         if(isValid) {
-            var hour = dateTime.getHour()
+            var hour = dateTime.getHours()
             if(hour < 12) {
                 amPmColumn.positionViewAtIndex(0, Tumbler.Center)
             } else {
                 hour -= 12
                 amPmColumn.positionViewAtIndex(0, Tumbler.Center)
             }
-            hourColumn.positionViewAtIndex(util.DEFAULT_USE_TIME.getHour(), Tumbler.Center)
+            hourColumn.positionViewAtIndex(util.DEFAULT_USE_TIME.getHours(), Tumbler.Center)
             minuteColumn.positionViewAtIndex(util.DEFAULT_USE_TIME.getMinutes(), Tumbler.Center)
         }
         blocked = false

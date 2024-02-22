@@ -209,7 +209,7 @@ Page {
                             datePicker: eventDatePicker
                             timePicker: eventTimePicker
                             unsure: eventModel.unsure
-                            enabled: ! sceneModel.readOnly
+                            enabled: sceneModel ? ! sceneModel.readOnly : true
                             // hideReset: true
                             KeyNavigation.tab: descriptionEdit
                             Layout.preferredHeight: implicitHeight - 10

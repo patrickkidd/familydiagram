@@ -43,7 +43,11 @@ class AppController(QObject):
         timer = QTimer()
         timer.timeout.connect(lambda: None)
         timer.start(1250)
-        signal.signal(signal.SIGINT, lambda x, y: app.quit())
+
+        def _quit(x, y):
+            app.quit()
+
+        signal.signal(signal.SIGINT, _quit)
 
     def init(self):
         assert not self.isInitialized

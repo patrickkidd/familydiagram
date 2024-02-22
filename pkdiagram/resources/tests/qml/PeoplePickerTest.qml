@@ -9,27 +9,39 @@ Rectangle {
 
     anchors.fill: parent
 
-    width: 400
-    height: 600
-    onWidthChanged: print(root.width)
-    onHeightChanged: print(root.height)
-
-    Timer {
-        running: true
-        repeat: true
-        onTriggered: print(root.parent.width + ', ' + root.parent.height)
-    }
-    
     property var model: null
     property var sceneModel: null; // just a dummy to be a false/null condition
     signal done;
-    color: 'red';
 
     ColumnLayout {
+        id: testLayout
         anchors.fill: parent
+
+        // Timer {
+        //     running: true
+        //     repeat: true
+        //     onTriggered: print("testLayout: (" + testLayout.width + ', ' + testLayout.height + "), child: (" + rect.x + ", " + rect.y + ")")
+        // }
+
 
         PK.PeoplePicker {
             id: peoplePicker
+
+            Layout.fillWidth: true
+            Layout.minimumHeight: 300
+            Layout.maximumHeight: 300
+            color: 'red';
+            // width: 400
+            // height: 600
+            onWidthChanged: print(root.width)
+            onHeightChanged: print(root.height)
+        }
+
+        Rectangle {
+            id: rect
+            color: 'green'
+            Layout.fillWidth: true
+            Layout.fillHeight: true
         }
     }
 

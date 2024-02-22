@@ -46,7 +46,7 @@ PK.ToolBar {
     property bool exclusiveChecked: false
     property bool doneButtonEnabled: true
     
-    property int buttonHeight: 21
+    property int buttonHeight: util.QML_MICRO_BUTTON_WIDTH
     
     RowLayout {
         anchors.fill: parent
