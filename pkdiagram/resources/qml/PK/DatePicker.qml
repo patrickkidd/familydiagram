@@ -29,6 +29,10 @@ Rectangle {
     
     FontMetrics { id: fontMetrics }
 
+    function clear() {
+        dateTime = null;
+    }
+
     function formatText(count, modelData) {
         var data = count === 12 ? modelData : modelData;
         if(data === undefined) {
@@ -100,19 +104,25 @@ Rectangle {
         blocked = true
 
         if(root.dateTime) {
-            monthColumn.currentIndex = root.dateTime.getMonth()
-            dayColumn.currentIndex = root.dateTime.getDate() - 1
+            if(monthColumn.currentIndex != root.dateTime.getMonth())
+                monthColumn.currentIndex = root.dateTime.getMonth()
+            if(dayColumn.currentIndex != root.dateTime.getDate() - 1)
+                dayColumn.currentIndex = root.dateTime.getDate() - 1
             var year = root.dateTime.getFullYear()
             for(var i=0; i < yearColumn.model.count; i++) {
                 if(yearColumn.model.get(i).year == year) {
-                    yearColumn.currentIndex = i
+                    if(yearColumn.currentIndex != i)
+                        yearColumn.currentIndex = i
                     break
                 }
             }
         } else {
-            monthColumn.currentIndex = -1
-            dayColumn.currentIndex = -1
-            yearColumn.currentIndex = -1
+            if(monthColumn.currentIndex !=-1)
+                monthColumn.currentIndex = -1
+            if(dayColumn.currentIndex !=-1)
+                dayColumn.currentIndex = -1
+            if(yearColumn.currentIndex !=-1)
+                yearColumn.currentIndex = -1
         }
         blocked = false
     }
@@ -192,7 +202,8 @@ Rectangle {
                     if(index == Tumbler.tumbler.currentIndex) {
                         Tumbler.tumbler.onCurrentIndexChanged()
                     } else {
-                        Tumbler.tumbler.currentIndex = index
+                        if(Tumbler.tumbler.currentIndex != index)
+                            Tumbler.tumbler.currentIndex = index
                     }
                     root.mousePressed()
                     Tumbler.tumbler.isHandlingClick = false

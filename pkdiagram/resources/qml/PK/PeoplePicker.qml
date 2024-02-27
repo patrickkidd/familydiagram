@@ -11,11 +11,15 @@ PK.GroupBox {
 
     // Stores the outputed list of people
     property var model: ListModel {}
-    property var peopleModel: ListModel {}
+    property var scenePeopleModel: ListModel {}
     property int currentIndex: -1
     property int count: list.count
+    property var listView: list // for tests
 
-    onPeopleModelChanged: autoCompleteModel.sourceModel = peopleModel
+    // for testing since delegate creation is async
+    signal itemAddDone(Item item);
+
+    onScenePeopleModelChanged: autoCompleteModel.sourceModel = scenePeopleModel
 
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
@@ -25,9 +29,6 @@ PK.GroupBox {
         }
     }
 
-    signal personAdded(string firstName, string lastName, bool isNew)
-    signal personRemoved(int index)
-
     function clear() {
         root.model.clear()
         autoCompleteModel.updateFilter('')
@@ -35,7 +36,7 @@ PK.GroupBox {
 
     ListModel {
         id: autoCompleteModel
-        property var sourceModel: peopleModel
+        property var sourceModel: ListModel {}
 
         function updateFilter(filterText) {
             this.clear()
@@ -53,12 +54,19 @@ PK.GroupBox {
         }
     }
 
+    function test_listViewItem(index) {
+        return list.contentItem.children[index]
+    }
+
+    // property var listContentItem: list.contentItem
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
         ListView {
             id: list
+            objectName: "list"
             clip: true
             model: root.model
             contentWidth: width
@@ -66,6 +74,9 @@ PK.GroupBox {
             Layout.fillHeight: true
 
             delegate: Rectangle {
+
+                // for testing since delegate creation is async
+                Component.onCompleted: root.itemAddDone(this)
 
                 property bool selected: index == currentIndex
                 property bool current: false
@@ -95,9 +106,9 @@ PK.GroupBox {
                         width: contentWidth
                         Layout.leftMargin: util.QML_MARGINS
                         onEditingFinished: {
-                            print('set name to: ' + text)
                             // name = text
                             editMode = false
+                            focus = false
                         }
                         MouseArea {
                             width: parent.contentWidth
@@ -123,32 +134,32 @@ PK.GroupBox {
             }
         }
 
-        // Popup {
-        //     id: autoCompletePopup
-        //     y: list.y + list.height
-        //     width: list.width
-        //     height: Math.min(autoCompleteModel.count * util.QML_ITEM_HEIGHT, 200)
-        //     padding: 0
-        //     contentItem: ListView {
-        //         id: popupListView
-        //         implicitHeight: model ? (model.count * delegate.height) : 0
-        //         model: autoCompleteModel
-        //         delegate: ItemDelegate {
-        //             text: name // modelData
-        //             width: autoCompletePopup.width
-        //             palette.text: util.QML_TEXT_COLOR
-        //             background: Rectangle {
-        //                 color: util.QML_ITEM_BG
-        //             }
-        //             onClicked: {
-        //                 var names = modelData.split(" ");
-        //                 root.model.append({"firstName": names[0], "lastName": names[1], "isNew": false});
-        //                 autoCompletePopup.close();
-        //                 personAdded(names[0], names[1], false);
-        //             }
-        //         }
-        //     }
-        // }
+        Popup {
+            id: autoCompletePopup
+            y: list.y + list.height
+            width: list.width
+            height: Math.min(autoCompleteModel.count * util.QML_ITEM_HEIGHT, 200)
+            padding: 0
+            contentItem: ListView {
+                id: popupListView
+                implicitHeight: model ? (model.count * delegate.height) : 0
+                model: autoCompleteModel
+                delegate: ItemDelegate {
+                    text: name // modelData
+                    width: autoCompletePopup.width
+                    palette.text: util.QML_TEXT_COLOR
+                    background: Rectangle {
+                        color: util.QML_ITEM_BG
+                    }
+                    onClicked: {
+                        var names = modelData.split(" ");
+                        root.model.append({"firstName": names[0], "lastName": names[1], "isNew": false});
+                        autoCompletePopup.close();
+                        personAdded(names[0], names[1], false);
+                    }
+                }
+            }
+        }
 
         Rectangle { // border-bottom
             color: util.QML_ITEM_BORDER_COLOR
@@ -158,6 +169,7 @@ PK.GroupBox {
 
         PK.CrudButtons {
             id: buttons
+            objectName: "buttons"
             Layout.fillWidth: true
             bottomBorder: false
             width: parent.width

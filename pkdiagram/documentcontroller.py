@@ -143,6 +143,7 @@ class DocumentController(QObject):
             self.onDeactivateAllLayers
         )
         #
+        self.ui.actionAdd_Anything.triggered.connect(self.dv.onAddAnything)
         self.ui.actionShow_Diagram.triggered.connect(self.dv.showDiagram)
         self.ui.actionShow_Timeline.triggered.connect(self.dv.showTimeline)
         self.ui.actionShow_Items_with_Notes.toggled.connect(
@@ -637,3 +638,24 @@ class DocumentController(QObject):
             pathItem.setSelected(True)
         self._ignoreSelectionChanges = False
         self.dv.inspectSelection(tab="notes")
+
+    def onAddAnythingSubmitted(self):
+        dlg = self.dv.addAnythingDialog
+        FORM = [
+            "kind",
+            "description",
+            "anxiety",
+            "functioning",
+            "symptom",
+            "location",
+            "description",
+            "isDateRange",
+            "startDateTime",
+            "startDateUnsure",
+            "endDateTime",
+            "endDateUnsure",
+            "nodal",
+        ]
+        values = {k: dlg.property(k) for k, v in FORM.items()}
+        # peopleToCreate = self.dv.addAnythingDialog.property("peopleToCreate")
+        print(values)

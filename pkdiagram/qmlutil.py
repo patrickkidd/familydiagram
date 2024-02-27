@@ -95,8 +95,16 @@ class QmlUtil(QObject, QObjectHelper):
         "ITEM_INSIDE",
         "ITEM_OUTSIDE",
         "ITEM_RECIPROCITY",
-
-        'S_PERSON_NOT_FOUND',
+        "VAR_VALUE_UP",
+        "VAR_VALUE_DOWN",
+        "VAR_VALUE_SAME",
+        "VAR_ANXIETY_UP",
+        "VAR_ANXIETY_DOWN",
+        "VAR_ANXIETY_SAME",
+        "VAR_FUNCTIONING_UP",
+        "VAR_FUNCTIONING_DOWN",
+        "VAR_FUNCTIONING_SAME",
+        "S_PERSON_NOT_FOUND",
     ]
     QObjectHelper.registerQtProperties(
         [
@@ -107,7 +115,8 @@ class QmlUtil(QObject, QObjectHelper):
                 "type": find_global_type(attr),
             }
             for attr in CONSTANTS
-        ],
+        ]
+        + [{"attr": "EventKinds", "type": "QVariant"}],
         globalContext=util.__dict__,
     )
 
@@ -219,6 +228,12 @@ class QmlUtil(QObject, QObjectHelper):
         util.QML_NODAL_COLOR = util.NODAL_COLOR.name()
         #
         self.refreshAllProperties()
+
+    def get(self, attr):
+        if attr == "EventKinds":
+            return {k.name: k.value for k in util.EventKinds}
+        else:
+            return super().get(attr)
 
     # If no time zone is entered, js Date parses a string as if it were UTC,
     # then adjusts it to local time. So '1/1/2018' becomes 1/1/2018 0:00 GMT, then

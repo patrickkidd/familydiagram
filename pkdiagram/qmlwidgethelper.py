@@ -142,6 +142,8 @@ class QmlWidgetHelper(QObjectHelper):
                 return ret
 
     def findItem(self, objectName, noerror=False):
+        if isinstance(objectName, QQuickItem):
+            return objectName
         if objectName in self._qmlItemCache:
             return self._qmlItemCache[objectName]
         parts = objectName.split(".")
@@ -153,7 +155,7 @@ class QmlWidgetHelper(QObjectHelper):
             # Not tested well enough
             # else:
             #     item = self.deepFind(item, partName)
-        if not item and not noerror:
+        if (not item or item.objectName() != parts[-1]) and not noerror:
             raise RuntimeError("Could not find item: %s" % objectName)
         self._qmlItemCache[objectName] = item
         return item
@@ -179,6 +181,8 @@ class QmlWidgetHelper(QObjectHelper):
         if not self.isActiveWindow():
             # self.here('Setting active window to %s, currently %s' % (self, QApplication.activeWindow()))
             QApplication.setActiveWindow(self)
+            if util.qtbot.DEBUG:
+                log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
             util.qtbot.waitActive(self)
             if not self.isActiveWindow():
                 raise RuntimeError(
@@ -191,6 +195,8 @@ class QmlWidgetHelper(QObjectHelper):
         assert (
             item.property("enabled") == True
         ), f"The item {objectName} cannot be focused if it is not enabled."
+        if util.qtbot.DEBUG:
+            log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
         self.mouseClick(objectName)
         if not item.hasActiveFocus():
             item.forceActiveFocus()  # in case mouse doesn't work if item out of view
@@ -234,6 +240,8 @@ class QmlWidgetHelper(QObjectHelper):
 
     def resetFocus(self, objectName):
         item = self.findItem(objectName)
+        if util.qtbot.DEBUG:
+            log.info(f'QmlWidgetHelper.resetFocus("{objectName}")')
         item.setProperty("focus", False)
         if item.hasActiveFocus():
             self.qml.rootObject().forceActiveFocus()  # TextField?
@@ -242,14 +250,22 @@ class QmlWidgetHelper(QObjectHelper):
 
     def keyClick(self, objectName, key, resetFocus=True):
         self.focusItem(objectName)
+        if util.qtbot.DEBUG:
+            log.info(f'QmlWidgetHelper.keyClick("{objectName}", {key})')
         util.qtbot.keyClick(self.qml, key)
         if resetFocus:
             self.resetFocus(objectName)
 
     def keyClicks(self, objectName, s, resetFocus=True, returnToFinish=True):
         self.focusItem(objectName)
+        if util.qtbot.DEBUG:
+            log.info(f'QmlWidgetHelper.keyClicks("{objectName}", {staticmethod})')
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
+            if util.qtbot.DEBUG:
+                log.info(
+                    f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {staticmethod})'
+                )
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
             self.resetFocus(objectName)
@@ -264,7 +280,7 @@ class QmlWidgetHelper(QObjectHelper):
             count += 1
         self.resetFocus(objectName)
         itemText = item.property("text")
-        if not (itemText == "" or itemText == util.BLANK_DATE_TEXT):
+        if not (itemText == "" or itemText in (util.BLANK_DATE_TEXT,util.BLANK_TIME_TEXT)):
             raise RuntimeError(
                 'Could not clear text for %s (text = "%s")' % (objectName, itemText)
             )
@@ -275,9 +291,33 @@ class QmlWidgetHelper(QObjectHelper):
                 QRectF(0, 0, item.width(), item.height())
             ).toRect()
             pos = rect.center()
+        if util.qtbot.DEBUG:
+            log.info(
+                f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {buttons})'
+            )
         util.qtbot.mouseClick(self.qml, buttons, Qt.NoModifier, pos)
 
     def mouseClick(self, objectName, buttons=Qt.LeftButton, pos=None):
+        if isinstance(objectName, str):
+            item = self.findItem(objectName)
+        else:
+            item = objectName
+        assert item.property("enabled") == True
+        self.mouseClickItem(item)
+
+    def mouseDClickItem(self, item, buttons=Qt.LeftButton, pos=None):
+        if pos is None:
+            rect = item.mapRectToScene(
+                QRectF(0, 0, item.width(), item.height())
+            ).toRect()
+            pos = rect.center()
+        if util.qtbot.DEBUG:
+            log.info(
+                f'QmlWidgetHelper.mouseDClickItem("{item.objectName()}", {buttons})'
+            )
+        util.qtbot.mouseDClick(self.qml, buttons, Qt.NoModifier, pos)
+
+    def mouseDClick(self, objectName, buttons=Qt.LeftButton, pos=None):
         if isinstance(objectName, str):
             item = self.findItem(objectName)
         else:
@@ -405,6 +445,7 @@ class QmlWidgetHelper(QObjectHelper):
         for i, text in enumerate(itemTexts):
             if text == itemText:
                 currentIndex = i
+                break
         if currentIndex is None:
             raise RuntimeError(
                 'Could not find ComboBox item with text "%s" on `%s`'

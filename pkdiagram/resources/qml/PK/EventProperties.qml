@@ -307,15 +307,7 @@ Page {
                             onCheckStateChanged: if(!eventModel.uniqueId) eventModel.includeOnDiagram = checkState
                         }                        
 
-                        Rectangle {
-                            height: 1
-                            visible: eventModel.parentIsMarriage 
-                            color: util.QML_ITEM_BORDER_COLOR
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 2
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                        }
+                        PK.FormDivider { visible: eventModel.parentIsMarriage }
 
                         PK.Text { text: "Kind"; visible: eventModel.parentIsMarriage }
 
@@ -360,14 +352,7 @@ Page {
                         }
 
 
-                        Rectangle {
-                            height: 1
-                            color: util.QML_ITEM_BORDER_COLOR
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 2
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                        }
+                        PK.FormDivider { }
 
                         PK.Text {
                             text: util.EVENT_PROPS_HELP_TEXT

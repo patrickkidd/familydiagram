@@ -1,4 +1,5 @@
 import inspect
+import enum
 from ..pyqt import (
     pyqtProperty,
     pyqtSignal,
@@ -22,8 +23,11 @@ class QObjectHelper:
     PRINT_EMITS = False
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
-        """Dynamically add Qt properties, signals, and slots to match objects.Property.
-        'convertTo' sets the type on the property for the pyqtProperty while leaving 'type' in place. This allows converting types between the model and the items.
+        """
+        Dynamically add Qt properties, signals, and slots to match
+        objects.Property. 'convertTo' sets the type on the property for the
+        pyqtProperty while leaving 'type' in place. This allows converting types
+        between the model and the items.
         """
         classAttrs = inspect.currentframe().f_back.f_locals
         classAttrs["qsignals"] = qsignals = classAttrs.get("qsignals", [])
@@ -69,7 +73,7 @@ class QObjectHelper:
                     self._cachedPropResetter(kwargs)
 
                 #
-                if not isinstance(type(kind), type):
+                if not isinstance(type(kind), type) and not kind == "QVariant":
                     raise TypeError(
                         "'kind' attribute must be a type, instead got: %" % kind
                     )
@@ -121,7 +125,11 @@ class QObjectHelper:
         return ret
 
     def registerQmlMethods(entries):
-        """Forwards calls to QObject class methods to their qml-javascript correlates."""
+        """
+        TODO: Move this to QmlWidgetHelper?
+
+        Forwards calls to QObject class methods to their qml-javascript correlates.
+        """
         classAttrs = inspect.currentframe().f_back.f_locals
         for entry in entries:
 
@@ -325,6 +333,8 @@ class QObjectHelper:
         kwargs = self.propAttrsFor(attr)
         if kwargs and kwargs.get("global"):
             x = kwargs["globalContext"][attr]
+            if isinstance(x, enum.Enum):
+                x = {y.name: y.value for y in x}
             return x
         elif self._defaultStorage:
             if kwargs:

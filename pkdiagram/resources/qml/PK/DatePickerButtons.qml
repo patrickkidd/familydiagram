@@ -27,8 +27,13 @@ Rectangle {
 
     color: 'transparent'
 
-    function isValid() {
-        return dateTime !== undefined && dateTime !== null && !isNaN(dateTime)
+    function isValid(_dateTime) {
+        return _dateTime !== undefined && _dateTime !== null && !isNaN(_dateTime)
+    }
+
+    function clear() {
+        root.dateTime = undefined
+        root.unsure = Qt.Unchecked
     }
 
     state: 'tumblers-hidden'
@@ -79,7 +84,7 @@ Rectangle {
         // update date text
         if(!dateTextInput.focus || datePicker.moving) {
             root.blocked = true
-            if(isValid()) {
+            if(isValid(root.dateTime)) {
                 dateTextInput.text = util.dateString(dateTime)
             } else {
                 dateTextInput.text = util.BLANK_DATE_TEXT
@@ -90,7 +95,7 @@ Rectangle {
         // update time text
         if(!timeTextInput.focus || timePicker.moving) {
             root.blocked = true
-            if(isValid()) {
+            if(isValid(root.dateTime)) {
                 timeTextInput.text = util.timeString(dateTime)
             } else {
                 timeTextInput.text = util.BLANK_TIME_TEXT
@@ -193,7 +198,18 @@ Rectangle {
                             newDateTime = validated
                         }
                     }
-                    root.dateTime = newDateTime
+                    if(newDateTime !== undefined) {
+                        // don't allow the time input to clear the date section
+                        root.dateTime = newDateTime
+                    } else if(root.dateTime) {
+                        // just allow clearing the time section
+                        root.dateTime = new Date(
+                            datePart.getFullYear(),
+                            datePart.getMonth(),
+                            datePart.getDate(),
+                            0, 0, 0, 0
+                        )
+                    }
                     blocked = false
                 }
                 onFocusChanged: root.updateState()

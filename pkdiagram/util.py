@@ -204,6 +204,31 @@ DETAILS_FONT = QFont(FONT_FAMILY, 16, QFont.Light)
 DETAILS_BIG_FONT = QFont(FONT_FAMILY, 26, QFont.Light)
 DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
+
+# Variables
+
+VAR_VALUE_DOWN = "down"
+VAR_VALUE_SAME = "same"
+VAR_VALUE_UP = "up"
+
+VAR_ANXIETY_DOWN = VAR_VALUE_DOWN
+VAR_ANXIETY_SAME = VAR_VALUE_SAME
+VAR_ANXIETY_UP = VAR_VALUE_UP
+
+VAR_FUNCTIONING_DOWN = VAR_VALUE_DOWN
+VAR_FUNCTIONING_SAME = VAR_VALUE_SAME
+VAR_FUNCTIONING_UP = VAR_VALUE_UP
+
+VAR_SYMPTOM_DOWN = VAR_VALUE_DOWN
+VAR_SYMPTOM_SAME = VAR_VALUE_SAME
+VAR_SYMPTOM_UP = VAR_VALUE_UP
+
+ATTR_ANXIETY = "Anxiety"
+ATTR_FUNCTIONING = "Functioning"
+ATTR_SYMPTOM = "Symptom"
+
+# Person
+
 PERSON_RECT = QRectF(-50, -50, 100, 100)
 DEFAULT_PERSON_SIZE = 5
 PERSON_SIZES = [
@@ -214,14 +239,22 @@ PERSON_SIZES = [
     {"name": "Nano", "size": 1},
 ]
 PERSON_SIZE_NAMES = [entry["name"] for entry in PERSON_SIZES]
+PERSON_KIND_MALE = "male"
+PERSON_KIND_FEMALE = "female"
+PERSON_KIND_ABORTION = "abortion"
+PERSON_KIND_MISCARRIAGE = "miscarriage"
+PERSON_KIND_UNKNOWN = "unknown"
 PERSON_KINDS = [
-    {"name": "Male", "kind": "male"},
-    {"name": "Female", "kind": "female"},
-    {"name": "Abortion", "kind": "abortion"},
-    {"name": "Miscarriage", "kind": "miscarriage"},
-    {"name": "Unknown", "kind": "unknown"},
+    {"name": "Male", "kind": PERSON_KIND_MALE},
+    {"name": "Female", "kind": PERSON_KIND_FEMALE},
+    {"name": "Abortion", "kind": PERSON_KIND_ABORTION},
+    {"name": "Miscarriage", "kind": PERSON_KIND_MISCARRIAGE},
+    {"name": "Unknown", "kind": PERSON_KIND_UNKNOWN},
 ]
 PERSON_KIND_NAMES = [entry["name"] for entry in PERSON_KINDS]
+
+# Emotion
+
 EMOTION_INTENSITIES = [
     {"name": "Small", "intensity": 1},
     {"name": "Medium", "intensity": 2},
@@ -361,7 +394,8 @@ S_PERSON_NOT_FOUND = LONG_TEXT(
 )
 
 
-class EventKind(enum.Enum):
+class EventKinds(enum.Enum):
+
     # Person
     Born = "born"
     Adopted = "adopted"
@@ -373,7 +407,19 @@ class EventKind(enum.Enum):
     Separated = "separated"
     Divorced = "divorced"
 
-    Custom = None
+    # Emotion
+    Conflict = "conflict"
+    Distance = "distance"
+    Projection = "projection"
+    Reciprocity = "reciprocity"
+    DefinedSelf = "defined_self"
+    Toward = "toward"
+    Away = "away"
+    Inside = "inside"
+    Outside = "outside"
+
+    # Custom
+    Custom = "custom"
 
 
 ___DATA_PATH = None
@@ -1022,10 +1068,10 @@ def printQObject(o):
 def dumpWidget(widget):
     import os.path, time
 
-    ROOT = os.path.join(os.path.realpath(__file__), "..")
+    ROOT = os.path.join(os.path.dirname(__file__), "..")
     pixmap = QPixmap(widget.size())
     widget.render(pixmap)
-    fileDir = os.path.realpath(os.path.join(DATA_ROOT, ".."))
+    fileDir = os.path.realpath(os.path.join(ROOT, "dumps"))
     pngPath = os.path.join(fileDir, "dump_%s.png" % time.time())
     os.makedirs(fileDir, exist_ok=True)
     if not pixmap.isNull():
@@ -1126,8 +1172,10 @@ def modTest(__test__, loadfile=True, useMW=False):
     import test_util
 
     app = Application(sys.argv)
+
     def _quit(x, y):
         app.quit()
+
     signal.signal(signal.SIGINT, _quit)
 
     if useMW:

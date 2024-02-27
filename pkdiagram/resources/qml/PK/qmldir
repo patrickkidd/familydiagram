@@ -12,6 +12,7 @@ Drawer 1.0 Drawer.qml
 EmotionProperties 1.0 EmotionProperties.qml
 EventProperties 1.0 EventProperties.qml
 FDListView 1.0 FDListView.qml
+FormDivider 1.0 FormDivider.qml
 GroupBox 1.0 GroupBox.qml
 Image 1.0 Image.qml
 ItemLayerList 1.0 ItemLayerList.qml
@@ -34,3 +35,4 @@ ToolBar 1.0 ToolBar.qml
 ToolButton 1.0 ToolButton.qml
 TimelineView 1.0 TimelineView.qml
 Tumbler 1.0 Tumbler.qml
+VariableBox 1.0 VariableBox.qml

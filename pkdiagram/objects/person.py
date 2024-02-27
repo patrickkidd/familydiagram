@@ -15,40 +15,17 @@ from .variablesdatabase import VariablesDatabase
 
 _log = logging.getLogger(__name__)
 
-KIND_MALE = "male"
-KIND_FEMALE = "female"
-
-
-ATTR_ANXIETY = "Anxiety"
-ATTR_FUNCTIONING = "Functioning"
-ATTR_SYMPTOM = "Symptom"
-
-DOWN = "down"
-SAME = "same"
-UP = "up"
-
-ANXIETY_DOWN = DOWN
-ANXIETY_SAME = SAME
-ANXIETY_UP = UP
-
-FUNCTIONING_DOWN = DOWN
-FUNCTIONING_SAME = SAME
-FUNCTIONING_UP = UP
-
-SYMPTOM_DOWN = DOWN
-SYMPTOM_SAME = SAME
-SYMPTOM_UP = UP
 
 ANXIETY_COLORS = {
-    UP: "red",
-    SAME: QColor(0, 0, 255, 127),
-    DOWN: "green",
+    util.VAR_VALUE_UP: "red",
+    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
+    util.VAR_VALUE_DOWN: "green",
 }
 
 FUNCTIONING_COLORS = {
-    UP: "green",
-    SAME: QColor(0, 0, 255, 127),
-    DOWN: "red",
+    util.VAR_VALUE_UP: "green",
+    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
+    util.VAR_VALUE_DOWN: "red",
 }
 
 
@@ -133,20 +110,24 @@ class Person(PathItem):
         ANXIETY_STEP_SAME = 10
         ANXIETY_STEP_UP = 5
 
-        if anxiety == ANXIETY_DOWN:
+        if anxiety == util.VAR_ANXIETY_DOWN:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_DOWN
             STEP = ANXIETY_STEP_DOWN
-        elif anxiety == ANXIETY_SAME:
+        elif anxiety == util.VAR_ANXIETY_SAME:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_SAME
             STEP = ANXIETY_STEP_SAME
-        elif anxiety == ANXIETY_UP:
+        elif anxiety == util.VAR_ANXIETY_UP:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_UP
             STEP = ANXIETY_STEP_UP
 
         if size is not None:
             scale = util.scaleForPersonSize(size)
-        if kind == KIND_MALE:
-            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
+        if kind == util.PERSON_KIND_MALE:
+            if anxiety in (
+                util.VAR_ANXIETY_DOWN,
+                util.VAR_ANXIETY_SAME,
+                util.VAR_ANXIETY_UP,
+            ):
                 WIDTH = int(rect.width() * scale)
                 CENTER_X, CENTER_Y = 0, 0
                 start_x = int(CENTER_X - WIDTH / 2)
@@ -184,8 +165,12 @@ class Person(PathItem):
                     rect = rect.marginsAdded(QMarginsF(m, m, m, m))
                     path.addRect(rect)
             path.closeSubpath()
-        elif kind == KIND_FEMALE:
-            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
+        elif kind == util.PERSON_KIND_FEMALE:
+            if anxiety in (
+                util.VAR_ANXIETY_DOWN,
+                util.VAR_ANXIETY_SAME,
+                util.VAR_ANXIETY_UP,
+            ):
                 CENTER_X, CENTER_Y = 0, 0
                 radius = (rect.width() / 2) * scale
                 start_angle = 90
@@ -319,12 +304,12 @@ class Person(PathItem):
         if self.scene():
             allAliases = [person.alias() for person in self.scene().people()]
             while alias is None or alias in allAliases:
-                if self.gender() == KIND_MALE:
+                if self.gender() == util.PERSON_KIND_MALE:
                     alias = random.choice(random_names.MALE_NAMES)
                 else:
                     alias = random.choice(random_names.FEMALE_NAMES)
         else:
-            if self.gender() == KIND_MALE:
+            if self.gender() == util.PERSON_KIND_MALE:
                 alias = random.choice(random_names.MALE_NAMES)
             else:
                 alias = random.choice(random_names.FEMALE_NAMES)
@@ -573,7 +558,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
-                ATTR_ANXIETY.lower(), self.scene().currentDateTime()
+                util.ATTR_ANXIETY.lower(), self.scene().currentDateTime()
             )
             if ok:
                 return anxiety
@@ -584,7 +569,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
-                ATTR_FUNCTIONING.lower(), self.scene().currentDateTime()
+                util.ATTR_FUNCTIONING.lower(), self.scene().currentDateTime()
             )
             if ok:
                 return functioning
@@ -595,7 +580,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
-                ATTR_SYMPTOM.lower(), self.scene().currentDateTime()
+                util.ATTR_SYMPTOM.lower(), self.scene().currentDateTime()
             )
             if ok:
                 return symptom
@@ -966,7 +951,11 @@ class Person(PathItem):
             pen.setColor(util.contrastTo(brush.color()))
         else:
             anxiety = self.anxietyLevelNow()
-            if anxiety in (ANXIETY_DOWN, ANXIETY_SAME, ANXIETY_UP):
+            if anxiety in (
+                util.VAR_ANXIETY_DOWN,
+                util.VAR_ANXIETY_SAME,
+                util.VAR_ANXIETY_UP,
+            ):
                 c = QColor(ANXIETY_COLORS[anxiety])
                 pen.setColor(c)
                 c.setAlpha(100)
@@ -1092,12 +1081,16 @@ class Person(PathItem):
         self.setPath(path)
 
         functioning = self.functioningLevelNow()
-        if functioning in (FUNCTIONING_DOWN, FUNCTIONING_SAME, FUNCTIONING_UP):
-            if functioning == FUNCTIONING_DOWN:
+        if functioning in (
+            util.VAR_FUNCTIONING_DOWN,
+            util.VAR_FUNCTIONING_SAME,
+            util.VAR_FUNCTIONING_UP,
+        ):
+            if functioning == util.VAR_FUNCTIONING_DOWN:
                 num = 1
-            elif functioning == FUNCTIONING_SAME:
+            elif functioning == util.VAR_FUNCTIONING_SAME:
                 num = 2
-            elif functioning == FUNCTIONING_UP:
+            elif functioning == util.VAR_FUNCTIONING_UP:
                 num = 3
             functioningPath = util.bolts_path(self.boundingRect().width(), num)
             self.functioningItem.setPath(functioningPath)
@@ -1188,16 +1181,16 @@ class Person(PathItem):
                 )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                if entry["attr"] in (ATTR_ANXIETY.lower(),) and value in (
-                    DOWN,
-                    SAME,
-                    UP,
+                if entry["attr"] in (util.ATTR_ANXIETY.lower(),) and value in (
+                    util.VAR_ANXIETY_DOWN,
+                    util.VAR_ANXIETY_SAME,
+                    util.VAR_ANXIETY_UP,
                 ):
                     continue
-                if entry["attr"] in (ATTR_FUNCTIONING.lower(),) and value in (
-                    DOWN,
-                    SAME,
-                    UP,
+                if entry["attr"] in (util.ATTR_FUNCTIONING.lower(),) and value in (
+                    util.VAR_FUNCITONING_DOWN,
+                    util.VAR_FUNCITONING_SAME,
+                    util.VAR_FUNCITONING_UP,
                 ):
                     continue
                 variableLines.append("%s: %s" % (entry["name"], value))

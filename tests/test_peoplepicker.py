@@ -1,5 +1,5 @@
 import pytest
-from pkdiagram import util, objects, EventKind
+from pkdiagram import util, objects
 from pkdiagram.pyqt import Qt, QVBoxLayout, QWidget
 from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
 

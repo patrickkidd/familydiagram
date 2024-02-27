@@ -308,16 +308,7 @@ PK.Drawer {
 
                         Rectangle { width: 1; height: 20; color: 'transparent' }
 
-                        // Spacer line
-                        
-                        Rectangle {
-                            height: 1
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 3
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                            color: util.QML_ITEM_BORDER_COLOR
-                        }
+                        PK.FormDivider { Layout.columnSpan: 3 }
                         
                         // Kind
 
@@ -703,14 +694,7 @@ PK.Drawer {
 
                         // Spacer line
 
-                        Rectangle {
-                            height: 1
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 3
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                            color: util.QML_ITEM_BORDER_COLOR
-                        }
+                        PK.FormDivider { Layout.columnSpan: 3 }
 
                         Row {
 

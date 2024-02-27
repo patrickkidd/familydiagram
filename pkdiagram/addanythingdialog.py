@@ -1,6 +1,6 @@
 import logging
 
-from .pyqt import QMessageBox, QObject, QEvent, Qt, pyqtSignal
+from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal
 from . import objects, util, commands
 from .objects import emotions
 from .qmldrawer import QmlDrawer
@@ -12,10 +12,12 @@ _log = logging.getLogger(__name__)
 class AddAnythingDialog(QmlDrawer):
 
     QmlDrawer.registerQmlMethods(
-        [
-            {"name": "clear"},
-        ]
+        [{"name": "clear"}, {"name": "test_peopleListItem", "return": True}]
     )
+
+    submitted = pyqtSignal()
+
+    S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
 
     def __init__(self, parent=None, sceneModel=None):
         super().__init__(
@@ -54,14 +56,44 @@ class AddAnythingDialog(QmlDrawer):
         self._returnTo = None
 
     def onDone(self):
-        """Add button; supports returnTo"""
         _log.info(f"AddAnythingDialog.onDone")
+
+        # Required fields
+        if self.rootProp("peopleModel").rowCount() == 0:
+            objectName = "peopleLabel"
+        elif not self.rootProp("kind"):
+            objectName = "kindLabel"
+        elif not self.rootProp("description"):
+            objectName = "descriptionLabel"
+        elif not self.rootProp("location"):
+            objectName = "locationLabel"
+        elif not self.rootProp("startDateTime"):
+            objectName = "startDateTimeLabel"
+        elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
+            objectName = "endDateTimeLabel"
+        else:
+            objectName = None
+        if objectName:
+            name = self.itemProp(objectName, "text")
+            msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
+            _log.info(f"AddAnythingForm validation: {msg}")
+            QMessageBox.information(
+                self,
+                "Required field",
+                msg,
+                QMessageBox.Ok,
+            )
+
+        # Validate correct values
+
+        # Validation checks from AddAnythingDialog.qml
+        # if not self.event.kind(): # or not self.event.kind().isValid():
+
         # if not self.event.dateTime() or not self.event.dateTime().isValid():
         #     QMessageBox.critical(self, 'Must set date',
         #                         'You must set a valid date before adding an event.')
         #     return
-        peopleToCreate = self.rootProp("peopleToCreate")
-        peopleToCreate = self.rootProp("peopleToCreate")
+        self.submitted.emit()
 
     def canClose(self):
         if self.property("dirty") and not self._canceled:

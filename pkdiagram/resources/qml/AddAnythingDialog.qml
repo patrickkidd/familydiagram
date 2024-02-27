@@ -17,72 +17,75 @@ PK.Drawer {
     property var focusResetter: addPage
     property bool canInspect: false
 
-    onSceneModelChanged: {
-        peoplePicker.peopleModel = sceneModel.peopleModel
-    }
+    property var peopleListContentItem: peoplePicker.listView.contentItem;
 
-    Keys.onPressed: {
-        if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-            done()
-        }
-    }
+    // Keys.onPressed: {
+    //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+    //         done()
+    //     }
+    // }
 
-    property var peopleModel: ListModel {}
-    property var peopleToCreate: null; // [id]
-    property var kind: null;
-    property var isDateRange: false;
-    property var description: null;
-    property var location: null;
-    property var anxiety: null;
-    property var functioning: null;
-    property var symptom: null;
-    property var customVariables: null; // { name: value }
+    // who
+    property var peopleModel: peoplePicker.model
+    // what
+    property var kind: kindBox.valueForIndex(kindBox.currentIndex);
+    property var description: descriptionEdit.text
+    property var anxiety: anxietyBox.value
+    property var functioning: functioningBox.value
+    property var symptom: symptomBox.value
+    // where
+    property var location: locationEdit.text
     // when
-    property var startDateTime: null;
-    property var startDateUnsure: false;
-    property var endDateTime: null;
-    property var endDateUnsure: false;
-    property var nodal: false;
+    property var isDateRange: isDateRangeBox.checked
+    property var startDateTime: startDatePicker.dateTime
+    property var startDateUnsure: startDatePicker.unsure
+    property var endDateTime: endDatePicker.dateTime
+    property var endDateUnsure: endDatePicker.unsure
+    property var nodal: nodalBox.checked
+
+    onKindChanged: {
+        print('AddAnythingDialog.onKindChanged: ' + kind)
+    }
 
     property var dirty: false;
 
     function clear() {
-        root.peopleModel.clear()
-        root.peopleToCreate = []; // [id]
-        root.kind = null;
-        root.startDateTime = null;
-        root.startDateUnsure = false
-        root.endDateTime = null;
-        root.endDateUnsure = false
-        root.isDateRange = false;
-        root.description = null;
-        root.location = null;
-        root.anxiety = null;
-        root.functioning = null;
-        root.symptom = null;
-        root.customVariables = null; // { name: value }
-        root.nodal = false;
+        peoplePicker.clear()
+        kindBox.clear()
+        startDatePicker.clear()
+        endDatePicker.clear()
+        isDateRangeBox.checked = false
+        descriptionEdit.clear()
+        locationEdit.clear()
+        anxietyBox.clear()
+        functioningBox.clear()
+        symptomBox.clear()
+        nodalBox.clear()
 
         root.dirty = false;
     }
 
+    function currentTab() { return 0 }
     function setCurrentTab(tab) {}
 
     header: PK.ToolBar {
         PK.ToolButton {
-            id: addButton
-            objectName: 'AddEverything_addButton'
+            id: submitButton
+            objectName: 'AddEverything_submitButton'
             text: 'Add'
             anchors.right: parent.right
             anchors.rightMargin: margin
-            onClicked: done()
+            onClicked: {
+                print('AddEverything_submitButton.onClicked')
+                done()
+            }
         }
         PK.Label {
             text: 'Add Data Point'
             anchors.centerIn: parent
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
-            width: (addButton.x) - (cancelButton.x + cancelButton.width) - root.margin * 2
+            width: (submitButton.x) - (cancelButton.x + cancelButton.width) - root.margin * 2
             font.family: util.FONT_FAMILY_TITLE
             font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
         }
@@ -132,57 +135,93 @@ PK.Drawer {
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
 
-                        PK.Text { text: "People" }
+                        PK.Text {
+                            id: peopleLabel
+                            objectName: "peopleLabel"
+                            text: "People"
+                        }
 
                         PK.PeoplePicker {
                             id: peoplePicker
                             objectName: "peoplePicker"
-                            model: root.peopleModel
-                            Layout.fillWidth: true
                             Layout.fillHeight: true
-                            Layout.minimumHeight: 150
-                            Layout.maximumHeight: 150
-                            // KeyNavigation.tab: dateButtons.textInput
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            // // KeyNavigation.tab: dateButtons.textInput
+                            Connections {
+                                target: root
+                                function onSceneModelChanged() {
+                                    peoplePicker.scenePeopleModel = sceneModel.peopleModel
+                                }
+                            }
                         }
 
-                        PK.Text { text: "Kind" }
+                        PK.FormDivider {}
+
+                        PK.Text { id: descriptionLabel; objectName: "descriptionLabel"; text: "Description" }
+
+                        PK.TextField {
+                            id: descriptionEdit
+                            objectName: "descriptionEdit"
+                            text: root.description
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            KeyNavigation.tab: kindBox
+                            function clear() { text = '' }
+                            // Keys.onPressed: {
+                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+                            //         done()
+                            //     }
+                            // }
+                        }
+
+                        PK.Text { id: kindLabel; objectName: "kindLabel"; text: "Relationship" }
 
                         RowLayout {
                             Layout.fillWidth: true
                             PK.ComboBox {
                                 id: kindBox
                                 objectName: "kindBox"
-                                Layout.fillWidth: true
-                                model: [
-                                    "Individual - Born",
-                                    "Individual - Adopted",
-                                    "Individual - Deceased",
-                                    "Individual - Cutoff",
-                                    "Pair-Bond - Bonded",
-                                    "Pair-Bond - Married",
-                                    "Pair-Bond - Separated",
-                                    "Pair-Bond - Divorced",
-                                    "Pair-Bond - Moved",
-                                    "Dyad - Distance",
-                                    "Dyad - Conflict",
-                                    "Dyad - Reciprocity",
-                                    "Dyad - Projection",
-                                    "Dyad - Inside",
-                                    "Dyad - Outside",
-                                    "Dyad - Toward",
-                                    "Dyad - Away",
-                                    "Dyad - Defined-Self",
-                                ]
+                                Layout.maximumWidth: util.QML_FIELD_WIDTH
+                                Layout.minimumWidth: util.QML_FIELD_WIDTH
+                                model: Object.keys(util.EventKinds)
+
+                                    // "Individual - Born",
+                                    // "Individual - Adopted",
+                                    // "Individual - Deceased",
+                                    // "Individual - Cutoff",
+                                    // "Pair-Bond - Bonded",
+                                    // "Pair-Bond - Married",
+                                    // "Pair-Bond - Separated",
+                                    // "Pair-Bond - Divorced",
+                                    // "Pair-Bond - Moved",
+                                    // "Dyad - Distance",
+                                    // "Dyad - Conflict",
+                                    // "Dyad - Reciprocity",
+                                    // "Dyad - Projection",
+                                    // "Dyad - Inside",
+                                    // "Dyad - Outside",
+                                    // "Dyad - Toward",
+                                    // "Dyad - Away",
+                                    // "Dyad - Defined-Self",
+                                    // "Custom",
+                                // ]
                                 KeyNavigation.tab: startDateButtons
-                                onCurrentIndexChanged: {
-                                    if(root.kind != currentText) {
-                                        root.kind = currentText
-                                    }
+                                function clear() { currentIndex = -1 }
+                                function valueForIndex(index) {
+                                    if(index >= 0)
+                                        return model[index]
+                                    else
+                                        return ''
                                 }
                             }
                         }
 
-                        PK.Text { text: root.isDateRange ? "Began" : "When" }
+                        PK.FormDivider {}
+
+                        PK.Text { id: startDateTimeLabel; objectName: "startDateTimeLabel"; text: root.isDateRange ? "Began" : "When" }
 
                         PK.DatePickerButtons {
                             id: startDateButtons
@@ -190,9 +229,7 @@ PK.Drawer {
                             datePicker: startDatePicker
                             timePicker: startTimePicker
                             dateTime: root.startDateTime
-                            unsure: root.startDateUnsure
                             showInspectButton: true
-                            enabled: ! root.isReadOnly
                             Layout.preferredHeight: implicitHeight - 10
                             // KeyNavigation.tab: endDateButtons.textInput
                             onDateTimeChanged: root.startDateTime = dateTime
@@ -207,7 +244,7 @@ PK.Drawer {
                         PK.DatePicker {
                             id: startDatePicker
                             objectName: 'startDatePicker'
-                            dateTime: root.startDateTime
+                            dateTime: root.startDateTime                            
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -216,13 +253,13 @@ PK.Drawer {
                             Connections {
                                 target: root
                                 function onStartDateTimeChanged() { if(startDatePicker.dateTime != root.startDateTime) startDatePicker.dateTime = root.startDateTime }
-                            }                            
+                            }                                
                         }
 
                         PK.TimePicker {
                             id: startTimePicker
                             objectName: 'startTimePicker'
-                            dateTime: root.startDateTime
+                            dateTime: root.startDateTime                            
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -231,20 +268,18 @@ PK.Drawer {
                             Connections {
                                 target: root
                                 function onStartDateTimeChanged() { if(startTimePicker.dateTime != root.startDateTime) startTimePicker.dateTime = root.startDateTime }
-                            }                            
+                            }                               
                         }
 
-                        PK.Text { text: "Ended"; visible: root.isDateRange }
+                        PK.Text { id: endDateTimeLabel; objectName: "endDateTimeLabel"; text: "Ended"; visible: root.isDateRange }
 
                         PK.DatePickerButtons {
                             id: endDateButtons
                             objectName: 'endDateButtons'
                             datePicker: endDatePicker
                             timePicker: endTimePicker
-                            dateTime: root.endDateTime
-                            unsure: root.endDateUnsure
+                            dateTime: root.endDateTime                            
                             showInspectButton: true
-                            enabled: ! root.isReadOnly
                             visible: root.isDateRange
                             Layout.preferredHeight: implicitHeight - 10
                             // KeyNavigation.tab: intensityBox
@@ -254,13 +289,13 @@ PK.Drawer {
                                 target: root
                                 function onEndDateTimeChanged() { if(endDateButtons.dateTime != root.endDateTime) endDateButtons.dateTime = root.endDateTime }
                                 function onEndDateUnsureChanged() { if(startDateButtons.unsure != root.endDateUnsure) startDateButtons.unsure = root.endDateUnsure }
-                            }                            
+                            }                              
                         }
 
                         PK.DatePicker {
                             id: endDatePicker
                             objectName: 'endDatePicker'
-                            dateTime: root.endDateTime
+                            dateTime: root.endDateTime                            
                             visible: root.isDateRange
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -270,7 +305,7 @@ PK.Drawer {
                             Connections {
                                 target: root
                                 function onEndDateTimeChanged() { if(endDatePicker.dateTime != root.endDateTime) endDatePicker.dateTime = root.endDateTime }
-                            }
+                            }                            
                         }
 
                         PK.TimePicker {
@@ -286,39 +321,25 @@ PK.Drawer {
                             Connections {
                                 target: root
                                 function onEndDateTimeChanged() { if(endTimePicker.dateTime != root.endDateTime) endTimePicker.dateTime = root.endDateTime }
-                            }
+                            }                            
                         }
 
                         Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 1 }
 
                         PK.CheckBox {
-                            id: dateRangeBox
-                            objectName: 'dateRangeBox'
-                            text: "Is Date Range"
-                            
+                            id: isDateRangeBox
+                            objectName: 'isDateRangeBox'
+                            text: "Is Date Range"                            
                             enabled: sceneModel ? !sceneModel.readOnly : true
-                            checked: root.isDateRange
                             Layout.fillWidth: true
-                            onCheckedChanged: if(root.isDateRange != checked) root.isDateRange = checked
-                        }
-
-                        PK.Text { text: "Description" }
-
-                        PK.TextField {
-                            id: descriptionEdit
-                            objectName: "descriptionEdit"
-                            text: root.description
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
-                            KeyNavigation.tab: locationEdit
-                            onEditingFinished: {
-                                var newValue = (text ? text : undefined)
-                                if(root.description != newValue)
-                                    root.description = newValue
+                            onCheckedChanged: {
+                                if(root.isDateRange != checked) {
+                                    root.isDateRange = checked
+                                }
                             }
                         }
 
-                        PK.Text { text: "Location" }
+                        PK.Text { id: locationLabel; objectName: "locationLabel"; text: "Location" }
 
                         PK.TextField {
                             id: locationEdit
@@ -326,59 +347,37 @@ PK.Drawer {
                             text: root.location
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
-                            KeyNavigation.tab: nodalBox
-                            onEditingFinished: {
-                                var newValue = (text ? text : undefined)
-                                if(root.location != newValue) {
-                                    root.location = newValue;
-                                }
-                            }
-                            Keys.onPressed: {
-                                if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-                                    done()
-                                }
-                            }
+                            // KeyNavigation.tab: nodalBox
+                            function clear() { text = '' }
+                            // Keys.onPressed: {
+                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+                            //         done()
+                            //     }
+                            // }
                         }
 
-
-                        // Rectangle {
-                        //     height: 1
-                        //     color: util.QML_ITEM_BORDER_COLOR
-                        //     Layout.fillWidth: true
-                        //     Layout.columnSpan: 2
-                        //     Layout.topMargin: margin
-                        //     Layout.bottomMargin: margin
-                        // }
-
-                        // PK.Text {
-                        //     text: util.EVENT_PROPS_HELP_TEXT
-                        //     wrapMode: Text.WordWrap
-                        //     font.pixelSize: util.HELP_FONT_SIZE
-                        //     Layout.fillWidth: true
-                        //     Layout.columnSpan: 2
-                        // }
-
-                        PK.Text { text: "Nodal" }
+                        PK.FormDivider {}
+                        
+                        PK.Text { id: nodalLabel; text: "Nodal" }
 
                         PK.CheckBox {
                             id: nodalBox
                             objectName: "nodalBox"
-                            checkState: root.nodal ? 1 : 0
-                            KeyNavigation.tab: kindBox
-                            onCheckStateChanged: { if(root.nodal = checkState) root.nodal = checkState }
+                            KeyNavigation.tab: anxietyBox
+                            function clear() { checked = false }
                         }
 
-                        // Rectangle {
-                        //     height: 1
-                        //     visible: eventModel.parentIsMarriage 
-                        //     color: util.QML_ITEM_BORDER_COLOR
-                        //     Layout.fillWidth: true
-                        //     Layout.columnSpan: 2
-                        //     Layout.topMargin: margin
-                        //     Layout.bottomMargin: margin
-                        // }
+                        PK.Text { text: "Anxiety" }
 
+                        PK.VariableBox { id: anxietyBox }
 
+                        PK.Text { text: "Functioning" }
+
+                        PK.VariableBox { id: functioningBox }
+
+                        PK.Text { text: "Symptom" }
+
+                        PK.VariableBox { id: symptomBox }
                     }
                 }
             }

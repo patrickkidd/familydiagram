@@ -22,6 +22,7 @@ from .pyqt import (
 from .view import View
 from . import util, objects, commands, Person, Marriage, Emotion, Event, LayerItem
 from . import addeventdialog, addemotiondialog
+from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
 from .widgets.drawer import Drawer
 from .models import SceneModel
@@ -160,6 +161,9 @@ class DocumentView(QWidget):
         self.caseProps.qml.rootObject().clearSearch.connect(
             self.controller.onClearSearch
         )
+        self.addAnythingDialog = AddAnythingDialog(
+            parent=self, sceneModel=self.sceneModel
+        )
         self.addEventDialog = addeventdialog.AddEventDialog(
             self, sceneModel=self.sceneModel
         )
@@ -175,6 +179,7 @@ class DocumentView(QWidget):
         self.emotionProps.hide(animate=False)
         self.layerItemProps.hide(animate=False)
         self.drawers = [
+            self.addAnythingDialog,
             self.caseProps,
             self.personProps,
             self.marriageProps,
@@ -187,6 +192,8 @@ class DocumentView(QWidget):
             drawer.canInspectChanged.connect(self.qmlSelectionChanged.emit)
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
         self._forceSceneUpdate = False  # fix for scene update bug
+
+        self.addAnythingDialog.submitted.connect(self.controller.onAddAnythingSubmitted)
 
         self.graphicalTimelineShim.lower()
         self.drawerShim.lower()
@@ -218,6 +225,7 @@ class DocumentView(QWidget):
         self.marriageProps.hide(animate=False)
         self.personProps.hide(animate=False)
         self.caseProps.hide(animate=False)
+        self.addAnythingDialog.hide(animate=False)
         self.currentDrawer = None
         self.controller.setScene(scene)
         if self.scene:
@@ -247,6 +255,7 @@ class DocumentView(QWidget):
                 )
             self.drawerShim.setFixedWidth(0)
         self.view.setScene(scene)
+        self.addAnythingDialog.setScene(scene)
         self.caseProps.setScene(scene)
         self.addEventDialog.setScene(scene)
         self.addEmotionDialog.setScene(scene)
@@ -397,6 +406,12 @@ class DocumentView(QWidget):
             self.setCurrentDrawer(self.layerItemProps, items=layerItems, tab=tab)
             commands.trackView("Edit layer item")
 
+    def onAddAnything(self):
+        if self.currentDrawer == self.addAnythingDialog:
+            self.setCurrentDrawer(None)
+        else:
+            self.setCurrentDrawer(self.addAnythingDialog)
+
     def onAddEvent(self, parent=None, rootItem=None):
         if isinstance(parent, QJSValue):
             parent = parent.toVariant()[0]
@@ -416,6 +431,7 @@ class DocumentView(QWidget):
             returnTo = (self.currentDrawer, None)
         else:
             returnTo = None
+
         if not parent:  # add to current [single] selection
             selection = self.scene.selectedItems()
             people = []

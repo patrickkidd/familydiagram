@@ -410,14 +410,7 @@ Page {
                         }
 
 
-                        Rectangle {
-                            height: 1
-                            color: util.QML_ITEM_BORDER_COLOR
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 2
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                        }
+                        PK.FormDivider { }
 
                         PK.Text {
                             text: util.EMOTION_PROPS_HELP_TEXT

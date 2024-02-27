@@ -475,13 +475,32 @@ from pytestqt.qtbot import QtBot
 
 class PKQtBot(QtBot):
 
+    DEBUG = False
+
     def waitActive(self, w, timeout=1000):
         w.activateWindow()
         QApplication.instance().processEvents()  # ugh....
         super().waitActive(w, timeout=timeout)
 
+    def keyClick(self, *args, **kwargs):
+        if self.DEBUG:
+            log.info(f"PKQtBot.keyClick({args}, {kwargs})")
+        return super().keyClick(*args, **kwargs)
+
     def keyClicks(self, *args, **kwargs):
-        QTest.keyClicks(*args, **kwargs)
+        if self.DEBUG:
+            log.info(f"PKQtBot.keyClicks({args}, {kwargs})")
+        return QTest.keyClicks(*args, **kwargs)
+
+    def mouseClick(self, *args, **kwargs):
+        if self.DEBUG:
+            log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
+        return super().mouseClick(*args, **kwargs)
+
+    def mouseDClick(self, *args, **kwargs):
+        if self.DEBUG:
+            log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
+        return super().mouseDClick(*args, **kwargs)
 
     def qWait(self, ms):
         QTest.qWait(ms)
@@ -616,9 +635,16 @@ class PKQtBot(QtBot):
             if widget:
                 if contains:
                     assert contains in widget.text()
-                if handleClick and handleClick():
+                if handleClick:
+                    try:
+                        ok = handleClick()
+                    except Exception as _e:
+                        ok = False
+                        e = _e
                     msgBoxAccepted()
                     msgBoxAccepted.timer.stop()
+                    if not ok:
+                        raise e
                 elif isinstance(widget, QMessageBox):
                     okButton = widget.button(QMessageBox.Ok)
                     widget.buttonClicked[QAbstractButton].connect(msgBoxAccepted)
@@ -641,12 +667,18 @@ class PKQtBot(QtBot):
         log.info(
             f"QMessageBox: {messageBox.text()}, {messageBox.informativeText()}, {messageBox.detailedText()}"
         )
+        failed = False
         if "text" in kwargs:
             assert kwargs["text"] in messageBox.text()
+            failed = True
         if "informativeText" in kwargs:
             assert kwargs["informativeText"] in messageBox.informativeText()
+            failed = True
         if "detailedText" in kwargs:
             assert kwargs["detailedText"] in messageBox.detailedText()
+            failed = True
+        # if failed:
+        #     pytest.xfail("QMessageBox did not have the required text.")
 
     def clickYesAfter(self, action, **hasTextArgs):
         def doClickYes():
@@ -679,7 +711,7 @@ class PKQtBot(QtBot):
                 self.assert_QMessageBox_hasText(widget, **hasTextArgs)
                 button = QApplication.activeModalWidget().button(QMessageBox.Ok)
                 assert button
-                self.mouseClick(button, Qt.LeftButton)
+                self.mouseClick(button, Qt.LeftButton, pos=button.rect().center())
                 return True
 
         self.qWaitForMessageBox(action, handleClick=doClickOk)
@@ -746,15 +778,14 @@ def simpleScene(request):
 
 # TODO: DECRECATED
 @pytest.fixture
-def qmlScene(simpleScene, request):
-    def cleanup():
-        simpleScene.deinit()
-
+def qmlScene(simpleScene):
     sceneModel = SceneModel()
     sceneModel.scene = simpleScene
     simpleScene._sceneModel = sceneModel
-    request.addfinalizer(cleanup)
-    return simpleScene
+
+    yield simpleScene
+
+    simpleScene.deinit()
 
 
 @pytest.fixture

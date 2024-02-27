@@ -13,8 +13,10 @@ Rectangle {
 
     id: root
 
+    function _isValid(_dateTime) { return _dateTime !== undefined && _dateTime !== null && !isNaN(_dateTime)}
+
     property var dateTime
-    property var isValid: dateTime !== undefined && dateTime !== null && !isNaN(dateTime)
+    property var isValid: root._isValid(root.dateTime)
     property bool shouldShow: false
     property bool moving: hourColumn.isMouseControlling || minuteColumn.isMouseControlling || amPmColumn.isMouseControlling
     color: 'transparent'
@@ -72,7 +74,7 @@ Rectangle {
 //    onMousePressed: forceActiveFocus()
 
     Component.onCompleted: {
-        if(isValid) {
+        if(root._isValid(root.dateTime)) {
             var hour = dateTime.getHours()
             if(hour < 12) {
                 amPmColumn.positionViewAtIndex(0, Tumbler.Center)
@@ -90,20 +92,31 @@ Rectangle {
         if(blocked)
             return
         blocked = true
-        if(isValid) {
+        if(root._isValid(root.dateTime)) {
             var hour = dateTime.getHours()
             if(hour < 12) {
-                amPmColumn.currentIndex = 0
+                if(amPmColumn.currentIndex != 0) {
+                    amPmColumn.currentIndex = 0
+                }
             } else {
                 hour -= 12
-                amPmColumn.currentIndex = 1
+                if(amPmColumn.currentIndex != 1) {
+                    amPmColumn.currentIndex = 1
+                }
             }
-            hourColumn.currentIndex = hour
-            minuteColumn.currentIndex = dateTime.getMinutes()
+            if(hourColumn.currentIndex != hour) {
+                hourColumn.currentIndex = hour
+            }
+            if(minuteColumn.currentIndex != dateTime.getMinutes()) {
+                minuteColumn.currentIndex = dateTime.getMinutes()
+            }
         } else {
-            hourColumn.currentIndex = -1
-            minuteColumn.currentIndex = -1
-            amPmColumn.currentIndex = -1
+            if(hourColumn.currentIndex != -1)
+                hourColumn.currentIndex = -1
+            if(minuteColumn.currentIndex != -1)
+                minuteColumn.currentIndex = -1
+            if(amPmColumn.currentIndex != -1)
+                amPmColumn.currentIndex = -1
         }
         blocked = false
     }
@@ -166,7 +179,8 @@ Rectangle {
                     if(index == Tumbler.tumbler.currentIndex) {
                         Tumbler.tumbler.onCurrentIndexChanged()
                     } else {
-                        Tumbler.tumbler.currentIndex = index
+                        if(Tumbler.tumbler.currentIndex != index)
+                            Tumbler.tumbler.currentIndex = index
                     }
                     root.mousePressed()
                     Tumbler.tumbler.isHandlingClick = false

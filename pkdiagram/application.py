@@ -155,6 +155,9 @@ class Application(QApplication):
         # cargs = list(args[0])
         # if IS_TEST:
         #     cargs += ('-platform', 'offscreen')
+        # args[0].append(
+        #     "-qmljsdebugger=port:1234,block",
+        # )
         super().__init__(*args, **kwargs)
 
         self.appFilter = util.AppFilter(

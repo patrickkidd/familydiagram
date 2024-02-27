@@ -380,6 +380,9 @@
             "type": "debugpy",
             "purpose": "debug-test",
             "justMyCode": false,
+            "env": {
+                "QT_LOGGING_RULES": "qt.quick.*=true"
+            }
         },        
         {
             "name": "(gdb) Attach",

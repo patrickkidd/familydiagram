@@ -851,6 +851,16 @@ class RightToolBar(ToolBar):
         self.addItems(
             [
                 (
+                    "addDataButton",
+                    {
+                        "path": "plus-button.png",
+                        "action": self.ui.actionAdd_Anything,
+                        # "help-tip": {
+                        #     "pixmap": "family-timeline.png",
+                        # },
+                    },
+                ),
+                (
                     "timelineButton",
                     {
                         "path": "timeline-button.png",

@@ -1,4 +1,4 @@
-from .pyqt import QQmlEngine, QObject, pyqtSlot
+from .pyqt import QQmlApplicationEngine, QObject, pyqtSlot
 from . import util, commands, qmlutil, qmlvedana
 
 
@@ -9,7 +9,7 @@ class CommandsWrapper(QObject):
         commands.trackView(s)
 
 
-class QmlEngine(QQmlEngine):
+class QmlEngine(QQmlApplicationEngine):
     """The global singleton; Manage global objects."""
 
     def __init__(self, parent=None):

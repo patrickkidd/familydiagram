@@ -78,6 +78,8 @@
     <property name="title">
      <string>Insert</string>
     </property>
+    <addaction name="actionAdd_Anything"/>
+    <addaction name="separator"/>
     <addaction name="actionAdd_Event"/>
     <addaction name="actionAdd_Relationship"/>
     <addaction name="separator"/>
@@ -1288,6 +1290,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionAdd_Anything">
+   <property name="text">
+    <string>Data Point</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+A</string>
    </property>
   </action>
  </widget>
