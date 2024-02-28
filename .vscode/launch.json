@@ -376,6 +376,17 @@
             "envFile": "${workspaceFolder}/.vscode/.windows-env"
         },
         {
+            "name": "TEST: test_add_new_person",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-svvx",
+                "tests/test_addanythingform.py::test_add_new_person_born"
+            ],
+            "console": "integratedTerminal",
+        },
+        {
             "name": "Debug Unit Test",
             "type": "debugpy",
             "purpose": "debug-test",

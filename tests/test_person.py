@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram.pyqt import QPointF, QDateTime
-from pkdiagram import util, Scene, Person, Marriage, MultipleBirth, Layer, Person, Event
+from pkdiagram import util, EventKinds, Scene, Person, Marriage, MultipleBirth, Layer, Person, Event
 
 
 def test_init():

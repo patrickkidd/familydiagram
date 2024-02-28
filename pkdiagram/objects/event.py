@@ -2,6 +2,7 @@ import os
 from ..pyqt import QDateTime
 from .. import util, commands
 from . import item, property
+from ..util import EventKinds
 
 
 class Event(item.Item):
@@ -91,30 +92,66 @@ class Event(item.Item):
             if self.parent is None:
                 return False
             elif self.parent.isPerson:
-                if self.uniqueId() == "birth" and other.uniqueId() == "adopted":
+                if (
+                    self.uniqueId() == EventKinds.Birth.value
+                    and other.uniqueId() == EventKinds.Adopted.value
+                ):
                     return True
-                elif self.uniqueId() == "birth" and other.uniqueId() == "death":
+                elif (
+                    self.uniqueId() == EventKinds.Birth.value
+                    and other.uniqueId() == EventKinds.Death.value
+                ):
                     return True
-                elif self.uniqueId() == "adopted" and other.uniqueId() == "birth":
+                elif (
+                    self.uniqueId() == EventKinds.Adopted.value
+                    and other.uniqueId() == EventKinds.Birth.value
+                ):
                     return False
-                elif self.uniqueId() == "adopted" and other.uniqueId() == "death":
+                elif (
+                    self.uniqueId() == EventKinds.Adopted.value
+                    and other.uniqueId() == EventKinds.Death.value
+                ):
                     return True
-                elif self.uniqueId() == "death" and other.uniqueId() == "birth":
+                elif (
+                    self.uniqueId() == EventKinds.Death.value
+                    and other.uniqueId() == EventKinds.Birth.value
+                ):
                     return False
-                elif self.uniqueId() == "death" and other.uniqueId() == "adopted":
+                elif (
+                    self.uniqueId() == EventKinds.Death.value
+                    and other.uniqueId() == EventKinds.Adopted.value
+                ):
                     return False
             elif self.parent.isMarriage:
-                if self.uniqueId() == "married" and other.uniqueId() == "separated":
+                if (
+                    self.uniqueId() == EventKinds.Married.value
+                    and other.uniqueId() == EventKinds.Separated.value
+                ):
                     return True
-                elif self.uniqueId() == "married" and other.uniqueId() == "divorced":
+                elif (
+                    self.uniqueId() == EventKinds.Married.value
+                    and other.uniqueId() == EventKinds.Divorced.value
+                ):
                     return True
-                elif self.uniqueId() == "separated" and other.uniqueId() == "married":
+                elif (
+                    self.uniqueId() == EventKinds.Separated.value
+                    and other.uniqueId() == EventKinds.Married.value
+                ):
                     return False
-                elif self.uniqueId() == "separated" and other.uniqueId() == "divorced":
+                elif (
+                    self.uniqueId() == EventKinds.Separated.value
+                    and other.uniqueId() == EventKinds.Divorced.value
+                ):
                     return True
-                elif self.uniqueId() == "divorced" and other.uniqueId() == "married":
+                elif (
+                    self.uniqueId() == EventKinds.Divorced.value
+                    and other.uniqueId() == EventKinds.Married.value
+                ):
                     return False
-                elif self.uniqueId() == "divorced" and other.uniqueId() == "separated":
+                elif (
+                    self.uniqueId() == EventKinds.Divorced.value
+                    and other.uniqueId() == EventKinds.Separated.value
+                ):
                     return False
         if self.uniqueId() and not other.uniqueId():
             return True
@@ -273,20 +310,20 @@ class Event(item.Item):
             if self.parent.isScene and self is self.parent.nowEvent:
                 ret = "Now"
             elif self.parent.isPerson:
-                if uniqueId == "birth":
+                if uniqueId == EventKinds.Birth.value:
                     ret = util.BIRTH_TEXT
-                elif uniqueId == "adopted":
+                elif uniqueId == EventKinds.Adopted.value:
                     ret = util.ADOPTED_TEXT
-                elif uniqueId == "death":
+                elif uniqueId == EventKinds.Death.value:
                     ret = util.DEATH_TEXT
             elif self.parent.isMarriage:
-                if uniqueId == "bonded":
+                if uniqueId == EventKinds.Bonded.value:
                     ret = "Bonded"
-                elif uniqueId == "married":
+                elif uniqueId == EventKinds.Married.value:
                     ret = "Married"
-                elif uniqueId == "divorced":
+                elif uniqueId == EventKinds.Divorced.value:
                     ret = "Divorced"
-                elif uniqueId == "separated":
+                elif uniqueId == EventKinds.Separated.value:
                     ret = "Separated"
                 elif uniqueId == "moved":
                     if self.location():

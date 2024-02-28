@@ -397,9 +397,9 @@ S_PERSON_NOT_FOUND = LONG_TEXT(
 class EventKinds(enum.Enum):
 
     # Person
-    Born = "born"
+    Birth = "birth"
     Adopted = "adopted"
-    Deceased = "deceased"
+    Death = "death"
 
     # Pair-Bond
     Bonded = "bonded"
@@ -421,6 +421,34 @@ class EventKinds(enum.Enum):
     # Custom
     Custom = "custom"
 
+    @classmethod
+    def isMonadic(cls, x):
+        return x in (cls.Birth, cls.Adopted, cls.Death)
+
+    @classmethod
+    def isPairBond(cls, x):
+        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced)
+
+    @classmethod
+    def isEmotion(cls, x):
+        return x in (
+            cls.Conflict,
+            cls.Distance,
+            cls.Projection,
+            cls.Reciprocity,
+            cls.DefinedSelf,
+            cls.Toward,
+            cls.Away,
+            cls.Inside,
+            cls.Outside,
+        )
+
+    @classmethod
+    def isDyadic(cls, x):
+        return cls.isPairBond(x) or cls.isEmotion(x)
+
+
+EVENT_KIND_NAMES = [x.name for x in EventKinds]
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None

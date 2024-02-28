@@ -1,6 +1,7 @@
 import os, shutil, random, logging, math
 from ..pyqt import *
 from .. import util, random_names
+from ..util import EventKinds
 from . import Property
 from .pathitem import PathItem
 from .itemdetails import ItemDetails
@@ -247,9 +248,9 @@ class Person(PathItem):
         self._onShowAliases = False
         self._lastVariableLines = []
         self.variablesDatabase = VariablesDatabase()
-        self.birthEvent = Event(self, uniqueId="birth")
-        self.deathEvent = Event(self, uniqueId="death")
-        self.adoptedEvent = Event(self, uniqueId="adopted")
+        self.birthEvent = Event(self, uniqueId=EventKinds.Birth.value)
+        self.deathEvent = Event(self, uniqueId=EventKinds.Death.value)
+        self.adoptedEvent = Event(self, uniqueId=EventKinds.Adopted.value)
         self.snappedOther = (
             None  # person this item is snapped to; set on master person only
         )
@@ -377,9 +378,9 @@ class Person(PathItem):
         self.deathEvent.read(chunk.get("deathEvent", {}), byId)
         self.adoptedEvent.read(chunk.get("adoptedEvent", {}), byId)
         # re-set props in case they change in future versions
-        self.birthEvent.setUniqueId("birth")
-        self.deathEvent.setUniqueId("death")
-        self.adoptedEvent.setUniqueId("adopted")
+        self.birthEvent.setUniqueId(EventKinds.Birth.value)
+        self.deathEvent.setUniqueId(EventKinds.Death.value)
+        self.adoptedEvent.setUniqueId(EventKinds.Adopted.value)
         self.birthEvent.setDescription(util.BIRTH_TEXT)
         self.deathEvent.setDescription(util.DEATH_TEXT)
         self.adoptedEvent.setDescription(util.ADOPTED_TEXT)
@@ -885,7 +886,11 @@ class Person(PathItem):
 
     def _onAddEvent(self, x):
         """Called from Event.setParent."""
-        if x.uniqueId() in ("birth", "adopted", "death"):  # called from Person()
+        if x.uniqueId() in (
+            EventKinds.Birth.value,
+            EventKinds.Adopted.value,
+            EventKinds.Death.value,
+        ):  # called from Person()
             return
         if x not in self._events:
             self._events.append(x)
@@ -1188,9 +1193,9 @@ class Person(PathItem):
                 ):
                     continue
                 if entry["attr"] in (util.ATTR_FUNCTIONING.lower(),) and value in (
-                    util.VAR_FUNCITONING_DOWN,
-                    util.VAR_FUNCITONING_SAME,
-                    util.VAR_FUNCITONING_UP,
+                    util.VAR_FUNCTIONING_DOWN,
+                    util.VAR_FUNCTIONING_SAME,
+                    util.VAR_FUNCTIONING_UP,
                 ):
                     continue
                 variableLines.append("%s: %s" % (entry["name"], value))

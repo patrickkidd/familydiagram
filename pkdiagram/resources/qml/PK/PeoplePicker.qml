@@ -100,13 +100,16 @@ PK.GroupBox {
                         property bool editMode: false
                         
                         id: textEdit
+                        objectName: "textEdit"
                         color: util.textColor(selected, current)
                         text: fullNameOrAlias + (isNew ? " (New)" : "")
                         clip: true
                         width: contentWidth
                         Layout.leftMargin: util.QML_MARGINS
+                        onTextChanged: print(text)
                         onEditingFinished: {
-                            // name = text
+                            print('fullNameOrAlias: ' + fullNameOrAlias + ', ' + text)
+                            fullNameOrAlias = text
                             editMode = false
                             focus = false
                         }
@@ -152,8 +155,7 @@ PK.GroupBox {
                         color: util.QML_ITEM_BG
                     }
                     onClicked: {
-                        var names = modelData.split(" ");
-                        root.model.append({"firstName": names[0], "lastName": names[1], "isNew": false});
+                        root.model.append({"fullNameOrAlias": modelData, id: 123, "isNew": false});
                         autoCompletePopup.close();
                         personAdded(names[0], names[1], false);
                     }

@@ -25,10 +25,12 @@ PK.Drawer {
     //     }
     // }
 
+    property var widget: null
+
     // who
     property var peopleModel: peoplePicker.model
     // what
-    property var kind: kindBox.valueForIndex(kindBox.currentIndex);
+    property var kind: null
     property var description: descriptionEdit.text
     property var anxiety: anxietyBox.value
     property var functioning: functioningBox.value
@@ -50,6 +52,7 @@ PK.Drawer {
     property var dirty: false;
 
     function clear() {
+        root.kind = null
         peoplePicker.clear()
         kindBox.clear()
         startDatePicker.clear()
@@ -67,6 +70,10 @@ PK.Drawer {
 
     function currentTab() { return 0 }
     function setCurrentTab(tab) {}
+
+    function setPeopleHelpText(text) {
+        peopleHelpText.text = text
+    }
 
     header: PK.ToolBar {
         PK.ToolButton {
@@ -158,6 +165,15 @@ PK.Drawer {
                             }
                         }
 
+                        PK.Text {
+                            id: peopleHelpText
+                            objectName: "peopleHelpText"
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
+
                         PK.FormDivider {}
 
                         PK.Text { id: descriptionLabel; objectName: "descriptionLabel"; text: "Description" }
@@ -166,6 +182,9 @@ PK.Drawer {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
                             text: root.description
+                            enabled: kindBox.currentValue() != util.EventKinds.Custom
+                            property var eventKinds_Custom: util.EventKinds.Custom
+                            property var eventKinds_Custom_Value: util.EventKinds.Custom.value
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             KeyNavigation.tab: kindBox
@@ -187,7 +206,6 @@ PK.Drawer {
                                 Layout.maximumWidth: util.QML_FIELD_WIDTH
                                 Layout.minimumWidth: util.QML_FIELD_WIDTH
                                 model: Object.keys(util.EventKinds)
-
                                     // "Individual - Born",
                                     // "Individual - Adopted",
                                     // "Individual - Deceased",
@@ -208,8 +226,18 @@ PK.Drawer {
                                     // "Dyad - Defined-Self",
                                     // "Custom",
                                 // ]
+                                property var lastCurrentIndex: -1
                                 KeyNavigation.tab: startDateButtons
+                                onCurrentIndexChanged: {
+                                    if (currentIndex != lastCurrentIndex) {
+                                        if(widget && widget.validateField(this)) {
+                                            lastCurrentIndex = currentIndex
+                                            root.kind = valueForIndex(currentIndex)
+                                        }
+                                    }
+                                }
                                 function clear() { currentIndex = -1 }
+                                function currentValue() { return valueForIndex(currentIndex) }
                                 function valueForIndex(index) {
                                     if(index >= 0)
                                         return model[index]
@@ -217,6 +245,15 @@ PK.Drawer {
                                         return ''
                                 }
                             }
+                        }
+
+                        PK.Text {
+                            id: eventHelpText
+                            objectName: "eventHelpText"
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
                         }
 
                         PK.FormDivider {}

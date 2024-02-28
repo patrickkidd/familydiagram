@@ -2,7 +2,7 @@ import pytest
 import conftest
 from test_marriage import noEvents
 from pkdiagram.pyqt import Qt, QDate, QApplication, QDateTime
-from pkdiagram import util, Person, Marriage, Event, Scene
+from pkdiagram import util, EventKinds, Person, Marriage, Event, Scene
 from pkdiagram.qmldrawer import QmlDrawer
 
 
@@ -103,7 +103,11 @@ def test_divorced_disabled_when_divorce_events(noEvents, mp):
     assert mp.itemProp("separatedBox", "enabled") == True
     assert mp.itemProp("divorcedBox", "enabled") == True
 
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(2000, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
     assert mp.itemProp("marriedBox", "enabled") == False
     assert mp.itemProp("separatedBox", "enabled") == False
     assert mp.itemProp("divorcedBox", "enabled") == False
@@ -112,7 +116,9 @@ def test_divorced_disabled_when_divorce_events(noEvents, mp):
 def test_married_becomes_enabled_after_delete_married_event(noEvents, mp):
     marriage = noEvents
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
     )
     mp.rootProp("marriageModel").items = [marriage]
     assert mp.itemProp("marriedBox", "enabled") == False
@@ -169,7 +175,10 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.separated() == True
     assert marriage.divorced() == False
     assert marriage.isVisible() == True
-    assert marriage.separationStatusFor(scene.currentDateTime()) == "separated"
+    assert (
+        marriage.separationStatusFor(scene.currentDateTime())
+        == EventKinds.Separated.value
+    )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.DashLine
 
@@ -178,7 +187,10 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.separated() == True
     assert marriage.divorced() == True
     assert marriage.isVisible() == True
-    assert marriage.separationStatusFor(scene.currentDateTime()) == "divorced"
+    assert (
+        marriage.separationStatusFor(scene.currentDateTime())
+        == EventKinds.Divorced.value
+    )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine
 
@@ -187,7 +199,10 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.separated() == True
     assert marriage.divorced() == False
     assert marriage.isVisible() == True
-    assert marriage.separationStatusFor(scene.currentDateTime()) == "separated"
+    assert (
+        marriage.separationStatusFor(scene.currentDateTime())
+        == EventKinds.Separated.value
+    )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine
 

@@ -8,6 +8,7 @@ from ..pyqt import (
     qmlRegisterType,
 )
 from .. import util, objects, commands
+from ..util import EventKinds
 from .modelhelper import ModelHelper
 
 
@@ -78,31 +79,31 @@ class PersonPropertiesModel(QObject, ModelHelper):
 
     def onEventProperty(self, prop):
         if prop.name() == "dateTime":
-            if prop.item.uniqueId() == "birth":
+            if prop.item.uniqueId() == EventKinds.Birth.value:
                 self.refreshProperty("birthDateTime")
-            elif prop.item.uniqueId() == "adopted":
+            elif prop.item.uniqueId() == EventKinds.Adopted.value:
                 self.refreshProperty("adoptedDateTime")
-            elif prop.item.uniqueId() == "death":
+            elif prop.item.uniqueId() == EventKinds.Death.value:
                 self.refreshProperty("deceasedDateTime")
         elif prop.name() == "location":
-            if prop.item.uniqueId() == "birth":
+            if prop.item.uniqueId() == EventKinds.Birth.value:
                 self.refreshProperty("birthLocation")
-            elif prop.item.uniqueId() == "adopted":
+            elif prop.item.uniqueId() == EventKinds.Adopted.value:
                 self.refreshProperty("adoptedLocation")
-            elif prop.item.uniqueId() == "death":
+            elif prop.item.uniqueId() == EventKinds.Death.value:
                 self.refreshProperty("deceasedLocation")
 
     def onItemEventAddedOrRemoved(self, event):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == "birth":
+        if event.uniqueId() == EventKinds.Birth.value:
             self.refreshProperty("birthDateTime")
             self.refreshProperty("birthLocation")
-        elif event.uniqueId() == "adopted":
+        elif event.uniqueId() == EventKinds.Adopted.value:
             self.refreshProperty("adoptedDateTime")
             self.refreshProperty("adoptedLocation")
-        elif event.uniqueId() == "death":
+        elif event.uniqueId() == EventKinds.Death.value:
             self.refreshProperty("deceasedDateTime")
             self.refreshProperty("deceasedLocation")
 

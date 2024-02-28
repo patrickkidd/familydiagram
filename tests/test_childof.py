@@ -10,6 +10,7 @@ from pkdiagram import (
     ChildOf,
     MultipleBirth,
     Layer,
+    EventKinds,
 )
 
 
@@ -750,7 +751,9 @@ def test_ChildOf_delete_undo_redo(qtbot):
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=QDateTime(util.Date(1900, 1, 1))
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=QDateTime(util.Date(1900, 1, 1)),
     )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
@@ -803,7 +806,9 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=QDateTime(util.Date(1900, 1, 1))
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=QDateTime(util.Date(1900, 1, 1)),
     )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
@@ -856,7 +861,9 @@ def test_hide_ChildOf_honor_marriage_tags():
     childA = Person(name="childA")
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1", tags=["here"])
     childA.setParents(marriage)
@@ -886,7 +893,9 @@ def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     twinC = Person(name="twinC")
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
@@ -914,7 +923,9 @@ def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)

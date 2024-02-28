@@ -2,6 +2,7 @@ import os, os.path, pickle, itertools
 import pytest
 import conftest
 from pkdiagram.pyqt import QDateTime, QPointF, QRectF
+from pkdiagram.util import EventKinds
 from pkdiagram import (
     util,
     commands,
@@ -567,7 +568,9 @@ def test_layered_properties():
     female = Person(name="Female", kind="female")
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
-        parent=marriage, uniqueId="divorced", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
     scene.addItems(male, female, marriage, layer)
@@ -652,7 +655,9 @@ def test_undo_add_remove_layered_item_props(qtbot):
     female = Person(name="Female", kind="female")
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
-        parent=marriage, uniqueId="divorced", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
     scene.addItems(male, female, marriage, layer)
@@ -690,8 +695,8 @@ def test_undo_add_remove_layered_item_props(qtbot):
     female.setItemPos(unlayered["female"], undo=False)
     female.detailsText.setItemPos(unlayered["femaleDetails"], undo=False)
     # marriage.setDivorced(True, undo=False)
-    marriage.separationIndicator.setItemPos(unlayered['marriageSep'], undo=False)
-    marriage.detailsText.setItemPos(unlayered['marriageDetails'], undo=False)
+    marriage.separationIndicator.setItemPos(unlayered["marriageSep"], undo=False)
+    marriage.detailsText.setItemPos(unlayered["marriageDetails"], undo=False)
     assert len(scene.items()) == 24
 
     scene.selectAll()
@@ -772,7 +777,9 @@ def test_setPathItemVisible():
     personB = Person(name="B")
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
-        parent=marriage, uniqueId="divorced", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, layer3, layer4, personA, personB, marriage)
     personA.setLayers([layer2.id, layer4.id])
@@ -841,7 +848,9 @@ def test_setPathItemVisible_2():
     personB = Person(name="B")
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
-        parent=marriage, uniqueId="divorced", dateTime=util.Date(1900, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, personA, personB, marriage)
     personA.setLayers([layer1.id, layer2.id])
@@ -1033,7 +1042,7 @@ PRISCILLA_SCENE = {
                 "id": 1525,
                 "dateTime": util.Date(2002, 11, 25),
                 "parentName": None,
-                "uniqueId": "death",
+                "uniqueId": EventKinds.Death.value,
             },
             "deceased": True,
             "kind": "Person",

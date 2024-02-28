@@ -107,6 +107,24 @@ def addPerson(*args):
     return cmd.person
 
 
+class AddPeople(UndoCommand):
+    def __init__(self, scene, people, id=-1):
+        super().__init__("Add people", id)
+        self.scene = scene
+        self.people = people
+
+    def redo(self):
+        self.scene.addItems(self.people)
+
+    def undo(self):
+        self.scene.removeItems(self.people)
+
+
+def addPeople(*args):
+    cmd = AddPeople(*args)
+    stack().push(cmd)
+
+
 class RemoveItems(UndoCommand):
 
     def __init__(self, scene, items):

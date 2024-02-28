@@ -2,8 +2,9 @@ import logging
 
 from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal
 from . import objects, util, commands
-from .objects import emotions
+from .objects import Person, Emotion, Event
 from .qmldrawer import QmlDrawer
+from .util import EventKinds
 
 
 _log = logging.getLogger(__name__)
@@ -12,12 +13,19 @@ _log = logging.getLogger(__name__)
 class AddAnythingDialog(QmlDrawer):
 
     QmlDrawer.registerQmlMethods(
-        [{"name": "clear"}, {"name": "test_peopleListItem", "return": True}]
+        [
+            {"name": "clear"},
+            {"name": "test_peopleListItem", "return": True},
+            {"name": "setPeopleHelpText"},
+        ]
     )
 
     submitted = pyqtSignal()
 
     S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
+    S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS = "This event type pertains to individuals so a separate event will be added to each one."
+    S_EVENT_DYADIC = "This event type can only be added to two people."
+    S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
 
     def __init__(self, parent=None, sceneModel=None):
         super().__init__(
@@ -32,6 +40,7 @@ class AddAnythingDialog(QmlDrawer):
 
     def onInitQml(self):
         super().onInitQml()
+        self.qml.rootObject().setProperty("widget", self)
         self.qml.rootObject().cancel.connect(self.onCancel)
 
     def eventFilter(self, o, e):
@@ -40,20 +49,6 @@ class AddAnythingDialog(QmlDrawer):
             self.onCancel()
             return True
         return False
-
-    def completeClickClose(self):
-        if not self.parent():  # tests
-            self._returnTo = None
-            return
-        if self._returnTo:
-            drawer, items = self._returnTo
-            if drawer in (self.parent().personProps, self.parent().marriageProps):
-                self.parent().setCurrentDrawer(drawer, items=items)
-            else:
-                self.parent().setCurrentDrawer(drawer)
-        else:
-            self.parent().setCurrentDrawer(None)
-        self._returnTo = None
 
     def onDone(self):
         _log.info(f"AddAnythingDialog.onDone")
@@ -88,12 +83,74 @@ class AddAnythingDialog(QmlDrawer):
 
         # Validation checks from AddAnythingDialog.qml
         # if not self.event.kind(): # or not self.event.kind().isValid():
+        undo_id = commands.nextId()
+        items_to_add = []
 
-        # if not self.event.dateTime() or not self.event.dateTime().isValid():
-        #     QMessageBox.critical(self, 'Must set date',
-        #                         'You must set a valid date before adding an event.')
-        #     return
-        self.submitted.emit()
+        people = []
+        peopleInfos = []
+        peopleModel = self.rootProp("peopleModel")
+        for i in range(peopleModel.rowCount()):
+            modelData = peopleModel.get(i).toVariant()
+            peopleInfos.append(
+                {
+                    "fullNameOrAlias": modelData.property("fullNameOrAlias"),
+                    "id": modelData.property("id"),
+                    "isNew": modelData.property("isNew"),
+                }
+            )
+        kind = self.rootProp("kind")
+        description = self.rootProp("description")
+        location = self.rootProp("location")
+        startDateTime = self.rootProp("startDateTime")
+        endDateTime = self.rootProp("endDateTime")
+        anxiety = self.rootProp("anxiety")
+        functioning = self.rootProp("functioning")
+        symptom = self.rootProp("symptom")
+
+        for item in peopleInfos:
+            if item["isNew"]:
+                parts = item["fullNameOrAlias"].split(" ")
+                firstName, lastName = parts[0], parts[1:]
+                person = Person(name=firstName, lastName=lastName)
+                items_to_add.append(person)
+                people.append(person)
+            else:
+                id = item["id"]
+                people.append(self.scene.findById(id))
+
+        if kind == EventKinds.Birth.value:
+            for person in people:
+                person.setBirthDateTime(startDateTime, undo=undo_id)
+                if location:
+                    person.birthEvent.setLocation(location)
+
+        self.scene.addItems(*items_to_add)
+        self.submitted.emit()  # for testing
+
+    def validateFields(self):
+        peopleInfos = self.rootProp("peopleModel")
+        kind = self.rootProp("kind")
+        description = self.rootProp("description")
+        location = self.rootProp("location")
+        startDateTime = self.rootProp("startDateTime")
+        endDateTime = self.rootProp("endDateTime")
+        anxiety = self.rootProp("anxiety")
+        functioning = self.rootProp("functioning")
+        symptom = self.rootProp("symptom")
+
+        # Number of people for event type
+        if EventKinds.isMonadic(kind) and len(peopleInfos) != 1:
+            self.findItem("peopleHelpText").setProperty(
+                "text",
+                self.S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS.format(
+                    numPeople=len(peopleInfos)
+                ),
+            )
+
+        if EventKinds.isDyadic(kind) and len(peopleInfos) != 2:
+            QMessageBox.warning(self, "Dyadic event", self.S_EVENT_DYADIC)
+
+        return False
 
     def canClose(self):
         if self.property("dirty") and not self._canceled:
@@ -111,7 +168,7 @@ class AddAnythingDialog(QmlDrawer):
         """Cancel button; supports returnTo"""
         if not self.canClose():
             return
-        self.completeClickClose()
+        self.hide(callback=self.reset)
 
 
 def __test__(scene, parent):

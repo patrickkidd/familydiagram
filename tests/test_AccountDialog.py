@@ -7,7 +7,7 @@ import flask_mail
 
 import vedana
 from pkdiagram.pyqt import *
-from pkdiagram import util, AccountDialog, SceneModel, Scene, Session
+from pkdiagram import util, EventKinds, AccountDialog, SceneModel, Scene, Session
 
 import fdserver.extensions
 from fdserver.extensions import db

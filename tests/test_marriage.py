@@ -3,6 +3,7 @@ from pkdiagram.models.marriagepropertiesmodel import MarriagePropertiesModel
 import pytest
 import conftest
 from pkdiagram.pyqt import QDateTime, Qt
+from pkdiagram.util import EventKinds
 from pkdiagram import util, Scene, Event, Person, Marriage
 
 
@@ -43,18 +44,42 @@ def noEvents2Children(noEvents):
 def simpleMarriage(qmlScene, request):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
-    Event(parent=marriage, uniqueId="bonded", dateTime=util.Date(1900, 1, 1))
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(1910, 1, 1))
-    Event(parent=marriage, uniqueId="separated", dateTime=util.Date(1920, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(1900, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1910, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Separated.value,
+        dateTime=util.Date(1920, 1, 1),
+    )
     Event(
         parent=marriage,
         uniqueId="moved",
         dateTime=util.Date(1925, 1, 1),
         location="Washington, DC",
     )
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(1930, 1, 1))
-    Event(parent=marriage, uniqueId="separated", dateTime=util.Date(1940, 1, 1))
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(1950, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1930, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Separated.value,
+        dateTime=util.Date(1940, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1950, 1, 1),
+    )
     qmlScene.addItems(personA, personB, marriage)
     request.addfinalizer(lambda: qmlScene.deinit())
     return marriage
@@ -181,7 +206,9 @@ def test_shouldShowFor_one_parent_one_child(monkeypatch, noEvents2Children):
 ## shouldShowFor (3 -- Bonded / married events)
 
 
-@pytest.mark.parametrize("uniqueId", ["bonded", "married"])
+@pytest.mark.parametrize(
+    "uniqueId", [EventKinds.Bonded.value, EventKinds.Married.value]
+)
 def test_shouldShowFor_first_bonded_event_prior_to_first_child(
     monkeypatch, noEvents2Children, uniqueId
 ):
@@ -204,7 +231,9 @@ def test_shouldShowFor_first_bonded_event_prior_to_first_child(
 
 
 # Children incorrectly added prior to bonded/married events)
-@pytest.mark.parametrize("uniqueId", ["bonded", "married"])
+@pytest.mark.parametrize(
+    "uniqueId", [EventKinds.Bonded.value, EventKinds.Married.value]
+)
 def test_shouldShowFor_first_bonded_married_event_after_first_child(
     noEvents2Children, uniqueId
 ):
@@ -231,7 +260,9 @@ def test_penStyleFor_bonded_prior_to_first_child(noEvents2Children):
     marriage = noEvents2Children
     marriage.setMarried(False)
     Event(
-        parent=marriage, uniqueId="bonded", dateTime=util.Date(1990, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(1990, 1, 1),
     )  # prior to child births
     marriage.children[0].setBirthDateTime(util.Date(2000, 1, 1))
     marriage.children[1].setBirthDateTime(util.Date(2010, 1, 1))
@@ -248,7 +279,9 @@ def test_penStyleFor_married_prior_to_first_child(noEvents2Children):
     marriage = noEvents2Children
     marriage.setMarried(False)
     Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(1990, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1990, 1, 1),
     )  # prior to child births
     marriage.children[0].setBirthDateTime(util.Date(2000, 1, 1))
     marriage.children[1].setBirthDateTime(util.Date(2010, 1, 1))
@@ -267,7 +300,9 @@ def test_penStyleFor_bonded_after_first_child(noEvents2Children):
     marriage.setMarried(False)
     marriage.children[0].setBirthDateTime(util.Date(1990, 1, 1))
     Event(
-        parent=marriage, uniqueId="bonded", dateTime=util.Date(2000, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(2000, 1, 1),
     )  # prior to child births
     assert (
         marriage.penStyleFor(util.Date(1980, 1, 1)) == Qt.DashLine
@@ -283,7 +318,9 @@ def test_penStyleFor_married_after_first_child(noEvents2Children):
     marriage.setMarried(False)
     marriage.children[0].setBirthDateTime(util.Date(1990, 1, 1))
     Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
     )  # prior to child births
     assert (
         marriage.penStyleFor(util.Date(1980, 1, 1)) == Qt.DashLine
@@ -298,10 +335,14 @@ def test_penStyleFor_between_bonded_and_married_events(noEvents):
     marriage = noEvents
     marriage.setMarried(False)
     Event(
-        parent=marriage, uniqueId="bonded", dateTime=util.Date(1990, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(1990, 1, 1),
     )  # prior to child births
     Event(
-        parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1)
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
     )  # prior to child births
     assert marriage.penStyleFor(util.Date(1980, 1, 1)) == Qt.DashLine  # prior to bonded
     assert marriage.penStyleFor(util.Date(2005, 1, 1)) == Qt.SolidLine  # after marriage
@@ -318,8 +359,16 @@ def test_penStyleFor_married_no_married_events(noEvents):
 def test_penStyleFor_married_w_married_events(noEvents):
     marriage = noEvents
     marriage.setMarried(True)
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1))
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(2010, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2010, 1, 1),
+    )
     assert (
         marriage.penStyleFor(QDateTime.currentDateTime()) == Qt.SolidLine
     )  # prior to first child
@@ -328,9 +377,21 @@ def test_penStyleFor_married_w_married_events(noEvents):
 def test_penStyleFor_married_w_married_events_and_bonded_prior(noEvents):
     marriage = noEvents
     marriage.setMarried(True)
-    Event(parent=marriage, uniqueId="bonded", dateTime=util.Date(1990, 1, 1))
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1))
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(2010, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(1990, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2010, 1, 1),
+    )
     assert (
         marriage.penStyleFor(util.Date(1995, 1, 1)) == Qt.DashLine
     )  # after bonded, prior to marriage
@@ -341,7 +402,11 @@ def test_penStyleFor_divorced_w_married_events(noEvents):
     marriage = noEvents
     marriage.setMarried(False)
     marriage.setDivorced(True)
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(2000, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
     assert (
         marriage.penStyleFor(QDateTime.currentDateTime()) == Qt.SolidLine
     )  # prior to first child
@@ -360,7 +425,11 @@ def test_penStyleFor_divorced_w_divorced_events(noEvents):
     marriage = noEvents
     marriage.setMarried(False)
     marriage.setDivorced(True)
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(2000, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
     assert (
         marriage.penStyleFor(QDateTime.currentDateTime()) == Qt.SolidLine
     )  # prior to first child
@@ -369,7 +438,11 @@ def test_penStyleFor_divorced_w_divorced_events(noEvents):
 def test_penStyleFor_married_w_bonded_event_prior_no_married_events(noEvents):
     marriage = noEvents
     marriage.setMarried(True)
-    Event(parent=marriage, uniqueId="bonded", dateTime=util.Date(1990, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Bonded.value,
+        dateTime=util.Date(1990, 1, 1),
+    )
     assert (
         marriage.penStyleFor(util.Date(2005, 1, 1)) == Qt.SolidLine
     )  # after bonded event
@@ -389,39 +462,70 @@ def test_separationStatusFor_no_div_sep_event_div_no_sep(noEvents):
     marriage = noEvents
     marriage.setSeparated(False)
     marriage.setDivorced(True)
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "divorced"
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Divorced.value
+    )
 
 
 def test_separationStatusFor_div_event_no_sep_event_no_div_sep(noEvents):
     marriage = noEvents
     marriage.setSeparated(False)
     marriage.setDivorced(False)
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(2000, 1, 1))
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "divorced"
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Divorced.value
+    )
 
 
 def test_separationStatusFor_div_event_no_sep_event_div_no_sep(noEvents):
     marriage = noEvents
     marriage.setSeparated(False)
     marriage.setDivorced(True)
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(2000, 1, 1))
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "divorced"
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Divorced.value
+    )
 
 
 def test_separationStatusFor_sep_event_no_div_event_no_div_sep(noEvents):
     marriage = noEvents
     marriage.setSeparated(False)
     marriage.setDivorced(False)
-    Event(parent=marriage, uniqueId="separated", dateTime=util.Date(2000, 1, 1))
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "separated"
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Separated.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Separated.value
+    )
 
 
 def test_separationStatusFor_sep_event_no_div_event_sep_no_div(noEvents):
     marriage = noEvents
     marriage.setSeparated(True)
     marriage.setDivorced(False)
-    Event(parent=marriage, uniqueId="separated", dateTime=util.Date(2000, 1, 1))
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "separated"
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Separated.value,
+        dateTime=util.Date(2000, 1, 1),
+    )
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Separated.value
+    )
 
 
 def test_separationStatusFor_one_moved_event_no_div_sep(noEvents):
@@ -447,7 +551,10 @@ def test_separationStatusFor_one_moved_event_sep_no_div(noEvents):
         location="Somewhere",
         dateTime=util.Date(1990, 1, 1),
     )
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "separated"
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Separated.value
+    )
 
 
 def test_separationStatusFor_one_moved_event_div_no_sep(noEvents):
@@ -460,7 +567,10 @@ def test_separationStatusFor_one_moved_event_div_no_sep(noEvents):
         location="Somewhere",
         dateTime=util.Date(1990, 1, 1),
     )
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "divorced"
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Divorced.value
+    )
 
 
 def test_separationStatusFor_one_moved_event_div(noEvents):
@@ -473,7 +583,10 @@ def test_separationStatusFor_one_moved_event_div(noEvents):
         location="Somewhere",
         dateTime=util.Date(1990, 1, 1),
     )
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "divorced"
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Divorced.value
+    )
 
 
 def test_separationStatusFor_one_moved_event_sep(noEvents):
@@ -486,7 +599,10 @@ def test_separationStatusFor_one_moved_event_sep(noEvents):
         location="Somewhere",
         dateTime=util.Date(1990, 1, 1),
     )
-    assert marriage.separationStatusFor(QDateTime.currentDateTime()) == "separated"
+    assert (
+        marriage.separationStatusFor(QDateTime.currentDateTime())
+        == EventKinds.Separated.value
+    )
 
 
 def test_separationStatusFor_one_moved_event_sep_and_div_events(noEvents):
@@ -495,23 +611,29 @@ def test_separationStatusFor_one_moved_event_sep_and_div_events(noEvents):
     marriage.setDivorced(False)
     Event(
         parent=marriage,
-        uniqueId="separated",
+        uniqueId=EventKinds.Separated.value,
         location="Somewhere",
         dateTime=util.Date(1990, 1, 1),
     )
     Event(parent=marriage, uniqueId="moved", dateTime=util.Date(2000, 1, 1))
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(2010, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(2010, 1, 1),
+    )
     assert (
         marriage.separationStatusFor(util.Date(1985, 1, 1)) == None
     )  # before separation
     assert (
-        marriage.separationStatusFor(util.Date(1995, 1, 1)) == "separated"
+        marriage.separationStatusFor(util.Date(1995, 1, 1))
+        == EventKinds.Separated.value
     )  # after separation
     assert (
-        marriage.separationStatusFor(util.Date(2005, 1, 1)) == "separated"
+        marriage.separationStatusFor(util.Date(2005, 1, 1))
+        == EventKinds.Separated.value
     )  # after move
     assert (
-        marriage.separationStatusFor(util.Date(2015, 1, 1)) == "divorced"
+        marriage.separationStatusFor(util.Date(2015, 1, 1)) == EventKinds.Divorced.value
     )  # after divorce
 
 
@@ -583,9 +705,11 @@ def test_compat_marriage_events():
     marriage = scene.marriages()[0]
     events = marriage.events()
     assert len(events) == 5
-    marriedEvent = next(e for e in events if e.uniqueId() == "married")
-    separatedEvent = next(e for e in events if e.uniqueId() == "separated")
-    divorcedEvent = next(e for e in events if e.uniqueId() == "divorced")
+    marriedEvent = next(e for e in events if e.uniqueId() == EventKinds.Married.value)
+    separatedEvent = next(
+        e for e in events if e.uniqueId() == EventKinds.Separated.value
+    )
+    divorcedEvent = next(e for e in events if e.uniqueId() == EventKinds.Divorced.value)
     movedEvents = [e for e in events if e.uniqueId() == "moved"]
     assert marriedEvent.dateTime() == util.Date(1900, 1, 1)
     assert separatedEvent.dateTime() == util.Date(1910, 1, 1)
@@ -603,7 +727,11 @@ def test_anyMarriedEvents(noEvents):
     marriage = noEvents
     assert marriage.anyMarriedEvents() == False
 
-    Event(parent=marriage, uniqueId="married", dateTime=util.Date(1900, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Married.value,
+        dateTime=util.Date(1900, 1, 1),
+    )
     assert marriage.anyMarriedEvents() == True
 
 
@@ -611,7 +739,11 @@ def test_anySeparatedEvents(noEvents):
     marriage = noEvents
     assert marriage.anySeparatedEvents() == False
 
-    Event(parent=marriage, uniqueId="separated", dateTime=util.Date(1900, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Separated.value,
+        dateTime=util.Date(1900, 1, 1),
+    )
     assert marriage.anySeparatedEvents() == True
 
 
@@ -619,7 +751,11 @@ def test_anyDivorcedEvents(noEvents):
     marriage = noEvents
     assert marriage.anyDivorcedEvents() == False
 
-    Event(parent=marriage, uniqueId="divorced", dateTime=util.Date(1900, 1, 1))
+    Event(
+        parent=marriage,
+        uniqueId=EventKinds.Divorced.value,
+        dateTime=util.Date(1900, 1, 1),
+    )
     assert marriage.anyDivorcedEvents() == True
 
 
@@ -629,7 +765,7 @@ def test_everMarried(noEvents):
     noEvents.setMarried(False)
     assert noEvents.everMarried() == False
 
-    Event(parent=noEvents, uniqueId="married")
+    Event(parent=noEvents, uniqueId=EventKinds.Married.value)
     assert noEvents.everMarried() == True
 
     noEvents.setMarried(True)
@@ -645,7 +781,7 @@ def test_everSeparated(noEvents):
     noEvents.setSeparated(False)
     assert noEvents.everSeparated() == False
 
-    Event(parent=noEvents, uniqueId="separated")
+    Event(parent=noEvents, uniqueId=EventKinds.Separated.value)
     assert noEvents.everSeparated() == True
 
     noEvents.setSeparated(True)
@@ -661,7 +797,7 @@ def test_everDivorced(noEvents):
     noEvents.setDivorced(False)
     assert noEvents.everDivorced() == False
 
-    Event(parent=noEvents, uniqueId="divorced")
+    Event(parent=noEvents, uniqueId=EventKinds.Divorced.value)
     assert noEvents.everDivorced() == True
 
     noEvents.setDivorced(True)

@@ -12,7 +12,7 @@ from ..pyqt import (
 )
 from .. import util
 from . import ItemDetails, Event, PathItem, Property
-
+from ..util import EventKinds
 
 log = logging.getLogger(__name__)
 
@@ -51,11 +51,11 @@ class SeparationIndicator(PathItem):
         lineRun = personRect.width() * 0.2 * custodyDirection
         y = personRect.height() * 0.15
         status = marriage.separationStatusFor(currentDateTime)
-        if status in ("separated", "divorced"):
+        if status in (EventKinds.Separated.value, EventKinds.Divorced.value):
             x = 0
             path.moveTo(x, y)
             path.lineTo(x + lineRun, y - lineRise)
-        if status == "divorced":
+        if status == EventKinds.Divorced.value:
             x = personRect.width() * 0.1
             path.moveTo(x, y)
             path.lineTo(x + lineRun, y - lineRise)
@@ -257,13 +257,13 @@ class Marriage(PathItem):
         anyMarriedEvents = []
         for e in self._events:
             if e.dateTime() and e.dateTime() <= dateTime:
-                if e.uniqueId() == "bonded":
+                if e.uniqueId() == EventKinds.Bonded.value:
                     priorBondedEvents.append(e)
-                elif e.uniqueId() == "married":
+                elif e.uniqueId() == EventKinds.Married.value:
                     priorMarriedEvents.append(e)
-                elif e.uniqueId() == "divorced":
+                elif e.uniqueId() == EventKinds.Divorced.value:
                     priorDivorcedEvents.append(e)
-            if e.uniqueId() == "married":
+            if e.uniqueId() == EventKinds.Married.value:
                 anyMarriedEvents.append(e)
         # order matters here
         if priorMarriedEvents:
@@ -287,19 +287,21 @@ class Marriage(PathItem):
         divorcedEvents = []
         for e in self._events:
             if (
-                e.uniqueId() == "separated"
+                e.uniqueId() == EventKinds.Separated.value
                 and e.dateTime()
                 and e.dateTime() <= dateTime
             ):
                 separatedEvents.append(e)
             elif (
-                e.uniqueId() == "divorced" and e.dateTime() and e.dateTime() <= dateTime
+                e.uniqueId() == EventKinds.Divorced.value
+                and e.dateTime()
+                and e.dateTime() <= dateTime
             ):
                 divorcedEvents.append(e)
         if divorcedEvents or self.divorced():
-            return "divorced"
+            return EventKinds.Divorced.value
         elif separatedEvents or self.separated():
-            return "separated"
+            return EventKinds.Separated.value
         else:
             return None
 
@@ -317,19 +319,19 @@ class Marriage(PathItem):
 
     def anyMarriedEvents(self):
         for event in self.events():
-            if event.uniqueId() == "married":
+            if event.uniqueId() == EventKinds.Married.value:
                 return True
         return False
 
     def anySeparatedEvents(self):
         for event in self.events():
-            if event.uniqueId() == "separated":
+            if event.uniqueId() == EventKinds.Separated.value:
                 return True
         return False
 
     def anyDivorcedEvents(self):
         for event in self.events():
-            if event.uniqueId() == "divorced":
+            if event.uniqueId() == EventKinds.Divorced.value:
                 return True
         return False
 
@@ -546,13 +548,13 @@ class Marriage(PathItem):
                 or event.dateTime() > currentDateTime
             ):
                 continue
-            if uniqueId == "bonded" and event.dateTime():
+            if uniqueId == EventKinds.Bonded.value and event.dateTime():
                 lines.append("b. " + util.dateString(event.dateTime()))
-            elif uniqueId == "married" and event.dateTime():
+            elif uniqueId == EventKinds.Married.value and event.dateTime():
                 lines.append("m. " + util.dateString(event.dateTime()))
-            elif uniqueId == "separated" and event.dateTime():
+            elif uniqueId == EventKinds.Separated.value and event.dateTime():
                 lines.append("s. " + util.dateString(event.dateTime()))
-            elif uniqueId == "divorced" and event.dateTime():
+            elif uniqueId == EventKinds.Divorced.value and event.dateTime():
                 lines.append("d. " + util.dateString(event.dateTime()))
             elif uniqueId == "moved" and event.dateTime():
                 lines.append(
@@ -609,7 +611,9 @@ class Marriage(PathItem):
                 return True
         # 5
         anyBondedMarriedDates = [
-            e.dateTime() for e in self._events if e.uniqueId() in ("bonded", "married")
+            e.dateTime()
+            for e in self._events
+            if e.uniqueId() in (EventKinds.Bonded.value, EventKinds.Married.value)
         ]
         priorBondedMarriedDates = [
             d for d in anyBondedMarriedDates if d is not None and d <= dateTime

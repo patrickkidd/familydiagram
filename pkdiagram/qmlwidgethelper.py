@@ -259,12 +259,12 @@ class QmlWidgetHelper(QObjectHelper):
     def keyClicks(self, objectName, s, resetFocus=True, returnToFinish=True):
         self.focusItem(objectName)
         if util.qtbot.DEBUG:
-            log.info(f'QmlWidgetHelper.keyClicks("{objectName}", {staticmethod})')
+            log.info(f'QmlWidgetHelper.keyClicks("{objectName}", {s})')
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
             if util.qtbot.DEBUG:
                 log.info(
-                    f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {staticmethod})'
+                    f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {s})'
                 )
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
@@ -274,16 +274,22 @@ class QmlWidgetHelper(QObjectHelper):
         item = self.findItem(objectName)
         self.focusItem(objectName)
         item.selectAll()
-        count = 0
-        while item.property("text") not in ("", util.BLANK_DATE_TEXT) and count < 200:
+        while item.property("text") not in (
+            "",
+            util.BLANK_DATE_TEXT,
+            util.BLANK_TIME_TEXT,
+        ):
+            prevText = item.property("text")
             self.keyClick(objectName, Qt.Key_Backspace)
-            count += 1
+            if item.property("text") == prevText:
+                break
         self.resetFocus(objectName)
         itemText = item.property("text")
-        if not (itemText == "" or itemText in (util.BLANK_DATE_TEXT,util.BLANK_TIME_TEXT)):
-            raise RuntimeError(
-                'Could not clear text for %s (text = "%s")' % (objectName, itemText)
-            )
+        assert itemText in (
+            '',
+            util.BLANK_DATE_TEXT,
+            util.BLANK_TIME_TEXT,
+        ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
     def mouseClickItem(self, item, buttons=Qt.LeftButton, pos=None):
         if pos is None:
@@ -446,11 +452,7 @@ class QmlWidgetHelper(QObjectHelper):
             if text == itemText:
                 currentIndex = i
                 break
-        if currentIndex is None:
-            raise RuntimeError(
-                'Could not find ComboBox item with text "%s" on `%s`'
-                % (itemText, objectName)
-            )
+        assert currentIndex is not None, f'Could not find ComboBox item with text "{itemText}" on "{objectName}", availabel values {itemTexts}'
         comboBox.setProperty("currentIndex", -1)
         comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()

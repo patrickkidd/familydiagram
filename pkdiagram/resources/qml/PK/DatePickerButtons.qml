@@ -137,9 +137,9 @@ Rectangle {
                 onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {
-                    if(blocked)
+                    if(root.blocked)
                         return
-                    blocked = true
+                    root.blocked = true
                     var newDateTime = undefined
                     if(text) {
                         var validated = validatedTextInputs(text, timeTextInput.text)
@@ -148,7 +148,7 @@ Rectangle {
                         }
                     }
                     root.dateTime = newDateTime
-                    blocked = false
+                    root.blocked = false
                 }
                 onFocusChanged: root.updateState()
                 MouseArea {
@@ -184,33 +184,32 @@ Rectangle {
                 horizontalAlignment: TextInput.AlignHCenter
                 enabled: isValid(root.dateTime)
                 color: (root.enabled && enabled) ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {
-                    if(blocked)
+                    if(root.blocked)
                         return
                     if(!isValid(root.dateTime) && (text == util.BLANK_TIME_TEXT || text == ''))
                         return // avoid binding loop with `enabled`
-                    blocked = true
-                    var newDateTime = undefined
                     if(text) {
-                        var validated = validatedTextInputs(dateTextInput.text, text)
-                        if(validated) {
-                            newDateTime = validated
+                        root.blocked = true
+                        var newDateTime = validatedTextInputs(dateTextInput.text, text)
+                        // print("newDateTime: " + newDateTime + ', ' + text)
+                        if(!newDateTime) {
+                            // just allow clearing the time section
+                            newDateTime = new Date(
+                                root.dateTime.getFullYear(),
+                                root.dateTime.getMonth(),
+                                root.dateTime.getDate(),
+                                0, 0, 0, 0
+                            )
                         }
+                        if(newDateTime.getTime() !== root.dateTime.getTime()) {
+                            // print('onChanged: root.dateTime (' + root.dateTime + ') = newDateTime (' + newDateTime + ')')
+                            root.dateTime = newDateTime
+                        }
+                        root.blocked = false
                     }
-                    if(newDateTime !== undefined) {
-                        // don't allow the time input to clear the date section
-                        root.dateTime = newDateTime
-                    } else if(root.dateTime) {
-                        // just allow clearing the time section
-                        root.dateTime = new Date(
-                            datePart.getFullYear(),
-                            datePart.getMonth(),
-                            datePart.getDate(),
-                            0, 0, 0, 0
-                        )
-                    }
-                    blocked = false
                 }
                 onFocusChanged: root.updateState()
                 MouseArea {

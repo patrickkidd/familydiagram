@@ -393,6 +393,12 @@ class Scene(QGraphicsScene, Item):
             self.addItem(item)
         self.setBatchAddingRemovingItems(False)
 
+    def remoteItems(self, *args):
+        self.setBatchAddingRemovingItems(True)
+        for item in args:
+            self.removeItem(item)
+        self.setBatchAddingRemovingItems(False)
+
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
 
