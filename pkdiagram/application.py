@@ -44,6 +44,10 @@ class Application(QApplication):
 
         if pepper.BUGSNAG_API_KEY:
 
+            import ssl  # fix SSL cert errors from bugsnag
+
+            ssl._create_default_https_context = ssl._create_unverified_context
+
             import bugsnag
             from bugsnag.handlers import BugsnagHandler
 
