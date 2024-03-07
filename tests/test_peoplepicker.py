@@ -25,12 +25,11 @@ def scene():
 
 @pytest.fixture
 def picker(scene, qtbot):
-
     dlg = PeoplePickerTest(scene._sceneModel)
     dlg.resize(600, 800)
     dlg.setRootProp("sceneModel", scene._sceneModel)
     dlg.show()
-    dlg.clear()
+    dlg.findItem("peoplePicker").clear()
     qtbot.addWidget(dlg)
     qtbot.waitActive(dlg)
     assert dlg.isVisible()

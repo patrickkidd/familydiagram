@@ -94,14 +94,19 @@ def test_set_time_retains_date(datePickerTest):
     assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"
 
 
-def test_clear_time_clears_dateTime(datePickerTest):
+# was: test_clear_time_clears_dateTime
+def test_clear_time_clears_only_time(datePickerTest):
     view = datePickerTest
     item = view.model.items[0]
     item.setDateTime(util.Date(2001, 2, 3, 4, 5, 6))
-    view.setItemProp("dateButtons.timeTextInput", "text", "")
-    assert item.dateTime() == None
+    view.keyClicksClear("dateButtons.timeTextInput")
+    # view.setItemProp("dateButtons.timeTextInput", "text", "")
+    assert item.dateTime().time().hour() == 0
+    assert item.dateTime().time().minute() == 0
+    assert item.dateTime().time().second() == 0
     assert view.itemProp("dateButtons.timeTextInput", "text") == util.BLANK_TIME_TEXT
-    assert view.itemProp("dateButtons.dateTextInput", "text") == util.BLANK_DATE_TEXT
+    assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"
+    # assert view.itemProp("dateButtons.dateTextInput", "text") == util.BLANK_DATE_TEXT
 
 
 def test_reset_prop_by_text_input(qtbot, datePickerTest):

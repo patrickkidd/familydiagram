@@ -14,8 +14,10 @@ PK.GroupBox {
     property var scenePeopleModel: ListModel {}
     property int currentIndex: -1
     property int count: list.count
-    property var listView: list // for tests
 
+    signal personAdded(string fullNameOrAlias, bool isNew)
+
+    property var listView: list // for tests
     // for testing since delegate creation is async
     signal itemAddDone(Item item);
 
@@ -41,6 +43,7 @@ PK.GroupBox {
         function updateFilter(filterText) {
             this.clear()
             if (sourceModel) {
+                // print(sourceModel.rowCount())
                 for (let i = 0; i < sourceModel.rowCount(); ++i) {
                     let index = sourceModel.index(i, 0);
                     let name = sourceModel.data(index);
@@ -58,8 +61,6 @@ PK.GroupBox {
         return list.contentItem.children[index]
     }
 
-    // property var listContentItem: list.contentItem
-
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -72,6 +73,8 @@ PK.GroupBox {
             contentWidth: width
             Layout.fillWidth: true
             Layout.fillHeight: true
+            property var currentPersonTextEdit: null;
+            signal currentTextChanged(string text)
 
             delegate: Rectangle {
 
@@ -83,7 +86,6 @@ PK.GroupBox {
 
                 width: parent ? parent.width : 0
                 height: util.QML_ITEM_HEIGHT
-                onHeightChanged: print('height: ' + height)
                 color: util.itemBgColor(selected, current, index % 2 == 1)
 
                 MouseArea {
@@ -102,11 +104,14 @@ PK.GroupBox {
                         id: textEdit
                         objectName: "textEdit"
                         color: util.textColor(selected, current)
-                        text: fullNameOrAlias + (isNew ? " (New)" : "")
+                        text: fullNameOrAlias // + (isNew ? " (New)" : "")
                         clip: true
                         width: contentWidth
                         Layout.leftMargin: util.QML_MARGINS
-                        onTextChanged: print(text)
+                        onTextChanged: {
+                            list.currentPersonTextEdit = textEdit
+                            list.currentTextChanged(text)
+                        }
                         onEditingFinished: {
                             print('fullNameOrAlias: ' + fullNameOrAlias + ', ' + text)
                             fullNameOrAlias = text
@@ -119,6 +124,8 @@ PK.GroupBox {
                             enabled: !textEdit.editMode
                             onClicked: onRowClicked(mouse, index)
                             onDoubleClicked: {
+                                    list.currentPersonTextEdit = textEdit
+                                    autoCompletePopup.open()
     //                            if(flags & Qt.ItemIsEditable) {
                                     textEdit.editMode = true
                                     textEdit.forceActiveFocus()
@@ -139,25 +146,51 @@ PK.GroupBox {
 
         Popup {
             id: autoCompletePopup
-            y: list.y + list.height
+            y: list.y + util.QML_ITEM_HEIGHT
             width: list.width
-            height: Math.min(autoCompleteModel.count * util.QML_ITEM_HEIGHT, 200)
+            height: popupListView.height
             padding: 0
             contentItem: ListView {
                 id: popupListView
-                implicitHeight: model ? (model.count * delegate.height) : 0
+                // implicitHeight: model ? (model.count * delegate.height) : 0
+                function updateHeight(){
+                    var totalHeight = 0;
+                    for (var i = 0; i < popupListView.contentItem.children.length; i++) {
+                        var item = popupListView.contentItem.children[i];
+                        if(item.isListItem) {
+                            // print('   ' + i + ': ' + item + ', ' + item.visible + ', ' + item.height + ', ' + item.objectName)
+                            if (item && item.visible) {
+                                totalHeight += item.height;
+                            }
+                        }
+                    }
+                    popupListView.height = totalHeight;
+                }
+                Connections {
+                    target: list
+                    function onCurrentTextChanged(text) {
+                        popupListView.updateHeight()
+                    }
+                }
                 model: autoCompleteModel
                 delegate: ItemDelegate {
                     text: name // modelData
                     width: autoCompletePopup.width
+                    height: (name.toLowerCase().indexOf(list.currentPersonTextEdit.text.toLowerCase()) !== -1) ? util.QML_ITEM_HEIGHT : 0
+                    visible: height > 0
                     palette.text: util.QML_TEXT_COLOR
                     background: Rectangle {
                         color: util.QML_ITEM_BG
                     }
+                    property var isListItem: true
                     onClicked: {
-                        root.model.append({"fullNameOrAlias": modelData, id: 123, "isNew": false});
+                        if(list.currentPersonTextEdit) {
+                            list.currentPersonTextEdit.text = modelData
+                            list.currentPersonTextEdit.focus = false
+                        }
+                        // root.model.append({"fullNameOrAlias": modelData, id: 123, "isNew": false});
                         autoCompletePopup.close();
-                        personAdded(names[0], names[1], false);
+                        root.personAdded(modelData, false);
                     }
                 }
             }
@@ -176,7 +209,7 @@ PK.GroupBox {
             bottomBorder: false
             width: parent.width
             addButton: true
-            onAdd: model.append({ fullNameOrAlias: '', id: -1, isNew: true })
+            onAdd: model.append({ fullNameOrAlias: '<full name>', id: -1, isNew: true })
             removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
             removeButton: true
             onRemove: model.remove(currentIndex)

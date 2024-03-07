@@ -26,11 +26,11 @@ Rectangle {
 
         PK.PeoplePicker {
             id: peoplePicker
+            objectName: "peoplePicker"
 
             Layout.fillWidth: true
             Layout.minimumHeight: 300
             Layout.maximumHeight: 300
-            color: 'red';
             // width: 400
             // height: 600
             onWidthChanged: print(root.width)
