@@ -1,6 +1,6 @@
 import pytest
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
-from pkdiagram import util, objects, EventKinds
+from pkdiagram import util, objects, EventKind
 from pkdiagram import Scene, Person, Marriage, Event, Emotion, TimelineModel
 
 
@@ -165,7 +165,9 @@ def test_include_marriage_events():
 
     # marriage events for one person
     separated = Event(
-        parent=marriage, uniqueId=EventKinds.Separated.value, dateTime=util.Date(2001, 1, 1)
+        parent=marriage,
+        uniqueId=EventKind.Separated.value,
+        dateTime=util.Date(2001, 1, 1),
     )
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
@@ -173,7 +175,7 @@ def test_include_marriage_events():
     # more marriage events for one person
     married = Event(
         parent=marriage,
-        uniqueId=EventKinds.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
     assert model.rowCount() == 2
@@ -275,7 +277,7 @@ def test_add_person_marriage():
 
     marriage = objects.Marriage(personA=personA, personB=personB)
     married = Event(
-        parent=marriage, date=util.Date(2001, 1, 1), uniqueId=EventKinds.Married.value
+        parent=marriage, date=util.Date(2001, 1, 1), uniqueId=EventKind.Married.value
     )
     scene.addItem(marriage)
 
@@ -711,7 +713,7 @@ def test_showAliases_signals():
     marriage = Marriage(personA=patrick, personB=bob)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 5),
     )
     scene.addItems(patrick, bob, distance, marriage)

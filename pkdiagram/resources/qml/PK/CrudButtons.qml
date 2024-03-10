@@ -45,6 +45,17 @@ PK.ToolBar {
     property bool exclusiveBoxEnabled: true
     property bool exclusiveChecked: false
     property bool doneButtonEnabled: true
+
+    property var addButtonToolTip: ''
+    property var addEventButtonToolTip: ''
+    property var addEmotionButtonToolTip: ''
+    property var removeButtonToolTip: ''
+    property var duplicateButtonToolTip: ''
+    property var inspectButtonToolTip: ''
+    property var filterButtonToolTip: ''
+    property var storePositionsBoxToolTip: ''
+    property var exclusiveBoxToolTip: ''
+    property var doneButtonToolTip: ''
     
     property int buttonHeight: util.QML_MICRO_BUTTON_WIDTH
     
@@ -59,6 +70,7 @@ PK.ToolBar {
             visible: addButton
             enabled: addButtonEnabled
             onClicked: root.add()
+            ToolTip.text: addButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
         }
@@ -68,6 +80,7 @@ PK.ToolBar {
             visible: addEventButton
             enabled: addEventButtonEnabled
             onClicked: root.addEvent()
+            ToolTip.text: addEventButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
         }
@@ -76,6 +89,7 @@ PK.ToolBar {
             source: '../../add-emotion-button.png'
             visible: addEmotionButton
             enabled: addEmotionButtonEnabled
+            ToolTip.text: addEmotionButtonToolTip
             onClicked: root.addEmotion()
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
@@ -85,6 +99,7 @@ PK.ToolBar {
             source: '../../details-button.png'
             visible: inspectButton
             enabled: inspectButtonEnabled
+            ToolTip.text: inspectButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
             onClicked: inspect()
@@ -94,6 +109,7 @@ PK.ToolBar {
             source: '../../duplicate-button.png'
             visible: duplicateButton
             enabled: duplicateButtonEnabled
+            ToolTip.text: duplicateButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
             onClicked: duplicate()
@@ -106,6 +122,7 @@ PK.ToolBar {
             visible: storePositionsBox
             enabled: storePositionsBoxEnabled
             checked: storePositions
+            ToolTip.text: storePositionsBoxToolTip
             onCheckedChanged: storePositions = checked
         }
         PK.CheckBox {
@@ -115,6 +132,7 @@ PK.ToolBar {
             visible: exclusiveBox
             enabled: exclusiveBoxEnabled
             checked: exclusiveChecked
+            ToolTip.text: exclusiveBoxToolTip
             onCheckedChanged: exclusiveChecked = checked
         }
         PK.Button {
@@ -122,6 +140,7 @@ PK.ToolBar {
             source: '../../search-button.png'
             visible: filterButton
             enabled: filterButtonEnabled
+            ToolTip.text: filterButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
             onClicked: filter()
@@ -131,6 +150,7 @@ PK.ToolBar {
             objectName: root.objectName + '_removeButton'
             visible: removeButton
             enabled: removeButtonEnabled
+            ToolTip.text: removeButtonToolTip
             Layout.maximumHeight: buttonHeight
             Layout.maximumWidth: buttonHeight
             onClicked: remove()
@@ -140,6 +160,7 @@ PK.ToolBar {
             text: 'Done'
             visible: doneButton
             enabled: doneButtonEnabled
+            ToolTip.text: doneButtonToolTip
             Layout.maximumHeight: buttonHeight
             onClicked: done()
         }

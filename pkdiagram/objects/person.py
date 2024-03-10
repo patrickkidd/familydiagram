@@ -1,7 +1,7 @@
 import os, shutil, random, logging, math
 from ..pyqt import *
 from .. import util, random_names
-from ..util import EventKinds
+from ..util import EventKind
 from . import Property
 from .pathitem import PathItem
 from .itemdetails import ItemDetails
@@ -248,9 +248,9 @@ class Person(PathItem):
         self._onShowAliases = False
         self._lastVariableLines = []
         self.variablesDatabase = VariablesDatabase()
-        self.birthEvent = Event(self, uniqueId=EventKinds.Birth.value)
-        self.deathEvent = Event(self, uniqueId=EventKinds.Death.value)
-        self.adoptedEvent = Event(self, uniqueId=EventKinds.Adopted.value)
+        self.birthEvent = Event(self, uniqueId=EventKind.Birth.value)
+        self.deathEvent = Event(self, uniqueId=EventKind.Death.value)
+        self.adoptedEvent = Event(self, uniqueId=EventKind.Adopted.value)
         self.snappedOther = (
             None  # person this item is snapped to; set on master person only
         )
@@ -378,9 +378,9 @@ class Person(PathItem):
         self.deathEvent.read(chunk.get("deathEvent", {}), byId)
         self.adoptedEvent.read(chunk.get("adoptedEvent", {}), byId)
         # re-set props in case they change in future versions
-        self.birthEvent.setUniqueId(EventKinds.Birth.value)
-        self.deathEvent.setUniqueId(EventKinds.Death.value)
-        self.adoptedEvent.setUniqueId(EventKinds.Adopted.value)
+        self.birthEvent.setUniqueId(EventKind.Birth.value)
+        self.deathEvent.setUniqueId(EventKind.Death.value)
+        self.adoptedEvent.setUniqueId(EventKind.Adopted.value)
         self.birthEvent.setDescription(util.BIRTH_TEXT)
         self.deathEvent.setDescription(util.DEATH_TEXT)
         self.adoptedEvent.setDescription(util.ADOPTED_TEXT)
@@ -448,6 +448,7 @@ class Person(PathItem):
         else:
             return self.name()
 
+    @pyqtSlot(result=str)
     def fullNameOrAlias(self):
         ret = ""
         if self.scene() and self.scene().hideNames():
@@ -887,9 +888,9 @@ class Person(PathItem):
     def _onAddEvent(self, x):
         """Called from Event.setParent."""
         if x.uniqueId() in (
-            EventKinds.Birth.value,
-            EventKinds.Adopted.value,
-            EventKinds.Death.value,
+            EventKind.Birth.value,
+            EventKind.Adopted.value,
+            EventKind.Death.value,
         ):  # called from Person()
             return
         if x not in self._events:

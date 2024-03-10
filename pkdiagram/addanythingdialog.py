@@ -4,7 +4,7 @@ from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal
 from . import objects, util, commands
 from .objects import Person, Emotion, Event
 from .qmldrawer import QmlDrawer
-from .util import EventKinds
+from .util import EventKind
 
 
 _log = logging.getLogger(__name__)
@@ -17,6 +17,18 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "clear"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
+            {"name": "setExistingPeopleA"},
+            {"name": "setExistingPeopleB"},
+            {
+                "name": "existingPeopleA",
+                "return": True,
+                "parser": lambda x: [x for x in x.toVariant()],
+            },
+            {
+                "name": "existingPeopleB",
+                "return": True,
+                "parser": lambda x: [x for x in x.toVariant()],
+            },
         ]
     )
 
@@ -118,7 +130,7 @@ class AddAnythingDialog(QmlDrawer):
                 id = item["id"]
                 people.append(self.scene.findById(id))
 
-        if kind == EventKinds.Birth.value:
+        if kind == EventKind.Birth.value:
             for person in people:
                 person.setBirthDateTime(startDateTime, undo=undo_id)
                 if location:
@@ -139,7 +151,7 @@ class AddAnythingDialog(QmlDrawer):
         symptom = self.rootProp("symptom")
 
         # Number of people for event type
-        if EventKinds.isMonadic(kind) and len(peopleInfos) != 1:
+        if not EventKind.isDyadic(kind) and len(peopleInfos) != 1:
             self.findItem("peopleHelpText").setProperty(
                 "text",
                 self.S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS.format(
@@ -147,7 +159,7 @@ class AddAnythingDialog(QmlDrawer):
                 ),
             )
 
-        if EventKinds.isDyadic(kind) and len(peopleInfos) != 2:
+        if EventKind.isDyadic(kind) and len(peopleInfos) != 2:
             QMessageBox.warning(self, "Dyadic event", self.S_EVENT_DYADIC)
 
         return False

@@ -416,7 +416,7 @@ def qApp():
     qApp.deinit()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def flask_qnam(flask_app, tmp_path):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 

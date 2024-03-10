@@ -2,7 +2,7 @@ import os, os.path, pickle, itertools
 import pytest
 import conftest
 from pkdiagram.pyqt import QDateTime, QPointF, QRectF
-from pkdiagram.util import EventKinds
+from pkdiagram.util import EventKind
 from pkdiagram import (
     util,
     commands,
@@ -569,7 +569,7 @@ def test_layered_properties():
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
@@ -656,7 +656,7 @@ def test_undo_add_remove_layered_item_props(qtbot):
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
@@ -778,7 +778,7 @@ def test_setPathItemVisible():
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, layer3, layer4, personA, personB, marriage)
@@ -849,7 +849,7 @@ def test_setPathItemVisible_2():
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, personA, personB, marriage)
@@ -1042,7 +1042,7 @@ PRISCILLA_SCENE = {
                 "id": 1525,
                 "dateTime": util.Date(2002, 11, 25),
                 "parentName": None,
-                "uniqueId": EventKinds.Death.value,
+                "uniqueId": EventKind.Death.value,
             },
             "deceased": True,
             "kind": "Person",

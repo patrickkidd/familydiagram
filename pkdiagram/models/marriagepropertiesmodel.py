@@ -1,6 +1,6 @@
 from ..pyqt import QObject, Qt, QDate, QDateTime, qmlRegisterType
 from .. import util, objects
-from ..util import EventKinds
+from ..util import EventKind
 from .modelhelper import ModelHelper
 
 
@@ -37,13 +37,13 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == EventKinds.Married.value:
+        if event.uniqueId() == EventKind.Married.value:
             self.refreshProperty("anyMarriedEvents")
             self.refreshProperty("everMarried")
-        elif event.uniqueId() == EventKinds.Separated.value:
+        elif event.uniqueId() == EventKind.Separated.value:
             self.refreshProperty("anySeparatedEvents")
             self.refreshProperty("everSeparated")
-        elif event.uniqueId() == EventKinds.Divorced.value:
+        elif event.uniqueId() == EventKind.Divorced.value:
             self.refreshProperty("everMarried")
             self.refreshProperty("everSeparated")
             self.refreshProperty("anyDivorcedEvents")
@@ -100,7 +100,7 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             self.refreshProperty("everMarried")
         elif attr == "separated":
             self.refreshProperty("everSeparated")
-        elif attr == EventKinds.Divorced.value:
+        elif attr == EventKind.Divorced.value:
             self.refreshProperty("everDivorced")
 
 

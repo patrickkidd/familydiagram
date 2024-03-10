@@ -1,7 +1,7 @@
 import pytest
 from pkdiagram import util, Event, Person
 from pkdiagram.pyqt import QDateTime
-from pkdiagram.util import EventKinds
+from pkdiagram.util import EventKind
 
 
 def test_init():
@@ -27,8 +27,8 @@ def test___lt__nowEvent():
 
 def __test___lt__():
     parent = Person()
-    birth = Event(uniqueId=EventKinds.Birth.value)
-    death = Event(uniqueId=EventKinds.Death.value)
+    birth = Event(uniqueId=EventKind.Birth.value)
+    death = Event(uniqueId=EventKind.Death.value)
     eventA = Event()
 
     birth.setParent(parent)

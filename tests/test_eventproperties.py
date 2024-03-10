@@ -3,7 +3,7 @@ from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram import (
     util,
     commands,
-    EventKinds,
+    EventKind,
     Person,
     Marriage,
     Event,
@@ -349,7 +349,7 @@ def test_set_uniqueId_with_description(qtbot, ep):
     qtbot.waitActive(ep)
 
     ep.clickComboBoxItem("uniqueIdBox", "Separated")
-    assert event.uniqueId() == EventKinds.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     # qtbot.clickYesAfter(lambda: ep.clickComboBoxItem('uniqueIdBox', 'Separated'))
 
@@ -359,12 +359,12 @@ def test_reset_description_on_reset_uniqueId(qtbot, ep):
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
         parent=marriage,
-        uniqueId=EventKinds.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     ep.eventModel.items = [married]
     qtbot.waitActive(ep)
-    assert married.uniqueId() == EventKinds.Married.value
+    assert married.uniqueId() == EventKind.Married.value
     assert married.description() == "Married"
     assert ep.itemProp("uniqueIdBox", "currentText") == "Married"
 
@@ -379,7 +379,7 @@ def test_uniqueId_undo_redo(qtbot, ep):
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
         parent=marriage,
-        uniqueId=EventKinds.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     ep.eventModel.items = [married]
@@ -390,7 +390,7 @@ def test_uniqueId_undo_redo(qtbot, ep):
     assert ep.itemProp("uniqueIdBox", "currentText") == ""
 
     commands.stack().undo()
-    assert married.uniqueId() == EventKinds.Married.value
+    assert married.uniqueId() == EventKind.Married.value
     assert married.description() == "Married"
     assert ep.itemProp("uniqueIdBox", "currentText") == "Married"
 
@@ -410,7 +410,7 @@ def test_uniqueId_undo_redo_custom_event(qtbot, ep):
     assert ep.itemProp("descriptionEdit", "text") == "Something"
 
     ep.clickComboBoxItem("uniqueIdBox", "Separated")
-    assert event.uniqueId() == EventKinds.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     assert ep.itemProp("descriptionEdit", "text") == "Separated"
 
@@ -422,6 +422,6 @@ def test_uniqueId_undo_redo_custom_event(qtbot, ep):
     assert ep.itemProp("descriptionEdit", "text") == "Something"
 
     commands.stack().redo()
-    assert event.uniqueId() == EventKinds.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     assert ep.itemProp("descriptionEdit", "text") == "Separated"

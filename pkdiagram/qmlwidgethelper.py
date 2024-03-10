@@ -148,15 +148,18 @@ class QmlWidgetHelper(QObjectHelper):
             return self._qmlItemCache[objectName]
         parts = objectName.split(".")
         item = self.qml.rootObject()
+        foundParts = []
         for partName in parts:
             _item = item.findChild(QObject, partName)
             if _item:
                 item = _item
-            # Not tested well enough
-            # else:
-            #     item = self.deepFind(item, partName)
-        if (not item or item.objectName() != parts[-1]) and not noerror:
-            raise RuntimeError("Could not find item: %s" % objectName)
+            else:
+                _item = item.property(partName)
+                if not _item and not noerror:
+                    raise RuntimeError(
+                        "Could not find item: %s" % ".".join(foundParts + [partName])
+                    )
+            foundParts.append(partName)
         self._qmlItemCache[objectName] = item
         return item
 
@@ -286,12 +289,30 @@ class QmlWidgetHelper(QObjectHelper):
         self.resetFocus(objectName)
         itemText = item.property("text")
         assert itemText in (
-            '',
+            "",
             util.BLANK_DATE_TEXT,
             util.BLANK_TIME_TEXT,
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
-    def mouseClickItem(self, item, buttons=Qt.LeftButton, pos=None):
+    def mouseClickItem(self, item, button=Qt.LeftButton, pos=None):
+        if pos is None:
+            rect = item.mapRectToScene(
+                QRectF(0, 0, item.width(), item.height())
+            ).toRect()
+            pos = rect.center()
+        if util.qtbot.DEBUG:
+            log.info(f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {button})')
+        util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
+
+    def mouseClick(self, objectName, button=Qt.LeftButton, pos=None):
+        if isinstance(objectName, str):
+            item = self.findItem(objectName)
+        else:
+            item = objectName
+        assert item.property("enabled") == True
+        self.mouseClickItem(item, button=button)
+
+    def mouseDClickItem(self, item, button=Qt.LeftButton, pos=None):
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.width(), item.height())
@@ -299,37 +320,17 @@ class QmlWidgetHelper(QObjectHelper):
             pos = rect.center()
         if util.qtbot.DEBUG:
             log.info(
-                f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {buttons})'
+                f'QmlWidgetHelper.mouseDClickItem("{item.objectName()}", {button})'
             )
-        util.qtbot.mouseClick(self.qml, buttons, Qt.NoModifier, pos)
+        util.qtbot.mouseDClick(self.qml, button, Qt.NoModifier, pos)
 
-    def mouseClick(self, objectName, buttons=Qt.LeftButton, pos=None):
+    def mouseDClick(self, objectName, button=Qt.LeftButton, pos=None):
         if isinstance(objectName, str):
             item = self.findItem(objectName)
         else:
             item = objectName
         assert item.property("enabled") == True
-        self.mouseClickItem(item)
-
-    def mouseDClickItem(self, item, buttons=Qt.LeftButton, pos=None):
-        if pos is None:
-            rect = item.mapRectToScene(
-                QRectF(0, 0, item.width(), item.height())
-            ).toRect()
-            pos = rect.center()
-        if util.qtbot.DEBUG:
-            log.info(
-                f'QmlWidgetHelper.mouseDClickItem("{item.objectName()}", {buttons})'
-            )
-        util.qtbot.mouseDClick(self.qml, buttons, Qt.NoModifier, pos)
-
-    def mouseDClick(self, objectName, buttons=Qt.LeftButton, pos=None):
-        if isinstance(objectName, str):
-            item = self.findItem(objectName)
-        else:
-            item = objectName
-        assert item.property("enabled") == True
-        self.mouseClickItem(item)
+        self.mouseDClickItem(item, button=button)
 
     def clickTabBarButton(self, objectName, iTab):
         item = self.findItem(objectName)
@@ -452,7 +453,11 @@ class QmlWidgetHelper(QObjectHelper):
             if text == itemText:
                 currentIndex = i
                 break
-        assert currentIndex is not None, f'Could not find ComboBox item with text "{itemText}" on "{objectName}", availabel values {itemTexts}'
+        assert (
+            currentIndex is not None
+        ), f'Could not find ComboBox item with text "{itemText}" on "{objectName}", available values {itemTexts}'
+        if self.DEBUG:
+            log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
         comboBox.setProperty("currentIndex", -1)
         comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()

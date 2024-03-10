@@ -1,8 +1,12 @@
+import logging
 import math
 from ..pyqt import *
 from .. import util
 from .item import Item
 from .itemanimationhelper import ItemAnimationHelper
+
+
+_log = logging.getLogger(__name__)
 
 
 class NotesIcon(QGraphicsPixmapItem):
@@ -195,6 +199,15 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     @pyqtSlot(result=str)
     def itemName(self):
         return super().itemName()
+
+    @pyqtSlot(str, result=QVariant)
+    def itemProp(self, attr):
+        _log.info(f"attr: {self.prop(attr)}")
+        return self.prop(attr).get()
+
+    @pyqtSlot(result=int)
+    def itemId(self):
+        return self.id
 
     def layeredSceneBoundingRect(self, forLayers, forTags):
         ret = super().sceneBoundingRect()

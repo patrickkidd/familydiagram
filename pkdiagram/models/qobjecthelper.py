@@ -21,6 +21,7 @@ class QObjectHelper:
     """Add QObject properties via python dict."""
 
     PRINT_EMITS = False
+    DEBUG = True
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
         """
@@ -142,7 +143,7 @@ class QObjectHelper:
                     try:
                         if entry.get("return"):
                             if qargs:
-                                return QMetaObject.invokeMethod(
+                                ret = QMetaObject.invokeMethod(
                                     qobject,
                                     name,
                                     Qt.DirectConnection,
@@ -150,12 +151,16 @@ class QObjectHelper:
                                     *qargs,
                                 )
                             else:
-                                return QMetaObject.invokeMethod(
+                                ret = QMetaObject.invokeMethod(
                                     qobject,
                                     name,
                                     Qt.DirectConnection,
                                     Q_RETURN_ARG(QVariant),
                                 )
+                            if entry.get("parser"):
+                                return entry.get("parser")(ret)
+                            else:
+                                ret
                         else:
                             if qargs:
                                 return QMetaObject.invokeMethod(

@@ -112,6 +112,9 @@ else:  # IS_DEV
     else:
         SERVER_URL_ROOT = "http://127.0.0.1:8888"
 
+
+SERVER_URL_ROOT = "https://database.familydiagram.com"
+
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
 
@@ -394,7 +397,7 @@ S_PERSON_NOT_FOUND = LONG_TEXT(
 )
 
 
-class EventKinds(enum.Enum):
+class EventKind(enum.Enum):
 
     # Person
     Birth = "birth"
@@ -417,13 +420,14 @@ class EventKinds(enum.Enum):
     Away = "away"
     Inside = "inside"
     Outside = "outside"
+    Cutoff = "cutoff"
 
     # Custom
     Custom = "custom"
 
     @classmethod
     def isMonadic(cls, x):
-        return x in (cls.Birth, cls.Adopted, cls.Death)
+        return x in (cls.Birth, cls.Adopted, cls.Death, cls.Cutoff, cls.Custom)
 
     @classmethod
     def isPairBond(cls, x):
@@ -432,6 +436,7 @@ class EventKinds(enum.Enum):
     @classmethod
     def isEmotion(cls, x):
         return x in (
+            cls.Cutoff,
             cls.Conflict,
             cls.Distance,
             cls.Projection,
@@ -445,10 +450,63 @@ class EventKinds(enum.Enum):
 
     @classmethod
     def isDyadic(cls, x):
-        return cls.isPairBond(x) or cls.isEmotion(x)
+        """
+        Requires a mover and receiver
+        """
+        return cls.isPairBond(x) or x in [
+            cls.Conflict,
+            cls.Distance,
+            cls.Projection,
+            cls.Reciprocity,
+            cls.DefinedSelf,
+            cls.Toward,
+            cls.Away,
+            cls.Inside,
+            cls.Outside,
+        ]
+
+    @classmethod
+    def labelFor(cls, x):
+        if cls.isMonadic(x):
+            return f"Individual - {x.name}"
+        elif cls.isDyadic(x):
+            return f"Dyad - {x.name}"
+        elif cls.isPairBond(x):
+            return f"Pair Bond - {x.name}"
+        elif x == EventKind.Custom:
+            return f"Custom"
+        else:
+            raise KeyError(f"Unknown event kind: {x}")
+
+    @classmethod
+    def menuLabels(cls):
+        return [EventKind.labelFor(EventKind(x)) for x in cls.menuValues()]
+
+    @classmethod
+    def menuValues(cls):
+        return [
+            cls.Birth.value,
+            cls.Adopted.value,
+            cls.Death.value,
+            cls.Cutoff.value,
+            cls.Bonded.value,
+            cls.Married.value,
+            cls.Separated.value,
+            cls.Divorced.value,
+            cls.Conflict.value,
+            cls.Distance.value,
+            cls.Projection.value,
+            cls.Reciprocity.value,
+            cls.DefinedSelf.value,
+            cls.Toward.value,
+            cls.Away.value,
+            cls.Inside.value,
+            cls.Outside.value,
+            cls.Custom.value,
+        ]
 
 
-EVENT_KIND_NAMES = [x.name for x in EventKinds]
+EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None
@@ -1686,6 +1744,12 @@ def qenum(base, value):
 
 
 import pickle
+
+
+def invoke(qobject: QObject, name: str, *args, returns=False):
+    _args = (Q_RETURN_ARG(QVariant), *args) if returns else args
+    ret = QMetaObject.invokeMethod(qobject, name, Qt.DirectConnection, *_args)
+    return ret.toVariant()
 
 
 def touchFD(filePath, bdata=None):

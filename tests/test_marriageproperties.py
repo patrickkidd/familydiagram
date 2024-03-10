@@ -2,7 +2,7 @@ import pytest
 import conftest
 from test_marriage import noEvents
 from pkdiagram.pyqt import Qt, QDate, QApplication, QDateTime
-from pkdiagram import util, EventKinds, Person, Marriage, Event, Scene
+from pkdiagram import util, EventKind, Person, Marriage, Event, Scene
 from pkdiagram.qmldrawer import QmlDrawer
 
 
@@ -105,7 +105,7 @@ def test_divorced_disabled_when_divorce_events(noEvents, mp):
 
     Event(
         parent=marriage,
-        uniqueId=EventKinds.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(2000, 1, 1),
     )
     assert mp.itemProp("marriedBox", "enabled") == False
@@ -117,7 +117,7 @@ def test_married_becomes_enabled_after_delete_married_event(noEvents, mp):
     marriage = noEvents
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKinds.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
     mp.rootProp("marriageModel").items = [marriage]
@@ -177,7 +177,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == EventKinds.Separated.value
+        == EventKind.Separated.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.DashLine
@@ -189,7 +189,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == EventKinds.Divorced.value
+        == EventKind.Divorced.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine
@@ -201,7 +201,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == EventKinds.Separated.value
+        == EventKind.Separated.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine

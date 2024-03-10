@@ -236,6 +236,10 @@ class SceneModel(QObject, ModelHelper):
         if id is not None:
             self.flashItems.emit([id])
 
+    @pyqtSlot(int, result=QObject)
+    def item(self, id):
+        return self.scene.findById(id)
+
 
 def __test__(scene, parent):
     pass  # set in global

@@ -1,7 +1,17 @@
 import pytest
 
 from pkdiagram.pyqt import QPointF, QDateTime
-from pkdiagram import util, EventKinds, Scene, Person, Marriage, MultipleBirth, Layer, Person, Event
+from pkdiagram import (
+    util,
+    EventKind,
+    Scene,
+    Person,
+    Marriage,
+    MultipleBirth,
+    Layer,
+    Person,
+    Event,
+)
 
 
 def test_init():
@@ -260,7 +270,11 @@ def test_new_event_adds_variable_values():
 KINDS = ["male", "female"]
 BUILTIN_VARS = {
     "anxiety": (util.VAR_ANXIETY_DOWN, util.VAR_ANXIETY_SAME, util.VAR_ANXIETY_UP),
-    "functioning": (util.VAR_FUNCTIONING_DOWN, util.VAR_FUNCTIONING_SAME, util.VAR_FUNCTIONING_UP),
+    "functioning": (
+        util.VAR_FUNCTIONING_DOWN,
+        util.VAR_FUNCTIONING_SAME,
+        util.VAR_FUNCTIONING_UP,
+    ),
     "symptom": (util.VAR_SYMPTOM_DOWN, util.VAR_SYMPTOM_SAME, util.VAR_SYMPTOM_UP),
 }
 

@@ -8,7 +8,7 @@ from . import pepper
 PEPPER = pepper.PEPPER
 
 from . import version, util, pepper
-from .util import CUtil, EventKinds
+from .util import CUtil, EventKind
 
 
 if (

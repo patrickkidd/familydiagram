@@ -7,7 +7,7 @@
 import pickle, json, datetime, time, logging
 from .pyqt import *
 from . import util
-from .util import CUtil
+from .util import CUtil, EventKind
 from .models import QObjectHelper
 from .server_types import User, Server, HTTPError
 from .session import Session
@@ -116,7 +116,7 @@ class QmlUtil(QObject, QObjectHelper):
             }
             for attr in CONSTANTS
         ]
-        + [{"attr": "EventKinds", "type": "QVariant"}],
+        + [{"attr": "EventKind", "type": "QVariant"}],
         globalContext=util.__dict__,
     )
 
@@ -230,8 +230,8 @@ class QmlUtil(QObject, QObjectHelper):
         self.refreshAllProperties()
 
     def get(self, attr):
-        if attr == "EventKinds":
-            return {k.name: k.value for k in util.EventKinds}
+        if attr == "EventKind":
+            return {k.name: k.value for k in util.EventKind}
         else:
             return super().get(attr)
 
@@ -435,3 +435,29 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(result=float)
     def time(self):
         return time.time()
+
+    @pyqtSlot(str, result=bool)
+    def isDyadicEventType(self, x):
+        if x == "":
+            return False
+        return EventKind.isDyadic(EventKind(x))
+
+    @pyqtSlot(str, result=bool)
+    def isPairBondEventType(self, x):
+        if x == "":
+            return False
+        return EventKind.isPairBond(EventKind(x))
+
+    @pyqtSlot(str, result=bool)
+    def isEmotionEventType(self, x):
+        if x == "":
+            return False
+        return EventKind.isEmotion(EventKind(x))
+
+    @pyqtSlot(result=list)
+    def eventKindLabels(self):
+        return [EventKind.labelFor(EventKind(x)) for x in self.eventKindValues()]
+
+    @pyqtSlot(result=list)
+    def eventKindValues(self):
+        return EventKind.menuValues()

@@ -17,6 +17,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
 
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
+    PersonIdRole = NameRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -156,7 +157,11 @@ class PeopleModel(QAbstractListModel, ModelHelper):
     ## Qt Virtuals
 
     def roleNames(self):
-        return {self.IdRole: b"id", self.NameRole: b"name"}
+        return {
+            self.IdRole: b"id",
+            self.NameRole: b"name",
+            self.PersonIdRole: b"personId",
+        }
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._sortedNames)
@@ -169,6 +174,8 @@ class PeopleModel(QAbstractListModel, ModelHelper):
         if role in (Qt.DisplayRole, self.NameRole):
             ret = self._sortedNames[index.row()]
         elif role == self.IdRole:
+            ret = self._sortedIds[index.row()]
+        elif role == self.PersonIdRole:
             ret = self._sortedIds[index.row()]
         return ret
 
