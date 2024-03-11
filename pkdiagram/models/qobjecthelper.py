@@ -160,7 +160,7 @@ class QObjectHelper:
                             if entry.get("parser"):
                                 return entry.get("parser")(ret)
                             else:
-                                ret
+                                return ret
                         else:
                             if qargs:
                                 return QMetaObject.invokeMethod(

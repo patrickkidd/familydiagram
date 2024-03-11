@@ -155,7 +155,7 @@ def flask_app(tmp_path):
 
 
 @pytest.fixture
-def test_user():
+def test_user(flask_qnam):
     args = {
         "username": "patrickkidd+unittest@gmail.com",
         "password": "something",
@@ -178,7 +178,7 @@ def test_user():
 
 
 @pytest.fixture
-def test_user_2():
+def test_user_2(flask_qnam):
     args = {
         "username": "patrickkidd+unittest+2@gmail.com",
         "password": "something else",
@@ -199,7 +199,7 @@ def test_user_2():
 
 
 @pytest.fixture
-def test_policy():
+def test_policy(flask_qnam):
     policy = Policy(
         code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
         product=vedana.LICENSE_PROFESSIONAL,
@@ -241,7 +241,7 @@ def test_activation(test_license, test_machine):
 
 
 @pytest.fixture
-def test_client_policy():
+def test_client_policy(flask_qnam):
     policy = Policy(
         code=vedana.LICENSE_CLIENT_ONCE,
         product=vedana.LICENSE_CLIENT,
@@ -291,7 +291,7 @@ def test_session(test_user):
 
 # TODO: Should go away, but used in a lot of tests.
 @pytest.fixture
-def test_user_client(flask_app, test_user):
+def test_user_client(flask_qnam, test_user):
     """A logged in client that is also encrypted."""
     from flaskr import customclient
 
@@ -442,7 +442,7 @@ def flask_qnam(flask_app, tmp_path):
 
 
 @pytest.fixture
-def server_down(flask_app):
+def server_down(flask_app, flask_qnam):
     """
     Can be called repeatedly to turn the server on/off.
     - Just sets up a stack for reversion.
@@ -475,7 +475,7 @@ from pytestqt.qtbot import QtBot
 
 class PKQtBot(QtBot):
 
-    DEBUG = True
+    DEBUG = False
 
     def waitActive(self, w, timeout=1000):
         w.activateWindow()
@@ -867,7 +867,7 @@ def assertPersonProperties(person, props):
 
 
 @pytest.fixture
-def create_ac_mw(request, qtbot, tmp_path):
+def create_ac_mw(request, qtbot, tmp_path, flask_qnam):
     """
     Create an AppController and MainWindow.
     - Can be called as many times as needed to simulate starting the app again with shared prefs file.

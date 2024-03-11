@@ -11,7 +11,7 @@ from fdserver.models import Diagram, AccessRight
 
 
 @pytest.fixture
-def model(test_session, test_user, test_user_2):
+def model(flask_qnam, test_session, test_user, test_user_2):
     _model = AccessRightsModel()
     _model.scene = Scene()
     session = Session()

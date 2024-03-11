@@ -24,7 +24,7 @@ from fdserver.models import License, User, Policy
 
 
 @pytest.fixture
-def create_dlg(qtbot, request):
+def create_dlg(qtbot, flask_qnam, request):
 
     created = []
 
