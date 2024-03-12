@@ -470,9 +470,17 @@ class Person(PathItem):
                 ret += "(%s)" % self.nickName()
         return ret
 
+    @pyqtSlot(result=str)
+    def listLabel(self):
+        if not self.birthDateTime():
+            return f"{self.fullNameOrAlias()} b. {self.birthDateTime(string=True)}"
+        else:
+            return self.fullNameOrAlias()
+
     def itemName(self):
         return self.fullNameOrAlias()
 
+    @pyqtSlot(result=QDateTime)
     def birthDateTime(self, string=False):
         if string:
             return util.dateString(self.birthEvent.dateTime())

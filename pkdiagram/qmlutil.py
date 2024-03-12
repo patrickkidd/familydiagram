@@ -456,8 +456,18 @@ class QmlUtil(QObject, QObjectHelper):
 
     @pyqtSlot(result=list)
     def eventKindLabels(self):
-        return [EventKind.labelFor(EventKind(x)) for x in self.eventKindValues()]
+        return [EventKind.menuLabelFor(EventKind(x)) for x in self.eventKindValues()]
 
     @pyqtSlot(result=list)
     def eventKindValues(self):
         return EventKind.menuValues()
+
+    @pyqtSlot(str, result=str)
+    def eventPersonALabel(self, kind: str):
+        if kind:
+            return EventKind.personALabel(EventKind(kind))
+
+    @pyqtSlot(str, result=str)
+    def eventPersonBLabel(self, kind: str):
+        if kind:
+            return EventKind.personBLabel(EventKind(kind))

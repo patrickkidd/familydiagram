@@ -114,6 +114,20 @@ class QmlWidgetHelper(QObjectHelper):
                 self._qmlItemCache[child.objectName()] = child
         if self.sceneModel:
             self.qml.rootObject().setProperty("sceneModel", self.sceneModel)
+            # capture changes in sceneModel attrs, e.g. sceneModel.peopleModel
+
+            def makeOnPropChanged(attr):
+                def _onPropChanged():
+                    value = getattr(self.sceneModel, attr)
+                    self.qml.rootObject().setProperty(attr, value)
+
+                return _onPropChanged
+
+            for attr in ["timelineModel", "peopleModel", "searchModel"]:
+                _set = makeOnPropChanged(attr)
+                getattr(self.sceneModel, f"{attr}Changed").connect(_set)
+                _set()
+
         if self.session:
             self.qml.rootObject().setProperty("session", self.session)
         self.onInitQml()
@@ -377,7 +391,7 @@ class QmlWidgetHelper(QObjectHelper):
                 break
         assert (
             text == rowText
-        ), f"ListView row with text '{rowText}' not found (rows: {textRows}"  # cell found
+        ), f"ListView row with text '{rowText}' not found rows: {textRows}"  # cell found
         assert self.itemProp(objectName, "enabled") == True
         # calc visual rect
         x = 0
@@ -390,6 +404,8 @@ class QmlWidgetHelper(QObjectHelper):
         # ensureVisible(row)
         prevCurrentIndex = item.property("currentIndex")
         rect = item.mapRectToScene(QRectF(x, y, w, h))
+        if self.DEBUG:
+            log.info(f"Clicking ListView item: '{rowText}' (index: {row})")
         self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
 
     def clickTimelineViewItem(
@@ -441,6 +457,8 @@ class QmlWidgetHelper(QObjectHelper):
         if isinstance(model, list):
             itemTexts = model
         elif isinstance(model, QAbstractItemModel):
+            if not comboBox.property("textRole"):
+                raise TypeError(f"Expected a Qml ComboBox, got {comboBox.objectName()}")
             textRole = comboBox.property("textRole").encode("utf-8")
             for role, roleName in model.roleNames().items():
                 if textRole == roleName:

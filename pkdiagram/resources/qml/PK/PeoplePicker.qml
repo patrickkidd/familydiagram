@@ -18,18 +18,17 @@ PK.GroupBox {
 
     property var _existingPeople: []
 
-    signal personAdded(string fullNameOrAlias, var personId)
-
     property var listView: list // for tests
     // for testing since delegate creation is async
     signal itemAddDone(Item item);
 
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
-            currentIndex = -1
+            root.currentIndex = -1
         } else {
-            currentIndex = row
+            root.currentIndex = row
         }
+        print('onRowClicked, root.currentIndex:' + root.currentIndex)
     }
 
     function clear() {
@@ -40,25 +39,29 @@ PK.GroupBox {
         root._existingPeople = people
         for(var i = 0; i < people.length; i++) {
             var person = people[i];
-            model.append({ fullNameOrAlias: person.fullNameOrAlias(), personId: person.itemId() })
+            model.append({ personName: person.listLabel(), person: person, isNewPerson: false})
         }
     }
     function existingPeople() {
         var people = []
         for(var i = 0; i < root.model.count; i++) {
             var personEntry = root.model.get(i)
-            var person = sceneModel.item(personEntry.personId)
+            var person = sceneModel.item(personEntry.person.itemId())
             people.push(person)
         }
         return people
     }
 
-    function test_listView_items() {
-        var ret = []
-        for(var i = 0; i < list.contentItem.children.length; i++) {
-            ret.push({ fullNameOrAlias: list.contentItem.children[i].textEdit.text, personId: list.contentItem.children[i].personId })
+    function alreadyInList(person) {
+        if(person) {
+            for(var i = 0; i < root.model.count; i++) {
+                var personEntry = root.model.get(i)
+                if(!personEntry.isNewPerson && personEntry.person.itemId() === person.itemId()) {
+                    return true
+                }
+            }
         }
-        return ret
+        return false
     }
 
     ColumnLayout {
@@ -73,20 +76,15 @@ PK.GroupBox {
             contentWidth: width
             Layout.fillWidth: true
             Layout.fillHeight: true
-            property var currentPersonTextEdit: null
-            property var currentPersonItem: null
             signal currentTextChanged(string text)
 
             delegate: Rectangle {
 
                 id: dRoot
 
-                // for testing since delegate creation is async
-                Component.onCompleted: { root.itemAddDone(this) }
-
-                property bool selected: index == currentIndex
+                property bool selected: index == root.currentIndex
                 property bool current: false
-            
+
                 width: parent ? parent.width : 0
                 height: util.QML_ITEM_HEIGHT
                 color: util.itemBgColor(selected, current, index % 2 == 1)
@@ -95,16 +93,22 @@ PK.GroupBox {
                     anchors.fill: parent
                     onClicked: onRowClicked(mouse, index)
                     onDoubleClicked: {
-                        if(personId == -1 && !textEdit.editMode) {
-                            list.currentPersonTextEdit = textEdit
-                            list.currentPersonItem = dRoot
+                        if(isNewPerson && !textEdit.visible) {
+                            print('Opening for onDoubleClicked: ' + textEdit.text)
                             autoCompletePopup.open()
-                            textEdit.editMode = true
                             textEdit.forceActiveFocus()
                             textEdit.selectAll()
                         }
                     }
+                }
 
+                Component.onCompleted: {
+                    if (isNewPerson) { // index === root.model.count - 1) {
+                        textEdit.forceActiveFocus()
+                        print('Component.onCompleted[isNewPerson]: ' + index + ', ' + root.model.count + ', focus: ' + textEdit.focus)                        
+                    }
+                    // for testing since delegate creation is async
+                    root.itemAddDone(this)
                 }
 
                 RowLayout {
@@ -113,44 +117,77 @@ PK.GroupBox {
                     anchors.fill: parent
                     spacing: 0
                     PK.Text {
-                        text: fullNameOrAlias
-                        visible: personId != -1
+                        text: personName
+                        visible: ! isNewPerson
                         Layout.leftMargin: util.QML_MARGINS
                     }
                     PK.TextInput {
-                        property bool editMode: false
-                        
                         id: textEdit
                         objectName: "textEdit"
                         color: util.textColor(selected, current)
-                        text: fullNameOrAlias
+                        text: model.person ? person.listLabel() : personName
                         clip: true
                         width: contentWidth
-                        visible: personId == -1
-                        selectByMouse: false
+                        visible: isNewPerson
+                        // selectByMouse: false
+                        activeFocusOnPress: true
                         Layout.leftMargin: util.QML_MARGINS
+                        Layout.minimumWidth: 40
                         onTextChanged: {
-                            list.currentPersonTextEdit = textEdit
+                            // list.currentPersonTextEdit = textEdit
+                            print('onTextChanged: ' + text)
+                            autoCompletePopup.matchText = text
                             list.currentTextChanged(text)
                             if(text == '') {
                                 autoCompletePopup.close()
-                            } else {
-                                autoCompletePopup.open()
+                            } else if(visible) {
+                                // print('onTextChanged - filtering: ' + text + ', ' + scenePeopleModel.rowCount())
+                                var total = 0
+                                for(var i=0; i < scenePeopleModel.rowCount(); i++) {
+                                    var person = scenePeopleModel.personForRow(i)
+                                    var personName = person.fullNameOrAlias()
+                                    // print(
+                                    //     '    ' + i + ', ' + personName + 
+                                    //     ', ' + personName.toLowerCase().indexOf(text.toLowerCase())
+                                    // )
+                                    if(personName.toLowerCase().indexOf(text.toLowerCase()) !== -1 && !root.alreadyInList(person)) {
+                                        total += 1
+                                    }
+                                }
+                                if(total > 0) {
+                                    popupListView.height = total * util.QML_ITEM_HEIGHT
+                                    autoCompletePopup.open()
+                                } else {
+                                    autoCompletePopup.close()
+                                }
                             }
                         }
                         onEditingFinished: {
-                            print('fullNameOrAlias: ' + fullNameOrAlias + ', ' + text)
-                            fullNameOrAlias = text
-                            editMode = false
+                            personName = text
                             focus = false
                         }
-                        onEditModeChanged: print('editModeChanged: ' + editMode)
                     }
                     Rectangle { // spacer
                         height: 1
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
                         color: 'transparent'
+                    }
+                }
+
+                // add a transparent png with the path "resource/checkbox-check.png"
+                // to the project to use the following image
+                PK.Image {
+                    id: checkImage
+                    source: "../checkbox-check.png"
+                    width: 15
+                    height: 15
+                    invert: util.IS_UI_DARK_MODE
+                    visible: ! isNewBox.visible 
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: 25
                     }
                 }
 
@@ -164,7 +201,7 @@ PK.GroupBox {
                     border.width: 1
                     radius: 3
                     opacity: 0.5
-                    visible: personId == -1 && ! textEdit.editMode
+                    visible: isNewPerson && textEdit.visible
                     Text {
                         id: newText
                         text: "new"
@@ -183,52 +220,36 @@ PK.GroupBox {
 
         Popup {
             id: autoCompletePopup
-            y: list.y + util.QML_ITEM_HEIGHT
-            width: list.width
+            x: list.x - 10
+            y: list.y + (util.QML_ITEM_HEIGHT * list.model.count)
+            width: list.width + 20
             height: popupListView.height
             padding: 0
+            property var matchText: ''
             contentItem: ListView {
                 id: popupListView
-                // implicitHeight: model ? (model.count * delegate.height) : 0
-                function updateHeight(){
-                    var totalHeight = 0;
-                    for (var i = 0; i < popupListView.contentItem.children.length; i++) {
-                        var item = popupListView.contentItem.children[i];
-                        if(item.isListItem) {
-                            if (item && item.visible) {
-                                totalHeight += item.height;
-                            }
-                        }
-                    }
-                    popupListView.height = totalHeight;
-                }
-                Connections {
-                    target: list
-                    function onCurrentTextChanged(text) {
-                        popupListView.updateHeight()
-                    }
-                }
+                objectName: "popupListView"
                 model: scenePeopleModel
                 delegate: ItemDelegate {
-                    text: name // modelData
+                    id: dRoot
+                    text: fullNameOrAlias // modelData
                     width: autoCompletePopup.width
-                    height: (name.toLowerCase().indexOf(currentPersonText.toLowerCase()) !== -1) ? util.QML_ITEM_HEIGHT : 0
-                    visible: height > 0
+                    property var person: scenePeopleModel.personForRow(index)
+                    property var matchesTypedPersonName: person && person.fullNameOrAlias().toLowerCase().indexOf(autoCompletePopup.matchText.toLowerCase()) !== -1
+                    property var alreadyInList: root.alreadyInList(person)
+                    height: visible ? util.QML_ITEM_HEIGHT : 0
+                    visible: matchesTypedPersonName && ! alreadyInList
                     palette.text: util.QML_TEXT_COLOR
                     background: Rectangle {
                         color: util.QML_ITEM_BG
                     }
                     property var isListItem: true
-                    property var currentPersonText: list.currentPersonTextEdit ? list.currentPersonTextEdit.text : ''
                     onClicked: {
-                        if(list.currentPersonTextEdit) {
-                            list.currentPersonTextEdit.text = name
-                            list.currentPersonTextEdit.focus = false
-                        }
-                        print("list.model.set(list.currentIndex, {'fullNameOrAlias': " + name + ", personId: " + personId + "})")
-                        list.model.set(list.currentIndex, {"fullNameOrAlias": name, personId: personId});
+                        root.forceActiveFocus()
+                        var person = scenePeopleModel.personForRow(index)
+                        // print("list.model.set(" + root.currentIndex + ", {'personName': " + name + ", person: " + person + "})")
+                        list.model.set(root.currentIndex, {personName: person.fullNameOrAlias(), person: person, isNewPerson: false });
                         autoCompletePopup.close();
-                        root.personAdded(name, personId);
                     }
                 }
             }
@@ -247,12 +268,15 @@ PK.GroupBox {
             bottomBorder: false
             width: parent.width
             addButton: true
-            onAdd: model.append({ fullNameOrAlias: '<full name>', personId: -1 })
+            onAdd: {
+                root.model.append({ personName: '', isNewPerson: true })
+                root.currentIndex = root.model.count - 1
+            }
             addButtonToolTip: 'Add a new person'
-            removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
+            removeButtonEnabled: list.count > 0 && root.currentIndex >= 0
             removeButton: true
             removeButtonToolTip: 'Remove the selected person from this event'
-            onRemove: model.remove(currentIndex)
+            onRemove: model.remove(root.currentIndex)
         }
     }
 }

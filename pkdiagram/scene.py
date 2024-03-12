@@ -1187,6 +1187,8 @@ class Scene(QGraphicsScene, Item):
                     pointB=e.scenePos(),
                     hoverPerson=hoverMe,
                 )
+            else:
+                raise KeyError(f"Unknown item mode: {self.itemMode()}")
             scale = self.newPersonScale()
             self.dragCreateItem.setScale(scale)
             path = self.dragCreateItem.mapFromScene(path)
@@ -1454,10 +1456,10 @@ class Scene(QGraphicsScene, Item):
         else:
             return ret
 
-    def findById(self, id):
+    def findById(self, id: int):
         if id is not None:
             return self.find(id=id)
-
+        
     def itemsWithTags(self, tags=[], kind=Item):
         ret = []
         for id, item in self.itemRegistry.items():

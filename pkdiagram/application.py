@@ -12,6 +12,7 @@ from .pyqt import (
     QDateTime,
     QFontDatabase,
     QEvent,
+    QtMsgType,
 )
 from .qmlengine import QmlEngine
 
@@ -145,6 +146,9 @@ class Application(QApplication):
             for line in lines:
                 log.error(line[:-1])
 
+            if "pytest" in sys.modules:
+                sys.modules["pytest"].fail(str(value), pytrace=False)
+
             # bugsnag
             if "bugsnag" in sys.modules:
                 bugsnag.legacy.default_client.notify_exc_info(etype, value, tb)
@@ -183,7 +187,12 @@ class Application(QApplication):
             localDocsPath = util.prefs().value("localDocsPath", type=str)
             CUtil.instance().forceDocsPath(localDocsPath)
 
+        # def _onQmlWarning(warnings):
+        #     for warning in warnings:
+        #         log.warning(warning.toString())
+
         self._qmlEngine = QmlEngine(self)
+        # self._qmlEngine.warnings.connect(_onQmlWarning)
 
         # self.paletteChanged.connect(self.onPaletteChanged)
 

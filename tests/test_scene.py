@@ -1069,3 +1069,36 @@ def test_parentName_not_None():
 
     display = index.data()
     assert display
+
+
+from pkdiagram.pyqt import QMouseEvent, QEvent, Qt, QGraphicsView, QApplication
+
+
+class View(QGraphicsView):
+    def getVisibleSceneScaleRatio(self):
+        return 1.0
+
+
+def test_drag_create_emotion(qtbot):
+    scene = Scene()
+    view = View()
+    view.resize(600, 800)
+    view.show()
+    view.setScene(scene)
+    personA, personB = Person(name="A", pos=QPointF(50, 50)), Person(
+        name="B", pos=QPointF(-50, 50)
+    )
+    scene.addItems(personA, personB)
+    scene.setItemMode(util.ITEM_CONFLICT)
+    qtbot.mousePress(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personA.pos())
+    )
+    qtbot.mouseMove(view.viewport(), view.mapFromScene(personA.pos() - personB.pos()))
+    qtbot.mouseRelease(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personB.pos())
+    )
+    assert len(scene.emotions()) == 1
+    emotion = scene.emotions()[0]
+    assert emotion.personA() == personA
+    assert emotion.personB() == personB
+    assert emotion.kind() == util.ITEM_CONFLICT

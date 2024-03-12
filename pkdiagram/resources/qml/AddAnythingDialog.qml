@@ -18,17 +18,13 @@ PK.Drawer {
     property int margin: util.QML_MARGINS
     property var focusResetter: addPage
     property bool canInspect: false
-
-    property var peopleListAContentItem: peoplePickerA.listView.contentItem;
-    property var peopleListBContentItem: peoplePickerB.listView.contentItem;
+    property var peopleModel: ListModel { }
 
     // Keys.onPressed: {
     //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
     //         done()
     //     }
     // }
-
-    property var widget: null
 
     // who
     property var peopleAModel: peoplePickerA.model
@@ -48,10 +44,6 @@ PK.Drawer {
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
     property var nodal: nodalBox.checked
-
-    onKindChanged: {
-        print('AddAnythingDialog.onKindChanged: ' + kind)
-    }
 
     property var dirty: false;
 
@@ -101,7 +93,6 @@ PK.Drawer {
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
-                print('AddEverything_submitButton.onClicked')
                 done()
             }
         }
@@ -163,51 +154,45 @@ PK.Drawer {
                         PK.Text {
                             id: peopleALabel
                             objectName: "peopleALabel"
-                            text: util.isEmotionEventType(kindBox.valuesForIndex[kindBox.currentIndex]) ? "Mover(s)" : "People"
+                            text: {
+                                var kind = kindBox.valuesForIndex[kindBox.currentIndex]
+                                util.eventPersonALabel(kind)
+                            }
                         }
 
                         PK.PeoplePicker {
                             id: peoplePickerA
                             objectName: "peoplePickerA"
-                            scenePeopleModel: sceneModel.peopleModel
+                            scenePeopleModel: root.peopleModel
                             Layout.fillHeight: true
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // // KeyNavigation.tab: dateButtons.textInput
-                            Connections {
-                                target: root
-                                function onSceneModelChanged() {
-                                    peoplePickerA.scenePeopleModel = sceneModel.peopleModel
-                                }
-                            }
                         }
 
                         PK.Text {
                             id: peopleBLabel
                             objectName: "peopleBLabel"
-                            text: "Receiver(s)"
                             visible: util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
+                            text: {
+                                var kind = kindBox.valuesForIndex[kindBox.currentIndex]
+                                util.eventPersonBLabel(kind)
+                            }
                         }
 
                         PK.PeoplePicker {
                             id: peoplePickerB
                             objectName: "peoplePickerB"
-                            scenePeopleModel: sceneModel.peopleModel
                             visible: util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
+                            scenePeopleModel: root.peopleModel
                             Layout.fillHeight: true
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // // KeyNavigation.tab: dateButtons.textInput
-                            Connections {
-                                target: root
-                                function onSceneModelChanged() {
-                                    peoplePickerB.scenePeopleModel = sceneModel.peopleModel
-                                }
-                            }
                         }
 
                         PK.Text {
@@ -227,7 +212,10 @@ PK.Drawer {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
                             text: root.description
-                            enabled: kindBox.currentValue() != util.EventKind.Custom
+                            visible: {
+                                // print(kindBox.valuesForIndex[kindBox.currentIndex])
+                                ! util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
+                            }
                             property var eventKinds_Custom: util.EventKind.Custom
                             property var eventKinds_Custom_Value: util.EventKind.Custom.value
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
@@ -251,16 +239,14 @@ PK.Drawer {
                                 Layout.maximumWidth: util.QML_FIELD_WIDTH
                                 Layout.minimumWidth: util.QML_FIELD_WIDTH
                                 model: util.eventKindLabels()
-                                // property var lastCurrentIndex: -1
+                                property var lastCurrentIndex: -1
                                 KeyNavigation.tab: startDateButtons
-                                // onCurrentIndexChanged: {
-                                //     if (currentIndex != lastCurrentIndex) {
-                                //         if(widget && widget.validateField(this)) {
-                                //             lastCurrentIndex = currentIndex
-                                //             root.kind = currentValue()
-                                //         }
-                                //     }
-                                // }
+                                onCurrentIndexChanged: {
+                                    if (currentIndex != lastCurrentIndex) {
+                                        lastCurrentIndex = currentIndex
+                                        root.kind = currentValue()
+                                    }
+                                }
                                 function clear() { currentIndex = -1 }
                                 function currentValue() { return valuesForIndex[currentIndex] }
                                 property var valuesForIndex: util.eventKindValues()

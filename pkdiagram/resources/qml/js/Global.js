@@ -28,6 +28,10 @@ function arrayRemove(arr, value) {
     arr.splice(index, 1);
 }
 
+function sum(arr) {
+    return arr.reduce((a, b) => a + b, 0);
+}
+
 
 // https://stackoverflow.com/questions/45029968/how-do-i-set-the-combobox-width-to-fit-the-largest-item
 function ___calcComboBoxImplicitWidth(cb) {

@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person
-from pkdiagram.pyqt import Qt, QQuickItem
+from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
 from test_emotionproperties import (
     emotionProps,
@@ -18,40 +18,74 @@ _log = logging.getLogger(__name__)
 # pytest.skip("AddAnythingDialog tests are not yet implemented", allow_module_level=True)
 
 
+@pytest.fixture
+def dlg(qtbot):
+    scene = Scene()
+    sceneModel = SceneModel()
+    sceneModel.scene = scene
+    scene._sceneModel = sceneModel
+
+    dlg = AddAnythingDialog(sceneModel=sceneModel)
+    dlg.resize(600, 800)
+    dlg.setRootProp("sceneModel", sceneModel)
+    dlg.setScene(scene)
+    dlg.show()
+    qtbot.addWidget(dlg)
+    qtbot.waitActive(dlg)
+    assert dlg.isShown()
+    assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
+
+    yield dlg
+
+    dlg.setScene(None)
+    dlg.hide()
+
+
 ONE_FIRST_NAME = "John"
 ONE_LAST_NAME = "Doe"
 
 
 def _add_person(
-    dlg: AddAnythingDialog, first_name=ONE_FIRST_NAME, last_name=ONE_LAST_NAME
+    dlg: AddAnythingDialog,
+    peoplePickerItem: str,
+    firstName=ONE_FIRST_NAME,
+    lastName=ONE_LAST_NAME,
 ):
-    personItemAddDone = util.Condition(dlg.findItem("peoplePicker").itemAddDone)
-    dlg.mouseClick("peoplePicker.buttons.addButton")
+    personItemAddDone = util.Condition(dlg.findItem(peoplePickerItem).itemAddDone)
+    dlg.mouseClick(f"{peoplePickerItem}.buttons.addButton")
     assert personItemAddDone.wait() == True
     personItem = personItemAddDone.callArgs[0][0]
     personTextEdit = personItem.findChildren(QQuickItem, "textEdit")[0]
     dlg.mouseDClickItem(personTextEdit)
-    dlg.keyClicks(personTextEdit, f"{first_name} {last_name}")
+    dlg.keyClicksClear(personTextEdit)
+    dlg.keyClicks(personTextEdit, f"{firstName} {lastName}")
 
 
-def _select_person(dlg: AddAnythingDialog, text: str, person: Person):
-    dlg.f
+def _select_autocomplete_person(
+    dlg: AddAnythingDialog, peoplePickerItem: str, person: Person
+):
+    personItemAddDone = util.Condition(dlg.findItem(peoplePickerItem).itemAddDone)
+    dlg.mouseClick(f"{peoplePickerItem}.buttons.addButton")
+    assert personItemAddDone.wait() == True
+    personItem = personItemAddDone.callArgs[0][0]
+    personTextEdit = personItem.findChildren(QQuickItem, "textEdit")[0]
+    dlg.mouseDClickItem(personTextEdit)
+    dlg.keyClicksClear(personTextEdit)
+    dlg.keyClicks(personTextEdit, person.fullNameOrAlias())
+    popupListView = dlg.findItem(f"{peoplePickerItem}.popupListView")
+    dlg.sceneModel.refreshProperty("peopleModel")
+    dlg.clickListViewItem_actual(popupListView, person.fullNameOrAlias())
 
 
-def _set_required_fields(dlg, kind=EventKind.Birth.name, people=True):
+def _set_required_fields(dlg, kind=EventKind.Birth):
 
     RESET_FOCUS = False
     RETURN_TO_FINISH = False
 
     #
 
-    if people:
-        _add_person(dlg)
-
-    #
-
     if kind:
-        dlg.clickComboBoxItem("kindBox", kind)
+        dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
 
     #
 
@@ -106,29 +140,6 @@ def _set_required_fields(dlg, kind=EventKind.Birth.name, people=True):
         resetFocus=RESET_FOCUS,
         returnToFinish=RETURN_TO_FINISH,
     )
-
-
-@pytest.fixture
-def dlg(qtbot):
-    scene = Scene()
-    sceneModel = SceneModel()
-    sceneModel.scene = scene
-    scene._sceneModel = sceneModel
-
-    dlg = AddAnythingDialog(sceneModel=sceneModel)
-    dlg.resize(600, 800)
-    # dlg.setRootProp("sceneModel", qmlScene._sceneModel)
-    dlg.setScene(scene)
-    dlg.show()
-    qtbot.addWidget(dlg)
-    qtbot.waitActive(dlg)
-    assert dlg.isShown()
-    assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
-
-    yield dlg
-
-    dlg.setScene(None)
-    dlg.hide()
 
 
 def _run_dateTimePickers(dlg, dateTime, buttonsItem, datePickerItem, timePickerItem):
@@ -166,16 +177,47 @@ def test_init_with_existing_people(dlg):
     assert [x.id for x in dlg.existingPeopleB()] == [x.id for x in existingPeopleB]
 
 
+def test_add_new_person(dlg):
+    scene = dlg.sceneModel.scene
+    submitted = util.Condition(dlg.submitted)
+    _add_person(dlg, "peoplePickerA", firstName="John", lastName="Doe")
+    _set_required_fields(dlg)
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.callCount == 1, "submitted signal emitted too many times"
+
+    scene = dlg.sceneModel.scene
+    assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
+    person = scene.query1(name="John", lastName="Doe")
+    assert person, f"Could not find created person {ONE_FIRST_NAME} {ONE_LAST_NAME}"
+    assert len(person.events()) == 1, f"Incorrect number of events added to scene"
+    event = person.events()[0]
+    assert event.uniqueId() == EventKind.Birth.value
+    assert event.description() == EventKind.Birth.name
+
+
+def test_add_existing_person(qtbot, dlg):
+    scene = dlg.sceneModel.scene
+    existingPerson = Person(name="John", lastName="Doe")
+    scene.addItems(existingPerson)
+    submitted = util.Condition(dlg.submitted)
+    _set_required_fields(dlg, kind=EventKind.Cutoff)
+    _select_autocomplete_person(dlg, "peoplePickerA", existingPerson)
+
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.callCount == 1, "submitted signal emitted too many times"
+    assert len(scene.people()) == 1
+
+
 @pytest.mark.parametrize("kind", [x for x in EventKind if not EventKind.isDyadic(x)])
 def test_monadic_event_people_pickers(dlg, kind):
-    dlg.clickComboBoxItem("kindBox", EventKind.labelFor(kind))
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
     assert dlg.itemProp("peoplePickerB", "visible") == False
     assert dlg.itemProp("peopleBLabel", "visible") == False
 
 
 @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isDyadic(x)])
 def test_dyadic_event_people_pickers(dlg, kind):
-    dlg.clickComboBoxItem("kindBox", EventKind.labelFor(kind))
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
     assert dlg.itemProp("peoplePickerB", "visible") == True
     assert dlg.itemProp("peopleBLabel", "visible") == True
 
@@ -207,8 +249,7 @@ def test_endDateTime_pickers(qtbot, dlg):
     assert dlg.rootProp("endDateTime") == DATE_TIME
 
 
-@pytest.mark.skip("Not finished")
-def test_required_field_validation(qtbot, dlg):
+def test_validation(qtbot, dlg):
     dlg.clear()
 
     def _required_text(objectName):
@@ -220,28 +261,34 @@ def test_required_field_validation(qtbot, dlg):
 
     qtbot.clickOkAfter(
         submit,
-        text=_required_text("peopleLabel"),
-    )
-
-    _add_person(dlg)
-    qtbot.clickOkAfter(
-        submit,
         text=_required_text("kindLabel"),
     )
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(EventKind.Conflict))
 
-    dlg.clickComboBoxItem("kindBox", EventKind.Birth.name)
+    qtbot.clickOkAfter(
+        submit,
+        text=_required_text("peopleALabel"),
+    )
+    _add_person(dlg, "peoplePickerA", firstName="John", lastName="Doe")
+
+    qtbot.clickOkAfter(
+        submit,
+        text=_required_text("peopleBLabel"),
+    )
+    _add_person(dlg, "peoplePickerB", firstName="Jane", lastName="Doe")
+
     qtbot.clickOkAfter(
         submit,
         text=_required_text("descriptionLabel"),
     )
-
     dlg.keyClicks("descriptionEdit", "Something happened")
+
     qtbot.clickOkAfter(
         submit,
         text=_required_text("locationLabel"),
     )
-
     dlg.keyClicks("locationEdit", "Anchorage, AK")
+
     qtbot.clickOkAfter(
         submit,
         text=_required_text("startDateTimeLabel"),
@@ -253,9 +300,6 @@ def test_required_field_validation(qtbot, dlg):
     END_TIME = "09:45am"
     RESET_FOCUS = False
     RETURN_TO_FINISH = False
-
-    dlg.mouseClick("isDateRangeBox")
-    assert dlg.rootProp("isDateRange") == True
 
     dlg.focusItem("startDateButtons.dateTextInput")
     dlg.keyClick("startDateButtons.dateTextInput", Qt.Key_Backspace)
@@ -273,6 +317,10 @@ def test_required_field_validation(qtbot, dlg):
         START_TIME,
         returnToFinish=RETURN_TO_FINISH,
     )
+
+    dlg.mouseClick("isDateRangeBox")
+    assert dlg.rootProp("isDateRange") == True
+
     qtbot.clickOkAfter(
         submit,
         text=_required_text("endDateTimeLabel"),
@@ -309,7 +357,7 @@ def test_add_new_person_born(dlg):
 
     scene = dlg.sceneModel.scene
     assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
-    person = scene.query1(name="John", last_name="Doe")
+    person = scene.query1(name="John", lastName="Doe")
     assert person, f"Could not find created person {ONE_FIRST_NAME} {ONE_LAST_NAME}"
     assert len(person.events()) == 1, f"Incorrect number of events added to scene"
     event = person.events()[0]
@@ -352,6 +400,36 @@ def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
     )
 
 
+@pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isMonadic(x)])
+def test_dynamic_fields_for_monadic(dlg, kind):
+    _set_required_fields(dlg, kind=kind)
+    assert dlg.itemProp("descriptionEdit", "visible") == False
+    assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
+    assert dlg.itemProp("peopleBLabel", "visible") == True
+    assert dlg.itemProp("peoplePickerB", "visible") == True
+    assert dlg.itemProp("peopleBLabel", "text") == EventKind.personBLabel(kind)
+
+
+@pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
+def test_dynamic_fields_for_pair_bond_kind(dlg, kind):
+    _set_required_fields(dlg, kind=kind)
+    assert dlg.itemProp("descriptionEdit", "visible") == False
+    assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
+    assert dlg.itemProp("peopleBLabel", "visible") == True
+    assert dlg.itemProp("peoplePickerB", "visible") == True
+    assert dlg.itemProp("peopleBLabel", "text") == EventKind.personBLabel(kind)
+
+
+@pytest.mark.parametrize("kind", [x for x in EventKind if not EventKind.isDyadic(x)])
+def test_dynamic_fields_for_non_dyadic_kind(dlg, kind):
+    _set_required_fields(dlg, kind=kind)
+    assert dlg.itemProp("descriptionEdit", "visible") == True
+    assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
+    assert dlg.itemProp("peopleBLabel", "visible") == EventKind.isDyadic(kind)
+    assert dlg.itemProp("peoplePickerB", "visible") == EventKind.isDyadic(kind)
+    assert dlg.itemProp("peopleBLabel", "text") == EventKind.personBLabel(kind)
+
+
 # def test_person_help_text_add_one_person(qtbot, dlg):
 #     _set_required_fields(dlg, people=False)
 #     _add_person(dlg)
@@ -364,9 +442,9 @@ def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
 
 # def test_dyadic_with_gt_two_people(qtbot, dlg):
 #     _set_required_fields(dlg, people=False)
-#     _add_person(dlg, first_name="John", last_name="Doe")
-#     _add_person(dlg, first_name="Jane", last_name="Doe")
-#     _add_person(dlg, first_name="Joseph", last_name="Belgard")
+#     _add_person(dlg, firstName="John", lastName="Doe")
+#     _add_person(dlg, firstName="Jane", lastName="Doe")
+#     _add_person(dlg, firstName="Joseph", lastName="Belgard")
 #     dlg.clickComboBoxItem("kindBox", EventKind.Birth.name)
 #     assert (
 #         dlg.itemProp("eventHelpText", "text")

@@ -66,10 +66,15 @@ class AddAnythingDialog(QmlDrawer):
         _log.info(f"AddAnythingDialog.onDone")
 
         # Required fields
-        if self.rootProp("peopleModel").rowCount() == 0:
-            objectName = "peopleLabel"
-        elif not self.rootProp("kind"):
+        if not self.rootProp("kind"):
             objectName = "kindLabel"
+        elif self.itemProp("peoplePickerA", "model").rowCount() == 0:
+            objectName = "peopleALabel"
+        elif (
+            EventKind.isDyadic(EventKind(self.rootProp("kind")))
+            and self.itemProp("peoplePickerB", "model").rowCount() == 0
+        ):
+            objectName = "peopleBLabel"
         elif not self.rootProp("description"):
             objectName = "descriptionLabel"
         elif not self.rootProp("location"):
@@ -83,8 +88,8 @@ class AddAnythingDialog(QmlDrawer):
         if objectName:
             name = self.itemProp(objectName, "text")
             msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
-            _log.info(f"AddAnythingForm validation: {msg}")
-            QMessageBox.information(
+            _log.info(f"AddAnythingForm validation DIALOG: {msg}")
+            QMessageBox.warning(
                 self,
                 "Required field",
                 msg,
@@ -100,14 +105,13 @@ class AddAnythingDialog(QmlDrawer):
 
         people = []
         peopleInfos = []
-        peopleModel = self.rootProp("peopleModel")
-        for i in range(peopleModel.rowCount()):
-            modelData = peopleModel.get(i).toVariant()
+        peoplePickerAModel = self.itemProp("peoplePickerA", "model")
+        for i in range(peoplePickerAModel.rowCount()):
+            modelData = peoplePickerAModel.get(i).toVariant()
             peopleInfos.append(
                 {
-                    "fullNameOrAlias": modelData.property("fullNameOrAlias"),
-                    "id": modelData.property("id"),
-                    "isNew": modelData.property("isNew"),
+                    "personName": modelData.property("personName"),
+                    "person": modelData.property("person"),
                 }
             )
         kind = self.rootProp("kind")
@@ -120,15 +124,14 @@ class AddAnythingDialog(QmlDrawer):
         symptom = self.rootProp("symptom")
 
         for item in peopleInfos:
-            if item["isNew"]:
-                parts = item["fullNameOrAlias"].split(" ")
+            if item["person"] == -1.0:
+                parts = item["personName"].split(" ")
                 firstName, lastName = parts[0], parts[1:]
                 person = Person(name=firstName, lastName=lastName)
                 items_to_add.append(person)
                 people.append(person)
             else:
-                id = item["id"]
-                people.append(self.scene.findById(id))
+                people.append(item["person"])
 
         if kind == EventKind.Birth.value:
             for person in people:

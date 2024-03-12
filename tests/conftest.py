@@ -492,19 +492,6 @@ class PKQtBot(QtBot):
             log.info(f"PKQtBot.keyClicks({args}, {kwargs})")
         return QTest.keyClicks(*args, **kwargs)
 
-    def mouseClick(self, *args, **kwargs):
-        if self.DEBUG:
-            log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
-        return super().mouseClick(*args, **kwargs)
-
-    def mouseDClick(self, *args, **kwargs):
-        if self.DEBUG:
-            log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
-        return super().mouseDClick(*args, **kwargs)
-
-    def qWait(self, ms):
-        QTest.qWait(ms)
-
     def __keyClicks(self, *args, **kwargs):
         w = args[0]
         QTest.mouseClick(w, Qt.LeftButton, Qt.NoModifier)  # focus in
@@ -545,6 +532,19 @@ class PKQtBot(QtBot):
             le.clearFocus()
         if inTable:
             self.wait(10)  # processEvents()
+
+    def mouseClick(self, *args, **kwargs):
+        if self.DEBUG:
+            log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
+        return super().mouseClick(*args, **kwargs)
+
+    def mouseDClick(self, *args, **kwargs):
+        if self.DEBUG:
+            log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
+        return super().mouseDClick(*args, **kwargs)
+
+    def qWait(self, ms):
+        QTest.qWait(ms)
 
     def printTable(self, view, selectedCol=0):
         import sys
@@ -680,41 +680,31 @@ class PKQtBot(QtBot):
         # if failed:
         #     pytest.xfail("QMessageBox did not have the required text.")
 
-    def clickYesAfter(self, action, **hasTextArgs):
+    def clickButtonAfter(self, action, button: int, **hasTextArgs):
         def doClickYes():
             widget = QApplication.activeModalWidget()
             if isinstance(widget, QMessageBox):
                 self.assert_QMessageBox_hasText(widget, **hasTextArgs)
-                button = widget.button(QMessageBox.Yes)
-                assert button
-                self.mouseClick(button, Qt.LeftButton)
+                buttonWidget = widget.button(button)
+                self.mouseClick(buttonWidget, Qt.LeftButton)
                 return True
+            else:
+                widget.hide()
+                pytest.fail(f"Expected QMessageBox, got {widget}")
 
         self.qWaitForMessageBox(action, handleClick=doClickYes)
 
-    def clickNoAfter(self, action, **hasTextArgs):
-        def doClickNo():
-            widget = QApplication.activeModalWidget()
-            if isinstance(widget, QMessageBox):
-                self.assert_QMessageBox_hasText(widget, **hasTextArgs)
-                button = widget.button(QMessageBox.No)
-                assert button
-                self.mouseClick(button, Qt.LeftButton)
-                return True
+    def clickYesAfter(self, action, **hasTextArgs):
+        self.clickButtonAfter(action, QMessageBox.Yes, **hasTextArgs)
 
-        self.qWaitForMessageBox(action, handleClick=doClickNo)
+    def clickNoAfter(self, action, **hasTextArgs):
+        self.clickButtonAfter(action, QMessageBox.No, **hasTextArgs)
 
     def clickOkAfter(self, action, **hasTextArgs):
-        def doClickOk():
-            widget = QApplication.activeModalWidget()
-            if isinstance(widget, QMessageBox):
-                self.assert_QMessageBox_hasText(widget, **hasTextArgs)
-                button = QApplication.activeModalWidget().button(QMessageBox.Ok)
-                assert button
-                self.mouseClick(button, Qt.LeftButton, pos=button.rect().center())
-                return True
+        self.clickButtonAfter(action, QMessageBox.Ok, **hasTextArgs)
 
-        self.qWaitForMessageBox(action, handleClick=doClickOk)
+    def clickCancelAfter(self, action, **hasTextArgs):
+        self.clickButtonAfter(action, QMessageBox.Cancel, **hasTextArgs)
 
     def hitEscapeAfter(self, action, **hasTextArgs):
         def doHitEscape():
@@ -723,6 +713,8 @@ class PKQtBot(QtBot):
                 self.assert_QMessageBox_hasText(widget, **hasTextArgs)
                 self.keyClicks(QApplication.activeModalWidget(), Qt.Key_Escape)
                 return True
+            else:
+                pytest.fail(f"Expected QMessageBox, got {widget}")
 
         self.qWaitForMessageBox(action, handleClick=doHitEscape)
 

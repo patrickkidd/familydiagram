@@ -4,6 +4,7 @@ from ..pyqt import (
     QAbstractListModel,
     QModelIndex,
     QVariant,
+    QObject,
     qmlRegisterType,
 )
 from .. import objects, scene, util
@@ -18,6 +19,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
     IdRole = Qt.UserRole + 1
     NameRole = IdRole + 1
     PersonIdRole = NameRole + 1
+    FullNameOrAlias = PersonIdRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -154,6 +156,11 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             ret = self._sortedIds.index(id)
         return ret
 
+    @pyqtSlot(int, result=QObject)
+    def personForRow(self, row):
+        personId = self._sortedIds[row]
+        return next(x for x in self._people if x.id == personId)
+
     ## Qt Virtuals
 
     def roleNames(self):
@@ -161,6 +168,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             self.IdRole: b"id",
             self.NameRole: b"name",
             self.PersonIdRole: b"personId",
+            self.FullNameOrAlias: b"fullNameOrAlias",
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -177,6 +185,9 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             ret = self._sortedIds[index.row()]
         elif role == self.PersonIdRole:
             ret = self._sortedIds[index.row()]
+        elif role == self.FullNameOrAlias:
+            personId = self._sortedIds[index.row()]
+            ret = next(x for x in self._people if x.id == personId).fullNameOrAlias()
         return ret
 
 
