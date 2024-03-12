@@ -63,7 +63,8 @@ ENABLE_STRIPE = False
 
 log = logging.getLogger(__name__)
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+util.init_logging()
+
 
 
 def pytest_addoption(parser):

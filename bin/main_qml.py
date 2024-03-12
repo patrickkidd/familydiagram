@@ -56,13 +56,16 @@ def __test__TimelineView(scene, parent, sceneModel):
     return w
 
 
-def __test__AddAnythingDialog(scene, parent, sceneModel):
-    scene.setTags(["Here", "we", "are"])
+def _init_scene_for_people_picker(scene):
     scene.addItem(Person(name="Patrick", lastName="Stinson"))
     scene.addItem(Person(name="Connie", lastName="Service"))
     scene.addItem(Person(name="Lulu", lastName="Lemon"))
     scene.addItem(Person(name="John", lastName="Doey"))
     scene.addItem(Person(name="Jayne", lastName="Thermos"))
+
+
+def __test__AddAnythingDialog(scene, parent, sceneModel):
+    _init_scene_for_people_picker(scene)
     pp = AddAnythingDialog(parent=parent, sceneModel=sceneModel)
     pp.setScene(scene)
     pp.show(animate=False)
@@ -72,6 +75,7 @@ def __test__AddAnythingDialog(scene, parent, sceneModel):
 
 
 def __test__PeoplePicker(scene, parent, sceneModel):
+    _init_scene_for_people_picker(scene)
     pp = QmlDrawer(
         "tests/qml/PeoplePickerTest.qml", parent=parent, sceneModel=sceneModel
     )

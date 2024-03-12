@@ -124,14 +124,14 @@ class AddAnythingDialog(QmlDrawer):
         symptom = self.rootProp("symptom")
 
         for item in peopleInfos:
-            if item["person"] == -1.0:
+            if item["person"]:
+                people.append(item["person"])
+            else:
                 parts = item["personName"].split(" ")
-                firstName, lastName = parts[0], parts[1:]
+                firstName, lastName = parts[0], " ".join(parts[1:])
                 person = Person(name=firstName, lastName=lastName)
                 items_to_add.append(person)
                 people.append(person)
-            else:
-                people.append(item["person"])
 
         if kind == EventKind.Birth.value:
             for person in people:

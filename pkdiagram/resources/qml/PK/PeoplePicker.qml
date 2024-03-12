@@ -15,20 +15,33 @@ PK.GroupBox {
     property var scenePeopleModel: ListModel {}
     property int currentIndex: -1
     property int count: list.count
+    property var currentEditingItemDelegate: null; // testing
 
     property var _existingPeople: []
 
     property var listView: list // for tests
     // for testing since delegate creation is async
-    signal itemAddDone(Item item);
+    signal itemAddDone(Item item)
+    signal itemRemoveDone(Item item)
 
-    function onRowClicked(mouse, row) {
+    // function personDelegates() {
+    //     var ret = []
+    //     for(var i=0; i < list.contentItem.children.length; i++) {
+    //         var child = list.contentItem.children[i]
+    //         print('    ' + i + ', ' + child + ', ' + child.isPersonDelegate)
+    //         if(child.isPersonDelegate)
+    //             ret.push(child)
+    //     }
+    //     return ret
+    // }
+
+    function onPersonRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
             root.currentIndex = -1
         } else {
             root.currentIndex = row
         }
-        print('onRowClicked, root.currentIndex:' + root.currentIndex)
+        print('onPersonRowClicked, root.currentIndex:' + root.currentIndex)
     }
 
     function clear() {
@@ -84,6 +97,12 @@ PK.GroupBox {
 
                 property bool selected: index == root.currentIndex
                 property bool current: false
+                property bool isPersonDelegate: true
+                property bool isSubmitted: false
+                onIsSubmittedChanged: {
+                    print('isSubmitted: autoCompletePopup.close()')
+                    autoCompletePopup.close()
+                }
 
                 width: parent ? parent.width : 0
                 height: util.QML_ITEM_HEIGHT
@@ -91,24 +110,24 @@ PK.GroupBox {
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: onRowClicked(mouse, index)
-                    onDoubleClicked: {
-                        if(isNewPerson && !textEdit.visible) {
-                            print('Opening for onDoubleClicked: ' + textEdit.text)
-                            autoCompletePopup.open()
-                            textEdit.forceActiveFocus()
-                            textEdit.selectAll()
-                        }
-                    }
+                    onClicked: onPersonRowClicked(mouse, index)
                 }
 
                 Component.onCompleted: {
                     if (isNewPerson) { // index === root.model.count - 1) {
                         textEdit.forceActiveFocus()
-                        print('Component.onCompleted[isNewPerson]: ' + index + ', ' + root.model.count + ', focus: ' + textEdit.focus)                        
+                        dRoot.isSubmitted = false
+                        // print('Component.onCompleted[isNewPerson]: ' + index + ', ' + root.model.count + ', focus: ' + textEdit.focus)                        
+                    } else {
+                        dRoot.isSubmitted = true
                     }
                     // for testing since delegate creation is async
-                    root.itemAddDone(this)
+                    root.itemAddDone(dRoot)
+                }
+
+                Component.onDestruction: {
+                    // for testing since
+                    root.itemRemoveDone(this)
                 }
 
                 RowLayout {
@@ -117,8 +136,9 @@ PK.GroupBox {
                     anchors.fill: parent
                     spacing: 0
                     PK.Text {
+                        id: personNameText
                         text: personName
-                        visible: ! isNewPerson
+                        visible: isSubmitted
                         Layout.leftMargin: util.QML_MARGINS
                     }
                     PK.TextInput {
@@ -128,43 +148,56 @@ PK.GroupBox {
                         text: model.person ? person.listLabel() : personName
                         clip: true
                         width: contentWidth
-                        visible: isNewPerson
-                        // selectByMouse: false
-                        activeFocusOnPress: true
+                        visible: ! isSubmitted
+                        onVisibleChanged: print('textEdit.visible: ' + visible + ', isSubmitted: ' + isSubmitted)
                         Layout.leftMargin: util.QML_MARGINS
                         Layout.minimumWidth: 40
+                        onFocusChanged: {
+                            if(focus) {
+                                root.currentEditingItemDelegate = dRoot
+                                print('onFocusChanged: root.currentEditingItemDelegate = ' + dRoot)
+                            }
+                        }
                         onTextChanged: {
-                            // list.currentPersonTextEdit = textEdit
-                            print('onTextChanged: ' + text)
-                            autoCompletePopup.matchText = text
-                            list.currentTextChanged(text)
-                            if(text == '') {
-                                autoCompletePopup.close()
-                            } else if(visible) {
-                                // print('onTextChanged - filtering: ' + text + ', ' + scenePeopleModel.rowCount())
+                            // list.currentTextChanged(text)
+                            if(text && !isSubmitted) {
+                                // print('onTextChanged - filtering: ' + text + ', isNewPerson: ' + isNewPerson + ', visible: ' + visible + ', ' + scenePeopleModel.rowCount())
+                                autoCompletePopup.matchText = text
+                                // root.currentEditingItemDelegate = dRoot
+                                // print('onClicked: root.currentEditingItemDelegate = ' + dRoot)
                                 var total = 0
                                 for(var i=0; i < scenePeopleModel.rowCount(); i++) {
                                     var person = scenePeopleModel.personForRow(i)
                                     var personName = person.fullNameOrAlias()
+                                    var textMatches = personName.toLowerCase().indexOf(text.toLowerCase()) != -1 ? true : false
                                     // print(
                                     //     '    ' + i + ', ' + personName + 
-                                    //     ', ' + personName.toLowerCase().indexOf(text.toLowerCase())
+                                    //     ', ' + textMatches
                                     // )
-                                    if(personName.toLowerCase().indexOf(text.toLowerCase()) !== -1 && !root.alreadyInList(person)) {
+                                    if(textMatches && !root.alreadyInList(person)) {
                                         total += 1
                                     }
                                 }
                                 if(total > 0) {
                                     popupListView.height = total * util.QML_ITEM_HEIGHT
+                                    print('Showing ' + total + ' auto-complete matches, setting height: ' + popupListView.height)
                                     autoCompletePopup.open()
-                                } else {
+                                } else if(autoCompletePopup.visible) {
+                                    print('Hiding autoCompletePopup for no text match.')
                                     autoCompletePopup.close()
                                 }
                             }
                         }
                         onEditingFinished: {
-                            personName = text
-                            focus = false
+                            if(text) {
+                                personName = text
+                                print('onEditingFinished: ' + text + ', ' + root.currentEditingItemDelegate + ', isSubmitted = true')
+                                if(root.currentEditingItemDelegate) {
+                                    root.currentEditingItemDelegate.isSubmitted = true
+                                    root.currentEditingItemDelegate = null
+                                }
+                                focus = false
+                            }
                         }
                     }
                     Rectangle { // spacer
@@ -179,11 +212,12 @@ PK.GroupBox {
                 // to the project to use the following image
                 PK.Image {
                     id: checkImage
+                    objectName: "checkImage"
                     source: "../checkbox-check.png"
                     width: 15
                     height: 15
                     invert: util.IS_UI_DARK_MODE
-                    visible: ! isNewBox.visible 
+                    visible: isSubmitted && ! isNewPerson
                     anchors {
                         right: parent.right
                         verticalCenter: parent.verticalCenter
@@ -201,7 +235,7 @@ PK.GroupBox {
                     border.width: 1
                     radius: 3
                     opacity: 0.5
-                    visible: isNewPerson && textEdit.visible
+                    visible: isSubmitted && isNewPerson
                     Text {
                         id: newText
                         text: "new"
@@ -220,6 +254,7 @@ PK.GroupBox {
 
         Popup {
             id: autoCompletePopup
+            objectName: "autoCompletePopup"
             x: list.x - 10
             y: list.y + (util.QML_ITEM_HEIGHT * list.model.count)
             width: list.width + 20
@@ -248,8 +283,14 @@ PK.GroupBox {
                         root.forceActiveFocus()
                         var person = scenePeopleModel.personForRow(index)
                         // print("list.model.set(" + root.currentIndex + ", {'personName': " + name + ", person: " + person + "})")
+                        print('onClicked: isSubmitted = true')
+                        root.currentEditingItemDelegate.isSubmitted = true
+                        root.currentEditingItemDelegate = null
                         list.model.set(root.currentIndex, {personName: person.fullNameOrAlias(), person: person, isNewPerson: false });
-                        autoCompletePopup.close();
+                        // if(autoCompletePopup.visible) {
+                        //     print('Hiding autoCompletePopup for item selected: ' + person.fullNameOrAlias())
+                        //     autoCompletePopup.close();
+                        // }
                     }
                 }
             }

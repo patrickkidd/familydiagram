@@ -1,5 +1,8 @@
 import sys, os, os.path, enum, pickle, subprocess, hashlib, bisect, logging, urllib.parse, wsgiref.handlers, bisect, contextlib
 from functools import wraps
+import sys, os.path, logging
+from pathlib import Path
+from . import appdirs, util
 
 
 log = logging.getLogger(__name__)
@@ -50,7 +53,8 @@ if IS_BUNDLE:
 import os, os.path, time, math, operator, collections.abc, subprocess, random
 from datetime import datetime
 from .pyqt import *
-from . import version, PEPPER
+from . import version
+from .pepper import PEPPER
 from .eventkind import EventKind
 
 try:
@@ -145,6 +149,37 @@ def pretty(x, exclude=[], noNone=True):
 def LONG_TEXT(s):
     """filter multi-line text as one long string for qml help text."""
     return s.replace("\n", " ").replace("<br>", "\n\n")
+
+
+def init_logging():
+
+    def allFilter(record: logging.LogRecord):
+        """Add filenames for non-Qt records."""
+        if not hasattr(record, "pk_fileloc"):
+            record.pk_fileloc = f"{record.filename}:{record.lineno}"
+        return True
+
+    LOG_FORMAT = "%(asctime)s %(pk_fileloc)-26s %(message)s"
+
+    consoleHandler = logging.StreamHandler(sys.stdout)
+    consoleHandler.addFilter(allFilter)
+    consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
+    if not os.path.isdir(appDataDir):
+        Path(appDataDir).mkdir()
+    fileName = "log.txt" if util.IS_BUNDLE else "log_dev.txt"
+    filePath = os.path.join(appDataDir, fileName)
+    if not os.path.isfile(filePath):
+        Path(filePath).touch()
+    fileHandler = logging.FileHandler(filePath, mode="a+")
+    fileHandler.addFilter(allFilter)
+    fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[consoleHandler, fileHandler],
+    )
 
 
 ##
@@ -394,7 +429,6 @@ When a discrete move, they may be a move toward, away, or defined self by a sing
 S_PERSON_NOT_FOUND = LONG_TEXT(
     """A person with that name does not exist. Do you want to add it?"""
 )
-
 
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]

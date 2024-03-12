@@ -11,30 +11,23 @@ Rectangle {
 
     property var model: null
     property var sceneModel: null; // just a dummy to be a false/null condition
+    property var peopleModel: null;
     signal done;
+    color: util.QML_ITEM_BG
+
+    function setCurrentTab(x) {}
 
     ColumnLayout {
         id: testLayout
         anchors.fill: parent
 
-        // Timer {
-        //     running: true
-        //     repeat: true
-        //     onTriggered: print("testLayout: (" + testLayout.width + ', ' + testLayout.height + "), child: (" + rect.x + ", " + rect.y + ")")
-        // }
-
-
         PK.PeoplePicker {
             id: peoplePicker
+            scenePeopleModel: peopleModel
             objectName: "peoplePicker"
-
             Layout.fillWidth: true
             Layout.minimumHeight: 300
             Layout.maximumHeight: 300
-            // width: 400
-            // height: 600
-            onWidthChanged: print(root.width)
-            onHeightChanged: print(root.height)
         }
 
         Rectangle {

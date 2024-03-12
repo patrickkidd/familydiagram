@@ -1,11 +1,10 @@
-from . import app
-
-app.init()
-
-import os
-from . import pepper
+from . import app, util, pepper
 
 PEPPER = pepper.PEPPER
+
+util.init_logging()
+
+import os
 
 from . import version, util, pepper
 from .util import CUtil, EventKind

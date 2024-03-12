@@ -403,10 +403,18 @@ class QmlWidgetHelper(QObjectHelper):
         #                                                    Q_ARG(QVariant, row))
         # ensureVisible(row)
         prevCurrentIndex = item.property("currentIndex")
+        assert isinstance(
+            prevCurrentIndex, int
+        ), f'Expected "currentIndex" to be an int, is {objectName} actually a ComboBox?'
         rect = item.mapRectToScene(QRectF(x, y, w, h))
         if self.DEBUG:
             log.info(f"Clicking ListView item: '{rowText}' (index: {row})")
         self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
+        if hasattr(item, "model") and isinstance(item.model, callable):
+            model = item.model()
+        else:
+            model = item.property("model")
+        assert model.data(model.index(row, 0)) == rowText
 
     def clickTimelineViewItem(
         self, objectName, cellText, column=0, modifiers=Qt.NoModifier

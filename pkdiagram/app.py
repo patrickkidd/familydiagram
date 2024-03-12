@@ -6,41 +6,6 @@ else:
     IS_BUNDLE = True
 
 
-def init():
-
-    import sys, os.path, logging
-    from pathlib import Path
-    from . import appdirs
-
-    def allFilter(record: logging.LogRecord):
-        """Add filenames for non-Qt records."""
-        if not hasattr(record, "pk_fileloc"):
-            record.pk_fileloc = f"{record.filename}:{record.lineno}"
-        return True
-
-    LOG_FORMAT = "%(asctime)s %(pk_fileloc)-26s %(message)s"
-
-    consoleHandler = logging.StreamHandler(sys.stdout)
-    consoleHandler.addFilter(allFilter)
-    consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-
-    appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
-    if not os.path.isdir(appDataDir):
-        Path(appDataDir).mkdir()
-    fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
-    filePath = os.path.join(appDataDir, fileName)
-    if not os.path.isfile(filePath):
-        Path(filePath).touch()
-    fileHandler = logging.FileHandler(filePath, mode="a+")
-    fileHandler.addFilter(allFilter)
-    fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=[consoleHandler, fileHandler],
-    )
-
-
 def main(attach=False, prefsName=None):
 
     import sys, os.path, logging
