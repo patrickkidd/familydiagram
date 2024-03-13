@@ -6,11 +6,7 @@ import mock
 from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person
 from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
-from test_emotionproperties import (
-    emotionProps,
-    runEmotionProperties,
-    assertEmotionProperties,
-)
+from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
 
 
 _log = logging.getLogger(__name__)
@@ -41,24 +37,44 @@ def dlg(qtbot):
     dlg.hide()
 
 
-ONE_FIRST_NAME = "John"
-ONE_LAST_NAME = "Doe"
+ONE_NAME = "John Doe"
 
 
-def _add_person(
+# def _add_person(
+#     dlg: AddAnythingDialog,
+#     peoplePickerItem: str,
+#     firstName=ONE_FIRST_NAME,
+#     lastName=ONE_LAST_NAME,
+#     returnToFinish=True
+# ):
+#     personItemAddDone = util.Condition(dlg.findItem(peoplePickerItem).itemAddDone)
+#     dlg.mouseClick(f"{peoplePickerItem}.buttons.addButton")
+#     assert personItemAddDone.wait() == True
+#     personItem = personItemAddDone.callArgs[1][0]
+#     textEdit = personItem.findChild(QQuickItem, "textEdit")
+#     dlg.keyClicks(textEdit, f"{firstName} {lastName}", resetFocus=False, returnToFinish=returnToFinish)
+
+
+def _add_new_person(
     dlg: AddAnythingDialog,
-    peoplePickerItem: str,
-    firstName=ONE_FIRST_NAME,
-    lastName=ONE_LAST_NAME,
+    peoplePickerObjectName,
+    textInput: str,
+    returnToFinish: bool = True,
 ):
-    personItemAddDone = util.Condition(dlg.findItem(peoplePickerItem).itemAddDone)
-    dlg.mouseClick(f"{peoplePickerItem}.buttons.addButton")
-    assert personItemAddDone.wait() == True
-    personItem = personItemAddDone.callArgs[0][0]
-    personTextEdit = personItem.findChildren(QQuickItem, "textEdit")[0]
-    dlg.mouseDClickItem(personTextEdit)
-    dlg.keyClicksClear(personTextEdit)
-    dlg.keyClicks(personTextEdit, f"{firstName} {lastName}")
+    add_new_person(
+        dlg,
+        textInput,
+        peoplePickerObjectName=peoplePickerObjectName,
+        returnToFinish=returnToFinish,
+    )
+
+
+def _add_existing_person(
+    dlg: AddAnythingDialog,
+    peoplePickerObjectName,
+    person: Person,
+):
+    add_existing_person(dlg, person, peoplePickerObjectName=peoplePickerObjectName)
 
 
 def _select_autocomplete_person(
@@ -89,7 +105,9 @@ def _set_required_fields(dlg, kind=EventKind.Birth):
 
     #
 
-    dlg.keyClicks("descriptionEdit", "Something happened")
+    # TODO: Custom events, and/or Custom Pair-Bond events.
+    # https://alaskafamilysystems.atlassian.net/browse/FD-42
+    # dlg.keyClicks("descriptionEdit", "Something happened")
 
     #
 
@@ -180,7 +198,7 @@ def test_init_with_existing_people(dlg):
 def test_add_new_person(dlg):
     scene = dlg.sceneModel.scene
     submitted = util.Condition(dlg.submitted)
-    _add_person(dlg, "peoplePickerA", firstName="John", lastName="Doe")
+    _add_new_person(dlg, "peoplePickerA", "John Doe", returnToFinish=False)
     _set_required_fields(dlg)
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
@@ -188,7 +206,7 @@ def test_add_new_person(dlg):
     scene = dlg.sceneModel.scene
     assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
     person = scene.query1(name="John", lastName="Doe")
-    assert person, f"Could not find created person {ONE_FIRST_NAME} {ONE_LAST_NAME}"
+    assert person, f"Could not find created person {ONE_NAME}"
     assert len(person.events()) == 1, f"Incorrect number of events added to scene"
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Birth.value
@@ -201,7 +219,7 @@ def test_add_existing_person(qtbot, dlg):
     scene.addItems(existingPerson)
     submitted = util.Condition(dlg.submitted)
     _set_required_fields(dlg, kind=EventKind.Cutoff)
-    _select_autocomplete_person(dlg, "peoplePickerA", existingPerson)
+    _add_existing_person(dlg, "peoplePickerA", existingPerson)
 
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
@@ -263,25 +281,27 @@ def test_validation(qtbot, dlg):
         submit,
         text=_required_text("kindLabel"),
     )
-    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(EventKind.Conflict))
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(EventKind.Custom))
 
     qtbot.clickOkAfter(
         submit,
         text=_required_text("peopleALabel"),
     )
-    _add_person(dlg, "peoplePickerA", firstName="John", lastName="Doe")
+    _add_new_person(dlg, "peoplePickerA", "John Doe")
 
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("peopleBLabel"),
-    )
-    _add_person(dlg, "peoplePickerB", firstName="Jane", lastName="Doe")
+    # qtbot.clickOkAfter(
+    #     submit,
+    #     text=_required_text("peopleBLabel"),
+    # )
+    # _add_new_person(dlg, "peoplePickerB", "Jane Doe")
 
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("descriptionLabel"),
-    )
-    dlg.keyClicks("descriptionEdit", "Something happened")
+    # qtbot.clickOkAfter(
+    #     submit,
+    #     text=_required_text("descriptionLabel"),
+    # )
+    # TODO: description for pair-bond events
+    # https://alaskafamilysystems.atlassian.net/browse/FD-42
+    # dlg.keyClicks("descriptionEdit", "Something happened")
 
     qtbot.clickOkAfter(
         submit,
@@ -358,20 +378,17 @@ def test_add_new_person_born(dlg):
     scene = dlg.sceneModel.scene
     assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
     person = scene.query1(name="John", lastName="Doe")
-    assert person, f"Could not find created person {ONE_FIRST_NAME} {ONE_LAST_NAME}"
+    assert person, f"Could not find created person {ONE_NAME}"
     assert len(person.events()) == 1, f"Incorrect number of events added to scene"
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Birth.value
     assert event.description == EventKind.Birth.name
 
 
-@pytest.mark.skip("Not finished")
-@pytest.mark.parametrize("eventKind", [x for x in EventKind if x != EventKind.Custom])
-def test_description_disabled_for_uniqueId(dlg, eventKind):
-    dlg.clickComboBoxItem("kindBox", eventKind.name)
-    assert dlg.itemProp("descriptionEdit", "enabled") == bool(
-        eventKind != EventKind.Custom
-    )
+@pytest.mark.parametrize("kind", [x for x in EventKind if x != EventKind.Custom])
+def test_description_disabled_for_uniqueId(dlg, kind):
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
+    assert dlg.itemProp("descriptionEdit", "enabled") == False
 
 
 # def test_add_new_people_pair_bond(dlg):
@@ -381,7 +398,7 @@ def test_description_disabled_for_uniqueId(dlg, eventKind):
 @pytest.mark.skip("Not finished")
 def test_add_dyadic_event_with_one_person_selected(qtbot, dlg):
     _set_required_fields(dlg, people=False)
-    _add_person(dlg)
+    _add_new_person(dlg)
     qtbot.clickOkAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
         text=AddAnythingDialog.S_EVENT_DYADIC,
@@ -392,7 +409,7 @@ def test_add_dyadic_event_with_one_person_selected(qtbot, dlg):
 @pytest.mark.parametrize("eventKind", [x for x in EventKind if EventKind.isDyadic(x)])
 def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
     _set_required_fields(dlg, kind=False, people=False)
-    _add_person(dlg)
+    _add_new_person(dlg)
     dlg.clickComboBoxItem("kindBox", eventKind.name)
     qtbot.clickOkAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
@@ -402,18 +419,18 @@ def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
 
 @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isMonadic(x)])
 def test_dynamic_fields_for_monadic(dlg, kind):
-    _set_required_fields(dlg, kind=kind)
-    assert dlg.itemProp("descriptionEdit", "visible") == False
+    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
+    # _set_required_fields(dlg, kind=kind)
+    assert dlg.itemProp("descriptionEdit", "enabled") == bool(kind == EventKind.Custom)
     assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
-    assert dlg.itemProp("peopleBLabel", "visible") == True
-    assert dlg.itemProp("peoplePickerB", "visible") == True
-    assert dlg.itemProp("peopleBLabel", "text") == EventKind.personBLabel(kind)
+    assert dlg.itemProp("peopleBLabel", "visible") == False
+    assert dlg.itemProp("peoplePickerB", "visible") == False
 
 
 @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
 def test_dynamic_fields_for_pair_bond_kind(dlg, kind):
     _set_required_fields(dlg, kind=kind)
-    assert dlg.itemProp("descriptionEdit", "visible") == False
+    assert dlg.itemProp("descriptionEdit", "enabled") == False
     assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
     assert dlg.itemProp("peopleBLabel", "visible") == True
     assert dlg.itemProp("peoplePickerB", "visible") == True
@@ -423,7 +440,7 @@ def test_dynamic_fields_for_pair_bond_kind(dlg, kind):
 @pytest.mark.parametrize("kind", [x for x in EventKind if not EventKind.isDyadic(x)])
 def test_dynamic_fields_for_non_dyadic_kind(dlg, kind):
     _set_required_fields(dlg, kind=kind)
-    assert dlg.itemProp("descriptionEdit", "visible") == True
+    assert dlg.itemProp("descriptionEdit", "enabled") == bool(kind == EventKind.Custom)
     assert dlg.itemProp("peopleALabel", "text") == EventKind.personALabel(kind)
     assert dlg.itemProp("peopleBLabel", "visible") == EventKind.isDyadic(kind)
     assert dlg.itemProp("peoplePickerB", "visible") == EventKind.isDyadic(kind)
@@ -432,7 +449,7 @@ def test_dynamic_fields_for_non_dyadic_kind(dlg, kind):
 
 # def test_person_help_text_add_one_person(qtbot, dlg):
 #     _set_required_fields(dlg, people=False)
-#     _add_person(dlg)
+#     _add_new_person(dlg)
 #     dlg.clickComboBoxItem("kindBox", EventKind.Birth.name)
 #     assert (
 #         dlg.itemProp("eventHelpText", "text")
@@ -442,9 +459,9 @@ def test_dynamic_fields_for_non_dyadic_kind(dlg, kind):
 
 # def test_dyadic_with_gt_two_people(qtbot, dlg):
 #     _set_required_fields(dlg, people=False)
-#     _add_person(dlg, firstName="John", lastName="Doe")
-#     _add_person(dlg, firstName="Jane", lastName="Doe")
-#     _add_person(dlg, firstName="Joseph", lastName="Belgard")
+#     _add_new_person(dlg, firstName="John", lastName="Doe")
+#     _add_new_person(dlg, firstName="Jane", lastName="Doe")
+#     _add_new_person(dlg, firstName="Joseph", lastName="Belgard")
 #     dlg.clickComboBoxItem("kindBox", EventKind.Birth.name)
 #     assert (
 #         dlg.itemProp("eventHelpText", "text")

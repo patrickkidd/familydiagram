@@ -50,17 +50,16 @@ def picker(scene, qtbot):
     dlg.hide()
 
 
-def test_init(picker):
-    pass
-
-
-def _add_and_keyClicks(
-    picker: PeoplePickerTest, textInput: str, returnToFinish: bool = True
+def add_and_keyClicks(
+    picker: QmlWidgetHelper,
+    textInput: str,
+    peoplePickerObjectName="peoplePicker",
+    returnToFinish: bool = True,
 ) -> QQuickItem:
-    _log.info(f"_add_and_keyClicks('{textInput}', {returnToFinish})")
-    peoplePicker = picker.findItem("peoplePicker")
+    _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
+    peoplePicker = picker.findItem(peoplePickerObjectName)
     itemAddDone = util.Condition(peoplePicker.itemAddDone)
-    picker.mouseClick("peoplePicker.addButton")
+    picker.mouseClick(f"{peoplePickerObjectName}.addButton")
     assert itemAddDone.wait() == True
     itemDelegate = itemAddDone.callArgs[-1][0]
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
@@ -71,25 +70,44 @@ def _add_and_keyClicks(
     return itemDelegate
 
 
-def _add_new_person(picker: PeoplePickerTest, textInput: str) -> QQuickItem:
-    itemDelegate = _add_and_keyClicks(picker, textInput, returnToFinish=True)
-
-    return itemDelegate
-
-
-def _add_existing_person(
-    picker: PeoplePickerTest, textInput: str, matchName: str
+def add_new_person(
+    picker: QmlWidgetHelper, textInput: str, peoplePickerObjectName="peoplePicker", returnToFinish=True
 ) -> QQuickItem:
-    itemDelegate = _add_and_keyClicks(picker, textInput, returnToFinish=False)
-    assert picker.itemProp("popupListView", "visible") == True
-    picker.clickListViewItem_actual("peoplePicker.popupListView", matchName) == True
+    itemDelegate = add_and_keyClicks(
+        picker,
+        textInput,
+        peoplePickerObjectName=peoplePickerObjectName,
+        returnToFinish=returnToFinish,
+    )
+
     return itemDelegate
 
 
-def _delete_person(picker: PeoplePickerTest, delegate: QQuickItem):
-    _log.info(f"_delete_person({delegate})")
+def add_existing_person(
+    picker: QmlWidgetHelper,
+    person: Person,
+    autoCompleteInput: str = None,
+    peoplePickerObjectName="peoplePicker",
+) -> QQuickItem:
+    if autoCompleteInput is None:
+        autoCompleteInput = person.fullNameOrAlias()
+    itemDelegate = add_and_keyClicks(
+        picker,
+        autoCompleteInput,
+        peoplePickerObjectName=peoplePickerObjectName,
+        returnToFinish=False,
+    )
+    assert picker.itemProp(f"{peoplePickerObjectName}.popupListView", "visible") == True
+    picker.clickListViewItem_actual(
+        f"{peoplePickerObjectName}.popupListView", person.fullNameOrAlias()
+    ) == True
+    return itemDelegate
 
-    model = picker.itemProp("peoplePicker", "model")
+
+def _delete_person(
+    picker: QmlWidgetHelper, delegate: QQuickItem, peoplePickerObjectName="peoplePicker"
+):
+    _log.info(f"_delete_person({delegate})")
     picker.mouseClick(delegate)
     removeButton = picker.findItem("buttons_removeButton")
     picker.mouseClick(removeButton)
@@ -105,8 +123,11 @@ def _get_role_id(model, role_name):
 
 def test_one_existing_one_not(scene, picker):
     model = picker.itemProp("peoplePicker", "model")
+    patrick = scene.query1(name="Patrick", lastName="Stinson")
 
-    existingPersonDelegate = _add_existing_person(picker, "Sti", "Patrick Stinson")
+    existingPersonDelegate = add_existing_person(
+        picker, patrick, autoCompleteInput="Sti"
+    )
     PersonRole = _get_role_id(model, "person")  # Added dynamically
     assert picker.itemProp("peoplePicker.model", "count") == 1
     assert (
@@ -120,7 +141,7 @@ def test_one_existing_one_not(scene, picker):
     existingPerson = scene.query1(firstName="Patrick", lastName="Stinson")
     assert model.index(0, 0).data(PersonRole) == existingPerson
 
-    newPersonDelegate = _add_new_person(picker, "Someone new")
+    newPersonDelegate = add_new_person(picker, "Someone new")
     assert picker.itemProp("peoplePicker.model", "count") == 2
     assert (
         newPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible") == True
@@ -135,14 +156,17 @@ def test_one_existing_one_not(scene, picker):
 
 
 def test_add_lots_of_mixed(scene, picker):
+    patrick = scene.query1(name="Patrick")
+    lulu = scene.query1(name="Lulu")
+    connie = scene.query1(name="Connie")
     model = picker.itemProp("peoplePicker", "model")
-    _add_existing_person(picker, "Sti", "Patrick Stinson")
-    _add_new_person(picker, "Someone new")
-    _add_existing_person(picker, "Lulu", "Lulu Lemon")
-    _add_existing_person(picker, "Ser", "Connie Service")
-    _add_new_person(picker, "Someone new 2")
-    _add_new_person(picker, "Someone new 3")
-    _add_new_person(picker, "Someone new 4")
+    add_existing_person(picker, patrick, autoCompleteInput="Sti")
+    add_new_person(picker, "Someone new")
+    add_existing_person(picker, lulu, autoCompleteInput="Lulu")
+    add_existing_person(picker, connie, autoCompleteInput="Ser")
+    add_new_person(picker, "Someone new 2")
+    add_new_person(picker, "Someone new 3")
+    add_new_person(picker, "Someone new 4")
 
     PersonRole = _get_role_id(model, "person")  # Added dynamically
     IsNewPersonRole = _get_role_id(model, "isNewPerson")  # Added dynamically
@@ -163,12 +187,14 @@ def test_add_lots_of_mixed(scene, picker):
 
 
 def test_add_then_delete_then_add(scene, picker):
+    patrick = scene.query1(name="Patrick")
+    connie = scene.query1(name="Connie")
     model = picker.itemProp("peoplePicker", "model")
-    delegate = _add_existing_person(picker, "Sti", "Patrick Stinson")
+    delegate = add_existing_person(picker, patrick, autoCompleteInput="Sti")
     assert model.rowCount() == 1
     _delete_person(picker, delegate)
     assert model.rowCount() == 0
-    _add_existing_person(picker, "Ser", "Connie Service")
+    add_existing_person(picker, connie, autoCompleteInput="Ser")
     assert model.rowCount() == 1
 
 

@@ -13,6 +13,7 @@ class EventKind(enum.Enum):
     Married = "married"
     Separated = "separated"
     Divorced = "divorced"
+    Moved = "moved"
 
     # Emotion
     Conflict = "conflict"
@@ -35,7 +36,7 @@ class EventKind(enum.Enum):
 
     @classmethod
     def isPairBond(cls, x) -> bool:
-        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced)
+        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced, cls.Moved)
 
     @classmethod
     def isEmotion(cls, x) -> bool:
@@ -70,13 +71,26 @@ class EventKind(enum.Enum):
         ]
 
     @classmethod
+    def eventLabelFor(cls, x) -> str:
+        if cls.isMonadic(x):
+            return x.name
+        elif cls.isDyadic(x):
+            return x.name
+        elif cls.isPairBond(x):
+            return x.name
+        elif x == EventKind.Custom:
+            return ""
+        else:
+            raise KeyError(f"Unknown event kind: {x}")
+
+    @classmethod
     def menuLabelFor(cls, x) -> str:
         if cls.isMonadic(x):
             return f"Individual - {x.name}"
-        elif cls.isDyadic(x):
-            return f"Dyad - {x.name}"
         elif cls.isPairBond(x):
             return f"Pair Bond - {x.name}"
+        elif cls.isDyadic(x):
+            return f"Dyad - {x.name}"
         elif x == EventKind.Custom:
             return f"Custom"
         else:
@@ -97,6 +111,7 @@ class EventKind(enum.Enum):
             cls.Married.value,
             cls.Separated.value,
             cls.Divorced.value,
+            cls.Moved.value,
             cls.Conflict.value,
             cls.Distance.value,
             cls.Projection.value,

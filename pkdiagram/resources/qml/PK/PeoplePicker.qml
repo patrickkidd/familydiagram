@@ -165,7 +165,7 @@ PK.GroupBox {
                                 autoCompletePopup.matchText = text
                                 // root.currentEditingItemDelegate = dRoot
                                 // print('onClicked: root.currentEditingItemDelegate = ' + dRoot)
-                                var total = 0
+                                var numMatches = 0
                                 for(var i=0; i < scenePeopleModel.rowCount(); i++) {
                                     var person = scenePeopleModel.personForRow(i)
                                     var personName = person.fullNameOrAlias()
@@ -175,15 +175,15 @@ PK.GroupBox {
                                     //     ', ' + textMatches
                                     // )
                                     if(textMatches && !root.alreadyInList(person)) {
-                                        total += 1
+                                        numMatches += 1
                                     }
                                 }
-                                if(total > 0) {
-                                    popupListView.height = total * util.QML_ITEM_HEIGHT
-                                    print('Showing ' + total + ' auto-complete matches, setting height: ' + popupListView.height)
+                                if(numMatches > 0) {
+                                    popupListView.height = numMatches * util.QML_ITEM_HEIGHT
+                                    // print('Showing ' + numMatches + ' matches for ' + text + ' , setting height: ' + popupListView.height)
                                     autoCompletePopup.open()
                                 } else if(autoCompletePopup.visible) {
-                                    print('Hiding autoCompletePopup for no text match.')
+                                    // print('Hiding autoCompletePopup for no text match.')
                                     autoCompletePopup.close()
                                 }
                             }

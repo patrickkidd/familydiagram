@@ -454,6 +454,13 @@ class QmlUtil(QObject, QObjectHelper):
             return False
         return EventKind.isEmotion(EventKind(x))
 
+    @pyqtSlot(str, result=str)
+    def eventKindEventLabelFor(self, x: str):
+        if x:
+            return EventKind.eventLabelFor(EventKind(x))
+        else:
+            return ""
+
     @pyqtSlot(result=list)
     def eventKindLabels(self):
         return [EventKind.menuLabelFor(EventKind(x)) for x in self.eventKindValues()]

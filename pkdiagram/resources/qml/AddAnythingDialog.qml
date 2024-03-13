@@ -211,11 +211,7 @@ PK.Drawer {
                         PK.TextField {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
-                            text: root.description
-                            visible: {
-                                // print(kindBox.valuesForIndex[kindBox.currentIndex])
-                                ! util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
-                            }
+                            enabled: kindBox.valuesForIndex[kindBox.currentIndex] == util.EventKind.Custom
                             property var eventKinds_Custom: util.EventKind.Custom
                             property var eventKinds_Custom_Value: util.EventKind.Custom.value
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
@@ -245,6 +241,7 @@ PK.Drawer {
                                     if (currentIndex != lastCurrentIndex) {
                                         lastCurrentIndex = currentIndex
                                         root.kind = currentValue()
+                                        descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
                                     }
                                 }
                                 function clear() { currentIndex = -1 }
