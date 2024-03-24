@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import QtGraphicalEffects 1.0
 import "." 1.0 as PK
 import PK.Models 1.0
 
@@ -100,7 +101,7 @@ PK.GroupBox {
                 property bool isPersonDelegate: true
                 property bool isSubmitted: false
                 onIsSubmittedChanged: {
-                    print('isSubmitted: autoCompletePopup.close()')
+                    // print('isSubmitted: autoCompletePopup.close()')
                     autoCompletePopup.close()
                 }
 
@@ -265,6 +266,14 @@ PK.GroupBox {
                 id: popupListView
                 objectName: "popupListView"
                 model: scenePeopleModel
+                layer.enabled: true
+                layer.effect: DropShadow {
+                    color: "black"
+                    radius: 8
+                    samples: 16
+                    source: popupListView
+                }                    
+
                 delegate: ItemDelegate {
                     id: dRoot
                     text: fullNameOrAlias // modelData
@@ -317,7 +326,10 @@ PK.GroupBox {
             removeButtonEnabled: list.count > 0 && root.currentIndex >= 0
             removeButton: true
             removeButtonToolTip: 'Remove the selected person from this event'
-            onRemove: model.remove(root.currentIndex)
+            onRemove: {
+                model.remove(root.currentIndex)
+                root.currentIndex = -1
+            } 
         }
     }
 }
