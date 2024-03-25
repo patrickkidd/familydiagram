@@ -182,3 +182,36 @@ def test_no_confirm_replace_events(qtbot, scene, dlg, kind):
     else:
         assert people[0].deceasedDateTime() == SET_START_DATETIME
         assert people[1].deceasedDateTime() == SET_START_DATETIME
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        EventKind.Conflict,
+        EventKind.Distance,
+        EventKind.Reciprocity,
+        EventKind.Projection,
+        EventKind.Toward,
+        EventKind.Away,
+        EventKind.Inside,
+        EventKind.Outside,
+        EventKind.DefinedSelf,
+    ],
+)
+def test_confirm_adding_many_symbols(qtbot, scene, dlg, kind):
+    peopleA = [
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+    ]
+    peopleB = [
+        Person(name="Jack", lastName="Doe"),
+        Person(name="Jill", lastName="Doe"),
+    ]
+    scene.addItems(*(peopleA + peopleB))
+    _set_fields(dlg, kind, peopleA=peopleA, peopleB=peopleB, fillRequired=True)
+    qtbot.clickYesAfter(
+        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
+    )
+    assert len(scene.emotions()) == 4
+    assert len(scene.people()) == 4

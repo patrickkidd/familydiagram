@@ -39,6 +39,7 @@ class AddAnythingDialog(QmlDrawer):
     S_EVENT_DYADIC = "This event type can only be added to two people."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
     S_REPLACE_EXISTING = "This will replace {n_existing} of the {eventKind} events in the selected people."
+    S_ADD_MANY_SYMBOLS = "Are you sure you want to create {numSymbols} symbols, with a separate symbol between each mover and each receiver listed?"
 
     def __init__(self, parent=None, sceneModel=None):
         super().__init__(
@@ -160,11 +161,58 @@ class AddAnythingDialog(QmlDrawer):
             ):
                 return
 
+        if eventKind in (
+            EventKind.Conflict,
+            EventKind.Distance,
+            EventKind.Reciprocity,
+            EventKind.Projection,
+            EventKind.Fusion,
+            EventKind.Toward,
+            EventKind.Away,
+            EventKind.Inside,
+            EventKind.Outside,
+            EventKind.DefinedSelf,
+        ):
+            numSymbols = len(peopleInfosA) * len(peopleInfosB)
+            if numSymbols > 3:
+                button = QMessageBox.question(
+                    self,
+                    "Create large number of symbols?",
+                    self.S_ADD_MANY_SYMBOLS.format(numSymbols=numSymbols),
+                )
+                if button == QMessageBox.NoButton:
+                    return
+
         commands.addPeople(self.scene, people_to_add, id=undo_id)
 
         # Kind-specific logic
 
-        if EventKind.isPairBond(eventKind):
+        if eventKind in (EventKind.Birth, EventKind.Adopted):
+            for person in peopleA:
+                if eventKind == EventKind.Birth:
+                    person.setBirthDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.birthEvent.setLocation(location)
+                elif eventKind == EventKind.Adopted:
+                    person.setAdoptedDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.adoptedEvent.setLocation(location)
+        elif eventKind == EventKind.Death:
+            for person in peopleA:
+                person.setDeceasedDateTime(startDateTime, undo=undo_id)
+                if location:
+                    person.deathEvent.setLocation(location)
+        elif eventKind == EventKind.CustomIndividual:
+            # commands.addEvent(Event(people, uniqueId=eventKind.value), id=undo_id)
+            raise NotImplementedError("EventKind.CustomIndividual")
+        elif eventKind in (
+            EventKind.Bonded,
+            EventKind.Married,
+            EventKind.Separated,
+            EventKind.Divorced,
+            EventKind.Moved,
+            EventKind.CustomPairBond,
+        ):
             personA = peopleA[0]
             personB = peopleB[0]
             if personA.marriages():
@@ -178,34 +226,32 @@ class AddAnythingDialog(QmlDrawer):
                 )
 
             commands.addEvent(
-                marriage, Event(marriage, uniqueId=eventKind.value), id=undo_id
+                marriage,
+                Event(marriage, uniqueId=eventKind.value, location=location),
+                id=undo_id,
             )
-
-        elif EventKind.isEmotion(eventKind):
+        elif eventKind in (
+            EventKind.Conflict,
+            EventKind.Distance,
+            EventKind.Reciprocity,
+            EventKind.Projection,
+            EventKind.Fusion,
+            EventKind.Toward,
+            EventKind.Away,
+            EventKind.Inside,
+            EventKind.Outside,
+            EventKind.DefinedSelf,
+        ):
             itemMode = EventKind.itemModeFor(eventKind)
-            emotion = Emotion(kind=itemMode, personA=peopleA, personB=peopleB)
-            if EventKind.isDyadic(eventKind):
-                personA = peopleA[0]
-                personB = peopleB[0]
-            else:
-                person = peopleA[0]
-
-            commands.addEmotion(emotion, id=undo_id)
-
-        elif EventKind.isMonadic(eventKind):
-            for person in peopleA:
-                if eventKind == EventKind.Birth:
-                    person.setBirthDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.birthEvent.setLocation(location)
-                elif eventKind == EventKind.Adopted:
-                    person.setAdoptedDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.adoptedEvent.setLocation(location)
-                elif eventKind == EventKind.Death:
-                    person.setDeceasedDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.deathEvent.setLocation(location)
+            for personA in peopleA:
+                for personB in peopleB:
+                    commands.addEmotion(
+                        self.scene,
+                        Emotion(kind=itemMode, personA=personA, personB=personB),
+                        id=undo_id,
+                    )
+        else:
+            raise ValueError(f"Don't know how to handle event kind {eventKind}")
 
         # FORM = [
         #     "kind",

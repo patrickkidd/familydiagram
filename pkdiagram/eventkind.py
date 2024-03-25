@@ -23,6 +23,7 @@ class EventKind(enum.Enum):
     CustomPairBond = "custom-pairbond"
 
     # Emotion
+    Fusion = "fusion"
     Conflict = "conflict"
     Distance = "distance"
     Projection = "projection"
@@ -182,19 +183,21 @@ class EventKind(enum.Enum):
             return util.ITEM_CUTOFF
         elif kind == EventKind.Conflict:
             return util.ITEM_CONFLICT
-        elif kind == EventKind.Projection:
-            return util.ITEM_PROJECTION
         elif kind == EventKind.Distance:
             return util.ITEM_DISTANCE
+        elif kind == EventKind.Reciprocity:
+            return util.ITEM_RECIPROCITY
+        elif kind == EventKind.Projection:
+            return util.ITEM_PROJECTION
         elif kind == EventKind.Toward:
             return util.ITEM_TOWARD
         elif kind == EventKind.Away:
             return util.ITEM_AWAY
-        elif kind == EventKind.DefinedSelf:
-            return util.ITEM_DEFINED_SELF
         elif kind == EventKind.Inside:
             return util.ITEM_INSIDE
         elif kind == EventKind.Outside:
             return util.ITEM_OUTSIDE
+        elif kind == EventKind.DefinedSelf:
+            return util.ITEM_DEFINED_SELF
         else:
             raise KeyError(f"No ITEM_MODE for: {kind}")
