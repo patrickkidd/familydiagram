@@ -656,6 +656,9 @@ class Scene(QGraphicsScene, Item):
                     erroredOut.append(item)
             self.setBatchAddingRemovingItems(True)
             for item in items:
+                if item.isEmotion and item.personA() is None:
+                    log.warning(f"Emotion {item} has no personA, skipping loading...")
+                    continue
                 self.addItem(
                     item
                 )  # don't use addItems() to avoid calling updateAll() until layer
@@ -672,7 +675,7 @@ class Scene(QGraphicsScene, Item):
             compat.update_scene(self, data)
             self.resortLayersFromOrder()
             self.setBatchAddingRemovingItems(False)
-        except:
+        except Exception as e:
             import traceback
 
             traceback.print_exc()
