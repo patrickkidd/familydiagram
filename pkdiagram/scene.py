@@ -306,7 +306,7 @@ class Scene(QGraphicsScene, Item):
         ) and not item.scene() is self:
             super().addItem(item)
         if not isinstance(item, Item):
-            return
+            raise ValueError(f"Expected an Item object, not {item}")
         if register:
             if item.id is None:
                 item.id = self.nextId()
@@ -393,7 +393,7 @@ class Scene(QGraphicsScene, Item):
             self.addItem(item)
         self.setBatchAddingRemovingItems(False)
 
-    def remoteItems(self, *args):
+    def removeItems(self, *args):
         self.setBatchAddingRemovingItems(True)
         for item in args:
             self.removeItem(item)
@@ -1459,7 +1459,7 @@ class Scene(QGraphicsScene, Item):
     def findById(self, id: int):
         if id is not None:
             return self.find(id=id)
-        
+
     def itemsWithTags(self, tags=[], kind=Item):
         ret = []
         for id, item in self.itemRegistry.items():

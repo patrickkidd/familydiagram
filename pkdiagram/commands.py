@@ -114,10 +114,10 @@ class AddPeople(UndoCommand):
         self.people = people
 
     def redo(self):
-        self.scene.addItems(self.people)
+        self.scene.addItems(*self.people)
 
     def undo(self):
-        self.scene.removeItems(self.people)
+        self.scene.removeItems(*self.people)
 
 
 def addPeople(scene, people, id=-1):

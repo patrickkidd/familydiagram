@@ -160,7 +160,7 @@ class AddAnythingDialog(QmlDrawer):
             ):
                 return
 
-        commands.addPeople(self.scene, people, id=undo_id)
+        commands.addPeople(self.scene, people_to_add, id=undo_id)
 
         # Kind-specific logic
 
