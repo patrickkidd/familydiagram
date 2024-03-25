@@ -120,8 +120,8 @@ class AddPeople(UndoCommand):
         self.scene.removeItems(self.people)
 
 
-def addPeople(*args):
-    cmd = AddPeople(*args)
+def addPeople(scene, people, id=-1):
+    cmd = AddPeople(scene, people, id=id)
     stack().push(cmd)
 
 
@@ -507,8 +507,8 @@ def moveItem(item, pos, id):
 
 
 class AddMarriage(UndoCommand):
-    def __init__(self, scene, item1, item2):
-        super().__init__("Add marriage")
+    def __init__(self, scene, item1, item2, id=-1):
+        super().__init__("Add marriage", id)
         self.scene = scene
         self.item1 = item1
         self.item2 = item2
@@ -526,8 +526,8 @@ class AddMarriage(UndoCommand):
         self.scene.removeItem(self.marriage)
 
 
-def addMarriage(scene, a, b):
-    cmd = AddMarriage(scene, a, b)
+def addMarriage(scene, a, b, undo_id=None):
+    cmd = AddMarriage(scene, a, b, id=undo_id)
     stack().push(cmd)
     return cmd.marriage
 
@@ -652,8 +652,8 @@ class AddEvent(UndoCommand):
         self.event.setParent(None)
 
 
-def addEvent(parent, **kwargs):
-    cmd = AddEvent(parent, **kwargs)
+def addEvent(parent, event):
+    cmd = AddEvent(parent, event)
     stack().push(cmd)
     return cmd.event
 
@@ -741,8 +741,8 @@ def setMultipleBirth(*args, **kwargs):
 
 
 class AddEmotion(UndoCommand):
-    def __init__(self, scene, emotion):
-        super().__init__("Add " + emotion.__class__.__name__)
+    def __init__(self, scene, emotion, id=-1):
+        super().__init__("Add " + emotion.__class__.__name__, id)
         self.scene = scene
         self.emotion = emotion
         self.personA = emotion.personA()
@@ -764,8 +764,8 @@ class AddEmotion(UndoCommand):
         self.scene.removeItem(self.emotion)
 
 
-def addEmotion(*args):
-    cmd = AddEmotion(*args)
+def addEmotion(scene, emotion, id=-1):
+    cmd = AddEmotion(scene, emotion, id=id)
     stack().push(cmd)
 
 
@@ -796,10 +796,10 @@ class ErasePencilStroke(UndoCommand):
         self.item = item
 
     def redo(self):
-        self.scene.removeItem(item)
+        self.scene.removeItem(self.item)
 
     def undo(self):
-        self.scene.addItem(item)
+        self.scene.addItem(self.item)
 
 
 class CutItems(RemoveItems):

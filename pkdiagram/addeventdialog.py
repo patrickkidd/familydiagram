@@ -84,7 +84,7 @@ class AddEventDialog(QmlDrawer):
             )
             return
         self.event.addDummy = False
-        commands.addEvent(self.event.parent, event=self.event)
+        commands.addEvent(self.event.parent, self.event)
         self.event = None
         self._canceled = True  # hack
         self.completeClickClose()

@@ -101,6 +101,17 @@
             ]
         },
         {
+            "name": "sysroot-dev PersonPicker (macOS)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--qml-module",
+                "PersonPicker"
+            ]
+        },
+        {
             "name": "sysroot-dev PeoplePicker (macOS)",
             "type": "debugpy",
             "request": "launch",

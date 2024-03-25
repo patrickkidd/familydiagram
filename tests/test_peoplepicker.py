@@ -6,7 +6,6 @@ from pkdiagram import util, objects
 from pkdiagram.pyqt import Qt, QVBoxLayout, QWidget, QQuickItem
 from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
 
-
 _log = logging.getLogger(__name__)
 
 
@@ -56,14 +55,17 @@ def add_and_keyClicks(
     peoplePickerObjectName="peoplePicker",
     returnToFinish: bool = True,
 ) -> QQuickItem:
+
     _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
+
     peoplePicker = picker.findItem(peoplePickerObjectName)
     itemAddDone = util.Condition(peoplePicker.itemAddDone)
     picker.mouseClick(f"{peoplePickerObjectName}.addButton")
     assert itemAddDone.wait() == True
     itemDelegate = itemAddDone.callArgs[-1][0]
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
-    assert picker.itemProp("popupListView", "visible") == False
+    popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
+    assert popupListView.property("visible") == False
     picker.keyClicks(
         textEdit, textInput, resetFocus=False, returnToFinish=returnToFinish
     )
@@ -71,7 +73,10 @@ def add_and_keyClicks(
 
 
 def add_new_person(
-    picker: QmlWidgetHelper, textInput: str, peoplePickerObjectName="peoplePicker", returnToFinish=True
+    picker: QmlWidgetHelper,
+    textInput: str,
+    peoplePickerObjectName="peoplePicker",
+    returnToFinish=True,
 ) -> QQuickItem:
     itemDelegate = add_and_keyClicks(
         picker,
@@ -97,10 +102,9 @@ def add_existing_person(
         peoplePickerObjectName=peoplePickerObjectName,
         returnToFinish=False,
     )
-    assert picker.itemProp(f"{peoplePickerObjectName}.popupListView", "visible") == True
-    picker.clickListViewItem_actual(
-        f"{peoplePickerObjectName}.popupListView", person.fullNameOrAlias()
-    ) == True
+    popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
+    assert popupListView.property("visible") == True
+    picker.clickListViewItem_actual(popupListView, person.fullNameOrAlias()) == True
     return itemDelegate
 
 
@@ -118,7 +122,6 @@ def _get_role_id(model, role_name):
     for role_id, name in roles.items():
         if name == role_name:
             return role_id
-    return None
 
 
 def test_one_existing_one_not(scene, picker):
@@ -128,7 +131,6 @@ def test_one_existing_one_not(scene, picker):
     existingPersonDelegate = add_existing_person(
         picker, patrick, autoCompleteInput="Sti"
     )
-    PersonRole = _get_role_id(model, "person")  # Added dynamically
     assert picker.itemProp("peoplePicker.model", "count") == 1
     assert (
         existingPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible")
@@ -139,6 +141,14 @@ def test_one_existing_one_not(scene, picker):
         == True
     )
     existingPerson = scene.query1(firstName="Patrick", lastName="Stinson")
+    PersonNameRole = _get_role_id(model, "personName")
+    IsNewPersonRole = _get_role_id(model, "isNewPerson")
+    PersonRole = _get_role_id(model, "person")  # Added dynamically
+    person = model.index(0, 0).data(PersonRole)
+    isNewPerson = model.index(0, 0).data(IsNewPersonRole)
+    personName = model.index(0, 0).data(PersonNameRole)
+    assert PersonRole is not None
+    assert model.rowCount() == 1
     assert model.index(0, 0).data(PersonRole) == existingPerson
 
     newPersonDelegate = add_new_person(picker, "Someone new")
@@ -196,6 +206,17 @@ def test_add_then_delete_then_add(scene, picker):
     assert model.rowCount() == 0
     add_existing_person(picker, connie, autoCompleteInput="Ser")
     assert model.rowCount() == 1
+
+
+def test_maintain_selectedPeopleModel(scene, picker):
+    patrick = scene.query1(name="Patrick")
+    model = picker.itemProp("peoplePicker", "model")
+    delegate = add_existing_person(picker, patrick, autoCompleteInput="Sti")
+    assert model.rowCount() == 1
+    assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 1
+    _delete_person(picker, delegate)
+    assert model.rowCount() == 0
+    assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 0
 
 
 # test_one_existing_one_not

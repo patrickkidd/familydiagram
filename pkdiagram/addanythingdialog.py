@@ -2,7 +2,7 @@ import logging
 
 from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal
 from . import objects, util, commands
-from .objects import Person, Emotion, Event
+from .objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
 from .util import EventKind
 
@@ -38,6 +38,7 @@ class AddAnythingDialog(QmlDrawer):
     S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS = "This event type pertains to individuals so a separate event will be added to each one."
     S_EVENT_DYADIC = "This event type can only be added to two people."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
+    S_REPLACE_EXISTING = "This will replace {n_existing} of the {eventKind} events in the selected people."
 
     def __init__(self, parent=None, sceneModel=None):
         super().__init__(
@@ -77,8 +78,8 @@ class AddAnythingDialog(QmlDrawer):
             objectName = "peopleBLabel"
         elif not self.rootProp("description"):
             objectName = "descriptionLabel"
-        elif not self.rootProp("location"):
-            objectName = "locationLabel"
+        # elif not self.rootProp("location"):
+        #     objectName = "locationLabel"
         elif not self.rootProp("startDateTime"):
             objectName = "startDateTimeLabel"
         elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
@@ -95,25 +96,25 @@ class AddAnythingDialog(QmlDrawer):
                 msg,
                 QMessageBox.Ok,
             )
-
-        # Validate correct values
+            return
 
         # Validation checks from AddAnythingDialog.qml
-        # if not self.event.kind(): # or not self.event.kind().isValid():
-        undo_id = commands.nextId()
-        items_to_add = []
 
         people = []
-        peopleInfos = []
-        peoplePickerAModel = self.itemProp("peoplePickerA", "model")
-        for i in range(peoplePickerAModel.rowCount()):
-            modelData = peoplePickerAModel.get(i).toVariant()
-            peopleInfos.append(
-                {
+        peopleInfosA = []
+        peopleInfosB = []
+        for peoplePicker in ("peoplePickerA", "peoplePickerB"):
+            model = self.itemProp(peoplePicker, "model")
+            for i in range(model.rowCount()):
+                modelData = model.get(i).toVariant()
+                info = {
                     "personName": modelData.property("personName"),
                     "person": modelData.property("person"),
                 }
-            )
+                if peoplePicker == "peoplePickerA":
+                    peopleInfosA.append(info)
+                elif peoplePicker == "peoplePickerB":
+                    peopleInfosB.append(info)
         kind = self.rootProp("kind")
         description = self.rootProp("description")
         location = self.rootProp("location")
@@ -123,23 +124,105 @@ class AddAnythingDialog(QmlDrawer):
         functioning = self.rootProp("functioning")
         symptom = self.rootProp("symptom")
 
-        for item in peopleInfos:
-            if item["person"]:
-                people.append(item["person"])
-            else:
+        eventKind = EventKind(kind)
+        peopleA = [p["person"] for p in peopleInfosA]
+        peopleB = [p["person"] for p in peopleInfosB]
+
+        undo_id = commands.nextId()
+        people_to_add = []
+
+        for item in peopleInfosA + peopleInfosB:
+            if not item["person"]:
                 parts = item["personName"].split(" ")
                 firstName, lastName = parts[0], " ".join(parts[1:])
                 person = Person(name=firstName, lastName=lastName)
-                items_to_add.append(person)
+                people_to_add.append(person)
                 people.append(person)
 
-        if kind == EventKind.Birth.value:
-            for person in people:
-                person.setBirthDateTime(startDateTime, undo=undo_id)
-                if location:
-                    person.birthEvent.setLocation(location)
+        if EventKind.isSingular(eventKind):
 
-        self.scene.addItems(*items_to_add)
+            if eventKind == EventKind.Birth:
+                n_existing = sum([1 for x in peopleA if x.birthDateTime()])
+            elif eventKind == EventKind.Death:
+                n_existing = sum([1 for x in peopleA if x.deceasedDateTime()])
+            else:
+                n_existing = 0
+            if (
+                n_existing > 0
+                and QMessageBox.question(
+                    self,
+                    f"Replace {eventKind.name} event(s)?",
+                    self.S_REPLACE_EXISTING.format(
+                        n_existing=n_existing, eventKind=eventKind
+                    ),
+                )
+                == QMessageBox.NoButton
+            ):
+                return
+
+        commands.addPeople(self.scene, people, id=undo_id)
+
+        # Kind-specific logic
+
+        if EventKind.isPairBond(eventKind):
+            personA = peopleA[0]
+            personB = peopleB[0]
+            if personA.marriages():
+                marriage = personB.marriages()[0]
+            else:
+                # Generally there is only one marriage item per person. Multiple
+                # marriages/weddings between the same person just get separate
+                # `married`` events.
+                marriage = commands.addMarriage(
+                    self.scene, personA, personB, id=undo_id
+                )
+
+            commands.addEvent(
+                marriage, Event(marriage, uniqueId=eventKind.value), id=undo_id
+            )
+
+        elif EventKind.isEmotion(eventKind):
+            itemMode = EventKind.itemModeFor(eventKind)
+            emotion = Emotion(kind=itemMode, personA=peopleA, personB=peopleB)
+            if EventKind.isDyadic(eventKind):
+                personA = peopleA[0]
+                personB = peopleB[0]
+            else:
+                person = peopleA[0]
+
+            commands.addEmotion(emotion, id=undo_id)
+
+        elif EventKind.isMonadic(eventKind):
+            for person in peopleA:
+                if eventKind == EventKind.Birth:
+                    person.setBirthDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.birthEvent.setLocation(location)
+                elif eventKind == EventKind.Adopted:
+                    person.setAdoptedDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.adoptedEvent.setLocation(location)
+                elif eventKind == EventKind.Death:
+                    person.setDeceasedDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.deathEvent.setLocation(location)
+
+        # FORM = [
+        #     "kind",
+        #     "description",
+        #     "anxiety",
+        #     "functioning",
+        #     "symptom",
+        #     "location",
+        #     "description",
+        #     "isDateRange",
+        #     "startDateTime",
+        #     "startDateUnsure",
+        #     "endDateTime",
+        #     "endDateUnsure",
+        #     "nodal",
+        # ]
+        # values = {k: self.property(k) for k, v in FORM.items()}
         self.submitted.emit()  # for testing
 
     def validateFields(self):

@@ -115,6 +115,10 @@ class Marriage(PathItem):
         y_end = min(pos.y(), y_bottom)
         path.lineTo(QPointF(pos.x(), y_end))
         return path
+    
+    @staticmethod
+    def marriagesFor(self, personA, personB):
+        return [m for m in personA.marriages() if m.personB() == personB]
 
     PathItem.registerProperties(
         (

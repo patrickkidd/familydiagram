@@ -473,8 +473,22 @@ class QmlUtil(QObject, QObjectHelper):
     def eventPersonALabel(self, kind: str):
         if kind:
             return EventKind.personALabel(EventKind(kind))
+        else:
+            return "People"
 
     @pyqtSlot(str, result=str)
     def eventPersonBLabel(self, kind: str):
         if kind:
             return EventKind.personBLabel(EventKind(kind))
+        else:
+            return ""
+
+    @pyqtSlot(str, result=bool)
+    def isCustomEventType(self, x):
+        if x == "":
+            return False
+        return EventKind.isCustom(EventKind(x))
+
+    @pyqtSlot(int, result=str)
+    def personKindFromIndex(self, index):
+        return util.personKindFromIndex(index)

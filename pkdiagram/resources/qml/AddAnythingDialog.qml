@@ -48,7 +48,6 @@ PK.Drawer {
     property var dirty: false;
 
     function clear() {
-        root.kind = null
         peoplePickerA.clear()
         peoplePickerB.clear()
         kindBox.clear()
@@ -61,6 +60,7 @@ PK.Drawer {
         functioningBox.clear()
         symptomBox.clear()
         nodalBox.clear()
+        addPage.scrollToTop()
 
         root.dirty = false;
     }
@@ -129,7 +129,7 @@ PK.Drawer {
             id: addPage
             contentWidth: width
             contentHeight: addPageInner.childrenRect.height + root.margin * 2
-
+            function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
                 anchors.fill: parent
@@ -156,6 +156,7 @@ PK.Drawer {
                             objectName: "peopleALabel"
                             text: {
                                 var kind = kindBox.valuesForIndex[kindBox.currentIndex]
+                                print('peopleALabel: ' + kind)
                                 util.eventPersonALabel(kind)
                             }
                         }
@@ -211,9 +212,7 @@ PK.Drawer {
                         PK.TextField {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
-                            enabled: kindBox.valuesForIndex[kindBox.currentIndex] == util.EventKind.Custom
-                            property var eventKinds_Custom: util.EventKind.Custom
-                            property var eventKinds_Custom_Value: util.EventKind.Custom.value
+                            enabled: util.isCustomEventType(kindBox.valuesForIndex[kindBox.currentIndex])
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             KeyNavigation.tab: kindBox

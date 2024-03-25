@@ -9,24 +9,28 @@ Rectangle {
     anchors.fill: parent
 
     property var model: null
-    property var sceneModel: null; // just a dummy to be a false/null condition
-    property var peopleModel: null;
+    property var sceneModel: null // just a dummy to be a false/null condition
+    property var peopleModel: null
     signal done;
     color: util.QML_ITEM_BG
 
     function setCurrentTab(x) {}
+    function setPersonIdSelected(personId) {
+        var person = sceneModel.item(personId) // had trouble passing the Person directly
+        personPicker.selectedPeopleModel.append({ person: person, isNewPerson: false })
+    }
 
     ColumnLayout {
         id: testLayout
         anchors.fill: parent
 
-        PK.PeoplePicker {
-            id: peoplePicker
+        PK.PersonPicker {
+            id: personPicker
             scenePeopleModel: peopleModel
-            objectName: "peoplePicker"
+            objectName: "personPicker"
             Layout.fillWidth: true
-            Layout.minimumHeight: 300
-            Layout.maximumHeight: 300
+            Layout.minimumHeight: util.QML_ITEM_HEIGHT
+            Layout.maximumHeight: util.QML_ITEM_HEIGHT
         }
 
         Rectangle {

@@ -640,22 +640,4 @@ class DocumentController(QObject):
         self.dv.inspectSelection(tab="notes")
 
     def onAddAnythingSubmitted(self):
-        dlg = self.dv.addAnythingDialog
-        FORM = [
-            "kind",
-            "description",
-            "anxiety",
-            "functioning",
-            "symptom",
-            "location",
-            "description",
-            "isDateRange",
-            "startDateTime",
-            "startDateUnsure",
-            "endDateTime",
-            "endDateUnsure",
-            "nodal",
-        ]
-        values = {k: dlg.property(k) for k, v in FORM.items()}
-        # peopleToCreate = self.dv.addAnythingDialog.property("peopleToCreate")
-        print(values)
+        log.info("onAddAnythingSubmitted")

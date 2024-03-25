@@ -472,10 +472,15 @@ class Person(PathItem):
 
     @pyqtSlot(result=str)
     def listLabel(self):
-        if not self.birthDateTime():
-            return f"{self.fullNameOrAlias()} b. {self.birthDateTime(string=True)}"
-        else:
-            return self.fullNameOrAlias()
+        """
+        Some more richer label to help identify the person when there are
+        duplicate names.
+        """
+        return self.fullNameOrAlias()
+        # if self.birthDateTime():
+        #     return f"{self.fullNameOrAlias()} b. {self.birthDateTime(string=True)}"
+        # else:
+        #     return self.fullNameOrAlias()
 
     def itemName(self):
         return self.fullNameOrAlias()

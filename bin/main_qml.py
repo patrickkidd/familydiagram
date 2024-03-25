@@ -86,6 +86,18 @@ def __test__PeoplePicker(scene, parent, sceneModel):
     return pp
 
 
+def __test__PersonPicker(scene, parent, sceneModel):
+    _init_scene_for_people_picker(scene)
+    pp = QmlDrawer(
+        "tests/qml/PersonPickerTest.qml", parent=parent, sceneModel=sceneModel
+    )
+    pp.setScene(scene)
+    pp.show(animate=False)
+    parent.resize(400, 600)
+    parent.show()
+    return pp
+
+
 def __test__CaseProperties(scene, parent, sceneModel):
     w = QmlDrawer("qml/CaseProperties.qml", parent=parent, sceneModel=sceneModel)
     scene.setTags(scene.tags() + ["here", "you", "are"])
