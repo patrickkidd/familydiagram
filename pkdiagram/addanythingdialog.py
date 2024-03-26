@@ -17,8 +17,8 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "clear"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
-            {"name": "setExistingPeopleA"},
-            {"name": "setExistingPeopleB"},
+            {"name": "initWithPairBond" },
+            {"name": "initWithPeople" },
             {
                 "name": "existingPeopleA",
                 "return": True,
@@ -63,6 +63,14 @@ class AddAnythingDialog(QmlDrawer):
             self.onCancel()
             return True
         return False
+
+    def initForSelection(self, selection):
+        pairBond = Marriage.marriageForSelection(selection)
+        if pairBond:
+            self.initWithPairBond(pairBond)
+
+        elif any(x.isPerson for x in selection):
+            self.initWithPeople(selection)
 
     def onDone(self):
         _log.info(f"AddAnythingDialog.onDone")
@@ -140,10 +148,12 @@ class AddAnythingDialog(QmlDrawer):
                 people_to_add.append(person)
                 people.append(person)
 
-        if EventKind.isSingular(eventKind):
+        if eventKind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
 
             if eventKind == EventKind.Birth:
                 n_existing = sum([1 for x in peopleA if x.birthDateTime()])
+            elif eventKind == EventKind.Adopted:
+                n_existing = sum([1 for x in peopleA if x.adoptedDateTime()])
             elif eventKind == EventKind.Death:
                 n_existing = sum([1 for x in peopleA if x.deceasedDateTime()])
             else:
@@ -190,21 +200,29 @@ class AddAnythingDialog(QmlDrawer):
         if eventKind in (EventKind.Birth, EventKind.Adopted):
             for person in peopleA:
                 if eventKind == EventKind.Birth:
-                    person.setBirthDateTime(startDateTime, undo=undo_id)
+                    person.birthEvent.setDateTime(startDateTime, undo=undo_id)
                     if location:
-                        person.birthEvent.setLocation(location)
+                        person.birthEvent.setLocation(location, undo=undo_id)
                 elif eventKind == EventKind.Adopted:
-                    person.setAdoptedDateTime(startDateTime, undo=undo_id)
+                    person.adoptedEvent.setDateTime(startDateTime, undo=undo_id)
                     if location:
-                        person.adoptedEvent.setLocation(location)
-        elif eventKind == EventKind.Death:
-            for person in peopleA:
-                person.setDeceasedDateTime(startDateTime, undo=undo_id)
-                if location:
-                    person.deathEvent.setLocation(location)
+                        person.adoptedEvent.setLocation(location, undo=undo_id)
+                elif eventKind == EventKind.Death:
+                    person.deceasedEvent.setDateTime(startDateTime, undo=undo_id)
+                    if location:
+                        person.deathEvent.setLocation(location, undo=undo_id)
+
         elif eventKind == EventKind.CustomIndividual:
-            # commands.addEvent(Event(people, uniqueId=eventKind.value), id=undo_id)
-            raise NotImplementedError("EventKind.CustomIndividual")
+            commands.addEvent(
+                Event(
+                    personA,
+                    description=description,
+                    location=location,
+                    uniqueId=eventKind.value,
+                ),
+                id=undo_id,
+            )
+
         elif eventKind in (
             EventKind.Bonded,
             EventKind.Married,
@@ -215,9 +233,8 @@ class AddAnythingDialog(QmlDrawer):
         ):
             personA = peopleA[0]
             personB = peopleB[0]
-            if personA.marriages():
-                marriage = personB.marriages()[0]
-            else:
+            marriage = Marriage.marriageFor(personA, personB)
+            if not marriage:
                 # Generally there is only one marriage item per person. Multiple
                 # marriages/weddings between the same person just get separate
                 # `married`` events.
@@ -270,31 +287,6 @@ class AddAnythingDialog(QmlDrawer):
         # ]
         # values = {k: self.property(k) for k, v in FORM.items()}
         self.submitted.emit()  # for testing
-
-    def validateFields(self):
-        peopleInfos = self.rootProp("peopleModel")
-        kind = self.rootProp("kind")
-        description = self.rootProp("description")
-        location = self.rootProp("location")
-        startDateTime = self.rootProp("startDateTime")
-        endDateTime = self.rootProp("endDateTime")
-        anxiety = self.rootProp("anxiety")
-        functioning = self.rootProp("functioning")
-        symptom = self.rootProp("symptom")
-
-        # Number of people for event type
-        if not EventKind.isDyadic(kind) and len(peopleInfos) != 1:
-            self.findItem("peopleHelpText").setProperty(
-                "text",
-                self.S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS.format(
-                    numPeople=len(peopleInfos)
-                ),
-            )
-
-        if EventKind.isDyadic(kind) and len(peopleInfos) != 2:
-            QMessageBox.warning(self, "Dyadic event", self.S_EVENT_DYADIC)
-
-        return False
 
     def canClose(self):
         if self.property("dirty") and not self._canceled:

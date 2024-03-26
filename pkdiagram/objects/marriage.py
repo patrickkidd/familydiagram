@@ -1,5 +1,7 @@
 import logging
 from ..pyqt import (
+    pyqtSlot,
+    QObject,
     QGraphicsItem,
     QPen,
     QPainterPath,
@@ -115,10 +117,19 @@ class Marriage(PathItem):
         y_end = min(pos.y(), y_bottom)
         path.lineTo(QPointF(pos.x(), y_end))
         return path
-    
+
     @staticmethod
-    def marriagesFor(self, personA, personB):
-        return [m for m in personA.marriages() if m.personB() == personB]
+    def marriagesFor(personA, personB):
+        return [m for m in personA.marriages if m.personB() == personB]
+
+    @staticmethod
+    def marriageForSelection(selection):
+        people = [x for x in selection if x.isPerson]
+        if len(people) != 2:
+            return None
+        marriages = Marriage.marriagesFor(people[0], people[1])
+        if marriages:
+            return marriages[0]
 
     PathItem.registerProperties(
         (
@@ -346,9 +357,11 @@ class Marriage(PathItem):
             else:
                 return self.people[0]
 
+    @pyqtSlot(result=QObject)
     def personA(self):
         return self.people[0]
 
+    @pyqtSlot(result=QObject)
     def personB(self):
         return self.people[1]
 

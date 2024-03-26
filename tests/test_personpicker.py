@@ -58,13 +58,13 @@ def picker(scene, qtbot):
     dlg.hide()
 
 
-def set_new_keyClicks(
+def set_new_person(
     picker: QmlWidgetHelper,
     textInput: str,
     gender: str = None,
     returnToFinish: bool = False,
 ) -> QQuickItem:
-    _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
+    _log.info(f"set_new_person('{textInput}', {returnToFinish})")
 
     if gender is None:
         gender = util.PERSON_KIND_NAMES[0]
@@ -75,7 +75,7 @@ def set_new_keyClicks(
         "textEdit", textInput, resetFocus=False, returnToFinish=returnToFinish
     )
     if gender:
-        picker.clickComboBoxItem("genderComboBox", gender)
+        picker.clickComboBoxItem("genderBox", gender)
 
 
 def set_existing_person(
@@ -95,11 +95,11 @@ def set_existing_person(
     assert picker.itemProp(f"personPicker.popupListView", "visible") == True
     picker.clickListViewItem_actual(
         f"personPicker.popupListView", person.fullNameOrAlias()
-    ) == True
+    )
 
 
 def test_add_new_person(scene, picker):
-    set_new_keyClicks(picker, "Someone New", returnToFinish=True)
+    set_new_person(picker, "Someone New", returnToFinish=True)
     assert picker.itemProp("personPicker", "isSubmitted") == True
     assert picker.itemProp("personPicker", "person") == None
     assert picker.itemProp("personPicker", "personName") == "Someone New"
@@ -120,7 +120,7 @@ def test_add_existing_person(scene, picker):
 
 def test_show_autocomplete_popup(scene, picker):
     patrick = scene.query1(name="Patrick", lastName="Stinson")
-    set_new_keyClicks(picker, "Patri", gender=False, returnToFinish=False)
+    set_new_person(picker, "Patri", gender=False, returnToFinish=False)
     assert picker.itemProp("personPicker.popupListView", "visible") == True
     assert picker.itemProp("personPicker.popupListView", "numVisibleItems") == 1
 
@@ -131,6 +131,6 @@ def test_cannot_add_selected_person(scene, picker):
     # picker.rootProp("selectedPeopleModel").append(
     #     {"person": patrick, "isNewPerson": False}
     # )
-    set_new_keyClicks(picker, "Patri", gender=False, returnToFinish=False)
+    set_new_person(picker, "Patri", gender=False, returnToFinish=False)
     assert picker.itemProp("personPicker.popupListView", "visible") == False
     assert picker.itemProp("personPicker.popupListView", "numVisibleItems") == 0

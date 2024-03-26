@@ -53,6 +53,33 @@ PK.GroupBox {
         }
         return people
     }
+    function pickerAtIndex(index) {
+        var personPickerIndex = -1;
+        print('pickerAtIndex(' + index + ')')
+        for(var i=0; i < list.contentItem.children.length; i++) {
+            var item = list.contentItem.children[i];
+            if(item.isPersonPicker) {
+                personPickerIndex++
+                print(' found PK.PersonPicker at index: ' + personPickerIndex)
+                if(personPickerIndex == index) {
+                    print(' <---- Returning PersonPicker: '  + item)
+                    return item
+                }
+            }
+        }
+        print('Could not find genderBox for index: ' + index)
+    }
+
+    function genderBox(index) {
+        var personPickerIndex = -1;
+        print('genderBox(' + index + ')')
+        var picker = pickerAtIndex(index)
+        if(picker) {
+            print('picker: ' + picker)
+            return picker.genderBox
+        }
+        print('Could not find genderBox for index: ' + index)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -75,6 +102,7 @@ PK.GroupBox {
                 // assign this PK.PersonPicker property `person` to the model's `person` property
                 // so that the model can be updated when the person is updated
 
+                property bool isPersonPicker: true
                 property bool selected: index == root.currentIndex
                 property bool current: false
                 width: parent ? parent.width : 0

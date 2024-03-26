@@ -19,6 +19,9 @@ PK.Drawer {
     property var focusResetter: addPage
     property bool canInspect: false
     property var peopleModel: ListModel { }
+    property var selectedPeopleModel: ListModel {
+        objectName: 'selectedPeopleModel'
+    }
 
     // Keys.onPressed: {
     //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
@@ -26,30 +29,28 @@ PK.Drawer {
     //     }
     // }
 
-    // who
-    property var peopleAModel: peoplePickerA.model
-    property var peopleBModel: peoplePickerB.model
-    // what
     property var kind: null
     property var description: descriptionEdit.text
-    property var anxiety: anxietyBox.value
-    property var functioning: functioningBox.value
-    property var symptom: symptomBox.value
-    // where
-    property var location: locationEdit.text
-    // when
     property var isDateRange: isDateRangeBox.checked
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
+    property var location: locationEdit.text
     property var nodal: nodalBox.checked
+    property var anxiety: anxietyBox.value
+    property var functioning: functioningBox.value
+    property var symptom: symptomBox.value
 
     property var dirty: false;
 
     function clear() {
-        peoplePickerA.clear()
-        peoplePickerB.clear()
+        personPicker.clear()
+        peoplePicker.clear()
+        personAPicker.clear()
+        personBPicker.clear()
+        moversPicker.clear()
+        receiversPicker.clear()
         kindBox.clear()
         startDatePicker.clear()
         endDatePicker.clear()
@@ -68,17 +69,32 @@ PK.Drawer {
     function currentTab() { return 0 }
     function setCurrentTab(tab) {}
 
-    function setExistingPeopleA(people) {
-        peoplePickerA.setExistingPeople(people)
+    function initWithPairBond(pairBond) {
+        personAPicker.setExistingPerson(pairBond.personA())
+        personBPicker.setExistingPerson(pairBond.personB())
+        kindBox.setCurrentValue(util.EventKind.CustomPairBond)
     }
-    function setExistingPeopleB(people) {
-        peoplePickerB.setExistingPeople(people)
+    function initWithMultiplePeople(people) {
+        kindBox.setCurrentValue(util.EventKind.CustomIndividual)
+        peoplePicker.setExistingPeople(people)
     }
-    function existingPeopleA(){
-        return peoplePickerA.existingPeople()
+
+    // attr statuses
+
+    function personA() {
+        return personAPicker.person
     }
-    function existingPeopleB(){
-        return peoplePickerB.existingPeople()
+
+    function personB() {
+        return personBPicker.person
+    }
+
+    function people() {
+        var ret = []
+        for(var i=0; i < peoplePicker.model.count; i++) {
+            ret.push(peoplePicker.model.get(i))
+        }
+        return peoplePicker.person
     }
 
     function setPeopleHelpText(text) {
@@ -151,49 +167,134 @@ PK.Drawer {
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
 
+                        // Person
+
                         PK.Text {
-                            id: peopleALabel
-                            objectName: "peopleALabel"
-                            text: {
-                                var kind = kindBox.valuesForIndex[kindBox.currentIndex]
-                                print('peopleALabel: ' + kind)
-                                util.eventPersonALabel(kind)
-                            }
+                            id: personLabel
+                            objectName: "personLabel"
+                            text: 'Person'
+                            visible: util.isMonadicEventKind(root.kind)
+                        }
+
+                        PK.PersonPicker {
+                            id: personPicker
+                            objectName: "personPicker"
+                            scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            visible: personPicker.visible
+                            Layout.fillHeight: true
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            // KeyNavigation.tab: dateButtons.textInput
+                        }
+
+                        // People
+
+                        PK.Text {
+                            id: peopleLabel
+                            objectName: "peopleLabel"
+                            text: 'People'
+                            visible: root.kind == util.EventKind.CustomIndividual
+                        }
+
+                        PK.PersonPicker {
+                            id: peoplePicker
+                            objectName: "peoplePicker"
+                            scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            visible: peopleLabel.visible
+                            Layout.fillHeight: true
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            // KeyNavigation.tab: dateButtons.textInput
+                        }
+
+                        // Person A
+
+                        PK.Text {
+                            id: personALabel
+                            objectName: "personALabel"
+                            text: 'Person A'
+                            visible: util.isPairBondEventKind(root.kind)
+                        }
+
+                        PK.PersonPicker {
+                            id: personAPicker
+                            objectName: "personAPicker"
+                            scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            visible: personALabel.visible
+                            Layout.fillHeight: true
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            // KeyNavigation.tab: dateButtons.textInput
+                        }
+
+                        // Person B
+
+                        PK.Text {
+                            id: personBLabel
+                            objectName: "personBLabel"
+                            text: 'Person B'
+                            visible: personALabel.visible
+                        }
+
+                        PK.PersonPicker {
+                            id: personBPicker
+                            objectName: "personBPicker"
+                            scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            visible: personALabel.visible
+                            Layout.fillHeight: true
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            // KeyNavigation.tab: dateButtons.textInput
+                        }
+
+                        // Mover(s)
+
+                        PK.Text {
+                            id: moversLabel
+                            objectName: "moversLabel"
+                            text: 'Mover(s)'
+                            visible: util.isDyadicEventKind(root.kind)
                         }
 
                         PK.PeoplePicker {
-                            id: peoplePickerA
-                            objectName: "peoplePickerA"
+                            id: moversPicker
+                            objectName: "moversPicker"
+                            visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
                             Layout.fillHeight: true
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            // // KeyNavigation.tab: dateButtons.textInput
+                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
+                        // Receiver(s)
+
                         PK.Text {
-                            id: peopleBLabel
-                            objectName: "peopleBLabel"
-                            visible: util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
-                            text: {
-                                var kind = kindBox.valuesForIndex[kindBox.currentIndex]
-                                util.eventPersonBLabel(kind)
-                            }
+                            id: receiversLabel
+                            objectName: "receiversLabel"
+                            visible: moversLabel.visible
+                            text: 'Receiver(s)'
                         }
 
                         PK.PeoplePicker {
-                            id: peoplePickerB
-                            objectName: "peoplePickerB"
-                            visible: util.isDyadicEventType(kindBox.valuesForIndex[kindBox.currentIndex])
+                            id: receiversPicker
+                            objectName: "receiversPicker"
+                            visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
                             Layout.fillHeight: true
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            // // KeyNavigation.tab: dateButtons.textInput
+                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         PK.Text {
@@ -205,14 +306,20 @@ PK.Drawer {
                             Layout.fillWidth: true
                         }
 
+                        ////////////////////////////////////////////////
+
                         PK.FormDivider {}
 
-                        PK.Text { id: descriptionLabel; objectName: "descriptionLabel"; text: "Description" }
+                        PK.Text {
+                            id: descriptionLabel
+                            objectName: "descriptionLabel"
+                            text: "Description"
+                        }
 
                         PK.TextField {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
-                            enabled: util.isCustomEventType(kindBox.valuesForIndex[kindBox.currentIndex])
+                            visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             KeyNavigation.tab: kindBox
@@ -224,7 +331,11 @@ PK.Drawer {
                             // }
                         }
 
-                        PK.Text { id: kindLabel; objectName: "kindLabel"; text: "Event" }
+                        PK.Text {
+                            id: kindLabel
+                            objectName: "kindLabel"
+                            text: "Event"
+                        }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -243,6 +354,7 @@ PK.Drawer {
                                         descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
                                     }
                                 }
+                                function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
                                 function clear() { currentIndex = -1 }
                                 function currentValue() { return valuesForIndex[currentIndex] }
                                 property var valuesForIndex: util.eventKindValues()
@@ -250,8 +362,8 @@ PK.Drawer {
                         }
 
                         PK.Text {
-                            id: eventHelpText
-                            objectName: "eventHelpText"
+                            id: kindHelpText
+                            objectName: "kindHelpText"
                             font.pixelSize: util.HELP_FONT_SIZE
                             wrapMode: Text.WordWrap
                             Layout.columnSpan: 2
@@ -260,7 +372,17 @@ PK.Drawer {
 
                         PK.FormDivider {}
 
-                        PK.Text { id: startDateTimeLabel; objectName: "startDateTimeLabel"; text: root.isDateRange ? "Began" : "When" }
+                        PK.Text {
+                            id: startDateTimeLabel
+                            objectName: "startDateTimeLabel"
+                            text: {
+                                if(root.isDateRange) {
+                                    return "Began"
+                                } else {
+                                    return "When"
+                                }
+                            }
+                        }
 
                         PK.DatePickerButtons {
                             id: startDateButtons
@@ -310,7 +432,12 @@ PK.Drawer {
                             }                               
                         }
 
-                        PK.Text { id: endDateTimeLabel; objectName: "endDateTimeLabel"; text: "Ended"; visible: root.isDateRange }
+                        PK.Text {
+                            id: endDateTimeLabel
+                            objectName: "endDateTimeLabel"
+                            text: "Ended"
+                            visible: root.isDateRange
+                        }
 
                         PK.DatePickerButtons {
                             id: endDateButtons
@@ -368,7 +495,19 @@ PK.Drawer {
                         PK.CheckBox {
                             id: isDateRangeBox
                             objectName: 'isDateRangeBox'
-                            text: "Is Date Range"                            
+                            text: "Is Date Range" 
+                            visible: [
+                                util.EventKind.Conflict,
+                                util.EventKind.Distance,
+                                util.EventKind.Reciprocity,
+                                util.EventKind.Projection,
+                                util.EventKind.Fusion,
+                                util.EventKind.Toward,
+                                util.EventKind.Away,
+                                util.EventKind.Inside,
+                                util.EventKind.Outside,
+                                util.EventKind.DefinedSelf
+                            ].indexOf(root.kind) > -1                           
                             enabled: sceneModel ? !sceneModel.readOnly : true
                             Layout.fillWidth: true
                             onCheckedChanged: {

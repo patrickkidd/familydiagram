@@ -410,8 +410,7 @@ class DocumentView(QWidget):
         if self.currentDrawer == self.addAnythingDialog:
             self.setCurrentDrawer(None)
         else:
-            self.addAnythingDialog.clear()
-            self.addAnythingDialog.setExistingPeopleA(self.scene.selectedPeople())
+            self.addAnythingDialog.initForSelection(self.scene.selectedItems())
             self.setCurrentDrawer(self.addAnythingDialog)
 
     def onAddEvent(self, parent=None, rootItem=None):

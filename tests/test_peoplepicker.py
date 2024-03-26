@@ -52,15 +52,15 @@ def picker(scene, qtbot):
 def add_and_keyClicks(
     picker: QmlWidgetHelper,
     textInput: str,
-    peoplePickerObjectName="peoplePicker",
+    peoplePicker="peoplePicker",
     returnToFinish: bool = True,
 ) -> QQuickItem:
 
     _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
 
-    peoplePicker = picker.findItem(peoplePickerObjectName)
+    peoplePicker = picker.findItem(peoplePicker)
     itemAddDone = util.Condition(peoplePicker.itemAddDone)
-    picker.mouseClick(f"{peoplePickerObjectName}.addButton")
+    picker.mouseClick(f"{peoplePicker}.addButton")
     assert itemAddDone.wait() == True
     itemDelegate = itemAddDone.callArgs[-1][0]
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
@@ -75,15 +75,20 @@ def add_and_keyClicks(
 def add_new_person(
     picker: QmlWidgetHelper,
     textInput: str,
-    peoplePickerObjectName="peoplePicker",
+    peoplePicker="peoplePicker",
+    gender: str = None,
     returnToFinish=True,
 ) -> QQuickItem:
     itemDelegate = add_and_keyClicks(
         picker,
         textInput,
-        peoplePickerObjectName=peoplePickerObjectName,
+        peoplePicker=peoplePicker,
         returnToFinish=returnToFinish,
     )
+    if gender is not None:
+        genderBox = itemDelegate.findChild('genderBox')
+        assert genderBox is not None, f"Could not find genderBox for {itemDelegate}"
+        picker.clickComboBoxItem(genderBox, gender)
 
     return itemDelegate
 
@@ -92,14 +97,14 @@ def add_existing_person(
     picker: QmlWidgetHelper,
     person: Person,
     autoCompleteInput: str = None,
-    peoplePickerObjectName="peoplePicker",
+    peoplePicker="peoplePicker",
 ) -> QQuickItem:
     if autoCompleteInput is None:
         autoCompleteInput = person.fullNameOrAlias()
     itemDelegate = add_and_keyClicks(
         picker,
         autoCompleteInput,
-        peoplePickerObjectName=peoplePickerObjectName,
+        peoplePicker=peoplePicker,
         returnToFinish=False,
     )
     popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
@@ -109,7 +114,7 @@ def add_existing_person(
 
 
 def _delete_person(
-    picker: QmlWidgetHelper, delegate: QQuickItem, peoplePickerObjectName="peoplePicker"
+    picker: QmlWidgetHelper, delegate: QQuickItem, peoplePicker="peoplePicker"
 ):
     _log.info(f"_delete_person({delegate})")
     picker.mouseClick(delegate)

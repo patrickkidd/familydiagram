@@ -437,22 +437,28 @@ class QmlUtil(QObject, QObjectHelper):
         return time.time()
 
     @pyqtSlot(str, result=bool)
-    def isDyadicEventType(self, x):
+    def isMonadicEventKind(self, x):
+        if x == "":
+            return False
+        return EventKind.isMonadic(EventKind(x))
+
+    @pyqtSlot(str, result=bool)
+    def isDyadicEventKind(self, x):
         if x == "":
             return False
         return EventKind.isDyadic(EventKind(x))
 
     @pyqtSlot(str, result=bool)
-    def isPairBondEventType(self, x):
+    def isPairBondEventKind(self, x):
         if x == "":
             return False
         return EventKind.isPairBond(EventKind(x))
 
     @pyqtSlot(str, result=bool)
-    def isEmotionEventType(self, x):
+    def isCustomEventKind(self, x):
         if x == "":
             return False
-        return EventKind.isEmotion(EventKind(x))
+        return EventKind.isCustom(EventKind(x))
 
     @pyqtSlot(str, result=str)
     def eventKindEventLabelFor(self, x: str):
@@ -467,27 +473,7 @@ class QmlUtil(QObject, QObjectHelper):
 
     @pyqtSlot(result=list)
     def eventKindValues(self):
-        return EventKind.menuValues()
-
-    @pyqtSlot(str, result=str)
-    def eventPersonALabel(self, kind: str):
-        if kind:
-            return EventKind.personALabel(EventKind(kind))
-        else:
-            return "People"
-
-    @pyqtSlot(str, result=str)
-    def eventPersonBLabel(self, kind: str):
-        if kind:
-            return EventKind.personBLabel(EventKind(kind))
-        else:
-            return ""
-
-    @pyqtSlot(str, result=bool)
-    def isCustomEventType(self, x):
-        if x == "":
-            return False
-        return EventKind.isCustom(EventKind(x))
+        return EventKind.menuOrder()
 
     @pyqtSlot(int, result=str)
     def personKindFromIndex(self, index):

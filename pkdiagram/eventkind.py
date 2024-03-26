@@ -46,37 +46,9 @@ class EventKind(enum.Enum):
         )
 
     @classmethod
-    def isSingular(cls, x) -> bool:
-        """
-        Indicates that only one event of this kind is allowed per item. Adopted
-        should not be here just as married, separated divorce can happen more
-        than once for a pair-bond.
-        """
-        return x in (cls.Birth, cls.Adopted, cls.Death)
-
-    @classmethod
-    def isPairBond(cls, x) -> bool:
-        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced, cls.Moved)
-
-    @classmethod
-    def isEmotion(cls, x) -> bool:
-        return x in (
-            cls.Cutoff,
-            cls.Conflict,
-            cls.Distance,
-            cls.Projection,
-            cls.Reciprocity,
-            cls.DefinedSelf,
-            cls.Toward,
-            cls.Away,
-            cls.Inside,
-            cls.Outside,
-        )
-
-    @classmethod
     def isDyadic(cls, x) -> bool:
         """
-        Requires a mover and receiver
+        Requires a mover and receiver. Not a pair-bond event.
         """
         return cls.isPairBond(x) or x in [
             cls.Conflict,
@@ -89,6 +61,10 @@ class EventKind(enum.Enum):
             cls.Inside,
             cls.Outside,
         ]
+
+    @classmethod
+    def isPairBond(cls, x) -> bool:
+        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced, cls.Moved)
 
     @classmethod
     def isCustom(cls, x) -> bool:
@@ -117,20 +93,20 @@ class EventKind(enum.Enum):
         if x == EventKind.CustomPairBond:
             return f"Custom - PairBond"
         elif cls.isMonadic(x):
-            return f"Individual - {x.name}"
+            return x.name
         elif cls.isPairBond(x):
-            return f"Pair Bond - {x.name}"
+            return x.name
         elif cls.isDyadic(x):
-            return f"Dyad - {x.name}"
+            return x.name
         else:
             raise KeyError(f"Unknown event kind: {x}")
 
     @classmethod
     def menuLabels(cls) -> list[str]:
-        return [EventKind.menuLabelFor(EventKind(x)) for x in cls.menuValues()]
+        return [EventKind.menuLabelFor(EventKind(x)) for x in cls.menuOrder()]
 
     @classmethod
-    def menuValues(cls) -> list[str]:
+    def menuOrder(cls) -> list[str]:
         """Sets order and label."""
         return [
             cls.Birth.value,
@@ -154,24 +130,6 @@ class EventKind(enum.Enum):
             cls.Inside.value,
             cls.Outside.value,
         ]
-
-    @classmethod
-    def personALabel(cls, kind) -> str:
-        if cls.isEmotion(kind):
-            return "Mover(s)"
-        elif cls.isPairBond(kind):
-            return "Person A"
-        else:
-            return "People"
-
-    @classmethod
-    def personBLabel(cls, kind) -> str:
-        if cls.isEmotion(kind):
-            return "Receiver(s)"
-        elif cls.isPairBond(kind):
-            return "Person B"
-        else:
-            return "People"
 
     @classmethod
     def itemModeFor(cls, kind) -> int:

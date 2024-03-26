@@ -143,8 +143,8 @@ Rectangle {
     }
 
     PK.ComboBox {
-        id: genderComboBox
-        objectName: "genderComboBox"
+        id: genderBox
+        objectName: "genderBox"
         width: 90
         height: util.QML_ITEM_HEIGHT - 10
         visible: isSubmitted

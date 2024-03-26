@@ -8,14 +8,10 @@ from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
 from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
 from tests.test_addanythingdialog import (
-    _add_new_person,
-    _add_existing_person,
-    _run_dateTimePickers,
-    _set_fields,
     scene,
     dlg,
-    SET_START_DATETIME,
-    SET_END_DATETIME,
+    START_DATETIME,
+    END_DATETIME,
 )
 
 log = logging.getLogger(__name__)
@@ -41,7 +37,7 @@ def test_required_fields(qtbot, dlg):
         submit,
         text=_required_text("peopleALabel"),
     )
-    _add_new_person(dlg, "peoplePickerA", "John Doe")
+    dlg.add_new_person(dlg, "peoplePickerA", "John Doe")
 
     # qtbot.clickOkAfter(
     #     submit,
@@ -121,67 +117,34 @@ def test_required_fields(qtbot, dlg):
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
 
-def test_confirm_replace_birth_events(qtbot, scene, dlg):
+@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
+def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
+    PRIOR_DATETIME = util.Date(2011, 1, 1)
     EVENT_KIND = EventKind.Birth
     submitted = util.Condition(dlg.submitted)
-    people = [
-        Person(name="John", lastName="Doe"),
-        Person(name="Jane", lastName="Doe"),
-    ]
-    scene.addItems(*people)
-    people[0].setBirthDateTime(util.Date(2011, 1, 1))
-    people[1].setBirthDateTime(util.Date(2012, 1, 1))
-    _set_fields(dlg, EVENT_KIND, peopleA=people, description=False, fillRequired=True)
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    if kind == EventKind.Birth:
+        person.setBirthDateTime(PRIOR_DATETIME)
+    elif kind == EventKind.Adopted:
+        person.setAdoptedDateTime(PRIOR_DATETIME)
+    elif kind == EventKind.Death:
+        person.setDeceasedDateTime(PRIOR_DATETIME)
+    dlg.set_kind(kind)
+    dlg.set_existing_person("personPicker", person)
+    dlg.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
         text=AddAnythingDialog.S_REPLACE_EXISTING.format(
             n_existing=2, eventKind=EVENT_KIND
         ),
     )
-    assert submitted.callCount == 1
-    assert people[0].birthDateTime() == SET_START_DATETIME
-    assert people[1].birthDateTime() == SET_START_DATETIME
-
-
-def test_confirm_replace_death_events(qtbot, scene, dlg):
-    EVENT_KIND = EventKind.Death
-    submitted = util.Condition(dlg.submitted)
-    people = [
-        Person(name="John", lastName="Doe"),
-        Person(name="Jane", lastName="Doe"),
-    ]
-    scene.addItems(*people)
-    people[0].setDeceasedDateTime(util.Date(2014, 1, 1))
-    people[1].setDeceasedDateTime(util.Date(2015, 1, 1))
-    _set_fields(dlg, EVENT_KIND, peopleA=people, description=False, fillRequired=True)
-    qtbot.clickYesAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
-        text=AddAnythingDialog.S_REPLACE_EXISTING.format(
-            n_existing=2, eventKind=EVENT_KIND
-        ),
-    )
-    assert submitted.callCount == 1
-    assert people[0].deceasedDateTime() == SET_START_DATETIME
-    assert people[1].deceasedDateTime() == SET_START_DATETIME
-
-
-@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Death])
-def test_no_confirm_replace_events(qtbot, scene, dlg, kind):
-    submitted = util.Condition(dlg.submitted)
-    people = [
-        Person(name="John", lastName="Doe"),
-        Person(name="Jane", lastName="Doe"),
-    ]
-    scene.addItems(*people)
-    _set_fields(dlg, kind, peopleA=people, description=False, fillRequired=True)
-    dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1
     if kind == EventKind.Birth:
-        assert people[0].birthDateTime() == SET_START_DATETIME
-        assert people[1].birthDateTime() == SET_START_DATETIME
-    else:
-        assert people[0].deceasedDateTime() == SET_START_DATETIME
-        assert people[1].deceasedDateTime() == SET_START_DATETIME
+        assert person.birthDateTime() == START_DATETIME
+    elif kind == EventKind.Adopted:
+        assert person.adoptedDateTime() == START_DATETIME
+    elif kind == EventKind.Death:
+        assert person.deceasedDateTime() == START_DATETIME
 
 
 @pytest.mark.parametrize(
@@ -208,10 +171,67 @@ def test_confirm_adding_many_symbols(qtbot, scene, dlg, kind):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*(peopleA + peopleB))
-    _set_fields(dlg, kind, peopleA=peopleA, peopleB=peopleB, fillRequired=True)
+    dlg.set_kind(kind)
+    dlg.add_existing_person("moversPicker", peopleA[0])
+    dlg.add_existing_person("moversPicker", peopleA[1])
+    dlg.add_existing_person("receiversPicker", peopleB[0])
+    dlg.add_existing_person("receiversPicker", peopleB[1])
     qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
         text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )
     assert len(scene.emotions()) == 4
     assert len(scene.people()) == 4
+
+
+def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
+    DESCRIPTION = "Something happened"
+    people = [
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+        Person(name="Jack", lastName="Doe"),
+        Person(name="Jill", lastName="Doe"),
+    ]
+    scene.addItems(*people)
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.add_existing_person("peoplePicker", people[0])
+    dlg.add_existing_person("peoplePicker", people[1])
+    dlg.add_existing_person("peoplePicker", people[2])
+    dlg.add_existing_person("peoplePicker", people[3])
+    dlg.set_description(DESCRIPTION)
+    qtbot.clickYesAfter(
+        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
+    )
+    for i, person in enumerate(people):
+        assert (
+            len(people[0].events()) == 1
+        ), f"Person {i} has the wrong number of events"
+        assert (
+            people[0].events()[0].description() == DESCRIPTION
+        ), f"Person {i} has the wrong description"
+
+
+def test_add_dyadic_event_with_one_person_selected(qtbot, dlg):
+    dlg.set_fields(
+        kind=EventKind.Conflict, peopleA=True, peopleB=False, fillRequired=True
+    )
+    qtbot.clickOkAfter(
+        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        text=AddAnythingDialog.S_EVENT_DYADIC,
+    )
+
+
+@pytest.mark.parametrize("eventKind", [x for x in EventKind if EventKind.isDyadic(x)])
+def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
+    dlg.set_fields(
+        kind=eventKind,
+        peopleA=["Someone New", "Someone Strange"],
+        peopleB="Someone Else",
+        fillRequired=True,
+    )
+    # dlg.clickComboBoxItem("kindBox", eventKind.name)
+    qtbot.clickOkAfter(
+        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        text=AddAnythingDialog.S_EVENT_DYADIC,
+    )
