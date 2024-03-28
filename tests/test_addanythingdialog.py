@@ -79,7 +79,9 @@ class TestAddAnythingDialog(AddAnythingDialog):
         autoCompleteInput: str = None,
         returnToFinish: bool = False,
     ):
-        _log.info(f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')")
+        _log.info(
+            f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
+        )
         if autoCompleteInput:
             autoCompleteInput = person.fullNameOrAlias()
         personPickerItem = self.findItem(personPicker)
@@ -133,11 +135,13 @@ class TestAddAnythingDialog(AddAnythingDialog):
         self.keyClicks(
             f"{buttonsItem}.dateTextInput",
             S_DATE,
+            returnToFinish=False,
             resetFocus=False,
         )
         self.keyClicks(
             f"{buttonsItem}.timeTextInput",
             S_TIME,
+            returnToFinish=False,
             resetFocus=False,
         )
         assert self.itemProp(buttonsItem, "dateTime") == dateTime
@@ -146,13 +150,14 @@ class TestAddAnythingDialog(AddAnythingDialog):
 
     def set_startDateTime(self, dateTime):
         self.set_dateTime(
-            self, dateTime, "startDateButtons", "startDatePicker", "startTimePicker"
+            dateTime, "startDateButtons", "startDatePicker", "startTimePicker"
         )
 
     def set_endDateTime(self, dateTime):
-        self.set_dateTime(
-            self, dateTime, "endDateButtons", "endDatePicker", "endTimePicker"
-        )
+        if not self.rootProp("isDateRange"):
+            self.mouseClick("isDateRangeBox")
+            assert self.rootProp("isDateRange") == True
+        self.set_dateTime(dateTime, "endDateButtons", "endDatePicker", "endTimePicker")
 
     def set_fields(
         self,
@@ -191,9 +196,9 @@ class TestAddAnythingDialog(AddAnythingDialog):
                 _log.info(f"Adding person to peopleA: {person}")
                 prePeople = self.itemProp("peoplePickerA", "model").rowCount()
                 if isinstance(person, Person):
-                    _add_existing_person(self, "peoplePickerA", person)
+                    self.add_existing_person("peoplePickerA", person)
                 else:
-                    _add_new_person(self, "peoplePickerA", person, returnToFinish=False)
+                    self.add_new_person("peoplePickerA", person, returnToFinish=False)
                 assert (
                     self.itemProp("peoplePickerA", "model").rowCount() == prePeople + 1
                 )
@@ -253,7 +258,7 @@ def dlg(qtbot, scene):
     sceneModel.scene = scene
     scene._sceneModel = sceneModel
 
-    dlg = AddAnythingDialog(sceneModel=sceneModel)
+    dlg = TestAddAnythingDialog(sceneModel=sceneModel)
     dlg.resize(600, 800)
     dlg.setRootProp("sceneModel", sceneModel)
     dlg.setScene(scene)

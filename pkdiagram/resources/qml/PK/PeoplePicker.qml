@@ -41,6 +41,7 @@ PK.GroupBox {
     function setExistingPeople(people) {
         for(var i = 0; i < people.length; i++) {
             var person = people[i];
+            // print('setExistingPeople: ' + i + ', ' + person.listLabel() + ', ' + person)
             model.append({ personName: person.listLabel(), person: person, isNewPerson: false})
         }
     }
@@ -80,6 +81,8 @@ PK.GroupBox {
         }
         print('Could not find genderBox for index: ' + index)
     }
+
+    Component.onCompleted: background.border.color = util.QML_ITEM_BORDER_COLOR
 
     ColumnLayout {
         anchors.fill: parent

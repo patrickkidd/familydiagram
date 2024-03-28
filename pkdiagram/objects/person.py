@@ -1551,6 +1551,6 @@ class Person(PathItem):
         self.updateDetails()
 
 
-from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlEngine
+from PyQt5.QtQml import qmlRegisterType
 
 qmlRegisterType(Person, "Person", 1, 0, "Person")

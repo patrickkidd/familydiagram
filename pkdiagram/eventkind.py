@@ -50,7 +50,7 @@ class EventKind(enum.Enum):
         """
         Requires a mover and receiver. Not a pair-bond event.
         """
-        return cls.isPairBond(x) or x in [
+        return x in [
             cls.Conflict,
             cls.Distance,
             cls.Projection,
@@ -60,6 +60,7 @@ class EventKind(enum.Enum):
             cls.Away,
             cls.Inside,
             cls.Outside,
+            cls.Fusion,
         ]
 
     @classmethod
@@ -129,6 +130,7 @@ class EventKind(enum.Enum):
             cls.Away.value,
             cls.Inside.value,
             cls.Outside.value,
+            cls.Fusion.value,
         ]
 
     @classmethod

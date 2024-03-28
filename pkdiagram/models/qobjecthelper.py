@@ -8,6 +8,7 @@ from ..pyqt import (
     Qt,
     Q_ARG,
     Q_RETURN_ARG,
+    QJSValue,
     QDate,
     QDateTime,
 )
@@ -139,7 +140,12 @@ class QObjectHelper:
                     self.checkInitQml()
                     qobject = self.qml.rootObject()
                     name = entry["name"]
-                    qargs = (Q_ARG(QVariant, arg) for arg in args)
+                    if len(args) == 1:
+                        qargs = (Q_ARG(QVariant, args[0]),)
+                    elif len(args) > 1:
+                        qargs = (Q_ARG(QVariant, arg) for arg in args)
+                    else:
+                        qargs = ()
                     try:
                         if entry.get("return"):
                             if qargs:
@@ -157,22 +163,25 @@ class QObjectHelper:
                                     Qt.DirectConnection,
                                     Q_RETURN_ARG(QVariant),
                                 )
-                            if entry.get("parser"):
-                                return entry.get("parser")(ret)
-                            else:
-                                return ret
                         else:
                             if qargs:
-                                return QMetaObject.invokeMethod(
+                                ret = QMetaObject.invokeMethod(
                                     qobject, name, Qt.DirectConnection, *qargs
                                 )
                             else:
-                                return QMetaObject.invokeMethod(
+                                ret = QMetaObject.invokeMethod(
                                     qobject, name, Qt.DirectConnection
                                 )
                     except RuntimeError as e:
                         pass
                     # raise RuntimeError('QMetaObject.invokeMethod failed on %s.%s' % (self.__class__.__name__, name))
+                    else:
+                        if entry.get("parser"):
+                            return entry.get("parser")(ret)
+                        elif isinstance(ret, QJSValue):
+                            return ret.toVariant()
+                        else:
+                            return ret
 
                 return meth
 

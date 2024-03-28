@@ -27,7 +27,6 @@ Rectangle {
     // The list of people used for auto-complete
     property var scenePeopleModel: ListModel {}
 
-    height: util.QML_ITEM_HEIGHT
     color: util.QML_ITEM_BG // util.itemBgColor(true, true, true)
 
     function clear() {

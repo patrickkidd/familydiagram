@@ -45,13 +45,13 @@ PK.Drawer {
     property var dirty: false;
 
     function clear() {
+        kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         personPicker.clear()
         peoplePicker.clear()
         personAPicker.clear()
         personBPicker.clear()
         moversPicker.clear()
         receiversPicker.clear()
-        kindBox.clear()
         startDatePicker.clear()
         endDatePicker.clear()
         isDateRangeBox.checked = false
@@ -69,12 +69,17 @@ PK.Drawer {
     function currentTab() { return 0 }
     function setCurrentTab(tab) {}
 
-    function initWithPairBond(pairBond) {
+    function initWithPairBond(pairBondId) {
+        var pairBond = sceneModel.item(pairBondId)
         personAPicker.setExistingPerson(pairBond.personA())
         personBPicker.setExistingPerson(pairBond.personB())
         kindBox.setCurrentValue(util.EventKind.CustomPairBond)
     }
-    function initWithMultiplePeople(people) {
+    function initWithMultiplePeople(peopleIds) {
+        var people = [];
+        for(var i=0; i < peopleIds.length; i++) {
+            people.push(sceneModel.item(peopleIds[i]))
+        }
         kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         peoplePicker.setExistingPeople(people)
     }
@@ -92,9 +97,12 @@ PK.Drawer {
     function people() {
         var ret = []
         for(var i=0; i < peoplePicker.model.count; i++) {
-            ret.push(peoplePicker.model.get(i))
+            var object = peoplePicker.model.get(i)
+            print(object.personName + ', ' + object.person)
+            ret.push(peoplePicker.model.get(i).person.itemId())
         }
-        return peoplePicker.person
+        print(ret)
+        return ret
     }
 
     function setPeopleHelpText(text) {
@@ -140,7 +148,6 @@ PK.Drawer {
         currentIndex: 0
         anchors.fill: parent
 
-
         Flickable {
             id: addPage
             contentWidth: width
@@ -181,8 +188,11 @@ PK.Drawer {
                             objectName: "personPicker"
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
-                            visible: personPicker.visible
-                            Layout.fillHeight: true
+                            visible: personLabel.visible
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.minimumHeight: util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             // KeyNavigation.tab: dateButtons.textInput
@@ -197,7 +207,7 @@ PK.Drawer {
                             visible: root.kind == util.EventKind.CustomIndividual
                         }
 
-                        PK.PersonPicker {
+                        PK.PeoplePicker {
                             id: peoplePicker
                             objectName: "peoplePicker"
                             scenePeopleModel: root.peopleModel
@@ -206,6 +216,8 @@ PK.Drawer {
                             Layout.fillHeight: true
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
                         }
 
@@ -306,14 +318,53 @@ PK.Drawer {
                             Layout.fillWidth: true
                         }
 
-                        ////////////////////////////////////////////////
+                        // ////////////////////////////////////////////////
 
-                        PK.FormDivider {}
+                        PK.FormDivider {
+                            Layout.columnSpan: 2
+                        }
+
+                        PK.Text {
+                            id: kindLabel
+                            objectName: "kindLabel"
+                            text: "Event"
+                        }
+
+                        PK.ComboBox {
+                            id: kindBox
+                            objectName: "kindBox"
+                            model: util.eventKindLabels()
+                            Layout.maximumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            property var lastCurrentIndex: -1
+                            KeyNavigation.tab: startDateButtons
+                            onCurrentIndexChanged: {
+                                if (currentIndex != lastCurrentIndex) {
+                                    lastCurrentIndex = currentIndex
+                                    root.kind = currentValue()
+                                    descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
+                                }
+                            }
+                            function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
+                            function clear() { currentIndex = -1 }
+                            function currentValue() { return valuesForIndex[currentIndex] }
+                            property var valuesForIndex: util.eventKindValues()
+                        }
+
+                        PK.Text {
+                            id: kindHelpText
+                            objectName: "kindHelpText"
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
 
                         PK.Text {
                             id: descriptionLabel
                             objectName: "descriptionLabel"
                             text: "Description"
+                            visible: util.isCustomEventKind(root.kind)
                         }
 
                         PK.TextField {
@@ -331,46 +382,9 @@ PK.Drawer {
                             // }
                         }
 
-                        PK.Text {
-                            id: kindLabel
-                            objectName: "kindLabel"
-                            text: "Event"
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            PK.ComboBox {
-                                id: kindBox
-                                objectName: "kindBox"
-                                Layout.maximumWidth: util.QML_FIELD_WIDTH
-                                Layout.minimumWidth: util.QML_FIELD_WIDTH
-                                model: util.eventKindLabels()
-                                property var lastCurrentIndex: -1
-                                KeyNavigation.tab: startDateButtons
-                                onCurrentIndexChanged: {
-                                    if (currentIndex != lastCurrentIndex) {
-                                        lastCurrentIndex = currentIndex
-                                        root.kind = currentValue()
-                                        descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
-                                    }
-                                }
-                                function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
-                                function clear() { currentIndex = -1 }
-                                function currentValue() { return valuesForIndex[currentIndex] }
-                                property var valuesForIndex: util.eventKindValues()
-                            }
-                        }
-
-                        PK.Text {
-                            id: kindHelpText
-                            objectName: "kindHelpText"
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
+                        PK.FormDivider {
                             Layout.columnSpan: 2
-                            Layout.fillWidth: true
                         }
-
-                        PK.FormDivider {}
 
                         PK.Text {
                             id: startDateTimeLabel
@@ -490,26 +504,20 @@ PK.Drawer {
                             }                            
                         }
 
-                        Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 1 }
+                        PK.Text {
+                            id: isDateRangeLabel
+                            text: "Is Date Range"
+                            visible: util.isDyadicEventKind(root.kind)
+                        }
 
                         PK.CheckBox {
                             id: isDateRangeBox
                             objectName: 'isDateRangeBox'
                             text: "Is Date Range" 
-                            visible: [
-                                util.EventKind.Conflict,
-                                util.EventKind.Distance,
-                                util.EventKind.Reciprocity,
-                                util.EventKind.Projection,
-                                util.EventKind.Fusion,
-                                util.EventKind.Toward,
-                                util.EventKind.Away,
-                                util.EventKind.Inside,
-                                util.EventKind.Outside,
-                                util.EventKind.DefinedSelf
-                            ].indexOf(root.kind) > -1                           
+                            visible: isDateRangeLabel.visible
                             enabled: sceneModel ? !sceneModel.readOnly : true
                             Layout.fillWidth: true
+                            Layout.columnSpan: 1
                             onCheckedChanged: {
                                 if(root.isDateRange != checked) {
                                     root.isDateRange = checked
@@ -517,12 +525,15 @@ PK.Drawer {
                             }
                         }
 
-                        PK.Text { id: locationLabel; objectName: "locationLabel"; text: "Location" }
+                        PK.Text {
+                            id: locationLabel
+                            objectName: "locationLabel"
+                            text: "Location"
+                        }
 
                         PK.TextField {
                             id: locationEdit
                             objectName: "locationEdit"
-                            text: root.location
                             Layout.maximumWidth: util.QML_FIELD_WIDTH
                             Layout.minimumWidth: util.QML_FIELD_WIDTH
                             // KeyNavigation.tab: nodalBox
@@ -534,7 +545,9 @@ PK.Drawer {
                             // }
                         }
 
-                        PK.FormDivider {}
+                        PK.FormDivider {
+                            Layout.columnSpan: 2
+                        }
                         
                         PK.Text { id: nodalLabel; text: "Nodal" }
 

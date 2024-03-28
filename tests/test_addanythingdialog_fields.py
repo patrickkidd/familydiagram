@@ -47,9 +47,13 @@ def test_init_with_individuals_selected(dlg):
     personC = Person(name="Josephine", lastName="Donner")
     personD = Person(name="Josephine", lastName="Donner")
     dlg.scene.addItems(personA, personB, personC, personD)
-    dlg.initWithSelection([personA, personB, personC])
+    dlg.initForSelection([personA, personB, personC])
     assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
-    assert {x.id for x in dlg.people()} == {personA.id, personB.id, personC.id}
+    assert {x for x in dlg.people()} == {
+        personA.id,
+        personB.id,
+        personC.id,
+    }
 
 
 @pytest.mark.parametrize("kind", [x for x in EventKind])
@@ -84,18 +88,20 @@ def test_startDateTime_pickers(qtbot, dlg):
 
     DATE_TIME = util.Date(2023, 2, 1)
 
-    _run_dateTimePickers(
-        dlg, DATE_TIME, "startDateButtons", "startDatePicker", "startTimePicker"
-    )
+    dlg.set_startDateTime(DATE_TIME)
+
     assert dlg.rootProp("startDateTime") == DATE_TIME
 
 
-def test_endDateTime_pickers(qtbot, dlg):
+def test_endDateTime_pickers(dlg):
     dlg.clear()
 
     DATE_TIME = util.Date(2023, 2, 1)
 
-    _set_fields(dlg, kind=EventKind.Conflict, endDateTime=DATE_TIME, fillRequired=True)
+    dlg.set_kind(EventKind.Conflict)
+    dlg.set_endDateTime(DATE_TIME)
+
+    # _set_fields(dlg, kind=EventKind.Conflict, endDateTime=DATE_TIME, fillRequired=True)
     assert dlg.itemProp("isDateRangeBox", "checked") == True
     assert dlg.rootProp("endDateTime") == DATE_TIME
 

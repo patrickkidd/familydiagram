@@ -125,9 +125,13 @@ class Marriage(PathItem):
     @staticmethod
     def marriageForSelection(selection):
         people = [x for x in selection if x.isPerson]
-        if len(people) != 2:
-            return None
-        marriages = Marriage.marriagesFor(people[0], people[1])
+        if people:
+            if len(people) != 2:
+                return None
+            marriages = Marriage.marriagesFor(people[0], people[1])
+            if marriages:
+                return marriages[0]
+        marriages = [x for x in selection if x.isMarriage]
         if marriages:
             return marriages[0]
 
@@ -688,3 +692,8 @@ class Marriage(PathItem):
             if variant is False:
                 self.updateAll()  # update after override in shouldShowFor
         return super().itemChange(change, variant)
+
+
+from PyQt5.QtQml import qmlRegisterType
+
+qmlRegisterType(Marriage, "PairBond", 1, 0, "PairBond")

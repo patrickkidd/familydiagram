@@ -41,8 +41,8 @@ RowLayout {
     }
 
     PK.Button {
-        id: clearAnxietyButton
-        objectName: "clearAnxietyButton"
+        id: clearButton
+        objectName: "clearButton"
         source: '../../clear-button.png'
         clip: true
         implicitWidth: util.QML_MICRO_BUTTON_WIDTH

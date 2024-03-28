@@ -17,8 +17,9 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "clear"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
-            {"name": "initWithPairBond" },
-            {"name": "initWithPeople" },
+            {"name": "initWithPairBond"},
+            {"name": "initWithMultiplePeople"},
+            {"name": "people", "return": True},
             {
                 "name": "existingPeopleA",
                 "return": True,
@@ -67,10 +68,10 @@ class AddAnythingDialog(QmlDrawer):
     def initForSelection(self, selection):
         pairBond = Marriage.marriageForSelection(selection)
         if pairBond:
-            self.initWithPairBond(pairBond)
-
+            self.initWithPairBond(pairBond.id)
         elif any(x.isPerson for x in selection):
-            self.initWithPeople(selection)
+            ids = [x.id for x in selection if x.isPerson]
+            self.initWithMultiplePeople(ids)
 
     def onDone(self):
         _log.info(f"AddAnythingDialog.onDone")
@@ -109,6 +110,9 @@ class AddAnythingDialog(QmlDrawer):
 
         # Validation checks from AddAnythingDialog.qml
 
+        kind = EventKind(self.rootProp("kind"))
+
+        # TODO: compile people from pickers
         people = []
         peopleInfosA = []
         peopleInfosB = []
@@ -124,16 +128,16 @@ class AddAnythingDialog(QmlDrawer):
                     peopleInfosA.append(info)
                 elif peoplePicker == "peoplePickerB":
                     peopleInfosB.append(info)
-        kind = self.rootProp("kind")
+        
         description = self.rootProp("description")
         location = self.rootProp("location")
         startDateTime = self.rootProp("startDateTime")
         endDateTime = self.rootProp("endDateTime")
+        isDateRange = self.rootProp("isDateRange")
         anxiety = self.rootProp("anxiety")
         functioning = self.rootProp("functioning")
         symptom = self.rootProp("symptom")
 
-        eventKind = EventKind(kind)
         peopleA = [p["person"] for p in peopleInfosA]
         peopleB = [p["person"] for p in peopleInfosB]
 
@@ -148,13 +152,13 @@ class AddAnythingDialog(QmlDrawer):
                 people_to_add.append(person)
                 people.append(person)
 
-        if eventKind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
+        if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
 
-            if eventKind == EventKind.Birth:
+            if kind == EventKind.Birth:
                 n_existing = sum([1 for x in peopleA if x.birthDateTime()])
-            elif eventKind == EventKind.Adopted:
+            elif kind == EventKind.Adopted:
                 n_existing = sum([1 for x in peopleA if x.adoptedDateTime()])
-            elif eventKind == EventKind.Death:
+            elif kind == EventKind.Death:
                 n_existing = sum([1 for x in peopleA if x.deceasedDateTime()])
             else:
                 n_existing = 0
@@ -162,27 +166,16 @@ class AddAnythingDialog(QmlDrawer):
                 n_existing > 0
                 and QMessageBox.question(
                     self,
-                    f"Replace {eventKind.name} event(s)?",
+                    f"Replace {kind.name} event(s)?",
                     self.S_REPLACE_EXISTING.format(
-                        n_existing=n_existing, eventKind=eventKind
+                        n_existing=n_existing, kind=kind
                     ),
                 )
                 == QMessageBox.NoButton
             ):
                 return
 
-        if eventKind in (
-            EventKind.Conflict,
-            EventKind.Distance,
-            EventKind.Reciprocity,
-            EventKind.Projection,
-            EventKind.Fusion,
-            EventKind.Toward,
-            EventKind.Away,
-            EventKind.Inside,
-            EventKind.Outside,
-            EventKind.DefinedSelf,
-        ):
+        elif EventKind.isDyadic(kind):
             numSymbols = len(peopleInfosA) * len(peopleInfosB)
             if numSymbols > 3:
                 button = QMessageBox.question(
@@ -197,40 +190,34 @@ class AddAnythingDialog(QmlDrawer):
 
         # Kind-specific logic
 
-        if eventKind in (EventKind.Birth, EventKind.Adopted):
+        if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
             for person in peopleA:
-                if eventKind == EventKind.Birth:
+                if kind == EventKind.Birth:
                     person.birthEvent.setDateTime(startDateTime, undo=undo_id)
                     if location:
                         person.birthEvent.setLocation(location, undo=undo_id)
-                elif eventKind == EventKind.Adopted:
+                elif kind == EventKind.Adopted:
                     person.adoptedEvent.setDateTime(startDateTime, undo=undo_id)
                     if location:
                         person.adoptedEvent.setLocation(location, undo=undo_id)
-                elif eventKind == EventKind.Death:
+                elif kind == EventKind.Death:
                     person.deceasedEvent.setDateTime(startDateTime, undo=undo_id)
                     if location:
                         person.deathEvent.setLocation(location, undo=undo_id)
 
-        elif eventKind == EventKind.CustomIndividual:
-            commands.addEvent(
-                Event(
-                    personA,
-                    description=description,
-                    location=location,
-                    uniqueId=eventKind.value,
-                ),
-                id=undo_id,
-            )
+        elif kind == EventKind.CustomIndividual:
+            for person in people:
+                commands.addEvent(
+                    Event(
+                        person,
+                        description=description,
+                        location=location,
+                        uniqueId=kind.value,
+                    ),
+                    id=undo_id,
+                )
 
-        elif eventKind in (
-            EventKind.Bonded,
-            EventKind.Married,
-            EventKind.Separated,
-            EventKind.Divorced,
-            EventKind.Moved,
-            EventKind.CustomPairBond,
-        ):
+        elif EventKind.isPairBond(kind):
             personA = peopleA[0]
             personB = peopleB[0]
             marriage = Marriage.marriageFor(personA, personB)
@@ -244,48 +231,26 @@ class AddAnythingDialog(QmlDrawer):
 
             commands.addEvent(
                 marriage,
-                Event(marriage, uniqueId=eventKind.value, location=location),
+                Event(marriage, uniqueId=kind.value, location=location),
                 id=undo_id,
             )
-        elif eventKind in (
-            EventKind.Conflict,
-            EventKind.Distance,
-            EventKind.Reciprocity,
-            EventKind.Projection,
-            EventKind.Fusion,
-            EventKind.Toward,
-            EventKind.Away,
-            EventKind.Inside,
-            EventKind.Outside,
-            EventKind.DefinedSelf,
-        ):
-            itemMode = EventKind.itemModeFor(eventKind)
+
+        elif EventKind.isDyadic(kind):
+            itemMode = EventKind.itemModeFor(kind)
+            if isDateRange:
+                kwargs = {"endDateTime": endDateTime}
+            else:
+                kwargs = {}
             for personA in peopleA:
                 for personB in peopleB:
                     commands.addEmotion(
                         self.scene,
-                        Emotion(kind=itemMode, personA=personA, personB=personB),
+                        Emotion(kind=itemMode, personA=personA, personB=personB, startDateTime=startDateTime, **kwargs),
                         id=undo_id,
                     )
         else:
-            raise ValueError(f"Don't know how to handle event kind {eventKind}")
+            raise ValueError(f"Don't know how to handle EventKind {kind}")
 
-        # FORM = [
-        #     "kind",
-        #     "description",
-        #     "anxiety",
-        #     "functioning",
-        #     "symptom",
-        #     "location",
-        #     "description",
-        #     "isDateRange",
-        #     "startDateTime",
-        #     "startDateUnsure",
-        #     "endDateTime",
-        #     "endDateUnsure",
-        #     "nodal",
-        # ]
-        # values = {k: self.property(k) for k, v in FORM.items()}
         self.submitted.emit()  # for testing
 
     def canClose(self):
