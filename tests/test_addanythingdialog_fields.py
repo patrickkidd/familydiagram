@@ -106,14 +106,6 @@ def test_endDateTime_pickers(dlg):
     assert dlg.rootProp("endDateTime") == DATE_TIME
 
 
-def test_clear_person_pickers_on_hide(dlg):
-    """
-    This is so selected people on hidden pickers don't keep them in the selected
-    person model.
-    """
-    raise NotImplemented
-
-
 # def test_add_new_people_pair_bond(dlg):
 #     scene = dlg.sceneModel.scene
 

@@ -46,6 +46,15 @@ PK.Drawer {
 
     property var dirty: false;
 
+    onKindChanged: {
+        personPicker.clear()
+        peoplePicker.clear()
+        personAPicker.clear()
+        personBPicker.clear()
+        moversPicker.clear()
+        receiversPicker.clear()
+    }
+
     function clear() {
         kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         personPicker.clear()
@@ -175,7 +184,6 @@ PK.Drawer {
                         id: mainGrid
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
-                        rowSpacing: util.QML_MARGINS
 
                         // Person
 
@@ -433,6 +441,7 @@ PK.Drawer {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.preferredHeight: implicitHeight
+                            onHeightChanged: print(height)
                             onDateTimeChanged: root.startDateTime = dateTime
                             Connections {
                                 target: root

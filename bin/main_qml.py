@@ -200,9 +200,12 @@ def __test__EventProperties(scene, parent, sceneModel):
 def __test__EmotionProperties(scene, parent, sceneModel):
     scene.setTags(["here", "you", "are"])
     ep = QmlDrawer(
-        "qml/PK/EmotionProperties.qml", parent=parent, propSheetModel="emotionModel"
+        "qml/PK/EmotionProperties.qml",
+        parent=parent,
+        sceneModel=sceneModel,
+        propSheetModel="emotionModel",
     )
-    ep.setScene(scene)
+    # ep.setScene(scene)
     ep.show([scene.emotions()[0]], animate=False)
     parent.resize(400, 600)
     return ep

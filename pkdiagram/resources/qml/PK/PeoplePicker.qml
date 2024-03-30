@@ -174,10 +174,12 @@ PK.GroupBox {
             removeButtonToolTip: 'Remove the selected person from this event'
             onRemove: {
                 var entry = model.get(root.currentIndex)
-                for(var i = 0; i < selectedPeopleModel.count; i++) {
-                    var person = selectedPeopleModel.get(i)
-                    if(person.person.itemId() === entry.person.itemId()) {
-                        selectedPeopleModel.remove(i)
+                if(entry.person) {
+                    for(var i = 0; i < selectedPeopleModel.count; i++) {
+                        var person = selectedPeopleModel.get(i)
+                        if(person.person.itemId() === entry.person.itemId()) {
+                            selectedPeopleModel.remove(i)
+                        }
                     }
                 }
                 model.remove(root.currentIndex)
