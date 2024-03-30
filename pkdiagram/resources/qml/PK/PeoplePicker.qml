@@ -118,6 +118,7 @@ PK.GroupBox {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
+                        print('PersonPicker.onClick: ' + index + ', ' + mouse.modifiers + ', ' + mouse.accepted)
                         onPersonRowClicked(mouse, index)
                         mouse.accepted = false
                     }

@@ -87,7 +87,7 @@ Rectangle {
             id: personNameText
             text: root.personName
             visible: isSubmitted
-            Layout.leftMargin: util.QML_MARGINS
+            Layout.leftMargin: util.QML_ITEM_MARGINS
         }
         PK.TextInput {
             id: pickerTextEdit
@@ -98,7 +98,7 @@ Rectangle {
             width: contentWidth
             visible: ! isSubmitted
             property bool selectingAutoCompleteItem: false
-            Layout.leftMargin: util.QML_MARGINS
+            Layout.leftMargin: util.QML_ITEM_MARGINS
             Layout.minimumWidth: 40
             onTextChanged: {
                 if(text && !isSubmitted) {
@@ -148,18 +148,18 @@ Rectangle {
         height: util.QML_ITEM_HEIGHT - 10
         visible: isSubmitted
         model: util.PERSON_KIND_NAMES
-        Layout.leftMargin: util.QML_MARGINS
+        indicator: Rectangle { color: 'transparent'; height: 0; width: 0}
+        Layout.leftMargin: util.QML_ITEM_MARGINS
         Layout.minimumWidth: 40
         anchors {
             right: parent.right
             verticalCenter: parent.verticalCenter
-            rightMargin: 55
+            rightMargin: util.QML_ITEM_MARGINS + 30
         }
+        palette.button: 'transparent'
         onCurrentIndexChanged: {
             root.gender = util.personKindFromIndex(currentIndex)
         }
-        palette.button: 'transparent'
-        indicator: Rectangle { color: 'transparent'; height: 0; width: 0}
     }
 
     // add a transparent png with the path "resource/checkbox-check.png"
@@ -175,40 +175,43 @@ Rectangle {
         anchors {
             right: parent.right
             verticalCenter: parent.verticalCenter
-            rightMargin: 25
+            rightMargin: util.QML_ITEM_MARGINS
         }
     }
 
     Rectangle {
         id: isNewBox
         objectName: "isNewBox"
-        width: newText.width + 10
+        width: newText.width + 7
         height: newText.height + 3
         color: "transparent"
-        border.color: util.QML_TEXT_COLOR
-        border.width: 1
         radius: 3
         opacity: 0.5
         visible: isSubmitted && isNewPerson
+        border.color: util.QML_TEXT_COLOR
+        border.width: 1
         Text {
             id: newText
             text: "new"
             color: util.QML_TEXT_COLOR
-            anchors.centerIn: parent
             visible: true
+            font.pixelSize: 10
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -1 // render nudge
+            anchors.horizontalCenterOffset: 1 // render nudge
         }
         anchors {
             right: parent.right
             verticalCenter: parent.verticalCenter
-            rightMargin: 15
+            rightMargin: util.QML_ITEM_MARGINS - 5
         }
     }
 
     Popup {
         id: autoCompletePopup
         objectName: "autoCompletePopup"
-        x: root.x - 10
-        y: root.y + util.QML_ITEM_HEIGHT
+        x: -10
+        y: util.QML_ITEM_HEIGHT // show just below the picker
         width: root.width + 20
         height: popupListView.height
         padding: 0
@@ -269,5 +272,5 @@ Rectangle {
         anchors.fill: parent
         enabled: !root.isSubmitted
         onClicked: pickerTextEdit.forceActiveFocus()
-    }    
+    }
 }

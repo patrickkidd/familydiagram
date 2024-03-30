@@ -383,9 +383,13 @@ QML_SAME_DATE_HIGHLIGHT_COLOR = ""
 QML_NODAL_COLOR = ""
 # Qml misc constants
 QML_MARGINS = 20
+QML_ITEM_MARGINS = 10
 QML_SPACING = 10
 QML_HEADER_HEIGHT = 40
 QML_FIELD_WIDTH = 200
+QML_FIELD_HEIGHT = (
+    40  # not sure where this comes from but TextField and ComboBox are 40
+)
 QML_ITEM_HEIGHT = IS_IOS and 44 or 30  # iOS portait: 44, iOS landscape: 32
 QML_ITEM_LARGE_HEIGHT = 44
 QML_TITLE_FONT_SIZE = QML_ITEM_HEIGHT * 1.2 * 0.85  # iOS portait: 44, iOS landscape: 32

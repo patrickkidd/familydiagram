@@ -42,6 +42,8 @@ PK.Drawer {
     property var functioning: functioningBox.value
     property var symptom: symptomBox.value
 
+    readonly property var fieldWidth: 275
+
     property var dirty: false;
 
     function clear() {
@@ -173,6 +175,7 @@ PK.Drawer {
                         id: mainGrid
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
+                        rowSpacing: util.QML_MARGINS
 
                         // Person
 
@@ -191,10 +194,10 @@ PK.Drawer {
                             visible: personLabel.visible
                             border.width: 1
                             border.color: util.QML_ITEM_BORDER_COLOR
-                            Layout.minimumHeight: util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: util.QML_ITEM_HEIGHT
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             // KeyNavigation.tab: dateButtons.textInput
                         }
 
@@ -214,8 +217,8 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: peopleLabel.visible
                             Layout.fillHeight: true
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
@@ -237,8 +240,10 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
                             Layout.fillHeight: true
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
                         }
 
@@ -258,8 +263,10 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
                             Layout.fillHeight: true
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
                         }
 
@@ -279,8 +286,8 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.fillHeight: true
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
@@ -302,8 +309,8 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.fillHeight: true
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             // KeyNavigation.tab: dateButtons.textInput
@@ -313,6 +320,7 @@ PK.Drawer {
                             id: peopleHelpText
                             objectName: "peopleHelpText"
                             wrapMode: Text.WordWrap
+                            visible: text != ''
                             font.pixelSize: util.HELP_FONT_SIZE
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -334,8 +342,8 @@ PK.Drawer {
                             id: kindBox
                             objectName: "kindBox"
                             model: util.eventKindLabels()
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             property var lastCurrentIndex: -1
                             KeyNavigation.tab: startDateButtons
                             onCurrentIndexChanged: {
@@ -356,6 +364,7 @@ PK.Drawer {
                             objectName: "kindHelpText"
                             font.pixelSize: util.HELP_FONT_SIZE
                             wrapMode: Text.WordWrap
+                            visible: text != ''
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                         }
@@ -371,8 +380,8 @@ PK.Drawer {
                             id: descriptionEdit
                             objectName: "descriptionEdit"
                             visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             KeyNavigation.tab: kindBox
                             function clear() { text = '' }
                             // Keys.onPressed: {
@@ -534,8 +543,8 @@ PK.Drawer {
                         PK.TextField {
                             id: locationEdit
                             objectName: "locationEdit"
-                            Layout.maximumWidth: util.QML_FIELD_WIDTH
-                            Layout.minimumWidth: util.QML_FIELD_WIDTH
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             // KeyNavigation.tab: nodalBox
                             function clear() { text = '' }
                             // Keys.onPressed: {
