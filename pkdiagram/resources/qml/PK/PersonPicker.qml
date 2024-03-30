@@ -41,7 +41,6 @@ Rectangle {
     }
 
     function setExistingPerson(person) {
-        // print('PersonPicker.setExistingPerson: ' + person)
         root.isSubmitted = true
         root.isNewPerson = false
         root.person = person

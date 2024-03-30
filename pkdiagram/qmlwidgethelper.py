@@ -230,7 +230,7 @@ class QmlWidgetHelper(QObjectHelper):
             elif not item.isVisible():
                 raise RuntimeError(msg + ", item is not visible.")
             else:
-                if util.IS_TEST:
+                if False and util.IS_TEST:
                     pngPath = util.dumpWidget(self)
                 else:
                     pngPath = None

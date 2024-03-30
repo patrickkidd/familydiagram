@@ -65,7 +65,14 @@ class EventKind(enum.Enum):
 
     @classmethod
     def isPairBond(cls, x) -> bool:
-        return x in (cls.Bonded, cls.Married, cls.Separated, cls.Divorced, cls.Moved)
+        return x in (
+            cls.Bonded,
+            cls.Married,
+            cls.Separated,
+            cls.Divorced,
+            cls.Moved,
+            cls.CustomPairBond,
+        )
 
     @classmethod
     def isCustom(cls, x) -> bool:

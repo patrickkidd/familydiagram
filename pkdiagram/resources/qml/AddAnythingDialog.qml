@@ -41,6 +41,7 @@ PK.Drawer {
     property var anxiety: anxietyBox.value
     property var functioning: functioningBox.value
     property var symptom: symptomBox.value
+    property var notes: notesEdit.text
 
     readonly property var fieldWidth: 275
 
@@ -72,6 +73,7 @@ PK.Drawer {
         functioningBox.clear()
         symptomBox.clear()
         nodalBox.clear()
+        notesEdit.clear()
         addPage.scrollToTop()
 
         root.dirty = false;
@@ -82,11 +84,12 @@ PK.Drawer {
 
     function initWithPairBond(pairBondId) {
         var pairBond = sceneModel.item(pairBondId)
+        kindBox.setCurrentValue(util.EventKind.CustomPairBond)
         personAPicker.setExistingPerson(pairBond.personA())
         personBPicker.setExistingPerson(pairBond.personB())
-        kindBox.setCurrentValue(util.EventKind.CustomPairBond)
     }
     function initWithMultiplePeople(peopleIds) {
+        print(peopleIds)
         var people = [];
         for(var i=0; i < peopleIds.length; i++) {
             people.push(sceneModel.item(peopleIds[i]))
@@ -587,6 +590,30 @@ PK.Drawer {
                         PK.Text { text: "Symptom" }
 
                         PK.VariableBox { id: symptomBox }
+
+                        PK.FormDivider {
+                            Layout.columnSpan: 2
+                        }
+
+                        PK.Text {
+                            id: notesLabel
+                            objectName: "notesLabel"
+                            text: "Notes"
+                        }
+
+                        PK.TextField {
+                            id: notesEdit
+                            objectName: "notesEdit"
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            // KeyNavigation.tab: nodalBox
+                            function clear() { text = '' }
+                            // Keys.onPressed: {
+                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+                            //         done()
+                            //     }
+                            // }
+                        }
                     }
                 }
             }

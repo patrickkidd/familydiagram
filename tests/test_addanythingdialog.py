@@ -155,8 +155,17 @@ class TestAddAnythingDialog(AddAnythingDialog):
 
     def set_endDateTime(self, dateTime):
         if not self.rootProp("isDateRange"):
+            assert self.itemProp("endDateTimeLabel", "visible") == False
+            assert self.itemProp("endDateButtons", "visible") == False
+            assert self.itemProp("endDatePicker", "visible") == False
+            assert self.itemProp("endTimePicker", "visible") == False
             self.mouseClick("isDateRangeBox")
-            assert self.rootProp("isDateRange") == True
+            self.findItem("isDateRangeBox").setFocus(False)
+        assert self.rootProp("isDateRange") == True
+        assert self.itemProp("endDateTimeLabel", "visible") == True
+        assert self.itemProp("endDateButtons", "visible") == True
+        assert self.itemProp("endDatePicker", "visible") == True
+        assert self.itemProp("endTimePicker", "visible") == True
         self.set_dateTime(dateTime, "endDateButtons", "endDatePicker", "endTimePicker")
 
     def set_fields(

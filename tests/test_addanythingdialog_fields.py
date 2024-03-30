@@ -16,7 +16,7 @@ def test_init(dlg):
     assert [
         i for i in dlg.findItem("kindBox").property("model")
     ] == EventKind.menuLabels()
-    assert dlg.rootProp("kind") == None
+    assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
 
 
 def test_init_with_pairbond_people_selected(dlg):
@@ -100,6 +100,8 @@ def test_endDateTime_pickers(dlg):
 
     dlg.set_kind(EventKind.Conflict)
     dlg.set_endDateTime(DATE_TIME)
+
+    # util.dumpWidget(dlg)
 
     # _set_fields(dlg, kind=EventKind.Conflict, endDateTime=DATE_TIME, fillRequired=True)
     assert dlg.itemProp("isDateRangeBox", "checked") == True
