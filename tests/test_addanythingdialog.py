@@ -11,6 +11,7 @@ from pkdiagram.pyqt import (
     QMetaObject,
     Q_RETURN_ARG,
     QVariant,
+    QJSValue,
 )
 from pkdiagram.addanythingdialog import AddAnythingDialog
 from test_personpicker import set_new_person, set_existing_person
@@ -59,18 +60,15 @@ class TestAddAnythingDialog(AddAnythingDialog):
         self,
         personPicker: str,
         textInput: str,
+        gender: str = None,
         returnToFinish: bool = False,
     ):
-        _log.info(f"set_new_person('{personPicker}', '{textInput}')")
-
-        personPickerItem = self.findItem(personPicker)
-        self.focusItem(personPickerItem)
-        util.qtbot.keyClicks(
-            self, textInput, resetFocus=False, returnToFinish=returnToFinish
-        )
-        assert personPickerItem.property("isSubmitted") == returnToFinish
-        assert personPickerItem.property("isNewPerson") == True
-        assert personPickerItem.property("personName") == textInput
+        set_new_person(self, textInput, personPicker, gender, returnToFinish)
+        # _log.info(f"set_new_person('{personPicker}', '{textInput}')")
+        # self.keyClicks(f"{personPicker}.textEdit", textInput, returnToFinish=True)
+        assert self.itemProp(personPicker, "isSubmitted") == True
+        assert self.itemProp(personPicker, "isNewPerson") == True
+        assert self.itemProp(personPicker, "personName") == textInput
 
     def set_existing_person(
         self,
@@ -79,24 +77,25 @@ class TestAddAnythingDialog(AddAnythingDialog):
         autoCompleteInput: str = None,
         returnToFinish: bool = False,
     ):
-        _log.info(
-            f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
+        # _log.info(
+        #     f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
+        # )
+        set_existing_person(
+            self, person, autoCompleteInput, personPicker, returnToFinish=returnToFinish
         )
-        if autoCompleteInput:
-            autoCompleteInput = person.fullNameOrAlias()
-        personPickerItem = self.findItem(personPicker)
-        textEditItem = personPickerItem.findChild("textEdit")
-        assert textEditItem is not None
-        self.keyClicks(
-            f"{personPicker}.textEdit",
-            autoCompleteInput,
-            resetFocus=False,
-            returnToFinish=returnToFinish,
-        )
-        assert self.itemProp(f"{personPicker}.popupListView", "visible") == True
-        self.clickListViewItem_actual(
-            f"personPicker.popupListView", person.fullNameOrAlias()
-        )
+        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == False
+        # if not autoCompleteInput:
+        #     autoCompleteInput = person.fullNameOrAlias()
+        # self.keyClicks(
+        #     f"{personPicker}.textEdit",
+        #     autoCompleteInput,
+        #     resetFocus=False,
+        #     returnToFinish=returnToFinish,
+        # )
+        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == True
+        # self.clickListViewItem_actual(
+        #     f"personPicker.popupListView", person.fullNameOrAlias()
+        # )
 
     def add_new_person(
         self,
@@ -167,6 +166,9 @@ class TestAddAnythingDialog(AddAnythingDialog):
         assert self.itemProp("endDatePicker", "visible") == True
         assert self.itemProp("endTimePicker", "visible") == True
         self.set_dateTime(dateTime, "endDateButtons", "endDatePicker", "endTimePicker")
+
+    def set_notes(self, notes):
+        self.keyClicks("notesEdit", notes)
 
     def set_fields(
         self,
@@ -300,6 +302,39 @@ def test_add_new_person_via_Birth(scene, dlg):
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Birth.value
     assert event.description == EventKind.Birth.name
+
+
+def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
+    BIRTH_NOTES = "asd fd fgfg "
+
+    parentA = scene.addItem(Person(name="John", lastName="Doe"))
+    submitted = util.Condition(dlg.submitted)
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "Josephine Doe", returnToFinish=True)
+    dlg.set_existing_person("personAPicker", parentA)
+    dlg.set_new_person("personBPicker", "Jane Doe", returnToFinish=True)
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.set_notes(BIRTH_NOTES)
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.callCount == 1, "submitted signal not emitted exactly once"
+
+    scene = dlg.sceneModel.scene
+    assert len(scene.people()) == 3, f"Incorrect number of people added to scene"
+    child = scene.query1(name="Josephine", lastName="Doe")
+    assert child, f"Could not find created child {ONE_NAME}"
+    assert len(child.events()) == 1, f"Incorrect number of events added to scene"
+    event = child.events()[0]
+    assert event.uniqueId() == EventKind.Birth.value
+    assert event.description() == EventKind.Birth.name
+    assert event.notes() == BIRTH_NOTES
+
+    parentA = scene.query1(name="John", lastName="Doe")
+    parentB = scene.query1(name="Jane", lastName="Doe")
+    assert {x.id for x in child.parents().people} == {parentA.id, parentB.id}
+
+
+def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg):
+    raise NotImplementedError
 
 
 def test_add_new_person_via_CustomIndividual(dlg, scene):

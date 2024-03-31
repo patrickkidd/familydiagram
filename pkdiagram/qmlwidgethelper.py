@@ -23,6 +23,8 @@ log = logging.getLogger(__name__)
 
 class QmlWidgetHelper(QObjectHelper):
 
+    DEBUG = True
+
     def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
         self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
@@ -188,6 +190,12 @@ class QmlWidgetHelper(QObjectHelper):
 
     def itemProp(self, objectName, attr):
         item = self.findItem(objectName)
+        propertyNames = [
+            item.metaObject().property(i).name()
+            for i in range(item.metaObject().propertyCount())
+        ]
+        if not attr in propertyNames:
+            raise AttributeError(f"Property '{attr}' not found on {objectName}")
         return item.property(attr)
 
     def setItemProp(self, objectName, attr, value):
@@ -198,7 +206,7 @@ class QmlWidgetHelper(QObjectHelper):
         if not self.isActiveWindow():
             # self.here('Setting active window to %s, currently %s' % (self, QApplication.activeWindow()))
             QApplication.setActiveWindow(self)
-            if util.qtbot.DEBUG:
+            if self.DEBUG:
                 log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
             util.qtbot.waitActive(self)
             if not self.isActiveWindow():
@@ -212,7 +220,7 @@ class QmlWidgetHelper(QObjectHelper):
         assert (
             item.property("enabled") == True
         ), f"The item {objectName} cannot be focused if it is not enabled."
-        if util.qtbot.DEBUG:
+        if self.DEBUG:
             log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
         self.mouseClick(objectName)
         if not item.hasActiveFocus():
@@ -257,7 +265,7 @@ class QmlWidgetHelper(QObjectHelper):
 
     def resetFocus(self, objectName):
         item = self.findItem(objectName)
-        if util.qtbot.DEBUG:
+        if self.DEBUG:
             log.info(f'QmlWidgetHelper.resetFocus("{objectName}")')
         item.setProperty("focus", False)
         if item.hasActiveFocus():
@@ -267,7 +275,7 @@ class QmlWidgetHelper(QObjectHelper):
 
     def keyClick(self, objectName, key, resetFocus=True):
         self.focusItem(objectName)
-        if util.qtbot.DEBUG:
+        if self.DEBUG:
             log.info(f'QmlWidgetHelper.keyClick("{objectName}", {key})')
         util.qtbot.keyClick(self.qml, key)
         if resetFocus:
@@ -275,11 +283,13 @@ class QmlWidgetHelper(QObjectHelper):
 
     def keyClicks(self, objectName, s, resetFocus=True, returnToFinish=True):
         self.focusItem(objectName)
-        if util.qtbot.DEBUG:
-            log.info(f'QmlWidgetHelper.keyClicks("{objectName}", {s})')
+        if self.DEBUG:
+            log.info(
+                f'QmlWidgetHelper.keyClicks("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
+            )
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
-            if util.qtbot.DEBUG:
+            if self.DEBUG:
                 log.info(
                     f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {s})'
                 )
@@ -314,7 +324,7 @@ class QmlWidgetHelper(QObjectHelper):
                 QRectF(0, 0, item.width(), item.height())
             ).toRect()
             pos = rect.center()
-        if util.qtbot.DEBUG:
+        if self.DEBUG:
             log.info(f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {button})')
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
@@ -332,7 +342,7 @@ class QmlWidgetHelper(QObjectHelper):
                 QRectF(0, 0, item.width(), item.height())
             ).toRect()
             pos = rect.center()
-        if util.qtbot.DEBUG:
+        if self.DEBUG:
             log.info(
                 f'QmlWidgetHelper.mouseDClickItem("{item.objectName()}", {button})'
             )
@@ -384,7 +394,7 @@ class QmlWidgetHelper(QObjectHelper):
         model = item.property("model")
         text = None
         textRows = []
-        for row in range(model.rowCount()):
+        for newCurrentIndex, row in enumerate(range(model.rowCount())):
             text = model.data(model.index(row, 0))
             textRows.append(text)
             if text == rowText:
@@ -415,6 +425,9 @@ class QmlWidgetHelper(QObjectHelper):
         else:
             model = item.property("model")
         assert model.data(model.index(row, 0)) == rowText
+        # assert (
+        #     item.property("currentIndex") == newCurrentIndex
+        # ), f"Could not set currentIndex to {newCurrentIndex} for {objectName} (was {prevCurrentIndex})"
 
     def clickTimelineViewItem(
         self, objectName, cellText, column=0, modifiers=Qt.NoModifier

@@ -100,23 +100,28 @@ PK.Drawer {
 
     // attr statuses
 
-    function personA() {
-        return personAPicker.person
+    function personEntry() {
+        return personPicker.personEntry()
     }
 
-    function personB() {
-        return personBPicker.person
+    function personAEntry() {
+        return personAPicker.personEntry()
     }
 
-    function people() {
-        var ret = []
-        for(var i=0; i < peoplePicker.model.count; i++) {
-            var object = peoplePicker.model.get(i)
-            print(object.personName + ', ' + object.person)
-            ret.push(peoplePicker.model.get(i).person.itemId())
-        }
-        print(ret)
-        return ret
+    function personBEntry() {
+        return personBPicker.personEntry()
+    }
+
+    function peopleEntries() {
+        return peoplePicker.peopleEntries()
+    }
+
+    function moverEntries() {
+        return moversPicker.peopleEntries()
+    }
+
+    function receiverEntries() {
+        return receiversPicker.peopleEntries()
     }
 
     function setPeopleHelpText(text) {
@@ -240,8 +245,8 @@ PK.Drawer {
                         PK.Text {
                             id: personALabel
                             objectName: "personALabel"
-                            text: 'Person A'
-                            visible: util.isPairBondEventKind(root.kind)
+                            text: util.isChildEventKind(root.kind) ? 'Parent A' : 'Person A'
+                            visible: util.isPairBondEventKind(root.kind) || util.isChildEventKind(root.kind)
                         }
 
                         PK.PersonPicker {
@@ -263,7 +268,7 @@ PK.Drawer {
                         PK.Text {
                             id: personBLabel
                             objectName: "personBLabel"
-                            text: 'Person B'
+                            text: util.isChildEventKind(root.kind) ? 'Parent B' : 'Person B'
                             visible: personALabel.visible
                         }
 
@@ -444,7 +449,6 @@ PK.Drawer {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.preferredHeight: implicitHeight
-                            onHeightChanged: print(height)
                             onDateTimeChanged: root.startDateTime = dateTime
                             Connections {
                                 target: root

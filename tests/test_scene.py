@@ -34,6 +34,28 @@ from pkdiagram import (
 #         self.assertEqual(s.people()[0], person)
 
 
+def test_query_not_all_kwargs():
+    scene = Scene()
+    scene.addItems(
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+        Person(name="John", lastName="Smith"),
+    )
+    assert scene.query(lastName="Doe", nickName="Donny") == []
+
+
+def test_query_multiple():
+    scene = Scene()
+    scene.addItems(
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+        Person(name="John", lastName="Smith"),
+    )
+    person1, person2 = scene.query(lastName="Doe")
+    assert person1.name() == "John"
+    assert person2.name() == "Jane"
+
+
 def test_find_by_types(simpleScene):
     """ """
     people = simpleScene.find(types=Person)

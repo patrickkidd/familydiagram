@@ -66,7 +66,6 @@ log = logging.getLogger(__name__)
 util.init_logging()
 
 
-
 def pytest_addoption(parser):
     parser.addoption(
         "--attach",
@@ -76,7 +75,7 @@ def pytest_addoption(parser):
 
 
 def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    # os.environ["QT_QPA_PLATFORM"] = "offscreen"
     attach = metafunc.config.getoption("attach")
     if attach and pytest_generate_tests._first_call:
         util.wait_for_attach()

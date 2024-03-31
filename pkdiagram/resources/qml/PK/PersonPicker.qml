@@ -40,6 +40,14 @@ Rectangle {
         pickerTextEdit.forceActiveFocus()
     }
 
+    function personEntry() {
+        return {
+            person: root.person,
+            personName: root.personName,
+            isNewPerson: root.isNewPerson
+        }
+    }
+
     function setExistingPerson(person) {
         root.isSubmitted = true
         root.isNewPerson = false
@@ -101,7 +109,6 @@ Rectangle {
             Layout.minimumWidth: 40
             onTextChanged: {
                 if(text && !isSubmitted) {
-                    autoCompletePopup.matchText = text
                     var numMatches = 0
                     var debug_matches = [];
                     for(var i=0; i < scenePeopleModel.rowCount(); i++) {
@@ -214,7 +221,6 @@ Rectangle {
         width: root.width + 20
         height: popupListView.height
         padding: 0
-        property var matchText: ''
         contentItem: ListView {
             id: popupListView
             objectName: "popupListView"
@@ -234,19 +240,14 @@ Rectangle {
                         ret += 1
                     }
                 }
+                // print('numVisibleItems: ' + ret)
                 return ret
             }
             delegate: ItemDelegate {
                 id: dRoot
                 property var isListItem: true
                 property var person: scenePeopleModel.personForRow(index)
-                property var matchesTypedPersonName: {
-                    if(person && person.fullNameOrAlias().toLowerCase().indexOf(autoCompletePopup.matchText.toLowerCase()) !== -1) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
+                property var matchesTypedPersonName: person && person.matchesName(pickerTextEdit.text)
                 property var alreadySelected: if(person) root.alreadySelected(person)
                 text: fullNameOrAlias // modelData
                 width: autoCompletePopup.width

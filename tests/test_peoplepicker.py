@@ -50,7 +50,7 @@ def picker(scene, qtbot):
 
 
 def add_and_keyClicks(
-    picker: QmlWidgetHelper,
+    dlg: QmlWidgetHelper,
     textInput: str,
     peoplePicker="peoplePicker",
     returnToFinish: bool = True,
@@ -58,37 +58,35 @@ def add_and_keyClicks(
 
     _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
 
-    peoplePicker = picker.findItem(peoplePicker)
-    itemAddDone = util.Condition(peoplePicker.itemAddDone)
-    picker.mouseClick(f"{peoplePicker}.addButton")
+    peoplePickerItem = dlg.findItem(peoplePicker)
+    itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+    dlg.mouseClick(f"{peoplePicker}.addButton")
     assert itemAddDone.wait() == True
     itemDelegate = itemAddDone.callArgs[-1][0]
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
     popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
     assert popupListView.property("visible") == False
-    picker.keyClicks(
-        textEdit, textInput, resetFocus=False, returnToFinish=returnToFinish
-    )
+    dlg.keyClicks(textEdit, textInput, resetFocus=False, returnToFinish=returnToFinish)
     return itemDelegate
 
 
 def add_new_person(
-    picker: QmlWidgetHelper,
+    dlg: QmlWidgetHelper,
     textInput: str,
     peoplePicker="peoplePicker",
     gender: str = None,
     returnToFinish=True,
 ) -> QQuickItem:
     itemDelegate = add_and_keyClicks(
-        picker,
+        dlg,
         textInput,
         peoplePicker=peoplePicker,
         returnToFinish=returnToFinish,
     )
     if gender is not None:
-        genderBox = itemDelegate.findChild('genderBox')
+        genderBox = itemDelegate.findChild("genderBox")
         assert genderBox is not None, f"Could not find genderBox for {itemDelegate}"
-        picker.clickComboBoxItem(genderBox, gender)
+        dlg.clickComboBoxItem(genderBox, gender)
 
     return itemDelegate
 

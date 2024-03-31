@@ -1,6 +1,6 @@
 import logging
 
-from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal
+from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal, QPointF
 from . import objects, util, commands
 from .objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
@@ -19,14 +19,21 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
             {"name": "initWithMultiplePeople"},
-            {"name": "people", "return": True},
+            {"name": "personEntry", "return": True, "parser": lambda x: x.toVariant()},
+            {"name": "personAEntry", "return": True, "parser": lambda x: x.toVariant()},
+            {"name": "personBEntry", "return": True, "parser": lambda x: x.toVariant()},
             {
-                "name": "existingPeopleA",
+                "name": "peopleEntries",
                 "return": True,
                 "parser": lambda x: [x for x in x.toVariant()],
             },
             {
-                "name": "existingPeopleB",
+                "name": "receiverEntries",
+                "return": True,
+                "parser": lambda x: [x for x in x.toVariant()],
+            },
+            {
+                "name": "moverEntries",
                 "return": True,
                 "parser": lambda x: [x for x in x.toVariant()],
             },
@@ -76,28 +83,65 @@ class AddAnythingDialog(QmlDrawer):
     def onDone(self):
         _log.info(f"AddAnythingDialog.onDone")
 
-        # Required fields
-        if not self.rootProp("kind"):
-            objectName = "kindLabel"
-        elif self.itemProp("peoplePickerA", "model").rowCount() == 0:
-            objectName = "peopleALabel"
-        elif (
-            EventKind.isDyadic(EventKind(self.rootProp("kind")))
-            and self.itemProp("peoplePickerB", "model").rowCount() == 0
-        ):
-            objectName = "peopleBLabel"
+        kind = EventKind(self.rootProp("kind"))
+        personEntry = self.personEntry()
+        personAEntry = self.personAEntry()
+        personBEntry = self.personBEntry()
+        peopleEntries = self.peopleEntries()
+        moverEntries = self.moverEntries()
+        receiverEntries = self.receiverEntries()
+        description = self.rootProp("description")
+        location = self.rootProp("location")
+        startDateTime = self.rootProp("startDateTime")
+        endDateTime = self.rootProp("endDateTime")
+        isDateRange = self.rootProp("isDateRange")
+        anxiety = self.rootProp("anxiety")
+        functioning = self.rootProp("functioning")
+        symptom = self.rootProp("symptom")
+        notes = self.rootProp("notes")
+
+        # Validation: Required fields
+
+        def _invalidPersonPickerLabel():
+            kindValue = self.rootProp("kind")
+            if not kindValue:
+                return
+            kind = EventKind(kindValue)
+            ret = None
+            if kind == EventKind.CustomIndividual:
+                if not peopleEntries:
+                    ret = "peopleLabel"
+            elif EventKind.isMonadic(kind):
+                if not personEntry:
+                    ret = "personLabel"
+            elif EventKind.isPairBond(kind):
+                if personAEntry:
+                    ret = "personALabel"
+                elif personBEntry:
+                    ret = "personBLabel"
+            elif EventKind.isDyadic(kind):
+                if not moverEntries:
+                    ret = "moversLabel"
+                elif not receiverEntries:
+                    ret = "receiversLabel"
+            return ret
+
+        invalidPersonPickerLabel = _invalidPersonPickerLabel()
+
+        if invalidPersonPickerLabel:
+            labelObjectName = invalidPersonPickerLabel
+        elif not self.rootProp("kind"):
+            labelObjectName = "kindLabel"
         elif not self.rootProp("description"):
-            objectName = "descriptionLabel"
-        # elif not self.rootProp("location"):
-        #     objectName = "locationLabel"
+            labelObjectName = "descriptionLabel"
         elif not self.rootProp("startDateTime"):
-            objectName = "startDateTimeLabel"
+            labelObjectName = "startDateTimeLabel"
         elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
-            objectName = "endDateTimeLabel"
+            labelObjectName = "endDateTimeLabel"
         else:
-            objectName = None
-        if objectName:
-            name = self.itemProp(objectName, "text")
+            labelObjectName = None
+        if labelObjectName:
+            name = self.itemProp(labelObjectName, "text")
             msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
             _log.info(f"AddAnythingForm validation DIALOG: {msg}")
             QMessageBox.warning(
@@ -108,75 +152,30 @@ class AddAnythingDialog(QmlDrawer):
             )
             return
 
-        # Validation checks from AddAnythingDialog.qml
+        # Validation: Confirmations
 
-        kind = EventKind(self.rootProp("kind"))
+        if EventKind.isMonadic(kind):
+            person = personEntry.get("person")
+            if person:
+                if person.birthDateTime():
+                    birthEvent = True
+                elif person.adoptedDateTime():
+                    adoptedEvent = True
+                elif person.deathDateTime():
+                    deathEvent = True
 
-        # TODO: compile people from pickers
-        people = []
-        peopleInfosA = []
-        peopleInfosB = []
-        for peoplePicker in ("peoplePickerA", "peoplePickerB"):
-            model = self.itemProp(peoplePicker, "model")
-            for i in range(model.rowCount()):
-                modelData = model.get(i).toVariant()
-                info = {
-                    "personName": modelData.property("personName"),
-                    "person": modelData.property("person"),
-                }
-                if peoplePicker == "peoplePickerA":
-                    peopleInfosA.append(info)
-                elif peoplePicker == "peoplePickerB":
-                    peopleInfosB.append(info)
-        
-        description = self.rootProp("description")
-        location = self.rootProp("location")
-        startDateTime = self.rootProp("startDateTime")
-        endDateTime = self.rootProp("endDateTime")
-        isDateRange = self.rootProp("isDateRange")
-        anxiety = self.rootProp("anxiety")
-        functioning = self.rootProp("functioning")
-        symptom = self.rootProp("symptom")
+                if birthEvent or adoptedEvent or deathEvent:
+                    button = QMessageBox.question(
+                        self,
+                        f"Replace {kind.name} event(s)?",
+                        self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind),
+                    )
 
-        peopleA = [p["person"] for p in peopleInfosA]
-        peopleB = [p["person"] for p in peopleInfosB]
-
-        undo_id = commands.nextId()
-        people_to_add = []
-
-        for item in peopleInfosA + peopleInfosB:
-            if not item["person"]:
-                parts = item["personName"].split(" ")
-                firstName, lastName = parts[0], " ".join(parts[1:])
-                person = Person(name=firstName, lastName=lastName)
-                people_to_add.append(person)
-                people.append(person)
-
-        if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-
-            if kind == EventKind.Birth:
-                n_existing = sum([1 for x in peopleA if x.birthDateTime()])
-            elif kind == EventKind.Adopted:
-                n_existing = sum([1 for x in peopleA if x.adoptedDateTime()])
-            elif kind == EventKind.Death:
-                n_existing = sum([1 for x in peopleA if x.deceasedDateTime()])
-            else:
-                n_existing = 0
-            if (
-                n_existing > 0
-                and QMessageBox.question(
-                    self,
-                    f"Replace {kind.name} event(s)?",
-                    self.S_REPLACE_EXISTING.format(
-                        n_existing=n_existing, kind=kind
-                    ),
-                )
-                == QMessageBox.NoButton
-            ):
-                return
+                    if button == QMessageBox.NoButton:
+                        return
 
         elif EventKind.isDyadic(kind):
-            numSymbols = len(peopleInfosA) * len(peopleInfosB)
+            numSymbols = len(moverEntries) * len(receiverEntries)
             if numSymbols > 3:
                 button = QMessageBox.question(
                     self,
@@ -186,24 +185,108 @@ class AddAnythingDialog(QmlDrawer):
                 if button == QMessageBox.NoButton:
                     return
 
-        commands.addPeople(self.scene, people_to_add, id=undo_id)
+        # Add People
+
+        person = None
+        personA = None
+        personB = None
+        parentA = None
+        parentB = None
+        people = None
+        movers = None
+        receivers = None
+        newPeople = None
+
+        def _entries2People(entries):
+            existingPeople = []
+            newPeople = []
+            for entry in entries:
+                if entry["isNewPerson"]:
+                    parts = entry["personName"].split(" ")
+                    firstName, lastName = parts[0], " ".join(parts[1:])
+                    person = Person(name=firstName, lastName=lastName)
+                    newPeople.append(person)
+                else:
+                    existingPeople.append(entry["person"])
+            return existingPeople, newPeople
+
+        if EventKind.isMonadic(kind):
+            existingPersons, newPersons = _entries2People([personEntry])
+            if existingPersons:
+                person = existingPersons[0]
+            else:
+                person = newPersons[0]
+            existingPersonsA, newPersonsA = _entries2People([personAEntry])
+            if existingPersonsA:
+                parentA = existingPersonsA[0]
+            else:
+                parentA = newPersonsA[0]
+            existingPersonsB, newPersonsB = _entries2People([personBEntry])
+            if existingPersonsB:
+                parentB = existingPersonsB[0]
+            else:
+                parentB = newPersonsB[0]
+            newPeople = newPersons + newPersonsA + newPersonsB
+        elif kind == EventKind.CustomIndividual:
+            existingPeople, newPeople = _entries2People(peopleEntries)
+            people = existingPeople + newPeople
+        elif EventKind.isPairBond(kind):
+            existingPeopleA, newPeopleA = _entries2People([personAEntry])
+            if existingPeopleA:
+                personA = existingPeopleA[0]
+            else:
+                personA = newPeopleA[0]
+            existingPeopleB, newPeopleB = _entries2People([personBEntry])
+            if existingPeopleB:
+                personB = existingPeopleB[0]
+            else:
+                personB = newPeopleB[0]
+            newPeople = newPeopleA + newPeopleB
+        elif EventKind.isDyadic(kind):
+            existingMovers, newMovers = _entries2People(moverEntries)
+            existingReceivers, newReceivers = _entries2People(receiverEntries)
+            movers = existingMovers + newMovers
+            receiverEntries = existingReceivers + newReceivers
+            newPeople = newMovers + newReceivers
+
+        _log.info(f"Adding {len(newPeople)} new people to scene")
+        commands.stack().beginMacro(
+            f"Add {kind.value} event, with {len(newPeople)} new people."
+        )
+        commands.addPeople(self.scene, newPeople)
 
         # Kind-specific logic
 
+        propertyUndoId = commands.nextId()
+
         if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-            for person in peopleA:
-                if kind == EventKind.Birth:
-                    person.birthEvent.setDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.birthEvent.setLocation(location, undo=undo_id)
-                elif kind == EventKind.Adopted:
-                    person.adoptedEvent.setDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.adoptedEvent.setLocation(location, undo=undo_id)
-                elif kind == EventKind.Death:
-                    person.deceasedEvent.setDateTime(startDateTime, undo=undo_id)
-                    if location:
-                        person.deathEvent.setLocation(location, undo=undo_id)
+            event = None
+            if kind == EventKind.Birth:
+                event = person.birthEvent
+            elif kind == EventKind.Adopted:
+                event = person.adoptedEvent
+            elif kind == EventKind.Death:
+                event = person.deceasedEvent
+            event.setDateTime(startDateTime, undo=propertyUndoId)
+            if location:
+                event.setLocation(location, undo=propertyUndoId)
+            if notes:
+                event.setNotes(notes, undo=propertyUndoId)
+
+            # Optional: Add Parents
+            if kind in (EventKind.Birth, EventKind.Adopted):
+                if not parentA:
+                    parentA = commands.addPerson(
+                        self.scene, util.PERSON_KIND_FEMALE, QPointF()
+                    )
+                if not parentB:
+                    parentB = commands.addPerson(
+                        self.scene, util.PERSON_KIND_MALE, QPointF()
+                    )
+                marriage = Marriage.marriageForSelection([parentA, parentB])
+                if not marriage:
+                    marriage = commands.addMarriage(self.scene, parentA, parentB)
+                commands.setParents(person, marriage)
 
         elif kind == EventKind.CustomIndividual:
             for person in people:
@@ -213,26 +296,20 @@ class AddAnythingDialog(QmlDrawer):
                         description=description,
                         location=location,
                         uniqueId=kind.value,
-                    ),
-                    id=undo_id,
+                    )
                 )
 
         elif EventKind.isPairBond(kind):
-            personA = peopleA[0]
-            personB = peopleB[0]
             marriage = Marriage.marriageFor(personA, personB)
             if not marriage:
                 # Generally there is only one marriage item per person. Multiple
                 # marriages/weddings between the same person just get separate
                 # `married`` events.
-                marriage = commands.addMarriage(
-                    self.scene, personA, personB, id=undo_id
-                )
+                marriage = commands.addMarriage(self.scene, personA, personB)
 
             commands.addEvent(
                 marriage,
                 Event(marriage, uniqueId=kind.value, location=location),
-                id=undo_id,
             )
 
         elif EventKind.isDyadic(kind):
@@ -241,16 +318,22 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs = {"endDateTime": endDateTime}
             else:
                 kwargs = {}
-            for personA in peopleA:
-                for personB in peopleB:
+            for personA in movers:
+                for personB in receivers:
                     commands.addEmotion(
                         self.scene,
-                        Emotion(kind=itemMode, personA=personA, personB=personB, startDateTime=startDateTime, **kwargs),
-                        id=undo_id,
+                        Emotion(
+                            kind=itemMode,
+                            personA=personA,
+                            personB=personB,
+                            startDateTime=startDateTime,
+                            **kwargs,
+                        ),
                     )
         else:
             raise ValueError(f"Don't know how to handle EventKind {kind}")
 
+        commands.stack().endMacro()
         self.submitted.emit()  # for testing
 
     def canClose(self):

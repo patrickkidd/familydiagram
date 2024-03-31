@@ -75,6 +75,10 @@ class EventKind(enum.Enum):
         )
 
     @classmethod
+    def isChild(cls, x) -> bool:
+        return x in (cls.Adopted, cls.Birth)
+
+    @classmethod
     def isCustom(cls, x) -> bool:
         """
         Requires a mover and receiver

@@ -1,3 +1,6 @@
+import logging
+
+
 from ..pyqt import (
     Qt,
     pyqtSlot,
@@ -9,6 +12,8 @@ from ..pyqt import (
 )
 from .. import objects, scene, util
 from .modelhelper import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class PeopleModel(QAbstractListModel, ModelHelper):
@@ -159,7 +164,9 @@ class PeopleModel(QAbstractListModel, ModelHelper):
     @pyqtSlot(int, result=QObject)
     def personForRow(self, row):
         personId = self._sortedIds[row]
-        return next(x for x in self._people if x.id == personId)
+        ret = next(x for x in self._people if x.id == personId)
+        # _log.info(f"personForRow({row}): {ret}")
+        return ret
 
     ## Qt Virtuals
 

@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from pkdiagram import util, objects
-from pkdiagram.pyqt import Qt, QVBoxLayout, QWidget, QQuickItem
+from pkdiagram.pyqt import Qt, QApplication, QVBoxLayout, QWidget, QQuickItem
 from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
 from test_peoplepicker import add_and_keyClicks
 
@@ -59,43 +59,56 @@ def picker(scene, qtbot):
 
 
 def set_new_person(
-    picker: QmlWidgetHelper,
+    dlg: QmlWidgetHelper,
     textInput: str,
+    personPicker: str = "personPicker",
     gender: str = None,
-    returnToFinish: bool = False,
+    returnToFinish: bool = True,
 ) -> QQuickItem:
     _log.info(f"set_new_person('{textInput}', {returnToFinish})")
 
     if gender is None:
         gender = util.PERSON_KIND_NAMES[0]
 
-    # textEdit = picker.findChild(QQuickItem, "textEdit")
-    assert picker.itemProp("popupListView", "visible") == False
-    picker.keyClicks(
-        "textEdit", textInput, resetFocus=False, returnToFinish=returnToFinish
+    # textEdit = dlg.findChild(QQuickItem, "textEdit")
+    assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
+    dlg.keyClicks(
+        f"{personPicker}.textEdit",
+        textInput,
+        resetFocus=False,
+        returnToFinish=returnToFinish,
     )
     if gender:
-        picker.clickComboBoxItem("genderBox", gender)
+        dlg.clickComboBoxItem(f"{personPicker}.genderBox", gender)
 
 
 def set_existing_person(
-    picker: QmlWidgetHelper,
+    dlg: QmlWidgetHelper,
     person: str,
     autoCompleteInput: str = None,
-    textEdit="personPicker.textEdit",
+    personPicker: str = "personPicker",
     returnToFinish: bool = False,
 ) -> QQuickItem:
-    _log.info(f"add_existing_keyClicks('{textEdit}', {returnToFinish})")
-    textEditItem = picker.findItem(textEdit)
-    assert textEditItem is not None
-    assert picker.itemProp("personPicker.popupListView", "visible") == False
-    picker.keyClicks(
-        textEditItem, autoCompleteInput, resetFocus=False, returnToFinish=returnToFinish
+    if not autoCompleteInput:
+        autoCompleteInput = person.fullNameOrAlias()
+
+    _log.info(
+        f"set_existing_person('{personPicker}.textEdit', '{autoCompleteInput}', returnToFinish={returnToFinish})"
     )
-    assert picker.itemProp(f"personPicker.popupListView", "visible") == True
-    picker.clickListViewItem_actual(
-        f"personPicker.popupListView", person.fullNameOrAlias()
+    assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
+    dlg.keyClicks(
+        f"{personPicker}.textEdit",
+        autoCompleteInput,
+        resetFocus=False,
+        returnToFinish=False,
     )
+    QApplication.processEvents()  # for list to update after `text``
+    assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == True
+    assert dlg.itemProp(f"{personPicker}.popupListView", "numVisibleItems") > 0
+    dlg.clickListViewItem_actual(
+        f"{personPicker}.popupListView", person.fullNameOrAlias()
+    )
+    assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
 
 
 def test_add_new_person(scene, picker):

@@ -1,4 +1,5 @@
 import os, shutil, logging
+
 from .pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
 from . import util, objects
 
@@ -88,8 +89,8 @@ class UndoCommand(QUndoCommand):
 
 
 class AddPerson(UndoCommand):
-    def __init__(self, scene, gender, pos, size):
-        super().__init__("Add person")
+    def __init__(self, scene, gender, pos, size, id=-1):
+        super().__init__("Add person", id)
         self.scene = scene
         self.person = objects.Person(gender=gender, size=size)
         self.person.setItemPos(pos, notify=False)
@@ -101,27 +102,28 @@ class AddPerson(UndoCommand):
         self.scene.removeItem(self.person)
 
 
-def addPerson(*args):
-    cmd = AddPerson(*args)
+def addPerson(scene, gender, pos, size, id=-1):
+    cmd = AddPerson(scene, gender, pos, size, id=id)
     stack().push(cmd)
     return cmd.person
 
 
 class AddPeople(UndoCommand):
-    def __init__(self, scene, people, id=-1):
+    def __init__(self, scene, people, id=-1, batch=True):
         super().__init__("Add people", id)
         self.scene = scene
         self.people = people
+        self.batch = batch
 
     def redo(self):
-        self.scene.addItems(*self.people)
+        self.scene.addItems(*self.people, batch=self.batch)
 
     def undo(self):
-        self.scene.removeItems(*self.people)
+        self.scene.removeItems(*self.people, batch=self.batch)
 
 
-def addPeople(scene, people, id=-1):
-    cmd = AddPeople(scene, people, id=id)
+def addPeople(scene, people, id=-1, batch=True):
+    cmd = AddPeople(scene, people, id=id, batch=batch)
     stack().push(cmd)
 
 
@@ -526,8 +528,8 @@ class AddMarriage(UndoCommand):
         self.scene.removeItem(self.marriage)
 
 
-def addMarriage(scene, a, b, undo_id=None):
-    cmd = AddMarriage(scene, a, b, id=undo_id)
+def addMarriage(scene, a, b, id=-1):
+    cmd = AddMarriage(scene, a, b, id=id)
     stack().push(cmd)
     return cmd.marriage
 
@@ -730,13 +732,13 @@ class SetParents(UndoCommand):
         return True
 
 
-def setParents(*args, **kwargs):
-    cmd = SetParents(*args, **kwargs)
+def setParents(person, target, id=-1):
+    cmd = SetParents(person, target, id=id)
     stack().push(cmd)
 
 
-def setMultipleBirth(*args, **kwargs):
-    cmd = SetParents(*args, **kwargs)
+def setMultipleBirth(person, target, id=-1):
+    cmd = SetParents(person, target, id=id)
     stack().push(cmd)
 
 

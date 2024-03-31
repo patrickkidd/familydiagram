@@ -177,7 +177,8 @@ class QObjectHelper:
                     # raise RuntimeError('QMetaObject.invokeMethod failed on %s.%s' % (self.__class__.__name__, name))
                     else:
                         if entry.get("parser"):
-                            return entry.get("parser")(ret)
+                            if ret:
+                                return entry.get("parser")(ret)
                         elif isinstance(ret, QJSValue):
                             return ret.toVariant()
                         else:

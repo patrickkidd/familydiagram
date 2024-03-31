@@ -470,6 +470,14 @@ class Person(PathItem):
                 ret += "(%s)" % self.nickName()
         return ret
 
+    @pyqtSlot(str, result=bool)
+    def matchesName(self, searchText: str):
+        selfText = self.fullNameOrAlias().lower()
+        otherText = searchText.lower()
+        ret = otherText in selfText
+        # _log.info(f"Person['{selfText}'].matchesName('{otherText}'): {ret}")
+        return ret
+
     @pyqtSlot(result=str)
     def listLabel(self):
         """

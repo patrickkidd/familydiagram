@@ -69,10 +69,28 @@ def test_fields_for_kind(dlg, kind):
         kind == EventKind.CustomIndividual
     )
 
-    assert dlg.itemProp("personALabel", "visible") == EventKind.isPairBond(kind)
-    assert dlg.itemProp("personAPicker", "visible") == EventKind.isPairBond(kind)
-    assert dlg.itemProp("personBLabel", "visible") == EventKind.isPairBond(kind)
-    assert dlg.itemProp("personBPicker", "visible") == EventKind.isPairBond(kind)
+    assert (
+        dlg.itemProp("personALabel", "text") == "Person A"
+        if EventKind.isPairBond(kind)
+        else "Parent A"
+    )
+    assert (
+        dlg.itemProp("personBLabel", "text") == "Person B"
+        if EventKind.isPairBond(kind)
+        else "Parent B"
+    )
+    assert dlg.itemProp("personALabel", "visible") == (
+        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+    )
+    assert dlg.itemProp("personAPicker", "visible") == (
+        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+    )
+    assert dlg.itemProp("personBLabel", "visible") == (
+        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+    )
+    assert dlg.itemProp("personBPicker", "visible") == (
+        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+    )
 
     assert dlg.itemProp("moversLabel", "visible") == EventKind.isDyadic(kind)
     assert dlg.itemProp("moversPicker", "visible") == EventKind.isDyadic(kind)
@@ -103,7 +121,6 @@ def test_endDateTime_pickers(dlg):
 
     # util.dumpWidget(dlg)
 
-    # _set_fields(dlg, kind=EventKind.Conflict, endDateTime=DATE_TIME, fillRequired=True)
     assert dlg.itemProp("isDateRangeBox", "checked") == True
     assert dlg.rootProp("endDateTime") == DATE_TIME
 

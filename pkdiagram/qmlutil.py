@@ -457,6 +457,12 @@ class QmlUtil(QObject, QObjectHelper):
         return EventKind.isPairBond(EventKind(x))
 
     @pyqtSlot(str, result=bool)
+    def isChildEventKind(self, x):
+        if x == "":
+            return False
+        return EventKind.isChild(EventKind(x))
+
+    @pyqtSlot(str, result=bool)
     def isCustomEventKind(self, x):
         if x == "":
             return False

@@ -387,17 +387,21 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(self, *args):
-        self.setBatchAddingRemovingItems(True)
+    def addItems(self, *args, batch=True):
+        if batch:
+            self.setBatchAddingRemovingItems(True)
         for item in args:
             self.addItem(item)
-        self.setBatchAddingRemovingItems(False)
+        if batch:
+            self.setBatchAddingRemovingItems(False)
 
-    def removeItems(self, *args):
-        self.setBatchAddingRemovingItems(True)
+    def removeItems(self, *args, batch=True):
+        if batch:
+            self.setBatchAddingRemovingItems(True)
         for item in args:
             self.removeItem(item)
-        self.setBatchAddingRemovingItems(False)
+        if batch:
+            self.setBatchAddingRemovingItems(False)
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
@@ -1423,10 +1427,13 @@ class Scene(QGraphicsScene, Item):
         """Query based on property value."""
         ret = []
         for id, item in self.itemRegistry.items():
-            for k, v in kwargs.items():
-                prop = item.prop(k)
-                if prop and item.prop(k).get() == v:
-                    ret.append(item)
+            matchingProps = {
+                prop.attr: prop.get() for prop in item.props if prop.attr in kwargs
+            }
+            if len(matchingProps) == len(kwargs) and all(
+                matchingProps[k] == v for k, v in kwargs.items()
+            ):
+                ret.append(item)
         return ret
 
     def query1(self, **kwargs):
