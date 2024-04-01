@@ -306,7 +306,7 @@ class Scene(QGraphicsScene, Item):
         ) and not item.scene() is self:
             super().addItem(item)
         if not isinstance(item, Item):
-            raise ValueError(f"Expected an Item object, not {item}")
+            return
         if register:
             if item.id is None:
                 item.id = self.nextId()

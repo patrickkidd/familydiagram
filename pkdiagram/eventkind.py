@@ -37,12 +37,12 @@ class EventKind(enum.Enum):
 
     @classmethod
     def isMonadic(cls, x) -> bool:
+        """Meaning the AddAnythingDialog will show a single person picker."""
         return x in (
             cls.Birth,
             cls.Adopted,
             cls.Death,
             cls.Cutoff,
-            cls.CustomIndividual,
         )
 
     @classmethod

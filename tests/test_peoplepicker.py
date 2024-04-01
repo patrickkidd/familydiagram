@@ -49,6 +49,9 @@ def picker(scene, qtbot):
     dlg.hide()
 
 
+from PyQt5.QtWidgets import QApplication
+
+
 def add_and_keyClicks(
     dlg: QmlWidgetHelper,
     textInput: str,
@@ -56,10 +59,17 @@ def add_and_keyClicks(
     returnToFinish: bool = True,
 ) -> QQuickItem:
 
-    _log.info(f"add_and_keyClicks('{textInput}', {returnToFinish})")
+    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
 
     peoplePickerItem = dlg.findItem(peoplePicker)
+    if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
+        raise TypeError(
+            f"Expected a PeoplePicker, got {peoplePickerItem.metaObject().className()}"
+        )
+    elif not peoplePickerItem.property("visible"):
+        raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
     itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+    QApplication.processEvents()
     dlg.mouseClick(f"{peoplePicker}.addButton")
     assert itemAddDone.wait() == True
     itemDelegate = itemAddDone.callArgs[-1][0]
@@ -84,9 +94,13 @@ def add_new_person(
         returnToFinish=returnToFinish,
     )
     if gender is not None:
-        genderBox = itemDelegate.findChild("genderBox")
+        genderLabel = next(
+            x["name"] for x in util.PERSON_KINDS if x["kind"] == util.PERSON_KIND_FEMALE
+        )
+
+        genderBox = itemDelegate.findChild(QQuickItem, "genderBox")
         assert genderBox is not None, f"Could not find genderBox for {itemDelegate}"
-        dlg.clickComboBoxItem(genderBox, gender)
+        dlg.clickComboBoxItem(genderBox, genderLabel)
 
     return itemDelegate
 

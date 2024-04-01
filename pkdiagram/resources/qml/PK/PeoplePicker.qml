@@ -42,7 +42,7 @@ PK.GroupBox {
         var entries = []
         for(var i = 0; i < root.model.count; i++) {
             var personPicker = root.pickerAtIndex(i)
-            entries.append(picker.personEntry())
+            entries.push(personPicker.personEntry())
         }
         return entries
     }
@@ -65,14 +65,14 @@ PK.GroupBox {
     // }
     function pickerAtIndex(index) {
         var personPickerIndex = -1;
-        print('pickerAtIndex(' + index + ')')
+        // print('pickerAtIndex(' + index + ')')
         for(var i=0; i < list.contentItem.children.length; i++) {
             var item = list.contentItem.children[i];
             if(item.isPersonPicker) {
                 personPickerIndex++
-                print(' found PK.PersonPicker at index: ' + personPickerIndex)
+                // print(' found PK.PersonPicker at index: ' + personPickerIndex)
                 if(personPickerIndex == index) {
-                    print(' <---- Returning PersonPicker: '  + item)
+                    // print(' <---- Returning PersonPicker: '  + item + ', personName' + item.personName + ', person: ' + item.person)
                     return item
                 }
             }

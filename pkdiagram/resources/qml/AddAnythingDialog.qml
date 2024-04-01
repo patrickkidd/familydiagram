@@ -57,6 +57,7 @@ PK.Drawer {
     }
 
     function clear() {
+        selectedPeopleModel.clear()
         kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         personPicker.clear()
         peoplePicker.clear()
@@ -532,7 +533,7 @@ PK.Drawer {
                         PK.Text {
                             id: isDateRangeLabel
                             text: "Is Date Range"
-                            visible: util.isDyadicEventKind(root.kind)
+                            visible: util.isDyadicEventKind(root.kind) || root.kind == util.EventKind.Cutoff
                         }
 
                         PK.CheckBox {
@@ -540,7 +541,6 @@ PK.Drawer {
                             objectName: 'isDateRangeBox'
                             text: "Is Date Range" 
                             visible: isDateRangeLabel.visible
-                            enabled: sceneModel ? !sceneModel.readOnly : true
                             Layout.fillWidth: true
                             Layout.columnSpan: 1
                             onCheckedChanged: {

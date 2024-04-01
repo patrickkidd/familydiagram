@@ -12,11 +12,25 @@ from test_addanythingdialog import scene, dlg
 _log = logging.getLogger(__name__)
 
 
-def test_init(dlg):
+def test_init_no_selection(dlg):
     assert [
         i for i in dlg.findItem("kindBox").property("model")
     ] == EventKind.menuLabels()
     assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
+
+
+def test_init_with_existing_person(scene, dlg):
+    assert [
+        i for i in dlg.findItem("kindBox").property("model")
+    ] == EventKind.menuLabels()
+    person = scene.addItem(
+        Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
+    )
+    dlg.initForSelection([person])
+    assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
+    assert len(dlg.peopleEntries()) == 1
+    assert dlg.peopleEntries()[0]["person"] == person
+    assert dlg.peopleEntries()[0]["gender"] == util.PERSON_KIND_FEMALE
 
 
 def test_init_with_pairbond_people_selected(dlg):

@@ -43,7 +43,7 @@ class Application(QApplication):
         util.prefs().setAutoSave(True)
         util.prefs().setValue("lastVersion", version.VERSION)
 
-        if pepper.BUGSNAG_API_KEY:
+        if pepper.BUGSNAG_API_KEY and not util.IS_TEST:
 
             import ssl  # fix SSL cert errors from bugsnag
 

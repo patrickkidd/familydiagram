@@ -115,9 +115,9 @@ class AddAnythingDialog(QmlDrawer):
                 if not personEntry:
                     ret = "personLabel"
             elif EventKind.isPairBond(kind):
-                if personAEntry:
+                if not personAEntry:
                     ret = "personALabel"
-                elif personBEntry:
+                elif not personBEntry:
                     ret = "personBLabel"
             elif EventKind.isDyadic(kind):
                 if not moverEntries:
@@ -157,11 +157,12 @@ class AddAnythingDialog(QmlDrawer):
         if EventKind.isMonadic(kind):
             person = personEntry.get("person")
             if person:
+                birthEvent = adoptedEvent = deathEvent = None
                 if person.birthDateTime():
                     birthEvent = True
                 elif person.adoptedDateTime():
                     adoptedEvent = True
-                elif person.deathDateTime():
+                elif person.deceasedDateTime():
                     deathEvent = True
 
                 if birthEvent or adoptedEvent or deathEvent:
@@ -204,7 +205,9 @@ class AddAnythingDialog(QmlDrawer):
                 if entry["isNewPerson"]:
                     parts = entry["personName"].split(" ")
                     firstName, lastName = parts[0], " ".join(parts[1:])
-                    person = Person(name=firstName, lastName=lastName)
+                    person = Person(
+                        name=firstName, lastName=lastName, gender=entry["gender"]
+                    )
                     newPeople.append(person)
                 else:
                     existingPeople.append(entry["person"])
@@ -246,7 +249,7 @@ class AddAnythingDialog(QmlDrawer):
             existingMovers, newMovers = _entries2People(moverEntries)
             existingReceivers, newReceivers = _entries2People(receiverEntries)
             movers = existingMovers + newMovers
-            receiverEntries = existingReceivers + newReceivers
+            receivers = existingReceivers + newReceivers
             newPeople = newMovers + newReceivers
 
         _log.info(f"Adding {len(newPeople)} new people to scene")
@@ -259,57 +262,83 @@ class AddAnythingDialog(QmlDrawer):
 
         propertyUndoId = commands.nextId()
 
-        if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-            event = None
-            if kind == EventKind.Birth:
-                event = person.birthEvent
-            elif kind == EventKind.Adopted:
-                event = person.adoptedEvent
-            elif kind == EventKind.Death:
-                event = person.deceasedEvent
-            event.setDateTime(startDateTime, undo=propertyUndoId)
-            if location:
-                event.setLocation(location, undo=propertyUndoId)
-            if notes:
-                event.setNotes(notes, undo=propertyUndoId)
+        if EventKind.isMonadic(kind):
+            if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
+                event = None
+                if kind == EventKind.Birth:
+                    event = person.birthEvent
+                elif kind == EventKind.Adopted:
+                    event = person.adoptedEvent
+                    person.setAdopted(True)
+                elif kind == EventKind.Death:
+                    event = person.deathEvent
+                event.setDateTime(startDateTime, undo=propertyUndoId)
+                if location:
+                    event.setLocation(location, undo=propertyUndoId)
+                if notes:
+                    event.setNotes(notes, undo=propertyUndoId)
 
-            # Optional: Add Parents
-            if kind in (EventKind.Birth, EventKind.Adopted):
-                if not parentA:
-                    parentA = commands.addPerson(
-                        self.scene, util.PERSON_KIND_FEMALE, QPointF()
-                    )
-                if not parentB:
-                    parentB = commands.addPerson(
-                        self.scene, util.PERSON_KIND_MALE, QPointF()
-                    )
-                marriage = Marriage.marriageForSelection([parentA, parentB])
-                if not marriage:
-                    marriage = commands.addMarriage(self.scene, parentA, parentB)
-                commands.setParents(person, marriage)
+                # Optional: Add Parents
+                if (parentA or parentB) and kind in (
+                    EventKind.Birth,
+                    EventKind.Adopted,
+                ):
+                    if not parentA:
+                        parentA = commands.addPerson(
+                            self.scene,
+                            util.PERSON_KIND_FEMALE,
+                            QPointF(),
+                            self.scene.newPersonSize(),
+                        )
+                    if not parentB:
+                        parentB = commands.addPerson(
+                            self.scene,
+                            util.PERSON_KIND_MALE,
+                            QPointF(),
+                            self.scene.newPersonSize(),
+                        )
+                    marriage = Marriage.marriageForSelection([parentA, parentB])
+                    if not marriage:
+                        marriage = commands.addMarriage(self.scene, parentA, parentB)
+                    commands.setParents(person, marriage)
+            elif kind == EventKind.Cutoff:
+                kwargs = {"endDateTime": endDateTime} if isDateRange else {}
+                commands.addEmotion(
+                    self.scene,
+                    Emotion(
+                        kind=util.ITEM_CUTOFF,
+                        personA=person,
+                        startDateTime=startDateTime,
+                        **kwargs,
+                    ),
+                )
 
         elif kind == EventKind.CustomIndividual:
+            kwargs = {"location": location} if location else {}
             for person in people:
                 commands.addEvent(
-                    Event(
-                        person,
-                        description=description,
-                        location=location,
-                        uniqueId=kind.value,
-                    )
+                    person,
+                    Event(description=description, dateTime=startDateTime, **kwargs),
                 )
 
         elif EventKind.isPairBond(kind):
-            marriage = Marriage.marriageFor(personA, personB)
+            marriage = Marriage.marriageForSelection([personA, personB])
             if not marriage:
                 # Generally there is only one marriage item per person. Multiple
                 # marriages/weddings between the same person just get separate
                 # `married`` events.
                 marriage = commands.addMarriage(self.scene, personA, personB)
 
+            kwargs = {"endDateTime": endDateTime} if isDateRange else {}
+            if kind == EventKind.CustomPairBond:
+                kwargs["description"] = description
+            else:
+                kwargs["uniqueId"] = kind.value
+            if location:
+                kwargs["location"] = location
             commands.addEvent(
                 marriage,
-                Event(marriage, uniqueId=kind.value, location=location),
+                Event(startDateTime=startDateTime, **kwargs),
             )
 
         elif EventKind.isDyadic(kind):
@@ -327,6 +356,7 @@ class AddAnythingDialog(QmlDrawer):
                             personA=personA,
                             personB=personB,
                             startDateTime=startDateTime,
+                            endDateTime=endDateTime,
                             **kwargs,
                         ),
                     )
@@ -335,6 +365,7 @@ class AddAnythingDialog(QmlDrawer):
 
         commands.stack().endMacro()
         self.submitted.emit()  # for testing
+        self.clear()
 
     def canClose(self):
         if self.property("dirty") and not self._canceled:
@@ -352,7 +383,7 @@ class AddAnythingDialog(QmlDrawer):
         """Cancel button; supports returnTo"""
         if not self.canClose():
             return
-        self.hide(callback=self.reset)
+        self.hide(callback=self.clear)
 
 
 def __test__(scene, parent):

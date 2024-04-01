@@ -44,11 +44,13 @@ Rectangle {
         return {
             person: root.person,
             personName: root.personName,
+            gender: root.gender,
             isNewPerson: root.isNewPerson
         }
     }
 
     function setExistingPerson(person) {
+        print('PersonPicker.setExistingPerson: ' + person.listLabel())
         root.isSubmitted = true
         root.isNewPerson = false
         root.person = person
@@ -59,7 +61,7 @@ Rectangle {
     }
 
     function setNewPerson(personName) {
-        // print('PersonPicker.setNewPerson: ' + personName)
+        print('PersonPicker.setNewPerson: ' + personName)
         root.isSubmitted = true
         root.isNewPerson = true
         root.person = null

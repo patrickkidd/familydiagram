@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class QmlWidgetHelper(QObjectHelper):
 
-    DEBUG = True
+    DEBUG = False
 
     def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
         self._qmlSource = util.QRC_QML + source
