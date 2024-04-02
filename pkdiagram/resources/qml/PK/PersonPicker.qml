@@ -7,6 +7,17 @@ import PK.Models 1.0
 
 Rectangle {
 
+    ApplicationWindow {
+        // Assuming FocusManager is imported and accessible
+        onActiveFocusControlChanged: {
+            print('activeFocusItem: ' + activeFocusItem)
+            if (activeFocusItem !== null && activeFocusItem.objectName !== undefined) {
+                print(activeFocusItem)
+                // FocusManager.focusChanged(activeFocusItem.objectName);
+            }
+        }
+    }
+
     id: root
 
     property var personName: ''
@@ -16,6 +27,7 @@ Rectangle {
     property bool isSubmitted: false
     property var textEdit: pickerTextEdit
 
+    signal numVisibleAutoCompleteItemsUpdated(var numVisibleItems) // for testing
     signal submitted(var entry)
 
     // The list of people already selected in the AddAnythingDialog
@@ -30,10 +42,12 @@ Rectangle {
     color: util.QML_ITEM_BG // util.itemBgColor(true, true, true)
 
     function clear() {
+        // print('>>> PersonPicker.clear()')
         root.personName = ''
         root.person = null
-        isNewPerson = false
-        isSubmitted = false
+        root.isNewPerson = false
+        root.isSubmitted = false
+        // print('<<< PersonPicker.clear()')
     }
 
     function setFocus() {
@@ -55,7 +69,8 @@ Rectangle {
         root.isNewPerson = false
         root.person = person
         root.personName = person.listLabel()
-        root.selectedPeopleModel.append({ person: person, isNewPerson: false })
+        root.gender = person.gender()
+        root.selectedPeopleModel.append({ person: person, isNewPerson: false, gender: person.gender()})
         autoCompletePopup.close()
         submitted(person)
     }
@@ -66,6 +81,7 @@ Rectangle {
         root.isNewPerson = true
         root.person = null
         root.personName = personName
+        root.gender = util.PERSON_KIND_MALE
         autoCompletePopup.close()
         submitted(personName)
     }
@@ -102,7 +118,7 @@ Rectangle {
             id: pickerTextEdit
             objectName: "textEdit"
             color: util.textColor(true, true)
-            text: root.person ? person.listLabel() : personName
+            text: root.person ? root.person.listLabel() : root.personName
             clip: true
             width: contentWidth
             visible: ! isSubmitted
@@ -110,6 +126,7 @@ Rectangle {
             Layout.leftMargin: util.QML_ITEM_MARGINS
             Layout.minimumWidth: 40
             onTextChanged: {
+                // print('[' + root.objectName + '].onTextChanged: ' + text)
                 if(text && !isSubmitted) {
                     var numMatches = 0
                     var debug_matches = [];
@@ -133,9 +150,9 @@ Rectangle {
                     }
                 }
             }
-            onEditingFinished: {
+            onAccepted: {
                 if(text && ! selectingAutoCompleteItem) {
-                    // print('onEditingFinished: ' + text)
+                    // print('onAccepted: ' + text)
                     root.setNewPerson(text)
                     focus = false
                 }
@@ -236,13 +253,16 @@ Rectangle {
             }
             property var numVisibleItems: {
                 var ret = 0
+                // print("numVisibleItems: pickerTextEdit.text == '" + pickerTextEdit.text + "'")
                 for(var i=0; i < contentItem.children.length; i++) {
                     var child = contentItem.children[i]
+                    // print('    child: ' + child.isListItem + ', visible: ' + child.visible)
                     if(child.isListItem && child.visible) {
                         ret += 1
                     }
                 }
-                // print('numVisibleItems: ' + ret)
+                // print('    <--- numVisibleItems: ' + ret)
+                root.numVisibleAutoCompleteItemsUpdated(ret)
                 return ret
             }
             delegate: ItemDelegate {
@@ -260,11 +280,13 @@ Rectangle {
                     color: util.QML_ITEM_BG
                 }
                 onClicked: {
+                    // print('selectingAutoCompleteItem = true')
                     textEdit.selectingAutoCompleteItem = true
                     root.forceActiveFocus()
                     var person = scenePeopleModel.personForRow(index)
                     root.setExistingPerson(person)
                     textEdit.selectingAutoCompleteItem = false
+                    // print('selectingAutoCompleteItem = false')
                 }
             }
         }

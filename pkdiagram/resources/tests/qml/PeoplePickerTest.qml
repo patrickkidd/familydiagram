@@ -15,6 +15,8 @@ Rectangle {
     color: util.QML_ITEM_BG
 
     function setCurrentTab(x) {}
+    function setExistingPeople(x) { peoplePicker.setExistingPeople(x) }
+    function peopleEntries() { return peoplePicker.peopleEntries() }
 
     ColumnLayout {
         id: testLayout

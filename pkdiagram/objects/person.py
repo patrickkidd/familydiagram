@@ -47,7 +47,7 @@ class Person(PathItem):
             {"attr": "deceased", "default": False, "onset": "updateGeometryAndDetails"},
             {"attr": "deceasedReason", "onset": "updateDetails"},
             {"attr": "adopted", "default": False, "onset": "updateDetailsAndChild"},
-            {"attr": "gender", "default": "male", "onset": "updateGeometryAndDetails"},
+            {"attr": "gender", "default": util.PERSON_KIND_MALE, "onset": "updateGeometryAndDetails"},
             {"attr": "diagramNotes", "onset": "updateDetails"},
             {"attr": "notes"},
             {
@@ -718,6 +718,10 @@ class Person(PathItem):
 
     def notesIconPos(self):
         return QPointF(0, self._notesIcon.boundingRect().height() * -0.5)
+
+    @pyqtSlot(result=str)
+    def gender(self):
+        return self.prop("gender").get()
 
     ## Properties
 

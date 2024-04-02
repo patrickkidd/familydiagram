@@ -35,11 +35,14 @@ PK.GroupBox {
     }
 
     function clear() {
+        // print('>>> PeoplePicker.clear()')
         root.model.clear()
+        // print('<<< PeoplePicker.clear()')
     }
 
     function peopleEntries() {
         var entries = []
+        // print('peopleEntries: ' + root.model.count)
         for(var i = 0; i < root.model.count; i++) {
             var personPicker = root.pickerAtIndex(i)
             entries.push(personPicker.personEntry())
@@ -48,21 +51,14 @@ PK.GroupBox {
     }
 
     function setExistingPeople(people) {
+        // print('PeoplePicker.setExistingPeople: ' + people)
         for(var i = 0; i < people.length; i++) {
             var person = people[i];
-            // print('setExistingPeople: ' + i + ', ' + person.listLabel() + ', ' + person)
-            model.append({ personName: person.listLabel(), person: person, isNewPerson: false})
+            // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
+            model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender()})
         }
     }
-    // function existingPeople() {
-    //     var people = []
-    //     for(var i = 0; i < root.model.count; i++) {
-    //         var personEntry = root.model.get(i)
-    //         var person = sceneModel.item(personEntry.person.itemId())
-    //         people.push(person)
-    //     }
-    //     return people
-    // }
+
     function pickerAtIndex(index) {
         var personPickerIndex = -1;
         // print('pickerAtIndex(' + index + ')')
@@ -72,12 +68,12 @@ PK.GroupBox {
                 personPickerIndex++
                 // print(' found PK.PersonPicker at index: ' + personPickerIndex)
                 if(personPickerIndex == index) {
-                    // print(' <---- Returning PersonPicker: '  + item + ', personName' + item.personName + ', person: ' + item.person)
+                    // print(' <---- Returning PersonPicker: '  + item + ', personName: ' + item.personName + ', person: ' + item.person + ', gender: ' + item.gender)
                     return item
                 }
             }
         }
-        print('Could not find genderBox for index: ' + index)
+        print('Could not find picker for index: ' + index)
     }
 
     function genderBox(index) {
@@ -110,6 +106,7 @@ PK.GroupBox {
             delegate: PK.PersonPicker {
 
                 id: dRoot
+                objectName: 'dRoot'
 
                 // assign this PK.PersonPicker property `person` to the model's `person` property
                 // so that the model can be updated when the person is updated
@@ -127,7 +124,7 @@ PK.GroupBox {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        print('PersonPicker.onClick: ' + index + ', ' + mouse.modifiers + ', ' + mouse.accepted)
+                        // print('PeoplePicker.onClick: ' + index + ', ' + mouse.modifiers + ', ' + mouse.accepted)
                         onPersonRowClicked(mouse, index)
                         mouse.accepted = false
                     }
@@ -135,7 +132,23 @@ PK.GroupBox {
                 }
 
                 Component.onCompleted: {
-                    if(model.person !== undefined) {
+                    if(model.person === null) {
+                        // not initialized yet
+                        return
+                    } else {
+                        onInit()
+                    }
+                }
+               property var myModel: model
+                onMyModelChanged: {
+                    onInit()
+                }
+                property var hasInitialized: false
+                function onInit() {
+                    if(hasInitialized) {
+                        return
+                    }
+                    if(model.person) {
                         dRoot.isInitializingWithSubmission = true
                         setExistingPerson(model.person)
                     } else {
@@ -143,6 +156,7 @@ PK.GroupBox {
                     }
                     // for testing since delegate creation is async
                     root.itemAddDone(dRoot)
+                    hasInitialized = true
                 }
 
                 Component.onDestruction: root.itemRemoveDone(dRoot)
@@ -151,9 +165,9 @@ PK.GroupBox {
                     if(!isInitializingWithSubmission) {
                         // print('   root.model.set(' + model.index + '): ' + personOrName)
                         if(typeof personOrName === 'string') {
-                            root.model.set(model.index, { personName: personOrName, isNewPerson: true })
+                            root.model.set(model.index, { personName: personOrName, isNewPerson: true, gender: util.PERSON_KIND_MALE})
                         } else {
-                            root.model.set(model.index, { person: personOrName, isNewPerson: false })
+                            root.model.set(model.index, { person: personOrName, isNewPerson: false, gender: person.gender()})
                         }
                     }
                 }

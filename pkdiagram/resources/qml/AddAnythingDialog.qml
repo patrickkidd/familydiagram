@@ -86,8 +86,11 @@ PK.Drawer {
     function initWithPairBond(pairBondId) {
         var pairBond = sceneModel.item(pairBondId)
         kindBox.setCurrentValue(util.EventKind.CustomPairBond)
-        personAPicker.setExistingPerson(pairBond.personA())
-        personBPicker.setExistingPerson(pairBond.personB())
+        var personA = pairBond.personA()
+        var personB = pairBond.personB()
+        print('initWithPairBond: ' + personA + ', ' + personB)
+        personAPicker.setExistingPerson(personA)
+        personBPicker.setExistingPerson(personB)
     }
     function initWithMultiplePeople(peopleIds) {
         print(peopleIds)
@@ -96,6 +99,7 @@ PK.Drawer {
             people.push(sceneModel.item(peopleIds[i]))
         }
         kindBox.setCurrentValue(util.EventKind.CustomIndividual)
+        // print('initWithMultiplePeople: ' + people.length)
         peoplePicker.setExistingPeople(people)
     }
 

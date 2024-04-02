@@ -26,7 +26,7 @@ def test_init_with_existing_person(scene, dlg):
     person = scene.addItem(
         Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
     )
-    dlg.initForSelection([person])
+    dlg.test_initForSelection([person])
     assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
     assert len(dlg.peopleEntries()) == 1
     assert dlg.peopleEntries()[0]["person"] == person
@@ -38,7 +38,7 @@ def test_init_with_pairbond_people_selected(dlg):
     personB = Person(name="Josephina", lastName="Donner")
     marriage = Marriage(personA=personA, personB=personB)
     dlg.scene.addItems(personA, personB, marriage)
-    dlg.initForSelection([personA, personB])
+    dlg.test_initForSelection([personA, personB])
     assert dlg.rootProp("kind") == EventKind.CustomPairBond.value
     assert dlg.itemProp("personAPicker", "person") == personA
     assert dlg.itemProp("personBPicker", "person") == personB
@@ -49,7 +49,7 @@ def test_init_with_pairbond_selected(dlg):
     personB = Person(name="Josephina", lastName="Donner")
     marriage = Marriage(personA=personA, personB=personB)
     dlg.scene.addItems(personA, personB, marriage)
-    dlg.initForSelection([marriage])
+    dlg.test_initForSelection([marriage])
     assert dlg.rootProp("kind") == EventKind.CustomPairBond.value
     assert dlg.itemProp("personAPicker", "person") == personA
     assert dlg.itemProp("personBPicker", "person") == personB
@@ -61,9 +61,9 @@ def test_init_with_individuals_selected(dlg):
     personC = Person(name="Josephine", lastName="Donner")
     personD = Person(name="Josephine", lastName="Donner")
     dlg.scene.addItems(personA, personB, personC, personD)
-    dlg.initForSelection([personA, personB, personC])
+    dlg.test_initForSelection([personA, personB, personC])
     assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
-    assert {x for x in dlg.people()} == {
+    assert {x["person"].id for x in dlg.peopleEntries()} == {
         personA.id,
         personB.id,
         personC.id,

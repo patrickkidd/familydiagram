@@ -31,14 +31,8 @@ class PersonPickerTest(QWidget, QmlWidgetHelper):
 @pytest.fixture
 def scene():
     scene = Scene()
-    scene.addItem(Person(first_name="Patrick", last_name="Stinson"))
     scene._sceneModel = SceneModel()
     scene._sceneModel.scene = scene
-    scene.addItem(Person(name="Patrick", lastName="Stinson"))
-    scene.addItem(Person(name="Connie", lastName="Service"))
-    scene.addItem(Person(name="Lulu", lastName="Lemon"))
-    scene.addItem(Person(name="John", lastName="Doey"))
-    scene.addItem(Person(name="Jayne", lastName="Thermos"))
     yield scene
 
 
@@ -80,6 +74,7 @@ def set_new_person(
     )
     if gender:
         dlg.clickComboBoxItem(f"{personPicker}.genderBox", gender)
+    QApplication.processEvents()
 
 
 def set_existing_person(
@@ -96,54 +91,66 @@ def set_existing_person(
         f"set_existing_person('{personPicker}.textEdit', '{autoCompleteInput}', returnToFinish={returnToFinish})"
     )
     assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
+    personPickerItem = dlg.findItem(personPicker)
+    numVisibleAutoCompleteItemsUpdated = util.Condition(
+        personPickerItem.numVisibleAutoCompleteItemsUpdated
+    )
     dlg.keyClicks(
         f"{personPicker}.textEdit",
         autoCompleteInput,
         resetFocus=False,
         returnToFinish=False,
     )
-    QApplication.processEvents()  # for list to update after `text``
+    assert numVisibleAutoCompleteItemsUpdated.wait() == True
+    assert dlg.itemProp(f"{personPicker}.textEdit", "text") == autoCompleteInput
     assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == True
     assert dlg.itemProp(f"{personPicker}.popupListView", "numVisibleItems") > 0
-    dlg.clickListViewItem_actual(
-        f"{personPicker}.popupListView", person.fullNameOrAlias()
-    )
-    assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
+    if person:
+        dlg.clickListViewItem_actual(
+            f"{personPicker}.popupListView", person.fullNameOrAlias()
+        )
+        assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
 
 
-def test_add_new_person(scene, picker):
-    set_new_person(picker, "Someone New", returnToFinish=True)
+def test_set_new_person(scene, picker):
+    PERSON_NAME = "Someone New"
+    set_new_person(picker, PERSON_NAME, returnToFinish=True)
     assert picker.itemProp("personPicker", "isSubmitted") == True
     assert picker.itemProp("personPicker", "person") == None
-    assert picker.itemProp("personPicker", "personName") == "Someone New"
+    assert picker.itemProp("personPicker", "personName") == PERSON_NAME
     assert picker.itemProp("personPicker", "isNewPerson") == True
-    assert picker.itemProp("personPicker", "gender") == "male"
+    assert picker.itemProp("personPicker", "gender") == util.PERSON_KIND_MALE
 
 
-def test_add_existing_person(scene, picker):
-    patrick = scene.query1(name="Patrick", lastName="Stinson")
-    set_existing_person(picker, patrick, autoCompleteInput="Sti")
+def test_set_existing_person(scene, picker):
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    set_existing_person(picker, person, autoCompleteInput="Joh")
     assert picker.itemProp("personPicker", "isSubmitted") == True
     assert picker.itemProp("personPicker", "isNewPerson") == False
-    assert picker.itemProp("personPicker", "person") == patrick
+    assert picker.itemProp("personPicker", "person") == person
+    assert picker.itemProp("personPicker", "gender") == person.gender()
     assert picker.itemProp("isNewBox", "visible") == False
     assert picker.itemProp("checkImage", "visible") == True
     assert picker.itemProp("personPicker.selectedPeopleModel", "count") == 1
 
 
 def test_show_autocomplete_popup(scene, picker):
-    patrick = scene.query1(name="Patrick", lastName="Stinson")
-    set_new_person(picker, "Patri", gender=False, returnToFinish=False)
+    scene.addItem(Person(name="John", lastName="Doe"))
+    set_existing_person(picker, None, autoCompleteInput="Joh", returnToFinish=False)
+    # picker.keyClicks(
+    #     f"personPicker.textEdit",
+    #     "Joh",
+    #     resetFocus=False,
+    #     returnToFinish=False,
+    # )
+    assert picker.itemProp("personPicker.textEdit", "text") == "Joh"
     assert picker.itemProp("personPicker.popupListView", "visible") == True
     assert picker.itemProp("personPicker.popupListView", "numVisibleItems") == 1
 
 
 def test_cannot_add_selected_person(scene, picker):
-    patrick = scene.query1(name="Patrick", lastName="Stinson")
-    picker.setPersonIdSelected(patrick.id)
-    # picker.rootProp("selectedPeopleModel").append(
-    #     {"person": patrick, "isNewPerson": False}
-    # )
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    picker.setPersonIdSelected(person.id)
     set_new_person(picker, "Patri", gender=False, returnToFinish=False)
     assert picker.itemProp("personPicker.popupListView", "visible") == False
     assert picker.itemProp("personPicker.popupListView", "numVisibleItems") == 0

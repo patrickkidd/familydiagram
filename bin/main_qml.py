@@ -60,7 +60,7 @@ def _init_scene_for_people_picker(scene):
     scene.addItem(Person(name="Patrick", lastName="Stinson"))
     scene.addItem(Person(name="Connie", lastName="Service"))
     scene.addItem(Person(name="Lulu", lastName="Lemon"))
-    scene.addItem(Person(name="John", lastName="Doey"))
+    scene.addItem(Person(name="John", lastName="Doe"))
     scene.addItem(Person(name="Jayne", lastName="Thermos"))
 
 

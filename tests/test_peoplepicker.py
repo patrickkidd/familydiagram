@@ -10,6 +10,14 @@ _log = logging.getLogger(__name__)
 
 
 class PeoplePickerTest(QWidget, QmlWidgetHelper):
+
+    QmlWidgetHelper.registerQmlMethods(
+        [
+            {"name": "setExistingPeople"},
+            {"name": "peopleEntries", "return": True},
+        ]
+    )
+
     def __init__(self, sceneModel, parent=None):
         super().__init__(parent)
         QVBoxLayout(self)
@@ -18,6 +26,17 @@ class PeoplePickerTest(QWidget, QmlWidgetHelper):
         )
         self.checkInitQml()
 
+    def test_setExistingPeople(self, people):
+        peoplePickerItem = self.findItem("peoplePicker")
+        itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+        self.setExistingPeople(people)
+        while itemAddDone.callCount < len(people):
+            _log.info(
+                f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
+            )
+            assert itemAddDone.wait() == True
+        # _log.info(f"Got {itemAddDone.callCount} / {len(people)} itemAddDone signals")
+
 
 @pytest.fixture
 def scene():
@@ -25,11 +44,6 @@ def scene():
     scene.addItem(Person(first_name="Patrick", last_name="Stinson"))
     scene._sceneModel = SceneModel()
     scene._sceneModel.scene = scene
-    scene.addItem(Person(name="Patrick", lastName="Stinson"))
-    scene.addItem(Person(name="Connie", lastName="Service"))
-    scene.addItem(Person(name="Lulu", lastName="Lemon"))
-    scene.addItem(Person(name="John", lastName="Doey"))
-    scene.addItem(Person(name="Jayne", lastName="Thermos"))
     yield scene
 
 
@@ -59,7 +73,7 @@ def add_and_keyClicks(
     returnToFinish: bool = True,
 ) -> QQuickItem:
 
-    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
+    # _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
 
     peoplePickerItem = dlg.findItem(peoplePicker)
     if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
@@ -141,14 +155,36 @@ def _get_role_id(model, role_name):
             return role_id
 
 
+def test_init_fields(scene, picker):
+    personA = scene.addItem(
+        Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_MALE)
+    )
+    personB = scene.addItem(
+        Person(name="Josephina", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
+    )
+    picker.test_setExistingPeople([personA, personB])
+    entries = picker.peopleEntries()
+    assert len(entries) == 2
+    assert entries[0]["person"] == personA
+    assert entries[0]["isNewPerson"] == False
+    assert entries[0]["gender"] == util.PERSON_KIND_MALE
+    assert entries[1]["person"] == personB
+    assert entries[1]["isNewPerson"] == False
+    assert entries[1]["gender"] == util.PERSON_KIND_FEMALE
+
+
 def test_one_existing_one_not(scene, picker):
     model = picker.itemProp("peoplePicker", "model")
-    patrick = scene.query1(name="Patrick", lastName="Stinson")
-
+    existingPerson = scene.addItem(Person(name="John", lastName="Doe"))
     existingPersonDelegate = add_existing_person(
-        picker, patrick, autoCompleteInput="Sti"
+        picker, existingPerson, autoCompleteInput="John"
     )
-    assert picker.itemProp("peoplePicker.model", "count") == 1
+    assert (
+        existingPersonDelegate.findChild(QQuickItem, "genderBox").property(
+            "currentIndex"
+        )
+        == 0
+    )
     assert (
         existingPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible")
         == False
@@ -157,19 +193,28 @@ def test_one_existing_one_not(scene, picker):
         existingPersonDelegate.findChild(QQuickItem, "checkImage").property("visible")
         == True
     )
-    existingPerson = scene.query1(firstName="Patrick", lastName="Stinson")
-    PersonNameRole = _get_role_id(model, "personName")
-    IsNewPersonRole = _get_role_id(model, "isNewPerson")
-    PersonRole = _get_role_id(model, "person")  # Added dynamically
-    person = model.index(0, 0).data(PersonRole)
-    isNewPerson = model.index(0, 0).data(IsNewPersonRole)
-    personName = model.index(0, 0).data(PersonNameRole)
-    assert PersonRole is not None
-    assert model.rowCount() == 1
-    assert model.index(0, 0).data(PersonRole) == existingPerson
+    peopleEntries = picker.peopleEntries()
+    assert len(peopleEntries) == 1
+    assert peopleEntries[0]["isNewPerson"] == False
+    assert peopleEntries[0]["person"] == existingPerson
+    assert peopleEntries[0]["personName"] == "John Doe"
+    assert peopleEntries[0]["gender"] == util.PERSON_KIND_MALE
 
-    newPersonDelegate = add_new_person(picker, "Someone new")
-    assert picker.itemProp("peoplePicker.model", "count") == 2
+    newPersonDelegate = add_new_person(
+        picker, "Someone new", gender=util.PERSON_KIND_FEMALE
+    )
+    peopleEntries = picker.peopleEntries()
+    assert len(peopleEntries) == 2
+    assert peopleEntries[1]["isNewPerson"] == True
+    assert peopleEntries[1]["person"] == None
+    assert peopleEntries[1]["personName"] == "Someone new"
+    assert peopleEntries[1]["gender"] == util.PERSON_KIND_FEMALE
+    assert (
+        existingPersonDelegate.findChild(QQuickItem, "genderBox").property(
+            "currentIndex"
+        )
+        == 0
+    )
     assert (
         newPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible") == True
     )
@@ -177,58 +222,44 @@ def test_one_existing_one_not(scene, picker):
         newPersonDelegate.findChild(QQuickItem, "checkImage").property("visible")
         == False
     )
-    newPerson = scene.query1(firstName="Someone", lastName="New")
-    assert model.index(0, 0).data(PersonRole) == existingPerson
-    assert model.index(1, 0).data(PersonRole) == newPerson
 
 
 def test_add_lots_of_mixed(scene, picker):
-    patrick = scene.query1(name="Patrick")
-    lulu = scene.query1(name="Lulu")
-    connie = scene.query1(name="Connie")
+    personA = scene.addItem(Person(name="John", lastName="Doe"))
+    personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
+    personC = scene.addItem(Person(name="Jane", lastName="Donner"))
     model = picker.itemProp("peoplePicker", "model")
-    add_existing_person(picker, patrick, autoCompleteInput="Sti")
-    add_new_person(picker, "Someone new")
-    add_existing_person(picker, lulu, autoCompleteInput="Lulu")
-    add_existing_person(picker, connie, autoCompleteInput="Ser")
+    add_existing_person(picker, personA, autoCompleteInput="Joh")
+    add_new_person(picker, "Someone new 1")
+    add_existing_person(picker, personB, autoCompleteInput="Jose")
+    add_existing_person(picker, personC, autoCompleteInput="Jan")
     add_new_person(picker, "Someone new 2")
     add_new_person(picker, "Someone new 3")
     add_new_person(picker, "Someone new 4")
-
-    PersonRole = _get_role_id(model, "person")  # Added dynamically
-    IsNewPersonRole = _get_role_id(model, "isNewPerson")  # Added dynamically
-    model = picker.itemProp("peoplePicker", "model")
-    assert model.rowCount() == 7
-    newPeople = [
-        model.index(i, 0).data(PersonRole)
-        for i in range(model.rowCount())
-        if model.index(i, 0).data(IsNewPersonRole)
-    ]
-    existingPeople = [
-        model.index(i, 0).data(PersonRole)
-        for i in range(model.rowCount())
-        if not model.index(i, 0).data(IsNewPersonRole)
-    ]
-    assert len(newPeople) == 4
-    assert len(existingPeople) == 3
+    peopleEntries = picker.peopleEntries()
+    newEntries = [x for x in peopleEntries if x["isNewPerson"] == True]
+    existingEntries = [x for x in peopleEntries if x["isNewPerson"] == False]
+    assert len(newEntries) == 4
+    assert len(peopleEntries) == 7
+    assert len(existingEntries) == 3
 
 
 def test_add_then_delete_then_add(scene, picker):
-    patrick = scene.query1(name="Patrick")
-    connie = scene.query1(name="Connie")
+    personA = scene.addItem(Person(name="John", lastName="Doe"))
+    personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
     model = picker.itemProp("peoplePicker", "model")
-    delegate = add_existing_person(picker, patrick, autoCompleteInput="Sti")
+    delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
     _delete_person(picker, delegate)
     assert model.rowCount() == 0
-    add_existing_person(picker, connie, autoCompleteInput="Ser")
+    add_existing_person(picker, personB, autoCompleteInput="Jos")
     assert model.rowCount() == 1
 
 
 def test_maintain_selectedPeopleModel(scene, picker):
-    patrick = scene.query1(name="Patrick")
+    personA = scene.addItem(Person(name="John", lastName="Doe"))
     model = picker.itemProp("peoplePicker", "model")
-    delegate = add_existing_person(picker, patrick, autoCompleteInput="Sti")
+    delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
     assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 1
     _delete_person(picker, delegate)

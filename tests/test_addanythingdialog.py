@@ -27,6 +27,30 @@ END_DATETIME = util.Date(2002, 1, 1, 6, 7)
 
 class TestAddAnythingDialog(AddAnythingDialog):
 
+    def test_initForSelection(self, selection):
+        if Marriage.marriageForSelection(selection):
+            self.initForSelection(selection)
+            # personAPickerItem = self.findItem("personAPicker")
+            # itemAddDoneA = util.Condition(personAPickerItem.itemAddDone)
+            # personBPickerItem = self.findItem("personBPicker")
+            # itemAddDoneB = util.Condition(personBPickerItem.itemAddDone)
+            # while itemAddDoneA.callCount < 1:
+            #     _log.info(f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals")
+            #     assert itemAddDoneA.wait() == True
+            # while itemAddDoneB.callCount < 1:
+            #     assert itemAddDoneB.wait() == True
+        else:
+            peoplePickerItem = self.findItem("peoplePicker")
+            itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+            self.initForSelection(selection)
+            while itemAddDone.callCount < len(selection):
+                _log.info(
+                    f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals"
+                )
+                assert (
+                    itemAddDone.wait() == True
+                ), f"itemAddDone signal not emitted, called {itemAddDone.callCount} times"
+
     def set_person_picker_gender(self, personPicker, genderLabel):
         genderBox = self.itemProp(personPicker, "genderBox")
         assert genderBox is not None, f"Could not find genderBox for {personPicker}"
@@ -127,9 +151,9 @@ class TestAddAnythingDialog(AddAnythingDialog):
         S_DATE = util.dateString(dateTime)
         S_TIME = util.timeString(dateTime)
 
-        _log.info(
-            f"Setting {buttonsItem}, {datePickerItem}, {timePickerItem} to {dateTime}"
-        )
+        # _log.info(
+        #     f"Setting {buttonsItem}, {datePickerItem}, {timePickerItem} to {dateTime}"
+        # )
 
         self.keyClicks(
             f"{buttonsItem}.dateTextInput",
@@ -374,12 +398,7 @@ def test_add_new_person_via_CustomIndividual(dlg, scene):
 
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_new_person(
-        "peoplePicker",
-        "John Doe",
-        gender=GENDER,
-        returnToFinish=False,
-    )
+    dlg.add_new_person("peoplePicker", "John Doe", gender=GENDER)
     dlg.set_description(DESCRIPTION)
     dlg.set_startDateTime(START_DATETIME)
     dlg.mouseClick("AddEverything_submitButton")
