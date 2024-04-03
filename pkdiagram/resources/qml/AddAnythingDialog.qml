@@ -88,7 +88,7 @@ PK.Drawer {
         kindBox.setCurrentValue(util.EventKind.CustomPairBond)
         var personA = pairBond.personA()
         var personB = pairBond.personB()
-        print('initWithPairBond: ' + personA + ', ' + personB)
+        // print('initWithPairBond: ' + personA + ', ' + personB)
         personAPicker.setExistingPerson(personA)
         personBPicker.setExistingPerson(personB)
     }

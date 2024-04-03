@@ -27,10 +27,11 @@ def test_init_with_existing_person(scene, dlg):
         Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
     )
     dlg.test_initForSelection([person])
+    peopleEntries = dlg.peopleEntries()
     assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
-    assert len(dlg.peopleEntries()) == 1
-    assert dlg.peopleEntries()[0]["person"] == person
-    assert dlg.peopleEntries()[0]["gender"] == util.PERSON_KIND_FEMALE
+    assert len(peopleEntries) == 1
+    assert peopleEntries[0]["person"] == person
+    assert peopleEntries[0]["gender"] == util.PERSON_KIND_FEMALE
 
 
 def test_init_with_pairbond_people_selected(dlg):

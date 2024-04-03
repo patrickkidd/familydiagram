@@ -486,3 +486,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(int, result=str)
     def personKindFromIndex(self, index):
         return util.personKindFromIndex(index)
+    
+    @pyqtSlot(str, result=int)
+    def personKindIndexFromKind(self, index):
+        return util.personKindIndexFromKind(index)

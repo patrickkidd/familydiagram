@@ -1896,7 +1896,7 @@ class LoggedContext:
 class Condition(QObject):
     """Allows you to wait for a signal to be called."""
 
-    triggered = pyqtSignal()
+    # triggered = pyqtSignal()
 
     def __init__(self, signal=None, only=None, condition=None, name=None):
         super().__init__()
@@ -1911,9 +1911,10 @@ class Condition(QObject):
         if signal:
             signal.connect(self)
 
-    def __deinit__(self):
+    def deinit(self):
         if self.signal:
             self.signal.disconnect(self)
+            self.signal = None
 
     def reset(self):
         self.callCount = 0
@@ -1942,8 +1943,8 @@ class Condition(QObject):
             if not only(*args):
                 return
         self.set(*args)
-        if self.test():
-            self.triggered.emit()
+        # if self.test():
+        #     self.triggered.emit()
 
     def wait(self, maxMS=1000, onError=None, interval=10):
         """Wait for the condition to be true. onError is a callback."""

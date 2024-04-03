@@ -45,17 +45,20 @@ PK.GroupBox {
         // print('peopleEntries: ' + root.model.count)
         for(var i = 0; i < root.model.count; i++) {
             var personPicker = root.pickerAtIndex(i)
-            entries.push(personPicker.personEntry())
+            var entry = personPicker.personEntry()
+            // print(entry.gender)
+            entries.push(entry)
         }
+        // print('    entries.length: ' + entries.length)
         return entries
     }
 
     function setExistingPeople(people) {
-        // print('PeoplePicker.setExistingPeople: ' + people)
+        print('PeoplePicker.setExistingPeople: ' + people.length)
         for(var i = 0; i < people.length; i++) {
             var person = people[i];
+            model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
             // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
-            model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender()})
         }
     }
 
@@ -78,10 +81,10 @@ PK.GroupBox {
 
     function genderBox(index) {
         var personPickerIndex = -1;
-        print('genderBox(' + index + ')')
+        // print('genderBox(' + index + ')')
         var picker = pickerAtIndex(index)
         if(picker) {
-            print('picker: ' + picker)
+            // print('picker: ' + picker)
             return picker.genderBox
         }
         print('Could not find genderBox for index: ' + index)
@@ -130,44 +133,25 @@ PK.GroupBox {
                     }
                     propagateComposedEvents: true
                 }
-
                 Component.onCompleted: {
-                    if(model.person === null) {
-                        // not initialized yet
-                        return
+                    if(model.personId == -1) {
+                        dRoot.textEdit.focus = true
+                        root.itemAddDone(dRoot)
                     } else {
-                        onInit()
-                    }
-                }
-               property var myModel: model
-                onMyModelChanged: {
-                    onInit()
-                }
-                property var hasInitialized: false
-                function onInit() {
-                    if(hasInitialized) {
-                        return
-                    }
-                    if(model.person) {
                         dRoot.isInitializingWithSubmission = true
-                        setExistingPerson(model.person)
-                    } else {
-                        dRoot.setFocus()
+                        dRoot.setExistingPerson(sceneModel.item(model.personId))
+                        root.itemAddDone(dRoot)
                     }
-                    // for testing since delegate creation is async
-                    root.itemAddDone(dRoot)
-                    hasInitialized = true
                 }
-
                 Component.onDestruction: root.itemRemoveDone(dRoot)
                 onSubmitted: function(personOrName) {
                     // print('onSubmitted: ' + personOrName + ', isInitializingWithSubmission: ' + isInitializingWithSubmission)
                     if(!isInitializingWithSubmission) {
                         // print('   root.model.set(' + model.index + '): ' + personOrName)
                         if(typeof personOrName === 'string') {
-                            root.model.set(model.index, { personName: personOrName, isNewPerson: true, gender: util.PERSON_KIND_MALE})
+                            root.model.set(model.index, { personName: personOrName, isNewPerson: true, gender: util.PERSON_KIND_MALE, personId: -1})
                         } else {
-                            root.model.set(model.index, { person: personOrName, isNewPerson: false, gender: person.gender()})
+                            root.model.set(model.index, { person: personOrName, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
                         }
                     }
                 }
@@ -188,7 +172,7 @@ PK.GroupBox {
             width: parent.width
             addButton: true
             onAdd: {
-                root.model.append({ personName: "", isNewPerson: true })
+                root.model.append({ personName: "", isNewPerson: true, personId: -1 })
                 root.currentIndex = root.model.count - 1
             }
             addButtonToolTip: 'Add a new person'

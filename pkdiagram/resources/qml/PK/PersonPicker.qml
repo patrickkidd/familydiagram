@@ -55,6 +55,7 @@ Rectangle {
     }
 
     function personEntry() {
+        // print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + person.gender())
         return {
             person: root.person,
             personName: root.personName,
@@ -70,6 +71,8 @@ Rectangle {
         root.person = person
         root.personName = person.listLabel()
         root.gender = person.gender()
+        genderBox.currentIndex = util.personKindIndexFromKind(root.gender)
+        // print('genderBox.currentIndex: ' + genderBox.currentIndex)
         root.selectedPeopleModel.append({ person: person, isNewPerson: false, gender: person.gender()})
         autoCompletePopup.close()
         submitted(person)
@@ -183,7 +186,11 @@ Rectangle {
         }
         palette.button: 'transparent'
         onCurrentIndexChanged: {
-            root.gender = util.personKindFromIndex(currentIndex)
+            var newGender = util.personKindFromIndex(currentIndex)
+            if(newGender != root.gender) {
+                // print('genderBox.currentIndexChanged: ' + currentIndex + ', ' + newGender)
+                root.gender = util.personKindFromIndex(currentIndex)
+            }
         }
     }
 
