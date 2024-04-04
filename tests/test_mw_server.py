@@ -1,10 +1,11 @@
-import os.path, datetime, pickle
+import os.path, datetime, pickle, logging
 from contextlib import ExitStack
+
 import pytest
 import mock
 from sqlalchemy import inspect
 
-from conftest import _open_server_file_item, _scene_data
+from conftest import _scene_data
 import vedana
 from pkdiagram import (
     util,
@@ -15,11 +16,15 @@ from pkdiagram import (
     Session,
     AppController,
     MainWindow,
+    FileManager,
 )
-from pkdiagram.pyqt import Qt, QFileInfo, QSettings
+from pkdiagram.pyqt import Qt, QFileInfo, QSettings, QMetaObject
 
 from fdserver.extensions import db
 from fdserver.models import Diagram
+
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize("license", (vedana.LICENSE_FREE, vedana.LICENSE_CLIENT))
@@ -43,15 +48,40 @@ def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, licen
     assert mw.documentView.sceneModel.isOnServer == True
 
 
+def _open_server_file_item(mw, index):
+    itemDelegates = mw.fileManager.itemProp(
+        "serverFileList", "itemDelegates"
+    ).toVariant()
+    path = itemDelegates[index].property("dPath")
+    # mw.fileManager.clickListViewItem_actual('serverFileList', 'Free Diagram')
+    mw.fileManager.findItem("serverFileList").selected.emit(path)
+
+
+def _numServerFileItems(mw):
+    ret = len(mw.fileManager.itemProp("serverFileList", "itemDelegates").toVariant())
+    # _log.info(f"num: {ret}")
+    return ret
+
+
 @pytest.mark.parametrize("is_server_down", (True, False))
 def test_init_open_n_reopen_server_file(
-    test_activation, test_user_diagrams, create_ac_mw, server_down, is_server_down
+    test_activation,
+    test_user_diagrams,
+    test_user,
+    create_ac_mw,
+    server_down,
+    is_server_down,
 ):
-
     # Load a file from the server in one MainWindow
     ac1, mw1 = create_ac_mw()
-    util.wait(mw1.serverFileModel.updateFinished)
-    _open_server_file_item(mw1, 0)
+    assert util.wait(mw1.serverFileModel.updateFinished) == True
+    assert (
+        util.waitForCondition(
+            lambda: _numServerFileItems(mw1) >= len(test_user.diagrams)
+        )
+        == True
+    )
+    _open_server_file_item(mw1, 1)
     assert mw1.document
     assert mw1.documentView.sceneModel.isOnServer == True
     ac1._post_event_loop(mw1)
@@ -68,11 +98,18 @@ def test_init_open_n_reopen_server_file(
 
 
 def test_open_server_file_no_server(
-    test_activation, test_user_diagrams, server_down, create_ac_mw
+    test_activation, test_user_diagrams, test_user, server_down, create_ac_mw
 ):
+
     # Populate server file cache
     ac1, mw1 = create_ac_mw()
     util.wait(mw1.serverFileModel.updateFinished)
+    assert (
+        util.waitForCondition(
+            lambda: _numServerFileItems(mw1) >= len(test_user.diagrams)
+        )
+        == True
+    )
     ac1._post_event_loop(mw1)
     mw1.deinit()
 
@@ -80,7 +117,13 @@ def test_open_server_file_no_server(
         # Load a second window to see if it loads the same file from the server
         ac2, mw2 = create_ac_mw()
         util.wait(mw2.serverFileModel.updateFinished)
-        _open_server_file_item(mw2, 0)
+        assert (
+            util.waitForCondition(
+                lambda: _numServerFileItems(mw2) >= len(test_user.diagrams)
+            )
+            == True
+        )
+        _open_server_file_item(mw2, 2)
         assert mw2.document
         assert mw2.documentView.sceneModel.isOnServer == True
         mw2.deinit()
@@ -99,6 +142,13 @@ def test_rw_edit_on_client_diagram(
     ac, mw = create_ac_mw()
     util.wait(mw.serverFileModel.updateFinished)
     row = mw.serverFileModel.rowForDiagramId(test_user_2.free_diagram_id)
+    assert (
+        util.waitForCondition(
+            lambda: _numServerFileItems(mw) >= (len(test_user.diagrams) + 1)
+        )
+        == True
+    )
+
     _open_server_file_item(mw, row)
     mw.scene.addItems(Person(name="me"))
     mw.save()

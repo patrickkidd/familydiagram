@@ -1966,12 +1966,58 @@ class Condition(QObject):
         ret = self.test()
         return ret
 
+    def waitForCallCount(self, callCount, maxMS=1000):
+        log.info(f"Waiting for {callCount} calls to {self.signal}")
+        start_time = time.time()
+        ret = None
+        while self.callCount < callCount:
+            if time.time() - start_time > maxMS / 1000:
+                ret = False
+                log.info(
+                    f"Time elapsed on Condition[{self.signal}].wait() (callCount={self.callCount})"
+                )
+                break
+            ret = self.wait(maxMS=maxMS)
+            if not ret:
+                log.info(
+                    f"Inner wait() returned False on Condition[{self.signal}].wait()  (callCount={self.callCount})"
+                )
+                break
+        if ret is None:
+            ret = self.callCount == callCount
+            log.info(
+                f"Returning {ret} with {self.callCount}/{callCount} calls to {self.signal}"
+            )
+        return ret
+
     def assertWait(self, *args, **kwargs):
         assert self.wait(*args, **kwargs) == True
 
 
 def wait(signal, maxMS=1000):
     return Condition(signal).wait(maxMS=maxMS)
+
+
+def waitForCallCount(signal, callCount, maxMS=1000):
+    return Condition(signal).waitForCallCount(callCount, maxMS=maxMS)
+
+
+def waitForCondition(condition: callable, maxMS=1000):
+    INTERVAL_MS = 10
+    startTime = time.time()
+
+    app = QApplication.instance()
+    ret = None
+    while ret is None:
+        app.processEvents(QEventLoop.WaitForMoreEvents, INTERVAL_MS)
+        bleh = condition()
+        if bleh:
+            log.info(f"Condition met on waitForCondition()")
+            ret = True
+        if (time.time() - startTime) > maxMS / 1000:
+            log.info(f"Time elapsed on waitForCondition()")
+            ret = False
+    return ret
 
 
 class SignalCollector(QObject):

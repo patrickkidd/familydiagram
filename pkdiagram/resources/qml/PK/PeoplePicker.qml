@@ -134,6 +134,15 @@ PK.GroupBox {
                     propagateComposedEvents: true
                 }
                 Component.onCompleted: {
+                    // Turns out that QObject references in the model index
+                    // data, e.g. model.person, are not initialized before the
+                    // delegate and can sometimes be null. Even adding a signal
+                    // handler for model.person changed is not reliable, making
+                    // it impossible to have a reliable constructor that
+                    // actually has all the model data. However, it turns out
+                    // that primitives like bool and int are available right
+                    // from the beginning, so we pass person id's and then get
+                    // the QObject instance later.
                     if(model.personId == -1) {
                         dRoot.textEdit.focus = true
                         root.itemAddDone(dRoot)

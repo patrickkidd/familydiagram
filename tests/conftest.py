@@ -933,18 +933,6 @@ def create_ac_mw(request, qtbot, tmp_path, flask_qnam):
         ac.deinit()
 
 
-def _open_server_file_item(mw, index):
-    serverFileList = mw.fileManager.findItem("serverFileList")
-    QMetaObject.invokeMethod(serverFileList, "test_compileDelegateList")
-    test_fileListItems = mw.fileManager.itemProp(
-        "serverFileList", "test_fileListItems"
-    ).toVariant()
-    freeDiagramItem = test_fileListItems[index]
-    path = freeDiagramItem.property("dPath")
-    # mw.fileManager.clickListViewItem_actual('serverFileList', 'Free Diagram')
-    mw.fileManager.findItem("serverFileList").selected.emit(path)
-
-
 def _scene_data(*items):
     data = {}
     scene = Scene()

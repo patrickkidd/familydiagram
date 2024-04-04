@@ -20,6 +20,9 @@ ListView {
     signal selected(string path)
     signal finishedEditingTitle;
 
+    property var itemDelegates: [] // for testing
+    signal itemAddDone(var item) // for testing
+
     clip: true
     focus: true
 
@@ -66,6 +69,13 @@ ListView {
                 root.selected(path)
             }
         }
+
+        // async
+        Component.onCompleted: {
+            root.itemDelegates.push(this)
+            root.itemAddDone(this)
+        }
+        Component.onDestruction: root.itemDelegates = root.itemDelegates.filter(item => item != this)
 
         Rectangle { // background
             color: util.itemBgColor(selected, current, alternate)
@@ -199,20 +209,5 @@ ListView {
                                 easing.type: util.ANIM_EASING }
         }
     }
-
-    // for testing
-    property var test_fileListItems: []
-    function test_compileDelegateList() {
-        var ret = []
-        for(var i=0; i < contentItem.children.length; i++) {
-            var child = contentItem.children[i]
-            if(child.isFileItem !== undefined) {
-                ret.push(child)
-            }
-        }
-        root.test_fileListItems = ret
-        // print(root.test_fileListItems.length)
-    }
-
 }
 
