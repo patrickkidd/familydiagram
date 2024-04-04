@@ -121,6 +121,7 @@ def test_date_undo_redo(pp, personProps):
     pp.model.birthDateTime = dateTime  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
 
+    pp.scrollToVisible("personPage", "birthDateButtons")
     pp.focusItem("birthDateButtons.dateTextInput")  # open picker
     pp.mouseClick("birthDateButtons.clearButton")  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"

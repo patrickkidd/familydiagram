@@ -530,3 +530,9 @@ class QmlWidgetHelper(QObjectHelper):
                 % ((" " * level), item.objectName(), child.metaObject().className())
             )
             self.recursivePrintChildren(child, level + 1)
+
+    def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
+        y = self.itemProp(visibleObjectName, "y")
+        self.setItemProp(
+            flickableObjectName, "contentY", -1 * y
+        )
