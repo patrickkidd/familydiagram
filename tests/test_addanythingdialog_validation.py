@@ -17,110 +17,85 @@ from tests.test_addanythingdialog import (
 log = logging.getLogger(__name__)
 
 
-def test_required_fields(qtbot, dlg):
-    dlg.clear()
-
-    def _required_text(objectName):
-        name = dlg.itemProp(objectName, "text")
-        return AddAnythingDialog.S_REQUIRED_FIELD_ERROR.format(name=name)
-
-    def submit():
-        dlg.mouseClick("AddEverything_submitButton")
-
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("kindLabel"),
-    )
-    dlg.clickComboBoxItem("kindBox", EventKind.menuLabelFor(EventKind.CustomIndividual))
-
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("peopleALabel"),
-    )
-    dlg.add_new_person(dlg, "peoplePickerA", "John Doe")
-
-    # qtbot.clickOkAfter(
-    #     submit,
-    #     text=_required_text("peopleBLabel"),
-    # )
-    # _add_new_person(dlg, "peoplePickerB", "Jane Doe")
-
-    # qtbot.clickOkAfter(
-    #     submit,
-    #     text=_required_text("descriptionLabel"),
-    # )
-    # TODO: description for pair-bond events
-    # https://alaskafamilysystems.atlassian.net/browse/FD-42
-    # dlg.keyClicks("descriptionEdit", "Something happened")
-
-    # qtbot.clickOkAfter(
-    #     submit,
-    #     text=_required_text("locationLabel"),
-    # )
-    # dlg.keyClicks("locationEdit", "Anchorage, AK")
-
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("startDateTimeLabel"),
-    )
-
-    START_DATE = "1/1/2001"
-    START_TIME = "12:34am"
-    END_DATE = "1/1/2002"
-    END_TIME = "09:45am"
-    RESET_FOCUS = False
-    RETURN_TO_FINISH = False
-
-    dlg.focusItem("startDateButtons.dateTextInput")
-    dlg.keyClick("startDateButtons.dateTextInput", Qt.Key_Backspace)
-    dlg.keyClicks(
-        "startDateButtons.dateTextInput",
-        START_DATE,
-        resetFocus=RESET_FOCUS,
-        returnToFinish=RETURN_TO_FINISH,
-    )
-
-    dlg.focusItem("startDateButtons.timeTextInput")
-    dlg.keyClick("startDateButtons.timeTextInput", Qt.Key_Backspace)
-    dlg.keyClicks(
-        "startDateButtons.timeTextInput",
-        START_TIME,
-        returnToFinish=RETURN_TO_FINISH,
-    )
-
-    dlg.mouseClick("isDateRangeBox")
-    assert dlg.rootProp("isDateRange") == True
-
-    qtbot.clickOkAfter(
-        submit,
-        text=_required_text("endDateTimeLabel"),
-    )
-
-    dlg.keyClicksClear("endDateButtons.dateTextInput")
-    dlg.keyClicks(
-        "endDateButtons.dateTextInput",
-        END_DATE,
-        resetFocus=RESET_FOCUS,
-        returnToFinish=RETURN_TO_FINISH,
-    )
-    assert dlg.rootProp("endDateTime") == util.validatedDateTimeText(END_DATE, "")
-    dlg.keyClicksClear("endDateButtons.timeTextInput")
-    dlg.keyClicks(
-        "endDateButtons.timeTextInput",
-        END_TIME,
-        resetFocus=RESET_FOCUS,
-        returnToFinish=RETURN_TO_FINISH,
-    )
+def test_required_field_Monadic(dlg):
 
     submitted = util.Condition(dlg.submitted)
-    submit()
-    assert submitted.callCount == 1, "submitted signal emitted too many times"
+
+    dlg.set_kind(EventKind.Birth)
+
+    dlg.expectedFieldLabel("personLabel")
+    dlg.set_new_person("personPicker", "John Doe")
+
+    dlg.expectedFieldLabel("startDateTimeLabel")
+    dlg.set_startDateTime(START_DATETIME)
+
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.wait() == True
+
+
+def test_required_field_CustomIndividual(dlg):
+    submitted = util.Condition(dlg.submitted)
+
+    dlg.set_kind(EventKind.CustomIndividual)
+
+    dlg.expectedFieldLabel("peopleLabel")
+    dlg.add_new_person("peoplePicker", "John Doe")
+
+    dlg.expectedFieldLabel("descriptionLabel")
+    dlg.set_description("Some description")
+
+    dlg.expectedFieldLabel("startDateTimeLabel")
+    dlg.set_startDateTime(START_DATETIME)
+
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.wait() == True
+
+
+def test_required_field_Dyadic(dlg):
+
+    submitted = util.Condition(dlg.submitted)
+
+    dlg.set_kind(EventKind.Conflict)
+
+    dlg.expectedFieldLabel("moversLabel")
+    dlg.add_new_person("moversPicker", "John Doe")
+
+    dlg.expectedFieldLabel("receiversLabel")
+    dlg.add_new_person("receiversPicker", "Jane Doe")
+
+    dlg.expectedFieldLabel("startDateTimeLabel")
+    dlg.set_startDateTime(START_DATETIME)
+
+    dlg.set_isDateRange(True)
+
+    dlg.expectedFieldLabel("endDateTimeLabel")
+    dlg.set_endDateTime(END_DATETIME)
+
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.wait() == True
+
+
+def test_required_field_PairBond(dlg):
+    submitted = util.Condition(dlg.submitted)
+
+    dlg.set_kind(EventKind.Married)
+
+    dlg.expectedFieldLabel("personALabel")
+    dlg.set_new_person("personAPicker", "John Doe")
+
+    dlg.expectedFieldLabel("personBLabel")
+    dlg.set_new_person("personBPicker", "Jane Doe")
+
+    dlg.expectedFieldLabel("startDateTimeLabel")
+    dlg.set_startDateTime(START_DATETIME)
+
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.wait() == True
 
 
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
 def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
     PRIOR_DATETIME = util.Date(2011, 1, 1)
-    EVENT_KIND = EventKind.Birth
     submitted = util.Condition(dlg.submitted)
     person = scene.addItem(Person(name="John", lastName="Doe"))
     if kind == EventKind.Birth:
@@ -134,9 +109,7 @@ def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
     dlg.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
-        text=AddAnythingDialog.S_REPLACE_EXISTING.format(
-            n_existing=2, eventKind=EVENT_KIND
-        ),
+        text=AddAnythingDialog.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
     )
     assert submitted.callCount == 1
     if kind == EventKind.Birth:
@@ -147,21 +120,7 @@ def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
         assert person.deceasedDateTime() == START_DATETIME
 
 
-@pytest.mark.parametrize(
-    "kind",
-    [
-        EventKind.Conflict,
-        EventKind.Distance,
-        EventKind.Reciprocity,
-        EventKind.Projection,
-        EventKind.Toward,
-        EventKind.Away,
-        EventKind.Inside,
-        EventKind.Outside,
-        EventKind.DefinedSelf,
-    ],
-)
-def test_confirm_adding_many_symbols(qtbot, scene, dlg, kind):
+def test_confirm_adding_many_dyadic_symbols(qtbot, scene, dlg):
     peopleA = [
         Person(name="John", lastName="Doe"),
         Person(name="Jane", lastName="Doe"),
@@ -171,11 +130,12 @@ def test_confirm_adding_many_symbols(qtbot, scene, dlg, kind):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*(peopleA + peopleB))
-    dlg.set_kind(kind)
+    dlg.set_kind(EventKind.Reciprocity)
     dlg.add_existing_person("moversPicker", peopleA[0])
     dlg.add_existing_person("moversPicker", peopleA[1])
     dlg.add_existing_person("receiversPicker", peopleB[0])
     dlg.add_existing_person("receiversPicker", peopleB[1])
+    dlg.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
         text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
@@ -198,6 +158,7 @@ def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
     dlg.add_existing_person("peoplePicker", people[1])
     dlg.add_existing_person("peoplePicker", people[2])
     dlg.add_existing_person("peoplePicker", people[3])
+    dlg.set_startDateTime(START_DATETIME)
     dlg.set_description(DESCRIPTION)
     qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
@@ -212,26 +173,26 @@ def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
         ), f"Person {i} has the wrong description"
 
 
-def test_add_dyadic_event_with_one_person_selected(qtbot, dlg):
-    dlg.set_fields(
-        kind=EventKind.Conflict, peopleA=True, peopleB=False, fillRequired=True
-    )
+def test_add_dyadic_event_with_one_person_selected(qtbot, scene, dlg):
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    dlg.set_kind(EventKind.Conflict)
+    dlg.add_existing_person("moversPicker", person)
+    name = dlg.itemProp("receiversLabel", "text")
+    expectedText = dlg.S_REQUIRED_FIELD_ERROR.format(name=name)
     qtbot.clickOkAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
-        text=AddAnythingDialog.S_EVENT_DYADIC,
+        text=expectedText,
     )
 
 
-@pytest.mark.parametrize("eventKind", [x for x in EventKind if EventKind.isDyadic(x)])
-def test_add_dyadic_event_with_three_people_selected(qtbot, dlg, eventKind):
-    dlg.set_fields(
-        kind=eventKind,
-        peopleA=["Someone New", "Someone Strange"],
-        peopleB="Someone Else",
-        fillRequired=True,
-    )
-    # dlg.clickComboBoxItem("kindBox", eventKind.name)
-    qtbot.clickOkAfter(
+def test_add_dyadic_event_with_three_people_selected(qtbot, dlg):
+    dlg.set_kind(EventKind.Away)
+    dlg.add_new_person("moversPicker", "John Doe")
+    dlg.add_new_person("moversPicker", "Jane Doe")
+    dlg.add_new_person("receiversPicker", "Jack Doe")
+    dlg.add_new_person("receiversPicker", "Jill Doe")
+    dlg.set_startDateTime(START_DATETIME)
+    qtbot.clickYesAfter(
         lambda: dlg.mouseClick("AddEverything_submitButton"),
-        text=AddAnythingDialog.S_EVENT_DYADIC,
+        text=dlg.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )

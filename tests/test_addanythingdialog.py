@@ -176,16 +176,21 @@ class TestAddAnythingDialog(AddAnythingDialog):
             dateTime, "startDateButtons", "startDatePicker", "startTimePicker"
         )
 
-    def set_endDateTime(self, dateTime):
+    def set_isDateRange(self, on):
         if not self.rootProp("isDateRange"):
             assert self.itemProp("endDateTimeLabel", "visible") == False
             assert self.itemProp("endDateButtons", "visible") == False
             assert self.itemProp("endDatePicker", "visible") == False
             assert self.itemProp("endTimePicker", "visible") == False
-            assert self.itemProp("isDateRangeBox", "visible") == True
+            assert (
+                self.itemProp("isDateRangeBox", "visible") == True
+            ), f"isDateRangeBox hidden; incorrect event kind '{self.rootProp('kind')}'"
             self.setItemProp("isDateRangeBox", "checked", True)
             # self.mouseClick("isDateRangeBox")
             assert self.rootProp("isDateRange") == True
+
+    def set_endDateTime(self, dateTime):
+        self.set_isDateRange(True)
         assert self.itemProp("endDateTimeLabel", "visible") == True
         assert self.itemProp("endDateButtons", "visible") == True
         assert self.itemProp("endDatePicker", "visible") == True
@@ -200,91 +205,13 @@ class TestAddAnythingDialog(AddAnythingDialog):
     def set_notes(self, notes):
         self.keyClicks("notesEdit", notes)
 
-    def set_fields(
-        self,
-        kind=None,
-        peopleA=None,
-        peopleB=None,
-        description=None,
-        location=None,
-        startDateTime=None,
-        endDateTime=None,
-        fillRequired=False,
-    ):
-
-        if fillRequired:
-            if kind is None:
-                kind = EventKind.CustomIndividual
-            if description is None and EventKind.isCustom(kind):
-                description = "Something Happened"
-            if peopleA is None:
-                peopleA = ["Someone New"]
-            if peopleB is None:
-                peopleB = ["Someone Else"]
-            if startDateTime is None:
-                startDateTime = START_DATETIME
-            if endDateTime is None:
-                endDateTime = END_DATETIME
-
-        if kind not in (None, False):
-            _log.info(f"Setting kind to {kind}")
-            self.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
-
-        if peopleA not in (None, False):
-            if not isinstance(peopleA, list):
-                peopleA = [peopleA]
-            for person in peopleA:
-                _log.info(f"Adding person to peopleA: {person}")
-                prePeople = self.itemProp("peoplePickerA", "model").rowCount()
-                if isinstance(person, Person):
-                    self.add_existing_person("peoplePickerA", person)
-                else:
-                    self.add_new_person("peoplePickerA", person, returnToFinish=False)
-                assert (
-                    self.itemProp("peoplePickerA", "model").rowCount() == prePeople + 1
-                )
-
-        if peopleB not in (None, False) and (
-            EventKind.isDyadic(kind) or EventKind.isPairBond(kind)
-        ):
-            if not isinstance(peopleB, list):
-                peopleB = [peopleB]
-            for person in peopleB:
-                _log.info(f"Adding person to peopleB: {person}")
-                prePeople = self.itemProp("peoplePickerB", "model").rowCount()
-                if isinstance(person, Person):
-                    self.add_existing_person(self, "peoplePickerB", person)
-                else:
-                    self.add_new_person(
-                        self, "peoplePickerB", person, returnToFinish=False
-                    )
-                assert (
-                    self.itemProp("peoplePickerB", "model").rowCount() == prePeople + 1
-                )
-
-        if description not in (None, False):
-            _log.info(f'Setting description to "{description}"')
-            self.keyClicks("descriptionEdit", description)
-
-        if location not in (None, False):
-            _log.info(f'Setting location to "{location}"')
-            self.keyClicks("locationEdit", location)
-
-        if startDateTime not in (None, False):
-            self.set_dateTime(
-                self,
-                startDateTime,
-                "startDateButtons",
-                "startDatePicker",
-                "startTimePicker",
-            )
-
-        if endDateTime not in (None, False):
-            self.mouseClick("isDateRangeBox")
-            assert self.rootProp("isDateRange") == True
-            self.set_dateTime(
-                self, endDateTime, "endDateButtons", "endDatePicker", "endTimePicker"
-            )
+    def expectedFieldLabel(self, expectedTextLabel):
+        name = self.itemProp(expectedTextLabel, "text")
+        expectedText = self.S_REQUIRED_FIELD_ERROR.format(name=name)
+        util.qtbot.clickOkAfter(
+            lambda: self.mouseClick("AddEverything_submitButton"),
+            text=expectedText,
+        )
 
 
 @pytest.fixture
@@ -487,7 +414,25 @@ def test_add_new_dyadic(scene, dlg):
     assert personA.emotions() == personB.emotions()
     assert personA.emotions()[0].kind() == util.ITEM_AWAY
     assert personA.emotions()[0].startDateTime() == START_DATETIME
-    assert personA.emotions()[0].endDateTime() == None
+    assert personA.emotions()[0].endDateTime() == START_DATETIME
+
+
+def test_add_new_dyadic_isDateRange(scene, dlg):
+    dlg.set_kind(EventKind.Away)
+    dlg.add_new_person("moversPicker", "John Doe")
+    dlg.add_new_person("receiversPicker", "Jane Doe")
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.set_endDateTime(END_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    personA = scene.query1(name="John", lastName="Doe")
+    personB = scene.query1(name="Jane", lastName="Doe")
+    assert len(scene.people()) == 2
+    assert len(personA.emotions()) == 1
+    assert len(personB.emotions()) == 1
+    assert personA.emotions() == personB.emotions()
+    assert personA.emotions()[0].kind() == util.ITEM_AWAY
+    assert personA.emotions()[0].startDateTime() == START_DATETIME
+    assert personA.emotions()[0].endDateTime() == END_DATETIME
 
 
 def test_add_existing_dyadic(scene, dlg):
@@ -504,7 +449,7 @@ def test_add_existing_dyadic(scene, dlg):
     assert personA.emotions() == personB.emotions()
     assert personA.emotions()[0].kind() == util.ITEM_CONFLICT
     assert personA.emotions()[0].startDateTime() == START_DATETIME
-    assert personA.emotions()[0].endDateTime() == None
+    assert personA.emotions()[0].endDateTime() == START_DATETIME
 
 
 def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
@@ -523,7 +468,7 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
     assert personA.emotions() == personB.emotions()
     assert personA.emotions()[0].kind() == util.ITEM_CONFLICT
     assert personA.emotions()[0].startDateTime() == START_DATETIME
-    assert personA.emotions()[0].endDateTime() == None
+    assert personA.emotions()[0].endDateTime() == START_DATETIME
 
     KIND_2 = EventKind.Away
 
@@ -539,10 +484,10 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
     assert len(personC.emotions()) == 1
     assert personA.emotions()[0].kind() == util.ITEM_CONFLICT
     assert personA.emotions()[0].startDateTime() == START_DATETIME
-    assert personA.emotions()[0].endDateTime() == None
+    assert personA.emotions()[0].endDateTime() == START_DATETIME
     assert personA.emotions()[1].kind() == util.ITEM_AWAY
     assert personA.emotions()[1].startDateTime() == START_DATETIME.addDays(30)
-    assert personA.emotions()[1].endDateTime() == None
+    assert personA.emotions()[1].endDateTime() == START_DATETIME.addDays(30)
 
 
 # @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])

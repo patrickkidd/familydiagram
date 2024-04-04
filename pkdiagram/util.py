@@ -1902,7 +1902,7 @@ class Condition(QObject):
         super().__init__()
         self.callCount = 0
         self.callArgs = []
-        self.senders = []
+        # self.senders = []
         self.lastCallArgs = None
         self.only = only
         self.condition = condition
@@ -1919,7 +1919,7 @@ class Condition(QObject):
     def reset(self):
         self.callCount = 0
         self.callArgs = []
-        self.senders = []
+        # self.senders = []
         self.lastCallArgs = None
 
     def test(self):
@@ -1932,7 +1932,7 @@ class Condition(QObject):
     def set(self, *args):
         """Set the condition to true. Alias for condition()."""
         self.callCount += 1
-        self.senders.append(QObject().sender())
+        # self.senders.append(QObject().sender())
         self.lastCallArgs = args
         self.callArgs.append(args)
 

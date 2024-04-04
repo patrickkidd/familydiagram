@@ -44,9 +44,10 @@ class AddAnythingDialog(QmlDrawer):
 
     S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
     S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS = "This event type pertains to individuals so a separate event will be added to each one."
-    S_EVENT_DYADIC = "This event type can only be added to two people."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
-    S_REPLACE_EXISTING = "This will replace {n_existing} of the {eventKind} events in the selected people."
+    S_REPLACE_EXISTING = (
+        "This will replace {n_existing} of the {kind} events in the selected people."
+    )
     S_ADD_MANY_SYMBOLS = "Are you sure you want to create {numSymbols} symbols, with a separate symbol between each mover and each receiver listed?"
 
     def __init__(self, parent=None, sceneModel=None):
@@ -112,12 +113,12 @@ class AddAnythingDialog(QmlDrawer):
                 if not peopleEntries:
                     ret = "peopleLabel"
             elif EventKind.isMonadic(kind):
-                if not personEntry:
+                if not self.itemProp("personPicker", "isSubmitted"):
                     ret = "personLabel"
             elif EventKind.isPairBond(kind):
-                if not personAEntry:
+                if not self.itemProp("personAPicker", "isSubmitted"):
                     ret = "personALabel"
-                elif not personBEntry:
+                elif not self.itemProp('personBPicker', 'isSubmitted'):
                     ret = "personBLabel"
             elif EventKind.isDyadic(kind):
                 if not moverEntries:
@@ -157,26 +158,34 @@ class AddAnythingDialog(QmlDrawer):
         if EventKind.isMonadic(kind):
             person = personEntry.get("person")
             if person:
-                birthEvent = adoptedEvent = deathEvent = None
-                if person.birthDateTime():
-                    birthEvent = True
-                elif person.adoptedDateTime():
-                    adoptedEvent = True
-                elif person.deceasedDateTime():
-                    deathEvent = True
-
-                if birthEvent or adoptedEvent or deathEvent:
+                if any(
+                    [
+                        kind == EventKind.Birth and person.birthDateTime(),
+                        kind == EventKind.Adopted and person.adoptedDateTime(),
+                        kind == EventKind.Death and person.deceasedDateTime(),
+                    ]
+                ):
                     button = QMessageBox.question(
                         self,
                         f"Replace {kind.name} event(s)?",
-                        self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind),
+                        self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                     )
-
                     if button == QMessageBox.NoButton:
                         return
 
         elif EventKind.isDyadic(kind):
             numSymbols = len(moverEntries) * len(receiverEntries)
+            if numSymbols > 3:
+                button = QMessageBox.question(
+                    self,
+                    "Create large number of symbols?",
+                    self.S_ADD_MANY_SYMBOLS.format(numSymbols=numSymbols),
+                )
+                if button == QMessageBox.NoButton:
+                    return
+
+        elif kind == EventKind.CustomIndividual:
+            numSymbols = len(peopleEntries)
             if numSymbols > 3:
                 button = QMessageBox.question(
                     self,
@@ -356,7 +365,6 @@ class AddAnythingDialog(QmlDrawer):
                             personA=personA,
                             personB=personB,
                             startDateTime=startDateTime,
-                            endDateTime=endDateTime,
                             **kwargs,
                         ),
                     )

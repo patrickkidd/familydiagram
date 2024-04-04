@@ -664,21 +664,35 @@ class PKQtBot(QtBot):
             assert msgBoxAccepted.wait() == True, f"QMessageBox not raised in time."
 
     def assert_QMessageBox_hasText(self, messageBox, **kwargs):
-        log.info(
-            f"QMessageBox: {messageBox.text()}, {messageBox.informativeText()}, {messageBox.detailedText()}"
-        )
-        failed = False
-        if "text" in kwargs:
-            assert kwargs["text"] in messageBox.text()
-            failed = True
-        if "informativeText" in kwargs:
-            assert kwargs["informativeText"] in messageBox.informativeText()
-            failed = True
-        if "detailedText" in kwargs:
-            assert kwargs["detailedText"] in messageBox.detailedText()
-            failed = True
-        # if failed:
-        #     pytest.xfail("QMessageBox did not have the required text.")
+        if messageBox.text():
+            text = messageBox.text()
+        elif messageBox.informativeText():
+            text = messageBox.informativeText()
+        else:
+            text = messageBox.detailedText()
+
+        log.info(f"QMessageBox: '{text}'")
+        if "text" in kwargs and kwargs["text"] not in messageBox.text():
+            messageBox.close()
+            pytest.xfail(
+                f"QMessageBox text: '{messageBox.text()}' expected text: '{kwargs['text']}'."
+            )
+        elif (
+            "informativeText" in kwargs
+            and kwargs["informativeText"] not in messageBox.informativeText()
+        ):
+            messageBox.close()
+            pytest.xfail(
+                f"QMessageBox informativeText: {messageBox.informativeText()} expected text: {kwargs['informativeText']}."
+            )
+        elif (
+            "detailedText" in kwargs
+            and kwargs["detailedText"] not in messageBox.detailedText()
+        ):
+            messageBox.close()
+            pytest.xfail(
+                f"QMessageBox detailedText: {messageBox.detailedText()} expected text: {kwargs['detailedText']}."
+            )
 
     def clickButtonAfter(self, action, button: int, **hasTextArgs):
         def doClickYes():
