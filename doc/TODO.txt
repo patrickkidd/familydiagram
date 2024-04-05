@@ -1,3 +1,15 @@
+v2.0.0 punchlist
+=============================================================================
+On close file:
+  Traceback (most recent call last):
+  2024-04-04 21:30:27,775 application.py:147           File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 386, in data
+      ret = self.flags(index)
+  2024-04-04 21:30:27,783 application.py:147           File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 537, in flags
+      elif self.dynamicPropertyAttr(index):
+  2024-04-04 21:30:27,792 application.py:147           File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 578, in dynamicPropertyAttr
+      eventProperties = self._scene.eventProperties()
+  2024-04-04 21:30:27,800 application.py:147         AttributeError: 'NoneType' object has no attribute 'eventProperties'
+
 v1.5.2
 =============================================================================
 BUGS

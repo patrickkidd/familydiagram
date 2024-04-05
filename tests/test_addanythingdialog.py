@@ -243,6 +243,11 @@ def dlg(qtbot, scene):
     dlg.hide()
 
 
+def test_init(dlg):
+    assert dlg.rootProp("kind") == None
+    assert dlg.itemProp("kindBox", "currentIndex") == -1
+
+
 def test_add_new_person_via_Birth(scene, dlg):
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.Birth)

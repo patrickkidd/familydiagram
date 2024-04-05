@@ -57,8 +57,8 @@ PK.Drawer {
     }
 
     function clear() {
+        kindBox.currentIndex = -1
         selectedPeopleModel.clear()
-        kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         personPicker.clear()
         peoplePicker.clear()
         personAPicker.clear()
@@ -197,6 +197,72 @@ PK.Drawer {
                         id: mainGrid
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
+
+                        PK.Text {
+                            id: kindLabel
+                            objectName: "kindLabel"
+                            text: "Event"
+                        }
+
+                        PK.ComboBox {
+                            id: kindBox
+                            objectName: "kindBox"
+                            model: util.eventKindLabels()
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            property var lastCurrentIndex: -1
+                            KeyNavigation.tab: startDateButtons
+                            onCurrentIndexChanged: {
+                                if (currentIndex != lastCurrentIndex) {
+                                    lastCurrentIndex = currentIndex
+                                    root.kind = currentValue()
+                                    descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
+                                }
+                            }
+                            function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
+                            function clear() { currentIndex = -1 }
+                            function currentValue() {
+                                if(currentIndex == -1) {
+                                    return null
+                                } else {
+                                    return valuesForIndex[currentIndex]
+                                }
+                            }
+                            property var valuesForIndex: util.eventKindValues()
+                            // delegate: Item {
+                            //     width: kindBox.width
+                            //     height: util.QML_ITEM_HEIGHT
+
+                            //     Text {
+                            //         text: modelData
+                            //         // anchors.centerIn: parent
+                            //     }
+
+                            //     Rectangle {
+                            //         width: parent.width
+                            //         height: 1
+                            //         color: "black"
+                            //         anchors.bottom: parent.bottom
+                            //     }
+                            // }
+                        }
+
+                        PK.Text {
+                            id: kindHelpText
+                            objectName: "kindHelpText"
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            wrapMode: Text.WordWrap
+                            visible: text != ''
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
+
+                        // ////////////////////////////////////////////////
+
+                        PK.FormDivider {
+                            Layout.columnSpan: 2
+                            visible: kindBox.currentIndex != -1
+                        }
 
                         // Person
 
@@ -351,44 +417,9 @@ PK.Drawer {
 
                         PK.FormDivider {
                             Layout.columnSpan: 2
+                            visible: kindBox.currentIndex != -1
                         }
 
-                        PK.Text {
-                            id: kindLabel
-                            objectName: "kindLabel"
-                            text: "Event"
-                        }
-
-                        PK.ComboBox {
-                            id: kindBox
-                            objectName: "kindBox"
-                            model: util.eventKindLabels()
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            property var lastCurrentIndex: -1
-                            KeyNavigation.tab: startDateButtons
-                            onCurrentIndexChanged: {
-                                if (currentIndex != lastCurrentIndex) {
-                                    lastCurrentIndex = currentIndex
-                                    root.kind = currentValue()
-                                    descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
-                                }
-                            }
-                            function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
-                            function clear() { currentIndex = -1 }
-                            function currentValue() { return valuesForIndex[currentIndex] }
-                            property var valuesForIndex: util.eventKindValues()
-                        }
-
-                        PK.Text {
-                            id: kindHelpText
-                            objectName: "kindHelpText"
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
-                            visible: text != ''
-                            Layout.columnSpan: 2
-                            Layout.fillWidth: true
-                        }
 
                         PK.Text {
                             id: descriptionLabel
@@ -609,9 +640,10 @@ PK.Drawer {
                             text: "Notes"
                         }
 
-                        PK.TextField {
+                        PK.TextEdit {
                             id: notesEdit
                             objectName: "notesEdit"
+                            wrapMode: TextEdit.Wrap
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             // KeyNavigation.tab: nodalBox

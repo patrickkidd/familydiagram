@@ -74,6 +74,7 @@ class AddAnythingDialog(QmlDrawer):
         return False
 
     def initForSelection(self, selection):
+        self.clear()
         pairBond = Marriage.marriageForSelection(selection)
         if pairBond:
             self.initWithPairBond(pairBond.id)
@@ -118,7 +119,7 @@ class AddAnythingDialog(QmlDrawer):
             elif EventKind.isPairBond(kind):
                 if not self.itemProp("personAPicker", "isSubmitted"):
                     ret = "personALabel"
-                elif not self.itemProp('personBPicker', 'isSubmitted'):
+                elif not self.itemProp("personBPicker", "isSubmitted"):
                     ret = "personBLabel"
             elif EventKind.isDyadic(kind):
                 if not moverEntries:
@@ -391,7 +392,8 @@ class AddAnythingDialog(QmlDrawer):
         """Cancel button; supports returnTo"""
         if not self.canClose():
             return
-        self.hide(callback=self.clear)
+        super().onDone()
+        # self.hide(callback=self.clear)
 
 
 def __test__(scene, parent):
