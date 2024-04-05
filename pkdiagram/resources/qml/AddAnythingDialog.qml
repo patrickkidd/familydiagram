@@ -103,6 +103,16 @@ PK.Drawer {
         peoplePicker.setExistingPeople(people)
     }
 
+    function setVariable(attr, x) {
+        if(attr == 'anxiety') {
+            anxietyBox.setValue(x)
+        } else if(attr == 'functioning') {
+            functioningBox.setValue(x)
+        } if(attr == 'symptom') {
+            anxietyBox.setValue(x)
+        }
+    }
+
     // attr statuses
 
     function personEntry() {
@@ -208,9 +218,10 @@ PK.Drawer {
                             id: kindBox
                             objectName: "kindBox"
                             model: util.eventKindLabels()
+                            property var valuesForIndex: util.eventKindValues()
+                            property var lastCurrentIndex: -1
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            property var lastCurrentIndex: -1
                             KeyNavigation.tab: startDateButtons
                             onCurrentIndexChanged: {
                                 if (currentIndex != lastCurrentIndex) {
@@ -228,23 +239,6 @@ PK.Drawer {
                                     return valuesForIndex[currentIndex]
                                 }
                             }
-                            property var valuesForIndex: util.eventKindValues()
-                            // delegate: Item {
-                            //     width: kindBox.width
-                            //     height: util.QML_ITEM_HEIGHT
-
-                            //     Text {
-                            //         text: modelData
-                            //         // anchors.centerIn: parent
-                            //     }
-
-                            //     Rectangle {
-                            //         width: parent.width
-                            //         height: 1
-                            //         color: "black"
-                            //         anchors.bottom: parent.bottom
-                            //     }
-                            // }
                         }
 
                         PK.Text {
@@ -261,7 +255,6 @@ PK.Drawer {
 
                         PK.FormDivider {
                             Layout.columnSpan: 2
-                            visible: kindBox.currentIndex != -1
                         }
 
                         // Person
@@ -445,6 +438,7 @@ PK.Drawer {
 
                         PK.FormDivider {
                             Layout.columnSpan: 2
+                            visible: descriptionEdit.visible
                         }
 
                         PK.Text {
@@ -620,15 +614,24 @@ PK.Drawer {
 
                         PK.Text { text: "Anxiety" }
 
-                        PK.VariableBox { id: anxietyBox }
+                        PK.VariableBox {
+                            id: anxietyBox
+                            objectName: "anxietyBox"
+                        }
 
                         PK.Text { text: "Functioning" }
 
-                        PK.VariableBox { id: functioningBox }
+                        PK.VariableBox {
+                            id: functioningBox
+                            objectName: "functioningBox"
+                        }
 
                         PK.Text { text: "Symptom" }
 
-                        PK.VariableBox { id: symptomBox }
+                        PK.VariableBox {
+                            id: symptomBox
+                            objectName: "symptomBox"
+                        }
 
                         PK.FormDivider {
                             Layout.columnSpan: 2

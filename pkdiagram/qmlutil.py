@@ -476,6 +476,44 @@ class QmlUtil(QObject, QObjectHelper):
             return ""
 
     @pyqtSlot(result=list)
+    def eventKindMenuItems(self):
+        return [self.eventKindEventLabelFor(x) for x in EventKind]
+
+        def _section(x: str):
+            kind = EventKind(x)
+            if EventKind.isPairBond(kind):
+                return "Pair-Bond"
+            elif EventKind.isMonadic(kind):
+                return "Monadic"
+            elif EventKind.isDyadic(kind):
+                return "Move"
+            elif kind == EventKind.CustomIndividual:
+                return "Custom"
+            else:
+                raise ValueError(f"Unknown EventKind: {x}")
+
+        ret = []
+        lastSection = None
+        for i, x in enumerate(self.eventKindValues()):
+            section = _section(x)
+            if i > 0 and lastSection != section:
+                isFirstInSection = True
+            else:
+                isFirstInSection = False
+            lastSection = section
+            ret.append(
+                {
+                    "label": EventKind.menuLabelFor(EventKind(x)),
+                    "section": _section(x),
+                    "isFirstInSection": isFirstInSection,
+                }
+            )
+        # import pprint
+
+        # log.info(pprint.pformat(ret, indent=4))
+        return ret
+
+    @pyqtSlot(result=list)
     def eventKindLabels(self):
         return [EventKind.menuLabelFor(EventKind(x)) for x in self.eventKindValues()]
 
@@ -486,7 +524,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(int, result=str)
     def personKindFromIndex(self, index):
         return util.personKindFromIndex(index)
-    
+
     @pyqtSlot(str, result=int)
     def personKindIndexFromKind(self, index):
         return util.personKindIndexFromKind(index)

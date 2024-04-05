@@ -23,6 +23,12 @@ RowLayout {
         comboBox.currentIndex = -1
     }
 
+    function setValue(value) {
+        let index = model.findIndex(function(item) { return item.value == value; })
+        if(index != -1)
+            comboBox.currentIndex = index
+    }
+
     PK.ComboBox {
         id: comboBox
         objectName: root.objectName + "_comboBox"

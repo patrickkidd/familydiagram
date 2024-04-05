@@ -19,6 +19,7 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
             {"name": "initWithMultiplePeople"},
+            {"name": "setVariable"},
             {"name": "personEntry", "return": True, "parser": lambda x: x.toVariant()},
             {"name": "personAEntry", "return": True, "parser": lambda x: x.toVariant()},
             {"name": "personBEntry", "return": True, "parser": lambda x: x.toVariant()},
@@ -268,6 +269,19 @@ class AddAnythingDialog(QmlDrawer):
         )
         commands.addPeople(self.scene, newPeople)
 
+        # Add variables
+
+        if anxiety is not None or functioning is not None or symptom is not None:
+            existingEventProperties = [
+                entry["name"] for entry in self.scene.eventProperties()
+            ]
+            if anxiety and util.ATTR_ANXIETY not in existingEventProperties:
+                self.scene.addEventProperty(util.ATTR_ANXIETY)
+            if functioning and util.ATTR_FUNCTIONING not in existingEventProperties:
+                self.scene.addEventProperty(util.ATTR_FUNCTIONING)
+            if symptom and util.ATTR_SYMPTOM not in existingEventProperties:
+                self.scene.addEventProperty(util.ATTR_SYMPTOM)
+
         # Kind-specific logic
 
         propertyUndoId = commands.nextId()
@@ -326,10 +340,18 @@ class AddAnythingDialog(QmlDrawer):
         elif kind == EventKind.CustomIndividual:
             kwargs = {"location": location} if location else {}
             for person in people:
-                commands.addEvent(
+                event = commands.addEvent(
                     person,
                     Event(description=description, dateTime=startDateTime, **kwargs),
                 )
+                if anxiety is not None:
+                    event.dynamicProperty(util.ATTR_ANXIETY.lower()).set(anxiety)
+                if functioning is not None:
+                    event.dynamicProperty(util.ATTR_FUNCTIONING.lower()).set(
+                        functioning
+                    )
+                if symptom is not None:
+                    event.dynamicProperty(util.ATTR_SYMPTOM.lower()).set(symptom)
 
         elif EventKind.isPairBond(kind):
             marriage = Marriage.marriageForSelection([personA, personB])

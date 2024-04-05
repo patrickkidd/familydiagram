@@ -213,6 +213,15 @@ class TestAddAnythingDialog(AddAnythingDialog):
             text=expectedText,
         )
 
+    def set_anxiety(self, x):
+        self.setVariable("anxiety", x)
+
+    def set_functioning(self, x):
+        self.setVariable("functioning", x)
+
+    def set_symptom(self, x):
+        self.setVariable("symptom", x)
+
 
 @pytest.fixture
 def scene():
@@ -566,3 +575,17 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
     assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND_1)
     assert marriage.events()[1].uniqueId() == KIND_2.value
     assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_2)
+
+
+def test_add_new_variables(scene, dlg):
+    personA = scene.addItem(Person(name="John", lastName="Doe"))
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.add_existing_person("peoplePicker", personA)
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_description("Something happened")
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    dynamicPropertyNames = [
+        entry["name"] for entry in scene.eventProperties()
+    ]
+    assert dynamicPropertyNames == [util.ATTR_ANXIETY]
