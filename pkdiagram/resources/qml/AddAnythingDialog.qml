@@ -109,7 +109,7 @@ PK.Drawer {
         } else if(attr == 'functioning') {
             functioningBox.setValue(x)
         } if(attr == 'symptom') {
-            anxietyBox.setValue(x)
+            symptomBox.setValue(x)
         }
     }
 

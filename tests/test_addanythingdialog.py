@@ -582,10 +582,20 @@ def test_add_new_variables(scene, dlg):
     dlg.set_kind(EventKind.CustomIndividual)
     dlg.add_existing_person("peoplePicker", personA)
     dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
     dlg.set_description("Something happened")
     dlg.set_startDateTime(START_DATETIME)
     dlg.mouseClick("AddEverything_submitButton")
-    dynamicPropertyNames = [
-        entry["name"] for entry in scene.eventProperties()
+    dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
+    assert dynamicPropertyNames == [
+        util.ATTR_ANXIETY,
+        util.ATTR_FUNCTIONING,
+        util.ATTR_SYMPTOM,
     ]
-    assert dynamicPropertyNames == [util.ATTR_ANXIETY]
+    assert personA.events()[0].dynamicProperty("anxiety").get() == util.VAR_VALUE_UP
+    assert (
+        personA.events()[0].dynamicProperty("functioning").get()
+        == util.VAR_FUNCTIONING_DOWN
+    )
+    assert personA.events()[0].dynamicProperty("symptom").get() == util.VAR_SYMPTOM_SAME
