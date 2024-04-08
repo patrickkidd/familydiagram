@@ -1,5 +1,16 @@
 v2.0.0 punchlist
 =============================================================================
+- AddAnything form
+  - New person (added via married) doesn't get gender
+  - Need clear button
+  - Add new person (via marriage to existing), picker's can't find them.
+  - New people picker row doesn't get focus
+  - Can't change gender in people picker
+  - Changing event kind should try to move selected people
+  - Can't hit enter to close date picker
+  - on close file after using form a bit:
+    - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
+
 On close file:
   Traceback (most recent call last):
   2024-04-04 21:30:27,775 application.py:147           File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 386, in data

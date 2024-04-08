@@ -16,7 +16,7 @@ def test_init_no_selection(dlg):
     assert [
         i for i in dlg.findItem("kindBox").property("model")
     ] == EventKind.menuLabels()
-    assert dlg.rootProp("kind") == EventKind.CustomIndividual.value
+    assert dlg.rootProp("kind") == None
 
 
 def test_init_with_existing_person(scene, dlg):

@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class QmlWidgetHelper(QObjectHelper):
 
-    DEBUG = False
+    DEBUG = True
 
     def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
         self._qmlSource = util.QRC_QML + source
@@ -533,6 +533,4 @@ class QmlWidgetHelper(QObjectHelper):
 
     def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
         y = self.itemProp(visibleObjectName, "y")
-        self.setItemProp(
-            flickableObjectName, "contentY", -1 * y
-        )
+        self.setItemProp(flickableObjectName, "contentY", -1 * y)

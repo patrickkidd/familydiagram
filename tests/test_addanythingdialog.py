@@ -203,7 +203,7 @@ class TestAddAnythingDialog(AddAnythingDialog):
             self.setItemProp("isDateRangeBox", "checked", True)
 
     def set_notes(self, notes):
-        self.keyClicks("notesEdit", notes)
+        self.keyClicks("notesEdit", notes, returnToFinish=False)
 
     def expectedFieldLabel(self, expectedTextLabel):
         name = self.itemProp(expectedTextLabel, "text")
@@ -257,6 +257,60 @@ def test_init(dlg):
     assert dlg.itemProp("kindBox", "currentIndex") == -1
 
 
+def test_clear_birth(dlg):
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Done")
+    dlg.set_new_person("personAPicker", "Jon Done")
+    dlg.set_new_person("personBPicker", "Jane Done")
+    assert dlg.itemProp('personPicker', 'isSubmitted') == True
+    assert dlg.itemProp('personAPicker', 'isSubmitted') == True
+    assert dlg.itemProp('personBPicker', 'isSubmitted') == True
+    dlg.clear()
+    assert dlg.itemProp('personPicker', 'isSubmitted') == False
+    assert dlg.itemProp('personAPicker', 'isSubmitted') == False
+    assert dlg.itemProp('personBPicker', 'isSubmitted') == False
+
+
+def test_clear_monadic(dlg):
+    dlg.set_kind(EventKind.Adopted)
+    dlg.set_new_person("personPicker", "John Done")
+    assert dlg.itemProp("personPicker", "isSubmitted") == True
+    dlg.clear()
+    assert dlg.itemProp("personPicker", "isSubmitted") == False
+
+
+def test_clear_custom_individual(dlg):
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.add_new_person("peoplePicker", "John Done")
+    assert dlg.peopleEntries()
+    dlg.clear()
+    assert dlg.peopleEntries() == []
+
+
+def test_clear_pairbond(dlg):
+    dlg.set_kind(EventKind.Married)
+    dlg.set_new_person("personAPicker", "John Done")
+    dlg.set_new_person("personBPicker", "Jane Done")
+    assert dlg.itemProp("personAPicker", "isSubmitted")
+    assert dlg.itemProp("personBPicker", "isSubmitted")
+    dlg.clear()
+    assert not dlg.itemProp("personAPicker", "isSubmitted")
+    assert not dlg.itemProp("personBPicker", "isSubmitted")
+
+
+def test_clear_dyadic(dlg):
+    dlg.set_kind(EventKind.Conflict)
+    dlg.add_new_person("moversPicker", "John Doe")
+    dlg.add_new_person("moversPicker", "Jane Doe")
+    dlg.add_new_person("receiversPicker", "Jane Doe")
+    dlg.add_new_person("receiversPicker", "Jane Done")
+    assert dlg.moverEntries()
+    assert dlg.receiverEntries()
+    dlg.clear()
+    assert dlg.moverEntries() == []
+    assert dlg.receiverEntries() == []
+
+
 def test_add_new_person_via_Birth(scene, dlg):
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.Birth)
@@ -276,7 +330,7 @@ def test_add_new_person_via_Birth(scene, dlg):
 
 
 def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
-    BIRTH_NOTES = "asd fd fgfg "
+    BIRTH_NOTES = """asd fd fgfg"""
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
     submitted = util.Condition(dlg.submitted)

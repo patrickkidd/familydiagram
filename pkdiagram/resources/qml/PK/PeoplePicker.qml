@@ -35,7 +35,7 @@ PK.GroupBox {
     }
 
     function clear() {
-        // print('>>> PeoplePicker.clear()')
+        // print('>>> PeoplePicker.clear() ' + root.objectName)
         root.model.clear()
         // print('<<< PeoplePicker.clear()')
     }

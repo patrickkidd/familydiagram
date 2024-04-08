@@ -851,7 +851,7 @@ class RightToolBar(ToolBar):
         self.addItems(
             [
                 (
-                    "addDataButton",
+                    "addAnythingButton",
                     {
                         "path": "plus-button.png",
                         "action": self.ui.actionAdd_Anything,

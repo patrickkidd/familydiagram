@@ -42,7 +42,7 @@ Rectangle {
     color: util.QML_ITEM_BG // util.itemBgColor(true, true, true)
 
     function clear() {
-        // print('>>> PersonPicker.clear()')
+        // print('>>> PersonPicker.clear() ' + root.objectName)
         root.personName = ''
         root.person = null
         root.isNewPerson = false
