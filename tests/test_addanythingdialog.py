@@ -12,6 +12,8 @@ from pkdiagram.pyqt import (
     Q_RETURN_ARG,
     QVariant,
     QJSValue,
+    QEventLoop,
+    QTimer,
 )
 from pkdiagram.addanythingdialog import AddAnythingDialog
 

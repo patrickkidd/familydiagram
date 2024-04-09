@@ -318,14 +318,16 @@ class QmlWidgetHelper(QObjectHelper):
             util.BLANK_TIME_TEXT,
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
-    def mouseClickItem(self, item, button=Qt.LeftButton, pos=None):
+    def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
         if pos is None:
             rect = item.mapRectToScene(
-                QRectF(0, 0, item.width(), item.height())
+                QRectF(0, 0, item.property("width"), item.property("height"))
             ).toRect()
             pos = rect.center()
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {button})')
+            log.info(
+                f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {button}, {pos}) (rect: {rect})'
+            )
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
     def mouseClick(self, objectName, button=Qt.LeftButton, pos=None):
@@ -339,7 +341,7 @@ class QmlWidgetHelper(QObjectHelper):
     def mouseDClickItem(self, item, button=Qt.LeftButton, pos=None):
         if pos is None:
             rect = item.mapRectToScene(
-                QRectF(0, 0, item.width(), item.height())
+                QRectF(0, 0, item.property("width"), item.property("height"))
             ).toRect()
             pos = rect.center()
         if self.DEBUG:

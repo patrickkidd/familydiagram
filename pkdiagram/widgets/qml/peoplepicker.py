@@ -1,7 +1,11 @@
 import logging
 
 from pkdiagram import util, objects
-from pkdiagram.pyqt import Qt, QVBoxLayout, QWidget, QQuickItem, QApplication
+from pkdiagram.pyqt import (
+    QQuickItem,
+    QEventLoop,
+    QTimer,
+)
 from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
 
 
@@ -15,7 +19,7 @@ def add_and_keyClicks(
     returnToFinish: bool = True,
 ) -> QQuickItem:
 
-    # _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
+    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
 
     peoplePickerItem = dlg.findItem(peoplePicker)
     if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
@@ -25,7 +29,12 @@ def add_and_keyClicks(
     elif not peoplePickerItem.property("visible"):
         raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
     itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
-    QApplication.processEvents()
+    # For some reason a QEventLoop is needed to finish laying out the component
+    # instead of QApplication.processEvents()
+    loop = QEventLoop()
+    QTimer.singleShot(1, loop.quit)
+    loop.exec()
+    #
     dlg.mouseClick(f"{peoplePicker}.addButton")
     assert itemAddDone.wait() == True, "PersonPicker delegate not created"
     itemDelegate = itemAddDone.callArgs[-1][0]

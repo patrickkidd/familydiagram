@@ -12,7 +12,6 @@ def test_close_after_adding_lots(
     test_activation, test_user_diagrams, test_user, server_down, qtbot, create_ac_mw
 ):
     ac, mw = create_ac_mw()
-    mw.show()
     mw.new()
     dlg = mw.documentView.addAnythingDialog
     submitted = util.Condition(dlg.submitted)
