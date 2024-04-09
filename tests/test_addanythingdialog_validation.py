@@ -6,7 +6,8 @@ import mock
 from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person
 from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
-from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
+
+# from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
 from tests.test_addanythingdialog import (
     scene,
     dlg,

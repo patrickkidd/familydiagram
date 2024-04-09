@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
     S_FAILED_TO_SAVE_SERVER_FILE = "Could not save file to server. Either there is a problem with your internet connection or the server is down. Another attempt to save it to the server will be made the next time you save the diagram."
 
     S_IMPORTING_TO_FREE_DIAGRAM = "Importing a diagram will overwrite all of the data in your one free diagram. You must purchase the full version of Family Diagram to edit more than one diagram.\n\nAre you sure want to continue?"
+    S_CONFIRM_SAVE_CHANGES = "Do you want to save your changes?"
 
     OPEN_DIAGRAM_SYNC_MS = (
         1000 * 60 * 30
@@ -542,7 +543,7 @@ class MainWindow(QMainWindow):
             ret = QMessageBox.question(
                 self,
                 "Save changes?",
-                "Do you want to save your changes?",
+                self.S_CONFIRM_SAVE_CHANGES,
                 QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
                 QMessageBox.Yes,
             )

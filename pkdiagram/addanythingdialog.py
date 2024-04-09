@@ -1,11 +1,23 @@
 import logging
 
-from .pyqt import pyqtSignal, QMessageBox, QObject, QEvent, Qt, pyqtSignal, QPointF
+from .pyqt import (
+    pyqtSignal,
+    QMessageBox,
+    QObject,
+    QEvent,
+    Qt,
+    pyqtSignal,
+    QPointF,
+    QMetaObject,
+    QVariant,
+    Q_RETURN_ARG,
+)
 from . import objects, util, commands
 from .objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
 from .util import EventKind
-
+from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
+from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 
 _log = logging.getLogger(__name__)
 
@@ -416,6 +428,179 @@ class AddAnythingDialog(QmlDrawer):
             return
         super().onDone()
         # self.hide(callback=self.clear)
+
+    ## Testing
+
+    def set_person_picker_gender(self, personPicker, genderLabel):
+        genderBox = self.itemProp(personPicker, "genderBox")
+        assert genderBox is not None, f"Could not find genderBox for {personPicker}"
+        self.clickComboBoxItem(genderBox, genderLabel)
+
+    def set_people_picker_gender(self, peoplePicker, personIndex, genderLabel):
+        peopleAList = self.findItem(peoplePicker)
+        picker = QMetaObject.invokeMethod(
+            peopleAList,
+            "pickerAtIndex",
+            Qt.DirectConnection,
+            Q_RETURN_ARG(QVariant),
+            personIndex,
+        )
+        assert (
+            picker is not None
+        ), f"Could not find picker for {peoplePicker}:{personIndex}"
+        genderBox = picker.findChild("genderBox")
+        assert (
+            genderBox is not None
+        ), f"Could not find genderBox for {peoplePicker}:{personIndex}"
+        self.clickComboBoxItem(picker, genderLabel)
+
+    def set_kind(self, kind: EventKind):
+        self.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
+
+    def set_description(self, description: str):
+        self.keyClicks("descriptionEdit", description)
+
+    def set_new_person(
+        self,
+        personPicker: str,
+        textInput: str,
+        gender: str = None,
+        returnToFinish: bool = True,
+    ):
+        set_new_person(self, textInput, personPicker, gender, returnToFinish)
+        # _log.info(f"set_new_person('{personPicker}', '{textInput}')")
+        # self.keyClicks(f"{personPicker}.textEdit", textInput, returnToFinish=True)
+        assert self.itemProp(personPicker, "isSubmitted") == True
+        assert self.itemProp(personPicker, "isNewPerson") == True
+        assert self.itemProp(personPicker, "personName") == textInput
+
+    def set_existing_person(
+        self,
+        personPicker: str,
+        person: Person,
+        autoCompleteInput: str = None,
+        returnToFinish: bool = False,
+    ):
+        # _log.info(
+        #     f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
+        # )
+        set_existing_person(
+            self, person, autoCompleteInput, personPicker, returnToFinish=returnToFinish
+        )
+        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == False
+        # if not autoCompleteInput:
+        #     autoCompleteInput = person.fullNameOrAlias()
+        # self.keyClicks(
+        #     f"{personPicker}.textEdit",
+        #     autoCompleteInput,
+        #     resetFocus=False,
+        #     returnToFinish=returnToFinish,
+        # )
+        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == True
+        # self.clickListViewItem_actual(
+        #     f"personPicker.popupListView", person.fullNameOrAlias()
+        # )
+
+    def add_new_person(
+        self,
+        peoplePicker: str,
+        textInput: str,
+        gender: str = None,
+        returnToFinish: bool = True,
+    ):
+        add_new_person(
+            self,
+            textInput,
+            peoplePicker=peoplePicker,
+            gender=gender,
+            returnToFinish=returnToFinish,
+        )
+
+    def add_existing_person(
+        self,
+        peoplePicker: str,
+        person: Person,
+        autoCompleteInput: str = None,
+    ):
+        add_existing_person(
+            self, person, autoCompleteInput=autoCompleteInput, peoplePicker=peoplePicker
+        )
+
+    def set_dateTime(self, dateTime, buttonsItem, datePickerItem, timePickerItem):
+
+        S_DATE = util.dateString(dateTime)
+        S_TIME = util.timeString(dateTime)
+
+        # _log.info(
+        #     f"Setting {buttonsItem}, {datePickerItem}, {timePickerItem} to {dateTime}"
+        # )
+
+        self.keyClicks(
+            f"{buttonsItem}.dateTextInput",
+            S_DATE,
+            returnToFinish=False,
+            resetFocus=False,
+        )
+        self.keyClicks(
+            f"{buttonsItem}.timeTextInput",
+            S_TIME,
+            returnToFinish=False,
+            resetFocus=False,
+        )
+        assert self.itemProp(buttonsItem, "dateTime") == dateTime
+        assert self.itemProp(datePickerItem, "dateTime") == dateTime
+        assert self.itemProp(timePickerItem, "dateTime") == dateTime
+
+    def set_startDateTime(self, dateTime):
+        self.set_dateTime(
+            dateTime, "startDateButtons", "startDatePicker", "startTimePicker"
+        )
+
+    def set_isDateRange(self, on):
+        if not self.rootProp("isDateRange"):
+            assert self.itemProp("endDateTimeLabel", "visible") == False
+            assert self.itemProp("endDateButtons", "visible") == False
+            assert self.itemProp("endDatePicker", "visible") == False
+            assert self.itemProp("endTimePicker", "visible") == False
+            assert (
+                self.itemProp("isDateRangeBox", "visible") == True
+            ), f"isDateRangeBox hidden; incorrect event kind '{self.rootProp('kind')}'"
+            self.setItemProp("isDateRangeBox", "checked", True)
+            # self.mouseClick("isDateRangeBox")
+            assert self.rootProp("isDateRange") == True
+
+    def set_endDateTime(self, dateTime):
+        self.set_isDateRange(True)
+        assert self.itemProp("endDateTimeLabel", "visible") == True
+        assert self.itemProp("endDateButtons", "visible") == True
+        assert self.itemProp("endDatePicker", "visible") == True
+        assert self.itemProp("endTimePicker", "visible") == True
+        self.set_dateTime(dateTime, "endDateButtons", "endDatePicker", "endTimePicker")
+
+        # Annoying behavior only in test (so far)
+        # Re-set the checkbox since clicking into the text boxes seems to uncheck it
+        if not self.rootProp("isDateRange"):
+            self.setItemProp("isDateRangeBox", "checked", True)
+
+    def set_notes(self, notes):
+        self.keyClicks("notesEdit", notes, returnToFinish=False)
+
+    def expectedFieldLabel(self, expectedTextLabel):
+        name = self.itemProp(expectedTextLabel, "text")
+        expectedText = self.S_REQUIRED_FIELD_ERROR.format(name=name)
+        util.qtbot.clickOkAfter(
+            lambda: self.mouseClick("AddEverything_submitButton"),
+            text=expectedText,
+        )
+
+    def set_anxiety(self, x):
+        self.setVariable("anxiety", x)
+
+    def set_functioning(self, x):
+        self.setVariable("functioning", x)
+
+    def set_symptom(self, x):
+        self.setVariable("symptom", x)
 
 
 def __test__(scene, parent):

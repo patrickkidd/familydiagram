@@ -536,6 +536,8 @@ class PKQtBot(QtBot):
     def mouseClick(self, *args, **kwargs):
         if self.DEBUG:
             log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
+        if len(args) == 1:
+            args = (args[0], Qt.LeftButton)
         return super().mouseClick(*args, **kwargs)
 
     def mouseDClick(self, *args, **kwargs):

@@ -5,6 +5,11 @@ import pytest
 from pkdiagram import util, objects
 from pkdiagram.pyqt import Qt, QVBoxLayout, QWidget, QQuickItem
 from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
+from pkdiagram.widgets.qml.peoplepicker import (
+    add_new_person,
+    add_existing_person,
+    delete_person,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -61,98 +66,6 @@ def picker(scene, qtbot):
     yield dlg
 
     dlg.hide()
-
-
-from PyQt5.QtWidgets import QApplication
-
-
-def add_and_keyClicks(
-    dlg: QmlWidgetHelper,
-    textInput: str,
-    peoplePicker="peoplePicker",
-    returnToFinish: bool = True,
-) -> QQuickItem:
-
-    # _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
-
-    peoplePickerItem = dlg.findItem(peoplePicker)
-    if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
-        raise TypeError(
-            f"Expected a PeoplePicker, got {peoplePickerItem.metaObject().className()}"
-        )
-    elif not peoplePickerItem.property("visible"):
-        raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
-    itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
-    QApplication.processEvents()
-    dlg.mouseClick(f"{peoplePicker}.addButton")
-    assert itemAddDone.wait() == True
-    itemDelegate = itemAddDone.callArgs[-1][0]
-    textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
-    popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
-    assert popupListView.property("visible") == False
-    dlg.keyClicks(textEdit, textInput, resetFocus=False, returnToFinish=returnToFinish)
-    return itemDelegate
-
-
-def add_new_person(
-    dlg: QmlWidgetHelper,
-    textInput: str,
-    peoplePicker="peoplePicker",
-    gender: str = None,
-    returnToFinish=True,
-) -> QQuickItem:
-    itemDelegate = add_and_keyClicks(
-        dlg,
-        textInput,
-        peoplePicker=peoplePicker,
-        returnToFinish=returnToFinish,
-    )
-    if gender is not None:
-        genderLabel = next(
-            x["name"] for x in util.PERSON_KINDS if x["kind"] == util.PERSON_KIND_FEMALE
-        )
-
-        genderBox = itemDelegate.findChild(QQuickItem, "genderBox")
-        assert genderBox is not None, f"Could not find genderBox for {itemDelegate}"
-        dlg.clickComboBoxItem(genderBox, genderLabel)
-
-    return itemDelegate
-
-
-def add_existing_person(
-    picker: QmlWidgetHelper,
-    person: Person,
-    autoCompleteInput: str = None,
-    peoplePicker="peoplePicker",
-) -> QQuickItem:
-    if autoCompleteInput is None:
-        autoCompleteInput = person.fullNameOrAlias()
-    itemDelegate = add_and_keyClicks(
-        picker,
-        autoCompleteInput,
-        peoplePicker=peoplePicker,
-        returnToFinish=False,
-    )
-    popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
-    assert popupListView.property("visible") == True
-    picker.clickListViewItem_actual(popupListView, person.fullNameOrAlias()) == True
-    return itemDelegate
-
-
-def _delete_person(
-    picker: QmlWidgetHelper, delegate: QQuickItem, peoplePicker="peoplePicker"
-):
-    _log.info(f"_delete_person({delegate})")
-    picker.mouseClick(delegate)
-    removeButton = picker.findItem("buttons_removeButton")
-    picker.mouseClick(removeButton)
-
-
-def _get_role_id(model, role_name):
-    roles = model.roleNames()
-    for role_id, name in roles.items():
-        if name == role_name:
-            return role_id
 
 
 def test_init_fields(scene, picker):
@@ -250,7 +163,7 @@ def test_add_then_delete_then_add(scene, picker):
     model = picker.itemProp("peoplePicker", "model")
     delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
-    _delete_person(picker, delegate)
+    delete_person(picker, delegate)
     assert model.rowCount() == 0
     add_existing_person(picker, personB, autoCompleteInput="Jos")
     assert model.rowCount() == 1
@@ -262,7 +175,7 @@ def test_maintain_selectedPeopleModel(scene, picker):
     delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
     assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 1
-    _delete_person(picker, delegate)
+    delete_person(picker, delegate)
     assert model.rowCount() == 0
     assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 0
 
