@@ -27,14 +27,27 @@ def test_close_after_adding_lots(
     assert submitted.callCount == 1
 
     johnDoe = mw.scene.query1(name="John", lastName="Doe")
-    # qtbot.mouseClick(mw.documentView.view.rightToolBar.addAnythingButton)
     assert mw.documentView.currentDrawer == dlg
     dlg.set_kind(EventKind.Married)
     dlg.set_existing_person("personAPicker", johnDoe)
     dlg.set_new_person("personBPicker", "Janet Dowery")
-    dlg.set_startDateTime(util.Date(2001, 1, 1))
+    dlg.set_startDateTime(util.Date(2001, 2, 3))
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 2
+    assert len(johnDoe.events()) == 1
+    assert len(johnDoe.marriages) == 1
+    assert len(johnDoe.marriages[0].events()) == 1
+
+    DESCRIPTION = "asdasdsd ddd"
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.add_existing_person("peoplePicker", johnDoe)
+    dlg.set_startDateTime(util.Date(2010, 1, 1))
+    dlg.set_description(DESCRIPTION)
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.callCount == 3
+    assert len(johnDoe.events()) == 2
+    assert johnDoe.events()[1].uniqueId() == None
 
     qtbot.clickYesAfter(
         lambda: mw.closeDocument(), text=MainWindow.S_CONFIRM_SAVE_CHANGES

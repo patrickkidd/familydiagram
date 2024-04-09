@@ -32,7 +32,7 @@ def add_and_keyClicks(
     # For some reason a QEventLoop is needed to finish laying out the component
     # instead of QApplication.processEvents()
     loop = QEventLoop()
-    QTimer.singleShot(1, loop.quit)
+    QTimer.singleShot(10, loop.quit)  # may need to be longer?
     loop.exec()
     #
     dlg.mouseClick(f"{peoplePicker}.addButton")
