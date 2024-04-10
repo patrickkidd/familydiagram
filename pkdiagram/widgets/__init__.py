@@ -175,3 +175,4 @@ from .colorbox import ColorBox
 from .drawer import Drawer
 from .dialog import Dialog
 from .popup import PopUp
+from .timelinecallout import TimelineCallout

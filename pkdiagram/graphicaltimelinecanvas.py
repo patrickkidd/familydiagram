@@ -259,15 +259,35 @@ class GraphicalTimelineCanvas(QWidget):
 
     def _drawCurrentDateTimeIndicator(self, painter, x, y):
         with util.painter_state(painter):
-            rect = QRectF(
-                x,
-                y - util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT / 2,
-                self.W,
-                util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
-            )
+            rect = self.currentDateTimeIndicatorRect(QPointF(x, y))
             painter.setBrush(util.SELECTION_COLOR)
             painter.setPen(Qt.transparent)
             painter.drawRect(rect)
+
+    def currentDateTimeIndicatorRect(self, upperLeft: QPoint = None):
+        if upperLeft:
+            x, y = upperLeft.x(), upperLeft.y()
+        if upperLeft is None and self.isSlider():
+            firstEvent, lastEvent = self.firstAndLast(events=self._events)
+            dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+            if dayRange == 0:
+                dayRange = 1
+            y = self.height()
+            firstP = QPointF(self.MARGIN, y)
+            lastP = QPointF(self.width() - self.MARGIN, y)
+            firstR = QRectF(0, 0, self.W, self.W)
+            firstR.moveCenter(firstP)
+            dayPx = (lastP.x() - firstP.x()) / dayRange
+            currentX = (
+                firstEvent.dateTime().daysTo(self.scene.currentDateTime()) * dayPx
+            )
+            x = firstR.x() + currentX
+        return QRectF(
+            x,
+            y - util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT / 2,
+            self.W,
+            util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
+        )
 
     def _drawRow(
         self, painter, clipRect, bottomY, events, dayRange=None, hideFirstEvent=False
@@ -493,3 +513,6 @@ class GraphicalTimelineCanvas(QWidget):
         self.refresh()
         if not on and not self._hoverTimer:
             self._hoverTimer = self.startTimer(200)
+
+    def events(self):
+        return self._events

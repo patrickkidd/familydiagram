@@ -24,7 +24,7 @@ from . import util, objects, commands, Person, Marriage, Emotion, Event, LayerIt
 from . import addeventdialog, addemotiondialog
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
-from .widgets.drawer import Drawer
+from .widgets import Drawer, TimelineCallout
 from .models import SceneModel
 from .qmldrawer import QmlDrawer
 
@@ -96,6 +96,8 @@ class DocumentView(QWidget):
         self.graphicalTimelineAnimation.finished.connect(
             self.onShowGraphicalTimelineFinished
         )
+
+        self.graphicalTimelineCallout = TimelineCallout(self)
 
         from pkdiagram.documentcontroller import DocumentController
 
@@ -271,6 +273,8 @@ class DocumentView(QWidget):
     def onSceneProperty(self, prop):
         if prop.name() == "hideDateSlider":
             self.setShowGraphicalTimeline(not prop.get())
+        elif prop.name() == "currentDateTime":
+            self.updateTimelineCallout()
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -306,10 +310,43 @@ class DocumentView(QWidget):
                 0, 0, self.graphicalTimelineShim.width(), self.height()
             )
         self.graphicalTimelineView.adjust(freezeScroll=drawerAnimating)
+        self.updateTimelineCallout()
         self.view.adjust()
         if not self.isAnimatingDrawer:
             for drawer in self.drawers:
                 drawer.adjust()
+
+    def updateTimelineCallout(self):
+        if not self.scene:
+            return
+        events = self.scene.timelineModel.eventsAt(self.scene.currentDateTime())
+        self.graphicalTimelineCallout.setEvents(events)
+        canvas = self.graphicalTimelineView.timeline.canvas
+        if events and canvas.isSlider() and canvas.events():
+            cursorRect_local = canvas.currentDateTimeIndicatorRect()
+            cursorPos = self.mapTo(
+                self,
+                cursorRect_local.toRect().center(),
+                # + QPoint(0, int(cursorRect_local.height() * -0.5)),
+            )
+            self.graphicalTimelineCallout.move(
+                QPoint(
+                    int(
+                        cursorPos.x()
+                        - self.graphicalTimelineCallout.width() * 0.25
+                        - util.CURRENT_DATE_INDICATOR_WIDTH
+                    ),
+                    int(
+                        self.height()
+                        - self.graphicalTimelineView.height()
+                        - self.graphicalTimelineCallout.height()
+                    ),
+                )
+            )
+            # self.graphicalTimelineCallout.setZIndex()
+            self.graphicalTimelineCallout.show()
+        else:
+            self.graphicalTimelineCallout.hide()
 
     ## Non-Verbal Internal Events
 
