@@ -739,19 +739,30 @@ PK.Drawer {
                             text: "Notes"
                         }
 
-                        PK.TextEdit {
-                            id: notesEdit
-                            objectName: "notesEdit"
-                            wrapMode: TextEdit.Wrap
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            // KeyNavigation.tab: nodalBox
-                            function clear() { text = '' }
-                            // Keys.onPressed: {
-                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-                            //         done()
-                            //     }
-                            // }
+                        Rectangle { // for border
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: 150
+                            Layout.maximumHeight: 150
+                            color: 'transparent'
+                            border {
+                                width: 1
+                                color: util.QML_ITEM_BORDER_COLOR
+                            }
+
+                            PK.TextEdit {
+                                id: notesEdit
+                                objectName: "notesEdit"
+                                wrapMode: TextEdit.Wrap
+                                anchors.fill: parent
+                                padding: margin
+                                KeyNavigation.tab: kindBox
+                                function clear() { text = '' }
+                                // Keys.onPressed: {
+                                //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+                                //         done()
+                                //     }
+                                // }
+                            }
                         }
                     }
                 }
