@@ -7,7 +7,6 @@ import PK.Models 1.0
 import "js/Global.js" as Global
 import "js/Underscore.js" as Underscore
 
-
 PK.Drawer {
 
     id: root
@@ -163,6 +162,7 @@ PK.Drawer {
         notesEdit.clear()
         addPage.scrollToTop()
 
+        kindBox.forceActiveFocus()
         root.dirty = false;
     }
 
@@ -280,6 +280,7 @@ PK.Drawer {
 
         Flickable {
             id: addPage
+            objectName: 'addPage'
             contentWidth: width
             contentHeight: addPageInner.childrenRect.height + root.margin * 2
             function scrollToTop() { contentY = 0 }
@@ -318,7 +319,7 @@ PK.Drawer {
                             property var lastCurrentIndex: -1
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: startDateButtons
+                            KeyNavigation.tab: personPicker.textEdit
                             onCurrentIndexChanged: {
                                 if (currentIndex != lastCurrentIndex) {
                                     lastCurrentIndex = currentIndex
@@ -370,11 +371,11 @@ PK.Drawer {
                             visible: personLabel.visible
                             border.width: 1
                             border.color: util.QML_ITEM_BORDER_COLOR
+                            KeyNavigation.tab: peoplePicker.textEdit
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         // People
@@ -392,12 +393,12 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: peopleLabel.visible
+                            KeyNavigation.tab: personAPicker.textEdit
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         // Person A
@@ -415,12 +416,12 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
+                            KeyNavigation.tab: personBPicker.textEdit
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         // Person B
@@ -438,12 +439,12 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
+                            KeyNavigation.tab: moversPicker
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         // Mover(s)
@@ -461,12 +462,12 @@ PK.Drawer {
                             visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
+                            KeyNavigation.tab: receiversPicker
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         // Receiver(s)
@@ -484,12 +485,12 @@ PK.Drawer {
                             visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
+                            KeyNavigation.tab: descriptionEdit
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            // KeyNavigation.tab: dateButtons.textInput
                         }
 
                         PK.Text {
@@ -523,7 +524,7 @@ PK.Drawer {
                             visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: kindBox
+                            KeyNavigation.tab: startDateButtons.dateTextInput
                             function clear() { text = '' }
                             // Keys.onPressed: {
                             //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
@@ -556,8 +557,8 @@ PK.Drawer {
                             timePicker: startTimePicker
                             dateTime: root.startDateTime
                             showInspectButton: true
+                            KeyNavigation.tab: endDateButtons.dateTextInput
                             Layout.preferredHeight: implicitHeight - 10
-                            // KeyNavigation.tab: endDateButtons.textInput
                             onDateTimeChanged: root.startDateTime = dateTime
                             onUnsureChanged: root.startDateUnsure = unsure
                             Connections {
@@ -612,8 +613,8 @@ PK.Drawer {
                             dateTime: root.endDateTime                            
                             showInspectButton: true
                             visible: root.isDateRange
+                            KeyNavigation.tab: isDateRangeBox
                             Layout.preferredHeight: implicitHeight - 10
-                            // KeyNavigation.tab: intensityBox
                             onDateTimeChanged: root.endDateTime = dateTime
                             onUnsureChanged: root.endDateUnsure = unsure
                             Connections {
@@ -666,6 +667,7 @@ PK.Drawer {
                             objectName: 'isDateRangeBox'
                             text: "Is Date Range" 
                             visible: isDateRangeLabel.visible
+                            KeyNavigation.tab: locationEdit
                             Layout.fillWidth: true
                             Layout.columnSpan: 1
                             onCheckedChanged: {
@@ -684,9 +686,10 @@ PK.Drawer {
                         PK.TextField {
                             id: locationEdit
                             objectName: "locationEdit"
+                            KeyNavigation.backtab: startDateButtons.dateTextInput
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            // KeyNavigation.tab: nodalBox
+                            KeyNavigation.tab: nodalBox
                             function clear() { text = '' }
                             // Keys.onPressed: {
                             //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
@@ -704,7 +707,7 @@ PK.Drawer {
                         PK.CheckBox {
                             id: nodalBox
                             objectName: "nodalBox"
-                            KeyNavigation.tab: anxietyBox
+                            KeyNavigation.tab: anxietyBox.comboBox
                             function clear() { checked = false }
                         }
 
@@ -713,6 +716,8 @@ PK.Drawer {
                         PK.VariableBox {
                             id: anxietyBox
                             objectName: "anxietyBox"
+                            KeyNavigation.tab: functioningBox.comboBox
+                            KeyNavigation.backtab: nodalBox
                         }
 
                         PK.Text { text: "Functioning" }
@@ -720,6 +725,8 @@ PK.Drawer {
                         PK.VariableBox {
                             id: functioningBox
                             objectName: "functioningBox"
+                            KeyNavigation.tab: symptomBox.comboBox
+                            KeyNavigation.backtab: anxietyBox.comboBox
                         }
 
                         PK.Text { text: "Symptom" }
@@ -727,6 +734,8 @@ PK.Drawer {
                         PK.VariableBox {
                             id: symptomBox
                             objectName: "symptomBox"
+                            KeyNavigation.tab: notesEdit
+                            KeyNavigation.backtab: functioningBox.comboBox
                         }
 
                         PK.FormDivider {
@@ -756,6 +765,7 @@ PK.Drawer {
                                 anchors.fill: parent
                                 padding: margin
                                 KeyNavigation.tab: kindBox
+                                KeyNavigation.backtab: symptomBox.comboBox
                                 function clear() { text = '' }
                                 // Keys.onPressed: {
                                 //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
@@ -772,4 +782,3 @@ PK.Drawer {
     }            
 
 }
-

@@ -78,6 +78,15 @@ class AddAnythingDialog(QmlDrawer):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
         self.qml.rootObject().cancel.connect(self.onCancel)
+        self.qml.rootObject().window().activeFocusItemChanged.connect(
+            self.onActiveFocusItemChanged
+        )
+
+    def onActiveFocusItemChanged(self):
+        item = self.qml.rootObject().window().activeFocusItem()
+        _log.info(
+            f"AddAnythingDialog.onActiveFocusItemChanged: {item}, {item.objectName() if item else None}"
+        )
 
     def eventFilter(self, o, e):
         if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:

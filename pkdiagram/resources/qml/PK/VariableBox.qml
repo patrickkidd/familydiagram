@@ -18,20 +18,21 @@ RowLayout {
         { 'name': 'Same', 'value': util.VAR_VALUE_SAME }
     ];
     property var boxModel: model.map(function(item) { return item.name; })
+    property var comboBox: valueBox
 
     function clear() {
-        comboBox.currentIndex = -1
+        valueBox.currentIndex = -1
     }
 
     function setValue(value) {
         let index = model.findIndex(function(item) { return item.value == value; })
         if(index != -1)
-            comboBox.currentIndex = index
+            valueBox.currentIndex = index
     }
 
     PK.ComboBox {
-        id: comboBox
-        objectName: root.objectName + "_comboBox"
+        id: valueBox
+        objectName: root.objectName + "_valueBox"
         width: 100
         model: boxModel
         currentIndex: model.findIndex(function(item) { return item.value == value; })
@@ -54,11 +55,11 @@ RowLayout {
         implicitWidth: util.QML_MICRO_BUTTON_WIDTH
         implicitHeight: util.QML_MICRO_BUTTON_WIDTH
         Layout.leftMargin: 2
-        opacity: comboBox.currentIndex != -1 ? 1 : 0
+        opacity: valueBox.currentIndex != -1 ? 1 : 0
         enabled: opacity > 0
         onClicked: {
             root.forceActiveFocus()
-            comboBox.currentIndex = -1
+            valueBox.currentIndex = -1
         }
         Behavior on opacity {
             NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }

@@ -1,15 +1,13 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
+  - focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Can't clear PersonPicker once submitted
-  - Can't enter notes
   - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
-  - New people picker PersonPicker text edit doesn't get focus in new row
   - Adding event to PairBond object doesn't show event anywhere. did it actually add anything?
   - Can't hit enter to close date picker
+  - New people picker PersonPicker text edit doesn't get focus in new row
   - Re-arranging new people is clunky with PersonProperties populating
-  - Somehow show thumbnail of current events next to current date cursor
-    - 
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
 

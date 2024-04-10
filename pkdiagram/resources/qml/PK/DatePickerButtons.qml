@@ -13,6 +13,7 @@ Rectangle {
     implicitHeight: layout.implicitHeight
     implicitWidth: layout.implicitWidth
 
+    property var dateTextInput: dateTextInput
     property var datePicker: null
     property var timePicker: null
     property var dateTime
