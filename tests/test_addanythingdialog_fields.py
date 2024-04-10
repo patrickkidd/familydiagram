@@ -117,7 +117,7 @@ def test_fields_for_kind(dlg, kind):
 
 
 def test_startDateTime_pickers(qtbot, dlg):
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
 
     DATE_TIME = util.Date(2023, 2, 1)
 
@@ -127,7 +127,7 @@ def test_startDateTime_pickers(qtbot, dlg):
 
 
 def test_endDateTime_pickers(dlg):
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
 
     DATE_TIME = util.Date(2023, 2, 1)
 

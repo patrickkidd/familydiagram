@@ -145,13 +145,21 @@ PK.Drawer {
 
     header: PK.ToolBar {
         PK.ToolButton {
-            id: submitButton
-            objectName: 'AddEverything_submitButton'
-            text: 'Add'
-            anchors.right: parent.right
-            anchors.rightMargin: margin
+            id: cancelButton
+            objectName: 'cancelButton'
+            text: 'Cancel'
+            anchors.left: parent.left
+            anchors.leftMargin: margin
+            onClicked: cancel()
+        }
+        PK.ToolButton {
+            id: clearFormButton
+            objectName: 'clearFormButton'
+            text: "Clear"
+            x: cancelButton.x + width + margin
             onClicked: {
-                done()
+                print('clear()')
+                root.clear()
             }
         }
         PK.Label {
@@ -164,12 +172,14 @@ PK.Drawer {
             font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
         }
         PK.ToolButton {
-            id: cancelButton
-            objectName: 'cancelButton'
-            text: 'Cancel'
-            anchors.left: parent.left
-            anchors.leftMargin: margin
-            onClicked: cancel()
+            id: submitButton
+            objectName: 'AddEverything_submitButton'
+            text: 'Add'
+            anchors.right: parent.right
+            anchors.rightMargin: margin
+            onClicked: {
+                done()
+            }
         }
     }
 

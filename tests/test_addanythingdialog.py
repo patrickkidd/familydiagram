@@ -14,6 +14,7 @@ from pkdiagram.pyqt import (
     QJSValue,
     QEventLoop,
     QTimer,
+    QRectF,
 )
 from pkdiagram.addanythingdialog import AddAnythingDialog
 
@@ -69,11 +70,11 @@ def dlg(qtbot, scene):
     dlg.setRootProp("sceneModel", sceneModel)
     dlg.setScene(scene)
     dlg.show()
-    dlg.clear()
     qtbot.addWidget(dlg)
     qtbot.waitActive(dlg)
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
+    dlg.mouseClick("clearFormButton")
 
     yield dlg
 
@@ -86,6 +87,25 @@ def test_init(dlg):
     assert dlg.itemProp("kindBox", "currentIndex") == -1
 
 
+def test_clear(dlg):
+    dlg.set_kind(EventKind.Conflict)  # dyadic for end date
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.set_endDateTime(END_DATETIME)
+    dlg.set_description("something")
+    dlg.set_notes("here are some notes")
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_symptom(util.VAR_VALUE_DOWN)
+    dlg.set_functioning(util.VAR_VALUE_SAME)
+    dlg.mouseClick("clearFormButton")
+    assert dlg.rootProp("startDateTime") == None
+    assert dlg.rootProp("endDateTime") == None
+    assert dlg.rootProp("description") == ""
+    assert dlg.rootProp("notes") == ""
+    assert dlg.rootProp("anxiety") == None
+    assert dlg.rootProp("symptom") == None
+    assert dlg.rootProp("functioning") == None
+
+
 def test_clear_birth(dlg):
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Done")
@@ -94,7 +114,7 @@ def test_clear_birth(dlg):
     assert dlg.itemProp("personPicker", "isSubmitted") == True
     assert dlg.itemProp("personAPicker", "isSubmitted") == True
     assert dlg.itemProp("personBPicker", "isSubmitted") == True
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     assert dlg.itemProp("personPicker", "isSubmitted") == False
     assert dlg.itemProp("personAPicker", "isSubmitted") == False
     assert dlg.itemProp("personBPicker", "isSubmitted") == False
@@ -104,7 +124,7 @@ def test_clear_monadic(dlg):
     dlg.set_kind(EventKind.Adopted)
     dlg.set_new_person("personPicker", "John Done")
     assert dlg.itemProp("personPicker", "isSubmitted") == True
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     assert dlg.itemProp("personPicker", "isSubmitted") == False
 
 
@@ -112,7 +132,7 @@ def test_clear_custom_individual(dlg):
     dlg.set_kind(EventKind.CustomIndividual)
     dlg.add_new_person("peoplePicker", "John Done")
     assert dlg.peopleEntries()
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     assert dlg.peopleEntries() == []
 
 
@@ -122,7 +142,7 @@ def test_clear_pairbond(dlg):
     dlg.set_new_person("personBPicker", "Jane Done")
     assert dlg.itemProp("personAPicker", "isSubmitted")
     assert dlg.itemProp("personBPicker", "isSubmitted")
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     assert not dlg.itemProp("personAPicker", "isSubmitted")
     assert not dlg.itemProp("personBPicker", "isSubmitted")
 
@@ -135,7 +155,7 @@ def test_clear_dyadic(dlg):
     dlg.add_new_person("receiversPicker", "Jane Done")
     assert dlg.moverEntries()
     assert dlg.receiverEntries()
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     assert dlg.moverEntries() == []
     assert dlg.receiverEntries() == []
 
@@ -267,7 +287,7 @@ def test_add_multiple_events_to_new_person(scene, dlg):
     assert newPerson.events()[0].description() == DESCRIPTION
     assert newPerson.events()[0].dateTime() == START_DATETIME
 
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     dlg.set_kind(EventKind.Birth)
     dlg.set_existing_person("personPicker", newPerson)
     dlg.set_startDateTime(START_DATETIME.addDays(15))
@@ -445,7 +465,7 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
 
     KIND_2 = EventKind.Bonded
 
-    dlg.clear()
+    dlg.mouseClick("clearFormButton")
     dlg.set_kind(KIND_2)
     dlg.set_existing_person("personAPicker", personA)
     dlg.set_existing_person("personBPicker", personB)
