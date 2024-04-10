@@ -92,6 +92,10 @@ PK.Drawer {
         settingsView.contentY = settingsView.contentHeight - root.height - util.QML_MARGINS
     }
 
+    function scrollTimelineToDateTime(dateTime) {
+        timelineView.scrollToDateTime(dateTime, true)
+    }
+
     QQC.Drawer {
 
         id: eventPropertiesDrawer

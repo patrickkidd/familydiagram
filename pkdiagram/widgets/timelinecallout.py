@@ -12,9 +12,11 @@ from pkdiagram.pyqt import (
     Qt,
     QRectF,
     QPen,
+    QFont,
     QFontMetrics,
     QLinearGradient,
     QPalette,
+    QApplication,
 )
 from pkdiagram.objects import Event
 
@@ -22,6 +24,8 @@ _log = logging.getLogger(__name__)
 
 
 PAD = 20
+WIDTH = 200
+HEIGHT = 70
 
 
 class TimelineCallout(QWidget):
@@ -32,7 +36,7 @@ class TimelineCallout(QWidget):
         super().__init__(parent)
         self.text = ""
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setFixedSize(200, 100)
+        self.setFixedSize(WIDTH, HEIGHT)
 
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
@@ -42,6 +46,7 @@ class TimelineCallout(QWidget):
         Layout = QVBoxLayout(self)
         Layout.addWidget(self.label)
         Layout.setContentsMargins(7, 7, 7, PAD)
+        QApplication.instance().paletteChanged.connect(self.onApplicationPaletteChanged)
 
     def resizeEvent(self, e):
         gradient = QLinearGradient(0, self.label.height() - 10, 0, self.label.height())
@@ -89,6 +94,18 @@ class TimelineCallout(QWidget):
         painter.fillPath(path, util.WINDOW_BG)
         painter.drawPath(path)
 
+    def onApplicationPaletteChanged(self):
+        self.label.setStyleSheet(
+            f"color: {QColor(util.TEXT_COLOR).name()}; background-color: transparent;"
+        )
+        font = QFont(util.DETAILS_FONT)
+        font.setPixelSize(util.TEXT_FONT_SIZE)
+        self.label.setFont(font)
+
+    def mouseReleaseEvent(self, e):
+        self.clicked.emit()
+        return super().mouseReleaseEvent(e)
+
     def setEvents(self, events: list[Event]):
         text = "\n".join(
             [f"{util.dateString(x.dateTime())} - {x.description()}" for x in events]
@@ -97,9 +114,7 @@ class TimelineCallout(QWidget):
         # elided_text = metrics.elidedText(text, Qt.ElideRight, self.label.width())
         # _log.info(elided_text)
         self.label.setText(text)
-        self.label.setStyleSheet(
-            f"color: {QColor(util.TEXT_COLOR).name()}; background-color: transparent;"
-        )
+        self.onApplicationPaletteChanged()
 
 
 if __name__ == "__main__":

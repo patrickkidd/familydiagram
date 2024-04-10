@@ -38,6 +38,7 @@ class CaseProperties(QmlDrawer):
             {"name": "clearSearch"},
             {"name": "inspectEvents"},
             {"name": "scrollSettingsToBottom"},
+            {"name": "scrollTimelineToDateTime"},
         ]
     )
 
@@ -98,6 +99,7 @@ class DocumentView(QWidget):
         )
 
         self.graphicalTimelineCallout = TimelineCallout(self)
+        self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
 
         from pkdiagram.documentcontroller import DocumentController
 
@@ -275,6 +277,7 @@ class DocumentView(QWidget):
             self.setShowGraphicalTimeline(not prop.get())
         elif prop.name() == "currentDateTime":
             self.updateTimelineCallout()
+            self.caseProps.scrollTimelineToDateTime(prop.get())
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -347,6 +350,9 @@ class DocumentView(QWidget):
             self.graphicalTimelineCallout.show()
         else:
             self.graphicalTimelineCallout.hide()
+
+    def onShowDateTimeOnTimeline(self):
+        self.showTimeline(self.scene.currentDateTime())
 
     ## Non-Verbal Internal Events
 
@@ -676,15 +682,23 @@ class DocumentView(QWidget):
         if self.scene:
             self.scene.update()
 
-    def showTimeline(self):
+    def showTimeline(self, dateTime=None):
         """Set current tab, otherwise toggle."""
-        if self.currentDrawer == self.caseProps:
-            if self.caseProps.currentTab() == "timeline":
-                self.setCurrentDrawer(None)
-            else:
+        if dateTime:
+            # always show
+            if self.currentDrawer != self.caseProps:
+                self.setCurrentDrawer(self.caseProps, tab="timeline")
+            if self.caseProps.currentTab() != "timeline":
                 self.caseProps.setCurrentTab("timeline")
+            self.caseProps.scrollTimelineToDateTime(dateTime)
         else:
-            self.setCurrentDrawer(self.caseProps, tab="timeline")
+            if self.currentDrawer == self.caseProps:
+                if self.caseProps.currentTab() == "timeline":
+                    self.setCurrentDrawer(None)
+                else:
+                    self.caseProps.setCurrentTab("timeline")
+            else:
+                self.setCurrentDrawer(self.caseProps, tab="timeline")
 
     def showSearch(self):
         if self.currentDrawer == self.caseProps:

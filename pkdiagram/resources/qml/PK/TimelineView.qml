@@ -245,6 +245,14 @@ ColumnLayout {
         table.ensureVisible(row, false) // here for testing
     }
     
+
+    function scrollToDateTime(dateTime) {
+        // print('TimelineView.scrollToDateTime: ' + dateTime)
+        var row = model.firstRowForDateTime(dateTime)
+        if(row > -1) {
+            table.ensureVisible(row, true)
+        }
+    }
     
     PK.TableView {
         id: header
@@ -386,6 +394,7 @@ ColumnLayout {
 
         // replace with positionViewAtRow|rowAt?
         function ensureVisible(row, anim) {
+            // print('ensureVisible: row: ' + row + ' anim: ' + anim)
             if (moving || dragging)
                 return;
             if(anim === undefined) {
@@ -393,6 +402,7 @@ ColumnLayout {
             }
             var ypos = util.QML_ITEM_HEIGHT * row // items are recycled
             var ext = util.QML_ITEM_HEIGHT + ypos
+            // print('ypos: ' + ypos + ' ext: ' + ext + ' contentY: ' + contentY + ' height: ' + height)
             if ( ypos < contentY // begins before
                  || ypos > contentY + height // begins after
                  || ext < contentY // ends before
@@ -401,15 +411,27 @@ ColumnLayout {
                 var destinationY = ypos
                 /* var destinationY = Math.max(0, Math.min(ypos - height + util.QML_ITEM_HEIGHT, */
                 /*                                         contentHeight - height)) */
-                if(anim) {
-                    ensureVisAnimation.to = destinationY;
-                    ensureVisAnimation.from = contentY;
-                    ensureVisAnimation.start();
+                if(anim && util.ANIM_DURATION_MS > 0) {
+                    // print(
+                    //     'ensureVisible: destinationY: ' + destinationY + 
+                    //     ', ensureVisAnimation.to: ' + ensureVisAnimation.to + 
+                    //     ', contentY: ' + contentY +
+                    //     ' , ensureVisAnimation.from: ' + ensureVisAnimation.from
+                    // )
+                    if(destinationY != ensureVisAnimation.to || contentY != ensureVisAnimation.from) {
+                        // print('ensureVisible: setting ensureVisAnimation.to: ' + destinationY + ' from: ' + contentY)
+                        ensureVisAnimation.to = destinationY;
+                        ensureVisAnimation.from = contentY;
+                        ensureVisAnimation.start();
+                    }
                 } else {
+                    // print('ensureVisible: setting contentY: ' + contentY)
                     contentY = destinationY
                 }
             }
         }
+
+        // onContentYChanged: print('onContentYChanged: ' + contentY)
         //This animation is for the ensure-visible feature.
         NumberAnimation on contentY {
             id: ensureVisAnimation
@@ -417,6 +439,7 @@ ColumnLayout {
             to: 0               //Dummy value - will be set up when this animation is called.
             duration: util.ANIM_DURATION_MS
             easing.type: Easing.OutQuad;
+            // onFinished: print('ensureVisAnimation.finished; contentY: ' + contentY)
         }
 
         Rectangle {

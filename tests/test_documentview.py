@@ -1,13 +1,30 @@
 import os.path, datetime
 import pytest, mock
 from conftest import setPersonProperties, assertPersonProperties
-from pkdiagram import util, Scene, Session, Person, DocumentView, TagsModel, Layer
+from pkdiagram import (
+    util,
+    Scene,
+    Session,
+    Person,
+    DocumentView,
+    TagsModel,
+    Layer,
+    Event,
+)
 from pkdiagram.mainwindow_form import Ui_MainWindow
-from pkdiagram.pyqt import Qt, QWidget, QMainWindow, QPointF, QTest, QApplication
+from pkdiagram.pyqt import (
+    Qt,
+    QWidget,
+    QMainWindow,
+    QPointF,
+    QTest,
+    QApplication,
+    QEventLoop,
+)
 
 
 ##
-## TODO: view.onAddEvent from personprops|quick-add
+## TODO: view.onAddEvent from personprops|quick -add
 ## TODO: add emotion dialog
 ##
 
@@ -294,3 +311,30 @@ def test_show_search_view_from_graphical_timeline(qtbot, dv):
     qtbot.mouseClick(dv.graphicalTimelineView.searchButton, Qt.LeftButton)
     assert dv.currentDrawer == dv.caseProps
     assert dv.caseProps.currentTab() == "search"
+
+
+def test_show_events_from_timeline_callout(qtbot, dv):
+    person = dv.scene.addItem(Person(name="person"))
+    dv.scene.setCurrentDateTime(util.Date(2001, 1, 1))
+    events = [
+        Event(
+            parent=person, dateTime=util.Date(2000 + i, 1, 1), description=f"Event {i}"
+        )
+        for i in range(100)
+    ]
+    DATETIME = events[50].dateTime()
+    dv.scene.setCurrentDateTime(DATETIME)
+    # dv.scene.nextTaggedDateTime()
+    # dv.scene.nextTaggedDateTime()
+    assert dv.scene.currentDateTime() == DATETIME
+    qtbot.mouseClick(dv.graphicalTimelineCallout, Qt.LeftButton)
+    assert dv.currentDrawer == dv.caseProps
+    assert dv.caseProps.currentTab() == "timeline"
+    firstRow = dv.scene.timelineModel.firstRowForDateTime(DATETIME)
+    # ensureVisAnimation = dv.caseProps.findItem("ensureVisAnimation")
+    # assert util.wait(ensureVisAnimation.finished, maxMS=3000) == True
+    # QApplication.processEvents(QEventLoop.AllEvents, 2000)
+    assert (
+        dv.caseProps.itemProp("caseProps_timelineView.table", "contentY")
+        == util.QML_ITEM_HEIGHT * firstRow
+    )
