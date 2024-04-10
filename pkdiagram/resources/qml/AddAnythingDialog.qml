@@ -71,7 +71,9 @@ PK.Drawer {
         }
 
         if(util.isMonadicEventKind(lastKind)) {
-            if(newKind == util.EventKind.CustomIndividual) {
+            if(util.isMonadicEventKind(newKind)) {
+                if(personEntry) personPicker.setExistingPerson(personEntry.person)
+            } else if(newKind == util.EventKind.CustomIndividual) {
                 if(personEntry) peoplePicker.addExistingPerson(personEntry.person)
                 if(personAEntry) peoplePicker.addExistingPerson(personAEntry.person)
                 if(personBEntry) peoplePicker.addExistingPerson(personBEntry.person)
@@ -100,7 +102,10 @@ PK.Drawer {
                 }
             }
         } else if(util.isPairBondEventKind(lastKind)) {
-            if(util.isMonadicEventKind(newKind)) {
+            if(util.isPairBondEventKind(newKind)) {
+                if(personAEntry) personAPicker.setExistingPerson(personAEntry.person)
+                if(personBEntry) personBPicker.setExistingPerson(personBEntry.person)
+            } else if(util.isMonadicEventKind(newKind)) {
                 var isBirth = (newKind == util.EventKind.Birth)
                 if(personAEntry) personPicker.setExistingPerson(personAEntry.person)
                 if(isBirth && personAEntry) personAPicker.setExistingPerson(personBEntry.person)
@@ -112,7 +117,14 @@ PK.Drawer {
                 if(personBEntry) receiversPicker.addExistingPerson(personBEntry.person)
             }
         } else if(util.isDyadicEventKind(lastKind)) {
-            if(util.isMonadicEventKind(newKind)) {
+            if(util.isDyadicEventKind(newKind)) {
+                for(var i=0; i < moverEntries.length; i++) {
+                    moversPicker.addExistingPerson(moverEntries[i].person)
+                }
+                for(var i=0; i < receiverEntries.length; i++) {
+                    receiversPicker.addExistingPerson(receiverEntries[i].person)
+                }
+            } else if(util.isMonadicEventKind(newKind)) {
                 var isBirth = (newKind == util.EventKind.Birth)
                 if(moverEntries.length >= 1) personPicker.setExistingPerson(moverEntries[0].person)
                 if(isBirth && moverEntries.length >= 2) personAPicker.setExistingPerson(moverEntries[1].person)

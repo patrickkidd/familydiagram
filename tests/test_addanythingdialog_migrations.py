@@ -14,7 +14,13 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize(
-    "kind", [EventKind.CustomIndividual, EventKind.Married, EventKind.Conflict]
+    "kind",
+    [
+        EventKind.CustomIndividual,
+        EventKind.Married,
+        EventKind.Conflict,
+        EventKind.Adopted,
+    ],
 )
 def test_migrate_from_birth(scene, dlg, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
@@ -41,6 +47,10 @@ def test_migrate_from_birth(scene, dlg, kind):
             personB.id,
             personC.id,
         }
+    elif kind == EventKind.Adopted:
+        assert dlg.personEntry()["person"] == personA
+        assert dlg.itemProp("personAPicker", "isSubmitted") == False
+        assert dlg.itemProp("personBPicker", "isSubmitted") == False
 
 
 @pytest.mark.parametrize(
@@ -72,7 +82,13 @@ def test_migrate_from_custom_individual(scene, dlg, kind):
 
 
 @pytest.mark.parametrize(
-    "kind", [EventKind.Birth, EventKind.CustomIndividual, EventKind.Conflict]
+    "kind",
+    [
+        EventKind.Birth,
+        EventKind.CustomIndividual,
+        EventKind.Conflict,
+        EventKind.Separated,
+    ],
 )
 def test_migrate_from_pairbond(scene, dlg, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
@@ -94,10 +110,14 @@ def test_migrate_from_pairbond(scene, dlg, kind):
     elif kind == EventKind.Conflict:
         assert {x["person"].id for x in dlg.moverEntries()} == {personA.id}
         assert {x["person"].id for x in dlg.receiverEntries()} == {personB.id}
+    elif kind == EventKind.Separated:
+        assert dlg.personAEntry()["person"] == personA
+        assert dlg.personBEntry()["person"] == personB
 
 
 @pytest.mark.parametrize(
-    "kind", [EventKind.Birth, EventKind.CustomIndividual, EventKind.Married]
+    "kind",
+    [EventKind.Birth, EventKind.CustomIndividual, EventKind.Married, EventKind.Away],
 )
 def test_migrate_from_dyadic(scene, dlg, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
@@ -121,3 +141,6 @@ def test_migrate_from_dyadic(scene, dlg, kind):
     elif kind == EventKind.Married:
         assert dlg.personAEntry()["person"] == personA
         assert dlg.personBEntry()["person"] == personB
+    elif kind == EventKind.Away:
+        assert {x["person"].id for x in dlg.moverEntries()} == {personA.id, personB.id}
+        assert {x["person"].id for x in dlg.receiverEntries()} == {personC.id}
