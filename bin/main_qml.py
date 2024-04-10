@@ -1,4 +1,5 @@
 import datetime
+import logging
 import vedana
 from pkdiagram.pyqt import *
 import pkdiagram
@@ -14,6 +15,8 @@ from pkdiagram import (
     AddAnythingDialog,
     Person,
 )
+
+_log = logging.getLogger(__name__)
 
 
 def __test__FileManager(scene, parent):
@@ -57,11 +60,13 @@ def __test__TimelineView(scene, parent, sceneModel):
 
 
 def _init_scene_for_people_picker(scene):
-    scene.addItem(Person(name="Patrick", lastName="Stinson"))
-    scene.addItem(Person(name="Connie", lastName="Service"))
-    scene.addItem(Person(name="Lulu", lastName="Lemon"))
-    scene.addItem(Person(name="John", lastName="Doe"))
-    scene.addItem(Person(name="Jayne", lastName="Thermos"))
+    return [
+        scene.addItem(Person(name="Patrick", lastName="Stinson")),
+        scene.addItem(Person(name="Connie", lastName="Service")),
+        scene.addItem(Person(name="Lulu", lastName="Lemon")),
+        scene.addItem(Person(name="John", lastName="Doe")),
+        scene.addItem(Person(name="Jayne", lastName="Thermos")),
+    ]
 
 
 def __test__AddAnythingDialog(scene, parent, sceneModel):
@@ -75,14 +80,42 @@ def __test__AddAnythingDialog(scene, parent, sceneModel):
 
 
 def __test__PeoplePicker(scene, parent, sceneModel):
-    _init_scene_for_people_picker(scene)
-    pp = QmlDrawer(
-        "tests/qml/PeoplePickerTest.qml", parent=parent, sceneModel=sceneModel
-    )
-    pp.setScene(scene)
-    pp.show(animate=False)
+    from pkdiagram.widgets.qml.peoplepicker import add_existing_person
+
+    class PeoplePickerTest(QWidget, QmlWidgetHelper):
+
+        QmlWidgetHelper.registerQmlMethods(
+            [
+                {"name": "setExistingPeople"},
+                {"name": "peopleEntries", "return": True},
+            ]
+        )
+
+        def __init__(self, sceneModel, parent=None):
+            super().__init__(parent)
+            QVBoxLayout(self)
+            self.initQmlWidgetHelper(
+                "tests/qml/PeoplePickerTest.qml", sceneModel=sceneModel
+            )
+            self.checkInitQml()
+
+        def test_setExistingPeople(self, people):
+            peoplePickerItem = self.findItem("peoplePicker")
+            itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+            self.setExistingPeople(people)
+            while itemAddDone.callCount < len(people):
+                _log.info(
+                    f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
+                )
+                assert itemAddDone.wait() == True
+            # _log.info(f"Got {itemAddDone.callCount} / {len(people)} itemAddDone signals")
+
+    people = _init_scene_for_people_picker(scene)
+    pp = PeoplePickerTest(parent=parent, sceneModel=sceneModel)
+    pp.show()
     parent.resize(400, 600)
     parent.show()
+    pp.test_setExistingPeople(people[:1])
     return pp
 
 

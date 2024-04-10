@@ -143,9 +143,13 @@ def test_add_lots_of_mixed(scene, picker):
     personC = scene.addItem(Person(name="Jane", lastName="Donner"))
     model = picker.itemProp("peoplePicker", "model")
     add_existing_person(picker, personA, autoCompleteInput="Joh")
-    add_new_person(picker, "Someone new 1")
-    add_existing_person(picker, personB, autoCompleteInput="Jose")
-    add_existing_person(picker, personC, autoCompleteInput="Jan")
+    add_new_person(picker, "Someone new 1", gender=util.PERSON_KIND_FEMALE)
+    add_existing_person(
+        picker, personB, autoCompleteInput="Jose", gender=util.PERSON_KIND_UNKNOWN
+    )
+    add_existing_person(
+        picker, personC, autoCompleteInput="Jan", gender=util.PERSON_KIND_ABORTION
+    )
     add_new_person(picker, "Someone new 2")
     add_new_person(picker, "Someone new 3")
     add_new_person(picker, "Someone new 4")
@@ -155,6 +159,10 @@ def test_add_lots_of_mixed(scene, picker):
     assert len(newEntries) == 4
     assert len(peopleEntries) == 7
     assert len(existingEntries) == 3
+    joseEntry = next(x for x in existingEntries if x["person"] == personB)
+    assert joseEntry["gender"] == util.PERSON_KIND_UNKNOWN
+    personCEntry = next(x for x in existingEntries if x["person"] == personC)
+    assert personCEntry["gender"] == util.PERSON_KIND_ABORTION
 
 
 def test_add_then_delete_then_add(scene, picker):

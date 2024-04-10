@@ -75,6 +75,7 @@ def add_existing_person(
     person: Person,
     autoCompleteInput: str = None,
     peoplePicker="peoplePicker",
+    gender: str = None,
 ) -> QQuickItem:
     if autoCompleteInput is None:
         autoCompleteInput = person.fullNameOrAlias()
@@ -87,6 +88,13 @@ def add_existing_person(
     popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
     assert popupListView.property("visible") == True
     picker.clickListViewItem_actual(popupListView, person.fullNameOrAlias()) == True
+
+    if gender is not None:
+        genderLabel = next(x["name"] for x in util.PERSON_KINDS if x["kind"] == gender)
+        genderBox = itemDelegate.findChild(QQuickItem, "genderBox")
+        assert genderBox is not None, f"Could not find genderBox for {itemDelegate}"
+        picker.clickComboBoxItem(genderBox, genderLabel)
+
     return itemDelegate
 
 

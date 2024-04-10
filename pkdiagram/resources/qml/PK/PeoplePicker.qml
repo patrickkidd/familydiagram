@@ -57,7 +57,7 @@ PK.GroupBox {
         print('PeoplePicker.setExistingPeople: ' + people.length)
         for(var i = 0; i < people.length; i++) {
             var person = people[i];
-            model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
+            root.model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
             // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
         }
     }

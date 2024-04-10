@@ -515,6 +515,49 @@ class QmlWidgetHelper(QObjectHelper):
         #     for _child in child.childItems():
         #         self.here('    ', _child.metaObject().className())
 
+    # def clickComboBoxItem_actual(self, objectName, itemText, comboBox=None):
+    #     if isinstance(objectName, str):
+    #         comboBox = self.findItem(objectName)
+    #     else:
+    #         comboBox = objectName
+    #     self.mouseClick(objectName)  # for focus
+    #     model = comboBox.property("model")
+    #     if isinstance(model, list):
+    #         itemTexts = model
+    #     elif isinstance(model, QAbstractItemModel):
+    #         if not comboBox.property("textRole"):
+    #             raise TypeError(f"Expected a Qml ComboBox, got {comboBox.objectName()}")
+    #         textRole = comboBox.property("textRole").encode("utf-8")
+    #         for role, roleName in model.roleNames().items():
+    #             if textRole == roleName:
+    #                 break
+    #         itemTexts = [
+    #             model.data(model.index(row, 0), role) for row in range(model.rowCount())
+    #         ]
+    #     currentIndex = None
+    #     for i, text in enumerate(itemTexts):
+    #         if text == itemText:
+    #             currentIndex = i
+    #             break
+    #     assert (
+    #         currentIndex is not None
+    #     ), f'Could not find ComboBox item with text "{itemText}" on "{objectName}", available values {itemTexts}'
+    #     if self.DEBUG:
+    #         log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
+    #     self.mouseClick(comboBox)
+    #     util.dumpWidget(self)
+    #     popup = comboBox.findChild(QQuickItem, "popup")
+    #     popupDelegate = popup.findChild(QQuickItem, "delegate")
+    #     assert self.itemProp(comboBox, "opened") == True
+    #     comboBox.setProperty("currentIndex", -1)
+    #     comboBox.setProperty("currentIndex", currentIndex)
+    #     comboBox.close()
+    #     if not comboBox.property("currentText") == itemText:
+    #         raise RuntimeError(
+    #             'Could not set `currentText` to "%s" (currentIndex: %i) on %s'
+    #             % (itemText, currentIndex, objectName)
+    #         )
+
     def assertNoTableViewItem(self, objectName, text, column):
         model = self.itemProp(objectName, "model")
         count = 0

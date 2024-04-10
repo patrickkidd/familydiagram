@@ -2020,6 +2020,14 @@ def waitForCondition(condition: callable, maxMS=1000):
     return ret
 
 
+def waitForActive(windowOrWidget, maxMS=1000):
+    if not windowOrWidget.isWindow():
+        window = windowOrWidget.window()
+    else:
+        window = windowOrWidget
+    return waitForCondition(lambda: window.isActiveWindow(), maxMS=maxMS)
+
+
 class SignalCollector(QObject):
 
     triggered = pyqtSignal()
