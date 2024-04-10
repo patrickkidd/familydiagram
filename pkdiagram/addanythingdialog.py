@@ -455,7 +455,7 @@ class AddAnythingDialog(QmlDrawer):
         self.clickComboBoxItem(picker, genderLabel)
 
     def set_kind(self, kind: EventKind):
-        self.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind))
+        self.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind), force=False)
 
     def set_description(self, description: str):
         self.keyClicks("descriptionEdit", description)

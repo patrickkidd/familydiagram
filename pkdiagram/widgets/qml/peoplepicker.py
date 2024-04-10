@@ -12,6 +12,14 @@ from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
 _log = logging.getLogger(__name__)
 
 
+def waitForPersonPickers():
+    # For some reason a QEventLoop is needed to finish laying out the component
+    # instead of QApplication.processEvents()
+    loop = QEventLoop()
+    QTimer.singleShot(10, loop.quit)  # may need to be longer?
+    loop.exec()
+
+
 def add_and_keyClicks(
     dlg: QmlWidgetHelper,
     textInput: str,
@@ -29,11 +37,7 @@ def add_and_keyClicks(
     elif not peoplePickerItem.property("visible"):
         raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
     itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
-    # For some reason a QEventLoop is needed to finish laying out the component
-    # instead of QApplication.processEvents()
-    loop = QEventLoop()
-    QTimer.singleShot(10, loop.quit)  # may need to be longer?
-    loop.exec()
+    waitForPersonPickers()
     #
     dlg.mouseClick(f"{peoplePicker}.addButton")
     assert itemAddDone.wait() == True, "PersonPicker delegate not created"

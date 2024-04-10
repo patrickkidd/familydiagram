@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class QmlWidgetHelper(QObjectHelper):
 
-    DEBUG = True
+    DEBUG = False
 
     def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
         self._qmlSource = util.QRC_QML + source
@@ -326,7 +326,7 @@ class QmlWidgetHelper(QObjectHelper):
             pos = rect.center()
         if self.DEBUG:
             log.info(
-                f'QmlWidgetHelper.mouseClickItem("{item.objectName()}", {button}, {pos}) (rect: {rect})'
+                f"QmlWidgetHelper.mouseClickItem('{item.objectName()}')"  # , {button}, {pos}) (rect: {rect})'
             )
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
@@ -470,7 +470,7 @@ class QmlWidgetHelper(QObjectHelper):
         newSelection = selModel.selectedRows()
         assert prevSelection != newSelection
 
-    def clickComboBoxItem(self, objectName, itemText, comboBox=None):
+    def clickComboBoxItem(self, objectName, itemText, comboBox=None, force=True):
         if isinstance(objectName, str):
             comboBox = self.findItem(objectName)
         else:
@@ -499,7 +499,8 @@ class QmlWidgetHelper(QObjectHelper):
         ), f'Could not find ComboBox item with text "{itemText}" on "{objectName}", available values {itemTexts}'
         if self.DEBUG:
             log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
-        comboBox.setProperty("currentIndex", -1)
+        if force:
+            comboBox.setProperty("currentIndex", -1)
         comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()
         if not comboBox.property("currentText") == itemText:

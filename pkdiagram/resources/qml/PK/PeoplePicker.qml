@@ -42,8 +42,8 @@ PK.GroupBox {
 
     function peopleEntries() {
         var entries = []
-        // print('peopleEntries: ' + root.model.count)
-        for(var i = 0; i < root.model.count; i++) {
+        // print('peopleEntries: ' + root.model.rowCount() + ', ' + list.contentItem.children.length)
+        for(var i = 0; i < root.model.rowCount(); i++) {
             var personPicker = root.pickerAtIndex(i)
             var entry = personPicker.personEntry()
             // print(entry.gender)
@@ -56,10 +56,14 @@ PK.GroupBox {
     function setExistingPeople(people) {
         print('PeoplePicker.setExistingPeople: ' + people.length)
         for(var i = 0; i < people.length; i++) {
-            var person = people[i];
-            root.model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
-            // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
+            addExistingPerson(people[i])
         }
+    }
+
+    function addExistingPerson(person) {
+        print('PeoplePicker.addExistingPerson: ' + person)
+        root.model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
+        // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
     }
 
     function pickerAtIndex(index) {

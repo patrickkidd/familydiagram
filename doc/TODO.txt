@@ -1,11 +1,8 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - Need clear button
-  - Add new person (via marriage to existing), picker's can't find them.
-  - New people picker row doesn't get focus
-  - Can't change gender in people picker
-  - Changing event kind should try to move selected people
+  - Don't clear people selections if changing EventKind to similar kind, e.g. Conflict --> Reciprocity
+  - New people picker PersonPicker text edit doesn't get focus in new row
   - Can't hit enter to close date picker
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined

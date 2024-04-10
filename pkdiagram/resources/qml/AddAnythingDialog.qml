@@ -45,20 +45,94 @@ PK.Drawer {
 
     readonly property var fieldWidth: 275
 
-    property var dirty: false;
+    property var dirty: false
 
+    property var lastKind: null
     onKindChanged: {
+        var newKind = kindBox.currentValue()
+        var personEntry = personPicker.isSubmitted ? root.personEntry() : null
+        var personAEntry = personAPicker.isSubmitted ? root.personAEntry() : null
+        var personBEntry = personBPicker.isSubmitted ? root.personBEntry() : null
+        var peopleEntries = root.peopleEntries()
+        var moverEntries = root.moverEntries()
+        var receiverEntries = root.receiverEntries()
+
         personPicker.clear()
         peoplePicker.clear()
         personAPicker.clear()
         personBPicker.clear()
         moversPicker.clear()
         receiversPicker.clear()
+        selectedPeopleModel.clear()
+
+        if(newKind == null || lastKind == null) {
+            lastKind = newKind
+            return
+        }
+
+        if(util.isMonadicEventKind(lastKind)) {
+            if(newKind == util.EventKind.CustomIndividual) {
+                if(personEntry) peoplePicker.addExistingPerson(personEntry.person)
+                if(personAEntry) peoplePicker.addExistingPerson(personAEntry.person)
+                if(personBEntry) peoplePicker.addExistingPerson(personBEntry.person)
+            } else if (util.isPairBondEventKind(newKind)) {
+                if(personEntry) personAPicker.setExistingPerson(personEntry.person)
+                if(personAEntry) personBPicker.setExistingPerson(personAEntry.person)
+            } else if (util.isDyadicEventKind(newKind)) {
+                if(personEntry) moversPicker.addExistingPerson(personEntry.person)
+                if(personAEntry) receiversPicker.addExistingPerson(personAEntry.person)
+                if(personBEntry) receiversPicker.addExistingPerson(personBEntry.person)
+            }
+        } else if(lastKind == util.EventKind.CustomIndividual) {
+            if(util.isMonadicEventKind(newKind)) {
+                if(peopleEntries.length >= 1) personPicker.setExistingPerson(peopleEntries[0].person)
+                if(peopleEntries.length >= 2) personAPicker.setExistingPerson(peopleEntries[1].person)
+                if(peopleEntries.length >= 3) personBPicker.setExistingPerson(peopleEntries[2].person)
+            } else if(util.isPairBondEventKind(newKind)) {
+                if(peopleEntries.length >= 1) personAPicker.setExistingPerson(peopleEntries[0].person)
+                if(peopleEntries.length >= 2) personBPicker.setExistingPerson(peopleEntries[1].person)
+            } else if(util.isDyadicEventKind(newKind)) {
+                if(peopleEntries.length >= 1) moversPicker.addExistingPerson(peopleEntries[0].person)
+                if(peopleEntries.length >= 2) {
+                    for(var i=1; i < peopleEntries.length; i++) {
+                        receiversPicker.addExistingPerson(peopleEntries[i].person)
+                    }
+                }
+            }
+        } else if(util.isPairBondEventKind(lastKind)) {
+            if(util.isMonadicEventKind(newKind)) {
+                var isBirth = (newKind == util.EventKind.Birth)
+                if(personAEntry) personPicker.setExistingPerson(personAEntry.person)
+                if(isBirth && personAEntry) personAPicker.setExistingPerson(personBEntry.person)
+            } else if(newKind == util.EventKind.CustomIndividual) {
+                if(personAEntry) peoplePicker.addExistingPerson(personAEntry.person)
+                if(personBEntry) peoplePicker.addExistingPerson(personBEntry.person)
+            } else if (util.isDyadicEventKind(newKind)) {
+                if(personAEntry) moversPicker.addExistingPerson(personAEntry.person)
+                if(personBEntry) receiversPicker.addExistingPerson(personBEntry.person)
+            }
+        } else if(util.isDyadicEventKind(lastKind)) {
+            if(util.isMonadicEventKind(newKind)) {
+                var isBirth = (newKind == util.EventKind.Birth)
+                if(moverEntries.length >= 1) personPicker.setExistingPerson(moverEntries[0].person)
+                if(isBirth && moverEntries.length >= 2) personAPicker.setExistingPerson(moverEntries[1].person)
+                if(isBirth && moverEntries.length >= 3) personBPicker.setExistingPerson(moverEntries[2].person)
+            } else if(newKind == util.EventKind.CustomIndividual) {
+                print('onKindChanged[2]: ' + moverEntries.length + ', ' + receiverEntries.length)
+                for(var i=0; i < moverEntries.length; i++) {
+                    peoplePicker.addExistingPerson(moverEntries[i].person)
+                }
+            } else if (util.isPairBondEventKind(newKind)) {
+                if(moverEntries.length >= 1) personAPicker.setExistingPerson(moverEntries[0].person)
+                if(moverEntries.length >= 2) personBPicker.setExistingPerson(moverEntries[1].person)
+            }
+        }
+
+        lastKind = kindBox.currentValue()
     }
 
     function clear() {
         kindBox.currentIndex = -1
-        selectedPeopleModel.clear()
         personPicker.clear()
         peoplePicker.clear()
         personAPicker.clear()
