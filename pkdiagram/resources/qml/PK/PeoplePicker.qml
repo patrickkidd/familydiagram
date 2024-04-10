@@ -126,6 +126,7 @@ PK.GroupBox {
 
                 MouseArea {
                     anchors.fill: parent
+                    z: 1 // below controls still active after submitted, e.g. genderBox
                     onClicked: {
                         // print('PeoplePicker.onClick: ' + index + ', ' + mouse.modifiers + ', ' + mouse.accepted)
                         onPersonRowClicked(mouse, index)

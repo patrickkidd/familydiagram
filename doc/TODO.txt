@@ -1,7 +1,6 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - New person (added via married) doesn't get gender
   - Need clear button
   - Add new person (via marriage to existing), picker's can't find them.
   - New people picker row doesn't get focus

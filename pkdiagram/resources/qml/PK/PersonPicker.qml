@@ -7,17 +7,6 @@ import PK.Models 1.0
 
 Rectangle {
 
-    ApplicationWindow {
-        // Assuming FocusManager is imported and accessible
-        onActiveFocusControlChanged: {
-            print('activeFocusItem: ' + activeFocusItem)
-            if (activeFocusItem !== null && activeFocusItem.objectName !== undefined) {
-                print(activeFocusItem)
-                // FocusManager.focusChanged(activeFocusItem.objectName);
-            }
-        }
-    }
-
     id: root
 
     property var personName: ''
@@ -172,11 +161,13 @@ Rectangle {
     PK.ComboBox {
         id: genderBox
         objectName: "genderBox"
+        z: 2
         width: 90
         height: util.QML_ITEM_HEIGHT - 10
         visible: isSubmitted
         model: util.PERSON_KIND_NAMES
         indicator: Rectangle { color: 'transparent'; height: 0; width: 0}
+        property var test_popup: popup
         Layout.leftMargin: util.QML_ITEM_MARGINS
         Layout.minimumWidth: 40
         anchors {
@@ -193,6 +184,7 @@ Rectangle {
             }
         }
     }
+
 
     // add a transparent png with the path "resource/checkbox-check.png"
     // to the project to use the following image

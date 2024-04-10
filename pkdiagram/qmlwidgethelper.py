@@ -546,11 +546,11 @@ class QmlWidgetHelper(QObjectHelper):
     #         log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
     #     self.mouseClick(comboBox)
     #     util.dumpWidget(self)
-    #     popup = comboBox.findChild(QQuickItem, "popup")
+    #     popup = comboBox.property("test_popup")
     #     popupDelegate = popup.findChild(QQuickItem, "delegate")
     #     assert self.itemProp(comboBox, "opened") == True
-    #     comboBox.setProperty("currentIndex", -1)
-    #     comboBox.setProperty("currentIndex", currentIndex)
+    #     # comboBox.setProperty("currentIndex", -1)
+    #     # comboBox.setProperty("currentIndex", currentIndex)
     #     comboBox.close()
     #     if not comboBox.property("currentText") == itemText:
     #         raise RuntimeError(
