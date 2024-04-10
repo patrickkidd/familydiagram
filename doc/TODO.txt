@@ -1,9 +1,15 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - Don't clear people selections if changing EventKind to similar kind, e.g. Conflict --> Reciprocity
+  - Can't clear PersonPicker once submitted
+  - Can't enter notes
+  - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
   - New people picker PersonPicker text edit doesn't get focus in new row
+  - Adding event to PairBond object doesn't show event anywhere. did it actually add anything?
   - Can't hit enter to close date picker
+  - Re-arranging new people is clunky with PersonProperties populating
+  - Somehow show thumbnail of current events next to current date cursor
+    - 
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
 
