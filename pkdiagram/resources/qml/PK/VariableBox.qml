@@ -6,11 +6,16 @@ import QtQuick.Layouts 1.12
 import "." 1.0 as PK
 import "../js/Global.js" as Global
 
-RowLayout {
+FocusScope {
 
     id: root
 
-    Layout.fillWidth: true
+    x: outer.x
+    y: outer.y
+    width: outer.width
+    height: outer.height
+
+
     property var value: null;
     property var model: [
         { 'name': 'Up', 'value': util.VAR_VALUE_UP },
@@ -30,12 +35,19 @@ RowLayout {
             valueBox.currentIndex = index
     }
 
+
+RowLayout {
+
+    id: outer
+
     PK.ComboBox {
         id: valueBox
         objectName: root.objectName + "_valueBox"
         width: 100
         model: boxModel
+        focus: true
         currentIndex: model.findIndex(function(item) { return item.value == value; })
+        activeFocusOnTab: true
         onCurrentIndexChanged: {
             if(currentIndex != -1) {                
                 let newValue = root.model[currentIndex].value
@@ -65,4 +77,5 @@ RowLayout {
             NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }
         }
     }
+}
 }

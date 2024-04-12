@@ -5,10 +5,10 @@ import QtGraphicalEffects 1.0
 import "." 1.0 as PK
 import PK.Models 1.0
 
-PK.GroupBox {
+
+FocusScope {
 
     id: root
-    padding: 1
 
     // Stores the outputed list of people
     property var model: ListModel {}
@@ -93,6 +93,11 @@ PK.GroupBox {
         }
         print('Could not find genderBox for index: ' + index)
     }
+
+
+PK.GroupBox {
+
+    padding: 1
 
     Component.onCompleted: background.border.color = util.QML_ITEM_BORDER_COLOR
 
@@ -208,4 +213,5 @@ PK.GroupBox {
             } 
         }
     }
+}
 }

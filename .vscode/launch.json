@@ -90,6 +90,20 @@
             "redirectOutput": true
         },
         {
+            "name": "sysroot-dev TestDialog (macOS)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--qml-module",
+                "TestDialog"
+            ],
+            "env": {
+                "--QT_LOGGING_RULES": "qt.quick.*=true"
+            }
+        },
+        {
             "name": "sysroot-dev AddAnythingDialog (macOS)",
             "type": "debugpy",
             "request": "launch",
@@ -98,7 +112,10 @@
             "args": [
                 "--qml-module",
                 "AddAnythingDialog"
-            ]
+            ],
+            "env": {
+                "--QT_LOGGING_RULES": "qt.quick.*=true"
+            }
         },
         {
             "name": "sysroot-dev PersonPicker (macOS)",

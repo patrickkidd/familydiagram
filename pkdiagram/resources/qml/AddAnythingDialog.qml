@@ -319,7 +319,7 @@ PK.Drawer {
                             property var lastCurrentIndex: -1
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: personPicker.textEdit
+                            KeyNavigation.tab: personPicker
                             onCurrentIndexChanged: {
                                 if (currentIndex != lastCurrentIndex) {
                                     lastCurrentIndex = currentIndex
@@ -369,9 +369,9 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personLabel.visible
-                            border.width: 1
-                            border.color: util.QML_ITEM_BORDER_COLOR
-                            KeyNavigation.tab: peoplePicker.textEdit
+                            borderWidth: 1
+                            borderColor: util.QML_ITEM_BORDER_COLOR
+                            KeyNavigation.tab: peoplePicker
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumWidth: root.fieldWidth
@@ -393,7 +393,7 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: peopleLabel.visible
-                            KeyNavigation.tab: personAPicker.textEdit
+                            KeyNavigation.tab: personAPicker
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -416,7 +416,7 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
-                            KeyNavigation.tab: personBPicker.textEdit
+                            KeyNavigation.tab: personBPicker
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -707,7 +707,8 @@ PK.Drawer {
                         PK.CheckBox {
                             id: nodalBox
                             objectName: "nodalBox"
-                            KeyNavigation.tab: anxietyBox.comboBox
+                            KeyNavigation.tab: anxietyBox
+                            KeyNavigation.backtab: locationEdit
                             function clear() { checked = false }
                         }
 
@@ -716,8 +717,9 @@ PK.Drawer {
                         PK.VariableBox {
                             id: anxietyBox
                             objectName: "anxietyBox"
-                            KeyNavigation.tab: functioningBox.comboBox
-                            KeyNavigation.backtab: nodalBox
+                            Layout.fillWidth: true
+                            KeyNavigation.tab: functioningBox
+                            KeyNavigation.backtab: anxietyBox
                         }
 
                         PK.Text { text: "Functioning" }
@@ -725,8 +727,9 @@ PK.Drawer {
                         PK.VariableBox {
                             id: functioningBox
                             objectName: "functioningBox"
-                            KeyNavigation.tab: symptomBox.comboBox
-                            KeyNavigation.backtab: anxietyBox.comboBox
+                            Layout.fillWidth: true
+                            KeyNavigation.tab: symptomBox
+                            KeyNavigation.backtab: functioningBox
                         }
 
                         PK.Text { text: "Symptom" }
@@ -734,8 +737,9 @@ PK.Drawer {
                         PK.VariableBox {
                             id: symptomBox
                             objectName: "symptomBox"
+                            Layout.fillWidth: true
                             KeyNavigation.tab: notesEdit
-                            KeyNavigation.backtab: functioningBox.comboBox
+                            KeyNavigation.backtab: functioningBox
                         }
 
                         PK.FormDivider {
@@ -765,7 +769,7 @@ PK.Drawer {
                                 anchors.fill: parent
                                 padding: margin
                                 KeyNavigation.tab: kindBox
-                                KeyNavigation.backtab: symptomBox.comboBox
+                                KeyNavigation.backtab: symptomBox
                                 function clear() { text = '' }
                                 // Keys.onPressed: {
                                 //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {

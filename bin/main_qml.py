@@ -69,6 +69,22 @@ def _init_scene_for_people_picker(scene):
     ]
 
 
+def __test__TestDialog(scene, parent, sceneModel):
+
+    class TestDialog(QWidget, QmlWidgetHelper):
+
+        def __init__(self, sceneModel, parent=None):
+            super().__init__(parent)
+            QVBoxLayout(self)
+            self.initQmlWidgetHelper("qml/TestDialog.qml", sceneModel=sceneModel)
+            self.checkInitQml()
+
+    pp = TestDialog(parent=parent, sceneModel=sceneModel)
+    pp.show()
+    parent.resize(400, 600)
+    return pp
+
+
 def __test__AddAnythingDialog(scene, parent, sceneModel):
     _init_scene_for_people_picker(scene)
     pp = AddAnythingDialog(parent=parent, sceneModel=sceneModel)

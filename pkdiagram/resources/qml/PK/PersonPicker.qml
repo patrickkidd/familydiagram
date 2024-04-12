@@ -5,11 +5,22 @@ import QtGraphicalEffects 1.0
 import "." 1.0 as PK
 import PK.Models 1.0
 
-Rectangle {
+
+FocusScope {
 
     id: root
 
+    x: outer.x
+    y: outer.y
+    width: outer.width
+    height: outer.height
+
+    property alias color: outer.color  // util.itemBgColor(true, true, true)
+
     property var personName: ''
+    property var borderWidth: 0
+    property var borderColor: 'transparent'
+
     property var person: null
     property var gender: null
     property bool isNewPerson: false
@@ -27,8 +38,6 @@ Rectangle {
 
     // The list of people used for auto-complete
     property var scenePeopleModel: ListModel {}
-
-    color: util.QML_ITEM_BG // util.itemBgColor(true, true, true)
 
     function clear() {
         // print('>>> PersonPicker.clear() ' + root.objectName)
@@ -94,6 +103,16 @@ Rectangle {
         }
         return false
     }
+
+
+
+
+Rectangle {
+
+    id: outer
+    color: util.QML_ITEM_BG
+    border.width: root.borderWidth
+    border.color: root.borderColor
 
     RowLayout {
 
@@ -296,4 +315,6 @@ Rectangle {
         enabled: !root.isSubmitted
         onClicked: pickerTextEdit.forceActiveFocus()
     }
+}
+
 }
