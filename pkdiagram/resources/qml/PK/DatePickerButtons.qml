@@ -13,6 +13,15 @@ Rectangle {
     implicitHeight: layout.implicitHeight
     implicitWidth: layout.implicitWidth
 
+    // The first item in this chain for KeyNavigation.tab on an external item
+    readonly property var firstTabItem: dateTextInput
+    // The first item in this chain for KeyNavigation.backtab on an external item
+    readonly property var lastTabItem: timeTextInput
+    // Explicit keyNavigation.tab set on the last item in this chain
+    property var tabItem
+    // Explicit keyNavigation.backtab set on the first item in this chain
+    property var backTabItem
+
     property var dateTextInput: dateTextInput
     property var datePicker: null
     property var timePicker: null
@@ -135,6 +144,8 @@ Rectangle {
                 verticalAlignment: TextInput.AlignVCenter
                 horizontalAlignment: TextInput.AlignHCenter
                 color: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                KeyNavigation.tab: timeTextInput
+                KeyNavigation.backtab: root.backTabItem
                 onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {
@@ -185,6 +196,8 @@ Rectangle {
                 horizontalAlignment: TextInput.AlignHCenter
                 enabled: isValid(root.dateTime)
                 color: (root.enabled && enabled) ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                KeyNavigation.tab: root.tabItem
+                KeyNavigation.backtab: inspectButton
                 onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {
@@ -246,6 +259,8 @@ Rectangle {
             implicitHeight: 20
             opacity: enabled ? .5 : 0
             Layout.leftMargin: 2
+            KeyNavigation.tab: clearButton
+            KeyNavigation.backtab: timeTextInput
             onClicked: root.inspect()
             Behavior on opacity {
                 NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }
@@ -259,9 +274,11 @@ Rectangle {
             clip: true
             implicitWidth: 20
             implicitHeight: 20
-            Layout.leftMargin: 2
             opacity: (isValid(root.dateTime) && dateTextInput.text != util.BLANK_DATE_TEXT && ! root.hideReset) ? .5 : 0
             enabled: opacity > 0 && ! root.hideReset
+            Layout.leftMargin: 2
+            KeyNavigation.tab: root.tabItem
+            KeyNavigation.backtab: inspectButton
             onClicked: {
                 root.forceActiveFocus()
                 dateTime = undefined

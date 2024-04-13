@@ -6,9 +6,23 @@ import "." 1.0 as PK
 import PK.Models 1.0
 
 
-FocusScope {
+PK.GroupBox {
 
     id: root
+
+    padding: 1
+
+    // The first item in this chain for KeyNavigation.tab on an external item
+    readonly property var firstTabItem: buttons.addButtonItem
+    // The first item in this chain for KeyNavigation.backtab on an external item
+    readonly property var lastTabItem: buttons.removeButtonItem
+    // Explicit keyNavigation.tab set on the last item in this chain
+    property var tabItem
+    // Explicit keyNavigation.backtab set on the first item in this chain
+    property var backTabItem
+
+
+    Component.onCompleted: background.border.color = util.QML_ITEM_BORDER_COLOR
 
     // Stores the outputed list of people
     property var model: ListModel {}
@@ -94,12 +108,6 @@ FocusScope {
         print('Could not find genderBox for index: ' + index)
     }
 
-
-PK.GroupBox {
-
-    padding: 1
-
-    Component.onCompleted: background.border.color = util.QML_ITEM_BORDER_COLOR
 
     ColumnLayout {
         anchors.fill: parent
@@ -213,5 +221,4 @@ PK.GroupBox {
             } 
         }
     }
-}
 }

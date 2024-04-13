@@ -8,6 +8,7 @@ v2.0.0 punchlist
   - Can't hit enter to close date picker
   - New people picker PersonPicker text edit doesn't get focus in new row
   - Re-arranging new people is clunky with PersonProperties populating
+  - Delete button to clear VariableBox
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
 

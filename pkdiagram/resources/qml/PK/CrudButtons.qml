@@ -56,6 +56,9 @@ PK.ToolBar {
     property var storePositionsBoxToolTip: ''
     property var exclusiveBoxToolTip: ''
     property var doneButtonToolTip: ''
+
+    property var addButtonItem: _addButtonItem
+    property var removeButtonItem: _removeButtonItem
     
     property int buttonHeight: util.QML_MICRO_BUTTON_WIDTH
     
@@ -65,6 +68,7 @@ PK.ToolBar {
         anchors.rightMargin: margin
         spacing: margin
         PK.Button {
+            id: _addButtonItem
             objectName: 'addButton'
             source: '../../plus-button.png'
             visible: addButton
@@ -146,6 +150,7 @@ PK.ToolBar {
             onClicked: filter()
         }
         PK.Button {
+            id: _removeButtonItem
             source: '../../delete-button.png'
             objectName: root.objectName + '_removeButton'
             visible: removeButton

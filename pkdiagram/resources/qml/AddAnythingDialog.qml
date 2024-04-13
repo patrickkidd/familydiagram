@@ -319,7 +319,8 @@ PK.Drawer {
                             property var lastCurrentIndex: -1
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: personPicker
+                            KeyNavigation.tab: personPicker.firstTabItem
+                            KeyNavigation.backtab: notesEdit
                             onCurrentIndexChanged: {
                                 if (currentIndex != lastCurrentIndex) {
                                     lastCurrentIndex = currentIndex
@@ -370,8 +371,16 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personLabel.visible
                             borderWidth: 1
+                            // Timer {
+                            //     interval: 1000
+                            //     running: true
+                            //     repeat: true
+                            //     onTriggered: print('x: ' + personPicker.x + ', y: ' + personPicker.y + ', ' + personPicker.width + ', ' + personPicker.height)
+                            
+                            // }
                             borderColor: util.QML_ITEM_BORDER_COLOR
-                            KeyNavigation.tab: peoplePicker
+                            backTabItem: kindBox
+                            tabItem: peoplePicker.firstTabItem
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumWidth: root.fieldWidth
@@ -393,7 +402,8 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: peopleLabel.visible
-                            KeyNavigation.tab: personAPicker
+                            backTabItem: personPicker.lastTabItem
+                            tabItem: personAPicker.firstTabItem
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -416,7 +426,8 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
-                            KeyNavigation.tab: personBPicker
+                            backTabItem: peoplePicker.lastTabItem
+                            tabItem: personBPicker.firstTabItem
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -439,7 +450,8 @@ PK.Drawer {
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personALabel.visible
-                            KeyNavigation.tab: moversPicker
+                            backTabItem: personAPicker.lastTabItem
+                            tabItem: moversPicker.firstTabItem
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -462,7 +474,8 @@ PK.Drawer {
                             visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
-                            KeyNavigation.tab: receiversPicker
+                            backTabItem: personBPicker.lastTabItem
+                            tabItem: receiversPicker.firstTabItem
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -485,7 +498,8 @@ PK.Drawer {
                             visible: moversLabel.visible
                             scenePeopleModel: root.peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
-                            KeyNavigation.tab: descriptionEdit
+                            backTabItem: moversPicker.lastTabItem
+                            tabItem: descriptionEdit
                             Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
@@ -524,7 +538,8 @@ PK.Drawer {
                             visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: startDateButtons.dateTextInput
+                            KeyNavigation.backtab: receiversPicker.lastTabItem
+                            KeyNavigation.tab: startDateButtons.firstTabItem
                             function clear() { text = '' }
                             // Keys.onPressed: {
                             //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
@@ -557,7 +572,8 @@ PK.Drawer {
                             timePicker: startTimePicker
                             dateTime: root.startDateTime
                             showInspectButton: true
-                            KeyNavigation.tab: endDateButtons.dateTextInput
+                            backTabItem: descriptionEdit
+                            tabItem: endDateButtons.firstTabItem
                             Layout.preferredHeight: implicitHeight - 10
                             onDateTimeChanged: root.startDateTime = dateTime
                             onUnsureChanged: root.startDateUnsure = unsure
@@ -613,7 +629,8 @@ PK.Drawer {
                             dateTime: root.endDateTime                            
                             showInspectButton: true
                             visible: root.isDateRange
-                            KeyNavigation.tab: isDateRangeBox
+                            backTabItem: startDateButtons.lastTabItem
+                            tabItem: isDateRangeBox
                             Layout.preferredHeight: implicitHeight - 10
                             onDateTimeChanged: root.endDateTime = dateTime
                             onUnsureChanged: root.endDateUnsure = unsure
@@ -667,6 +684,7 @@ PK.Drawer {
                             objectName: 'isDateRangeBox'
                             text: "Is Date Range" 
                             visible: isDateRangeLabel.visible
+                            KeyNavigation.backtab: endDateButtons.lastTabItem
                             KeyNavigation.tab: locationEdit
                             Layout.fillWidth: true
                             Layout.columnSpan: 1
@@ -686,16 +704,22 @@ PK.Drawer {
                         PK.TextField {
                             id: locationEdit
                             objectName: "locationEdit"
-                            KeyNavigation.backtab: startDateButtons.dateTextInput
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             KeyNavigation.tab: nodalBox
+                            KeyNavigation.backtab: endDateButtons.lastTabItem
+                            // KeyNavigation.backtab: {
+                            //     var ret = isDateRangeBox.visible ? isDateRangeBox : startDateButtons.lastTabItem
+                            //     print('isDateRangeBox.visible: ' + isDateRangeBox.visible + ', startDateButtons.lastTabItem: ' + startDateButtons.lastTabItem + ', ret: ' + ret)
+                            //     return ret
+                            // }
                             function clear() { text = '' }
                             // Keys.onPressed: {
                             //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
                             //         done()
                             //     }
                             // }
+
                         }
 
                         PK.FormDivider {
@@ -707,7 +731,7 @@ PK.Drawer {
                         PK.CheckBox {
                             id: nodalBox
                             objectName: "nodalBox"
-                            KeyNavigation.tab: anxietyBox
+                            KeyNavigation.tab: anxietyBox.firstTabItem
                             KeyNavigation.backtab: locationEdit
                             function clear() { checked = false }
                         }
@@ -718,8 +742,8 @@ PK.Drawer {
                             id: anxietyBox
                             objectName: "anxietyBox"
                             Layout.fillWidth: true
-                            KeyNavigation.tab: functioningBox
-                            KeyNavigation.backtab: anxietyBox
+                            tabItem: functioningBox.firstTabItem
+                            backTabItem: nodalBox
                         }
 
                         PK.Text { text: "Functioning" }
@@ -728,8 +752,8 @@ PK.Drawer {
                             id: functioningBox
                             objectName: "functioningBox"
                             Layout.fillWidth: true
-                            KeyNavigation.tab: symptomBox
-                            KeyNavigation.backtab: functioningBox
+                            backTabItem: anxietyBox.lastTabItem
+                            tabItem: symptomBox.firstTabItem
                         }
 
                         PK.Text { text: "Symptom" }
@@ -738,8 +762,8 @@ PK.Drawer {
                             id: symptomBox
                             objectName: "symptomBox"
                             Layout.fillWidth: true
-                            KeyNavigation.tab: notesEdit
-                            KeyNavigation.backtab: functioningBox
+                            backTabItem: functioningBox.lastTabItem
+                            tabItem: notesEdit
                         }
 
                         PK.FormDivider {
@@ -769,7 +793,7 @@ PK.Drawer {
                                 anchors.fill: parent
                                 padding: margin
                                 KeyNavigation.tab: kindBox
-                                KeyNavigation.backtab: symptomBox
+                                KeyNavigation.backtab: symptomBox.lastTabItem
                                 function clear() { text = '' }
                                 // Keys.onPressed: {
                                 //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {

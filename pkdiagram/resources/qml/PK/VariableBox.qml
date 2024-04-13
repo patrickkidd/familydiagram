@@ -6,14 +6,19 @@ import QtQuick.Layouts 1.12
 import "." 1.0 as PK
 import "../js/Global.js" as Global
 
-FocusScope {
+
+RowLayout {
 
     id: root
 
-    x: outer.x
-    y: outer.y
-    width: outer.width
-    height: outer.height
+    // The first item in this chain for KeyNavigation.tab on an external item
+    readonly property var firstTabItem: valueBox
+    // The first item in this chain for KeyNavigation.backtab on an external item
+    readonly property var lastTabItem: clearButton
+    // Explicit keyNavigation.tab set on the last item in this chain
+    property var tabItem
+    // Explicit keyNavigation.backtab set on the first item in this chain
+    property var backTabItem
 
 
     property var value: null;
@@ -35,11 +40,6 @@ FocusScope {
             valueBox.currentIndex = index
     }
 
-
-RowLayout {
-
-    id: outer
-
     PK.ComboBox {
         id: valueBox
         objectName: root.objectName + "_valueBox"
@@ -47,7 +47,9 @@ RowLayout {
         model: boxModel
         focus: true
         currentIndex: model.findIndex(function(item) { return item.value == value; })
-        activeFocusOnTab: true
+        KeyNavigation.tab: clearButton
+        KeyNavigation.backtab: root.backTabItem
+
         onCurrentIndexChanged: {
             if(currentIndex != -1) {                
                 let newValue = root.model[currentIndex].value
@@ -69,6 +71,8 @@ RowLayout {
         Layout.leftMargin: 2
         opacity: valueBox.currentIndex != -1 ? 1 : 0
         enabled: opacity > 0
+        KeyNavigation.tab: root.tabItem
+        KeyNavigation.backtab: valueBox
         onClicked: {
             root.forceActiveFocus()
             valueBox.currentIndex = -1
@@ -77,5 +81,4 @@ RowLayout {
             NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }
         }
     }
-}
 }

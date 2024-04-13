@@ -6,17 +6,21 @@ import "." 1.0 as PK
 import PK.Models 1.0
 
 
-FocusScope {
+
+Rectangle {
 
     id: root
 
-    x: outer.x
-    y: outer.y
-    width: outer.width
-    height: outer.height
+    // The first item in this chain for KeyNavigation.tab on an external item
+    readonly property var firstTabItem: pickerTextEdit
+    // The first item in this chain for KeyNavigation.backtab on an external item
+    readonly property var lastTabItem: pickerTextEdit
+    // Explicit keyNavigation.tab set on the last item in this chain
+    property var tabItem
+    // Explicit keyNavigation.backtab set on the first item in this chain
+    property var backTabItem
 
-    property alias color: outer.color  // util.itemBgColor(true, true, true)
-
+    color: util.QML_ITEM_BG
     property var personName: ''
     property var borderWidth: 0
     property var borderColor: 'transparent'
@@ -104,16 +108,6 @@ FocusScope {
         return false
     }
 
-
-
-
-Rectangle {
-
-    id: outer
-    color: util.QML_ITEM_BG
-    border.width: root.borderWidth
-    border.color: root.borderColor
-
     RowLayout {
 
         id: rowLayout
@@ -133,6 +127,8 @@ Rectangle {
             clip: true
             width: contentWidth
             visible: ! isSubmitted
+            KeyNavigation.tab: root.tabItem
+            KeyNavigation.backtab: root.backTabItem
             property bool selectingAutoCompleteItem: false
             Layout.leftMargin: util.QML_ITEM_MARGINS
             Layout.minimumWidth: 40
@@ -317,4 +313,3 @@ Rectangle {
     }
 }
 
-}
