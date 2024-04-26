@@ -74,6 +74,20 @@ class AddAnythingDialog(QmlDrawer):
         self._returnTo = None
         self._canceled = False
 
+        self.startTimer(1000)
+
+    # def timerEvent(self, e):
+    #     item = self.qml.rootObject().window().activeFocusItem()
+    #     if item:
+    #         nextItem = item.nextItemInFocusChain()
+    #         nextItemParent = nextItem.parent()
+    #         while not nextItemParent.objectName():
+    #             nextItemParent = nextItemParent.parent()
+    #         _log.info(
+    #             f"timerEvent: {item.objectName() if item else None}, "
+    #             f"nextItem: {nextItemParent.objectName()}.{nextItem.objectName() if nextItem else None}"
+    #         )
+
     def onInitQml(self):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
@@ -82,10 +96,29 @@ class AddAnythingDialog(QmlDrawer):
             self.onActiveFocusItemChanged
         )
 
+    @staticmethod
+    def nextItemInChain(self, item):
+        nextItem = item.nextItemInFocusChain()
+        while not nextItem.isVisible() or not nextItem.isEnabled():
+            nextItem = item.nextItemInFocusChain()
+        return nextItem
+
     def onActiveFocusItemChanged(self):
         item = self.qml.rootObject().window().activeFocusItem()
+        if item:
+            nextItem = item.nextItemInFocusChain()
+            while not nextItem.isVisible() or not nextItem.isEnabled():
+                nextItem = item.nextItemInFocusChain()
+            nextItemParent = nextItem.parent()
+            while not nextItemParent.objectName():
+                nextItemParent = nextItemParent.parent()
+            itemName = nextItem.objectName()
+            parentName = nextItemParent.objectName()
+        else:
+            itemName = ""
+            parentName = ""
         _log.info(
-            f"AddAnythingDialog.onActiveFocusItemChanged: {item}, {item.objectName() if item else None}"
+            f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         )
 
     def eventFilter(self, o, e):

@@ -33,6 +33,30 @@ function sum(arr) {
 }
 
 
+/*
+It's not really clear why but the tab focus was getting stuck when some items
+were hidden, so this just walks the chain to force set focus on them.
+*/
+function focusNextItemInFocusChain(nextItem, forward) {
+    print('focusNextItemInFocusChain: ' + nextItem.objectName + ', forward: ' + forward)
+    for(var i=0; i < 100; i++) {
+        if(nextItem.visible && nextItem.enabled)  {
+            print('    FOUND nextItemInFocusChain: ' + nextItem.objectName)
+            break;
+        }
+        nextItem = nextItem.nextItemInFocusChain(forward)
+        print('    SKIP nextItemInFocusChain: ' + nextItem.objectName)
+    }
+    if(nextItem.visible && nextItem.enabled) {
+        print('focusNextItemInFocusChain: forceActiveFocus() on ' + nextItem.objectName)
+        nextItem.forceActiveFocus()
+    } else {
+        print('focusNextItemInFocusChain: could not find next tab focus item')
+    }
+}
+
+
+
 // https://stackoverflow.com/questions/45029968/how-do-i-set-the-combobox-width-to-fit-the-largest-item
 function ___calcComboBoxImplicitWidth(cb) {
   var widest = 0;

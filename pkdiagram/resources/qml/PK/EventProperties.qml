@@ -171,7 +171,7 @@ Page {
                                 enabled: mainGrid.isWritable
                                 Layout.maximumWidth: util.QML_FIELD_WIDTH
                                 Layout.minimumWidth: util.QML_FIELD_WIDTH
-                                KeyNavigation.tab: dateButtons.textInput
+                                KeyNavigation.tab: dateButtons.firstTabItem
                                 onCurrentIndexChanged: eventModel.parentId = model.idForRow(currentIndex)
                             }
                             PK.ComboBox {
@@ -211,7 +211,8 @@ Page {
                             unsure: eventModel.unsure
                             enabled: sceneModel ? ! sceneModel.readOnly : true
                             // hideReset: true
-                            KeyNavigation.tab: descriptionEdit
+                            backTabItem: nameBox
+                            tabItem: descriptionEdit
                             Layout.preferredHeight: implicitHeight - 10
                             onDateTimeChanged: eventModel.dateTime = dateTime
                             onUnsureChanged: eventModel.unsure = unsure

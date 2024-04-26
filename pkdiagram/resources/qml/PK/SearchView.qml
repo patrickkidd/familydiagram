@@ -90,7 +90,7 @@ Page {
                         Layout.fillWidth: true
                         Layout.bottomMargin: 5
                         onTextChanged: if(model.description != text) model.description = text
-                        KeyNavigation.tab: startDateButtons.textInput
+                        KeyNavigation.tab: startDateButtons.firstTabItem
                         Connections {
                             target: root
                             function onDescriptionChanged() { if(model) descriptionEdit.text = model.description }
@@ -107,7 +107,8 @@ Page {
                         dateTime: model ? root.startDateTime : undefined
                         hideUnsure: true
                         onDateTimeChanged: if(model && model.startDateTime != dateTime) model.startDateTime = dateTime
-                        KeyNavigation.tab: endDateButtons.textInput
+                        backTabItem: descriptionEdit
+                        tabItem: endDateButtons.firstTabItem
                         Connections {
                             target: root
                             function onStartDateTimeChanged() { startDateButtons.dateTime = root.startDateTime }
@@ -150,7 +151,8 @@ Page {
                         dateTime: model.endDateTime
                         hideUnsure: true
                         onDateTimeChanged: if(model && model.endDateTime != dateTime) model.endDateTime = dateTime
-                        KeyNavigation.tab: loggedStartDateTimeButtons.textInput
+                        backTabItem: startDateButtons.lastTabItem
+                        tabItem: loggedStartDateTimeButtons.firstTabItem
                         Connections {
                             target: root
                             function onEndDateTimeChanged() { endDateButtons.dateTime = root.endDateTime }
@@ -193,7 +195,8 @@ Page {
                         dateTime: model.loggedStartDateTime
                         hideUnsure: true
                         onDateTimeChanged: if(model && model.loggedStartDateTime != dateTime) model.loggedStartDateTime = dateTime
-                        KeyNavigation.tab: loggedEndDateTimeButtons.textInput
+                        backTabItem: endDateButtons.lastTabItem
+                        tabItem: loggedEndDateTimeButtons.firstTabItem
                         Connections {
                             target: root
                             function onLoggedStartDateTimeChanged() { loggedStartDateTimeButtons.dateTime = root.loggedStartDateTime }
@@ -236,7 +239,8 @@ Page {
                         dateTime: model.loggedEndDateTime
                         hideUnsure: true
                         onDateTimeChanged: if(model && model.loggedEndDateTime != dateTime) model.loggedEndDateTime = dateTime
-                        KeyNavigation.tab: nodalBox
+                        backTabItem: loggedStartDateTimeButtons.lastTabItem
+                        tabItem: nodalBox
                         Connections {
                             target: root
                             function onLoggedEndDateTimeChanged() { loggedEndDateTimeButtons.dateTime = root.loggedEndDateTime }
@@ -274,9 +278,9 @@ Page {
                     PK.CheckBox {
                         id: nodalBox
                         objectName: 'nodalBox'
-                        checked: model ? model.nodal : false
+                        checked: model ? model.nodal : false                        
                         KeyNavigation.tab: hideRelationshipsBox
-                        KeyNavigation.backtab: loggedEndDateTimeButtons.textInput // required when ref'ing child
+                        KeyNavigation.backtab: loggedEndDateTimeButtons.lastTabItem
                         onCheckedChanged: if(model && model.nodal != checked) model.nodal = checked
                     }
 

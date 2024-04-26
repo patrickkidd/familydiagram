@@ -9,6 +9,7 @@ CheckBox {
     font.pixelSize: util.TEXT_FONT_SIZE
     implicitHeight: preferred_implicitHeight
     readonly property var preferred_implicitHeight: large ? util.QML_ITEM_LARGE_HEIGHT : util.QML_ITEM_HEIGHT
+    onFocusChanged: print('onFocusChanged: ' + focus)
     indicator: Rectangle {
         id: iRoot
         width: root.height * .7

@@ -528,3 +528,16 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(str, result=int)
     def personKindIndexFromKind(self, index):
         return util.personKindIndexFromKind(index)
+
+    @pyqtSlot(QObject, result=QObject)
+    def nextItemInFocusChain(self, item):
+        nextItem = item.nextItemInFocusChain()
+        while not nextItem.isVisible() or not nextItem.isEnabled():
+            nextItem = item.nextItemInFocusChain()
+        nextItemParent = nextItem.parent()
+        while not nextItemParent.objectName():
+            nextItemParent = nextItemParent.parent()
+        log.info(
+            f"nextItemInFocusChain: {nextItemParent.objectName()}.{nextItem.objectName()}"
+        )
+        return nextItemParent

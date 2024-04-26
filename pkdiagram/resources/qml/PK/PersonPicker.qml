@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.0
 import "." 1.0 as PK
 import PK.Models 1.0
-
+import "../js/Global.js" as Global
 
 
 Rectangle {
@@ -156,6 +156,10 @@ Rectangle {
                         autoCompletePopup.close()
                     }
                 }
+            }
+            Keys.onTabPressed: {
+                Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
+                event.accepted = true
             }
             onAccepted: {
                 if(text && ! selectingAutoCompleteItem) {

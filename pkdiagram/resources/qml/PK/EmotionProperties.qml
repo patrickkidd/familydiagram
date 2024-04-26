@@ -253,7 +253,8 @@ Page {
                             }
                             Layout.fillWidth: true
                             Layout.maximumWidth: 200
-                            KeyNavigation.tab: startDateButtons.textInput
+                            KeyNavigation.tab: startDateButtons.firstTabItem
+                            KeyNavigation.backtab: swapButton
                             onCurrentIndexChanged: {
                                 if(currentIndex > -1) {
                                     emotionModel.personBId = model.idForRow(currentIndex)
@@ -275,7 +276,8 @@ Page {
                             showInspectButton: true
                             enabled: ! root.isReadOnly
                             Layout.preferredHeight: implicitHeight - 10
-                            KeyNavigation.tab: endDateButtons.textInput
+                            backTabItem: personBBox
+                            tabItem: endDateButtons.firstTabItem
                             onDateTimeChanged: emotionModel.startDateTime = dateTime
                             onUnsureChanged: emotionModel.startDateUnsure = unsure
                             onInspect: sceneModel.inspectItem(emotionModel.startEventId)
@@ -329,7 +331,8 @@ Page {
                             enabled: ! root.isReadOnly
                             visible: emotionModel.isDateRange
                             Layout.preferredHeight: implicitHeight - 10
-                            KeyNavigation.tab: intensityBox
+                            backTabItem: startDateButtons.lastTabItem
+                            tabItem: dateRangeBox
                             onDateTimeChanged: emotionModel.endDateTime = dateTime
                             onUnsureChanged: emotionModel.startDateUnsure = unsure
                             onInspect: sceneModel.inspectItem(emotionModel.endEventId)
@@ -381,6 +384,8 @@ Page {
                             enabled: !sceneModel.readOnly
                             checked: emotionModel.isDateRange
                             Layout.fillWidth: true
+                            KeyNavigation.backtab: endDateButtons.lastTabItem
+                            KeyNavigation.tab: intensityBox
                             onCheckedChanged: emotionModel.isDateRange = checked
                         }
 
@@ -394,7 +399,7 @@ Page {
                             model: util.EMOTION_INTENSITY_NAMES
                             currentIndex: emotionModel.intensityIndex
                             KeyNavigation.tab: colorBox
-                            KeyNavigation.backtab: endDateButtons.textInput
+                            KeyNavigation.backtab: dateRangeBox
                             onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
                         }
 

@@ -146,6 +146,14 @@ Rectangle {
                 color: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 KeyNavigation.tab: timeTextInput
                 KeyNavigation.backtab: root.backTabItem
+                Keys.onTabPressed: {
+                    Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
+                    event.accepted = true
+                }
+                Keys.onBacktabPressed: {
+                    Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
+                    event.accepted = true
+                }
                 onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {
@@ -198,6 +206,14 @@ Rectangle {
                 color: (root.enabled && enabled) ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 KeyNavigation.tab: root.tabItem
                 KeyNavigation.backtab: inspectButton
+                Keys.onTabPressed: {
+                    Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
+                    event.accepted = true
+                }
+                Keys.onBacktabPressed: {
+                    Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
+                    event.accepted = true
+                }
                 onEditingFinished: onChanged()
                 onTextChanged: onChanged()
                 function onChanged() {

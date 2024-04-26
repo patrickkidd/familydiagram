@@ -417,9 +417,10 @@ PK.Drawer {
                             timePicker: birthTimePicker
                             dateTime: personModel.birthDateTime
                             enabled: !root.isReadOnly
+                            backTabItem: ageBox
+                            tabItem: birthLocationEdit
                             onDateTimeChanged: personModel.birthDateTime = dateTime
                             onUnsureChanged: personModel.birthDateUnsure = unsure
-                            KeyNavigation.tab: birthLocationEdit
                             Layout.columnSpan: 2
                             Layout.preferredHeight: implicitHeight - 10
                             Connections {
@@ -470,7 +471,7 @@ PK.Drawer {
                             enabled: !root.isReadOnly
                             Layout.fillWidth: true
                             KeyNavigation.tab: adoptedBox
-                            KeyNavigation.backtab: birthDateButtons.textInput // not sure why it stopped working.
+                            KeyNavigation.backtab: birthDateButtons.lastTabItem
                             placeholderText: 'Location'
                             onEditingFinished: personModel.birthLocation = (text ? text : undefined)
                         }
@@ -498,7 +499,8 @@ PK.Drawer {
                             enabled: adoptedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
                             Layout.columnSpan: 2
                             Layout.preferredHeight: implicitHeight - 10
-                            KeyNavigation.tab: deceasedBox
+                            backTabItem: adoptedBox
+                            tabItem: deceasedBox
                             onDateTimeChanged: personModel.adoptedDateTime = dateTime
                             onUnsureChanged: personModel.adoptedDateUnsure = unsure
                             Connections {
@@ -560,7 +562,8 @@ PK.Drawer {
                             enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
                             Layout.columnSpan: 2
                             Layout.preferredHeight: implicitHeight - 10
-                            KeyNavigation.tab: deceasedReasonEdit
+                            backTabItem: deceasedBox
+                            tabItem: deceasedReasonEdit
                             onDateTimeChanged: personModel.deceasedDateTime = dateTime
                             onUnsureChanged: personModel.deceasedDateUnsure = unsure
                             Connections {
@@ -616,6 +619,7 @@ PK.Drawer {
                             visible: deceasedBox.checkState != Qt.Unchecked
                             placeholderText: 'Cause of death'
                             KeyNavigation.tab: deceasedLocationEdit
+                            KeyNavigation.backtab: deceasedDateButtons.lastTabItem
                             onEditingFinished: personModel.deceasedReason = (text ? text : undefined)
                         }
 
@@ -642,6 +646,7 @@ PK.Drawer {
                             placeholderText: 'Location'
                             Layout.fillWidth: true
                             KeyNavigation.tab: diagramNotesEdit
+                            KeyNavigation.backtab: deceasedReasonEdit
                             onEditingFinished: personModel.deceasedLocation = (text ? text : undefined)
                         }
 

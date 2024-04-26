@@ -371,13 +371,6 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             visible: personLabel.visible
                             borderWidth: 1
-                            // Timer {
-                            //     interval: 1000
-                            //     running: true
-                            //     repeat: true
-                            //     onTriggered: print('x: ' + personPicker.x + ', y: ' + personPicker.y + ', ' + personPicker.width + ', ' + personPicker.height)
-                            
-                            // }
                             borderColor: util.QML_ITEM_BORDER_COLOR
                             backTabItem: kindBox
                             tabItem: peoplePicker.firstTabItem
@@ -708,11 +701,14 @@ PK.Drawer {
                             Layout.minimumWidth: root.fieldWidth
                             KeyNavigation.tab: nodalBox
                             KeyNavigation.backtab: endDateButtons.lastTabItem
-                            // KeyNavigation.backtab: {
-                            //     var ret = isDateRangeBox.visible ? isDateRangeBox : startDateButtons.lastTabItem
-                            //     print('isDateRangeBox.visible: ' + isDateRangeBox.visible + ', startDateButtons.lastTabItem: ' + startDateButtons.lastTabItem + ', ret: ' + ret)
-                            //     return ret
-                            // }
+                            Keys.onTabPressed: {
+                                Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
+                                event.accepted = true
+                            }
+                            Keys.onBacktabPressed: {
+                                Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
+                                event.accepted = true
+                            }
                             function clear() { text = '' }
                             // Keys.onPressed: {
                             //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
