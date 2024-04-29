@@ -1,4 +1,5 @@
 import os.path, datetime
+import logging
 import pytest, mock
 from conftest import setPersonProperties, assertPersonProperties
 from pkdiagram import (
@@ -29,6 +30,9 @@ from pkdiagram.pyqt import (
 ##
 
 
+_log = logging.getLogger(__name__)
+
+
 @pytest.fixture
 def dv(test_session, test_activation, qtbot):
     # A mainwindow that only has the ui elements and actions required for DocumentView and View.
@@ -39,13 +43,14 @@ def dv(test_session, test_activation, qtbot):
     session = Session()
     w = DocumentView(mw, session)
     w.init()
+    mw.setCentralWidget(w)
     # dv.view.itemToolBar.setFocus(Qt.MouseFocusReason)
 
     w.session.init(sessionData=test_session.account_editor_dict())
 
     w.setScene(Scene())  # leave empty
-    w.resize(800, 600)
-    w.show()
+    mw.resize(800, 600)
+    mw.show()
     qtbot.addWidget(w)
     qtbot.waitActive(w)
 
@@ -316,6 +321,8 @@ def test_show_search_view_from_graphical_timeline(qtbot, dv):
 def test_show_events_from_timeline_callout(qtbot, dv):
     person = dv.scene.addItem(Person(name="person"))
     dv.scene.setCurrentDateTime(util.Date(2001, 1, 1))
+    ensureVisAnimation = dv.caseProps.findItem("ensureVisAnimation")
+    ensureVisAnimation_finished = util.Condition(ensureVisAnimation.finished)
     events = [
         Event(
             parent=person, dateTime=util.Date(2000 + i, 1, 1), description=f"Event {i}"
@@ -331,9 +338,7 @@ def test_show_events_from_timeline_callout(qtbot, dv):
     assert dv.currentDrawer == dv.caseProps
     assert dv.caseProps.currentTab() == "timeline"
     firstRow = dv.scene.timelineModel.firstRowForDateTime(DATETIME)
-    # ensureVisAnimation = dv.caseProps.findItem("ensureVisAnimation")
-    # assert util.wait(ensureVisAnimation.finished, maxMS=3000) == True
-    # QApplication.processEvents(QEventLoop.AllEvents, 2000)
+    assert ensureVisAnimation_finished.wait() == True
     assert (
         dv.caseProps.itemProp("caseProps_timelineView.table", "contentY")
         == util.QML_ITEM_HEIGHT * firstRow

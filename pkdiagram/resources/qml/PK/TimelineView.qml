@@ -400,16 +400,20 @@ ColumnLayout {
             if(anim === undefined) {
                 anim = true
             }
-            var ypos = util.QML_ITEM_HEIGHT * row // items are recycled
-            var ext = util.QML_ITEM_HEIGHT + ypos
-            // print('ypos: ' + ypos + ' ext: ' + ext + ' contentY: ' + contentY + ' height: ' + height)
-            if ( ypos < contentY // begins before
-                 || ypos > contentY + height // begins after
-                 || ext < contentY // ends before
-                 || ext > contentY + height) { // ends after
+            var topY = util.QML_ITEM_HEIGHT * row // items are recycled
+            var bottomY = util.QML_ITEM_HEIGHT + topY
+            // print('topY: ' + topY + ' bottomY: ' + bottomY + ' contentY: ' + contentY + ' height: ' + height)
+            // print('topY < contentY: ' + topY < contentY)
+            // print('topY > contentY + height: ' + topY > contentY + height)
+            // print('bottomY < contentY: ' + bottomY < contentY)
+            // print('bottomY > contentY + height: ' + bottomY > contentY + height)
+            if ( topY < contentY // begins before
+                 || topY > contentY + height // begins after
+                 || bottomY < contentY // ends before
+                 || bottomY > contentY + height) { // ends after
                 // don't exceed bounds
-                var destinationY = ypos
-                /* var destinationY = Math.max(0, Math.min(ypos - height + util.QML_ITEM_HEIGHT, */
+                var destinationY = topY
+                /* var destinationY = Math.max(0, Math.min(topY - height + util.QML_ITEM_HEIGHT, */
                 /*                                         contentHeight - height)) */
                 if(anim && util.ANIM_DURATION_MS > 0) {
                     // print(
@@ -427,6 +431,7 @@ ColumnLayout {
                 } else {
                     // print('ensureVisible: setting contentY: ' + contentY)
                     contentY = destinationY
+                    ensureVisAnimation.finished()
                 }
             }
         }

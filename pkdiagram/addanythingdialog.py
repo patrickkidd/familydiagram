@@ -74,9 +74,8 @@ class AddAnythingDialog(QmlDrawer):
         self._returnTo = None
         self._canceled = False
 
-        self.startTimer(1000)
+        # self.startTimer(1000)
 
-    # def timerEvent(self, e):
     #     item = self.qml.rootObject().window().activeFocusItem()
     #     if item:
     #         nextItem = item.nextItemInFocusChain()
