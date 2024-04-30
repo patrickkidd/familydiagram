@@ -25,7 +25,6 @@ On close file:
 FOR TICKETS
 - cmd-left arrow / cmd-right arrow - ignore next/prev layer shortcuts when notes field has focus.
   - Needs to honor system beginning-of-line, end-of-line shortcuts.
-- `Primary` Person drawn with variable should not also draw primary box.
 
 
 v1.5.2

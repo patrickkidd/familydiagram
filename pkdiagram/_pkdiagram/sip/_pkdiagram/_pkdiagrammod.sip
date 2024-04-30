@@ -227,6 +227,7 @@ public:
 
     void setPrimary(bool);
     void setGender(const QString &);
+    void setForceNoPaintBackground(bool on);
 
     void paint(QPainter *, const QStyleOptionGraphicsItem *, QWidget * = nullptr);
 };

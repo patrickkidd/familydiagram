@@ -733,7 +733,8 @@ void PathItemDelegate::paint(QPainter *painter, const QStyleOptionGraphicsItem *
 
 PersonDelegate::PersonDelegate(PathItemBase *pathItemBase) :
     PathItemDelegate(pathItemBase),
-    m_primary(false)
+    m_primary(false),
+    m_forceNoPaintBackground(false)
 {
 }
 
@@ -741,7 +742,7 @@ void PersonDelegate::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 {
     if(!pathItem()->dev_showPathItemShapes()) {
         // paint background before base class
-        if(m_primary && (m_gender == "male" || m_gender == "female")) { // hack
+        if(m_primary && (m_gender == "male" || m_gender == "female") && !m_forceNoPaintBackground) { // hack
             painter->save();
             painter->setBrush(pathItem()->brush());
             if(m_gender == "male") {

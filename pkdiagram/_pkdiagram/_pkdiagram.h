@@ -308,6 +308,7 @@ public:
 class PersonDelegate : public PathItemDelegate {
 
     bool m_primary;
+    bool m_forceNoPaintBackground;
     QString m_gender;
 
 public:
@@ -317,6 +318,7 @@ public:
 
     void setPrimary(bool on) { m_primary = on; }
     void setGender(const QString &gender) { m_gender = gender; }
+    void setForceNoPaintBackground(bool on) { m_forceNoPaintBackground = on; }
 
     virtual void paint(QPainter *, const QStyleOptionGraphicsItem *, QWidget * = nullptr);
 };

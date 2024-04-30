@@ -47,7 +47,11 @@ class Person(PathItem):
             {"attr": "deceased", "default": False, "onset": "updateGeometryAndDetails"},
             {"attr": "deceasedReason", "onset": "updateDetails"},
             {"attr": "adopted", "default": False, "onset": "updateDetailsAndChild"},
-            {"attr": "gender", "default": util.PERSON_KIND_MALE, "onset": "updateGeometryAndDetails"},
+            {
+                "attr": "gender",
+                "default": util.PERSON_KIND_MALE,
+                "onset": "updateGeometryAndDetails",
+            },
             {"attr": "diagramNotes", "onset": "updateDetails"},
             {"attr": "notes"},
             {
@@ -977,9 +981,11 @@ class Person(PathItem):
         if self.hover:
             brush = QBrush(util.HOVER_BRUSH)
             pen = QPen(util.HOVER_PEN)
+            self._delegate.setForceNoPaintBackground(False)
         elif self.isSelected():
             brush = QBrush(util.SELECTION_BRUSH)
             pen.setColor(util.contrastTo(brush.color()))
+            self._delegate.setForceNoPaintBackground(True)
         else:
             anxiety = self.anxietyLevelNow()
             if anxiety in (
@@ -993,6 +999,7 @@ class Person(PathItem):
                 brush = QBrush(c)
             else:
                 brush = QBrush(util.WINDOW_BG)
+            self._delegate.setForceNoPaintBackground(True)
         self.setBrush(brush)
         self.setPen(pen)
         # Children items
@@ -1294,35 +1301,35 @@ class Person(PathItem):
         #     return False
         return ret
 
-    def __paint(self, painter, option, widget):
-        # paint background
-        painter.save()
-        painter.setBrush(self.brush())
-        painter.setPen(Qt.transparent)
-        path = QPainterPath(self.path())
-        path.setFillRule(Qt.WindingFill)
-        painter.drawPath(path)
-        painter.restore()
-        super().paint(painter, option, widget)
-        if self.gender() == "unknown":
-            painter.save()
-            painter.setPen(self.pen())
-            font = QFont(util.AGE_FONT)
-            font.setPointSize(font.pointSize() * 2)
-            painter.setFont(font)
-            painter.drawText(self.boundingRect(), Qt.AlignCenter, "?")
-            painter.restore()
-        elif self.age() is not None:
-            painter.save()
-            p = QPen(self.pen())
-            if self.isSelected() and not self.primary():
-                p.setColor(util.contrastTo(self.brush().color()))
-            painter.setPen(p)
-            font = QFont(util.AGE_FONT)
-            font.setPointSize(font.pointSize() * 2)
-            painter.setFont(font)
-            painter.drawText(self.boundingRect(), Qt.AlignCenter, str(self.age()))
-            painter.restore()
+    # def __paint(self, painter, option, widget):
+    #     # paint background
+    #     painter.save()
+    #     painter.setBrush(self.brush())
+    #     painter.setPen(Qt.transparent)
+    #     path = QPainterPath(self.path())
+    #     path.setFillRule(Qt.WindingFill)
+    #     painter.drawPath(path)
+    #     painter.restore()
+    #     super().paint(painter, option, widget)
+    #     if self.gender() == "unknown":
+    #         painter.save()
+    #         painter.setPen(self.pen())
+    #         font = QFont(util.AGE_FONT)
+    #         font.setPointSize(font.pointSize() * 2)
+    #         painter.setFont(font)
+    #         painter.drawText(self.boundingRect(), Qt.AlignCenter, "?")
+    #         painter.restore()
+    #     elif self.age() is not None:
+    #         painter.save()
+    #         p = QPen(self.pen())
+    #         if self.isSelected() and not self.primary():
+    #             p.setColor(util.contrastTo(self.brush().color()))
+    #         painter.setPen(p)
+    #         font = QFont(util.AGE_FONT)
+    #         font.setPointSize(font.pointSize() * 2)
+    #         painter.setFont(font)
+    #         painter.drawText(self.boundingRect(), Qt.AlignCenter, str(self.age()))
+    #         painter.restore()
 
     def mousePressEvent(self, e):
         if self.view().dragMode() == QGraphicsView.ScrollHandDrag:
