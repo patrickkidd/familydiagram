@@ -19,6 +19,7 @@ from pkdiagram.pyqt import (
     QQuickWidget,
     QKeySequence,
     QJSValue,
+    QQuickItem,
 )
 from pkdiagram import (
     util,
@@ -56,6 +57,7 @@ class DocumentController(QObject):
     scene = None
     _ignoreSelectionChanges = False
     _isUpdatingSearchTags = False
+    _currentQmlFocusItem = None
 
     def init(self):
         assert self.ui is None
@@ -277,6 +279,14 @@ class DocumentController(QObject):
         self.ui.menuLayers.addAction(self.ui.actionDeactivate_All_Layers)
         self.updateActions()
 
+    def onQmlFocusItemChanged(self, item: QQuickItem):
+        self._currentQmlFocusItem = item
+        # if item:
+        #     log.info(f"{item.metaObject().className()}#{item.objectName()}")
+        # else:
+        #     log.info("None")
+        self.updateActions()
+
     def updateActions(self):
         """Idempotent"""
         session = self.dv.session
@@ -402,10 +412,13 @@ class DocumentController(QObject):
         self.ui.actionUndo.setEnabled(on)
         self.ui.actionRedo.setEnabled(on)
         self.ui.actionPrimary_Cutoff.setEnabled(on)
-        canNextLayer = numLayers > 0 and (
-            iActiveLayer == -1 or iActiveLayer < (numLayers - 1)
-        )
-        canPrevLayer = numLayers > 0 and (iActiveLayer == -1 or iActiveLayer > 0)
+        if util.isTextItem(self._currentQmlFocusItem):
+            canNextLayer = canPrevLayer = False
+        else:
+            canNextLayer = numLayers > 0 and (
+                iActiveLayer == -1 or iActiveLayer < (numLayers - 1)
+            )
+            canPrevLayer = numLayers > 0 and (iActiveLayer == -1 or iActiveLayer > 0)
         self.ui.actionNext_Layer.setEnabled(canNextLayer)
         self.ui.actionPrevious_Layer.setEnabled(canPrevLayer)
         if on:

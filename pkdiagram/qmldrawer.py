@@ -1,3 +1,4 @@
+import logging
 from .pyqt import (
     pyqtSignal,
     pyqtProperty,
@@ -7,10 +8,14 @@ from .pyqt import (
     QUrl,
     QVBoxLayout,
     QEvent,
+    QQuickItem,
 )
 from . import util, widgets
 from .widgets import Drawer
 from .qmlwidgethelper import QmlWidgetHelper
+
+
+_log = logging.getLogger(__name__)
 
 
 class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
@@ -25,6 +30,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
     )
 
     canInspectChanged = pyqtSignal()
+    qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
     def __init__(
         self,
@@ -62,9 +68,15 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
                 self.onIsDrawerOpenChanged
             )
         self.qml.rootObject().setProperty("expanded", self.expanded)
+        self.qml.rootObject().window().activeFocusItemChanged.connect(
+            self.onActiveFocusItemChanged
+        )
 
     def deinit(self):
         super().deinit()
+        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
+            self.onActiveFocusItemChanged
+        )
         if hasattr(self, "qml"):
             model = self.rootModel()
             if model and model.items:
@@ -82,6 +94,11 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
                 self.onDone()
             return True
         return False
+
+    def onActiveFocusItemChanged(self):
+        """Allow to avoid prev/next layer shortcut for cmd-left|right"""
+        item = self.qml.rootObject().window().activeFocusItem()
+        self.qmlFocusItemChanged.emit(item)
 
     def canClose(self):
         """Virtual"""

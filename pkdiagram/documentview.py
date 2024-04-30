@@ -195,6 +195,7 @@ class DocumentView(QWidget):
         for drawer in self.drawers:
             drawer.canInspectChanged.connect(self.qmlSelectionChanged.emit)
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
+            drawer.qmlFocusItemChanged.connect(self.controller.onQmlFocusItemChanged)
         self._forceSceneUpdate = False  # fix for scene update bug
 
         self.addAnythingDialog.submitted.connect(self.controller.onAddAnythingSubmitted)

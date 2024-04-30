@@ -1053,6 +1053,18 @@ def newNameOf(items, tmpl, key):
     return name
 
 
+def isTextItem(item: QQuickItem):
+    if not item:
+        return False
+    elif any(
+        x in item.metaObject().className()
+        for x in ("TextEdit", "TextField", "TextInput")
+    ):
+        return True
+    else:
+        return False
+
+
 def printQObject(o):
     mo = o.metaObject()
     properties = []

@@ -91,9 +91,6 @@ class AddAnythingDialog(QmlDrawer):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
         self.qml.rootObject().cancel.connect(self.onCancel)
-        self.qml.rootObject().window().activeFocusItemChanged.connect(
-            self.onActiveFocusItemChanged
-        )
 
     @staticmethod
     def nextItemInChain(self, item):
@@ -103,6 +100,7 @@ class AddAnythingDialog(QmlDrawer):
         return nextItem
 
     def onActiveFocusItemChanged(self):
+        super().onActiveFocusItemChanged()
         item = self.qml.rootObject().window().activeFocusItem()
         if item:
             nextItem = item.nextItemInFocusChain()

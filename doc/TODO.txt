@@ -22,10 +22,6 @@ On close file:
       eventProperties = self._scene.eventProperties()
   2024-04-04 21:30:27,800 application.py:147         AttributeError: 'NoneType' object has no attribute 'eventProperties'
 
-FOR TICKETS
-- cmd-left arrow / cmd-right arrow - ignore next/prev layer shortcuts when notes field has focus.
-  - Needs to honor system beginning-of-line, end-of-line shortcuts.
-
 
 v1.5.2
 =============================================================================
