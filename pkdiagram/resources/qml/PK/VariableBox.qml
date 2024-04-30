@@ -81,4 +81,10 @@ RowLayout {
             NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }
         }
     }
+
+    Keys.onPressed: {
+        if(event.key == Qt.Key_Backspace || event.key == Qt.Key_Delete) {
+            clearButton.clicked()
+        }
+    }
 }
