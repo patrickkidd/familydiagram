@@ -82,14 +82,14 @@ PK.GroupBox {
 
     function pickerAtIndex(index) {
         var personPickerIndex = -1;
-        // print('pickerAtIndex(' + index + ')')
+        print('pickerAtIndex(' + index + ')')
         for(var i=0; i < list.contentItem.children.length; i++) {
             var item = list.contentItem.children[i];
             if(item.isPersonPicker) {
                 personPickerIndex++
-                // print(' found PK.PersonPicker at index: ' + personPickerIndex)
+                print(' found PK.PersonPicker at index: ' + personPickerIndex)
                 if(personPickerIndex == index) {
-                    // print(' <---- Returning PersonPicker: '  + item + ', personName: ' + item.personName + ', person: ' + item.person + ', gender: ' + item.gender)
+                    print(' <---- Returning PersonPicker: '  + item + ', personName: ' + item.personName + ', person: ' + item.person + ', gender: ' + item.gender)
                     return item
                 }
             }

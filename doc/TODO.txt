@@ -11,6 +11,9 @@ v2.0.0 punchlist
   - Delete button to clear VariableBox
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
+  - Fade in/out timeline callout
+  - Option to hide logged column?
+  - visualize that somethign is an opinion/emotion?
 
 On close file:
   Traceback (most recent call last):
@@ -22,6 +25,16 @@ On close file:
       eventProperties = self._scene.eventProperties()
   2024-04-04 21:30:27,800 application.py:147         AttributeError: 'NoneType' object has no attribute 'eventProperties'
 
+
+BUGS
+- Setting isDateRange + end date on R symbol doesn't update timeline
+
+USABILITY
+- Too hard to add new events with tags.
+  - Can set tags on existing events then new event disappears on timeline.
+  - Maybe make selected tags very obvious, like primary display feature?
+  - Maybe make new events have selected tags?
+  - Tag selection needs to feel like you are in a room and everything that happens in that room stays in that room.
 
 v1.5.2
 =============================================================================

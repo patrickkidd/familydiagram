@@ -178,6 +178,34 @@ def test_add_new_person_via_Birth(scene, dlg):
     assert event.description() == EventKind.Birth.name
 
 
+def test_add_new_person_via_Birth_with_one_parent(scene, dlg):
+    submitted = util.Condition(dlg.submitted)
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Doe")
+    dlg.set_new_person(
+        "personAPicker",
+        "Joseph Doe",
+        gender=util.personKindNameFromKind(util.PERSON_KIND_MALE),
+    )
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    assert submitted.callCount == 1, "submitted signal emitted too many times"
+
+    scene = dlg.sceneModel.scene
+    assert len(scene.people()) == 3, f"Incorrect number of people added to scene"
+    person = scene.query1(name="John", lastName="Doe")
+    personA = scene.query1(name="Joseph", lastName="Doe")
+    personB = next(x for x in scene.people() if x.id not in {person.id, personA.id})
+    assert person, f"Could not find created person {ONE_NAME}"
+    assert len(person.events()) == 1, f"Incorrect number of events added to scene"
+    event = person.events()[0]
+    assert event.uniqueId() == EventKind.Birth.value
+    assert event.description() == EventKind.Birth.name
+    assert len(person.parents().people) == 2
+    assert personA in person.parents().people
+    assert personB.gender() == util.PERSON_KIND_FEMALE
+
+
 def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
     BIRTH_NOTES = """asd fd fgfg"""
 

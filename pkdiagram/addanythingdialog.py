@@ -358,17 +358,31 @@ class AddAnythingDialog(QmlDrawer):
                     EventKind.Birth,
                     EventKind.Adopted,
                 ):
+                    if parentB and parentB.gender() == util.PERSON_KIND_MALE:
+                        personAKind = util.PERSON_KIND_FEMALE
+                    elif parentB and parentB.gender() == util.PERSON_KIND_FEMALE:
+                        personAKind = util.PERSON_KIND_MALE
+                    else:
+                        parentAKind = util.PERSON_KIND_FEMALE
+
+                    if parentA and parentA.gender() == util.PERSON_KIND_MALE:
+                        personBKind = util.PERSON_KIND_FEMALE
+                    elif parentA and parentA.gender() == util.PERSON_KIND_FEMALE:
+                        personBKind = util.PERSON_KIND_MALE
+                    else:
+                        parentBKind = util.PERSON_KIND_FEMALE
+
                     if not parentA:
                         parentA = commands.addPerson(
                             self.scene,
-                            util.PERSON_KIND_FEMALE,
+                            parentAKind,
                             QPointF(),
                             self.scene.newPersonSize(),
                         )
                     if not parentB:
                         parentB = commands.addPerson(
                             self.scene,
-                            util.PERSON_KIND_MALE,
+                            personBKind,
                             QPointF(),
                             self.scene.newPersonSize(),
                         )
@@ -421,7 +435,7 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs["location"] = location
             commands.addEvent(
                 marriage,
-                Event(startDateTime=startDateTime, **kwargs),
+                Event(dateTime=startDateTime, **kwargs),
             )
 
         elif EventKind.isDyadic(kind):
