@@ -10,6 +10,7 @@ from .pyqt import (
     QPointF,
     QMetaObject,
     QVariant,
+    QDateTime,
     Q_RETURN_ARG,
 )
 from . import objects, util, commands
@@ -458,6 +459,91 @@ class AddAnythingDialog(QmlDrawer):
                     )
         else:
             raise ValueError(f"Don't know how to handle EventKind {kind}")
+
+        # Arrange people
+        spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else None
+        if EventKind.isMonadic(kind):
+            if {person, parentA, parentB} == set(newPeople):
+                parentA.setItemPosNow(QPointF(-spacing, 0))
+                parentB.setItemPosNow(QPointF(spacing, 0))
+                person.setItemPosNow(QPointF(0, spacing * 1.5))
+            elif (
+                {person} == set(newPeople)
+                and person.parents()
+                and person.parents().people
+            ):
+                parentA, parentB = person.parents().people
+                parentAPos = parentA.itemPos()
+                parentBPos = parentB.itemPos()
+                xLeft = min(parentAPos.x(), parentBPos.x())
+                xRight = max(parentAPos.x(), parentBPos.x())
+                marriage = Marriage.marriagesFor(parentA, parentB)[0]
+                siblings = [x for x in marriage.children if x != person]
+                if siblings:
+                    newSiblings = list(
+                        sorted(
+                            siblings + [person],
+                            key=lambda x: x.birthDateTime(),
+                        )
+                    )
+                    newIndex = newSiblings.index(person)
+                    if newIndex == 0:
+                        person.setItemPosNow(
+                            QPointF(newSiblings[1].x() - spacing, newSiblings[1].y())
+                        )
+                    elif newIndex == len(newSiblings) - 1:
+                        person.setItemPosNow(
+                            QPointF(newSiblings[-2].x() + spacing, newSiblings[-2].y())
+                        )
+                    else:
+                        person.setItemPosNow(
+                            QPointF(
+                                newSiblings[newIndex - 1].x()
+                                + (
+                                    newSiblings[newIndex + 1].x()
+                                    - newSiblings[newIndex - 1].x()
+                                )
+                                / 2,
+                                newSiblings[newIndex - 1].y(),
+                            )
+                        )
+                else:
+                    person.setItemPosNow(QPointF((xRight - xLeft) / 2, parentAPos.y()))
+
+        elif EventKind.isPairBond(kind):
+            if {personA, personB} == set(newPeople):
+                personA.setItemPosNow(QPointF(-spacing, 0))
+                personB.setItemPosNow(QPointF(spacing, 0))
+            elif personA in newPeople:
+                if personA.gender() == util.PERSON_KIND_MALE:
+                    personA.setItemPosNow(personB.pos() + QPointF(-spacing * 2, 0))
+                else:
+                    personA.setItemPosNow(personB.pos() + QPointF(spacing * 2, 0))
+            elif personB in newPeople:
+                if personB.gender() == util.PERSON_KIND_MALE:
+                    personB.setItemPosNow(personA.pos() + QPointF(-spacing * 2, 0))
+                else:
+                    personB.setItemPosNow(personA.pos() + QPointF(spacing * 2, 0))
+        elif EventKind.isDyadic(kind):
+            newMovers = [x for x in movers if x in newPeople]
+            newReceivers = [x for x in receivers if x in newPeople]
+            existingMovers = [x for x in movers if x not in newPeople]
+            existingReceivers = [x for x in receivers if x not in newPeople]
+            moverReference = existingMovers[0].pos() if existingMovers else QPointF()
+            receiverReference = (
+                existingReceivers[0].pos() if existingReceivers else QPointF()
+            )
+            for i, mover in enumerate(newMovers):
+                mover.setItemPosNow(moverReference + QPointF(-spacing, i * (spacing)))
+            for i, receiver in enumerate(newReceivers):
+                receiver.setItemPosNow(
+                    receiverReference + QPointF(spacing, i * (spacing))
+                )
+        elif kind == EventKind.CustomIndividual:
+            existingPeople = [x for x in people if x not in newPeople]
+            peopleReference = existingPeople[0].pos() if existingPeople else QPointF()
+            for i, person in enumerate(newPeople):
+                person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
         commands.stack().endMacro()
         self.submitted.emit()  # for testing

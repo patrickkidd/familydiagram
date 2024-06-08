@@ -14,6 +14,7 @@ v2.0.0 punchlist
   - Fade in/out timeline callout
   - Option to hide logged column?
   - visualize that somethign is an opinion/emotion?
+  - Gender box not cleared after submit
 
 On close file:
   Traceback (most recent call last):

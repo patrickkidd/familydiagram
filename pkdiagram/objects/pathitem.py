@@ -153,6 +153,17 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
                 self.startLayerAnimation(self.posAnimation)
         super().onProperty(prop)
 
+    def setItemPosNow(self, pos: QPointF):
+        """
+        To get around `if self.isUpdatingAll()` and set the position in the
+        current layer now.
+
+        Currently only used for AddAnythingDialog since it is the only way that
+        people are added other than manually with the left toolbar.
+        """
+        self.setItemPos(pos)
+        self.setPos(pos)
+
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
             if (
@@ -202,7 +213,6 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
 
     @pyqtSlot(str, result=QVariant)
     def itemProp(self, attr):
-        _log.info(f"attr: {self.prop(attr)}")
         return self.prop(attr).get()
 
     @pyqtSlot(result=int)
