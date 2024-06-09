@@ -734,6 +734,14 @@ class PKQtBot(QtBot):
 
         self.qWaitForMessageBox(action, handleClick=doHitEscape)
 
+    def clickAndProcessEvents(self, button):
+        self.mouseClick(button, Qt.LeftButton)
+        # For some reason a QEventLoop is needed to finish laying out the Qml component
+        # instead of QApplication.processEvents()
+        loop = QEventLoop()
+        QTimer.singleShot(10, loop.quit)  # may need to be longer?
+        loop.exec()
+
 
 @pytest.fixture
 def qtbot(request):

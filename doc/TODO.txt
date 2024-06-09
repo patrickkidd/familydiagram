@@ -15,6 +15,7 @@ v2.0.0 punchlist
   - Option to hide logged column?
   - visualize that somethign is an opinion/emotion?
   - Gender box not cleared after submit
+  - make person picker yellow, then green when submitted? (same as create account dialog)
 
 On close file:
   Traceback (most recent call last):

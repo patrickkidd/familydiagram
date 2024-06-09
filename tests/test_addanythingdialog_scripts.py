@@ -2,7 +2,7 @@ import pytest
 import datetime
 
 from pkdiagram.pyqt import QApplication, Qt
-from pkdiagram import util, EventKind
+from pkdiagram import util, EventKind, MainWindow
 from tests.test_addanythingdialog import scene, dlg, START_DATETIME
 
 
@@ -39,9 +39,8 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
 
     # Add person and parents by birth
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
-
     dlg.set_new_person("personPicker", "John Doe")
     dlg.set_new_person("personAPicker", "James Doe")
     dlg.set_new_person(
@@ -67,7 +66,7 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
 
     # Add by marriage
     johnDoe.setSelected(True)
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Married)
     dlg.set_new_person(
         "personBPicker",
@@ -87,7 +86,7 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     scene.clearSelection()
 
     # Add first kid
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "Roberto Doe")
     dlg.set_existing_person("personAPicker", person=johnDoe)
@@ -97,12 +96,13 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     assert len(scene.people()) == 5
     robertoDoe = scene.query1(name="Roberto", lastName="Doe")
     assert robertoDoe.birthDateTime() == START_DATETIME.addYears(26)
+    assert set(robertoDoe.parents().people) == {johnDoe, janetDoran}
 
     scene.clearSelection()
 
     # Add second kid
     assert johnDoe.isSelected() == False
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person(
         "personPicker",
@@ -118,6 +118,7 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     assert robertaDoe.birthDateTime() == START_DATETIME.addYears(27)
     assert robertaDoe.x() > robertoDoe.x()
     assert robertaDoe.y() == robertoDoe.y()
+    assert set(robertaDoe.parents().people) == {johnDoe, janetDoran}
 
 
 # Add pair-bond via birth of child
@@ -133,7 +134,7 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
 
     # Add person by birth
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
 
     dlg.set_new_person("personPicker", "John Doe")
@@ -160,7 +161,7 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     }
 
     # Add Spouse Birth
-    qtbot.mouseClick(addAnythingButton)
+    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person(
         "personPicker",

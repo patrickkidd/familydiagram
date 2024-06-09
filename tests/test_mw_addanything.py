@@ -16,7 +16,7 @@ def test_close_after_adding_lots(
     dlg = mw.documentView.addAnythingDialog
     submitted = util.Condition(dlg.submitted)
     assert mw.scene != None
-    qtbot.mouseClick(mw.documentView.view.rightToolBar.addAnythingButton)
+    qtbot.clickAndProcessEvents(mw.documentView.view.rightToolBar.addAnythingButton)
     assert mw.documentView.currentDrawer == dlg
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
