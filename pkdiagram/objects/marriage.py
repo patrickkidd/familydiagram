@@ -120,7 +120,9 @@ class Marriage(PathItem):
 
     @staticmethod
     def marriagesFor(personA, personB):
-        return [m for m in personA.marriages if m.personB() == personB]
+        return [
+            m for m in personA.marriages if {m.personA(), m.personB()} == set(m.people)
+        ]
 
     @staticmethod
     def marriageForSelection(selection):

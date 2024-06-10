@@ -85,6 +85,16 @@ def simpleMarriage(qmlScene, request):
     return marriage
 
 
+def test_marriagesFor(noEvents):
+    personA, personB = noEvents.people
+    assert noEvents.marriagesFor(personA, personB) == [noEvents]
+
+
+def test_marriagesFor_reversed(noEvents):
+    personA, personB = noEvents.people
+    assert noEvents.marriagesFor(personB, personA) == [noEvents]
+
+
 def test_auto_sort_events(noEvents):
     marriage = noEvents
     one = Event(parent=marriage, description="One", dateTime=util.Date(1900, 1, 1))

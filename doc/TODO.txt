@@ -3,11 +3,10 @@ v2.0.0 punchlist
 - AddAnything form
   - focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
+  - Switching between pair-bond kind's doesn't retain people selection 
   - Adding event to PairBond object doesn't show event anywhere. did it actually add anything?
-  - Can't hit enter to close date picker
   - New people picker PersonPicker text edit doesn't get focus in new row
   - Re-arranging new people is clunky with PersonProperties populating
-  - Delete button to clear VariableBox
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
   - Fade in/out timeline callout
@@ -16,6 +15,9 @@ v2.0.0 punchlist
   - Gender box not cleared after submit
   - make person picker yellow, then green when submitted? (same as create account dialog)
   - Change VariableBox to FormField with ComboBox
+  - tab order for single-field FormField entries
+    file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:56:13: Unable to assign [undefined] to QQuickItem*
+    file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:57:13: Unable to assign [undefined] to QQuickItem*
   - On switching to some event kind with people selected
     - file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:86: TypeError: Cannot call method 'listLabel' of null
 
