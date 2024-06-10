@@ -46,6 +46,14 @@ Rectangle {
         root.unsure = Qt.Unchecked
     }
 
+    Keys.onPressed: {
+        if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+            event.accepted = true
+            root.forceActiveFocus()
+        }
+    }
+
+
     state: 'tumblers-hidden'
     // states: [
     //     State {

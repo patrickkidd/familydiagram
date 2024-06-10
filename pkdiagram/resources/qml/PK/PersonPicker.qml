@@ -37,11 +37,16 @@ Rectangle {
     // The list of people already selected in the AddAnythingDialog
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
-        // onCountChanged: print('onCountChanged: ' + count)
     }
 
     // The list of people used for auto-complete
     property var scenePeopleModel: ListModel {}
+
+    Keys.onPressed: {
+        if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
+            event.accepted = true
+        }
+    }
 
     function clear() {
         // print('>>> PersonPicker.clear() ' + root.objectName)

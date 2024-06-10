@@ -15,8 +15,7 @@ v2.0.0 punchlist
   - visualize that something is an opinion/emotion?
   - Gender box not cleared after submit
   - make person picker yellow, then green when submitted? (same as create account dialog)
-  - datetime buttons clear button is darker than others
-  - need border on person/people pickers
+  - Change VariableBox to FormField with ComboBox
   - On switching to some event kind with people selected
     - file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:86: TypeError: Cannot call method 'listLabel' of null
 
