@@ -159,7 +159,7 @@ PK.Drawer {
         functioningBox.clear()
         symptomBox.clear()
         nodalBox.clear()
-        notesEdit.clear()
+        notesFrame.clear()
         addPage.scrollToTop()
 
         kindBox.forceActiveFocus()
@@ -243,10 +243,7 @@ PK.Drawer {
             objectName: 'clearFormButton'
             text: "Clear"
             x: cancelButton.x + width + margin
-            onClicked: {
-                print('clear()')
-                root.clear()
-            }
+            onClicked: root.clear()
         }
         PK.Label {
             text: 'Add Data Point'
@@ -555,20 +552,20 @@ PK.Drawer {
                             visible: util.isCustomEventKind(root.kind)
                         }
 
-                        PK.TextField {
-                            id: descriptionEdit
-                            objectName: "descriptionEdit"
+                        PK.FormField {
+                            id: descriptionField
                             visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.backtab: receiversPicker.lastTabItem
-                            KeyNavigation.tab: startDateButtons.firstTabItem
-                            function clear() { text = '' }
-                            // Keys.onPressed: {
-                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-                            //         done()
-                            //     }
-                            // }
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            PK.TextField {
+                                id: descriptionEdit
+                                objectName: "descriptionEdit"
+                                property bool isDirty: text != ''
+                                KeyNavigation.backtab: receiversPicker.lastTabItem
+                                KeyNavigation.tab: startDateButtons.firstTabItem
+                                function clear() { text = '' }
+                            }
                         }
 
                         PK.FormDivider {
@@ -725,28 +722,27 @@ PK.Drawer {
                             text: "Location"
                         }
 
-                        PK.TextField {
-                            id: locationEdit
-                            objectName: "locationEdit"
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            KeyNavigation.tab: nodalBox
-                            KeyNavigation.backtab: endDateButtons.lastTabItem
-                            Keys.onTabPressed: {
-                                Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
-                                event.accepted = true
+                        PK.FormField {
+                            id: locationField
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            PK.TextField {
+                                id: locationEdit
+                                objectName: "locationEdit"
+                                property bool isDirty: text != ''
+                                KeyNavigation.tab: nodalBox
+                                KeyNavigation.backtab: endDateButtons.lastTabItem
+                                Keys.onTabPressed: {
+                                    Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
+                                    event.accepted = true
+                                }
+                                Keys.onBacktabPressed: {
+                                    Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
+                                    event.accepted = true
+                                }
+                                function clear() { text = '' }
                             }
-                            Keys.onBacktabPressed: {
-                                Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
-                                event.accepted = true
-                            }
-                            function clear() { text = '' }
-                            // Keys.onPressed: {
-                            //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-                            //         done()
-                            //     }
-                            // }
-
                         }
 
                         PK.FormDivider {
@@ -803,30 +799,31 @@ PK.Drawer {
                             text: "Notes"
                         }
 
-                        Rectangle { // for border
-                            Layout.fillWidth: true
+                        PK.FormField {
+                            height: notesFrame.height
                             Layout.minimumHeight: 150
                             Layout.maximumHeight: 150
-                            color: 'transparent'
-                            border {
-                                width: 1
-                                color: util.QML_ITEM_BORDER_COLOR
-                            }
-
-                            PK.TextEdit {
-                                id: notesEdit
-                                objectName: "notesEdit"
-                                wrapMode: TextEdit.Wrap
-                                anchors.fill: parent
-                                padding: margin
-                                KeyNavigation.tab: kindBox
-                                KeyNavigation.backtab: symptomBox.lastTabItem
-                                function clear() { text = '' }
-                                // Keys.onPressed: {
-                                //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-                                //         done()
-                                //     }
-                                // }
+                            Layout.fillWidth: true
+                            Rectangle { // for border
+                                id: notesFrame
+                                property bool isDirty: notesEdit.text != ''
+                                color: 'transparent'
+                                Layout.minimumHeight: 150
+                                Layout.maximumHeight: 150
+                                border {
+                                    width: 1
+                                    color: util.QML_ITEM_BORDER_COLOR
+                                }
+                                PK.TextEdit {
+                                    id: notesEdit
+                                    objectName: "notesEdit"
+                                    wrapMode: TextEdit.Wrap
+                                    anchors.fill: parent
+                                    padding: margin
+                                    KeyNavigation.tab: kindBox
+                                    KeyNavigation.backtab: symptomBox.lastTabItem
+                                }
+                                function clear() { notesEdit.text = '' }
                             }
                         }
                     }
