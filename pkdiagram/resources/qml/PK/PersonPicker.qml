@@ -14,22 +14,24 @@ Rectangle {
     // The first item in this chain for KeyNavigation.tab on an external item
     readonly property var firstTabItem: pickerTextEdit
     // The first item in this chain for KeyNavigation.backtab on an external item
-    readonly property var lastTabItem: pickerTextEdit
+    readonly property var lastTabItem: genderBox
     // Explicit keyNavigation.tab set on the last item in this chain
-    property var tabItem
+    property var tabItem: null
     // Explicit keyNavigation.backtab set on the first item in this chain
-    property var backTabItem
+    property var backTabItem: null
 
     color: util.QML_ITEM_BG
     property var personName: ''
     property var borderWidth: 0
     property var borderColor: 'transparent'
+    property var spacing: util.QML_ITEM_MARGINS - 5
 
     property var person: null
     property var gender: null
     property bool isNewPerson: false
     property bool isSubmitted: false
-    property var textEdit: pickerTextEdit
+    property bool isDirty: false
+    property var textEdit: pickerTextEdit // still need this one?
 
     signal numVisibleAutoCompleteItemsUpdated(var numVisibleItems) // for testing
     signal submitted(var entry)
@@ -45,10 +47,24 @@ Rectangle {
 
     function clear() {
         // print('>>> PersonPicker.clear() ' + root.objectName)
+        if(isSubmitted) {
+            for(var i=0; i < root.selectedPeopleModel.rowCount(); i++) {
+                var entry = root.selectedPeopleModel.get(i);
+                print('    ' + i + ', ' + entry.person)
+                if(entry.person && root.person && entry.person.itemId() === root.person.itemId()) {
+                    print('    removing ' + entry.person.fullNameOrAlias())
+                    root.selectedPeopleModel.remove(i)
+                    break
+                }
+            }
+            
+        }
         root.personName = ''
         root.person = null
+        root.gender = null
         root.isNewPerson = false
         root.isSubmitted = false
+        root.isDirty = false
         // print('<<< PersonPicker.clear()')
     }
 
@@ -68,6 +84,7 @@ Rectangle {
 
     function setExistingPerson(person) {
         print('PersonPicker[' + root.objectName + '].setExistingPerson: ' + person.listLabel())
+        root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = false
         root.person = person
@@ -82,6 +99,7 @@ Rectangle {
 
     function setNewPerson(personName) {
         print('PersonPicker.setNewPerson: ' + personName)
+        root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = true
         root.person = null
@@ -127,7 +145,7 @@ Rectangle {
             clip: true
             width: contentWidth
             visible: ! isSubmitted
-            KeyNavigation.tab: root.tabItem
+            KeyNavigation.tab: genderBox
             KeyNavigation.backtab: root.backTabItem
             property bool selectingAutoCompleteItem: false
             Layout.leftMargin: util.QML_ITEM_MARGINS
@@ -155,6 +173,9 @@ Rectangle {
                         // print('Hiding autoCompletePopup for no text match.')
                         autoCompletePopup.close()
                     }
+                }
+                if(text) {
+                    root.isDirty = true
                 }
             }
             Keys.onTabPressed: {
@@ -187,12 +208,14 @@ Rectangle {
         model: util.PERSON_KIND_NAMES
         indicator: Rectangle { color: 'transparent'; height: 0; width: 0}
         property var test_popup: popup
+        KeyNavigation.backtab: pickerTextEdit
+        KeyNavigation.tab: root.tabItem
         Layout.leftMargin: util.QML_ITEM_MARGINS
         Layout.minimumWidth: 40
         anchors {
-            right: parent.right
+            right: checkImage.left
             verticalCenter: parent.verticalCenter
-            rightMargin: util.QML_ITEM_MARGINS + 30
+            rightMargin: root.spacing + 10
         }
         palette.button: 'transparent'
         onCurrentIndexChanged: {
@@ -246,7 +269,7 @@ Rectangle {
         anchors {
             right: parent.right
             verticalCenter: parent.verticalCenter
-            rightMargin: util.QML_ITEM_MARGINS - 5
+            rightMargin: root.spacing
         }
     }
 

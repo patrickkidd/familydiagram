@@ -2,7 +2,6 @@ v2.0.0 punchlist
 =============================================================================
 - AddAnything form
   - focus box around PersonPicker, kindBox on initial tab after show, functioning box
-  - Can't clear PersonPicker once submitted
   - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
   - Adding event to PairBond object doesn't show event anywhere. did it actually add anything?
   - Can't hit enter to close date picker
@@ -13,9 +12,13 @@ v2.0.0 punchlist
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
   - Fade in/out timeline callout
   - Option to hide logged column?
-  - visualize that somethign is an opinion/emotion?
+  - visualize that something is an opinion/emotion?
   - Gender box not cleared after submit
   - make person picker yellow, then green when submitted? (same as create account dialog)
+  - datetime buttons clear button is darker than others
+  - need border on person/people pickers
+  - On switching to some event kind with people selected
+    - file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:86: TypeError: Cannot call method 'listLabel' of null
 
 On close file:
   Traceback (most recent call last):

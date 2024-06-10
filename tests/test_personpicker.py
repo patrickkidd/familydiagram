@@ -16,6 +16,7 @@ class PersonPickerTest(QWidget, QmlWidgetHelper):
     QmlWidgetHelper.registerQmlMethods(
         [
             {"name": "setPersonIdSelected"},
+            {"name": "clear"},
         ]
     )
 
@@ -94,3 +95,38 @@ def test_cannot_add_selected_person(scene, picker):
     set_new_person(picker, "Patri", gender=False, returnToFinish=False)
     assert picker.itemProp("personPicker.popupListView", "visible") == False
     assert picker.itemProp("personPicker.popupListView", "numVisibleItems") == 0
+
+
+def test_clear_button_existing_person(scene, picker):
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    set_existing_person(picker, person, autoCompleteInput="Joh")
+    selectedPeopleModel = picker.itemProp("personPicker", "selectedPeopleModel")
+    assert selectedPeopleModel.rowCount() == 1
+    assert picker.itemProp("personPicker", "isSubmitted") == True
+    assert picker.itemProp("personPicker", "isNewPerson") == False
+    assert picker.itemProp("personPicker", "person") == person
+    assert picker.itemProp("personPicker", "gender") == person.gender()
+
+    picker.clear()
+    assert selectedPeopleModel.rowCount() == 0
+    assert picker.itemProp("personPicker", "isSubmitted") == False
+    assert picker.itemProp("personPicker", "isNewPerson") == False
+    assert picker.itemProp("personPicker", "person") == None
+    assert picker.itemProp("personPicker", "gender") == None
+
+
+def test_clear_button_new_person(scene, picker):
+
+    PERSON_NAME = "Someone New"
+
+    set_new_person(picker, PERSON_NAME, returnToFinish=True)
+    assert picker.itemProp("personPicker", "isSubmitted") == True
+    assert picker.itemProp("personPicker", "isNewPerson") == True
+    assert picker.itemProp("personPicker", "personName") == PERSON_NAME
+    assert picker.itemProp("personPicker", "gender") == util.PERSON_KIND_MALE
+
+    picker.clear()
+    assert picker.itemProp("personPicker", "isSubmitted") == False
+    assert picker.itemProp("personPicker", "isNewPerson") == False
+    assert picker.itemProp("personPicker", "personName") == ""
+    assert picker.itemProp("personPicker", "gender") == None

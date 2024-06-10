@@ -502,10 +502,10 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 2
-    assert marriage.events()[0].uniqueId() == KIND_1.value
-    assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND_1)
-    assert marriage.events()[1].uniqueId() == KIND_2.value
-    assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_2)
+    assert marriage.events()[0].uniqueId() == KIND_2.value
+    assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND_2)
+    assert marriage.events()[1].uniqueId() == KIND_1.value
+    assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_1)
 
 
 def test_add_new_variables(scene, dlg):

@@ -364,20 +364,25 @@ PK.Drawer {
                             visible: util.isMonadicEventKind(root.kind)
                         }
 
-                        PK.PersonPicker {
-                            id: personPicker
-                            objectName: "personPicker"
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
+                        PK.FormField {
+                            id: personField
                             visible: personLabel.visible
-                            borderWidth: 1
-                            borderColor: util.QML_ITEM_BORDER_COLOR
                             backTabItem: kindBox
                             tabItem: peoplePicker.firstTabItem
-                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            PK.PersonPicker {
+                                id: personPicker
+                                objectName: "personPicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                borderWidth: 1
+                                borderColor: util.QML_ITEM_BORDER_COLOR
+                                Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                                Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            }
                         }
 
                         // People
@@ -389,19 +394,24 @@ PK.Drawer {
                             visible: root.kind == util.EventKind.CustomIndividual
                         }
 
-                        PK.PeoplePicker {
-                            id: peoplePicker
-                            objectName: "peoplePicker"
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
+                        PK.FormField {
+                            id: peopleField
                             visible: peopleLabel.visible
                             backTabItem: personPicker.lastTabItem
                             tabItem: personAPicker.firstTabItem
                             Layout.fillHeight: true
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: peoplePicker.height
+                            Layout.maximumHeight: peoplePicker.height
+                            PK.PeoplePicker {
+                                id: peoplePicker
+                                objectName: "peoplePicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                width: peopleField.width - peopleField.clearButton.width
+                                Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                                Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            }
                         }
 
                         // Person A
@@ -413,19 +423,23 @@ PK.Drawer {
                             visible: util.isPairBondEventKind(root.kind) || util.isChildEventKind(root.kind)
                         }
 
-                        PK.PersonPicker {
-                            id: personAPicker
-                            objectName: "personAPicker"
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
+                        PK.FormField {
+                            id: personAField
                             visible: personALabel.visible
                             backTabItem: peoplePicker.lastTabItem
                             tabItem: personBPicker.firstTabItem
-                            Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            PK.PersonPicker {
+                                id: personAPicker
+                                objectName: "personAPicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                                Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            }
                         }
 
                         // Person B
@@ -437,19 +451,23 @@ PK.Drawer {
                             visible: personALabel.visible
                         }
 
-                        PK.PersonPicker {
-                            id: personBPicker
-                            objectName: "personBPicker"
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
+                        PK.FormField {
+                            id: personBField
                             visible: personALabel.visible
                             backTabItem: personAPicker.lastTabItem
                             tabItem: moversPicker.firstTabItem
-                            Layout.fillHeight: true
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            PK.PersonPicker {
+                                id: personBPicker
+                                objectName: "personBPicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                                Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            }
                         }
 
                         // Mover(s)
@@ -461,19 +479,23 @@ PK.Drawer {
                             visible: util.isDyadicEventKind(root.kind)
                         }
 
-                        PK.PeoplePicker {
-                            id: moversPicker
-                            objectName: "moversPicker"
+                        PK.FormField {
+                            id: moversField
                             visible: moversLabel.visible
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
                             backTabItem: personBPicker.lastTabItem
                             tabItem: receiversPicker.firstTabItem
                             Layout.fillHeight: true
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: moversPicker.height
+                            Layout.maximumHeight: moversPicker.height
+                            PK.PeoplePicker {
+                                id: moversPicker
+                                objectName: "moversPicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                                Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            }
                         }
 
                         // Receiver(s)
@@ -485,19 +507,23 @@ PK.Drawer {
                             text: 'Receiver(s)'
                         }
 
-                        PK.PeoplePicker {
-                            id: receiversPicker
-                            objectName: "receiversPicker"
+                        PK.FormField {
+                            id: receiversField
                             visible: moversLabel.visible
-                            scenePeopleModel: root.peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
                             backTabItem: moversPicker.lastTabItem
                             tabItem: descriptionEdit
                             Layout.fillHeight: true
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: receiversPicker.height
+                            Layout.maximumHeight: receiversPicker.height
+                            PK.PeoplePicker {
+                                id: receiversPicker
+                                objectName: "receiversPicker"
+                                scenePeopleModel: root.peopleModel
+                                selectedPeopleModel: root.selectedPeopleModel
+                                Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                                Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            }
                         }
 
                         PK.Text {

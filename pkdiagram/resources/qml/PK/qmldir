@@ -13,6 +13,7 @@ EmotionProperties 1.0 EmotionProperties.qml
 EventProperties 1.0 EventProperties.qml
 FDListView 1.0 FDListView.qml
 FormDivider 1.0 FormDivider.qml
+FormField 1.0 FormField.qml
 GroupBox 1.0 GroupBox.qml
 Image 1.0 Image.qml
 ItemLayerList 1.0 ItemLayerList.qml

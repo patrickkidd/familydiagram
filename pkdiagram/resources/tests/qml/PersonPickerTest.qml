@@ -19,6 +19,7 @@ Rectangle {
         var person = sceneModel.item(personId) // had trouble passing the Person directly
         personPicker.selectedPeopleModel.append({ person: person, isNewPerson: false })
     }
+    function clear() { personPicker.clear() }
 
     ColumnLayout {
         id: testLayout
