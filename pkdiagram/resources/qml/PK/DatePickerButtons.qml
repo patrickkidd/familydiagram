@@ -144,6 +144,7 @@ Rectangle {
                 verticalAlignment: TextInput.AlignVCenter
                 horizontalAlignment: TextInput.AlignHCenter
                 color: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                palette.base: util.QML_ITEM_BG
                 KeyNavigation.tab: timeTextInput
                 KeyNavigation.backtab: root.backTabItem
                 Keys.onTabPressed: {
@@ -204,6 +205,7 @@ Rectangle {
                 horizontalAlignment: TextInput.AlignHCenter
                 enabled: isValid(root.dateTime)
                 color: (root.enabled && enabled) ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                palette.base: util.QML_ITEM_BG
                 KeyNavigation.tab: root.tabItem
                 KeyNavigation.backtab: inspectButton
                 Keys.onTabPressed: {

@@ -40,6 +40,7 @@ class QmlUtil(QObject, QObjectHelper):
         "HARDWARE_UUID",
         "MACHINE_NAME",
         "IS_UI_DARK_MODE",
+        "CLEAR_BUTTON_OPACITY",
         "DRAWER_WIDTH",
         "DRAWER_OVER_WIDTH",
         "BLANK_DATE_TEXT",

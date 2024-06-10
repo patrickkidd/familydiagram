@@ -46,7 +46,7 @@ Rectangle {
             clip: true
             implicitWidth: util.QML_MICRO_BUTTON_WIDTH
             implicitHeight: util.QML_MICRO_BUTTON_WIDTH
-            opacity: wrappedItem.isDirty ? 1 : 0
+            opacity: wrappedItem.isDirty ? util.CLEAR_BUTTON_OPACITY : 0
             enabled: opacity > 0
             onClicked: {
                 print('clearButton.onClicked')

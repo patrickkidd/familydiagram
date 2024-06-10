@@ -69,7 +69,7 @@ RowLayout {
         implicitWidth: util.QML_MICRO_BUTTON_WIDTH
         implicitHeight: util.QML_MICRO_BUTTON_WIDTH
         Layout.leftMargin: 2
-        opacity: valueBox.currentIndex != -1 ? 1 : 0
+        opacity: valueBox.currentIndex != -1 ? util.CLEAR_BUTTON_OPACITY : 0
         enabled: opacity > 0
         KeyNavigation.tab: root.tabItem
         KeyNavigation.backtab: valueBox

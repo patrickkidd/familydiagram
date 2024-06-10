@@ -28,7 +28,7 @@ ComboBox {
     palette.text: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
     palette.buttonText: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
     palette.mid: util.QML_ITEM_BORDER_COLOR
-    palette.button: util.QML_CONTROL_BG
+    palette.button: util.QML_ITEM_BG
     palette.window: util.QML_WINDOW_BG
     palette.highlight: util.QML_HIGHLIGHT_COLOR
 

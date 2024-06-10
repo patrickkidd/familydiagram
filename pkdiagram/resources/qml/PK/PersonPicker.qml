@@ -22,8 +22,6 @@ Rectangle {
 
     color: util.QML_ITEM_BG
     property var personName: ''
-    property var borderWidth: 0
-    property var borderColor: 'transparent'
     property var spacing: util.QML_ITEM_MARGINS - 5
 
     property var person: null

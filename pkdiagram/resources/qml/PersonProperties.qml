@@ -360,6 +360,7 @@ PK.Drawer {
                                 id: ageBox
                                 objectName: 'ageBox'
                                 enabled: !root.isReadOnly
+                                palette.base: util.QML_ITEM_BG
                                 Layout.maximumWidth: 100
                                 KeyNavigation.tab: birthDateButtons.textInput
                                 Keys.onReturnPressed: setAge()

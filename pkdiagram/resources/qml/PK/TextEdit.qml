@@ -17,9 +17,16 @@ TextArea {
     selectByMouse: true
     selectionColor: util.QML_HIGHLIGHT_COLOR
     selectedTextColor: 'black'
-    palette.base: util.QML_CONTROL_BG
+    palette.base: util.QML_ITEM_BG
     palette.highlight: util.QML_HIGHLIGHT_COLOR
-    palette.mid: util.QML_ITEM_BORDER_COLOR
+    palette.mid: util.QML_ITEM_BORDER_COLO
+    background: Rectangle {
+        color: util.QML_ITEM_BG
+        border {
+            color: util.QML_ITEM_BORDER_COLOR
+            width: 1
+        }
+    }
     
     font.pixelSize: util.TEXT_FONT_SIZE
     

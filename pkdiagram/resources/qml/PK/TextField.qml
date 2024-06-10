@@ -14,7 +14,7 @@ TextField {
     property bool ios: Qt.platform.os == 'ios'
     property bool givenFocus: false
     property color defaultTextColor: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
-    property color defaultBackgroundColor: util.QML_WINDOW_BG
+    property color defaultBackgroundColor: util.QML_ITEM_BG
     color: defaultTextColor
     selectionColor: util.QML_HIGHLIGHT_COLOR
     selectByMouse: true

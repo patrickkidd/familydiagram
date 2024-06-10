@@ -378,8 +378,8 @@ PK.Drawer {
                                 objectName: "personPicker"
                                 scenePeopleModel: root.peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
-                                borderWidth: 1
-                                borderColor: util.QML_ITEM_BORDER_COLOR
+                                border.width: 1
+                                border.color: util.QML_ITEM_BORDER_COLOR
                                 Layout.maximumHeight: util.QML_FIELD_HEIGHT
                                 Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             }
@@ -408,7 +408,7 @@ PK.Drawer {
                                 objectName: "peoplePicker"
                                 scenePeopleModel: root.peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
-                                width: peopleField.width - peopleField.clearButton.width
+                                // width: peopleField.width - peopleField.clearButton.width
                                 Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                                 Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                             }
@@ -437,6 +437,8 @@ PK.Drawer {
                                 objectName: "personAPicker"
                                 scenePeopleModel: root.peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
+                                border.width: 1
+                                border.color: util.QML_ITEM_BORDER_COLOR
                                 Layout.minimumHeight: util.QML_FIELD_HEIGHT
                                 Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             }
@@ -465,6 +467,8 @@ PK.Drawer {
                                 objectName: "personBPicker"
                                 scenePeopleModel: root.peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
+                                border.width: 1
+                                border.color: util.QML_ITEM_BORDER_COLOR
                                 Layout.minimumHeight: util.QML_FIELD_HEIGHT
                                 Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             }
@@ -590,10 +594,11 @@ PK.Drawer {
                             datePicker: startDatePicker
                             timePicker: startTimePicker
                             dateTime: root.startDateTime
-                            showInspectButton: true
+                            showInspectButton: false
                             backTabItem: descriptionEdit
                             tabItem: endDateButtons.firstTabItem
                             Layout.preferredHeight: implicitHeight - 10
+                            Layout.fillWidth: true
                             onDateTimeChanged: root.startDateTime = dateTime
                             onUnsureChanged: root.startDateUnsure = unsure
                             Connections {
