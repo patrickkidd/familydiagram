@@ -15,6 +15,7 @@ v2.0.0 punchlist
   - Gender box not cleared after submit
   - make person picker yellow, then green when submitted? (same as create account dialog)
   - Change VariableBox to FormField with ComboBox
+  - Some combo of isDateRange and changing event kind leaves end date showing without iDateRange box showing
   - tab order for single-field FormField entries
     file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:56:13: Unable to assign [undefined] to QQuickItem*
     file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:57:13: Unable to assign [undefined] to QQuickItem*

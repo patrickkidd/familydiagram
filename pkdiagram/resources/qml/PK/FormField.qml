@@ -15,7 +15,7 @@ Rectangle {
 
 
     // The first item in this chain for KeyNavigation.tab on an external item
-    readonly property var firstTabItem: wrappedItem
+    readonly property var firstTabItem: wrappedItem.firstTabItem
     // The first item in this chain for KeyNavigation.backtab on an external item
     readonly property var lastTabItem: clearButton
     // Explicit keyNavigation.tab set on the last item in this chain
@@ -53,8 +53,8 @@ Rectangle {
                 wrappedItem.clear()
             }
             Layout.leftMargin: 5
-            KeyNavigation.backtab: wrappedItem.lastTabItem
             KeyNavigation.tab: root.tabItem
+            KeyNavigation.backtab: wrappedItem.lastTabItem
             Behavior on opacity {
                 NumberAnimation { duration: util.ANIM_DURATION_MS / 3; easing.type: Easing.InOutQuad }
             }
@@ -63,6 +63,18 @@ Rectangle {
         Component.onCompleted: {
             wrappedItem.parent = container
             wrappedItem.Layout.fillWidth = true
+            // validation debugging
+            if(root.tabItem == undefined) {
+                print(root.objectName + '.root.tabItem is undefined')
+            }
+            if(wrappedItem.lastTabItem == undefined) {
+                print(root.objectName + '.wrappedItem.lastTabItem is undefined')
+            }
+            // if(wrappedItem.firstTabItem !== undefined) {
+            //     wrappedItem.firstTabItem.KeyNavigation.tab = wrappedItem
+            // }
+            // wrappedItem.KeyNavigation.tab = clearButton
+            // wrappedItem.KeyNavigation.backtab = root.backTabItem
         }
     }
 

@@ -363,9 +363,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: personField
+                            objectName: "personField"
                             visible: personLabel.visible
                             backTabItem: kindBox
-                            tabItem: peoplePicker.firstTabItem
+                            tabItem: peopleField.firstTabItem
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
@@ -393,9 +394,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: peopleField
+                            objectName: "peopleField"
                             visible: peopleLabel.visible
-                            backTabItem: personPicker.lastTabItem
-                            tabItem: personAPicker.firstTabItem
+                            backTabItem: personField.lastTabItem
+                            tabItem: personAField.firstTabItem
                             Layout.fillHeight: true
                             Layout.fillWidth: true
                             Layout.minimumHeight: peoplePicker.height
@@ -422,9 +424,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: personAField
+                            objectName: "personAField"
                             visible: personALabel.visible
-                            backTabItem: peoplePicker.lastTabItem
-                            tabItem: personBPicker.firstTabItem
+                            backTabItem: peopleField.lastTabItem
+                            tabItem: personBField.firstTabItem
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -452,9 +455,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: personBField
+                            objectName: "personBField"
                             visible: personALabel.visible
-                            backTabItem: personAPicker.lastTabItem
-                            tabItem: moversPicker.firstTabItem
+                            backTabItem: personAField.lastTabItem
+                            tabItem: moversField.firstTabItem
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -482,9 +486,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: moversField
+                            objectName: "moversField"
                             visible: moversLabel.visible
-                            backTabItem: personBPicker.lastTabItem
-                            tabItem: receiversPicker.firstTabItem
+                            backTabItem: personBField.lastTabItem
+                            tabItem: receiversField.firstTabItem
                             Layout.fillHeight: true
                             Layout.fillWidth: true
                             Layout.minimumHeight: moversPicker.height
@@ -510,9 +515,10 @@ PK.Drawer {
 
                         PK.FormField {
                             id: receiversField
+                            objectName: "receiversField"
                             visible: moversLabel.visible
-                            backTabItem: moversPicker.lastTabItem
-                            tabItem: descriptionEdit
+                            backTabItem: moversField.lastTabItem
+                            tabItem: descriptionField.firstTabItem
                             Layout.fillHeight: true
                             Layout.fillWidth: true
                             Layout.minimumHeight: receiversPicker.height
@@ -554,16 +560,21 @@ PK.Drawer {
 
                         PK.FormField {
                             id: descriptionField
+                            objectName: "descriptionField"
                             visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
+                            KeyNavigation.backtab: receiversPicker.lastTabItem
+                            KeyNavigation.tab: startDateButtons.firstTabItem
+                            tabItem: startDateButtons.firstTabItem
+                            backTabItem: receiversField.lastTabItem
                             Layout.fillWidth: true
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             PK.TextField {
                                 id: descriptionEdit
                                 objectName: "descriptionEdit"
+                                property Item firstTabItem: this
+                                property Item lastTabItem: this
                                 property bool isDirty: text != ''
-                                KeyNavigation.backtab: receiversPicker.lastTabItem
-                                KeyNavigation.tab: startDateButtons.firstTabItem
                                 function clear() { text = '' }
                             }
                         }
@@ -592,7 +603,7 @@ PK.Drawer {
                             timePicker: startTimePicker
                             dateTime: root.startDateTime
                             showInspectButton: false
-                            backTabItem: descriptionEdit
+                            backTabItem: descriptionField.backTabItem
                             tabItem: endDateButtons.firstTabItem
                             Layout.preferredHeight: implicitHeight - 10
                             Layout.fillWidth: true
@@ -706,7 +717,7 @@ PK.Drawer {
                             text: "Is Date Range" 
                             visible: isDateRangeLabel.visible
                             KeyNavigation.backtab: endDateButtons.lastTabItem
-                            KeyNavigation.tab: locationEdit
+                            KeyNavigation.tab: locationField
                             Layout.fillWidth: true
                             Layout.columnSpan: 1
                             onCheckedChanged: {
@@ -724,13 +735,18 @@ PK.Drawer {
 
                         PK.FormField {
                             id: locationField
+                            objectName: "locationField"
                             Layout.fillWidth: true
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                            tabItem: nodalBox
+                            backTabItem: isDateRangeBox
                             PK.TextField {
                                 id: locationEdit
                                 objectName: "locationEdit"
                                 property bool isDirty: text != ''
+                                property Item firstTabItem: this
+                                property Item lastTabItem: this
                                 KeyNavigation.tab: nodalBox
                                 KeyNavigation.backtab: endDateButtons.lastTabItem
                                 Keys.onTabPressed: {
@@ -800,7 +816,11 @@ PK.Drawer {
                         }
 
                         PK.FormField {
+                            id: notesField
+                            objectName: "notesField"
                             height: notesFrame.height
+                            tabItem: kindBox
+                            backTabItem: symptomBox.lastTabItem
                             Layout.minimumHeight: 150
                             Layout.maximumHeight: 150
                             Layout.fillWidth: true
@@ -814,6 +834,8 @@ PK.Drawer {
                                     width: 1
                                     color: util.QML_ITEM_BORDER_COLOR
                                 }
+                                property Item firstTabItem: notesEdit
+                                property Item lastTabItem: notesEdit
                                 PK.TextEdit {
                                     id: notesEdit
                                     objectName: "notesEdit"
