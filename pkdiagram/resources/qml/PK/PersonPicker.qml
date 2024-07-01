@@ -64,11 +64,12 @@ Rectangle {
         }
         root.personName = ''
         root.person = null
-        root.gender = null
         root.isNewPerson = false
         root.isSubmitted = false
+        root.gender = util.PERSON_KIND_MALE
+        genderBox.currentIndex = 0
         root.isDirty = false
-        // print('<<< PersonPicker.clear()')
+        // print('<<< PersonPicker.clear() root.gender: ' + root.gender + ', ' + genderBox.currentIndex)
     }
 
     function setFocus() {

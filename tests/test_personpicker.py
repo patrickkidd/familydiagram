@@ -98,7 +98,9 @@ def test_cannot_add_selected_person(scene, picker):
 
 
 def test_clear_button_existing_person(scene, picker):
-    person = scene.addItem(Person(name="John", lastName="Doe"))
+    person = scene.addItem(
+        Person(name="John", lastName="Doe", gender=util.PERSON_KIND_FEMALE)
+    )
     set_existing_person(picker, person, autoCompleteInput="Joh")
     selectedPeopleModel = picker.itemProp("personPicker", "selectedPeopleModel")
     assert selectedPeopleModel.rowCount() == 1
@@ -112,7 +114,8 @@ def test_clear_button_existing_person(scene, picker):
     assert picker.itemProp("personPicker", "isSubmitted") == False
     assert picker.itemProp("personPicker", "isNewPerson") == False
     assert picker.itemProp("personPicker", "person") == None
-    assert picker.itemProp("personPicker", "gender") == None
+    assert picker.itemProp("personPicker", "gender") == util.PERSON_KIND_MALE
+    assert picker.itemProp("personPicker.genderBox", "currentIndex") == 0
 
 
 def test_clear_button_new_person(scene, picker):
