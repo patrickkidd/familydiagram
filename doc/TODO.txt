@@ -1,6 +1,8 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
+  - Arrangement:
+    - Add parents to existing person via birth
   - focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
   - Switching between pair-bond kind's doesn't retain people selection 
@@ -15,12 +17,110 @@ v2.0.0 punchlist
   - Gender box not cleared after submit
   - make person picker yellow, then green when submitted? (same as create account dialog)
   - Change VariableBox to FormField with ComboBox
+  - Add name of person for `Birth` event in bottom timeline callout
+  - Pop error if name entered into person picker but not submitted
+  - Add birth for existing person didn't set name for 
+  - Highlight people on diagrams when selected in person pickers
+    - Show with different colors for mover/receiver, etc.
+  - Jump to start datetime of emotional proces symbol when added.
+  - Get rid of now event? (settings checkbox?)
+  - Needs to be a triangle symbol
+  - Rename Notes to something more appropriate for moves, like "details" or something
+  - Added notes into inside symbol and have no idea how to find them again.
   - Some combo of isDateRange and changing event kind leaves end date showing without iDateRange box showing
   - tab order for single-field FormField entries
     file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:56:13: Unable to assign [undefined] to QQuickItem*
     file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:57:13: Unable to assign [undefined] to QQuickItem*
   - On switching to some event kind with people selected
     - file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:86: TypeError: Cannot call method 'listLabel' of null
+  - Adding a second marriage to an existing person and a new person adds the marriage to the first spouse
+  - Alpha: Log command clicks in log file to capture order with exceptions
+
+  - When deleting Patrick + Connie Pair-Bond with bonded and married events
+  Traceback (most recent call last):
+    File "/Users/patrick/dev/familydiagram/pkdiagram/models/peoplemodel.py", line 166, in personForRow
+      personId = self._sortedIds[row]
+  IndexError: list index out of range
+
+  - Current date to today, add marirage 3/16/24, begin add bonded, focus out to hide AddAnythingForm
+  Traceback (most recent call last):
+    File "/Users/patrick/dev/familydiagram/pkdiagram/view.py", line 451, in resizeEvent
+      self.updateHideSmallItems()
+    File "/Users/patrick/dev/familydiagram/pkdiagram/view.py", line 981, in updateHideSmallItems
+      item.onVisibleSizeChanged(self, ratio)
+    File "/Users/patrick/dev/familydiagram/pkdiagram/objects/itemdetails.py", line 148, in onVisibleSizeChanged
+      ratio = visibleSceneRectRatio * self.parentItem().scale()
+  RuntimeError: wrapped C/C++ object of type ItemDetails has been deleted
+
+  - on add bonded to existing pair-bond:
+2024-06-30 22:29:06,255 addanythingdialog.py:318   Adding 0 new people to scene
+Traceback (most recent call last):
+  File "/Users/patrick/dev/familydiagram/pkdiagram/commands.py", line 119, in redo
+    self.scene.addItems(*self.people, batch=self.batch)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 396, in addItems
+    self.setBatchAddingRemovingItems(False)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 432, in setBatchAddingRemovingItems
+    self.updateAll()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 2033, in updateAll
+    item.updateAll()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 282, in updateAll
+    self.onUpdateAll()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/person.py", line 1528, in onUpdateAll
+    super().onUpdateAll()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 271, in onUpdateAll
+    self.onActiveLayersChanged()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 297, in onActiveLayersChanged
+    self.updatePathItemVisible()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/util.py", line 647, in go
+    ret = f(self)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/person.py", line 891, in updatePathItemVisible
+    item.updatePathItemVisible()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/marriage.py", line 652, in updatePathItemVisible
+    if self.scene():
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 85, in scene
+    return super(QGraphicsObject, self).scene()
+RuntimeError: wrapped C/C++ object of type Marriage has been deleted
+Traceback (most recent call last):
+  File "/Users/patrick/dev/familydiagram/pkdiagram/commands.py", line 651, in redo
+    self.event.setParent(self.parent)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/event.py", line 176, in setParent
+    parent._onAddEvent(self)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/marriage.py", line 383, in _onAddEvent
+    if self.scene():
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 85, in scene
+    return super(QGraphicsObject, self).scene()
+RuntimeError: wrapped C/C++ object of type Marriage has been deleted  
+
+Traceback (most recent call last):
+  File "/Users/patrick/dev/familydiagram/pkdiagram/models/qobjecthelper.py", line 72, in propSetter
+    self._cachedPropSetter(kwargs, value)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/models/qobjecthelper.py", line 329, in _cachedPropSetter
+    self.set(attr, value)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 344, in set
+    marriage.eventAdded.connect(self.onEventAdded)
+RuntimeError: wrapped C/C++ object of type Marriage has been deleted
+Traceback (most recent call last):
+  File "/Users/patrick/dev/familydiagram/pkdiagram/documentcontroller.py", line 502, in onPrevEvent
+    self.scene.prevTaggedDateTime()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 1954, in prevTaggedDateTime
+    self.setCurrentDateTime(prevDate)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/property.py", line 179, in set
+    self.item.onProperty(self)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 1619, in onProperty
+    item.onCurrentDateTime()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 330, in onCurrentDateTime
+    self.updatePathItemVisible()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/util.py", line 647, in go
+    ret = f(self)
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/person.py", line 891, in updatePathItemVisible
+    item.updatePathItemVisible()
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/marriage.py", line 652, in updatePathItemVisible
+    if self.scene():
+  File "/Users/patrick/dev/familydiagram/pkdiagram/objects/pathitem.py", line 85, in scene
+    return super(QGraphicsObject, self).scene()
+RuntimeError: wrapped C/C++ object of type Marriage has been deleted
+
+
 
 On close file:
   Traceback (most recent call last):

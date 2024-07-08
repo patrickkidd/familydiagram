@@ -1434,6 +1434,12 @@ class Scene(QGraphicsScene, Item):
                 matchingProps[k] == v for k, v in kwargs.items()
             ):
                 ret.append(item)
+            elif "methods" in kwargs:
+                for method_name, value in kwargs["methods"].items():
+                    method = getattr(item, method_name, None)
+                    if method and method() == value:
+                        if item not in ret:
+                            ret.append(item)
         return ret
 
     def query1(self, **kwargs):

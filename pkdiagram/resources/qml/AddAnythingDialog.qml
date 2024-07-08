@@ -812,7 +812,7 @@ PK.Drawer {
                         PK.Text {
                             id: notesLabel
                             objectName: "notesLabel"
-                            text: "Notes"
+                            text: "Details"
                         }
 
                         PK.FormField {

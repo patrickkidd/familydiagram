@@ -31,9 +31,9 @@ class UndoStack(QUndoStack):
         self.lastId = cmd.id()
 
     def track(self, eventName, properties={}):
-        if not util.prefs() or util.IS_DEV or util.IS_IOS:
+        if not util.prefs() or util.IS_IOS:
             return
-        log.info(eventName)
+        log.info(f"{eventName}, {properties}")
         enableAppUsageAnalytics = util.prefs().value(
             "enableAppUsageAnalytics", defaultValue=True, type=bool
         )

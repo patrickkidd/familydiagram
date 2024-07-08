@@ -3,7 +3,8 @@ import datetime
 
 from pkdiagram.pyqt import QApplication, Qt
 from pkdiagram import util, EventKind, MainWindow
-from tests.test_addanythingdialog import scene, dlg, START_DATETIME
+from pkdiagram import Person, Marriage
+from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 
 
 def test_add_pairbond_and_children(dlg):
@@ -126,6 +127,36 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
 #    make them married after the fact
 
 
+def test_add_pairbond_event_to_existing_pairbond(qtbot, create_ac_mw):
+    ac, mw = create_ac_mw()
+    scene = mw.scene
+    dlg = mw.documentView.addAnythingDialog
+    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+    personA, personB = Person(name="John"), Person(name="Jane")
+    # marriage = Marriage(personA, personB)
+    scene.addItems(personA, personB)
+
+    mw.documentView.controller.onNextEvent()
+    mw.documentView.controller.onPrevEvent()
+
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.Married)
+    dlg.set_existing_person("personAPicker", person=personA)
+    dlg.set_existing_person("personBPicker", person=personB)
+    dlg.set_startDateTime(END_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+
+    mw.documentView.controller.onNextEvent()
+    mw.documentView.controller.onPrevEvent()
+
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.Bonded)
+    dlg.set_existing_person("personAPicker", person=personA)
+    dlg.set_existing_person("personBPicker", person=personB)
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+
+
 def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
     scene = mw.scene
@@ -174,3 +205,23 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     assert len(scene.people()) == 4
     janetDoran = scene.query1(name="Janet", lastName="Doran")
     assert len(janetDoran.marriages) == 0
+
+
+def test_blow_up_ItemDetails(qtbot, create_ac_mw):
+    """Added as a placeholder for future script tests"""
+    ac, mw = create_ac_mw()
+    scene = mw.scene
+    dlg = mw.documentView.addAnythingDialog
+    submitted = util.Condition(dlg.submitted)
+    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+
+    person = dlg.add_person_by_birth("John Doe", START_DATETIME)
+    marriage = dlg.add_marriage_to_person(
+        person, "Jane Doe", START_DATETIME.addYears(20)
+    )
+    for i in range(3):
+        event = dlg.add_event_to_marriage(
+            marriage, EventKind.Bonded, START_DATETIME.addYears(25 + i)
+        )
+        assert event.description() == "Bonded"
+        assert event.dateTime() == START_DATETIME.addYears(25 + i)

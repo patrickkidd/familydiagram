@@ -53,9 +53,9 @@ Rectangle {
         if(isSubmitted) {
             for(var i=0; i < root.selectedPeopleModel.rowCount(); i++) {
                 var entry = root.selectedPeopleModel.get(i);
-                print('    ' + i + ', ' + entry.person)
+                // print('    ' + i + ', ' + entry.person)
                 if(entry.person && root.person && entry.person.itemId() === root.person.itemId()) {
-                    print('    removing ' + entry.person.fullNameOrAlias())
+                    // print('    removing ' + entry.person.fullNameOrAlias())
                     root.selectedPeopleModel.remove(i)
                     break
                 }

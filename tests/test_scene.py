@@ -56,6 +56,19 @@ def test_query_multiple():
     assert person2.name() == "Jane"
 
 
+def test_query_methods():
+    people = [
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+        Person(name="John", lastName="Smith"),
+    ]
+    scene = Scene()
+    scene.addItems(*people)
+    people = scene.query(methods={"fullNameOrAlias": "John Doe"})
+    assert len(people) == 1
+    assert people[0].fullNameOrAlias() == "John Doe"
+
+
 def test_find_by_types(simpleScene):
     """ """
     people = simpleScene.find(types=Person)

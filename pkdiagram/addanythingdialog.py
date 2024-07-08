@@ -115,9 +115,9 @@ class AddAnythingDialog(QmlDrawer):
         else:
             itemName = ""
             parentName = ""
-        _log.info(
-            f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
-        )
+        # _log.info(
+        #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
+        # )
 
     def eventFilter(self, o, e):
         if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
@@ -319,7 +319,8 @@ class AddAnythingDialog(QmlDrawer):
         commands.stack().beginMacro(
             f"Add {kind.value} event, with {len(newPeople)} new people."
         )
-        commands.addPeople(self.scene, newPeople)
+        if newPeople:
+            commands.addPeople(self.scene, newPeople)
 
         # Add variables
 
@@ -740,6 +741,35 @@ class AddAnythingDialog(QmlDrawer):
 
     def set_symptom(self, x):
         self.setVariable("symptom", x)
+
+    # scripts
+
+    def add_person_by_birth(self, personName: str, startDateTime) -> Person:
+        self.set_kind(EventKind.Birth)
+        self.set_new_person("personPicker", personName)
+        self.set_startDateTime(startDateTime)
+        self.mouseClick("AddEverything_submitButton")
+        person = self.scene.query1(methods={"fullNameOrAlias": personName})
+        return person
+
+    def add_marriage_to_person(self, person: Person, spouseName, startDateTime):
+        pre_marriages = set(person.marriages)
+        self.set_kind(EventKind.Married)
+        self.set_existing_person("personAPicker", person)
+        self.set_new_person("personBPicker", spouseName)
+        self.set_startDateTime(startDateTime)
+        self.mouseClick("AddEverything_submitButton")
+        spouse = self.scene.query1(methods={"fullNameOrAlias": spouseName})
+        return (set(person.marriages) - pre_marriages).pop()
+
+    def add_event_to_marriage(self, marriage: Marriage, kind: EventKind, startDateTime):
+        pre_events = set(marriage.events())
+        self.set_kind(kind)
+        self.set_existing_person("personAPicker", marriage.personA())
+        self.set_existing_person("personBPicker", marriage.personB())
+        self.set_startDateTime(startDateTime)
+        self.mouseClick("AddEverything_submitButton")
+        return (set(marriage.events()) - pre_events).pop()
 
 
 def __test__(scene, parent):
