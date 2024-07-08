@@ -1,5 +1,5 @@
 import os, os.path, sys, traceback, logging
-from . import util, version, commands, pepper
+from . import util, version, commands, pepper, extensions
 from .util import CUtil
 from .pyqt import (
     Qt,
@@ -42,69 +42,6 @@ class Application(QApplication):
         # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
         util.prefs().setAutoSave(True)
         util.prefs().setValue("lastVersion", version.VERSION)
-
-        if pepper.BUGSNAG_API_KEY and not util.IS_TEST:
-
-            import ssl  # fix SSL cert errors from bugsnag
-
-            ssl._create_default_https_context = ssl._create_unverified_context
-
-            import bugsnag
-            from bugsnag.handlers import BugsnagHandler
-
-            root_folder_path = os.path.realpath(
-                os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
-            )
-
-            bugsnag.configure(
-                api_key=pepper.BUGSNAG_API_KEY,
-                project_root=root_folder_path,
-                app_version=version.VERSION,
-            )
-            logger = logging.getLogger(__name__)
-            handler = BugsnagHandler()
-            # send only ERROR-level logs and above
-            handler.setLevel(logging.ERROR)
-            logger.addHandler(handler)
-
-            def findTheMainWindow():
-                app = Application.instance()
-                if not app:
-                    return
-                windows = app.topLevelWidgets()
-                if len(windows) == 1:
-                    window = windows[0]
-                else:
-                    window = app.activeWindow()
-                if window and hasattr(window, "currentSession"):
-                    return window
-
-            def bugsnag_before_notify(event):
-                if isinstance(event.exception, KeyboardInterrupt):
-                    return False
-                # Not sure what to do without a mainwindow without breaking encapsulation
-                mainwindow = findTheMainWindow()
-                if not mainwindow:
-                    return
-                user = mainwindow.user
-                event.user = {
-                    "id": user.username,
-                    "name": f"{user.first_name} {user.last_name}",
-                    "email": user.username,
-                }
-                event.add_tab(
-                    "account",
-                    {
-                        "licenses": [
-                            license_info["policy"]["name"]
-                            for license_info in user.licenses
-                            if license_info["active"]
-                        ]
-                    },
-                )
-                event.add_tab("device", {"os.uname": os.uname()})
-
-            bugsnag.before_notify(bugsnag_before_notify)
 
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
@@ -151,8 +88,13 @@ class Application(QApplication):
 
             # bugsnag
             if "bugsnag" in sys.modules:
-                bugsnag.legacy.default_client.notify_exc_info(etype, value, tb)
+                sys.modules["bugsnag"].legacy.default_client.notify_exc_info(
+                    etype, value, tb
+                )
 
+        extensions.init_app(self)
+
+        # After extensions
         self._excepthook_was = sys.excepthook
         if not "pytest" in sys.modules:
             sys.excepthook = no_abort

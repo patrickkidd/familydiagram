@@ -1,6 +1,6 @@
 import sys, os, os.path, enum, pickle, subprocess, hashlib, bisect, logging, urllib.parse, wsgiref.handlers, bisect, contextlib
 from functools import wraps
-import sys, os.path, logging
+import sys, os.path, logging.handlers
 from pathlib import Path
 from . import appdirs, util
 
@@ -151,6 +151,18 @@ def LONG_TEXT(s):
     return s.replace("\n", " ").replace("<br>", "\n\n")
 
 
+class AccumulativeLogHandler(logging.Handler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._records = []
+
+    def emit(self, record):
+        self._records.append(record)
+
+    def read(self):
+        return "\n".join([self.format(record) for record in self._records])
+
+
 def init_logging():
 
     def allFilter(record: logging.LogRecord):
@@ -176,9 +188,13 @@ def init_logging():
     fileHandler.addFilter(allFilter)
     fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
 
+    accumulativeHandler = AccumulativeLogHandler()
+    accumulativeHandler.addFilter(allFilter)
+    accumulativeHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+
     logging.basicConfig(
         level=logging.INFO,
-        handlers=[consoleHandler, fileHandler],
+        handlers=[consoleHandler, fileHandler, accumulativeHandler],
     )
 
 
