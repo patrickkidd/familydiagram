@@ -464,10 +464,20 @@ class AddAnythingDialog(QmlDrawer):
         # Arrange people
         spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else None
         if EventKind.isMonadic(kind):
+
+            def _arrange_parents(childPos, parentA, parentB):
+                if parentA.gender() == util.PERSON_KIND_MALE:
+                    parentA.setItemPosNow(childPos + QPointF(-spacing, -spacing * 1.5))
+                    parentB.setItemPosNow(childPos + QPointF(spacing, -spacing * 1.5))
+                else:
+                    parentA.setItemPosNow(childPos + QPointF(spacing, -spacing * 1.5))
+                    parentB.setItemPosNow(childPos + QPointF(-spacing, -spacing * 1.5))
+
             if {person, parentA, parentB} == set(newPeople):
-                parentA.setItemPosNow(QPointF(-spacing, 0))
-                parentB.setItemPosNow(QPointF(spacing, 0))
                 person.setItemPosNow(QPointF(0, spacing * 1.5))
+                _arrange_parents(person.scenePos(), parentA, parentB)
+            elif {parentA, parentB} == set(newPeople):
+                _arrange_parents(person.scenePos(), parentA, parentB)
             elif (
                 {person} == set(newPeople)
                 and person.parents()
