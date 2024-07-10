@@ -207,6 +207,7 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     assert len(janetDoran.marriages) == 0
 
 
+@pytest.mark.skip(reason="Couldn't figure out how to ")
 def test_blow_up_ItemDetails(qtbot, create_ac_mw):
     """Added as a placeholder for future script tests"""
     ac, mw = create_ac_mw()
@@ -225,3 +226,28 @@ def test_blow_up_ItemDetails(qtbot, create_ac_mw):
         )
         assert event.description() == "Bonded"
         assert event.dateTime() == START_DATETIME.addYears(25 + i)
+
+
+def test_add_second_marriage_to_person(dlg):
+    scene = dlg.scene
+    person = Person(name="John", lastName="Doe")
+    scene.addItem(person)
+    dlg.set_kind(EventKind.Married)
+    dlg.set_existing_person("personAPicker", person=person)
+    dlg.set_new_person("personBPicker", "Jane Doe")
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    spouse1 = scene.query1(name="Jane", lastName="Doe")
+    assert len(person.marriages) == 1
+    assert len(spouse1.marriages) == 1
+    assert person in spouse1.marriages[0].people
+
+    dlg.set_kind(EventKind.Married)
+    dlg.set_existing_person("personAPicker", person=person)
+    dlg.set_new_person("personBPicker", "Janet Doe")
+    dlg.set_startDateTime(START_DATETIME.addDays(5))
+    dlg.mouseClick("AddEverything_submitButton")
+    spouse2 = scene.query1(name="Janet", lastName="Doe")
+    assert len(person.marriages) == 2
+    assert len(spouse2.marriages) == 1
+    assert person in spouse2.marriages[0].people

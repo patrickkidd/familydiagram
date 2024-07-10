@@ -85,10 +85,15 @@ def simpleMarriage(qmlScene, request):
     return marriage
 
 
-def test_marriagesFor(noEvents):
+def test_marriagesFor_one(noEvents):
     personA, personB = noEvents.people
     assert noEvents.marriagesFor(personA, personB) == [noEvents]
 
+
+def test_marriagesFor_none(noEvents):
+    personA, personB = noEvents.people
+    personC = Person(name="Person C")
+    assert noEvents.marriagesFor(personA, personC) == []
 
 def test_marriagesFor_reversed(noEvents):
     personA, personB = noEvents.people

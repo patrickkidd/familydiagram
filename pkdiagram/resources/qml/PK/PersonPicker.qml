@@ -102,7 +102,7 @@ Rectangle {
     }
 
     function setNewPerson(personName) {
-        print('PersonPicker.setNewPerson: ' + personName)
+        print('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName)
         root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = true

@@ -1,17 +1,12 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - Arrangement:
-    - Add parents to existing person via birth
   - focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
-  - Switching between pair-bond kind's doesn't retain people selection 
-  - Adding event to PairBond object doesn't show event anywhere. did it actually add anything?
   - New people picker PersonPicker text edit doesn't get focus in new row
   - Re-arranging new people is clunky with PersonProperties populating
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
-  - Fade in/out timeline callout
   - Option to hide logged column?
   - visualize that something is an opinion/emotion?
   - Gender box not cleared after submit
@@ -33,8 +28,7 @@ v2.0.0 punchlist
     file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/FormField.qml:57:13: Unable to assign [undefined] to QQuickItem*
   - On switching to some event kind with people selected
     - file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:86: TypeError: Cannot call method 'listLabel' of null
-  - Adding a second marriage to an existing person and a new person adds the marriage to the first spouse
-  - Alpha: Log command clicks in log file to capture order with exceptions
+  - Fade in/out timeline callout
 
   - When deleting Patrick + Connie Pair-Bond with bonded and married events
   Traceback (most recent call last):

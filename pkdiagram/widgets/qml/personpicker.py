@@ -17,7 +17,7 @@ def set_new_person(
     gender: str = None,
     returnToFinish: bool = True,
 ) -> QQuickItem:
-    _log.info(f"set_new_person('{textInput}', {returnToFinish})")
+    # _log.info(f"set_new_person('{textInput}', {returnToFinish})")
 
     if gender is None:
         gender = util.PERSON_KIND_NAMES[0]
@@ -45,9 +45,9 @@ def set_existing_person(
     if not autoCompleteInput:
         autoCompleteInput = person.fullNameOrAlias()
 
-    _log.info(
-        f"set_existing_person('{personPicker}.textEdit', '{autoCompleteInput}', returnToFinish={returnToFinish})"
-    )
+    # _log.info(
+    #     f"set_existing_person('{personPicker}.textEdit', '{autoCompleteInput}', returnToFinish={returnToFinish})"
+    # )
     assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == False
     personPickerItem = dlg.findItem(personPicker)
     numVisibleAutoCompleteItemsUpdated = util.Condition(

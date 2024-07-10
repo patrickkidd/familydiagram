@@ -860,6 +860,7 @@ class RightToolBar(ToolBar):
                         # },
                     },
                 ),
+                ("sep", None),
                 (
                     "timelineButton",
                     {
