@@ -758,6 +758,7 @@ class AddEmotion(UndoCommand):
                 self.personB._onAddEmotion(self.emotion)
         self.firstRun = False
         self.scene.addItem(self.emotion)
+        self.scene.setCurrentDateTime(self.emotion.startDateTime())
 
     def undo(self):
         self.personA._onRemoveEmotion(self.emotion)

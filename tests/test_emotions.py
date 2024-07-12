@@ -1,6 +1,6 @@
 import pytest
 from pkdiagram.pyqt import QPointF, QDate
-from pkdiagram import util, objects, Scene
+from pkdiagram import util, objects, Scene, commands
 from pkdiagram.objects.emotions import Jig, FannedBox
 import pkdiagram.objects.emotions
 
@@ -407,7 +407,6 @@ def test_persons_hidden_tags_shown():
 
 
 def test_descriptions_diff_dates():
-    scene = Scene()
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(
@@ -422,7 +421,6 @@ def test_descriptions_diff_dates():
 
 
 def test_descriptions_same_dates():
-    scene = Scene()
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(
@@ -437,9 +435,22 @@ def test_descriptions_same_dates():
 
 
 def test_descriptions_no_dates():
-    scene = Scene()
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT)
     assert conflict.startEvent.description() == None
     assert conflict.endEvent.description() == None
+
+
+def test_add_emotion_sets_scene_currentDate():
+
+    START_DATETIME = util.Date(2001, 1, 1, 6, 7)
+
+    scene = Scene()
+    personA = objects.Person(name="A")
+    personB = objects.Person(name="B")
+    conflict = objects.Emotion(
+        personA, personB, kind=util.ITEM_CONFLICT, startDateTime=START_DATETIME
+    )
+    commands.addEmotion(scene, conflict)
+    assert scene.currentDateTime() == START_DATETIME

@@ -1,23 +1,21 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - focus box around PersonPicker, kindBox on initial tab after show, functioning box
-  - Selecting married people doesn't init to Custom-PairBond (Patrick and Connie)
-  - New people picker PersonPicker text edit doesn't get focus in new row
   - Re-arranging new people is clunky with PersonProperties populating
+  - Add name of person for `Birth` event in bottom timeline callout
+  - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
+  - New people picker PersonPicker text edit doesn't get focus in new row
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
   - Option to hide logged column?
   - visualize that something is an opinion/emotion?
   - Gender box not cleared after submit
-  - make person picker yellow, then green when submitted? (same as create account dialog)
+  - Make person picker yellow, then green when submitted? (same as create account dialog)
   - Change VariableBox to FormField with ComboBox
-  - Add name of person for `Birth` event in bottom timeline callout
   - Pop error if name entered into person picker but not submitted
   - Add birth for existing person didn't set name for 
   - Highlight people on diagrams when selected in person pickers
     - Show with different colors for mover/receiver, etc.
-  - Jump to start datetime of emotional proces symbol when added.
   - Get rid of now event? (settings checkbox?)
   - Needs to be a triangle symbol
   - Rename Notes to something more appropriate for moves, like "details" or something
