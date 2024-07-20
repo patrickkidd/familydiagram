@@ -197,3 +197,70 @@ def test_add_dyadic_event_with_three_people_selected(qtbot, dlg):
         lambda: dlg.mouseClick("AddEverything_submitButton"),
         text=dlg.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )
+
+
+# Unsubmitted - Birth
+
+
+def test_person_submitted_Birth_personPicker(dlg):
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person(
+        "personPicker", "John Doe", returnToFinish=False, resetFocus=True
+    )
+    dlg.pickerNotSubmitted("personLabel")
+
+
+def test_person_submitted_Birth_personAPicker(dlg):
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Doe")
+    dlg.set_new_person("personAPicker", "Johnny Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("personALabel")
+
+
+def test_person_submitted_Birth_personBPicker(dlg):
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Doe")
+    dlg.set_new_person("personAPicker", "Johnny Doe")
+    dlg.set_new_person("personBPicker", "Janet Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("personBLabel")
+
+
+# Unsubmitted - CustomIndividual
+
+
+def test_person_submitted_CustomIndividual_personPicker(dlg):
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.add_new_person("peoplePicker", "John Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("peopleLabel")
+
+
+# Unsubmitted - Bonded
+
+
+def test_person_submitted_Bonded_personAPicker(dlg):
+    dlg.set_kind(EventKind.Bonded)
+    dlg.set_new_person("personAPicker", "John Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("personALabel")
+
+
+def test_person_submitted_Bonded_personBPicker(dlg):
+    dlg.set_kind(EventKind.Bonded)
+    dlg.set_new_person("personAPicker", "John Doe")
+    dlg.set_new_person("personBPicker", "Jane Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("personBLabel")
+
+
+# Unsubmitted - Fusion
+
+
+def test_person_submitted_Fusion_moversPicker(dlg):
+    dlg.set_kind(EventKind.Fusion)
+    dlg.add_new_person("moversPicker", "John Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("moversLabel")
+
+
+def test_person_submitted_Fusion_receiversPicker(dlg):
+    dlg.set_kind(EventKind.Fusion)
+    dlg.add_new_person("moversPicker", "John Doe")
+    dlg.add_new_person("receiversPicker", "Jane Doe", returnToFinish=False)
+    dlg.pickerNotSubmitted("receiversLabel")

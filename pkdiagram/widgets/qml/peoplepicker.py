@@ -20,22 +20,28 @@ def waitForPersonPickers():
     loop.exec()
 
 
-def add_and_keyClicks(
-    dlg: QmlWidgetHelper,
-    textInput: str,
-    peoplePicker="peoplePicker",
-    returnToFinish: bool = True,
-) -> QQuickItem:
-
-    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
-
-    peoplePickerItem = dlg.findItem(peoplePicker)
+def _validate(peoplePickerItem):
     if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
         raise TypeError(
             f"Expected a PeoplePicker, got {peoplePickerItem.metaObject().className()}"
         )
     elif not peoplePickerItem.property("visible"):
-        raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
+        raise ValueError(f"Expected PeoplePicker '{peoplePickerItem}' to be visible.")
+
+
+def add_and_keyClicks(
+    dlg: QmlWidgetHelper,
+    textInput: str,
+    peoplePicker="peoplePicker",
+    returnToFinish: bool = True,
+    resetFocus: bool = False,
+) -> QQuickItem:
+
+    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
+
+    peoplePickerItem = dlg.findItem(peoplePicker)
+    _validate(peoplePickerItem)
+
     itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
     waitForPersonPickers()
     #
@@ -45,7 +51,9 @@ def add_and_keyClicks(
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
     popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
     assert popupListView.property("visible") == False
-    dlg.keyClicks(textEdit, textInput, resetFocus=False, returnToFinish=returnToFinish)
+    dlg.keyClicks(
+        textEdit, textInput, resetFocus=resetFocus, returnToFinish=returnToFinish
+    )
     return itemDelegate
 
 
@@ -55,12 +63,18 @@ def add_new_person(
     peoplePicker="peoplePicker",
     gender: str = None,
     returnToFinish=True,
+    resetFocus: bool = False,
 ) -> QQuickItem:
+
+    peoplePickerItem = dlg.findItem(peoplePicker)
+    _validate(peoplePickerItem)
+
     itemDelegate = add_and_keyClicks(
         dlg,
         textInput,
         peoplePicker=peoplePicker,
         returnToFinish=returnToFinish,
+        resetFocus=resetFocus,
     )
     if gender is not None:
         genderLabel = next(
@@ -80,14 +94,21 @@ def add_existing_person(
     autoCompleteInput: str = None,
     peoplePicker="peoplePicker",
     gender: str = None,
+    returnToFinish: bool = False,
+    resetFocus: bool = False,
 ) -> QQuickItem:
+
+    peoplePickerItem = picker.findItem(peoplePicker)
+    _validate(peoplePickerItem)
+
     if autoCompleteInput is None:
         autoCompleteInput = person.fullNameOrAlias()
     itemDelegate = add_and_keyClicks(
         picker,
         autoCompleteInput,
         peoplePicker=peoplePicker,
-        returnToFinish=False,
+        returnToFinish=returnToFinish,
+        resetFocus=resetFocus,
     )
     popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
     assert popupListView.property("visible") == True

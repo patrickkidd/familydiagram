@@ -179,7 +179,6 @@ PK.Drawer {
         personBPicker.setExistingPerson(personB)
     }
     function initWithMultiplePeople(peopleIds) {
-        print(peopleIds)
         var people = [];
         for(var i=0; i < peopleIds.length; i++) {
             people.push(sceneModel.item(peopleIds[i]))

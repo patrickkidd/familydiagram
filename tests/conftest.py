@@ -677,7 +677,7 @@ class PKQtBot(QtBot):
         if "text" in kwargs and kwargs["text"] not in messageBox.text():
             messageBox.close()
             pytest.xfail(
-                f"QMessageBox text: '{messageBox.text()}' expected text: '{kwargs['text']}'."
+                f"expected text: '{kwargs['text']}', found text: '{messageBox.text()}'."
             )
         elif (
             "informativeText" in kwargs
@@ -685,7 +685,7 @@ class PKQtBot(QtBot):
         ):
             messageBox.close()
             pytest.xfail(
-                f"QMessageBox informativeText: {messageBox.informativeText()} expected text: {kwargs['informativeText']}."
+                f"expected text: {kwargs['informativeText']}, QMessageBox::informativeText: {messageBox.informativeText()}."
             )
         elif (
             "detailedText" in kwargs
@@ -693,7 +693,7 @@ class PKQtBot(QtBot):
         ):
             messageBox.close()
             pytest.xfail(
-                f"QMessageBox detailedText: {messageBox.detailedText()} expected text: {kwargs['detailedText']}."
+                f"expected text: {kwargs['detailedText']}, QMessageBox::detailedText: {messageBox.detailedText()}."
             )
 
     def clickButtonAfter(self, action, button: int, **hasTextArgs):

@@ -111,6 +111,18 @@ PK.GroupBox {
         print('Could not find genderBox for index: ' + index)
     }
 
+    function allSubmitted() {
+        // print('allSubmitted: ' + root.objectName)
+        var allSubmitted = true
+        for(var i = 0; i < root.model.count; i++) {
+            var personPicker = pickerAtIndex(i)
+            if(!personPicker.isSubmitted) {
+                return false
+            }
+        }
+        return true
+    }
+
 
     ColumnLayout {
         anchors.fill: parent

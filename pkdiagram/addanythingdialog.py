@@ -12,6 +12,7 @@ from .pyqt import (
     QVariant,
     QDateTime,
     Q_RETURN_ARG,
+    Q_ARG,
 )
 from . import objects, util, commands
 from .objects import Person, Emotion, Event, Marriage
@@ -63,6 +64,7 @@ class AddAnythingDialog(QmlDrawer):
         "This will replace {n_existing} of the {kind} events in the selected people."
     )
     S_ADD_MANY_SYMBOLS = "Are you sure you want to create {numSymbols} symbols, with a separate symbol between each mover and each receiver listed?"
+    S_PICKER_NEW_PERSON_NOT_SUBMITTED = "You have entered a name for a new person in the '{pickerLabel}' field, but have not pressed enter yet."
 
     def __init__(self, parent=None, sceneModel=None):
         super().__init__(
@@ -155,6 +157,84 @@ class AddAnythingDialog(QmlDrawer):
         symptom = self.rootProp("symptom")
         notes = self.rootProp("notes")
 
+        personPicker = self.findItem("personPicker")
+        peoplePicker = self.findItem("peoplePicker")
+        personAPicker = self.findItem("personAPicker")
+        personBPicker = self.findItem("personBPicker")
+        moversPicker = self.findItem("moversPicker")
+        receiversPicker = self.findItem("receiversPicker")
+
+        def _isPickerRequired(kind: EventKind, pickerName: str):
+            if EventKind.isMonadic(kind) and pickerName == "personPicker":
+                return True
+            elif kind == EventKind.CustomIndividual and pickerName == "peoplePicker":
+                return True
+            elif EventKind.isPairBond(kind) and pickerName in (
+                "personAPicker",
+                "personBPicker",
+            ):
+                return True
+            elif EventKind.isDyadic(kind) and pickerName in (
+                "moversPicker",
+                "receiversPicker",
+            ):
+                return True
+            else:
+                return False
+
+        # Validation: Unsubmitted changes
+
+        def pickerDirtyAndNotSubmitted(pickerItem):
+            if pickerItem.metaObject().className().startswith("PersonPicker"):
+                text = pickerItem.property("textEdit").property("text")
+                isSubmitted = pickerItem.property("isSubmitted")
+                if isSubmitted:
+                    return False
+                # required = _isPickerRequired(kind, pickerItem.objectName())
+                if text and not isSubmitted:
+                    return True
+                return False
+            else:
+                model = pickerItem.property("model")
+                for i in range(model.rowCount()):
+                    personPicker = QMetaObject.invokeMethod(
+                        pickerItem,
+                        "pickerAtIndex",
+                        Qt.DirectConnection,
+                        Q_RETURN_ARG(QVariant),
+                        Q_ARG(QVariant, i),
+                    )
+                    if personPicker.property("textEdit").property(
+                        "text"
+                    ) and not personPicker.property("isSubmitted"):
+                        return True
+                return False
+
+        if pickerDirtyAndNotSubmitted(personPicker):
+            pickerLabel = "personLabel"
+        elif pickerDirtyAndNotSubmitted(personAPicker):
+            pickerLabel = "personALabel"
+        elif pickerDirtyAndNotSubmitted(personBPicker):
+            pickerLabel = "personBLabel"
+        elif pickerDirtyAndNotSubmitted(peoplePicker):
+            pickerLabel = "peopleLabel"
+        elif pickerDirtyAndNotSubmitted(moversPicker):
+            pickerLabel = "moversLabel"
+        elif pickerDirtyAndNotSubmitted(receiversPicker):
+            pickerLabel = "receiversLabel"
+        else:
+            pickerLabel = None
+
+        if pickerLabel:
+            text = self.itemProp(pickerLabel, "text")
+            QMessageBox.warning(
+                self,
+                "Unconfirmed field",
+                self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text),
+                QMessageBox.Ok,
+            )
+            return
+
         # Validation: Required fields
 
         def _invalidPersonPickerLabel():
@@ -163,6 +243,8 @@ class AddAnythingDialog(QmlDrawer):
                 return
             kind = EventKind(kindValue)
             ret = None
+
+            # Refactor with _isPickerRequired?
             if kind == EventKind.CustomIndividual:
                 if not peopleEntries:
                     ret = "peopleLabel"
@@ -616,13 +698,24 @@ class AddAnythingDialog(QmlDrawer):
         textInput: str,
         gender: str = None,
         returnToFinish: bool = True,
+        resetFocus: bool = False,
     ):
-        set_new_person(self, textInput, personPicker, gender, returnToFinish)
+        set_new_person(
+            self,
+            textInput,
+            personPicker,
+            gender,
+            returnToFinish=returnToFinish,
+            resetFocus=resetFocus,
+        )
         # _log.info(f"set_new_person('{personPicker}', '{textInput}')")
         # self.keyClicks(f"{personPicker}.textEdit", textInput, returnToFinish=True)
-        assert self.itemProp(personPicker, "isSubmitted") == True
-        assert self.itemProp(personPicker, "isNewPerson") == True
-        assert self.itemProp(personPicker, "personName") == textInput
+        if returnToFinish:
+            assert self.itemProp(personPicker, "isSubmitted") == True
+            assert self.itemProp(personPicker, "isNewPerson") == True
+            assert self.itemProp(personPicker, "personName") == textInput
+        else:
+            assert self.itemProp(f"{personPicker}.textEdit", "text") == textInput
 
     def set_existing_person(
         self,
@@ -630,12 +723,18 @@ class AddAnythingDialog(QmlDrawer):
         person: Person,
         autoCompleteInput: str = None,
         returnToFinish: bool = False,
+        resetFocus: bool = False,
     ):
         # _log.info(
         #     f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
         # )
         set_existing_person(
-            self, person, autoCompleteInput, personPicker, returnToFinish=returnToFinish
+            self,
+            person,
+            autoCompleteInput,
+            personPicker,
+            returnToFinish=returnToFinish,
+            resetFocus=resetFocus,
         )
         # assert self.itemProp(f"{personPicker}.popupListView", "visible") == False
         # if not autoCompleteInput:
@@ -657,6 +756,7 @@ class AddAnythingDialog(QmlDrawer):
         textInput: str,
         gender: str = None,
         returnToFinish: bool = True,
+        resetFocus: bool = False,
     ):
         add_new_person(
             self,
@@ -664,6 +764,7 @@ class AddAnythingDialog(QmlDrawer):
             peoplePicker=peoplePicker,
             gender=gender,
             returnToFinish=returnToFinish,
+            resetFocus=resetFocus,
         )
 
     def add_existing_person(
@@ -676,7 +777,15 @@ class AddAnythingDialog(QmlDrawer):
             self, person, autoCompleteInput=autoCompleteInput, peoplePicker=peoplePicker
         )
 
-    def set_dateTime(self, dateTime, buttonsItem, datePickerItem, timePickerItem):
+    def set_dateTime(
+        self,
+        dateTime,
+        buttonsItem,
+        datePickerItem,
+        timePickerItem,
+        returnToFinish: bool = False,
+        resetFocus: bool = False,
+    ):
 
         S_DATE = util.dateString(dateTime)
         S_TIME = util.timeString(dateTime)
@@ -688,14 +797,14 @@ class AddAnythingDialog(QmlDrawer):
         self.keyClicks(
             f"{buttonsItem}.dateTextInput",
             S_DATE,
-            returnToFinish=False,
-            resetFocus=False,
+            returnToFinish=returnToFinish,
+            resetFocus=resetFocus,
         )
         self.keyClicks(
             f"{buttonsItem}.timeTextInput",
             S_TIME,
-            returnToFinish=False,
-            resetFocus=False,
+            returnToFinish=returnToFinish,
+            resetFocus=resetFocus,
         )
         assert self.itemProp(buttonsItem, "dateTime") == dateTime
         assert self.itemProp(datePickerItem, "dateTime") == dateTime
@@ -738,6 +847,14 @@ class AddAnythingDialog(QmlDrawer):
     def expectedFieldLabel(self, expectedTextLabel):
         name = self.itemProp(expectedTextLabel, "text")
         expectedText = self.S_REQUIRED_FIELD_ERROR.format(name=name)
+        util.qtbot.clickOkAfter(
+            lambda: self.mouseClick("AddEverything_submitButton"),
+            text=expectedText,
+        )
+
+    def pickerNotSubmitted(self, pickerLabel):
+        name = self.itemProp(pickerLabel, "text")
+        expectedText = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=name)
         util.qtbot.clickOkAfter(
             lambda: self.mouseClick("AddEverything_submitButton"),
             text=expectedText,

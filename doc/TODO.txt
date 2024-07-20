@@ -12,7 +12,6 @@ v2.0.0 punchlist
   - Gender box not cleared after submit
   - Make person picker yellow, then green when submitted? (same as create account dialog)
   - Change VariableBox to FormField with ComboBox
-  - Pop error if name entered into person picker but not submitted
   - Add birth for existing person didn't set name for 
   - Highlight people on diagrams when selected in person pickers
     - Show with different colors for mover/receiver, etc.
