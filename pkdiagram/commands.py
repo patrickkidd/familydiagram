@@ -27,7 +27,7 @@ class UndoStack(QUndoStack):
         elif cmd.ANALYTICS is True and (cmd.id() == -1 or cmd.id() != self.lastId):
             s = "Commands: " + cmd.text()
         if s:
-            self.track(s, cmd.analyticsProperties())
+            self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
 
         logKwargs_s = pprint.pformat(cmd.logKwargs())
         log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
@@ -580,7 +580,7 @@ class SetItemProperty(UndoCommand):
         else:
             _addEntry(None, prop, value, prop.get())
         self.firstTime = True  # yep
-        self.debug(item=prop.item, prop=prop, value=value, layers=layers, id=id)
+        self.debug(name=prop.name(), value=value, layers=[x.name() for x in layers], id=id)
 
     def redo(self):
         if self.firstTime:

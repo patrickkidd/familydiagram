@@ -1238,7 +1238,7 @@ class Emotion(PathItem):
         return Emotion.ITEM_MAP[kind]["slug"]
 
     @staticmethod
-    def kindLabelForKind(kind):
+    def kindLabelForKind(kind) -> str:
         return Emotion.ITEM_MAP[kind]["label"]
 
     @staticmethod
