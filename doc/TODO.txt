@@ -1,10 +1,12 @@
 v2.0.0 punchlist
 =============================================================================
 - AddAnything form
-  - Re-arranging new people is clunky with PersonProperties populating
+  - Notes field is too small and doesn't scroll
+  - Include command params in log output
   - Add name of person for `Birth` event in bottom timeline callout
   - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - New people picker PersonPicker text edit doesn't get focus in new row
+  - Re-arranging new people is clunky with PersonProperties populating
   - on close file after using form a bit:
     - PersonPicker.qml:102: TypeError: Cannot read property 'itemId' of undefined
   - Option to hide logged column?

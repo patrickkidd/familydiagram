@@ -83,6 +83,10 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
 
         self.installEventFilter(self)
 
+    def onDeferredDelete(self, event):
+        _log.warning(f"DeferredDelete event for {self}")
+        # self.dev_printCStackTrace()
+
     def eventFilter(self, o, event):
         """
         Hack only because I can't figure out what is calling deleteLater() for
@@ -90,8 +94,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         there should never be a deferred delete on a QGraphicsObject.
         """
         if event.type() == QEvent.DeferredDelete:
-            QMessageBox.warning(None, "DeferredDelete", f"DeferredDelete event for {o}")
-            _log.warning(f"DeferredDelete event for {o}")
+            self.onDeferredDelete(event)
             return True
         return super().eventFilter(o, event)
 

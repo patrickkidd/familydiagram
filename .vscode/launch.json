@@ -421,10 +421,11 @@
             "justMyCode": false,
             "args": [
                 "-svvx"
-            ]
-            // "env": {
-            //     "QT_LOGGING_RULES": "qt.quick.*=true"
-            // }
+            ],
+            "env": {
+                // "QT_LOGGING_RULES": "qt.quick.*=true"
+                // "QT_LOGGING_RULES": "qt.qpa.*=true"
+            }
         },        
         {
             "name": "(gdb) Attach",
@@ -441,7 +442,57 @@
                     "ignoreFailures": true
                 }
             ]
-        },        
+        },
+        {
+            "name": "(lldb) test_blow_up_ItemDetails_2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.venv/bin/python",
+            "args": ["-m", "pytest", "-svv", "tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PYTHONPATH",
+                    "value": "/Users/patrick/dev/familydiagram-server"
+                }
+            ],
+            "showAsyncStacks": "always",
+            "maxAsyncDepth": 1000,
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "miDebuggerPath": "/Users/patrick/.vscode/extensions/ms-vscode.cpptools-1.21.6-darwin-x64/debugAdapters/lldb-mi/bin/lldb-mi",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Load Qt pretty-printers",
+                    // "text": "command script import /Users/patrick/dev/familydiagram/lib/qt-everywhere-src-5.15.6/qtbase/src/corelib/debug_script.py",
+                    "text": "command script import /Users/patrick/dev/familydiagram/lldb/qt_pretty_print.py",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Load FD breakpoint",
+                    // "text": "command script import /Users/patrick/dev/familydiagram/lib/qt-everywhere-src-5.15.6/qtbase/src/corelib/debug_script.py",
+                    "text": "command script import /Users/patrick/dev/familydiagram/lldb_breakpoint.py",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Set breakpoint",
+                    // "text": "command script import /Users/patrick/dev/familydiagram/lib/qt-everywhere-src-5.15.6/qtbase/src/corelib/debug_script.py",
+                    // "text": "breakpoint set -n QObject::deleteLater -C lldb_breakpoint.breakpoint_callback",
+                    "text": "breakpoint set -n QGraphicsScene::removeItem",
+                    "ignoreFailures": false
+                },
+            ],
+            "preLaunchTask": "",
+            "logging": {
+                "engineLogging": true
+            },
+        },
         {
             "name": "Bash-Debug (current file)",
             "type": "bashdb",

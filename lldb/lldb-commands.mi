@@ -1,0 +1,10 @@
+file /Users/patrick/dev/familydiagram/.venv/bin/python
+
+command script import /Users/patrick/dev/familydiagram/lldb_breakpoint.py
+
+target stop-hook add -o 'handle_event(debugger, None, None, None)'
+
+breakpoint set -n QObject::deleteLater
+
+run -m pytest -svv tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2
+
