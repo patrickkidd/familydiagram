@@ -9,6 +9,7 @@ from ..pyqt import (
     QVariant,
     QObject,
     qmlRegisterType,
+    QQmlEngine,
 )
 from .. import objects, scene, util
 from .modelhelper import ModelHelper
@@ -165,7 +166,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
     def personForRow(self, row):
         personId = self._sortedIds[row]
         ret = next(x for x in self._people if x.id == personId)
-        # _log.info(f"personForRow({row}): {ret}")
+        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
 
     ## Qt Virtuals

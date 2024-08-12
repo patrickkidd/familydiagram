@@ -11,6 +11,7 @@ from ..pyqt import (
     Qt,
     QFont,
     QRectF,
+    QQmlEngine,
 )
 from .. import util
 from . import ItemDetails, Event, PathItem, Property
@@ -363,11 +364,15 @@ class Marriage(PathItem):
 
     @pyqtSlot(result=QObject)
     def personA(self):
-        return self.people[0]
+        ret = self.people[1]
+        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
+        return ret
 
     @pyqtSlot(result=QObject)
     def personB(self):
-        return self.people[1]
+        ret = self.people[1]
+        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
+        return ret
 
     ## Events
 

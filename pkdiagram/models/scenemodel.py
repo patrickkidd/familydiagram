@@ -9,6 +9,7 @@ from ..pyqt import (
     QMessageBox,
     QApplication,
     qmlRegisterType,
+    QQmlEngine,
 )
 from .. import objects, util, commands
 from ..scene import Scene
@@ -238,7 +239,9 @@ class SceneModel(QObject, ModelHelper):
 
     @pyqtSlot(int, result=QObject)
     def item(self, id):
-        return self.scene.findById(id)
+        ret = self.scene.findById(id)
+        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
+        return ret
 
 
 def __test__(scene, parent):
