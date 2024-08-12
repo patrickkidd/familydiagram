@@ -1,4 +1,5 @@
 import os, shutil, logging
+import pprint
 
 from .pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
 from . import util, objects
@@ -27,6 +28,10 @@ class UndoStack(QUndoStack):
             s = "Commands: " + cmd.text()
         if s:
             self.track(s, cmd.analyticsProperties())
+
+        logKwargs_s = pprint.pformat(cmd.logKwargs())
+        log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
+
         super().push(cmd)
         self.lastId = cmd.id()
 
@@ -80,12 +85,19 @@ class UndoCommand(QUndoCommand):
     def __init__(self, text, id=-1):
         super().__init__(text)
         self._id = id
+        self._log_kwargs = None
 
     def id(self):
         return self._id
 
     def analyticsProperties(self):
         return {}
+
+    def logKwargs(self):
+        return self._log_kwargs
+
+    def debug(self, **kwargs):
+        self._log_kwargs = kwargs
 
 
 class AddPerson(UndoCommand):
@@ -94,6 +106,7 @@ class AddPerson(UndoCommand):
         self.scene = scene
         self.person = objects.Person(gender=gender, size=size)
         self.person.setItemPos(pos, notify=False)
+        self.debug(gender=gender, pos=pos, size=size, id=id)
 
     def redo(self):
         self.scene.addItem(self.person)
@@ -114,6 +127,7 @@ class AddPeople(UndoCommand):
         self.scene = scene
         self.people = people
         self.batch = batch
+        self.debug(people=people, id=id, batch=batch)
 
     def redo(self):
         self.scene.addItems(*self.people, batch=self.batch)
@@ -136,6 +150,7 @@ class RemoveItems(UndoCommand):
             self.items = list(items)
         else:
             self.items = [items]
+        self.debug(items=items)
 
         # Keep track of a list of each kind of items at the top level to
         # detach their relationships and then re-attach them after an
@@ -463,6 +478,7 @@ class MoveItems(UndoCommand):
         }
         self.scene = item.scene()
         self.firstRun = True
+        # self.debug(item=item, pos=pos, id=id)
 
     def redo(self):
         if self.firstRun:
@@ -515,6 +531,7 @@ class AddMarriage(UndoCommand):
         self.item1 = item1
         self.item2 = item2
         self.marriage = objects.Marriage(self.item1, self.item2)
+        self.debug(item1=item1, item2=item2, id=id)
 
     def redo(self):
         self.item1._onAddMarriage(self.marriage)
@@ -563,6 +580,7 @@ class SetItemProperty(UndoCommand):
         else:
             _addEntry(None, prop, value, prop.get())
         self.firstTime = True  # yep
+        self.debug(item=prop.item, prop=prop, value=value, layers=layers, id=id)
 
     def redo(self):
         if self.firstTime:
@@ -615,6 +633,7 @@ class ResetItemProperty(UndoCommand):
         else:
             self.data[None] = {prop: prop.get()}
         self.firstTime = True
+        self.debug(prop=prop, layers=layers, id=id)
 
     def redo(self):
         if self.firstTime:
@@ -646,6 +665,7 @@ class AddEvent(UndoCommand):
         super().__init__("Add event to %s" % parent.__class__.__name__)
         self.parent = parent
         self.event = event
+        self.debug(parent=parent, event=event)
 
     def redo(self):
         self.event.setParent(self.parent)
@@ -700,6 +720,7 @@ class SetParents(UndoCommand):
         #
         data.update(was_data)
         self.data = {person: data}
+        self.debug(person=person, target=target, id=id)
 
     def redo(self):
         for person, data in self.data.items():
@@ -750,6 +771,7 @@ class AddEmotion(UndoCommand):
         self.personA = emotion.personA()
         self.personB = emotion.personB()
         self.firstRun = True
+        self.debug(emotion=emotion, id=id)
 
     def redo(self):
         if not self.firstRun:
@@ -778,6 +800,7 @@ class AddPencilStroke(UndoCommand):
         self.scene = scene
         self.item = item
         self.item.setLayers([layer.id for layer in self.scene.activeLayers()])
+        self.debug(item=item)
 
     def redo(self):
         self.scene.addItem(self.item)
@@ -797,6 +820,7 @@ class ErasePencilStroke(UndoCommand):
         super().__init__("Erase pencil stroke")
         self.scene = scene
         self.item = item
+        self.debug(item=item)
 
     def redo(self):
         self.scene.removeItem(self.item)
@@ -884,6 +908,7 @@ class PasteItems(UndoCommand):
         self.items = {}
         for item in items:
             self.items[item] = {"pos_was": item.pos()}
+        self.debug(items=items)
 
     def redo(self):
         for item in self.scene.selectedItems():
@@ -919,6 +944,7 @@ class ImportItems(PasteItems):
     def __init__(self, scene, items):
         super().__init__(scene, items)
         self.setText("Import items")
+        self.debug(items=items)
 
 
 def importItems(*args):
@@ -933,6 +959,7 @@ class CreateTag(UndoCommand):
         super().__init__('Create tag "%s"' % tag)
         self.scene = scene
         self.tag = tag
+        self.debug(tag=tag)
 
     def redo(self):
         self.scene.addTag(self.tag)
@@ -954,6 +981,7 @@ class DeleteTag(UndoCommand):
         self.scene = scene
         self.tag = tag
         self.items = []
+        self.debug(tag=tag)
 
     def redo(self):
         self.items = self.scene.find(tags=self.tag)
@@ -980,6 +1008,7 @@ class RenameTag(UndoCommand):
         self.scene = scene
         self.old = old
         self.new = new
+        self.debug(old=old, new=new)
 
     def redo(self):
         self.scene.renameTag(self.old, self.new)
@@ -1000,6 +1029,7 @@ class SetTag(UndoCommand):
         super().__init__('Set tag "%s" on <%s>' % (tag, item.itemName()))
         self.item = item
         self.tag = tag
+        self.debug(item=item, tag=tag)
 
     def redo(self):
         self.item.setTag(self.tag)
@@ -1020,6 +1050,7 @@ class UnsetTag(UndoCommand):
         super().__init__('Unset tag "%s" on <%s>' % (tag, item.itemName()))
         self.item = item
         self.tag = tag
+        self.debug(item=item, tag=tag)
 
     def redo(self):
         self.item.unsetTag(self.tag)
@@ -1040,6 +1071,7 @@ class CreateEventProperty(UndoCommand):
         super().__init__('Create event property "%s"' % propName)
         self.scene = scene
         self.propName = propName
+        self.debug(propName=propName)
 
     def redo(self):
         self.scene.addEventProperty(self.propName)
@@ -1097,6 +1129,7 @@ class RemoveEventProperty(UndoCommand):
                 self.propIndex = i
                 break
         self.valueCache = self.readValueCache(scene, onlyAttr=self.attr)
+        self.debug(propName=propName)
 
     def redo(self):
         self.scene.removeEventProperty(self.propName)
@@ -1119,6 +1152,7 @@ class RenameEventProperty(UndoCommand):
         self.scene = scene
         self.old = old
         self.new = new
+        self.debug(old=old, new=new)
 
     def redo(self):
         self.scene.renameEventProperty(self.old, self.new)
@@ -1141,6 +1175,7 @@ class ReplaceEventProperties(UndoCommand):
         self.oldPropNames = [entry["name"] for entry in scene.eventProperties()]
         self.newPropNames = newPropNames
         self.valueCache = RemoveEventProperty.readValueCache(scene)
+        self.debug(newPropNames=newPropNames)
 
     def redo(self):
         self.scene.replaceEventProperties(self.newPropNames)
@@ -1190,6 +1225,7 @@ class SetEmotionPerson(UndoCommand):
                 "personB_was": emotion.personB(),
             }
         }
+        self.debug(emotion=emotion, personA=personA, personB=personB, id=id)
 
     def redo(self):
         for emotion, entry in self.data.items():
