@@ -1,10 +1,11 @@
+import os
 import os.path
 import logging
 
 import pytest
 import datetime
 
-from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox
+from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox, QEventLoop
 from pkdiagram import util, EventKind, MainWindow, commands
 from pkdiagram import Person, Marriage, Event
 from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
@@ -296,13 +297,10 @@ def test_blow_up_ItemDetails_2(qtbot, create_ac_mw):
 
     ac, mw = create_ac_mw()
     mw.show()
-    # QApplication.instance().exec()
     mw.open(os.path.join(DATA_ROOT, "blow-up-itemdetails.fd"))
     scene = mw.scene
     dlg = mw.documentView.addAnythingDialog
-    submitted = util.Condition(dlg.submitted)
     addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
-    detailsButton = mw.documentView.view.rightToolBar.detailsButton
 
     patrick = scene.query1(name="Patrick")
 
@@ -315,19 +313,53 @@ def test_blow_up_ItemDetails_2(qtbot, create_ac_mw):
     dlg.mouseClick("AddEverything_submitButton")
 
     scene.clearSelection()
-    bruce = scene.query1(name="bruce")
-    bruce.setSelected(True)
+    # bruce = scene.query1(name="bruce")
+    patrick.setSelected(True)
     qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_startDateTime(QDateTime(1958, 1, 1, 0, 0))
-    # dlg.set_existing_person("personPicker", person=bruce)
-    dlg.set_new_person("personAPicker", "James")
-    dlg.set_new_person("personAPicker", "Natalie")
+
+    _log.info("showing info")
+    QMessageBox.information(None, "Test", "Should blow up with deferred deletes")
+
+    # # dlg.set_existing_person("personPicker", person=bruce)
+    # dlg.set_new_person("personAPicker", "James")
+    # # dlg.set_new_person("personBPicker", "Natalie")
+    # dlg.mouseClick("AddEverything_submitButton")
+
+    # # starts the event loop which deletes the marriage for some reason
+
+
+def test_blow_up_ItemDetails_3(qtbot, create_ac_mw):
+    """Added as a placeholder for future script tests"""
+
+    from conftest import DATA_ROOT
+
+    ac, mw = create_ac_mw()
+    mw.show()
+    mw.open(os.path.join(DATA_ROOT, "blow-up-itemdetails.fd"))
+    scene = mw.scene
+    dlg = mw.documentView.addAnythingDialog
+    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+
+    patrick = scene.query1(name="Patrick")
+
+    patrick.marriages[0].setSelected(True)
+    assert scene.selectedItems() == [patrick.marriages[0]]
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.CustomPairBond)
+    dlg.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
+    dlg.set_description("Something pair-bond-y")
     dlg.mouseClick("AddEverything_submitButton")
 
-    # starts the event loop which deletes the marriage for some reason
-    # _log.info("showing info")
-    # QMessageBox.information(None, "Test", "Waiting for 3 seconds")
+    scene.clearSelection()
+    patrick.setSelected(True)
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_startDateTime(QDateTime(1900, 1, 1, 0, 0))
+
+    _log.info("showing info")
+    QMessageBox.information(None, "Test", "Should blow up with deferred deletes")
 
 
 def test_add_second_marriage_to_person(dlg):

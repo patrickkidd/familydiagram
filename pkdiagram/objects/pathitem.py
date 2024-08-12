@@ -81,8 +81,19 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         self._n_updatePen = 0
         self._n_updateDetails = 0
 
-    def scene(self):
-        return super(QGraphicsObject, self).scene()
+        self.installEventFilter(self)
+
+    def eventFilter(self, o, event):
+        """
+        Hack only because I can't figure out what is calling deleteLater() for
+        marriages (or anything for that matter?). This should work assuming that
+        there should never be a deferred delete on a QGraphicsObject.
+        """
+        if event.type() == QEvent.DeferredDelete:
+            QMessageBox.warning(None, "DeferredDelete", f"DeferredDelete event for {o}")
+            _log.warning(f"DeferredDelete event for {o}")
+            return True
+        return super().eventFilter(o, event)
 
     def view(self):
         if self.scene():
