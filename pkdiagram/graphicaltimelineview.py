@@ -10,6 +10,7 @@ from .pyqt import (
     pyqtSignal,
     QApplication,
     QDateTime,
+    QColor,
 )
 from . import util, widgets, objects
 from .graphicaltimeline import GraphicalTimeline
@@ -120,8 +121,9 @@ class GraphicalTimelineView(QFrame):
         if scene:
             scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
         self.timeline.setScene(self.scene)
-        self.state = self.CONTRACTING  # hack.1
-        self.onAnimationFinished()  # hack.2
+        self.state = self.CONTRACTING  # hack.1        
+        if scene:
+            self.onAnimationFinished()  # hack.2
 
     @util.blocked
     def setExpanded(self, on):
