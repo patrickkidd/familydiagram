@@ -42,6 +42,11 @@ PK.Drawer {
     property var symptom: symptomBox.value
     property var notes: notesEdit.text
 
+    function onStartDateTimeChanged() {
+        startDatePicker.dateTime = startDateTime
+        print('onStartDateTimeChanged: ' + startDateTime)
+    }
+
     readonly property var fieldWidth: 275
 
     property var dirty: false
@@ -278,7 +283,7 @@ PK.Drawer {
             id: addPage
             objectName: 'addPage'
             contentWidth: width
-            contentHeight: addPageInner.childrenRect.height + root.margin * 2
+            contentHeight: addPageInner.childrenRect.height + root.margin / 4
             function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
@@ -820,29 +825,41 @@ PK.Drawer {
                             height: notesFrame.height
                             tabItem: kindBox
                             backTabItem: symptomBox.lastTabItem
-                            Layout.minimumHeight: 150
-                            Layout.maximumHeight: 150
+                            Layout.minimumHeight: notesFrame.height
+                            Layout.maximumHeight: notesFrame.height
                             Layout.fillWidth: true
                             Rectangle { // for border
                                 id: notesFrame
                                 property bool isDirty: notesEdit.text != ''
                                 color: 'transparent'
-                                Layout.minimumHeight: 150
-                                Layout.maximumHeight: 150
+                                Layout.minimumHeight: 250
+                                Layout.maximumHeight: 250
                                 border {
                                     width: 1
                                     color: util.QML_ITEM_BORDER_COLOR
                                 }
                                 property Item firstTabItem: notesEdit
                                 property Item lastTabItem: notesEdit
-                                PK.TextEdit {
-                                    id: notesEdit
-                                    objectName: "notesEdit"
-                                    wrapMode: TextEdit.Wrap
+                                ScrollView {
+                                    width: notesFrame.width - 4
+                                    height: notesFrame.height - 4
+                                    contentWidth: notesEdit.width
+                                    contentHeight: notesEdit.height
                                     anchors.fill: parent
-                                    padding: margin
-                                    KeyNavigation.tab: kindBox
-                                    KeyNavigation.backtab: symptomBox.lastTabItem
+                                    clip: true
+
+                                    PK.TextEdit {
+                                        id: notesEdit
+                                        objectName: "notesEdit"
+                                        wrapMode: TextEdit.Wrap
+                                        height: 400
+                                        width: notesFrame.width - 2
+                                        topPadding: margin
+                                        leftPadding: margin
+                                        rightPadding: margin
+                                        KeyNavigation.tab: kindBox
+                                        KeyNavigation.backtab: symptomBox.lastTabItem
+                                    }
                                 }
                                 function clear() { notesEdit.text = '' }
                             }

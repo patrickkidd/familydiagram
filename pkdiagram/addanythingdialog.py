@@ -138,7 +138,7 @@ class AddAnythingDialog(QmlDrawer):
             self.initWithMultiplePeople(ids)
 
     def onDone(self):
-        _log.info(f"AddAnythingDialog.onDone")
+        _log.info(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
 
         kind = EventKind(self.rootProp("kind"))
         personEntry = self.personEntry()
@@ -227,10 +227,12 @@ class AddAnythingDialog(QmlDrawer):
 
         if pickerLabel:
             text = self.itemProp(pickerLabel, "text")
+            msg = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text)
+            _log.info(f"Warning: Unconfirmed field, {msg}")
             QMessageBox.warning(
                 self,
                 "Unconfirmed field",
-                self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text),
+                msg,
                 QMessageBox.Ok,
             )
             return
@@ -280,7 +282,7 @@ class AddAnythingDialog(QmlDrawer):
         if labelObjectName:
             name = self.itemProp(labelObjectName, "text")
             msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
-            _log.info(f"AddAnythingForm validation DIALOG: {msg}")
+            _log.info(f"AddAnythingDialog validation DIALOG: {msg}")
             QMessageBox.warning(
                 self,
                 "Required field",
@@ -517,6 +519,10 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs["uniqueId"] = kind.value
             if location:
                 kwargs["location"] = location
+
+            _log.debug(
+                f"Adding {kind} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
+            )
             commands.addEvent(
                 marriage,
                 Event(dateTime=startDateTime, **kwargs),
