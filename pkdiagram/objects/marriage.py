@@ -364,7 +364,7 @@ class Marriage(PathItem):
 
     @pyqtSlot(result=QObject)
     def personA(self):
-        ret = self.people[1]
+        ret = self.people[0]
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
 
