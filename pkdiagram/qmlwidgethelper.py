@@ -280,6 +280,7 @@ class QmlWidgetHelper(QObjectHelper):
         util.qtbot.keyClick(self.qml, key)
         if resetFocus:
             self.resetFocus(objectName)
+        QApplication.processEvents()
 
     def keyClicks(self, objectName, s, resetFocus=True, returnToFinish=True):
         self.focusItem(objectName)
@@ -296,6 +297,7 @@ class QmlWidgetHelper(QObjectHelper):
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
             self.resetFocus(objectName)
+        QApplication.processEvents()
 
     def keyClicksClear(self, objectName):
         item = self.findItem(objectName)

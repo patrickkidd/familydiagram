@@ -78,6 +78,7 @@ def set_existing_person(
     assert numVisibleAutoCompleteItemsUpdated.wait() == True
     assert dlg.itemProp(f"{personPicker}.textEdit", "text") == autoCompleteInput
     assert dlg.itemProp(f"{personPicker}.popupListView", "visible") == True
+    QApplication.processEvents()
     assert dlg.itemProp(f"{personPicker}.popupListView", "numVisibleItems") > 0
     if person:
         dlg.clickListViewItem_actual(
