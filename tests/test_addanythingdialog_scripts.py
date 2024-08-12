@@ -1,10 +1,16 @@
+import os.path
+import logging
+
 import pytest
 import datetime
 
-from pkdiagram.pyqt import QApplication, Qt
-from pkdiagram import util, EventKind, MainWindow
-from pkdiagram import Person, Marriage
+from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox
+from pkdiagram import util, EventKind, MainWindow, commands
+from pkdiagram import Person, Marriage, Event
 from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
+
+
+_log = logging.getLogger(__name__)
 
 
 def test_add_pairbond_and_children(dlg):
@@ -207,25 +213,121 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     assert len(janetDoran.marriages) == 0
 
 
-@pytest.mark.skip(reason="Couldn't figure out how to ")
+# @pytest.mark.skip(reason="Couldn't figure out how to ")
 def test_blow_up_ItemDetails(qtbot, create_ac_mw):
     """Added as a placeholder for future script tests"""
+
+    from conftest import DATA_ROOT
+
     ac, mw = create_ac_mw()
+    mw.open(os.path.join(DATA_ROOT, "blow-up-itemdetails.fd"))
     scene = mw.scene
     dlg = mw.documentView.addAnythingDialog
     submitted = util.Condition(dlg.submitted)
     addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+    detailsButton = mw.documentView.view.rightToolBar.detailsButton
 
-    person = dlg.add_person_by_birth("John Doe", START_DATETIME)
-    marriage = dlg.add_marriage_to_person(
-        person, "Jane Doe", START_DATETIME.addYears(20)
-    )
-    for i in range(3):
-        event = dlg.add_event_to_marriage(
-            marriage, EventKind.Bonded, START_DATETIME.addYears(25 + i)
-        )
-        assert event.description() == "Bonded"
-        assert event.dateTime() == START_DATETIME.addYears(25 + i)
+    patrick = scene.query1(name="Patrick")
+    connie = scene.query1(name="connie")
+    martha = scene.query1(name="martha")
+
+    patrick.setSelected(True)
+    connie.setSelected(True)
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.CustomPairBond)
+    dlg.set_startDateTime(QDateTime(2025, 1, 1, 0, 0))
+    dlg.set_description("Something pair-bond-y")
+    dlg.mouseClick("AddEverything_submitButton")
+
+    QApplication.processEvents()
+
+    scene.clearSelection()
+    connie.setSelected(True)
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.CustomIndividual)
+    dlg.set_startDateTime(QDateTime(2001, 1, 1, 0, 0))
+    dlg.set_description("indivural custom")
+    dlg.mouseClick("AddEverything_submitButton")
+
+    mw.documentView.controller.onPrevEvent()
+
+    QApplication.processEvents()
+
+    scene.clearSelection()
+    martha.setSelected(True)
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.Adopted)
+    dlg.set_startDateTime(QDateTime(2003, 1, 1, 0, 0))
+
+    QApplication.processEvents()
+
+    mw.documentView.controller.onNextEvent()
+    mw.documentView.controller.onPrevEvent()
+    mw.documentView.controller.onNextEvent()
+
+    QApplication.processEvents()
+
+    scene.clearSelection()
+    martha.setSelected(True)
+    qtbot.clickAndProcessEvents(detailsButton)
+    mw.documentView.controller.onInspect()
+    # qtbot.mouseDClick(
+    #     mw.view, Qt.LeftButton, pos=mw.documentView.view.mapFromScene(martha.pos())
+    # )
+    assert mw.documentView.currentDrawer == mw.documentView.personProps
+
+    # person = dlg.add_person_by_birth("John Doe", START_DATETIME)
+    # marriage = dlg.add_marriage_to_person(
+    #     person, "Jane Doe", START_DATETIME.addYears(20)
+    # )
+
+    # for i in range(3):
+    #     event = dlg.add_event_to_marriage(
+    #         marriage, EventKind.Bonded, START_DATETIME.addYears(25 + i)
+    #     )
+    #     assert event.description() == "Bonded"
+    #     assert event.dateTime() == START_DATETIME.addYears(25 + i)
+
+
+def test_blow_up_ItemDetails_2(qtbot, create_ac_mw):
+    """Added as a placeholder for future script tests"""
+
+    from conftest import DATA_ROOT
+
+    ac, mw = create_ac_mw()
+    mw.show()
+    # QApplication.instance().exec()
+    mw.open(os.path.join(DATA_ROOT, "blow-up-itemdetails.fd"))
+    scene = mw.scene
+    dlg = mw.documentView.addAnythingDialog
+    submitted = util.Condition(dlg.submitted)
+    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+    detailsButton = mw.documentView.view.rightToolBar.detailsButton
+
+    patrick = scene.query1(name="Patrick")
+
+    patrick.marriages[0].setSelected(True)
+    assert scene.selectedItems() == [patrick.marriages[0]]
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.CustomPairBond)
+    dlg.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
+    dlg.set_description("Something pair-bond-y")
+    dlg.mouseClick("AddEverything_submitButton")
+
+    scene.clearSelection()
+    bruce = scene.query1(name="bruce")
+    bruce.setSelected(True)
+    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_startDateTime(QDateTime(1958, 1, 1, 0, 0))
+    # dlg.set_existing_person("personPicker", person=bruce)
+    dlg.set_new_person("personAPicker", "James")
+    dlg.set_new_person("personAPicker", "Natalie")
+    dlg.mouseClick("AddEverything_submitButton")
+
+    # starts the event loop which deletes the marriage for some reason
+    # _log.info("showing info")
+    # QMessageBox.information(None, "Test", "Waiting for 3 seconds")
 
 
 def test_add_second_marriage_to_person(dlg):
