@@ -171,7 +171,7 @@ def init_logging():
             record.pk_fileloc = f"{record.filename}:{record.lineno}"
         return True
 
-    LOG_FORMAT = "%(asctime)s %(pk_fileloc)-26s %(message)s"
+    LOG_FORMAT = "%(asctime)s %(levelname)s %(pk_fileloc)-26s %(message)s"
 
     consoleHandler = logging.StreamHandler(sys.stdout)
     consoleHandler.addFilter(allFilter)
