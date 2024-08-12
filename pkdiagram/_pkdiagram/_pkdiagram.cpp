@@ -9,11 +9,62 @@
 #include <QtWidgets/QtWidgets>
 #include <unsafearea.h>
 
+#include <execinfo.h>
+#include <iostream>
 
 // #include <QPainterPathStroker>
 // #include <QGuiApplication>
 // #include <QtWidgets/QApplication>
 // #include <QtWidgets/QDesktopWidget>
+
+void print_stack_trace() {
+    const int maxFrames = 100;
+    void *frames[maxFrames];
+    int frameCount = backtrace(frames, maxFrames);
+    char **symbols = backtrace_symbols(frames, frameCount);
+
+    std::cerr << "C/C++ Stack trace:" << std::endl;
+    for (int i = 0; i < frameCount; ++i) {
+        std::cerr << symbols[i] << std::endl;
+    }
+
+    free(symbols);
+}
+
+void print_python_stack_trace() {
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();    
+
+    // Get the current thread state
+    PyThreadState *tstate = PyThreadState_Get();
+
+    if (tstate && tstate->frame) {
+        // Get the traceback module and format_stack function
+        PyObject *traceback_module = PyImport_ImportModule("traceback");
+        if (traceback_module) {
+            PyObject *format_stack = PyObject_GetAttrString(traceback_module, "format_stack");
+            if (format_stack) {
+                // Call format_stack with the current frame
+                PyObject *stack_list = PyObject_CallFunctionObjArgs(format_stack, tstate->frame, NULL);
+                if (stack_list) {
+                    PyObject *stack_str = PyUnicode_Join(PyUnicode_FromString(""), stack_list);
+                    if (stack_str) {
+                        // Convert Python string to C string and print it
+                        const char *stack_cstr = PyUnicode_AsUTF8(stack_str);
+                        printf("Python stack trace:\n%s\n", stack_cstr);
+                        Py_DECREF(stack_str);
+                    }
+                    Py_DECREF(stack_list);
+                }
+                Py_DECREF(format_stack);
+            }
+            Py_DECREF(traceback_module);
+        }
+    }
+
+
+    PyGILState_Release(gstate);
+}
 
 AppFilter::AppFilter(QObject *parent)
     : QObject(parent) {
@@ -32,6 +83,9 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
         } else if (e->type() == QEvent::Quit) {
            QApplication::quit();
            return true;
+        } else if (e->type() == QEvent::Close) {
+            qDebug() << "e->type() == QEvent::Close";
+            print_stack_trace();
         }
     }
     return false;
@@ -612,7 +666,25 @@ PathItemBase::PathItemBase(QGraphicsItem *parent) :
 {
     m_delegate = new PathItemDelegate(this);
     m_usingDefaultDelegate = true;
+    // qDebug() << "PathItemBase()" << this->objectName();
 }
+
+// PathItemBase::~PathItemBase() {
+
+//     // print_stack_trace();
+//     // // print_python_stack_trace();
+
+//     // qDebug() << "~PathItemBase() objectName: " << this->objectName() << " className: " << this->metaObject()->className() << " parentItem: " << this->parentItem() << " parent: " << this->parent();
+
+//     // emit deleting(this);
+    
+
+// }
+
+void PathItemBase::dev_printCStackTrace() {
+    print_stack_trace();
+}
+
 void PathItemBase::setPathItemDelegate(PathItemDelegate *d)
 {
     if(d != m_delegate) {

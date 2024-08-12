@@ -181,6 +181,7 @@ public:
     virtual void timerEvent(QTimerEvent *); // fix crash on mac?
 
     void dev_setShowPathItemShapes(bool);
+    void dev_printCStackTrace();
 
     PathItemBase(QGraphicsItem *parent=nullptr);
 

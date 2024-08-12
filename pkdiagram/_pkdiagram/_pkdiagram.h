@@ -14,6 +14,9 @@
 #include <QGraphicsObject>
 
 
+void print_python_stack_trace();
+
+
 class FDDocument : public QObject {
     
     Q_OBJECT
@@ -266,8 +269,10 @@ public:
 
     bool dev_showPathItemShapes() const { return m_showPathItemShapes; }
     void dev_setShowPathItemShapes(bool on) { m_showPathItemShapes = on; update(); }
+    void dev_printCStackTrace();
 
     PathItemBase(QGraphicsItem *parent=nullptr);
+    // ~PathItemBase();
 
     PathItemDelegate *delegate() { return m_delegate; }
     void setPathItemDelegate(PathItemDelegate *d);
