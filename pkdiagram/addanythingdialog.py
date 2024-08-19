@@ -140,7 +140,10 @@ class AddAnythingDialog(QmlDrawer):
     def onDone(self):
         _log.info(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
 
-        kind = EventKind(self.rootProp("kind"))
+        if self.rootProp("kind") is None:
+            kind = None
+        else:
+            kind = EventKind(self.rootProp("kind"))
         personEntry = self.personEntry()
         personAEntry = self.personAEntry()
         personBEntry = self.personBEntry()

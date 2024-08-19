@@ -18,6 +18,10 @@ from tests.test_addanythingdialog import (
 log = logging.getLogger(__name__)
 
 
+def test_required_field_kind(dlg):
+    dlg.expectedFieldLabel("kindLabel")
+
+
 def test_required_field_Monadic(dlg):
 
     submitted = util.Condition(dlg.submitted)

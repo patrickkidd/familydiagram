@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram.pyqt import Qt, QWidget, QSize, QMainWindow
-from pkdiagram import MainWindow
+from pkdiagram import MainWindow, QmlWidgetHelper
 from pkdiagram.mainwindow_form import Ui_MainWindow
 from pkdiagram.toolbars import SceneToolBar, RightToolBar, ItemToolBar
 
@@ -30,7 +30,7 @@ def assert_sceneToolBar_InEditorMode(sceneToolBar: SceneToolBar, on: bool):
 
 def assert_rightToolBar_InEditorMode(rightToolBar: RightToolBar, on: bool):
     assert rightToolBar.isVisible() == True
-    assert rightToolBar.timelineButton.requestedVisible() == on
+    # assert rightToolBar.timelineButton.requestedVisible() == on
     assert rightToolBar.settingsButton.requestedVisible() == on
     assert rightToolBar.detailsButton.requestedVisible() == on
 
@@ -38,6 +38,8 @@ def assert_rightToolBar_InEditorMode(rightToolBar: RightToolBar, on: bool):
 def assert_mw_editorMode(mw: MainWindow, on: bool):
     assert mw.prefs.value("editorMode", defaultValue=False, type=bool) == on
     assert mw.ui.actionEditor_Mode.isChecked() == on
+    # assert mw.documentView.caseProps.itemProp("variablesBox", "visible") == on
+    # assert mw.documentView.caseProps.itemProp("tagsAndLayersBox", "visible") == on
     assert_itemToolBar_InEditorMode(mw.documentView.view.itemToolBar, on)
     assert_sceneToolBar_InEditorMode(mw.documentView.view.sceneToolBar, on)
     assert_rightToolBar_InEditorMode(mw.documentView.view.rightToolBar, on)

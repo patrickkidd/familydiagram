@@ -304,12 +304,14 @@ Page {
 
                     PK.GroupBox {
 
-                        id: tagsAndLayersRect
+                        id: tagsAndLayersBox
+                        objectName: 'tagsAndLayersBox'
 
                         padding: 0
                         Layout.fillWidth: true
                         Layout.topMargin: util.QML_MARGINS / 2
                         Layout.columnSpan: 2
+                        visible: sceneModel.isInEditorMode
 
                         ColumnLayout {
                             id: tagsAndLayersCL

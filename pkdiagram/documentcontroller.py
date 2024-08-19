@@ -190,6 +190,11 @@ class DocumentController(QObject):
 
     ## Non-verbal reactive event handlers
 
+    def onEditorMode(self, on):
+        self.dv.adjust()
+        self.dv.view.adjust()
+        self.dv.sceneModel.onEditorMode(on)
+
     def onSceneProperty(self, prop):
         if prop.name() == "tags":
             self.onSceneTagsChanged()

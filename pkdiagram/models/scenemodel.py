@@ -48,6 +48,7 @@ class SceneModel(QObject, ModelHelper):
             {"attr": "session", "type": QObject},
             {"attr": "isOnServer", "type": bool},
             {"attr": "isMyDiagram", "type": bool},
+            {"attr": "isInEditorMode", "type": bool},
         ],
     )
 
@@ -69,6 +70,7 @@ class SceneModel(QObject, ModelHelper):
         self._nullAccessRightsModel = AccessRightsModel(self)
         self._nullAccessRightsModel.setObjectName("accessRightModel")
         self._activeFeatures = []
+        self._isInEditorMode = False
         self.initModelHelper(storage=True)
 
     def setServerDiagram(self, diagram):
@@ -94,6 +96,11 @@ class SceneModel(QObject, ModelHelper):
                     self._session.user.username
                     == self._scene.serverDiagram().user.username
                 )
+            else:
+                ret = False
+        elif attr == "isInEditorMode":
+            if util.isInstance(self.parent(), "DocumentView"):
+                ret = self._isInEditorMode
             else:
                 ret = False
         elif attr == "timelineModel":
@@ -164,6 +171,10 @@ class SceneModel(QObject, ModelHelper):
                     self._scene.searchModel.hideRelationships
                 )
         self.searchChanged.emit()
+
+    def onEditorMode(self, on):
+        self._isInEditorMode = on
+        self.refreshProperty("isInEditorMode")
 
     @pyqtSlot(int)
     @util.blocked

@@ -60,7 +60,7 @@ class ItemMixin:
         self.setParent(toolbar.widget())
 
 
-class PixmapButtonMixin(ItemMixin):
+class ButtonItemMixin(ItemMixin):
 
     def __init__(
         self,
@@ -138,7 +138,7 @@ class PixmapButtonMixin(ItemMixin):
             self.button.setChecked(self.action.isChecked())
 
 
-class PushButton(widgets.PixmapPushButton, PixmapButtonMixin):
+class PushButton(widgets.PixmapPushButton, ButtonItemMixin):
     def __init__(
         self,
         objectName: str,
@@ -154,7 +154,7 @@ class PushButton(widgets.PixmapPushButton, PixmapButtonMixin):
             uncheckedPixmapPath=pixmap,
             autoInvertColor=autoInvertColor,
         )
-        PixmapButtonMixin.__init__(
+        ButtonItemMixin.__init__(
             self,
             objectName=objectName,
             action=action,
@@ -164,7 +164,7 @@ class PushButton(widgets.PixmapPushButton, PixmapButtonMixin):
         )
 
 
-class ToolButton(widgets.PixmapToolButton, PixmapButtonMixin):
+class ToolButton(widgets.PixmapToolButton, ButtonItemMixin):
     def __init__(
         self,
         objectName: str,
@@ -180,7 +180,7 @@ class ToolButton(widgets.PixmapToolButton, PixmapButtonMixin):
             uncheckedPixmapPath=pixmap,
             autoInvertColor=autoInvertColor,
         )
-        PixmapButtonMixin.__init__(
+        ButtonItemMixin.__init__(
             self,
             objectName=objectName,
             action=action,
@@ -828,19 +828,19 @@ class RightToolBar(ToolBar):
         self.addItems(
             PushButton(
                 objectName="addAnythingButton",
-                pixmap="plus-button.png",
+                pixmap="plus-button-green.png",
                 action=self.ui.actionAdd_Anything,
+                autoInvertColor=False,
                 # "help-tip": {
                 #     "pixmap": "family-timeline.png",
                 # },
             ),
-            Separator(objectName="sep1", visible=self.isInEditorMode),
+            Separator(objectName="sep1"),
             PushButton(
                 objectName="timelineButton",
                 pixmap="timeline-button.png",
                 action=self.ui.actionShow_Timeline,
                 helpPixmap="family-timeline.png",
-                visible=self.isInEditorMode,
             ),
             PushButton(
                 objectName="searchButton",

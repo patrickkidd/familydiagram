@@ -253,6 +253,7 @@ PK.Drawer {
                     title: 'Timeline Variables'
                     objectName: "variablesBox"
                     enabled: !sceneModel.readOnly
+                    visible: sceneModel.isInEditorMode
                     Layout.fillWidth: true
                     padding: 1 // bring variables ListView flush with group box
                     ColumnLayout {
@@ -401,7 +402,7 @@ PK.Drawer {
                     id: viewSettingsBox
                     title: 'View'
                     Layout.fillWidth: true
-                    Layout.topMargin: margin
+                    Layout.topMargin: sceneModel.isInEditorMode ? 0 : margin
                     ColumnLayout {
                         anchors.fill: parent                        
                         PK.CheckBox {

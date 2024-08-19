@@ -403,8 +403,7 @@ class MainWindow(QMainWindow):
         if editorMode != on:
             self.prefs.setValue("editorMode", on)
         self.ui.actionEditor_Mode.setChecked(on)
-        self.documentView.adjust()
-        self.documentView.view.adjust()
+        self.documentView.controller.onEditorMode(on)
 
     def isInEditorMode(self) -> bool:
         return self.prefs.value("editorMode", defaultValue=False, type=bool)
