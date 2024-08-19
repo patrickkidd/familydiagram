@@ -13,6 +13,7 @@ class Preferences(QDialog):
 
         # Signals
 
+        self.ui.editorModeBox.toggled[bool].connect(self.onEditorMode)
         self.ui.reopenFileBox.toggled[bool].connect(self.onReopenLastFile)
         self.ui.enablePinchZoomBox.toggled[bool].connect(self.onEnablePinchZoom)
         self.ui.enableWheelPanBox.toggled[bool].connect(self.onEnableWheelPan)
@@ -32,6 +33,9 @@ class Preferences(QDialog):
     def init(self, prefs):
         """Called just before exec()."""
         self.prefs = prefs
+        self.ui.editorModeBox.setChecked(
+            prefs.value("editorMode", defaultValue=False, type=bool)
+        )
         # loaded in MainWindow to set them before files are loading.
         self.ui.reopenFileBox.setChecked(
             self.prefs.value("reopenLastFile", defaultValue=True, type=bool)
@@ -79,6 +83,12 @@ class Preferences(QDialog):
 
     def deinit(self):
         self.prefs = None
+
+    @util.blocked
+    def onEditorMode(self, on):
+        self.prefs.setValue("editorMode", on)
+        self.mw.onEditorMode(on)
+        commands.track("Prefs: editorMode %s" % on)
 
     @util.blocked
     def onReopenLastFile(self, on):

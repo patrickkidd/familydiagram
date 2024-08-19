@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>476</width>
-    <height>634</height>
+    <height>674</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,30 +24,37 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
+       <widget class="QCheckBox" name="editorModeBox">
+        <property name="text">
+         <string>Editor Mode - Adds more controls for advanced users</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="enablePinchZoomBox">
         <property name="text">
-         <string>Enable Pinch Pan-Zoom.</string>
+         <string>Enable pinch pan-zoom</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="enableWheelPanBox">
         <property name="text">
-         <string>Enable trackpad/mouse wheel panning.</string>
+         <string>Enable trackpad/mouse wheel panning</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="reopenFileBox">
         <property name="text">
-         <string>Re-open last opened file on app launch.</string>
+         <string>Re-open last opened file on app launch</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QCheckBox" name="checkForUpdatesBox">
         <property name="text">
-         <string>Check for updates automatically.</string>
+         <string>Check for updates automatically</string>
         </property>
        </widget>
       </item>

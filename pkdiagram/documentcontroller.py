@@ -291,7 +291,9 @@ class DocumentController(QObject):
         """Idempotent"""
         session = self.dv.session
         isReadOnly = self.scene and self.scene.readOnly()
+
         # License-dependent
+
         allActionsEnabled = session.activeFeatures() != []
         for attr, action in self.ui.__dict__.items():
             if isinstance(action, QAction):
@@ -325,12 +327,16 @@ class DocumentController(QObject):
             session.hasFeature(vedana.LICENSE_RESEARCHER)
         )
         self.ui.actionInstall_Update.setEnabled(CUtil.instance().isUpdateAvailable())
+
         # License + In-view dependent actions
+
         on = bool(self.scene)
         self.ui.actionClose.setEnabled(
             on and not session.hasFeature(vedana.LICENSE_FREE)
         )
+
         # In-view actions
+
         on = bool(self.scene)
         self.ui.actionShow_Tips.setEnabled(on)
         self.ui.actionShow_Local_Files.setEnabled(not on)
@@ -366,7 +372,9 @@ class DocumentController(QObject):
         else:
             numLayers = 0
             iActiveLayer = -1
+
         # In-view + read-only enabled actions
+
         inViewPlusRW = bool(self.scene)
         self.ui.actionHide_Names.setEnabled(inViewPlusRW)
         self.ui.actionHide_Variables_on_Diagram.setEnabled(inViewPlusRW)
@@ -379,7 +387,9 @@ class DocumentController(QObject):
         )
         self.ui.actionShow_Aliases.setEnabled(enableShowAliases)
         self.ui.actionDelete.setEnabled(inViewPlusRW)
+
         # View-focus, read-write dependent actions
+
         fw = QApplication.focusWidget()
         if (
             (fw not in (self.view, self.view.itemToolBar, self.view.sceneToolBar))
@@ -430,7 +440,9 @@ class DocumentController(QObject):
         # self.view.itemToolBar.pencilButton.setEnabled(on)
         # self.view.itemToolBar.calloutButton.setEnabled(on)
         #
+
         # Selection-dependent actions
+
         if self.scene:
             people = self.scene.selectedPeople()
             marriages = self.scene.selectedMarriages()
@@ -438,7 +450,9 @@ class DocumentController(QObject):
             allSelected = self.scene.selectedItems()
         else:
             people = marriages = emotions = allSelected = []
+
         # Copy/Nudgables (i.e. People & LayerItems)
+
         rootCopyables = [
             item
             for item in allSelected
@@ -459,7 +473,9 @@ class DocumentController(QObject):
 
         if util.ENABLE_ITEM_COPY_PASTE:
             self.onSceneClipboard()
+
         # People-dependent actions
+
         if not forceOff:
             on = bool(people)
         else:
@@ -467,14 +483,18 @@ class DocumentController(QObject):
         self.ui.actionParents_to_Selection.setEnabled(on)
         self.ui.actionClear_All_Events.setEnabled(on)
         self.ui.actionDeselect.setEnabled(on)
+
         # Item-dependent actions
+
         if not forceOff:
             on = bool(self.scene and self.scene.items() or [])
         self.ui.actionSelect_All.setEnabled(on)
         childOfs = [i for i in allSelected if isinstance(i, ChildOf)]
         if not forceOff:
             on = (len(people) + len(marriages) + len(emotions) + len(childOfs)) > 0
+
         # Inspectable|Deletable-dependent action
+
         self.ui.actionDelete.setEnabled(
             self.canDelete() and (not self.scene or not self.scene.readOnly())
         )

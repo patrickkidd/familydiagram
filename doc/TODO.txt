@@ -1,7 +1,6 @@
 v2.0.0 punchlist
 =============================================================================
 
-
 USABILITY
 - Too hard to add new events with tags.
   - Can set tags on existing events then new event disappears on timeline.
@@ -14,13 +13,10 @@ USABILITY
   - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Make person picker yellow, then green when submitted? (same as create account dialog)
   - New people picker PersonPicker text edit doesn't get focus in new row
-  - Visualize that something is an opinion/emotion?
   - Re-arranging new people is clunky with PersonProperties populating
-  - Option to hide logged column?
   - Gender box not cleared after submit
   - Highlight people on diagrams when selected in person pickers
     - Show with different colors for mover/receiver, etc.
-  - Get rid of now event? (settings checkbox?)
   - Rename Description -> Title
   - Rename Notes -> Description (more appropriate for moves too)
   - Added notes into inside symbol and have no idea how to find them again.

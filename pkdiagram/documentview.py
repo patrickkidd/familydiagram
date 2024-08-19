@@ -315,7 +315,6 @@ class DocumentView(QWidget):
             )
         self.graphicalTimelineView.adjust(freezeScroll=drawerAnimating)
         self.updateTimelineCallout()
-        self.view.adjust()
         if not self.isAnimatingDrawer:
             for drawer in self.drawers:
                 drawer.adjust()

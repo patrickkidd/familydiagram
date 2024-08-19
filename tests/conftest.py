@@ -734,6 +734,10 @@ class PKQtBot(QtBot):
 
         self.qWaitForMessageBox(action, handleClick=doHitEscape)
 
+    def callAfter(self, action: callable, after: callable):
+        QTimer.singleShot(100, after)
+        action()
+
     def clickAndProcessEvents(self, button):
         self.mouseClick(button, Qt.LeftButton)
         # For some reason a QEventLoop is needed to finish laying out the Qml component
@@ -892,13 +896,21 @@ def create_ac_mw(request, qtbot, tmp_path, flask_qnam):
     created = []
 
     def _create_ac_mw(
-        appConfig=None, prefs=None, savedYet=True, session=True, init=True
+        appConfig=None,
+        prefs=None,
+        savedYet=True,
+        session=True,
+        editorMode=True,
+        init=True,
     ):
         if prefs is None:
             dpath = os.path.join(tmp_path, "settings.ini")
             prefs = util.Settings(dpath, "pytests")
             prefs.setValue("dontShowWelcome", True)
             prefs.setValue("acceptedEULA", True)
+
+        if editorMode is not None:
+            prefs.setValue("editorMode", editorMode)
 
         ac = AppController(QApplication.instance(), prefs)
         if savedYet is not None:

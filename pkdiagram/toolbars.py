@@ -1,3 +1,6 @@
+import enum
+import logging
+
 from .pyqt import (
     Qt,
     QScrollArea,
@@ -19,14 +22,192 @@ from .pyqt import (
 )
 from . import util, widgets
 
+_log = logging.getLogger(__name__)
 
-class Separator(QWidget):
+
+class ItemMixin:
+
+    def __init__(self, objectName: str = None, visible: callable = None):
+        self.visible = visible
+        self._requestedVisible = True
+        if objectName:
+            self.setObjectName(objectName)
+
+    @property
+    def name(self):
+        return self.widget.objectName()
+
+    def requestedVisible(self) -> bool:
+        return self._requestedVisible
+
+    def updateVisible(self):
+        """
+        Update the cache for if this item should be visible:
+        """
+        visible = True
+        if self.visible is not None:
+            if callable(self.visible):
+                visible = self.visible()
+            elif isinstance(self.visible, bool):
+                visible = self.visible
+        if visible:
+            self.show()
+        else:
+            self.hide()
+        self._requestedVisible = visible
+
+    def setToolBar(self, toolbar: "ToolBar"):
+        self.setParent(toolbar.widget())
+
+
+class PixmapButtonMixin(ItemMixin):
+
+    def __init__(
+        self,
+        objectName: str = None,
+        autoInvertColor: bool = True,
+        ignoreToggle: bool = False,  # don't draw `down` when toggled
+        helpPixmap: str = None,
+        action: QAction = None,
+        visible: callable = None,
+    ):
+        ItemMixin.__init__(
+            self,
+            objectName=objectName,
+            visible=visible,
+        )
+        self.action = action
+        self.autoInvertColor = autoInvertColor
+        self.ignoreToggle = ignoreToggle
+        self.helpPixmap = helpPixmap
+        self.setObjectName(objectName)
+        if self.action:
+            self.action.changed.connect(self.onActionChanged)
+            self.onActionChanged()
+            if self.action.isCheckable():
+                if self.ignoreToggle:
+                    self.clicked.connect(self.onButtonToggled)
+                else:
+                    self.toggled[bool].connect(self.onButtonToggled)
+            else:
+                self.clicked.connect(self.onTriggered)
+        if not self.ignoreToggle:
+            self.button.setCheckable(self.action.isCheckable())
+
+    def setToolBar(self, toolbar: "ToolBar") -> QLabel:
+        """Set the toolbar and create the help tip label."""
+        ItemMixin.setToolBar(self, toolbar)
+        if self.helpPixmap:
+            pixmapPath = util.QRC + "help-tips/" + self.helpPixmap
+            image = QImage(pixmapPath)
+            image.invertPixels(QImage.InvertRgb)
+            pixmap = QPixmap(image)
+            pixmap.setDevicePixelRatio(2.0)
+            if toolbar.position == Position.North:
+                transform = QTransform()
+                transform.rotate(80)
+                pixmap = pixmap.transformed(transform)
+            if hasattr(toolbar, "helpOverlay"):
+                helpTipLabel = QLabel(toolbar.helpOverlay)
+                helpTipLabel.setPixmap(pixmap)
+                helpTipLabel.setObjectName(self.helpPixmap)
+                helpTipLabel.adjustSize()
+                helpTipLabel._button = self.button
+                helpTipLabel._attrs = self.helpPixmap
+                return helpTipLabel
+
+    @property
+    def button(self):
+        return self
+
+    def onTriggered(self, *args):
+        self.action.triggered.emit(*args)
+
+    def onButtonToggled(self, on: bool = None):
+        if self.ignoreToggle:
+            on = not self.action.isChecked()
+        if on != self.action.isChecked():
+            self.action.setChecked(on)
+            if self.action.actionGroup():
+                self.action.actionGroup().triggered.emit(self.action)  # qt bug fix?
+
+    def onActionChanged(self):
+        if self.action.isEnabled() != self.button.isEnabled():
+            self.button.setEnabled(self.action.isEnabled())
+        if not self.ignoreToggle and self.action.isChecked() != self.button.isChecked():
+            self.button.setChecked(self.action.isChecked())
+
+
+class PushButton(widgets.PixmapPushButton, PixmapButtonMixin):
+    def __init__(
+        self,
+        objectName: str,
+        pixmap: str = None,
+        helpPixmap: str = None,
+        action: QAction = None,
+        visible: callable = None,
+        ignoreToggle: bool = False,
+        autoInvertColor: bool = True,
+    ):
+        widgets.PixmapPushButton.__init__(
+            self,
+            uncheckedPixmapPath=pixmap,
+            autoInvertColor=autoInvertColor,
+        )
+        PixmapButtonMixin.__init__(
+            self,
+            objectName=objectName,
+            action=action,
+            helpPixmap=helpPixmap,
+            visible=visible,
+            ignoreToggle=ignoreToggle,
+        )
+
+
+class ToolButton(widgets.PixmapToolButton, PixmapButtonMixin):
+    def __init__(
+        self,
+        objectName: str,
+        pixmap: str = None,
+        helpPixmap: str = None,
+        action: QAction = None,
+        visible: callable = None,
+        ignoreToggle: bool = False,
+        autoInvertColor: bool = True,
+    ):
+        widgets.PixmapToolButton.__init__(
+            self,
+            uncheckedPixmapPath=pixmap,
+            autoInvertColor=autoInvertColor,
+        )
+        PixmapButtonMixin.__init__(
+            self,
+            objectName=objectName,
+            action=action,
+            helpPixmap=helpPixmap,
+            visible=visible,
+            ignoreToggle=ignoreToggle,
+        )
+
+
+class Separator(QWidget, ItemMixin):
+
+    def __init__(self, parent=None, objectName: str = None, visible: callable = None):
+        QWidget.__init__(self, parent=parent)
+        ItemMixin.__init__(self, objectName=objectName, visible=visible)
+
     def paintEvent(self, e):
         p = QPainter(self)
         p.setBrush(util.GRID_COLOR)
         p.setPen(util.GRID_COLOR)
         p.drawRect(self.rect())
         p = None
+
+
+class Position(enum.Enum):
+    North = "north"
+    West = "west"
+    East = "east"
 
 
 class ToolBar(QScrollArea):
@@ -42,35 +223,37 @@ class ToolBar(QScrollArea):
         if util.isInstance(self.parent().mw, "MainWindow"):
             return self.parent().mw
 
-    def __init__(self, parent, ui, position):
+    def __init__(self, parent, ui, position: Position):
         super().__init__(parent)
-        self.items = []
         self.position = position
         self.ui = ui
         self.scene = None  # store for interaction with the scene
-        self.buttonAttrs = {}
+        self.items = []
         self.buttons = []
-        self.separators = []
-        self.shouldShow = []
         self.helpTipLabels = []
-        if self.position == "north":
+        self._isInEditorMode = False
+        self._isAppUpdateAvailable = False
+        if self.position == Position.North:
             self.MARGIN_X = util.MARGIN_X
             self.MARGIN_Y = util.MARGIN_Y
         else:
             self.MARGIN_X = util.MARGIN_X
             self.MARGIN_Y = round(util.MARGIN_Y / 2)
-        self._lastResponsiveSize = QSize()
+        self._lastViewSize = QSize()
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setWidget(QWidget())
         # Disable scrolling in the opposing axis altogether
-        if self.position == "north":
+        if self.position == Position.North:
             self.verticalScrollBar().setEnabled(False)
             self.setViewportMargins(-self.PADDING * 2, 0, -self.PADDING * 2, 0)
         else:
             self.horizontalScrollBar().setEnabled(False)
             self.setViewportMargins(0, -self.PADDING * 2, 0, -self.PADDING * 2)
         QApplication.instance().paletteChanged.connect(self.onApplicationPaletteChanged)
+        self.ui.actionEditor_Mode.toggled[bool].connect(
+            lambda: self.onItemsVisibilityChanged()
+        )
         # self.buttonGroup = widgets.ButtonGroup(self)
         if util.ENABLE_DROP_SHADOWS:
             self.setGraphicsEffect(
@@ -79,6 +262,7 @@ class ToolBar(QScrollArea):
                 )
             )
         self.onApplicationPaletteChanged()
+        self.onItemsVisibilityChanged()
 
     def onApplicationPaletteChanged(self):
         ss = ""
@@ -126,7 +310,7 @@ class ToolBar(QScrollArea):
                 border: 1px solid #d8d8d8;
             """
             )
-        if self.position == "north":
+        if self.position == Position.North:
             ss = (
                 ss
                 + """
@@ -135,7 +319,7 @@ class ToolBar(QScrollArea):
                 border-bottom-left-radius: 5px;
             """
             )
-        elif self.position == "west":
+        elif self.position == Position.West:
             ss = (
                 ss
                 + """
@@ -144,7 +328,7 @@ class ToolBar(QScrollArea):
                 border-top-right-radius: 5px;
             """
             )
-        elif self.position == "east":
+        elif self.position == Position.East:
             ss = (
                 ss
                 + """
@@ -164,168 +348,123 @@ class ToolBar(QScrollArea):
             if isinstance(child, widgets.PixmapButtonHelper):
                 child.onApplicationPaletteChanged()
 
-    def addItems(self, items):
-        for index, (name, attrs) in enumerate(items):
-            if attrs and "condition" in attrs and not attrs["condition"]:
-                continue
-            if attrs and not attrs.get("visible", True):
-                continue
-            if isinstance(attrs, dict):
-                toolbutton = attrs.get("toolbutton")
-                invert = attrs.get("autoInvertColor", True)
-                if toolbutton:
-                    button = widgets.PixmapToolButton(
-                        self.widget(),
-                        uncheckedPixmapPath=attrs["path"],
-                        autoInvertColor=invert,
-                    )
-                else:
-                    # all this does is give a popup delay on click and hold
-                    button = widgets.PixmapPushButton(
-                        self.widget(),
-                        uncheckedPixmapPath=attrs["path"],
-                        autoInvertColor=invert,
-                    )
-                button.setObjectName(name)
-                self.buttons.append(button)
-                slot = attrs.get("slot", None)
-                action = attrs.get("action", None)
-                ignoreToggle = attrs.get(
-                    "ignoreToggle", False
-                )  # don't draw `down` when toggled
-                helpTip = attrs.get("help-tip")
-                if slot:
-                    button.clicked.connect(slot)
-                elif action:
-
-                    def makeOnActionChanged(action, button, ignoreToggle):
-                        def onActionChanged():
-                            if action.isEnabled() != button.isEnabled():
-                                button.setEnabled(action.isEnabled())
-                            if (
-                                not ignoreToggle
-                                and action.isChecked() != button.isChecked()
-                            ):
-                                button.setChecked(action.isChecked())
-
-                        return onActionChanged
-
-                    onActionChanged = makeOnActionChanged(action, button, ignoreToggle)
-                    onActionChanged()  # init
-                    action.changed.connect(onActionChanged)
-                    button.setToolTip(action.toolTip())
-                    if not ignoreToggle:
-                        button.setCheckable(action.isCheckable())
-                    if action.isCheckable():
-
-                        def makeOnButtonToggled(button, action, ignoreToggle):
-                            def onButtonToggled(on=None):
-                                if ignoreToggle:
-                                    on = not action.isChecked()
-                                if on != action.isChecked():
-                                    action.setChecked(on)
-                                    if action.actionGroup():
-                                        action.actionGroup().triggered.emit(
-                                            action
-                                        )  # qt bug fix?
-
-                            return onButtonToggled
-
-                        onButtonToggled = makeOnButtonToggled(
-                            button, action, ignoreToggle
-                        )
-                        if ignoreToggle:
-                            button.clicked.connect(onButtonToggled)
-                        else:
-                            button.toggled[bool].connect(onButtonToggled)
-                    else:
-
-                        def makeOnTriggered(button, action):
-                            def onTriggered(*args):
-                                action.triggered.emit(*args)
-
-                            return onTriggered
-
-                        onTriggered = makeOnTriggered(button, action)
-                        button.clicked.connect(onTriggered)
-                if helpTip:
-                    pixmapPath = util.QRC + "help-tips/" + helpTip["pixmap"]
-                    button.__helpTip = helpTip
-                    image = QImage(pixmapPath)
-                    image.invertPixels(QImage.InvertRgb)
-                    pixmap = QPixmap(image)
-                    pixmap.setDevicePixelRatio(2.0)
-                    if self.position == "north":
-                        transform = QTransform()
-                        transform.rotate(80)
-                        pixmap = pixmap.transformed(transform)
-                    if hasattr(self.parent(), "helpOverlay"):
-                        helpTipLabel = QLabel(self.parent().helpOverlay)
-                        helpTipLabel.setPixmap(pixmap)
-                        helpTipLabel.setObjectName(helpTip["pixmap"])
-                        helpTipLabel.adjustSize()
-                        helpTipLabel._button = button
-                        helpTipLabel._attrs = helpTip
-                        self.helpTipLabels.append(helpTipLabel)
-                setattr(self, name, button)
-            else:
-                # no spacing for separators
-                separator = Separator(self.widget())
-                if self.position == "north":
-                    separator.setFixedSize(1, util.BUTTON_SIZE)
-                elif self.position == "west":
-                    separator.setFixedSize(util.BUTTON_SIZE, 1)
-                elif self.position == "east":
-                    separator.setFixedSize(util.BUTTON_SIZE, 1)
-                separator.setObjectName(name)
-                self.separators.append(separator)
-                setattr(self, name, separator)
-            self.buttonAttrs[name] = attrs
-            self.shouldShow.append(getattr(self, name))
-        self.items += items
-        self.adjust()
-
     def setScene(self, scene):
         self.scene = scene
 
-    def onResponsive(self, size):
+    def addItems(self, *items: list[ItemMixin]):
+        for item in items:
+            item.setToolBar(self)
+            if isinstance(item, (PushButton, ToolButton)):
+                self.buttons.append(item)
+            if isinstance(item, Separator):
+                # no spacing for separators
+                if self.position == Position.North:
+                    item.setFixedSize(1, util.BUTTON_SIZE)
+                elif self.position == Position.West:
+                    item.setFixedSize(util.BUTTON_SIZE, 1)
+                elif self.position == Position.East:
+                    item.setFixedSize(util.BUTTON_SIZE, 1)
+            setattr(self, item.objectName(), item)
+            item.updateVisible()
+            self.items.append(item)
+
+    def isInBounds(self, w: QWidget, size=None) -> bool:
+        size = size or self.size()
+        if self.position == Position.North:
+            return w.x() + w.width() < size.width() - self.RESPONSIVE_MARGIN * 2
+        elif self.position in (Position.West, Position.East):
+            return w.y() + w.height() < size.height() - self.RESPONSIVE_MARGIN * 2
+
+    def onlyShownInEditorMode(self) -> bool:
+        return False
+
+    def adjust(self, viewSize: QSize = None):
+        """
+        Adjust item size and visibility, scrollable viewport size.
+        """
+        if viewSize is None:
+            viewSize = self._lastViewSize
+        else:
+            self._lastViewSize = viewSize
+
+        ## Item Positions
+
+        if self.position == Position.North:
+            self.cur = self.MARGIN_X
+        elif self.position == Position.West:
+            self.cur = self.MARGIN_Y
+        elif self.position == Position.East:
+            self.cur = self.MARGIN_Y
+        toUpdate = [x for x in self.items if x.requestedVisible()]
+        for item in toUpdate:
+            if item:
+                if self.position == Position.North:
+                    item.move(self.cur, self.MARGIN_Y)
+                    shift = item.width() + self.MARGIN_X
+                elif self.position == Position.West:
+                    item.move(self.MARGIN_X, self.cur)
+                    shift = item.height() + self.MARGIN_Y
+                elif self.position == Position.East:
+                    item.move(self.MARGIN_X, self.cur)
+                    shift = item.height() + self.MARGIN_Y
+                self.cur += shift
+                item.updateGeometry()
+            else:
+                # Separators
+                if self.position == Position.North:
+                    item.move(self.cur, self.MARGIN_Y)
+                    shift = self.MARGIN_X
+                elif self.position == Position.West:
+                    item.move(self.MARGIN_X, self.cur)
+                    shift = self.MARGIN_Y
+                elif self.position == Position.East:
+                    item.move(self.MARGIN_X, self.cur)
+                    shift = self.MARGIN_Y
+                self.cur += shift
+        if self.position == Position.North:
+            self.widget().resize(self.cur, util.BUTTON_SIZE + self.MARGIN_Y * 2)
+        elif self.position in (Position.West, Position.East):
+            self.widget().resize(
+                util.BUTTON_SIZE + self.MARGIN_X * 2, self.cur + self.MARGIN_Y
+            )
+
+        ## Responsive size, hide if all buttons out of bounds.
+
         lastInBounds = None
-        for index, (name, attrs) in enumerate(self.items):
-            if not hasattr(self, name):
-                continue
-            w = getattr(self, name)
-            if w not in self.shouldShow:
-                continue
-            if self.position == "north":
-                inBounds = bool(
-                    w.x() + w.width() < size.width() - self.RESPONSIVE_MARGIN * 2
-                )
-            elif self.position in ("west", "east"):
-                inBounds = bool(
-                    w.y() + w.height() < size.height() - self.RESPONSIVE_MARGIN * 2
-                )
-            if inBounds and attrs is not None:
-                lastInBounds = w
+        for item in self.items:
+            inBounds = self.isInBounds(item, viewSize)
+            if inBounds and item and item.requestedVisible():
+                lastInBounds = item
             # if self.items[index-1][1] is None: # separator just before
             #     sep = getattr(self, name)
             #     sep.setVisible(inBounds)
         if lastInBounds:
-            self.show()
+            self.setVisible(True)
             # this assumes that each item is added right at the margin from the previous
-            if self.position == "north":
+            if self.position == Position.North:
                 self.resize(
                     lastInBounds.x() + lastInBounds.width() + self.PADDING,
                     self.height(),
                 )
-            elif self.position in ("west", "east"):
+            elif self.position in (Position.West, Position.East):
                 self.resize(
                     self.width(),
                     lastInBounds.y() + lastInBounds.height() + self.PADDING,
                 )
-        else:
-            self.hide()
 
-        # Help labels
+        if not self.isInEditorMode() and self.onlyShownInEditorMode():
+            self.setVisible(False)
+        else:
+            if lastInBounds:
+                self.setVisible(True)
+            elif not lastInBounds:
+                self.setVisible(False)
+
+        if not self.buttons:
+            return
+
+        ## Help labels
+
         firstButtonPos = self.mapTo(self.parent(), self.buttons[0].pos())
         # dpr = self.devicePixelRatio()
         dpr = 2  # hack; no idea
@@ -339,17 +478,17 @@ class ToolBar(QScrollArea):
             # between this toolbar and the View. Strangely, the first button appears to have the right mapped pos.
             # So the hack is to use view's devicePixelRatio up to this toolbar postion (actually the first button's position),
             # then use this toolbar's devicePixelRatio for the relative offset for subsequent buttons
-            if self.position == "west":
+            if self.position == Position.West:
                 viewPosHacked = QPoint(
                     int(self.width() + util.MARGIN_X * 2),
                     int(firstButtonPos.y() + yOff),
                 )
-            elif self.position == "north":
+            elif self.position == Position.North:
                 viewPosHacked = QPoint(
                     int(firstButtonPos.x() + xOff + 15),
                     int(self.height() + util.MARGIN_Y),
                 )
-            elif self.position == "east":
+            elif self.position == Position.East:
                 viewPosHacked = QPoint(
                     int(
                         self.parent().width()
@@ -359,441 +498,276 @@ class ToolBar(QScrollArea):
                     ),
                     int(firstButtonPos.y() + yOff),
                 )
-            offset = label._attrs.get("offset", QPoint())
-            label.move(viewPosHacked + offset)
+            label.move(viewPosHacked)
             if label._button.isVisible() != label.isVisible():
                 label.setVisible(label._button.isVisible())
 
-        self._lastResponsiveSize = size
+    # Visibility helpers
 
-    def adjust(self):
-        """Call after showing/hiding a button."""
-        if self.position == "north":
-            self.cur = self.MARGIN_X
-        elif self.position == "west":
-            self.cur = self.MARGIN_Y
-        elif self.position == "east":
-            self.cur = self.MARGIN_Y
-        for name, attrs in self.buttonAttrs.items():
-            item = getattr(self, name)
-            if item not in self.shouldShow:
-                continue
-            if isinstance(attrs, dict):
-                button = item
-                if self.position == "north":
-                    button.move(self.cur, self.MARGIN_Y)
-                    shift = button.width() + self.MARGIN_X
-                elif self.position == "west":
-                    button.move(self.MARGIN_X, self.cur)
-                    shift = button.height() + self.MARGIN_Y
-                elif self.position == "east":
-                    button.move(self.MARGIN_X, self.cur)
-                    shift = button.height() + self.MARGIN_Y
-                self.cur += shift
-                button.updateGeometry()
-            else:
-                separator = item
-                if self.position == "north":
-                    separator.move(self.cur, self.MARGIN_Y)
-                    shift = self.MARGIN_X
-                elif self.position == "west":
-                    separator.move(self.MARGIN_X, self.cur)
-                    shift = self.MARGIN_Y
-                elif self.position == "east":
-                    separator.move(self.MARGIN_X, self.cur)
-                    shift = self.MARGIN_Y
-                self.cur += shift
-        if self.position == "north":
-            self.widget().resize(self.cur, util.BUTTON_SIZE + self.MARGIN_Y * 2)
-        elif self.position in ("west", "east"):
-            self.widget().resize(
-                util.BUTTON_SIZE + self.MARGIN_X * 2, self.cur + self.MARGIN_Y
-            )
-        self.onResponsive(self._lastResponsiveSize)
-
-    def showItem(self, item):
-        if item not in self.shouldShow:
-            self.shouldShow.append(item)
-            item.show()
+    def onItemsVisibilityChanged(self):
+        """
+        Update + cache the callback values, then update all items accordingly.
+        """
+        self._isInEditorMode = self.ui.actionEditor_Mode.isChecked()
+        self._isAppUpdateAvailable = self.ui.actionInstall_Update.isEnabled()
+        for item in self.items:
+            item.updateVisible()
         self.adjust()
 
-    def hideItem(self, item):
-        if item in self.shouldShow:
-            self.shouldShow.remove(item)
-            item.hide()
-        self.adjust()
+    def isInEditorMode(self) -> bool:
+        return self._isInEditorMode
 
-    def isItemShown(self, item):
-        return item in self.shouldShow
+    def isAppUpdateAvailable(self) -> bool:
+        return self._isAppUpdateAvailable
 
 
 class SceneToolBar(ToolBar):
 
     def __init__(self, parent, ui):
-        super().__init__(parent, ui, "north")
+        super().__init__(parent, ui, Position.North)
         self.setObjectName("sceneToolBar")
         self.addItems(
-            [
-                # ('newButton', {
-                #     'path': 'new-button.png',
-                #     'action': self.ui.actionNew
-                # }),
-                (
-                    "homeButton",
-                    {
-                        "path": "home-button.png",
-                        "action": self.ui.actionClose,
-                        "help-tip": {
-                            "pixmap": "home.png",
-                        },
-                    },
-                ),
-                # ('shareButton', {
-                #     'path': 'share-button.png',
-                #     'action': self.ui.actionSave_As
-                # }),
-                ("sep1", None),
-                (
-                    "zoomFitButton",
-                    {
-                        "path": "zoom-fit-button.png",
-                        "action": self.ui.actionZoom_Fit,
-                        "help-tip": {
-                            "pixmap": "zoom-to-fit.png",
-                        },
-                    },
-                ),
-                (
-                    "dateSliderButton",
-                    {
-                        "path": "date-slider-button.png",
-                        "action": self.ui.actionShow_Graphical_Timeline,
-                        "ignoreToggle": True,
-                        "help-tip": {
-                            "pixmap": "timeline-slider.png",
-                        },
-                    },
-                ),
-                (
-                    "hideButton",
-                    {
-                        "path": "presentation-mode.png",
-                        "action": self.ui.actionHide_ToolBars,
-                        "help-tip": {
-                            "pixmap": "presentation-mode.png",
-                        },
-                    },
-                ),
-                (
-                    "notesButton",
-                    {
-                        "path": "paper-clip.png",
-                        "action": self.ui.actionShow_Items_with_Notes,
-                        "help-tip": {
-                            "pixmap": "show-items-with-notes.png",
-                        },
-                    },
-                ),
-                ("sep2", None),
-                (
-                    "prevLayerButton",
-                    {
-                        "path": "prev-layer-button.png",
-                        "action": self.ui.actionPrevious_Layer,
-                        "help-tip": {
-                            "pixmap": "previous-view.png",
-                        },
-                    },
-                ),
-                (
-                    "nextLayerButton",
-                    {
-                        "path": "next-layer-button.png",
-                        "action": self.ui.actionNext_Layer,
-                        "help-tip": {
-                            "pixmap": "next-view.png",
-                        },
-                    },
-                ),
-                (
-                    "resetAllButton",
-                    {
-                        "path": "reset-all-button.png",
-                        "action": self.ui.actionReset_All,
-                        "help-tip": {
-                            "pixmap": "reset-diagram.png",
-                        },
-                    },
-                ),
-                ("sep3", None),
-                (
-                    "undoButton",
-                    {
-                        "path": "undo-button.png",
-                        "action": self.ui.actionUndo,
-                        "help-tip": {
-                            "pixmap": "undo.png",
-                        },
-                    },
-                ),
-                (
-                    "redoButton",
-                    {
-                        "path": "redo-button.png",
-                        "action": self.ui.actionRedo,
-                        "help-tip": {
-                            "pixmap": "redo.png",
-                        },
-                    },
-                ),
-                (
-                    "helpButton",
-                    {"path": "help-button.png", "action": self.ui.actionShow_Tips},
-                ),
-                ("sep0", None),
-                (
-                    "accountButton",
-                    {
-                        "path": "cart-button.png",
-                        "action": self.ui.actionShow_Account,
-                        "autoInvertColor": False,
-                        "help-tip": {
-                            "pixmap": "show-account.png",
-                        },
-                    },
-                ),
-                (
-                    "downloadUpdateButton",
-                    {
-                        "path": "update-available-button.png",
-                        "action": self.ui.actionInstall_Update,
-                        "autoInvertColor": False,
-                    },
-                ),
-                (
-                    "startProfileButton",
-                    {
-                        "path": "plus-button.png",
-                        "action": self.ui.actionStart_Profile,
-                        "visible": util.IS_IOS,
-                        "help-tip": {
-                            "pixmap": "home.png",
-                        },
-                    },
-                ),
-                (
-                    "stopProfileButton",
-                    {
-                        "path": "delete-button.png",
-                        "action": self.ui.actionStop_Profile,
-                        "visible": util.IS_IOS,
-                        "help-tip": {
-                            "pixmap": "home.png",
-                        },
-                    },
-                ),
-            ]
+            # ('newButton', {
+            #     'path': 'new-button.png',
+            #     'action': self.ui.actionNew
+            # }),
+            PushButton(
+                objectName="homeButton",
+                pixmap="home-button.png",
+                action=self.ui.actionClose,
+                helpPixmap="home.png",
+            ),
+            # ('shareButton', {
+            #     'path': 'share-button.png',
+            #     'action': self.ui.actionSave_As
+            # }),
+            Separator(objectName="sep1", visible=self.isInEditorMode),
+            PushButton(
+                objectName="zoomFitButton",
+                pixmap="zoom-fit-button.png",
+                action=self.ui.actionZoom_Fit,
+                helpPixmap="zoom-to-fit.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="dateSliderButton",
+                pixmap="date-slider-button.png",
+                action=self.ui.actionShow_Graphical_Timeline,
+                ignoreToggle=True,
+                helpPixmap="timeline-slider.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="hideButton",
+                pixmap="presentation-mode.png",
+                action=self.ui.actionHide_ToolBars,
+                helpPixmap="presentation-mode.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="notesButton",
+                pixmap="paper-clip.png",
+                action=self.ui.actionShow_Items_with_Notes,
+                helpPixmap="show-items-with-notes.png",
+                visible=self.isInEditorMode,
+            ),
+            Separator(objectName="sep2", visible=self.isInEditorMode),
+            PushButton(
+                objectName="prevLayerButton",
+                pixmap="prev-layer-button.png",
+                action=self.ui.actionPrevious_Layer,
+                helpPixmap="previous-view.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="nextLayerButton",
+                pixmap="next-layer-button.png",
+                action=self.ui.actionNext_Layer,
+                helpPixmap="next-view.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="resetAllButton",
+                pixmap="reset-all-button.png",
+                action=self.ui.actionReset_All,
+                helpPixmap="reset-diagram.png",
+            ),
+            Separator(objectName="sep3", visible=self.isInEditorMode),
+            PushButton(
+                objectName="undoButton",
+                pixmap="undo-button.png",
+                action=self.ui.actionUndo,
+                helpPixmap="undo.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="redoButton",
+                pixmap="redo-button.png",
+                action=self.ui.actionRedo,
+                helpPixmap="redo.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="helpButton",
+                pixmap="help-button.png",
+                action=self.ui.actionShow_Tips,
+                visible=self.isInEditorMode,
+            ),
+            Separator(objectName="sep4", visible=self.isInEditorMode),
+            PushButton(
+                objectName="accountButton",
+                pixmap="cart-button.png",
+                action=self.ui.actionShow_Account,
+                autoInvertColor=False,
+                helpPixmap="show-account.png",
+            ),
+            PushButton(
+                objectName="downloadUpdateButton",
+                pixmap="update-available-button.png",
+                action=self.ui.actionInstall_Update,
+                autoInvertColor=False,
+                visible=self.isAppUpdateAvailable,
+            ),
+            # PushButton(
+            #     objectName="startProfileButton",
+            #     pixmap="plus-button.png",
+            #     action=self.ui.actionStart_Profile,
+            #     visible=util.IS_IOS,
+            #     helpPixmap="home.png",
+            # ),
+            # PushButton(
+            #     objectName="stopProfileButton",
+            #     pixmap="delete-button.png",
+            #     action=self.ui.actionStop_Profile,
+            #     visible=util.IS_IOS,
+            #     helpPixmap="home.png",
+            # ),
         )
 
 
 class ItemToolBar(ToolBar):
 
     def __init__(self, parent, ui):
-        super().__init__(parent, ui, "west")
+        super().__init__(parent, ui, Position.West)
         self.setObjectName("itemToolBar")
         # self.buttonGroup.changed[int].connect(self.onButton)
         self.addItems(
-            [
-                (
-                    "maleButton",
-                    {
-                        "path": "male-button.png",
-                        "action": self.ui.actionMale,
-                        "help-tip": {
-                            "pixmap": "male.png",
-                        },
-                    },
-                ),
-                (
-                    "femaleButton",
-                    {
-                        "path": "female-button.png",
-                        "action": self.ui.actionFemale,
-                        "help-tip": {
-                            "pixmap": "female.png",
-                        },
-                    },
-                ),
-                (
-                    "marriageButton",
-                    {
-                        "path": "marriage-button.png",
-                        "action": self.ui.actionMarriage,
-                        "help-tip": {
-                            "pixmap": "pair-bond.png",
-                        },
-                    },
-                ),
-                (
-                    "childButton",
-                    {
-                        "path": "child-button.png",
-                        "action": self.ui.actionChild_Of,
-                        "help-tip": {
-                            "pixmap": "child.png",
-                        },
-                    },
-                ),
-                (
-                    "parentsButton",
-                    {
-                        "path": "add-parents.png",
-                        "action": self.ui.actionParents_to_Selection,
-                        "help-tip": {
-                            "pixmap": "parents.png",
-                        },
-                    },
-                ),
-                ("sep1", None),
-                (
-                    "distanceButton",
-                    {
-                        "path": "distance.png",
-                        "action": self.ui.actionDistance,
-                        "help-tip": {
-                            "pixmap": "distance.png",
-                        },
-                    },
-                ),
-                (
-                    "conflictButton",
-                    {
-                        "path": "conflict.png",
-                        "action": self.ui.actionConflict,
-                        "help-tip": {
-                            "pixmap": "conflict.png",
-                        },
-                    },
-                ),
-                (
-                    "reciprocityButton",
-                    {
-                        "path": "reciprocity.png",
-                        "action": self.ui.actionReciprocity,
-                        "help-tip": {
-                            "pixmap": "reciprocity.png",
-                        },
-                    },
-                ),
-                (
-                    "projectionButton",
-                    {
-                        "path": "projection.png",
-                        "action": self.ui.actionProjection,
-                        "help-tip": {
-                            "pixmap": "projection.png",
-                        },
-                    },
-                ),
-                ("sep2", None),
-                (
-                    "cutoffButton",
-                    {
-                        "path": "cutoff.png",
-                        "action": self.ui.actionPrimary_Cutoff,
-                        "help-tip": {
-                            "pixmap": "cutoff.png",
-                        },
-                    },
-                ),
-                (
-                    "fusionButton",
-                    {
-                        "path": "fusion.png",
-                        "action": self.ui.actionFusion,
-                        "help-tip": {
-                            "pixmap": "fusion.png",
-                        },
-                    },
-                ),
-                (
-                    "insideButton",
-                    {
-                        "path": "inside.png",
-                        "action": self.ui.actionInside,
-                        "help-tip": {
-                            "pixmap": "inside.png",
-                        },
-                    },
-                ),
-                (
-                    "outsideButton",
-                    {
-                        "path": "outside.png",
-                        "action": self.ui.actionOutside,
-                        "help-tip": {
-                            "pixmap": "outside.png",
-                        },
-                    },
-                ),
-                ("sep3", None),
-                (
-                    "towardButton",
-                    {
-                        "path": "toward.png",
-                        "action": self.ui.actionToward,
-                        "help-tip": {
-                            "pixmap": "toward.png",
-                        },
-                    },
-                ),
-                (
-                    "awayButton",
-                    {
-                        "path": "away.png",
-                        "action": self.ui.actionAway,
-                        "help-tip": {
-                            "pixmap": "away.png",
-                        },
-                    },
-                ),
-                (
-                    "definedSelfButton",
-                    {
-                        "path": "defined-self.png",
-                        "action": self.ui.actionDefined_Self,
-                        "help-tip": {
-                            "pixmap": "defined-self.png",
-                        },
-                    },
-                ),
-                ("sep4", None),
-                (
-                    "calloutButton",
-                    {
-                        "path": "callout.png",
-                        "action": self.ui.actionCallout,
-                        "help-tip": {
-                            "pixmap": "text-callout.png",
-                        },
-                    },
-                ),
-                (
-                    "pencilButton",
-                    {
-                        "path": "pencil-button.png",
-                        "action": self.ui.actionPencilStroke,
-                        "toolbutton": True,
-                        "help-tip": {
-                            "pixmap": "pencil-drawing.png",
-                        },
-                    },
-                ),
-                # ('eraserButton', {
-                #     'path': 'eraser-button.png',
-                #     'id': util.ITEM_ERASER
-                # })
-            ]
+            PushButton(
+                objectName="maleButton",
+                pixmap="male-button.png",
+                action=self.ui.actionMale,
+                helpPixmap="male.png",
+            ),
+            PushButton(
+                objectName="femaleButton",
+                pixmap="female-button.png",
+                action=self.ui.actionFemale,
+                helpPixmap="female.png",
+            ),
+            PushButton(
+                objectName="marriageButton",
+                pixmap="marriage-button.png",
+                action=self.ui.actionMarriage,
+                helpPixmap="pair-bond.png",
+            ),
+            PushButton(
+                objectName="childButton",
+                pixmap="child-button.png",
+                action=self.ui.actionChild_Of,
+                helpPixmap="child.png",
+            ),
+            PushButton(
+                objectName="parentsButton",
+                pixmap="add-parents.png",
+                action=self.ui.actionParents_to_Selection,
+                helpPixmap="parents.png",
+            ),
+            Separator(objectName="sep1"),
+            PushButton(
+                objectName="distanceButton",
+                pixmap="distance.png",
+                action=self.ui.actionDistance,
+                helpPixmap="distance.png",
+            ),
+            PushButton(
+                objectName="conflictButton",
+                pixmap="conflict.png",
+                action=self.ui.actionConflict,
+                helpPixmap="conflict.png",
+            ),
+            PushButton(
+                objectName="reciprocityButton",
+                pixmap="reciprocity.png",
+                action=self.ui.actionReciprocity,
+                helpPixmap="reciprocity.png",
+            ),
+            PushButton(
+                objectName="projectionButton",
+                pixmap="projection.png",
+                action=self.ui.actionProjection,
+                helpPixmap="projection.png",
+            ),
+            Separator(objectName="sep2"),
+            PushButton(
+                objectName="cutoffButton",
+                pixmap="cutoff.png",
+                action=self.ui.actionPrimary_Cutoff,
+                helpPixmap="cutoff.png",
+            ),
+            PushButton(
+                objectName="fusionButton",
+                pixmap="fusion.png",
+                action=self.ui.actionFusion,
+                helpPixmap="fusion.png",
+            ),
+            PushButton(
+                objectName="insideButton",
+                pixmap="inside.png",
+                action=self.ui.actionInside,
+                helpPixmap="inside.png",
+            ),
+            PushButton(
+                objectName="outsideButton",
+                pixmap="outside.png",
+                action=self.ui.actionOutside,
+                helpPixmap="outside.png",
+            ),
+            Separator(objectName="sep3"),
+            PushButton(
+                objectName="towardButton",
+                pixmap="toward.png",
+                action=self.ui.actionToward,
+                helpPixmap="toward.png",
+            ),
+            PushButton(
+                objectName="awayButton",
+                pixmap="away.png",
+                action=self.ui.actionAway,
+                helpPixmap="away.png",
+            ),
+            PushButton(
+                objectName="definedSelfButton",
+                pixmap="defined-self.png",
+                action=self.ui.actionDefined_Self,
+                helpPixmap="defined-self.png",
+            ),
+            Separator(objectName="sep4"),
+            PushButton(
+                objectName="calloutButton",
+                pixmap="callout.png",
+                action=self.ui.actionCallout,
+                helpPixmap="text-callout.png",
+            ),
+            ToolButton(
+                objectName="pencilButton",
+                pixmap="pencil-button.png",
+                action=self.ui.actionPencilStroke,
+                helpPixmap="pencil-drawing.png",
+            ),
+            # ('eraserButton', {
+            #     'path': 'eraser-button.png',
+            #     'id': util.ITEM_ERASER
+            # })
         )
 
         # pencil width slider
@@ -822,6 +796,9 @@ class ItemToolBar(ToolBar):
         self.pencilMenu.aboutToShow.connect(self.onPencilShow)
         self.pencilMenu.aboutToHide.connect(self.onPencilHide)
 
+    def onlyShownInEditorMode(self) -> bool:
+        return True
+
     def onPencilShow(self):
         if self.scene:
             self.pencilSlider.setValue(self.scene.pencilScale() * 100)  # trigger signal
@@ -845,86 +822,65 @@ class ItemToolBar(ToolBar):
 class RightToolBar(ToolBar):
 
     def __init__(self, parent, ui):
-        super().__init__(parent, ui, "east")
-        self.setObjectName("toolToolBar")
+        super().__init__(parent, ui, Position.East)
+        self.setObjectName("rightToolBar")
         # self.buttonGroup.changed[int].connect(self.onButton)
         self.addItems(
-            [
-                (
-                    "addAnythingButton",
-                    {
-                        "path": "plus-button.png",
-                        "action": self.ui.actionAdd_Anything,
-                        # "help-tip": {
-                        #     "pixmap": "family-timeline.png",
-                        # },
-                    },
-                ),
-                ("sep", None),
-                (
-                    "timelineButton",
-                    {
-                        "path": "timeline-button.png",
-                        "action": self.ui.actionShow_Timeline,
-                        "help-tip": {
-                            "pixmap": "family-timeline.png",
-                        },
-                    },
-                ),
-                (
-                    "searchButton",
-                    {
-                        "path": "search-button.png",
-                        "action": self.ui.actionShow_Search,
-                        "help-tip": {
-                            "pixmap": "search.png",
-                        },
-                    },
-                ),
-                (
-                    "settingsButton",
-                    {
-                        "path": "settings-button.png",
-                        "action": self.ui.actionShow_Settings,
-                        "help-tip": {
-                            "pixmap": "diagram-settings.png",
-                        },
-                    },
-                ),
-                ("sep", None),
-                (
-                    "detailsButton",
-                    {
-                        "path": "details-button.png",
-                        "action": self.ui.actionInspect,
-                        "help-tip": {
-                            "pixmap": "inspect-selection.png",
-                        },
-                    },
-                ),
-                (
-                    "deleteButton",
-                    {
-                        "path": "delete-button.png",
-                        "action": self.ui.actionDelete,
-                        "help-tip": {
-                            "pixmap": "delete-item.png",
-                        },
-                    },
-                ),
-                # ('addEventButton', {
-                #     'path': 'add-event-button.png',
-                #     'action': self.ui.actionAdd_Event,
-                #     'help-tip': {
-                #         'pixmap': 'add-event.png',
-                #     }
-                # }),
-                # ('addEmotionButton', {
-                #     'path': 'add-emotion-button.png',
-                #     'action': self.ui.actionAdd_Relationship,
-                #     'help-tip': {
-                #         'pixmap': 'add-relationship.png',
-                #     }
-                # }),
-            ]
+            PushButton(
+                objectName="addAnythingButton",
+                pixmap="plus-button.png",
+                action=self.ui.actionAdd_Anything,
+                # "help-tip": {
+                #     "pixmap": "family-timeline.png",
+                # },
+            ),
+            Separator(objectName="sep1", visible=self.isInEditorMode),
+            PushButton(
+                objectName="timelineButton",
+                pixmap="timeline-button.png",
+                action=self.ui.actionShow_Timeline,
+                helpPixmap="family-timeline.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="searchButton",
+                pixmap="search-button.png",
+                action=self.ui.actionShow_Search,
+                helpPixmap="search.png",
+            ),
+            PushButton(
+                objectName="settingsButton",
+                pixmap="settings-button.png",
+                action=self.ui.actionShow_Settings,
+                helpPixmap="diagram-settings.png",
+                visible=self.isInEditorMode,
+            ),
+            Separator(objectName="sep2", visible=self.isInEditorMode),
+            PushButton(
+                objectName="detailsButton",
+                pixmap="details-button.png",
+                action=self.ui.actionInspect,
+                helpPixmap="inspect-selection.png",
+                visible=self.isInEditorMode,
+            ),
+            PushButton(
+                objectName="deleteButton",
+                pixmap="delete-button.png",
+                action=self.ui.actionDelete,
+                helpPixmap="delete-item.png",
+            ),
+            # ('addEventButton', {
+            #     'path': 'add-event-button.png',
+            #     'action': self.ui.actionAdd_Event,
+            #     'help-tip': {
+            #         'pixmap': 'add-event.png',
+            #     }
+            # }),
+            # ('addEmotionButton', {
+            #     'path': 'add-emotion-button.png',
+            #     'action': self.ui.actionAdd_Relationship,
+            #     'help-tip': {
+            #         'pixmap': 'add-relationship.png',
+            #     }
+            # }),
         )

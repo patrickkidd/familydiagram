@@ -118,7 +118,7 @@ class View(QGraphicsView):
         self.totalScaleFactor = 1.0
         self.pinchZooming = False
         self.dontInspect = False
-        self.forceRightRBOffRightEdge_x = None  # hack to leave rightTB where the right edge will be after the drawer is hidden. Is the same as the drawerShim.width()
+        self.forceRightTBOffRightEdge_x = None  # hack to leave rightTB where the right edge will be after the drawer is hidden. Is the same as the drawerShim.width()
         self._zoomFitDirty = False
         self._zoomFitPendingTimer = QTimer(self, interval=100)
         self._zoomFitPendingTimer.timeout.connect(self.onPendingZoomFitTimer)
@@ -315,7 +315,7 @@ class View(QGraphicsView):
             self.scene().layerAnimationGroup.finished.disconnect(
                 self.onLayerAnimationFinished
             )
-            self.forceRightRBOffRightEdge_x = None
+            self.forceRightTBOffRightEdge_x = None
         super().setScene(scene)
         self._scene = scene
         self.sceneToolBar.setScene(scene)
@@ -365,17 +365,17 @@ class View(QGraphicsView):
 
     def adjustToolBars(self):
         """Parsed out to adjust during show/hide animations."""
-        self.sceneToolBar.onResponsive(self.size())
+        size = self.size()
+        self.sceneToolBar.adjust(size)
         margin = (self.width() - self.sceneToolBar.width()) / 2
         self.sceneToolBar.move(round(margin), round(self.sceneTB_y))
         #
-        size = self.size()
         clipForSTB = False
         if self.sceneToolBar.x() < self.itemToolBar.width() + util.MARGIN_X:
             size.setHeight(size.height() - self.sceneToolBar.height())
             clipForSTB = True
         # item toolbar
-        self.itemToolBar.onResponsive(size)
+        self.itemToolBar.adjust(size)
         yMiddle = (self.height() - self.itemToolBar.height()) / 2  # after responsive
         if clipForSTB:
             y = yMiddle + (self.sceneToolBar.height() / 2)
@@ -383,8 +383,8 @@ class View(QGraphicsView):
             y = yMiddle
         self.itemToolBar.move(self.itemTB_x, round(y))
         # right toolbar
-        self.rightToolBar.onResponsive(size)
-        if self.forceRightRBOffRightEdge_x is None:
+        self.rightToolBar.adjust(size)
+        if self.forceRightTBOffRightEdge_x is None:
             # yMiddle = (self.height() - self.rightToolBar.height()) / 2 # after responsive
             # if clipForSTB and not clipForGT:
             #     y = yMiddle + (self.sceneToolBar.height() / 2)
@@ -400,12 +400,14 @@ class View(QGraphicsView):
         else:
             self.rightToolBar.move(
                 (self.width() - self.rightToolBar.width())
-                + self.forceRightRBOffRightEdge_x,
+                + self.forceRightTBOffRightEdge_x,
                 self.itemToolBar.y(),
             )
 
     def adjust(self):
-        # toolbars
+        if not self.scene():
+            return
+
         self.adjustToolBars()
         self.helpOverlay.adjust()
         #

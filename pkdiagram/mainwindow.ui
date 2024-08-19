@@ -163,6 +163,8 @@
     <addaction name="actionView_Diagram"/>
     <addaction name="actionReset_All"/>
     <addaction name="separator"/>
+    <addaction name="actionEditor_Mode"/>
+    <addaction name="separator"/>
     <addaction name="actionNext_Event"/>
     <addaction name="actionPrevious_Event"/>
     <addaction name="actionJump_to_Now"/>
@@ -444,6 +446,17 @@
    </property>
    <property name="visible">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionEditor_Mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Editor Mode</string>
+   </property>
+   <property name="toolTip">
+    <string>Add additional controls and views to the app for more complex data editing</string>
    </property>
   </action>
   <action name="actionDocuments_Folder">

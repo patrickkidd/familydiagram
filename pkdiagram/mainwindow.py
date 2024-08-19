@@ -107,6 +107,9 @@ class MainWindow(QMainWindow):
         self.deferedShowHomeDialog.setText("Syncing to server...")
         self.deferedShowHomeDialog.setStandardButtons(QMessageBox.NoButton)
 
+        # Goes before documentView which is initialized based on this
+        self.ui.actionInstall_Update.setEnabled(False)
+
         # DEBUG: UndoStackView
         self.undoView = QUndoView(commands.stack())
         self.undoView.hide()
@@ -239,6 +242,7 @@ class MainWindow(QMainWindow):
         #
         self.ui.actionJump_to_Now.triggered.connect(self.onJumpToNow)
         self.ui.actionReset_All.triggered.connect(self.onResetAll)
+        self.ui.actionEditor_Mode.toggled[bool].connect(self.onEditorMode)
         self.ui.actionStart_Profile.triggered.connect(self.onStartProfile)
         self.ui.actionStop_Profile.triggered.connect(self.onStopProfile)
         self.ui.actionRefresh_Server.triggered.connect(self.onServerRefresh)
@@ -309,9 +313,6 @@ class MainWindow(QMainWindow):
             self.onFileAdded(url, status)
         CUtil.instance().updateIsAvailable.connect(self.onAppUpdateIsAvailable)
         CUtil.instance().updateIsNotAvailable.connect(self.onAppUpdateIsNotAvailable)
-        self.documentView.view.sceneToolBar.hideItem(
-            self.documentView.view.sceneToolBar.downloadUpdateButton
-        )
         # self.documentView.sceneModel.selectionChanged.connect(self.onSceneModelSelectionChanged)
         self.documentView.sceneModel.trySetShowAliases[bool].connect(self.onShowAliases)
         self.documentView.sceneModel.flashItems.connect(self.onFlashPathItems)
@@ -396,14 +397,26 @@ class MainWindow(QMainWindow):
     def isAnimating(self):
         return self.viewAnimation.state() == QAbstractAnimation.Running
 
+    @util.fblocked
+    def onEditorMode(self, on: bool):
+        editorMode = self.prefs.value("editorMode", defaultValue=False, type=bool)
+        if editorMode != on:
+            self.prefs.setValue("editorMode", on)
+        self.ui.actionEditor_Mode.setChecked(on)
+        self.documentView.adjust()
+        self.documentView.view.adjust()
+
+    def isInEditorMode(self) -> bool:
+        return self.prefs.value("editorMode", defaultValue=False, type=bool)
+
     def onAppUpdateIsAvailable(self):
         self.ui.actionInstall_Update.setEnabled(True)
-        self.view.sceneToolBar.showItem(self.view.sceneToolBar.downloadUpdateButton)
+        self.view.sceneToolBar.onItemsVisibilityChanged()
         self.view.adjustToolBars()
 
     def onAppUpdateIsNotAvailable(self):
         self.ui.actionInstall_Update.setEnabled(False)
-        self.view.sceneToolBar.hideItem(self.view.sceneToolBar.downloadUpdateButton)
+        self.view.sceneToolBar.onItemsVisibilityChanged()
         self.view.adjustToolBars()
 
     def onServerFileModelDataChanged(self, fromIndex, toIndex, roles):

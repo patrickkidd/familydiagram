@@ -114,6 +114,9 @@ class AppController(QObject):
         size = self.prefs.value("windowSize", type=QSize, defaultValue=QSize(900, 650))
         mw.resize(size)
 
+        editorMode = self.prefs.value("editorMode", type=bool, defaultValue=False)
+        mw.onEditorMode(editorMode)
+
         ## Welcome Modal
 
         dontShowWelcome = self.prefs.value(
