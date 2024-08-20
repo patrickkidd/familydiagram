@@ -5,7 +5,6 @@ from .pyqt import *
 from . import version, util, commands, version, compat, slugify
 from .objects import *
 from .itemgarbage import ItemGarbage
-from . import json
 
 if not util.IS_IOS:
     import xlsxwriter

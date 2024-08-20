@@ -2,7 +2,6 @@
 
 set -e
 
-. ./bin/build_env.sh
 
 TARGET=$1
 
@@ -19,12 +18,6 @@ export PYTHONPATH=`pwd`/lib/site-packages
 
 
 if [[ $TARGET = osx* ]]; then
-
-    # export CI=1 # prevent xcode from prompting anything?
-
-    echo "PKS Creating temp dirs..."
-    rm -rf build/osx # emphemeral
-    mkdir -p $FD_BUILD_DIR
 
     function build_and_notarize {
 
@@ -52,6 +45,7 @@ if [[ $TARGET = osx* ]]; then
             -scheme "Family Diagram" \
             -configuration Release \
             -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME}" \
             archive
             # -xcconfig build/osx/Family-Diagram-Release.xcconfig \
             # -UseModernBuildSystem=YES \
@@ -126,29 +120,37 @@ if [[ $TARGET = osx* ]]; then
             "Release/"
     }
 
+    # export CI=1 # prevent xcode from prompting anything?
+
+    # rm -rf build/osx # emphemeral
+
     SYSROOT=$ROOT/sysroot/sysroot-macos-64
-    if [ "$(which qmake)" == "" ]; then
-        QMAKE=$SYSROOT/Qt/bin/qmake
-    else
-        QMAKE=$(which qmake)
-    fi
+    # if [ "$(which qmake)" == "" ]; then
+    #     QMAKE=$SYSROOT/Qt/bin/qmake
+    # else
+    #     QMAKE=$(which qmake)
+    # fi
+    QMAKE=$SYSROOT/Qt/bin/qmake
     PYTHON_VERSION=`python3 -c "import platform; print(platform.python_version())"`
     FAMILYDIAGRAM_VERSION=`python3 main.py --version`
 
     echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
     echo "BUGSNAG_API_KEY = \"$FD_BUILD_BUGSNAG_API_KEY\"" >> pkdiagram/pepper.py
 
-    echo "Updating app version in plist"
+    echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
+	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
+
+    echo "PKS Updating app version in plist"
 	python3 bin/update_plist_version.py
     if [ ! -f pkdiagram/build_uuid.py ] || [ pkdiagram/version.py -nt bin/update_build_uuid.py ]; then
         python3 bin/update_build_uuid.py
     fi
-    echo "Running pyqtdeploy-build"
-	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
-    echo "Updating build uuid"
-    python3 bin/update_build_uuid.py
+
 	rsync -avzq build/common-config/* build/osx
 	rsync -avzq build/osx-config/* build/osx
+
+    . ./bin/setup_provisioning_profile.sh
+
 	# rsync -avzq resources/* build/osx/resources/resources
 
     if [[ $TARGET == "osx" ]]; then
@@ -164,8 +166,8 @@ if [[ $TARGET = osx* ]]; then
             -project build/osx/Family\ Diagram.xcodeproj \
             -target "Qt Preprocess" \
             -configuration Release \
+            -UseModernBuildSystem=YES \
             -xcconfig build/osx/Family-Diagram-Release.xcconfig 
-            # -UseModernBuildSystem=YES
 
         xcodebuild \
             -project build/osx/Family\ Diagram.xcodeproj \
@@ -196,6 +198,7 @@ if [[ $TARGET = osx* ]]; then
         # curl -X POST "https://api.appcenter.ms/v0.1/apps/pstinson/Family-Diagram-1/uploads/releases" -H  "accept: application/json" -H  "X-API-Token: d8f179f78f320adf762560c3f96c97ad0f4ca8bc" -H  "Content-Type: application/json" -d "{  \"build_version\": \"$FAMILYDIAGRAM_VERSION\",  \"build_number\": \"$FAMILYDIAGRAM_VERSION\"}"
 
     elif [[ $TARGET == "osx-beta" ]]; then
+
 
         cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta && cd ../..
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" 2> /dev/null

@@ -26,6 +26,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "addanythingdialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
 name = "addemotiondialog.py"
 included = true
 is_directory = false
@@ -87,6 +92,16 @@ is_directory = false
 
 [[Application.Package.Content]]
 name = "dragpan.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "eventkind.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "extensions.py"
 included = true
 is_directory = false
 
@@ -192,6 +207,11 @@ is_directory = false
 [[Application.Package.Content.Content]]
 name = "peoplemodel.py"
 included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "peoplesearchmodel.py"
+included = false
 is_directory = false
 
 [[Application.Package.Content.Content]]
@@ -481,6 +501,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "cart-button.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "checkbox-check.png"
 included = true
 is_directory = false
 
@@ -981,6 +1006,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "plus-button-green.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "plus-button.png"
 included = true
 is_directory = false
@@ -1011,6 +1041,11 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "AccountDialog.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "AddAnythingDialog.qml"
 included = true
 is_directory = false
 
@@ -1144,6 +1179,16 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "FormDivider.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "FormField.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "Globals.qml"
 included = true
 is_directory = false
@@ -1170,6 +1215,16 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "ListPicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PeoplePicker.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PersonPicker.qml"
 included = true
 is_directory = false
 
@@ -1258,6 +1313,16 @@ name = "Tumbler.qml"
 included = true
 is_directory = false
 
+[[Application.Package.Content.Content.Content.Content]]
+name = "VariableBox.qml"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "TestDialog.qml"
+included = false
+is_directory = false
 
 
 [[Application.Package.Content.Content]]
@@ -1310,6 +1375,16 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "EventPropertiesTest.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PeoplePickerTest.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PersonPickerTest.qml"
 included = false
 is_directory = false
 
@@ -1457,6 +1532,31 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "popup.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qml"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "peoplepicker.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "personpicker.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "timelinecallout.py"
 included = true
 is_directory = false
 

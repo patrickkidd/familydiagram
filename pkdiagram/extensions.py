@@ -9,7 +9,7 @@ def init_bugsnag(app: QApplication):
 
     # Bugsnag
 
-    if pepper.BUGSNAG_API_KEY and not util.IS_TEST:
+    if pepper.BUGSNAG_API_KEY and not util.IS_DEV and not util.IS_TEST:
 
         import ssl  # fix SSL cert errors from bugsnag
 

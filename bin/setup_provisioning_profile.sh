@@ -1,8 +1,35 @@
 #!/bin/bash
 
+# Create a transient build keychain and import provisioning profile,
+# certificate, and private key into it.
+# 
+# All run from bin/build.sh in the normal case.
+
 set -e
 
 . ./bin/build_env.sh
+
+# Must be in environment, not set in build_env.sh
+if [ "$FD_BUILD_APPLE_ID" == "" ]; then
+    echo "FD_BUILD_APPLE_ID must be set"
+    exit 1
+fi
+
+# Must be in environment, not set in build_env.sh
+if [ "$FD_BUILD_APPLE_ID_PASSWORD" == "" ]; then
+    echo "FD_BUILD_APPLE_ID_PASSWORD must be set"
+    exit 1
+fi
+
+
+# Must be in environment, not set in build_env.sh
+if [ "$FD_BUILD_CERTIFICATE_PASSWORD" == "" ]; then
+    echo "FD_BUILD_CERTIFICATE_PASSWORD must be set"
+    exit 1
+fi
+
+
+echo "PKS Using transient keychain name: ${FD_BUILD_KEYCHAIN_NAME}"
 
 rm -rf ./private_keys/
 mkdir -p ./private_keys/
@@ -33,7 +60,10 @@ echo "PKS Unlocking keychain"
 security unlock-keychain -p my_password $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Extending keychain timeout"
-security set-keychain-settings -lut 1200
+security set-keychain-settings -lut 1200 $FD_BUILD_KEYCHAIN_NAME
+
+echo "PKS Adding keychain to search list"
+security list-keychains -s $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Importing private key"
 security import $FD_BUILD_PRIVATE_KEY_FPATH -t priv -P "${FD_BUILD_CERTIFICATE_PASSWORD}" -A -T /usr/bin/codesign -k $FD_BUILD_KEYCHAIN_NAME 
@@ -46,11 +76,16 @@ xcrun altool --store-password-in-keychain-item "${FD_BUILD_APPLE_ID}" -u "${FD_B
 
 echo "PKS Setting keychain partitions list"
 # security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
-security set-key-partition-list -S apple-tool:,apple: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Adding provisioning profile to local machine"
 mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 security cms -D -i $FD_BUILD_PROVISIONING_PROFILE_FPATH > $FD_BUILD_DIR/FD.provisionprofile.plist
 FD_BUILD_PROVISIONING_PROFILE=$(/usr/libexec/PlistBuddy -c "Print :Name" $FD_BUILD_DIR/FD.provisionprofile.plist)
+echo "PKS Found provisioning profile name ${FD_BUILD_PROVISIONING_PROFILE}"
 FD_BUILD_PROVISIONING_PROFILE_SPECIFIER=$(/usr/libexec/PlistBuddy -c "Print :UUID" $FD_BUILD_DIR/FD.provisionprofile.plist)
+echo "PKS Found provisioning profile specifier ${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}"
 mv $FD_BUILD_PROVISIONING_PROFILE_FPATH ~/Library/MobileDevice/Provisioning\ Profiles/${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}.provisionprofile
+
+echo "PKS Verifying identities in the keychain"
+security find-identity -p codesigning -v $FD_BUILD_KEYCHAIN_NAME

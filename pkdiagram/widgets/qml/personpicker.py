@@ -1,10 +1,8 @@
 import logging
 
-import pytest
-
-from pkdiagram import util, objects
-from pkdiagram.pyqt import Qt, QApplication, QVBoxLayout, QWidget, QQuickItem
-from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
+from pkdiagram import util
+from pkdiagram.pyqt import QApplication, QQuickItem
+from pkdiagram import QmlWidgetHelper
 
 
 _log = logging.getLogger(__name__)
