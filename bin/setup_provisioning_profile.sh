@@ -51,13 +51,13 @@ echo "PKS Cleaning up previous keychains"
 security delete-keychain $FD_BUILD_KEYCHAIN_NAME || true
 
 echo "PKS Creating isolated build keychain"
-security create-keychain -p my_password $FD_BUILD_KEYCHAIN_NAME
+security create-keychain -p $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Setting build keychain default"
 security default-keychain -s $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Unlocking keychain"
-security unlock-keychain -p my_password $FD_BUILD_KEYCHAIN_NAME
+security unlock-keychain -p $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Extending keychain timeout"
 security set-keychain-settings -lut 1200 $FD_BUILD_KEYCHAIN_NAME
@@ -75,8 +75,8 @@ echo "PKS Storing password in the keychain"
 xcrun altool --store-password-in-keychain-item "${FD_BUILD_APPLE_ID}" -u "${FD_BUILD_APPLE_ID}" -p "${FD_BUILD_APPLE_ID_PASSWORD}"
 
 echo "PKS Setting keychain partitions list"
-# security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k my_password $FD_BUILD_KEYCHAIN_NAME
+# security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Adding provisioning profile to local machine"
 mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles

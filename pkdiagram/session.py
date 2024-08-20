@@ -178,7 +178,13 @@ class Session(QObject, QObjectHelper):
                     secret=userData["secret"],
                     roles=userData["roles"],
                     free_diagram_id=userData["free_diagram_id"],
-                    licenses=[License(**x) for x in userData["licenses"]],
+                    licenses=[
+                        License(
+                            created_at_readable=util.pyDateTimeString(x["created_at"]),
+                            **x,
+                        )
+                        for x in userData["licenses"]
+                    ],
                 )
                 self._userDict = self._user.dict()
             else:

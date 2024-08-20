@@ -802,7 +802,15 @@ def validatedDateTimeText(dateText, timeText=None):
     return ret
 
 
-def dateString(dateTime):
+def pyDateTimeString(dateTime: datetime) -> str:
+            # .strftime("%a %B %d, %I:%M%p")
+            # .replace("AM", "am")
+            # .replace("PM", "pm")
+
+    return dateTime.strftime("%m/%d/%Y %I:%M %p")
+
+
+def dateString(dateTime: QDateTime):
     if dateTime:
         return dateTime.toString("MM/dd/yyyy")
         # return x.toString('yyyy-MM-dd')
@@ -810,14 +818,14 @@ def dateString(dateTime):
         return ""
 
 
-def timeString(dateTime):
+def timeString(dateTime: QDateTime):
     if dateTime:
         return dateTime.toString("h:mm ap")
     else:
         return ""
 
 
-def dateTimeString(dateTime):
+def dateTimeString(dateTime: QDateTime):
     if dateTime:
         return dateTime.toString("MM/dd/yyyy h:mm ap")
     else:

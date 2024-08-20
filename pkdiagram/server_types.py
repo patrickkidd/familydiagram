@@ -39,6 +39,8 @@ class License(pydantic.BaseModel):
     policy: Policy
     active: bool
     canceled: bool
+    created_at: datetime
+    created_at_readable: str
 
 
 class User(pydantic.BaseModel):
