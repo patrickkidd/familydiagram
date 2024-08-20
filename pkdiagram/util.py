@@ -109,6 +109,8 @@ elif IS_TEST:
     SERVER_URL_ROOT = (
         "http://127.0.0.1:10000"  # so it doesn't connect to the dev server on 8888
     )
+elif version.IS_ALPHA or version.IS_BETA:
+    SERVER_URL_ROOT = "https://database.familydiagram.com"
 else:  # IS_DEV
     if IS_WINDOWS:
         SERVER_URL_ROOT = "http://turin.local:8888"

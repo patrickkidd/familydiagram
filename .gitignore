@@ -84,6 +84,7 @@ server_data.tgz
 build/test-ios
 server_data/*
 profile.png
+default.profraw
 
 ## Miscellaneous
 

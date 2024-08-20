@@ -352,7 +352,12 @@ class MainWindow(QMainWindow):
         #
         self.welcomeDialog.init()
         self.setDocument(None)
-        if CUtil.dev_amIBeingDebugged() or sys.gettrace() or (not util.IS_BUNDLE):
+        if (
+            CUtil.dev_amIBeingDebugged()
+            or sys.gettrace()
+            or (not util.IS_BUNDLE)
+            or version.IS_BETA
+        ):
             self.ui.menuDebug.menuAction().setVisible(True)
         else:
             self.ui.menuDebug.menuAction().setVisible(False)
