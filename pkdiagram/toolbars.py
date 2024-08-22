@@ -682,86 +682,111 @@ class ItemToolBar(ToolBar):
                 action=self.ui.actionParents_to_Selection,
                 helpPixmap="parents.png",
             ),
-            Separator(objectName="sep1"),
+            Separator(
+                objectName="sep1",
+                visible=self.isInEditorMode,
+            ),
             PushButton(
                 objectName="distanceButton",
                 pixmap="distance.png",
                 action=self.ui.actionDistance,
+                visible=self.isInEditorMode,
                 helpPixmap="distance.png",
             ),
             PushButton(
                 objectName="conflictButton",
                 pixmap="conflict.png",
                 action=self.ui.actionConflict,
+                visible=self.isInEditorMode,
                 helpPixmap="conflict.png",
             ),
             PushButton(
                 objectName="reciprocityButton",
                 pixmap="reciprocity.png",
                 action=self.ui.actionReciprocity,
+                visible=self.isInEditorMode,
                 helpPixmap="reciprocity.png",
             ),
             PushButton(
                 objectName="projectionButton",
                 pixmap="projection.png",
                 action=self.ui.actionProjection,
+                visible=self.isInEditorMode,
                 helpPixmap="projection.png",
             ),
-            Separator(objectName="sep2"),
+            Separator(
+                objectName="sep2",
+                visible=self.isInEditorMode,
+            ),
             PushButton(
                 objectName="cutoffButton",
                 pixmap="cutoff.png",
                 action=self.ui.actionPrimary_Cutoff,
+                visible=self.isInEditorMode,
                 helpPixmap="cutoff.png",
             ),
             PushButton(
                 objectName="fusionButton",
                 pixmap="fusion.png",
                 action=self.ui.actionFusion,
+                visible=self.isInEditorMode,
                 helpPixmap="fusion.png",
             ),
             PushButton(
                 objectName="insideButton",
                 pixmap="inside.png",
                 action=self.ui.actionInside,
+                visible=self.isInEditorMode,
                 helpPixmap="inside.png",
             ),
             PushButton(
                 objectName="outsideButton",
                 pixmap="outside.png",
                 action=self.ui.actionOutside,
+                visible=self.isInEditorMode,
                 helpPixmap="outside.png",
             ),
-            Separator(objectName="sep3"),
+            Separator(
+                objectName="sep3",
+                visible=self.isInEditorMode,
+            ),
             PushButton(
                 objectName="towardButton",
                 pixmap="toward.png",
                 action=self.ui.actionToward,
+                visible=self.isInEditorMode,
                 helpPixmap="toward.png",
             ),
             PushButton(
                 objectName="awayButton",
                 pixmap="away.png",
                 action=self.ui.actionAway,
+                visible=self.isInEditorMode,
                 helpPixmap="away.png",
             ),
             PushButton(
                 objectName="definedSelfButton",
                 pixmap="defined-self.png",
                 action=self.ui.actionDefined_Self,
+                visible=self.isInEditorMode,
                 helpPixmap="defined-self.png",
             ),
-            Separator(objectName="sep4"),
+            Separator(
+                objectName="sep4",
+                visible=self.isInEditorMode,
+            ),
             PushButton(
                 objectName="calloutButton",
                 pixmap="callout.png",
                 action=self.ui.actionCallout,
+                visible=self.isInEditorMode,
                 helpPixmap="text-callout.png",
             ),
             ToolButton(
                 objectName="pencilButton",
                 pixmap="pencil-button.png",
                 action=self.ui.actionPencilStroke,
+                visible=self.isInEditorMode,
                 helpPixmap="pencil-drawing.png",
             ),
             # ('eraserButton', {
@@ -795,9 +820,6 @@ class ItemToolBar(ToolBar):
         self.pencilMenu.addAction(self.pencilAction)
         self.pencilMenu.aboutToShow.connect(self.onPencilShow)
         self.pencilMenu.aboutToHide.connect(self.onPencilHide)
-
-    def onlyShownInEditorMode(self) -> bool:
-        return True
 
     def onPencilShow(self):
         if self.scene:

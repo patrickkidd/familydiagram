@@ -7,6 +7,20 @@ USABILITY
   - Maybe make selected tags very obvious, like primary display feature?
   - Maybe make new events have selected tags?
   - Tag selection needs to feel like you are in a room and everything that happens in that room stays in that room.
+  
+Usability with Connie
+- Can't set parents for exiting person and existing parents from add anything form 
+	- Bring item mode buttons back in simple mode?
+- Can't arrange diagram items when drawer is open. Allow it when add anything is open?
+- Can't smoothly arrange people after adding them. Will need to because auto arrangement is not always clean
+	- Selecting a person with add form open is clunky because it has to wait for drawer animation to switch prop sheets.
+- Change "Location" to "Destination" for moved event kind.
+- Move nodal below variables
+- Help text for variables
+- Show "no events in this search criteria" in timeline when necessary
+- Shows blip at start of search criteria when there is no event. So previous event looks like it should go there but it doesn't
+- Show summary of search criteria on diagram
+
 
 - AddAnything form
   - Add name of person for `Birth` event in bottom timeline callout

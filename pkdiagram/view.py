@@ -374,15 +374,20 @@ class View(QGraphicsView):
         if self.sceneToolBar.x() < self.itemToolBar.width() + util.MARGIN_X:
             size.setHeight(size.height() - self.sceneToolBar.height())
             clipForSTB = True
+
         # item toolbar
         self.itemToolBar.adjust(size)
-        yMiddle = (self.height() - self.itemToolBar.height()) / 2  # after responsive
         if clipForSTB:
+            yMiddle = (
+                self.height() - self.itemToolBar.height()
+            ) / 2  # after responsive
             y = yMiddle + (self.sceneToolBar.height() / 2)
         else:
-            y = yMiddle
+            # just under the scene toolbar, right toolbar will match for symmetry
+            y = self.sceneToolBar.height() + util.MARGIN_X
         self.itemToolBar.move(self.itemTB_x, round(y))
-        # right toolbar
+
+        # right toolbar, align top with item toolbar for symmetry
         self.rightToolBar.adjust(size)
         if self.forceRightTBOffRightEdge_x is None:
             # yMiddle = (self.height() - self.rightToolBar.height()) / 2 # after responsive
