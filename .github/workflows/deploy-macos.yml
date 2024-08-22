@@ -4,7 +4,7 @@ name: Build macOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ 2.0.0 ]
 
 # defaults:
 #   run:
@@ -89,6 +89,10 @@ jobs:
     - name: Build app
       run: |
         pipenv run bin/build.sh
+
+    - name: Verify app
+      run: |
+        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
