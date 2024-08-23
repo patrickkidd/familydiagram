@@ -14,7 +14,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-13
+    runs-on: macos-12
 
     env:
       FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
@@ -35,10 +35,6 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup Provisioning Profile
-      run: |
-        $GITHUB_WORKSPACE/bin/setup_provisioning_profile.sh
-  
     # # Will provide an SSH command in the logs that you can use to access the runner.
     # - name: Setup tmate session
     #   uses: mxschmitt/action-tmate@v3        
@@ -89,6 +85,10 @@ jobs:
         which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
+    - name: Setup Provisioning Profile
+      run: |
+        $GITHUB_WORKSPACE/bin/setup_provisioning_profile.sh
+    
     - name: Build app
       run: |
         pipenv run bin/build.sh
