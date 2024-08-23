@@ -85,10 +85,6 @@ jobs:
         which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
-    - name: Setup Provisioning Profile
-      run: |
-        $GITHUB_WORKSPACE/bin/setup_provisioning_profile.sh
-    
     - name: Build app
       run: |
         pipenv run bin/build.sh

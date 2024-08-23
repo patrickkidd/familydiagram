@@ -144,6 +144,8 @@ if [[ $TARGET = osx* ]]; then
 	python3 bin/update_plist_version.py
     if [ ! -f pkdiagram/build_uuid.py ] || [ pkdiagram/version.py -nt bin/update_build_uuid.py ]; then
         python3 bin/update_build_uuid.py
+    else
+        echo "PKS build_uuid.py is up to date"
     fi
 
 	rsync -avzq build/common-config/* build/osx
