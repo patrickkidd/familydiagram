@@ -51,7 +51,7 @@ jobs:
         cache: 'pipenv'
     - run: |
         pip install pipenv
-        pipenv install --dev
+        pipenv install
     
     # Probably a better way: https://github.com/jurplel/install-qt-action
     - name: brew install qt@5, create-dmg
