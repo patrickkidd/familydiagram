@@ -309,6 +309,14 @@
             "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python"
         },
         {
+            "name": "pyqtdeploy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/.venv/bin/pyqtdeploy",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
             "name": "pyqtdeploy-sysroot",
             "type": "debugpy",
             "request": "launch",
