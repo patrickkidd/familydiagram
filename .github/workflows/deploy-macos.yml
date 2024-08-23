@@ -54,9 +54,9 @@ jobs:
         pipenv install
     
     # Probably a better way: https://github.com/jurplel/install-qt-action
-    - name: brew install qt@5, create-dmg
+    - name: brew install create-dmg
       run: |
-        brew install create-dmg
+        brew install qt@5 create-dmg
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
     - name: Setup _pkdiagram caching
