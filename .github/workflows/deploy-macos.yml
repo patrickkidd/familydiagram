@@ -68,7 +68,11 @@ jobs:
       run: |
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
         cd pkdiagram/_pkdiagram && pipenv run sip-build
-        
+
+    - name: Download zlib source
+      run: |
+        wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
+
     - name: Setup sysroot caching
       id: cache-sysroot
       uses: actions/cache@v2
@@ -80,8 +84,6 @@ jobs:
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
-        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
-        wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
         which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
