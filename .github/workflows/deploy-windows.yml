@@ -63,13 +63,13 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         # $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+        cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" && `
         $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
         cd pkdiagram/_pkdiagram && pipenv run sip-build
 
     - name: Build app
       run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          pipenv run bin/build.bat
+        cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" && `
+        pipenv run bin/build.bat
   
   
