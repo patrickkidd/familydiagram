@@ -137,9 +137,6 @@ if [[ $TARGET = osx* ]]; then
     echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
     echo "BUGSNAG_API_KEY = \"$FD_BUILD_BUGSNAG_API_KEY\"" >> pkdiagram/pepper.py
 
-    echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
-	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
-
     echo "PKS Updating app version in plist"
 	python3 bin/update_plist_version.py
     if [ ! -f pkdiagram/build_uuid.py ] || [ pkdiagram/version.py -nt bin/update_build_uuid.py ]; then
@@ -147,6 +144,9 @@ if [[ $TARGET = osx* ]]; then
     else
         echo "PKS build_uuid.py is up to date"
     fi
+
+    echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
+	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
 
 	rsync -avzq build/common-config/* build/osx
 	rsync -avzq build/osx-config/* build/osx

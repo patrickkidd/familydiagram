@@ -61,6 +61,22 @@
             "envFile": "/.vscode/.windows-env"
         },
         {
+            "name": "App --version",
+            "type": "debugpy",
+            "request": "launch",
+            "--preLaunchTask": "make",
+            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--version"
+            ],
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            }
+        },
+        {
             "name": "Server",
             "type": "debugpy",
             "request": "launch",
