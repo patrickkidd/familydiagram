@@ -50,7 +50,7 @@ jobs:
         pipenv install
     
     # Probably a better way: https://github.com/jurplel/install-qt-action
-    - name: brew install create-dmg
+    - name: brew install qt@5 create-dmg
       run: |
         brew install qt@5 create-dmg
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH

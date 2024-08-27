@@ -48,7 +48,8 @@ jobs:
     - run: |
         pip install pipenv
         pipenv install
-    
+
+    # It is faster to install homebrew than to restore from cache
     # Probably a better way: https://github.com/jurplel/install-qt-action
     - name: brew install qt@5 create-dmg
       run: |
