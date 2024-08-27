@@ -37,6 +37,7 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
+        modules: 'qtbase qtdeclarative qtgraphicaleffects qtimageformats qtlocation qtmacextras qtpurchasing qtquickcontrols qtquickcontrols2'
 
     - name: Verify qmake
       run: |
