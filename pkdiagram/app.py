@@ -9,6 +9,8 @@ else:
 def main(attach=False, prefsName=None):
 
     import sys, os.path, logging
+    from optparse import OptionParser
+
     from . import util, MainWindow, Application, AppController
 
     log = logging.getLogger(__name__)
@@ -36,6 +38,33 @@ def main(attach=False, prefsName=None):
     # log.info(_imp.extension_suffixes())
 
     # log.info(sysconfig.get_path('purelib'))
+
+    parser = OptionParser()
+    parser.add_option(
+        "-v",
+        "--version",
+        dest="version",
+        action="store_true",
+        help="Print the version",
+        default=False,
+    )
+    options, args = parser.parse_args(sys.argv)
+    if options.version:
+
+        # import os.path, importlib
+
+        from . import version
+
+        print(version.VERSION)
+
+        # PKDIAGRAM = os.path.realpath(os.path.dirname(__file__))
+        # spec = importlib.util.spec_from_file_location(
+        #     "version", os.path.join(PKDIAGRAM, "version.py")
+        # )
+        # version = importlib.util.module_from_spec(spec)
+        # spec.loader.exec_module(version)
+        # print(version.VERSION)
+        return
 
     if attach:
         util.wait_for_attach()
