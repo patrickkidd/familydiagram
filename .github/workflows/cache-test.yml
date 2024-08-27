@@ -7,7 +7,7 @@ on:
     branches: [ cache-test ]
 
 jobs:
-  build-osx:
+  cache-test:
     runs-on: macos-12
 
     steps:

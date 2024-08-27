@@ -56,46 +56,46 @@ jobs:
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
     - name: Setup _pkdiagram caching
-      id: cache-private-plugins
+      id: cache-_pkdiagram
       uses: actions/cache@v2
       with:
         path: |
           pkdiagram/_pkdiagram/build
-        key: private-plugins-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
     
     - name: sip-build for _pkdiagram
-      if: steps.cache-private-plugins.outputs.cache-hit != 'true'
+      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
         cd pkdiagram/_pkdiagram && pipenv run sip-build
         
-    - name: Setup sysroot caching
-      id: cache-sysroot
-      uses: actions/cache@v2
-      with:
-        path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS-2
-        # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
+    # - name: Setup sysroot caching
+    #   id: cache-sysroot
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: ./sysroot/sysroot-macos-64
+    #     key: sysroot-macOS-2
+    #     # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
     
-    - name: Build sysroot
-      if: steps.cache-sysroot.outputs.cache-hit != 'true'
-      run: |
-        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
-        wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
-        which qmake
-        pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
+    # - name: Build sysroot
+    #   if: steps.cache-sysroot.outputs.cache-hit != 'true'
+    #   run: |
+    #     echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
+    #     wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
+    #     which qmake
+    #     pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
   
-    - name: Build app
-      run: |
-        pipenv run bin/build.sh
+    # - name: Build app
+    #   run: |
+    #     pipenv run bin/build.sh
 
-    - name: Verify app
-      run: |
-        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
+    # - name: Verify app
+    #   run: |
+    #     build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: familydiagram-macos
-        path: build/osx/Release/Family Diagram.dmg
+    # - name: Upload Artifact
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: familydiagram-macos
+    #     path: build/osx/Release/Family Diagram.dmg
   
