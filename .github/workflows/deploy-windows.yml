@@ -28,7 +28,7 @@ jobs:
     - name: Install Qt5
       run: |
         choco install qt5-default -y
-        $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
+        $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
 
     - name: Verify qmake
       run: qmake --version
@@ -44,7 +44,7 @@ jobs:
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
-        $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
+        $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
         cd pkdiagram/_pkdiagram && pipenv run sip-build
 
     - name: Build app
