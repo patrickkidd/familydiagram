@@ -46,36 +46,36 @@ jobs:
         # modules: 'qtbase'
 
     - name: Verify qmake
-      shell: cmd
       run: |
         # $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
         # $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         qmake --version        
+      shell: cmd
 
     - name: Setup _pkdiagram caching
       id: cache-_pkdiagram
-      shell: cmd
       uses: actions/cache@v2
       with:
         path: |
           pkdiagram/_pkdiagram/build
         key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+      shell: cmd
     
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
-      shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
         # $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
         # $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         cd pkdiagram/_pkdiagram && pipenv run sip-build
+      shell: cmd
 
     - name: Build app
-      shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
         pipenv run bin/build.bat
+      shell: cmd
   
   
