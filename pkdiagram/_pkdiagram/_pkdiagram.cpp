@@ -9,14 +9,17 @@
 #include <QtWidgets/QtWidgets>
 #include <unsafearea.h>
 
+#if TARGET_OS_OSX
 #include <execinfo.h>
 #include <iostream>
+#endif
 
 // #include <QPainterPathStroker>
 // #include <QGuiApplication>
 // #include <QtWidgets/QApplication>
 // #include <QtWidgets/QDesktopWidget>
 
+#if TARGET_OS_OSX
 void print_stack_trace() {
     const int maxFrames = 100;
     void *frames[maxFrames];
@@ -65,6 +68,7 @@ void print_python_stack_trace() {
 
     PyGILState_Release(gstate);
 }
+#endif
 
 AppFilter::AppFilter(QObject *parent)
     : QObject(parent) {
@@ -85,7 +89,9 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
            return true;
         } else if (e->type() == QEvent::Close) {
             qDebug() << "e->type() == QEvent::Close";
+#if TARGET_OS_OSX
             print_stack_trace();
+#endif
         }
     }
     return false;
@@ -682,7 +688,9 @@ PathItemBase::PathItemBase(QGraphicsItem *parent) :
 // }
 
 void PathItemBase::dev_printCStackTrace() {
+#if TARGET_OS_OSX
     print_stack_trace();
+#endif
 }
 
 void PathItemBase::setPathItemDelegate(PathItemDelegate *d)
