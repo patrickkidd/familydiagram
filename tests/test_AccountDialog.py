@@ -322,7 +322,7 @@ def test_purchase(test_session, qtbot, create_dlg):
     dlg.keyClicks("ccNumField", "4242424242424242")
     dlg.keyClicks("ccExpMonthField", "12")
     dlg.keyClicks("ccExpYearField", str(datetime.datetime.now().year + 1))
-    dlg.keyClicks("ccCVCField", "424")
+    dlg.keyClicks("ccCVCField", "4242")
     # dlg.keyClicks('ccZipField', '20016')
     qtbot.clickYesAfter(lambda: dlg.mouseClick("purchaseSubmitButton"))
     qtbot.clickOkAfter(lambda: purchasedLicense.assertWait(maxMS=4000))

@@ -1186,9 +1186,9 @@ Page {
                             width: ccNumField.width / 3
                             color: acceptableInput ? 'black' : defaultTextColor
                             palette.base: acceptableInput ? greenColor : defaultBackgroundColor
-                            maximumLength: 3
+                            maximumLength: 4
                             placeholderText: 'CVC'
-                            inputMask: '999'
+                            inputMask: '9999'
                             // validator: IntValidator {
                             //     bottom: 0
                             //     top: 999
