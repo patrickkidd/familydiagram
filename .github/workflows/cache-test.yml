@@ -16,20 +16,31 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup _pkdiagram caching
-      id: cache-private-plugins
+    - name: Cache Homebrew
+      id: cache-homebrew
       uses: actions/cache@v2
       with:
         path: |
-          ./cache-test
-        key: cache-test-1
-    
-    - name: sip-build for _pkdiagram
-      if: steps.cache-private-plugins.outputs.cache-hit != 'true'
-      run: |
-        mkdir -p cache-test
-        echo `date` > cache-test/cache-test.txt
+          /usr/local/Homebrew
+          /usr/local/Cellar
+          /usr/local/opt
+        key: homebrew-${{ runner.os }}
+        restore-keys: |
+          homebrew-${{ runner.os }}-
 
-    - name: read cache-test.txt
+    - name: Update Homebrew
+      run: brew update
+
+    - name: brew install qt@5 create-dmg
       run: |
-        cat cache-test/cache-test.txt
+          brew install qt@5 create-dmg
+
+    - name: Save Homebrew cache
+      if: always()
+      uses: actions/cache@v2
+      with:
+        path: |
+          /usr/local/Homebrew
+          /usr/local/Cellar
+          /usr/local/opt
+        key: homebrew-${{ runner.os }}
