@@ -60,7 +60,6 @@ jobs:
         path: |
           pkdiagram/_pkdiagram/build
         key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
-      shell: cmd
     
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
