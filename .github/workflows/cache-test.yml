@@ -1,0 +1,35 @@
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Cache Test
+
+on:
+  push:
+    branches: [ cache-test ]
+
+jobs:
+  build-osx:
+    runs-on: macos-12
+
+    steps:
+              
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup _pkdiagram caching
+      id: cache-private-plugins
+      uses: actions/cache@v2
+      with:
+        path: |
+          ./cache-test
+        key: cache-test-1
+    
+    - name: sip-build for _pkdiagram
+      if: steps.cache-private-plugins.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p cache-test
+        echo `date` > cache-test/cache-test.txt
+
+    - name: read cache-test.txt
+      run: |
+        cat cache-test/cache-test.txt
