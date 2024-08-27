@@ -31,7 +31,9 @@ jobs:
         $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
 
     - name: Verify qmake
-      run: qmake --version
+      run: |
+        $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
+        qmake --version
 
     - name: Setup _pkdiagram caching
       id: cache-_pkdiagram
