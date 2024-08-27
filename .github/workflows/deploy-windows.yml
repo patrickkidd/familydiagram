@@ -1,0 +1,54 @@
+name: Windows Python CD
+
+on:
+  push:
+    branches:
+      - 2.0.0
+
+jobs:
+  build:
+    runs-on: windows-2019
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python 3.10.4
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.4
+        cache: 'pipenv'
+
+    - name: Install pipenv
+      run: python -m pip install pipenv
+
+    - name: Install dependencies
+      run: pipenv install --dev
+
+    - name: Install Qt5
+      run: |
+        choco install qt5 -y
+        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+
+    - name: Verify qmake
+      run: qmake --version
+
+    - name: Setup _pkdiagram caching
+      id: cache-_pkdiagram
+      uses: actions/cache@v2
+      with:
+        path: |
+          pkdiagram/_pkdiagram/build
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+    
+    - name: sip-build for _pkdiagram
+      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
+      run: |
+        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+        cd pkdiagram/_pkdiagram && pipenv run sip-build
+
+    - name: Build app
+      run: |
+          pipenv run bin/build.bat
+  
+  
