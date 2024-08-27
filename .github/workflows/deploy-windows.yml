@@ -27,7 +27,7 @@ jobs:
 
     - name: Install Qt5
       run: |
-        choco install qt5 -y
+        choco install qt5-default -y
         $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
 
     - name: Verify qmake
