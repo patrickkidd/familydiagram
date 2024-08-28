@@ -43,7 +43,7 @@ jobs:
         arch: 'win64_msvc2019_64'
         setup_python: false
         source: true
-        modules: 'qtbase-private,qtdeclarative-private'
+        # modules: 'qtbase-private,qtdeclarative-private'
         # modules: 'qtbase qtdeclarative qtgraphicaleffects qtimageformats qtlocation qtmacextras qtpurchasing qtquickcontrols qtquickcontrols2'
         # modules: 'qtbase'
 
