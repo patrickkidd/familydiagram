@@ -4,7 +4,7 @@
 
 
 ALPHABETA = "b"  # set this to '' for release
-ALPHABETA_SUFFIX = 3
+ALPHABETA_SUFFIX = 4
 VERSION_MAJOR = 2
 VERSION_MINOR = 0
 VERSION_MICRO = 0
