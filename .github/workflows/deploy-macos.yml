@@ -68,6 +68,7 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
+        which qmake
         cd pkdiagram/_pkdiagram && pipenv run sip-build
 
     - name: Download zlib source
