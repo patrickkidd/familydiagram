@@ -47,11 +47,20 @@ jobs:
     - name: Download Qt Online Installer
       run: curl --fail -Lo qt-installer.exe "https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe"
 
+    - name: Verify Qt Installer File
+      run: |
+        if (!(Test-Path -Path "qt-installer.exe")) {
+          Write-Host "Installer not found!"
+          exit 1
+        }
+        $fileInfo = Get-Item -Path "qt-installer.exe"
+        Write-Host "Installer size: $($fileInfo.Length) bytes"
+
     - name: Install Qt
       run: |
         dir
         Start-Process -FilePath qt-installer.exe -ArgumentList " --script build/win32-config/qt-installer-noninteractive.qs" -NoNewWindow -Wait
-          
+
     - name: Set up Qt environment variables
       run: |
         echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
