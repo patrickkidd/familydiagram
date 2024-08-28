@@ -50,7 +50,7 @@ jobs:
     - name: Install Qt
       run: |
         Start-Process -FilePath qt-installer.exe -ArgumentList `
-          "--script qt-installer-noninteractive.qs" -NoNewWindow -Wait
+          "--script build/win32-config/qt-installer-noninteractive.qs" -NoNewWindow -Wait
 
     - name: Set up Qt environment variables
       run: |
