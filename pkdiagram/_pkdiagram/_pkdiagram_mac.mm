@@ -1971,8 +1971,17 @@ QColor qt_mac_toQColor(const NSColor *color) const
         if(properties.count() > 0) {
             NSMutableDictionary *nsd = [NSMutableDictionary dictionaryWithCapacity:properties.count()];
             QMapIterator<QString, QString> i(properties);
+            // this crashes on toNSString()
+            // while(i.hasNext()) {
+            //     nsd[i.key().toNSString()] = i.value().toNSString();
+            // }
             while(i.hasNext()) {
-                nsd[i.key().toNSString()] = i.value().toNSString();
+                i.next();
+                NSString *key = i.key().toNSString();
+                NSString *value = i.value().toNSString();
+                if (key != nil && value != nil) {
+                    nsd[key] = value;
+                }
             }
             [MSAnalytics trackEvent:eventName.toNSString() withProperties:nsd];
         } else {
