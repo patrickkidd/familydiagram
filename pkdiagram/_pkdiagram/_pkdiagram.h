@@ -127,7 +127,7 @@ public:
 	virtual void checkForUpdates() const {}
 	virtual bool isUpdateAvailable() const { return false; }
     
-	virtual void trackAnalyticsEvent(const QString &, const QMap<QString, QString> &) {}
+	virtual void trackAnalyticsEvent(QString, QMap<QString, QString>) {}
     
     //
     // Static utils

@@ -588,7 +588,7 @@ public:
         return FileIsCurrent;
     }
     
-    void trackAnalyticsEvent(const QString &eventName) {
+    void trackAnalyticsEvent(const QString eventName) {
         qDebug() << "TODO:" << eventName;
     }
     

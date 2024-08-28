@@ -104,7 +104,7 @@ public:
     void checkForUpdates();
     bool isUpdateAvailable() const;
 
-    void trackAnalyticsEvent(const QString &, const QMap<QString, QString> &);
+    void trackAnalyticsEvent(QString, QMap<QString, QString>);
 
     QList<QUrl> fileList() const;
     CUtil::FileStatus fileStatusForUrl(const QUrl &) const;

@@ -1964,7 +1964,7 @@ QColor qt_mac_toQColor(const NSColor *color) const
         return d.isUpdateAvailable;
     }
     
-    void trackAnalyticsEvent(const QString &eventName, const QMap<QString, QString> &properties) {
+    void trackAnalyticsEvent(QString eventName, QMap<QString, QString> properties) {
         (void) eventName;
         (void) properties;
 #ifdef PK_USE_APPCENTER
