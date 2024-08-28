@@ -133,7 +133,15 @@ if [[ $TARGET = osx* ]]; then
     QMAKE=$SYSROOT/Qt/bin/qmake
     PYTHON_VERSION=`python3 -c "import platform; print(platform.python_version())"`
     FAMILYDIAGRAM_VERSION=`python3 main.py --version`
-
+    if echo "$FAMILYDIAGRAM_VERSION" | grep -q "a"; then
+        echo "PKS Alpha version detected"
+        QT_EXTRA_CONFIG="CONFIG+=alpha"
+    elif echo "$FAMILYDIAGRAM_VERSION" | grep -q "b"; then
+        echo "PKS Beta version detected"
+        QT_EXTRA_CONFIG="CONFIG+=alpha"
+    else
+        echo "PKS Full release version detected"
+    fi
     echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
     echo "BUGSNAG_API_KEY = \"$FD_BUILD_BUGSNAG_API_KEY\"" >> pkdiagram/pepper.py
 
@@ -181,31 +189,13 @@ if [[ $TARGET = osx* ]]; then
     
     elif [[ $TARGET == "osx-release" ]]; then
 
-        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release && cd ../..
+        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release $QT_EXTRA_CONFIG && cd ../..
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null
         build_and_notarize
         osx_dmg
 
         # zip -r -X build/osx/Release/Family\ Diagram-$FAMILYDIAGRAM_VERSION.dSYM.zip build/osx/Release/Family\ Diagram.dSYM
         # bugsnag-dsym-upload --api-key YOUR_UUID_API_KEY build/osx/Release/Family\ Diagram-$FAMILYDIAGRAM_VERSION.dSYM.zip
-
-    elif [[ $TARGET == "osx-alpha" ]]; then
-
-        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=alpha && cd ../..
-        # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" 2> /dev/null
-        # xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Release -UseModernBuildSystem=YES build
-        build_and_notarize
-        osx_dmg
-
-        # curl -X POST "https://api.appcenter.ms/v0.1/apps/pstinson/Family-Diagram-1/uploads/releases" -H  "accept: application/json" -H  "X-API-Token: d8f179f78f320adf762560c3f96c97ad0f4ca8bc" -H  "Content-Type: application/json" -d "{  \"build_version\": \"$FAMILYDIAGRAM_VERSION\",  \"build_number\": \"$FAMILYDIAGRAM_VERSION\"}"
-
-    elif [[ $TARGET == "osx-beta" ]]; then
-
-
-        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta && cd ../..
-        # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" 2> /dev/null
-        build_and_notarize
-        osx_dmg
 
     elif [[ $TARGET == "osx-debug" ]]; then
 

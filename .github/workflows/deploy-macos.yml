@@ -55,6 +55,7 @@ jobs:
     - name: brew install qt@5 create-dmg
       run: |
         brew install qt@5 create-dmg
+        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
 
     - name: Setup _pkdiagram caching
       id: cache-_pkdiagram
@@ -67,8 +68,6 @@ jobs:
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
-        echo "/usr/local/opt/qt@5/bin" >> $GITHUB_PATH
-        echo $GITHUB_PATH
         cd pkdiagram/_pkdiagram && pipenv run sip-build
 
     - name: Download zlib source
@@ -91,7 +90,7 @@ jobs:
   
     - name: Build app
       run: |
-        pipenv run bin/build.sh osx-beta
+        pipenv run bin/build.sh
 
     - name: Verify app
       run: |
