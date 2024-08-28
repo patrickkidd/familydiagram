@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - noop
+      - 2.0.0
 
 jobs:
   build:
@@ -34,24 +34,31 @@ jobs:
     #     choco install qt5-default -y
     #     $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
 
-    - name: Set up Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '5.15.2'  # Specify the Qt version you need
-        host: 'windows'
-        target: 'desktop'
-        arch: 'win64_msvc2019_64'
-        setup_python: false
-        source: true
-        modules: 'qtbase-private,qtdeclarative-private'
-        # modules: 'qtbase qtdeclarative qtgraphicaleffects qtimageformats qtlocation qtmacextras qtpurchasing qtquickcontrols qtquickcontrols2'
-        # modules: 'qtbase'
+    - name: Install Chocolatey
+      run: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force; `
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+        [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+    - name: Install 7zip
+      run: choco install 7zip -y
+
+    - name: Download Qt Online Installer
+      run: curl -Lo qt-installer.exe "https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe"
+
+    - name: Install Qt
+      run: |
+        Start-Process -FilePath qt-installer.exe -ArgumentList `
+          "--script qt-installer-noninteractive.qs" -NoNewWindow -Wait
+
+    - name: Set up Qt environment variables
+      run: |
+        echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
+        echo "C:\Qt\5.15.2\msvc2019_64\include" >> $env:GITHUB_ENV
 
     - name: Verify qmake
       run: |
-        # $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
-        # $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
-        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         qmake --version        
       shell: cmd
 
@@ -67,9 +74,6 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        # $env:PATH="C:\Qt\5.15.2\mingw81_64\bin;$env:PATH"
-        # $env:PATH="C:\Qt\5.15.2\msvc2019_64\bin;$env:PATH"
-        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         cd pkdiagram/_pkdiagram && pipenv run sip-build
       shell: cmd
 
