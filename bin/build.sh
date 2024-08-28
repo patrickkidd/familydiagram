@@ -138,7 +138,7 @@ if [[ $TARGET = osx* ]]; then
         QT_EXTRA_CONFIG="CONFIG+=alpha"
     elif echo "$FAMILYDIAGRAM_VERSION" | grep -q "b"; then
         echo "PKS Beta version detected"
-        QT_EXTRA_CONFIG="CONFIG+=alpha"
+        QT_EXTRA_CONFIG="CONFIG+=beta"
     else
         echo "PKS Full release version detected"
     fi
