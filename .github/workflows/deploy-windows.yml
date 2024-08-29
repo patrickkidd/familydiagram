@@ -76,10 +76,24 @@ jobs:
         cd pkdiagram/_pkdiagram && pipenv run sip-build
       shell: cmd
 
-    - name: Build app
-      run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        pipenv run bin\\build.bat
-      shell: cmd
+    # - name: Setup sysroot caching
+    #   id: cache-sysroot
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: ./sysroot/sysroot-win-64
+    #     key: sysroot-win-64
+    #     # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
+    
+    # - name: Build sysroot
+    #   if: steps.cache-sysroot.outputs.cache-hit != 'true'
+    #   run: |
+    #     which qmake
+    #     pipenv run pyqtdeploy-sysroot --target win-64 --verbose sysroot/sysroot.toml
+
+    # - name: Build app
+    #   run: |
+    #     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+    #     pipenv run bin\\build.bat
+    #   shell: cmd
   
   
