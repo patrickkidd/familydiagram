@@ -48,7 +48,7 @@ jobs:
       run: pipenv install --dev
 
     - name: pipenv install aqtinstall
-      run: pipenv aqtinstall -y
+      run: pipenv install aqtinstall -y
 
     - name: Install Qt
       run: |
