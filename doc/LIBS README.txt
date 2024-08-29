@@ -1,3 +1,7 @@
+WINDOWS CD
+==============================================================
+scp bin/setup_windows.ps1 windows11:C:\\Users\\patrick\\ && ssh windows11 "powershell -ExecutionPolicy Bypass -File C:\\Users\\patrick\\setup_windows.ps1"
+
 MACOS DEV
 ==============================================================
 - Install Qt from qt.io installer
