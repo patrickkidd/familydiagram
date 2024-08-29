@@ -45,24 +45,14 @@ jobs:
       run: choco install 7zip -y
 
     - name: Download Qt Online Installer
-      run: curl --fail -Lo qt-installer.exe "https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe"
+      run: choco install python --version=3.10.4 -y
 
-    - name: Verify Qt Installer File
-      run: |
-        if (!(Test-Path -Path "qt-installer.exe")) {
-          Write-Host "Installer not found!"
-          exit 1
-        }
-        $fileInfo = Get-Item -Path "qt-installer.exe"
-        Write-Host "Installer size: $($fileInfo.Length) bytes"
+    - name: pipenv install aqtinstall
+      run: python -m pip install pipenv aqtinstall -y
 
     - name: Install Qt
       run: |
-        dir
-        Start-Process -FilePath qt-installer.exe -ArgumentList " --script build/win32-config/qt-installer-noninteractive.qs" -NoNewWindow -Wait
-
-    - name: Set up Qt environment variables
-      run: |
+        python -m aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
         echo "C:\Qt\5.15.2\msvc2019_64\include" >> $env:GITHUB_ENV
 
