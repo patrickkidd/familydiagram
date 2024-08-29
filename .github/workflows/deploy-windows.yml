@@ -87,9 +87,10 @@ jobs:
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         which qmake
         pipenv run pyqtdeploy-sysroot --target win-64 --verbose sysroot/sysroot.toml
-
+      shell: cmd
     # - name: Build app
     #   run: |
     #     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
