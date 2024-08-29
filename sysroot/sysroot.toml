@@ -7,11 +7,8 @@ version = "1.1.1g"
 # zlib ########################################################################
 
 [zlib]
-version = "1.2.11"
+version = "1.3.1"
 install_from_source = true
-
-[zlib.android]
-version = "1.2.7"
 
 [zlib.win]
 install_from_source = true
