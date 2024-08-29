@@ -55,26 +55,22 @@ jobs:
         pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
         # echo "C:\Qt\5.15.2\msvc2019_64\include" >> $env:GITHUB_ENV
-
-    # - name: Verify qmake
-    #   run: |
-    #     qmake --version        
-    #   shell: cmd
-
-    # - name: Setup _pkdiagram caching
-    #   id: cache-_pkdiagram
-    #   uses: actions/cache@v2
-    #   with:
-    #     path: |
-    #       pkdiagram/_pkdiagram/build
-    #     key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+        qmake --version
     
-    # - name: sip-build for _pkdiagram
-    #   if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
-    #   run: |
-    #     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-    #     cd pkdiagram/_pkdiagram && pipenv run sip-build
-    #   shell: cmd
+    - name: Setup _pkdiagram caching
+      id: cache-_pkdiagram
+      uses: actions/cache@v2
+      with:
+        path: |
+          pkdiagram/_pkdiagram/build
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+    
+    - name: sip-build for _pkdiagram
+      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cd pkdiagram/_pkdiagram && pipenv run sip-build
+      shell: cmd
 
     - name: Setup sysroot caching
       id: cache-sysroot
@@ -91,6 +87,7 @@ jobs:
         which qmake
         pipenv run pyqtdeploy-sysroot --target win-64 --component Python --verbose sysroot/sysroot.toml
       shell: cmd
+
     # - name: Build app
     #   run: |
     #     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
