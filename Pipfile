@@ -14,7 +14,7 @@ bugsnag = "*"
 bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
-pyqtdeploy = "==3.2.0"
+pyqtdeploy = "==3.3.0"
 
 [dev-packages]
 pytest = "*"
