@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://www.riverbankcomputing.com/pypi/simple/"
+verify_ssl = true
+name = "riverbank"
+
 # build packages are added here since the github runners need it but don't have psychopg.
 [packages]
 sip = "==6.8.6"
@@ -14,7 +19,7 @@ bugsnag = "*"
 bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
-pyqtdeploy = "==3.3.0"
+pyqtdeploy = { index="riverbank" }
 
 [dev-packages]
 pytest = "*"
