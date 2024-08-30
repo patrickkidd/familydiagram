@@ -82,7 +82,7 @@ jobs:
         key: sysroot-macOS-2
     
     - name: Build sysroot
-      if: steps.cache-sysroot.outputs.cache-hit != 'true'
+      # if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         which qmake
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
