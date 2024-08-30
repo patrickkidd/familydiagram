@@ -68,7 +68,7 @@ jobs:
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
-        cd pkdiagram/_pkdiagram && pipenv run sip-build --no-compile
+        cd pkdiagram/_pkdiagram && pipenv run sip-build
 
     - name: Download zlib source
       run: |

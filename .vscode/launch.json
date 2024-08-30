@@ -342,9 +342,9 @@
             "args": [
                 "--verbose",
                 "--sysroots-dir",
-                "${workspaceFolder}/sysroots",
+                "${workspaceFolder}/sysroot",
                 "--component",
-                "Python",
+                "SIP",
                 "sysroot/sysroot.toml"
             ]
         },

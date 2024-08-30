@@ -3,11 +3,24 @@ name: Build Windows
 on:
   push:
     branches:
-      - pepper_py-no-exist
+      - 2.0.0
 
 jobs:
   build:
     runs-on: windows-2019
+
+    env:
+      FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
+      FD_BUILD_APPLE_ID_PASSWORD: "${{ secrets.FD_BUILD_APPLE_ID_PASSWORD }}"
+      FD_BUILD_PROVISIONING_PROFILE_BASE64: "${{ secrets.FD_BUILD_PROVISIONING_PROFILE_BASE64 }}"
+      FD_BUILD_CERTIFICATE_BASE64: "${{ secrets.FD_BUILD_CERTIFICATE_BASE64 }}"
+      FD_BUILD_PRIVATE_KEY_BASE64: "${{ secrets.FD_BUILD_PRIVATE_KEY_BASE64 }}"
+      FD_BUILD_CERTIFICATE_PASSWORD: "${{ secrets.FD_BUILD_CERTIFICATE_PASSWORD }}"
+      FD_BUILD_AC_AUTH_KEY_ID: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ID }}"
+      FD_BUILD_AC_AUTH_KEY_BASE64: "${{ secrets.FD_BUILD_AC_AUTH_KEY_BASE64 }}"
+      FD_BUILD_AC_AUTH_KEY_ISSUER: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ISSUER }}"
+      FD_BUILD_PEPPER: "${{ secrets.FD_BUILD_PEPPER }}"
+      FD_BUILD_BUGSNAG_API_KEY: "${{ secrets.FD_BUILD_BUGSNAG_API_KEY }}"
 
     steps:
     - name: Checkout code
@@ -69,7 +82,7 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         qmake --version
-        cd pkdiagram/_pkdiagram && pipenv run sip-build --no-compile
+        cd pkdiagram/_pkdiagram && pipenv run sip-build
       shell: cmd
 
     - name: Setup sysroot caching
@@ -88,10 +101,36 @@ jobs:
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
 
-    - name: Build app
+    - name: Write build config
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        pipenv run bin\\build.bat
-      shell: cmd
+        $ErrorActionPreference = "Stop"
+        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        pipenv run python bin\update_build_info.py
+        Copy-Item build\common-config\* build\win32\
+        Copy-Item build\win32-config\* build\win32\
+
+    - name: pyqtdeploy-build
+      run: |
+        $ErrorActionPreference = "Stop"
+        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        Remove-Item -Recurse -Force "build\win32"
+        $currentDir = (Get-Location).Path
+        $env:PYTHONPATH = "$currentDir\lib\site-packages"
+        pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
+        Set-Location build\win32
+
+    - name: qmake
+      run: |
+        $ErrorActionPreference = "Stop"
+        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        $currentDir = (Get-Location).Path
+        & qmake -tp vc "CONFIG-=debug"
+
+    - name: Build
+      run: |
+        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        Set-Location -Path "build\win32"
+        & msbuild /p:Configuration=Release "Family Diagram.vcxproj"
+        
   
   

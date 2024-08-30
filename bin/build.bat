@@ -17,8 +17,7 @@ echo %PYTHONPATH%
 
 set CL=/MP8
 
-python bin\update_win_version.py
-python bin\update_build_uuid.py
+python bin\update_build_info.py
 
 pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 --qmake %QMAKE% familydiagram.pdt
 

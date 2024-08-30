@@ -145,12 +145,14 @@ if [[ $TARGET = osx* ]]; then
     echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
     echo "BUGSNAG_API_KEY = \"$FD_BUILD_BUGSNAG_API_KEY\"" >> pkdiagram/pepper.py
 
-    echo "PKS Updating app version in plist"
-	python3 bin/update_plist_version.py
-    if [ ! -f pkdiagram/build_uuid.py ] || [ pkdiagram/version.py -nt bin/update_build_uuid.py ]; then
-        python3 bin/update_build_uuid.py
+    echo "PKS Updating app pepper and version"
+    if [ ! -f pkdiagram/build_uuid.py ] || \
+        [ pkdiagram/version.py -nt bin/update_build_info.py ] || \
+        [ pkdiagram/version.py -nt build/osx-config/Info.plist.py ] || \
+        [ pkdiagram/version.py -nt build/osx-config/Info.plist.py ]; then
+        python3 bin/update_build_info.py
     else
-        echo "PKS build_uuid.py is up to date"
+        echo "PKS version and pepper are up to date"
     fi
 
     echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
