@@ -15,7 +15,7 @@ class PythonComponent(Python.PythonComponent):
                 os.environ["CL"] = "/MP"
             else:
                 _args += ("-j16",)
-        elif args[0] == qt.host_qmake:
+        elif args[0] == qt.host_qmake and self.target_arch_name == "macos-64":
             _args += ("QMAKE_CFLAGS=-Wno-implicit-function-declaration",)
         #     self.verbose('*********** Adding args for debug build.')
         #     _args += ('CONFIG+=debug', 'QMAKE_CFLAGS=-g')
