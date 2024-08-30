@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - 2.0.0
+      - pepper_py-no-exist
 
 jobs:
   build:
@@ -69,7 +69,7 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         qmake --version
-        cd pkdiagram/_pkdiagram && pipenv run sip-build
+        cd pkdiagram/_pkdiagram && pipenv run sip-build --no-compile
       shell: cmd
 
     - name: Setup sysroot caching
