@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - noop
+      - 2.0.0
 
 jobs:
   build:
@@ -88,10 +88,10 @@ jobs:
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
 
-    # - name: Build app
-    #   run: |
-    #     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-    #     pipenv run bin\\build.bat
-    #   shell: cmd
+    - name: Build app
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        pipenv run bin\\build.bat
+      shell: cmd
   
   

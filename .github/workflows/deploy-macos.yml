@@ -5,7 +5,7 @@ name: Build macOS
 on:
   push:
     branches:
-      - 2.0.0
+      - noop
 
 # defaults:
 #   run:
