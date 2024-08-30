@@ -113,18 +113,17 @@ jobs:
 
     - name: pyqtdeploy-build
       run: |
-        $ErrorActionPreference = "Stop"
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        $currentDir = (Get-Location).Path
-        $env:PYTHONPATH = "$currentDir\lib\site-packages"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set PYTHONPATH=%cd%\lib\site-packages
         pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
-        Set-Location build\win32
+      shell: cmd
 
     - name: qmake
       run: |
         $ErrorActionPreference = "Stop"
         & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         $currentDir = (Get-Location).Path
+        Set-Location build\win32
         & qmake -tp vc "CONFIG-=debug"
 
     - name: Build
