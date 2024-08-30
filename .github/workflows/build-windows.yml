@@ -105,6 +105,8 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
         & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        # Remove-Item -Recurse -Force "build\win32"
+        New-Item -ItemType Directory -Path "build\win32"
         pipenv run python bin\update_build_info.py
         Copy-Item build\common-config\* build\win32\
         Copy-Item build\win32-config\* build\win32\
@@ -113,7 +115,6 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
         & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        Remove-Item -Recurse -Force "build\win32"
         $currentDir = (Get-Location).Path
         $env:PYTHONPATH = "$currentDir\lib\site-packages"
         pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
