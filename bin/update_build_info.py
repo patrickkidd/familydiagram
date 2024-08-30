@@ -36,13 +36,13 @@ spec = importlib.util.spec_from_file_location("version", VERSION_PY_FPATH)
 version = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(version)
 
-if os.name != "nt":
+if os.name == "posix":
 
     osx_plist = os.path.join(ROOT, "build", "osx-config", "Info.plist")
     ios_plist = os.path.join(ROOT, "build", "ios-config", "Info.plist")
 
     for fpath in [osx_plist, ios_plist]:
-        print("Patching", fpath, "to version", version.VERSION)
+        print(f"Patching {fpath} to version {version.VERSION}")
         # plutil -replace CFBundleVersion -string '0.1.0d1' build/osx-config/Info.plist && less build/osx-config/Info.plist
         cmd = "plutil -replace CFBundleVersion -string '%s' %s" % (
             version.VERSION,
@@ -62,6 +62,6 @@ else:
     win32_plist = os.path.join(ROOT, "build", "win32-config", "win32-config.prf")
 
     for fpath in [win32_plist]:
-        print("Writing", fpath, "with version", version.VERSION)
+        print(f"Patching {fpath} to version {version.VERSION}")
         with open(fpath, "w") as f:
             f.write("VERSION = %s" % version.VERSION)
