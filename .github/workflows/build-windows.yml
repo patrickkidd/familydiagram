@@ -110,7 +110,7 @@ jobs:
         pipenv run python bin\update_build_info.py
         Copy-Item build\common-config\* build\win32\
         Copy-Item build\win32-config\* build\win32\
-        ls -la build\win32
+        dir build\win32
 
     - name: pyqtdeploy-build
       run: |
