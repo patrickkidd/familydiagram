@@ -97,6 +97,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set +x
         which qmake
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
@@ -112,6 +113,7 @@ jobs:
     - name: pyqtdeploy-build
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set +x
         set PYTHONPATH=%cd%\lib\site-packages
         pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
         copy build\common-config\* build\win32\
@@ -121,14 +123,17 @@ jobs:
     - name: qmake
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set +x
         cd build\win32
-        dir
+        type Family\ Diagram.pro
+        echo "Running make"
         qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
       shell: cmd # has to be shell or qmake won't work
 
     - name: Build
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set +x
         cd build\win32
         msbuild /p:Configuration=Release "Family Diagram.vcxproj"
       shell: cmd
