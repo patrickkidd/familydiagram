@@ -110,7 +110,6 @@ jobs:
         pipenv run python bin\update_build_info.py
         Copy-Item build\common-config\* build\win32\
         Copy-Item build\win32-config\* build\win32\
-        dir build\win32
 
     - name: pyqtdeploy-build
       run: |
@@ -123,6 +122,7 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cd build\win32
+        dir
         qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
       shell: cmd # has to be shell or qmake won't work
 
