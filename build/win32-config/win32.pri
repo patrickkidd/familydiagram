@@ -17,4 +17,7 @@ release {
     QMAKE_CXXFLAGS += /Zi /Od /Zm1000
     # QMAKE_CXXFLAGS += /Zc:wchar_t- # convert QString to LPCWSTR
     QMAKE_LFLAGS += /DEBUG /OPT:NOREF
+
+    QMAKE_CXXFLAGS += /MT
+    QMAKE_CFLAGS += /MT
 }
