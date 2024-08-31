@@ -127,8 +127,8 @@ jobs:
         cd build\win32
         dir
         type "Family Diagram.pro"
-        echo "Running make"
-        qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+        echo "Running qmake"
+        qmake -tp vc "CONFIG-=debug"
       shell: cmd # has to be shell or qmake won't work
 
     - name: Build
