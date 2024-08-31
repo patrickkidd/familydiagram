@@ -120,17 +120,17 @@ jobs:
 
     - name: qmake
       run: |
-        $ErrorActionPreference = "Stop"
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        $currentDir = (Get-Location).Path
-        Set-Location build\win32
-        & qmake -tp vc "CONFIG-=debug"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cd build\win32
+        qmake -tp vc "CONFIG-=debug"
+      shell: cmd
 
     - name: Build
       run: |
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         Set-Location -Path "build\win32"
-        & msbuild /p:Configuration=Release "Family Diagram.vcxproj"
+        msbuild /p:Configuration=Release "Family Diagram.vcxproj"
+      shell: cmd
         
   
   

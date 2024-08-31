@@ -5,7 +5,8 @@ name: Build macOS
 on:
   push:
     branches:
-      - 2.0.0
+      - cant-find-moc-file
+      # pyqtdeploy-sysroot: _pkdiagram: The source file doesn't exist: /Users/runner/work/familydiagram/familydiagram/pkdiagram/_pkdiagram/build/_pkdiagram/moc_unsafearea.cpp.
 
 # defaults:
 #   run:
