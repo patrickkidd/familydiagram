@@ -447,7 +447,7 @@ public:
 #elif PK_BETA_BUILD
             qDebug() << "PK_BETA_BUILD";
             if (win_sparkle_set_appcast_url) {
-                win_sparkle_set_appcast_url("");
+                win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/24bc1e7d-4f27-4172-a6fe-ed65ca74f5f9");
             } else {
                 qDebug() << "Could not load win_sparkle_set_appcast_url";
             }

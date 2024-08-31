@@ -110,6 +110,7 @@ jobs:
         pipenv run python bin\update_build_info.py
         Copy-Item build\common-config\* build\win32\
         Copy-Item build\win32-config\* build\win32\
+        ls -la build\win32
 
     - name: pyqtdeploy-build
       run: |
@@ -122,13 +123,13 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cd build\win32
-        qmake -tp vc "CONFIG-=debug"
-      shell: cmd
+        qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+      shell: cmd # has to be shell or qmake won't work
 
     - name: Build
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        Set-Location -Path "build\win32"
+        cd build\win32
         msbuild /p:Configuration=Release "Family Diagram.vcxproj"
       shell: cmd
         
