@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - noop # working
+      - 2.0.0
 
 jobs:
   build:
@@ -23,6 +23,9 @@ jobs:
       FD_BUILD_BUGSNAG_API_KEY: "${{ secrets.FD_BUILD_BUGSNAG_API_KEY }}"
 
     steps:
+
+    ## Environment
+
     - name: Checkout code
       uses: actions/checkout@v2
 
@@ -31,6 +34,9 @@ jobs:
       with:
         python-version: 3.10.4
         cache: 'pipenv'
+    - run: |
+        pip install pipenv
+        pipenv install
 
     - name: Install Chocolatey
       run: |
@@ -39,14 +45,9 @@ jobs:
         [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
+    # Needed?
     - name: Install 7zip
       run: choco install 7zip -y
-
-    - name: Install pipenv
-      run: python -m pip install pipenv
-
-    - name: Install dependencies
-      run: pipenv install --dev
 
     - name: pipenv install aqtinstall
       run: pipenv install aqtinstall
@@ -54,8 +55,8 @@ jobs:
     - name: Install Qt
       run: |
         pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
-        # echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
-        # echo "C:\Qt\5.15.2\msvc2019_64\include" >> $env:GITHUB_ENV
+
+    ## App
     
     - name: Setup _pkdiagram caching
       id: cache-_pkdiagram
@@ -129,5 +130,8 @@ jobs:
         msbuild /p:Configuration=Release "Family Diagram.vcxproj"
       shell: cmd
         
-  
-  
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: familydiagram-windows
+        path: build\win32\Release\Family Diagram.exe

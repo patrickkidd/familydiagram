@@ -355,6 +355,16 @@
             "program": "${workspaceFolder}/bin/pyqtdeploy-build-debuggable.py",
             "console": "integratedTerminal",
             "justMyCode": false,
+            "args": [
+                "--verbose",
+                "--resources",
+                "12",
+                "--target",
+                "macos-64",
+                "--build-dir",
+                "build/osx",
+                "familydiagram.pdt"        
+            ]
         },
         {
             "name": "sip-build (_pkdiagram)",
