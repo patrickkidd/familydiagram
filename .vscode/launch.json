@@ -314,7 +314,6 @@
             "request": "launch",
             "program": "C:\\familydiagram\\main.py",
             "console": "integratedTerminal",
-            "--python": "C:\\familydiagram\\vendor\\sysroot-dev\\Python-3.7.2\\PCBuild\\amd64\\python_d.exe"
         },
         {
             "name": "sysroot-dev: Current File (Integrated Terminal)",
@@ -322,7 +321,6 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python"
         },
         {
             "name": "pyqtdeploy",
@@ -354,6 +352,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/pyqtdeploy-build-debuggable.py",
             "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "justMyCode": false,
             "args": [
                 "--verbose",
