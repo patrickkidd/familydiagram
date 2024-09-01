@@ -66,7 +66,7 @@ jobs:
     - name: Install Qt
       run: |
         pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
-        echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
+        # echo "C:\Qt\5.15.2\msvc2019_64\bin" >> $env:GITHUB_PATH
         # echo "C:\Qt\5.15.2\msvc2019_64\include" >> $env:GITHUB_ENV
     
     - name: Setup _pkdiagram caching
@@ -81,6 +81,7 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         qmake --version
         cd pkdiagram/_pkdiagram && pipenv run sip-build
       shell: cmd
@@ -98,6 +99,7 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         echo on
+        set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         which qmake
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
@@ -127,6 +129,7 @@ jobs:
         cd build\win32
         type "Family Diagram.pro"
         echo "Running qmake"
+        set PATH=%cd%\sysroot\sysroot-win-64\bin;%PATH%
         qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
       shell: cmd # has to be shell or qmake won't work
 
