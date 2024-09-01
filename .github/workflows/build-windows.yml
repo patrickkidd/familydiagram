@@ -120,7 +120,7 @@ jobs:
     #     type "Family Diagram.pro"
     #     echo "Running qmake"
     #     qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
-    #   shell: cmd # has to be shell or qmake won't work
+      shell: cmd # has to be shell or qmake won't work
 
     # - name: Build
     #   run: |
