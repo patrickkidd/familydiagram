@@ -18,6 +18,6 @@ release {
     # QMAKE_CXXFLAGS += /Zc:wchar_t- # convert QString to LPCWSTR
     QMAKE_LFLAGS += /DEBUG /OPT:NOREF
 
-    QMAKE_CXXFLAGS += /MT
-    QMAKE_CFLAGS += /MT
+    QMAKE_CXXFLAGS_RELEASE += /MT
+    QMAKE_CFLAGS_RELEASE += /MT
 }
