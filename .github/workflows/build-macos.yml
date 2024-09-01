@@ -5,7 +5,7 @@ name: Build macOS
 on:
   push:
     branches:
-      - sip-version-not-specified
+      - 2.0.0
       # PKS Running pyqtdeploy-build (wipes out build/osx folder)
       # pyqtdeploy-build: SIP: 'version' has not been specified.
 

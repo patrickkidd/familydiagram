@@ -31,7 +31,7 @@ install_host_from_source = false
 # SIP ########################################################################
 
 [SIP]
-# version = "12.11.0"
+# version = "12.15.0"
 module_name = "PyQt5.sip"
 # Required for pyqtdeploy-3.3.0
 abi_major_version = 12
