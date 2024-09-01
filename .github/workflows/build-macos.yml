@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - 2.0.0
-      # PKS Running pyqtdeploy-build (wipes out build/osx folder)
       # pyqtdeploy-build: SIP: 'version' has not been specified.
 
 # defaults:
@@ -52,7 +51,7 @@ jobs:
         cache: 'pipenv'
     - run: |
         pip install pipenv
-        pipenv install
+        pipenv install --verbose
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
