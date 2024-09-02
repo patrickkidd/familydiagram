@@ -7,6 +7,3 @@
 [submodule "vedana"]
 	path = vedana
 	url = git@github.com:patrickkidd/vedana.git
-[submodule "lib/site-packages/pyqtdeploy"]
-	path = lib/site-packages/pyqtdeploy
-	url = git@github.com:patrickkidd/pyqtdeploy-patched.git
