@@ -99,6 +99,7 @@ jobs:
   
     - name: Build app
       run: |
+        export PATH="`cwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         pipenv run bin/build.sh
 
     - name: Verify app
