@@ -155,6 +155,15 @@ if [[ $TARGET = osx* ]]; then
         echo "PKS version and pepper are up to date"
     fi
 
+    echo "PKS Generating _pkdiagram sources"
+    (
+        set -e
+        cd pkdiagram/_pkdiagram
+        sip-build --no-compile
+        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+    )
+
     echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
 	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
 

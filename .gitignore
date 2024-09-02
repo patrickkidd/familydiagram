@@ -40,7 +40,6 @@ lib/pyqtdeploy*
 lib/PyQt*
 lib/Python-*
 .VSCodeCounter
-Pipfile.lock
 
 .vscode/settings.json
 .vscode/c_cpp_properties.json

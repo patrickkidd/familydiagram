@@ -72,7 +72,10 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        cd pkdiagram/_pkdiagram && pipenv run sip-build
+        cd pkdiagram/_pkdiagram
+        pipenv run sip-build --no-compile
+        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 
     - name: Download zlib source
       run: |
