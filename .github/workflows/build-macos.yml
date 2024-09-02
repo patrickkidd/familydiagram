@@ -72,6 +72,7 @@ jobs:
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        which qmake
         cd pkdiagram/_pkdiagram
         pipenv run sip-build --no-compile
         moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
