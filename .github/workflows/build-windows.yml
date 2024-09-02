@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - noop # working
+      - 2.0.0
 
 jobs:
   build:
