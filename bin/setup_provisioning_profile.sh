@@ -7,7 +7,9 @@
 
 set -e
 
-. ./bin/build_env.sh
+if [ "${FD_BUILD_DIR}" = "" ]; then
+    . ./bin/build_env.sh
+fi
 
 # Must be in environment, not set in build_env.sh
 if [ "$FD_BUILD_APPLE_ID" == "" ]; then
