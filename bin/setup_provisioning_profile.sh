@@ -6,7 +6,7 @@
 # All run from bin/build.sh in the normal case.
 
 set -e
-set +x
+set -x  # Enable command echoing with expanded environment variables
 
 if [ "${FD_BUILD_DIR}" = "" ]; then
     echo "PKS Pulling in build_env.sh"
@@ -48,14 +48,8 @@ echo "${FD_BUILD_CERTIFICATE_BASE64}" | base64 --decode > "${FD_BUILD_CERTIFICAT
 echo "PKS Decoding private key to ${FD_BUILD_PRIVATE_KEY_FPATH}"
 echo "${FD_BUILD_PRIVATE_KEY_BASE64}" | base64 --decode > "${FD_BUILD_PRIVATE_KEY_FPATH}"
 
-echo "PKS Decoding App Store Connect auth key to ${FD_BUILD_AC_AUTH_KEY_FPATH}"
-echo "${FD_BUILD_AC_AUTH_KEY_BASE64}" | base64 --decode > "${FD_BUILD_AC_AUTH_KEY_FPATH}"
-
-echo "PKS Cleaning up previous keychains"
-security delete-keychain $FD_BUILD_KEYCHAIN_NAME || true
-
-echo "PKS Creating isolated build keychain"
-security create-keychain -p $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
+echo "PKS Creating keychain"
+security create-keychain -p "$FD_BUILD_CERTIFICATE_PASSWORD" $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Setting build keychain default"
 security default-keychain -s $FD_BUILD_KEYCHAIN_NAME
@@ -79,7 +73,6 @@ echo "PKS Storing password in the keychain"
 xcrun altool --store-password-in-keychain-item "${FD_BUILD_APPLE_ID}" -u "${FD_BUILD_APPLE_ID}" -p "${FD_BUILD_APPLE_ID_PASSWORD}"
 
 echo "PKS Setting keychain partitions list"
-# security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Adding provisioning profile to local machine"
@@ -101,3 +94,6 @@ security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Listing keychains"
 security list-keychains
+
+echo "PKS Listing keychain access control"
+security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
