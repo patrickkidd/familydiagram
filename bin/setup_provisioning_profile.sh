@@ -93,8 +93,11 @@ FD_BUILD_PROVISIONING_PROFILE_SPECIFIER=$(/usr/libexec/PlistBuddy -c "Print :UUI
 echo "PKS Found provisioning profile specifier ${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}"
 mv $FD_BUILD_PROVISIONING_PROFILE_FPATH ~/Library/MobileDevice/Provisioning\ Profiles/${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}.provisionprofile
 
-echo "PKS Verifying identities in the keychain"
+echo "PKS Listing identities in the keychain"
 security find-identity -p codesigning -v $FD_BUILD_KEYCHAIN_NAME
 
-echo "PKS Vertifying certificates in the keychain"
+echo "PKS Listing certificates in the keychain"
 security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
+
+echo "PKS Listing keychains"
+security list-keychains
