@@ -162,6 +162,9 @@ jobs:
         security list-keychains
         echo "list-keychains <<<<"
 
+        echo "PKS security default-keychain -s ${FD_BUILD_KEYCHAIN_NAME}"
+        security default-keychain -s $FD_BUILD_KEYCHAIN_NAME
+
         echo "dump-keychain >>>>"
         security dump-keychain
         echo "dump-keychain <<<<"
