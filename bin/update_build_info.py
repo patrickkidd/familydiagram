@@ -1,5 +1,7 @@
 """
 Write a new build UUID to pkdiagram/build_uuid.py.
+
+This file must be self-contained, no python dependencies.
 """
 
 import os.path, uuid

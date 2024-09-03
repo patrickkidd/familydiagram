@@ -131,7 +131,7 @@ if [[ $TARGET = osx* ]]; then
     #     QMAKE=$(which qmake)
     # fi
     QMAKE=$SYSROOT/Qt/bin/qmake
-    PYTHON_VERSION=`python3 -c "import platform; print(platform.python_version())"`
+    # PYTHON_VERSION=`python3 -c "import platform; print(platform.python_version())"`
     FAMILYDIAGRAM_VERSION=`python3 main.py --version`
     if echo "$FAMILYDIAGRAM_VERSION" | grep -q "a"; then
         echo "PKS Alpha version detected"

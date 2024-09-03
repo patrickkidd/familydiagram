@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - 2.0.0
+      - all-works # 2.0.0
 
 jobs:
   build:
