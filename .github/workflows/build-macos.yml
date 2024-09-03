@@ -145,6 +145,7 @@ jobs:
           -exportPath $FD_BUILD_DIR/Export
 
     - name: Prep App Bundle
+      run: |
         rm build/osx/Release/Family\ Diagram.app
         cp -R $FD_BUILD_DIR/Export/Family\ Diagram.app build/osx/Release
         ditto -c -k --keepParent \
