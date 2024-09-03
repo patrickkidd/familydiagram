@@ -6,8 +6,10 @@
 # All run from bin/build.sh in the normal case.
 
 set -e
+set +x
 
 if [ "${FD_BUILD_DIR}" = "" ]; then
+    echo "PKS Pulling in build_env.sh"
     . ./bin/build_env.sh
 fi
 
@@ -84,8 +86,10 @@ echo "PKS Adding provisioning profile to local machine"
 mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 security cms -D -i $FD_BUILD_PROVISIONING_PROFILE_FPATH > $FD_BUILD_DIR/FD.provisionprofile.plist
 FD_BUILD_PROVISIONING_PROFILE=$(/usr/libexec/PlistBuddy -c "Print :Name" $FD_BUILD_DIR/FD.provisionprofile.plist)
+
 echo "PKS Found provisioning profile name ${FD_BUILD_PROVISIONING_PROFILE}"
 FD_BUILD_PROVISIONING_PROFILE_SPECIFIER=$(/usr/libexec/PlistBuddy -c "Print :UUID" $FD_BUILD_DIR/FD.provisionprofile.plist)
+
 echo "PKS Found provisioning profile specifier ${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}"
 mv $FD_BUILD_PROVISIONING_PROFILE_FPATH ~/Library/MobileDevice/Provisioning\ Profiles/${FD_BUILD_PROVISIONING_PROFILE_SPECIFIER}.provisionprofile
 
