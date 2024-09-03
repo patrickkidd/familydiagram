@@ -153,13 +153,16 @@ jobs:
       run: |
         set -e
         set +x
+        echo "find-certificate >>>>"
         security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
+        echo "find-certificate <<<<"
         xcodebuild \
           -verbose \
           -exportArchive \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
           -exportOptionsPlist build/osx/ExportOptions.plist \
-          -exportPath $FD_BUILD_DIR/Export
+          -exportPath $FD_BUILD_DIR/Export \
+          OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME}"
 
     - name: Prep App Bundle
       run: |
