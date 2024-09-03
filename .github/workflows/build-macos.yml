@@ -107,13 +107,13 @@ jobs:
 
     - name: Generate qmake project
       run: |
-        export PATH="${CWD}/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
 
     - name: qmake
       run: |
-        export PATH="${CWD}/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        ls -la "${CWD}/sysroot/sysroot-macos-64/Qt/bin"
+        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        ls -la "`pwd`/sysroot/sysroot-macos-64/Qt/bin"
         cd build/osx
         qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
         echo "Updating xcode project to new build system"
