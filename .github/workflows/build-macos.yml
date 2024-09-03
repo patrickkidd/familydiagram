@@ -169,6 +169,9 @@ jobs:
         echo "PKS dump-keychain -d ${FD_BUILD_KEYCHAIN_NAME}"
         security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
 
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
+
         xcodebuild \
           -verbose \
           -exportArchive \
