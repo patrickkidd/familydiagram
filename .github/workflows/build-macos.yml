@@ -151,6 +151,8 @@ jobs:
 
     - name: Export archive
       run: |
+        set -e
+        set +x
         security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
         xcodebuild \
           -verbose \
