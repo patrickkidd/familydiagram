@@ -103,7 +103,7 @@ jobs:
 
     - name: Write build config
       run: |
-        pipenv run . ./bin/setup_provisioning_profile.sh
+        pipenv run ./bin/setup_provisioning_profile.sh
 
     - name: Generate qmake project
       run: |
