@@ -114,6 +114,8 @@ jobs:
     - name: Setup provisioning profile
       run: |
         pipenv run ./bin/setup_provisioning_profile.sh
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: Generate qmake project
       run: |
@@ -122,10 +124,14 @@ jobs:
         pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
         rsync -avzq build/common-config/* build/osx
         rsync -avzq build/osx-config/* build/osx
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: qmake
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
         cd build/osx
         qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
 
@@ -135,13 +141,18 @@ jobs:
 
     - name: Qt Preprocess
       run: |
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
         xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -target "Qt Preprocess" \
           -configuration Release
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: Build App
       run: |
+        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
         ls -la $FD_BUILD_KEYCHAIN_NAME
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
@@ -161,8 +172,6 @@ jobs:
 
         echo "PKS dump-keychain -d ${FD_BUILD_KEYCHAIN_NAME}"
         security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
-        echo "PKS dumped keychain"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
 
         xcodebuild \
           -verbose \
