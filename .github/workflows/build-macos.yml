@@ -118,6 +118,7 @@ jobs:
     - name: Generate qmake project
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        ls -la $FD_BUILD_KEYCHAIN_NAME
         pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
         rsync -avzq build/common-config/* build/osx
         rsync -avzq build/osx-config/* build/osx
@@ -141,6 +142,7 @@ jobs:
 
     - name: Build App
       run: |
+        ls -la $FD_BUILD_KEYCHAIN_NAME
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
@@ -154,25 +156,12 @@ jobs:
         set -e
         set +x
 
-        echo "find-certificate >>>> --${FD_BUILD_KEYCHAIN_NAME}--"
-        security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
-        echo "find-certificate <<<<"
-
-        echo "list-keychains >>>>"
-        security list-keychains
-        echo "list-keychains <<<<"
-
-        echo "PKS security default-keychain -s ${FD_BUILD_KEYCHAIN_NAME}"
-        security default-keychain -s $FD_BUILD_KEYCHAIN_NAME
-
-        echo "dump-keychain >>>>"
-        security dump-keychain
-        echo "dump-keychain <<<<"
+        echo "PKS Adding keychain to search list"
+        security list-keychains -s $FD_BUILD_KEYCHAIN_NAME
 
         echo "PKS dump-keychain -d ${FD_BUILD_KEYCHAIN_NAME}"
         security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
-
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        echo "PKS dumped keychain"
         ls -la $FD_BUILD_KEYCHAIN_NAME
 
         xcodebuild \
