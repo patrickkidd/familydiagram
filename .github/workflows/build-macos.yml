@@ -141,7 +141,7 @@ jobs:
 
     - name: Build App
       run: |
-        xcodebuild \
+        pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
           -configuration Release \
@@ -153,9 +153,19 @@ jobs:
       run: |
         set -e
         set +x
-        echo "find-certificate >>>>"
+
+        echo "find-certificate >>>> --${FD_BUILD_KEYCHAIN_NAME}--"
         security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
         echo "find-certificate <<<<"
+
+        echo "list-keychains >>>>"
+        security list-keychains
+        echo "list-keychains <<<<"
+
+        echo "dump-keychain >>>>"
+        security dump-keychain
+        echo "dump-keychain <<<<"
+
         xcodebuild \
           -verbose \
           -exportArchive \
