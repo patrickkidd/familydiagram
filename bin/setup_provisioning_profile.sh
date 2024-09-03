@@ -90,10 +90,13 @@ echo "PKS Listing identities in the keychain"
 security find-identity -p codesigning -v $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Listing certificates in the keychain"
-security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
+security find-certificate -c "Developer ID Application: Patrick Stinson (8KJB799CU7)" -a -p $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Listing keychains"
 security list-keychains
 
-echo "PKS Listing keychain access control"
+echo "PKS dump-keychain"
+security dump-keychain
+
+echo "PKS dump-keychain -d ${FD_BUILD_KEYCHAIN_NAME}"
 security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
