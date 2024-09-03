@@ -19,6 +19,15 @@ jobs:
     runs-on: macos-12
 
     env:
+      # variables
+      FD_BUILD_DIR: ${{ github.workspace }}/build/osx/Release
+      FD_BUILD_KEYCHAIN_NAME: ${{ github.workspace }}/build/osx/Release/build.keychain-db
+      FD_BUILD_PROVISIONING_PROFILE_FPATH: ${{ github.workspace }}/build/osx/Release/FD.provisionprofile
+      FD_BUILD_CERTIFICATE_FPATH: ${{ github.workspace }}/build/osx/Release/FD_certificate.crt
+      FD_BUILD_PRIVATE_KEY_FPATH: ${{ github.workspace }}/build/osx/Release/FD_certificate.pem
+      FD_BUILD_AC_AUTH_KEY_FPATH: "./private_keys/AuthKey_${secrets.FD_BUILD_AC_AUTH_KEY_ID}.p8"
+      FD_APP_PATH: ${{ github.workspace }}/build/osx/Release/Family\ Diagram.app
+      # secrets
       FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
       FD_BUILD_APPLE_ID_PASSWORD: "${{ secrets.FD_BUILD_APPLE_ID_PASSWORD }}"
       FD_BUILD_PROVISIONING_PROFILE_BASE64: "${{ secrets.FD_BUILD_PROVISIONING_PROFILE_BASE64 }}"
@@ -30,7 +39,7 @@ jobs:
       FD_BUILD_AC_AUTH_KEY_ISSUER: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ISSUER }}"
       FD_BUILD_PEPPER: "${{ secrets.FD_BUILD_PEPPER }}"
       FD_BUILD_BUGSNAG_API_KEY: "${{ secrets.FD_BUILD_BUGSNAG_API_KEY }}"
-
+      
     steps:
 
     ## Environment
