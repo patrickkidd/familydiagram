@@ -113,6 +113,7 @@ jobs:
     - name: qmake
       run: |
         export PATH="${CWD}/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        ls -la "${CWD}/sysroot/sysroot-macos-64/Qt/bin"
         cd build/osx
         qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
         echo "Updating xcode project to new build system"
