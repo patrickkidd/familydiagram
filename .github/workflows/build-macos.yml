@@ -111,29 +111,24 @@ jobs:
       run: |
         pipenv run python bin/update_build_info.py
             
+    - name: Generate qmake project
+      run: |
+        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
+        rsync -avzq build/common-config/* build/osx
+        rsync -avzq build/osx-config/* build/osx
+
+    - name: qmake
+      run: |
+        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        cd build/osx
+        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
+
     - name: Setup provisioning profile
       run: |
         pipenv run ./bin/setup_provisioning_profile.sh
         echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
         ls -la $FD_BUILD_KEYCHAIN_NAME
-
-    - name: Generate qmake project
-      run: |
-        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
-        pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
-        rsync -avzq build/common-config/* build/osx
-        rsync -avzq build/osx-config/* build/osx
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
-
-    - name: qmake
-      run: |
-        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
-        cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
 
     - name: Update xcode project to new build system
       run: |
