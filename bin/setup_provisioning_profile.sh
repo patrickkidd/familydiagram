@@ -38,13 +38,13 @@ mkdir -p $FD_BUILD_DIR
 echo "PKS Decoding provisioning profile to ${FD_BUILD_PROVISIONING_PROFILE_FPATH}"
 echo "${FD_BUILD_PROVISIONING_PROFILE_BASE64}" | base64 --decode > "${FD_BUILD_PROVISIONING_PROFILE_FPATH}"
 
-echo "PKS Decoding certificate"
+echo "PKS Decoding certificate to ${FD_BUILD_CERTIFICATE_FPATH}"
 echo "${FD_BUILD_CERTIFICATE_BASE64}" | base64 --decode > "${FD_BUILD_CERTIFICATE_FPATH}"
 
 echo "PKS Decoding private key to ${FD_BUILD_PRIVATE_KEY_FPATH}"
 echo "${FD_BUILD_PRIVATE_KEY_BASE64}" | base64 --decode > "${FD_BUILD_PRIVATE_KEY_FPATH}"
 
-echo "PKS Decoding App Store Connect auth key"
+echo "PKS Decoding App Store Connect auth key to ${FD_BUILD_AC_AUTH_KEY_FPATH}"
 echo "${FD_BUILD_AC_AUTH_KEY_BASE64}" | base64 --decode > "${FD_BUILD_AC_AUTH_KEY_FPATH}"
 
 echo "PKS Cleaning up previous keychains"
@@ -89,3 +89,6 @@ mv $FD_BUILD_PROVISIONING_PROFILE_FPATH ~/Library/MobileDevice/Provisioning\ Pro
 
 echo "PKS Verifying identities in the keychain"
 security find-identity -p codesigning -v $FD_BUILD_KEYCHAIN_NAME
+
+echo "PKS Vertifying certificates in the keychain"
+security find-certificate -a -p $FD_BUILD_KEYCHAIN_NAME
