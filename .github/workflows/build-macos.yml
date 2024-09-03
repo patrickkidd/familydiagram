@@ -107,7 +107,6 @@ jobs:
 
     - name: Generate qmake project
       run: |
-        export PATH="${CWD}/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
       	pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
 
     - name: Generate qmake project
