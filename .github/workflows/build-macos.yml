@@ -152,6 +152,7 @@ jobs:
 
     - name: Verify app
       run: |
+        ls -la build/osx/Release
         build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
     
     - name: Export archive
