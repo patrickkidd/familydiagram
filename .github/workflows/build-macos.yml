@@ -147,7 +147,7 @@ jobs:
           -scheme "Family Diagram" \
           -configuration Release \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
-          OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME} --options=runtime" \
+          OTHER_CODE_SIGN_FLAGS="--options=runtime" \
           archive
 
     - name: Export archive
