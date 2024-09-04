@@ -35,18 +35,19 @@ fi
 
 echo "PKS Using transient keychain name: ${FD_BUILD_KEYCHAIN_NAME}"
 
-rm -rf ./private_keys/
-mkdir -p ./private_keys/
 mkdir -p $FD_BUILD_DIR
 
-echo "PKS Decoding provisioning profile to ${FD_BUILD_PROVISIONING_PROFILE_FPATH}"
+echo "PKS Writing provisioning profile to ${FD_BUILD_PROVISIONING_PROFILE_FPATH}"
 echo "${FD_BUILD_PROVISIONING_PROFILE_BASE64}" | base64 --decode > "${FD_BUILD_PROVISIONING_PROFILE_FPATH}"
 
-echo "PKS Decoding certificate to ${FD_BUILD_CERTIFICATE_FPATH}"
+echo "PKS Writing certificate to ${FD_BUILD_CERTIFICATE_FPATH}"
 echo "${FD_BUILD_CERTIFICATE_BASE64}" | base64 --decode > "${FD_BUILD_CERTIFICATE_FPATH}"
 
-echo "PKS Decoding private key to ${FD_BUILD_PRIVATE_KEY_FPATH}"
+echo "PKS Writing private key to ${FD_BUILD_PRIVATE_KEY_FPATH}"
 echo "${FD_BUILD_PRIVATE_KEY_BASE64}" | base64 --decode > "${FD_BUILD_PRIVATE_KEY_FPATH}"
+
+echo "PKS Writing AppCenter to ${FD_BUILD_AC_AUTH_KEY_FPATH}"
+echo "${FD_BUILD_AC_AUTH_KEY_BASE64}" | base64 --decode > "${FD_BUILD_AC_AUTH_KEY_FPATH}"
 
 echo "PKS Creating keychain"
 security create-keychain -p "$FD_BUILD_CERTIFICATE_PASSWORD" $FD_BUILD_KEYCHAIN_NAME

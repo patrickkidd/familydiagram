@@ -26,7 +26,7 @@ jobs:
       FD_BUILD_PROVISIONING_PROFILE_FPATH: ${{ github.workspace }}/build/osx/Release/FD.provisionprofile
       FD_BUILD_CERTIFICATE_FPATH: ${{ github.workspace }}/build/osx/Release/FD_certificate.crt
       FD_BUILD_PRIVATE_KEY_FPATH: ${{ github.workspace }}/build/osx/Release/FD_certificate.pem
-      FD_BUILD_AC_AUTH_KEY_FPATH: "./private_keys/AuthKey_${{ secrets.FD_BUILD_AC_AUTH_KEY_ID }}.p8"
+      FD_BUILD_AC_AUTH_KEY_FPATH: ${{ github.workspace }}/build/osx/Release/AuthKey_${{ secrets.FD_BUILD_AC_AUTH_KEY_ID }}.p8
       FD_APP_PATH: ${{ github.workspace }}/build/osx/Release/Family\ Diagram.app
       # secrets
       FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
@@ -170,8 +170,7 @@ jobs:
 
     - name: Uploading for notarization
       run: |
-        ls -la
-        ls -la ./private_keys/
+        ls -la ./build/osx/Release
         xcrun notarytool submit \
           --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
           --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \

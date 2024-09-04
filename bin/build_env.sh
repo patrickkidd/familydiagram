@@ -53,5 +53,5 @@ export FD_BUILD_KEYCHAIN_NAME=${FD_BUILD_DIR}/build.keychain-db
 export FD_BUILD_PROVISIONING_PROFILE_FPATH=${FD_BUILD_DIR}/FD.provisionprofile
 export FD_BUILD_CERTIFICATE_FPATH=${FD_BUILD_DIR}/FD_certificate.crt
 export FD_BUILD_PRIVATE_KEY_FPATH=${FD_BUILD_DIR}/FD_certificate.pem
-export FD_BUILD_AC_AUTH_KEY_FPATH="./private_keys/AuthKey_${FD_BUILD_AC_AUTH_KEY_ID}.p8"
+export FD_BUILD_AC_AUTH_KEY_FPATH="${FD_BUILD_DIR}/AuthKey_${FD_BUILD_AC_AUTH_KEY_ID}.p8"
 export FD_APP_PATH=`pwd`/build/osx/Release/Family\ Diagram.app
