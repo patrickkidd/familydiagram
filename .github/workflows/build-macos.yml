@@ -20,7 +20,6 @@ jobs:
 
     env:
       # variables
-      FAMILYDIAGRAM_BUILD: 1
       FD_BUILD_DIR: ${{ github.workspace }}/build/osx/Release
       FD_BUILD_KEYCHAIN_NAME: ${{ github.workspace }}/build/osx/Release/build.keychain-db
       FD_BUILD_PROVISIONING_PROFILE_FPATH: ${{ github.workspace }}/build/osx/Release/FD.provisionprofile

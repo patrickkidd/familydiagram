@@ -12,7 +12,6 @@ fi
 BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT=`cd "$BIN/.."; pwd`
 
-export FAMILYDIAGRAM_BUILD=1
 export PYTHONPATH=`pwd`/lib/site-packages
 
 

@@ -1,3 +1,7 @@
+# Specify the PEP 566 metadata for the project.
+[project]
+name = "_pkdiagram"
+
 [build-system]
 requires = [ "sip >=5, <6" ]
 requires-dist = "PyQt5 (>=5.15)"
@@ -5,10 +9,6 @@ build-backend = "sipbuild.api"
 
 # [tool.sip]
 # project-factory = "pyqtbuild:PyQtProject"
-
-# Specify the PEP 566 metadata for the project.
-[tool.sip.metadata]
-name = "_pkdiagram"
 
 [tool.sip.project]
 abi-version = "12.11"
