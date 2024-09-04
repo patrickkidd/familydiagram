@@ -143,11 +143,13 @@ jobs:
 
     - name: Build App
       run: |
+        xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Release -showBuildSettings
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
           -configuration Release \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
+          -showBuildSettings \
           OTHER_CODE_SIGN_FLAGS="--options=runtime" \
           archive
 
