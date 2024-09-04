@@ -10,7 +10,7 @@ from . import version, util, pepper
 from .util import CUtil, EventKind
 
 
-if not util.IS_BAREBONES and not os.environ.get("FAMILYDIAGRAM_BUILD"):
+if not os.environ.get("FAMILYDIAGRAM_BUILD"):
 
     PathItemBase = util.PathItemBase
     from .qmlhelpers import *

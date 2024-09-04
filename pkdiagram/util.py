@@ -16,14 +16,6 @@ try:
 except:
     IS_BUNDLE = False
 
-try:
-    import PyQt5.QtQml
-
-    IS_BAREBONES = False
-except ImportError as e:
-    ("No qml, so not importing gui and object modules")
-    IS_BAREBONES = True
-
 import vedana
 from _pkdiagram import *
 from _pkdiagram import CUtil

@@ -128,7 +128,6 @@ jobs:
     - name: Setup provisioning profile
       run: |
         pipenv run ./bin/setup_provisioning_profile.sh
-        echo "PKS Set up provisioning profile in keychain ${FD_BUILD_KEYCHAIN_NAME}"
 
     - name: Update xcode project to new build system
       run: |
@@ -143,16 +142,19 @@ jobs:
 
     - name: Build App
       run: |
-        xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Release -showBuildSettings
+        # xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Release -showBuildSettings
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
           -configuration Release \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
           -xcconfig build/osx/Family-Diagram-Release.xcconfig \
-          OTHER_CODE_SIGN_FLAGS="--options=runtime" \
           archive
 
+    - name: Verify app
+      run: |
+        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
+    
     - name: Export archive
       run: |
         xcodebuild \
@@ -214,10 +216,6 @@ jobs:
           --no-internet-enable \
           "Release/Family Diagram.dmg" \
           "Release/"
-
-    - name: Verify app
-      run: |
-        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
