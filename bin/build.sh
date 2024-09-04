@@ -45,7 +45,6 @@ if [[ $TARGET = osx* ]]; then
             -scheme "Family Diagram" \
             -configuration Release \
             -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
-            OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME}" \
             archive
             # -xcconfig build/osx/Family-Diagram-Release.xcconfig \
             # -UseModernBuildSystem=YES \
