@@ -127,7 +127,7 @@ jobs:
     - name: Setup provisioning profile
       run: |
         pipenv run ./bin/setup_provisioning_profile.sh
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
+        echo "PKS Set up provisioning profile in keychain ${FD_BUILD_KEYCHAIN_NAME}"
         ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: Update xcode project to new build system
@@ -136,19 +136,13 @@ jobs:
 
     - name: Qt Preprocess
       run: |
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
         xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -target "Qt Preprocess" \
           -configuration Release
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: Build App
       run: |
-        echo "PKS ls -la ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
@@ -159,22 +153,12 @@ jobs:
 
     - name: Export archive
       run: |
-        set -e
-        set +x
-
-        echo "PKS Adding keychain to search list"
-        security list-keychains -s $FD_BUILD_KEYCHAIN_NAME
-
-        echo "PKS dump-keychain -d ${FD_BUILD_KEYCHAIN_NAME}"
-        security dump-keychain -d $FD_BUILD_KEYCHAIN_NAME
-
         xcodebuild \
           -verbose \
           -exportArchive \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
           -exportOptionsPlist build/osx/ExportOptions.plist \
-          -exportPath $FD_BUILD_DIR/Export \
-          OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME}"
+          -exportPath $FD_BUILD_DIR/Export
 
     - name: Prep App Bundle
       run: |
@@ -186,6 +170,8 @@ jobs:
 
     - name: Uploading for notarization
       run: |
+        ls -la
+        ls -la ./private_keys/
         xcrun notarytool submit \
           --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
           --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \
