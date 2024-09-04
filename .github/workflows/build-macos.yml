@@ -128,7 +128,6 @@ jobs:
       run: |
         pipenv run ./bin/setup_provisioning_profile.sh
         echo "PKS Set up provisioning profile in keychain ${FD_BUILD_KEYCHAIN_NAME}"
-        ls -la $FD_BUILD_KEYCHAIN_NAME
 
     - name: Update xcode project to new build system
       run: |
@@ -148,7 +147,7 @@ jobs:
           -scheme "Family Diagram" \
           -configuration Release \
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
-          OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME}" \
+          OTHER_CODE_SIGN_FLAGS="--keychain ${FD_BUILD_KEYCHAIN_NAME} --options=runtime" \
           archive
 
     - name: Export archive
