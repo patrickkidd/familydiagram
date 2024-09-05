@@ -19,7 +19,7 @@ print("Writing new pepper to pkdiagram/pepper.py")
 fpath = os.path.join(ROOT, "pkdiagram", "pepper.py")
 with open(fpath, "w") as f:
     FD_BUILD_PEPPER = os.getenv("FD_BUILD_PEPPER")
-    f.write(f"PEPPER = '{FD_BUILD_PEPPER}'\n")
+    f.write(f"PEPPER = b'{FD_BUILD_PEPPER}'\n")
     FD_BUILD_BUGSNAG_API_KEY = os.getenv("FD_BUILD_BUGSNAG_API_KEY")
     f.write(f"BUGSNAG_API_KEY = '{FD_BUILD_BUGSNAG_API_KEY}'\n")
 
