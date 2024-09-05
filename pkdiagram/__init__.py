@@ -4,6 +4,8 @@ PEPPER = pepper.PEPPER
 
 util.init_logging()
 
+print(f"pkdiagram PEPPER:{PEPPER}")
+
 import os
 
 from . import version, util, pepper
