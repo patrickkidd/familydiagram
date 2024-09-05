@@ -1,9 +1,10 @@
 name: Build Windows
 
 on:
-  push:
-    branches:
-      - all-works # 2.0.0
+  workflow_run:
+    workflows: ["Integration"]
+    types:
+      - completed
 
 jobs:
   build:
