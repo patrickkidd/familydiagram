@@ -98,7 +98,6 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        which qmake
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
         
     - name: Write build config
@@ -116,7 +115,6 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        cat Family\ Diagram.pro
         qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
 
     - name: Setup provisioning profile
@@ -136,7 +134,6 @@ jobs:
 
     - name: Build App
       run: |
-        # xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Release -showBuildSettings
         pipenv run xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
@@ -156,13 +153,11 @@ jobs:
 
     - name: Verify app
       run: |
-        ls -la build/osx/Release
-        ls -la build/osx/Release/Export
         build/osx/Release/Export/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
     - name: Prep App Bundle
       run: |
-        rm build/osx/Release/Family\ Diagram.app
+        rm build/osx/Release/Family\ Diagram.app # symlink
         cp -R $FD_BUILD_DIR/Export/Family\ Diagram.app build/osx/Release
         ditto -c -k --keepParent \
             "$FD_BUILD_DIR/Family Diagram.app" \
@@ -170,7 +165,6 @@ jobs:
 
     - name: Uploading for notarization
       run: |
-        ls -la ./build/osx/Release
         xcrun notarytool submit \
           --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
           --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \

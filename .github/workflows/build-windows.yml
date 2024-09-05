@@ -76,7 +76,6 @@ jobs:
         pipenv run sip-build --no-compile
         moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
         moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
-    
       shell: cmd
 
     - name: Setup sysroot caching
@@ -91,24 +90,19 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        echo on
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
-        which qmake
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
 
     - name: Write build config
       run: |
-        $ErrorActionPreference = "Stop"
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        # Remove-Item -Recurse -Force "build\win32"
-        # New-Item -ItemType Directory -Path "build\win32"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         pipenv run python bin\update_build_info.py
+      shell: cmd
 
     - name: pyqtdeploy-build
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        echo on
         set PYTHONPATH=%cd%\lib\site-packages
         pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
         copy build\common-config\* build\win32\
@@ -118,11 +112,8 @@ jobs:
     - name: qmake
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        echo on
         set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
         cd build\win32
-        type "Family Diagram.pro"
-        echo "Running qmake"
         qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
       shell: cmd # has to be shell or qmake won't work
 
