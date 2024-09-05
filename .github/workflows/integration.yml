@@ -29,6 +29,29 @@ jobs:
         pip install pipenv
         pipenv install --dev --verbose
   
+    # It is faster to install homebrew than to restore from cache
+    - name: brew install qt@5 create-dmg
+      run: |
+        brew install qt@5 create-dmg
+
+    ## App
+    
+    - name: Setup _pkdiagram caching
+      id: cache-_pkdiagram
+      uses: actions/cache@v2
+      with:
+        path: |
+          pkdiagram/_pkdiagram/build
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+    
+    - name: sip-build for _pkdiagram
+      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
+      run: |
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        which qmake
+        cmake .
+        make
+
 #     - name: Lint with flake8
 #       run: |
 #         # stop the build if there are Python syntax errors or undefined names
