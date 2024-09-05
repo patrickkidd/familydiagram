@@ -158,7 +158,7 @@ jobs:
       run: |
         ls -la build/osx/Release
         ls -la build/osx/Release/Export
-        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Export/Family\ Diagram --version
+        build/osx/Release/Export/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
     - name: Prep App Bundle
       run: |
