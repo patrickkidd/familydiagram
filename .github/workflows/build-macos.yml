@@ -6,11 +6,6 @@ on:
   push:
     branches:
       - 2.0.0
-      # pyqtdeploy-build: SIP: 'version' has not been specified.
-
-# defaults:
-#   run:
-#     working-directory: /Users/patrick/dev/familydiagram
 
 jobs:
   build-osx:
@@ -150,11 +145,6 @@ jobs:
           -xcconfig build/osx/Family-Diagram-Release.xcconfig \
           archive
 
-    - name: Verify app
-      run: |
-        ls -la build/osx/Release
-        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
-    
     - name: Export archive
       run: |
         xcodebuild \
@@ -163,6 +153,12 @@ jobs:
           -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
           -exportOptionsPlist build/osx/ExportOptions.plist \
           -exportPath $FD_BUILD_DIR/Export
+
+    - name: Verify app
+      run: |
+        ls -la build/osx/Release
+        ls -la build/osx/Release/Export
+        build/osx/Release/Family\ Diagram.app/Contents/MacOS/Export/Family\ Diagram --version
 
     - name: Prep App Bundle
       run: |
