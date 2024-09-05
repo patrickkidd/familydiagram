@@ -34,7 +34,7 @@ jobs:
       run: |
         brew install qt@5 create-dmg
 
-    ## App
+    ## Build
     
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
@@ -44,6 +44,10 @@ jobs:
         pipenv run cmake .
         pipenv run make
 
+    - name: Write build config
+      run: |
+        pipenv run python bin/update_build_info.py
+    
 #     - name: Lint with flake8
 #       run: |
 #         # stop the build if there are Python syntax errors or undefined names
