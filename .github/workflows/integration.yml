@@ -36,14 +36,6 @@ jobs:
 
     ## App
     
-    - name: Setup _pkdiagram caching
-      id: cache-_pkdiagram
-      uses: actions/cache@v2
-      with:
-        path: |
-          pkdiagram/_pkdiagram/build
-        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
-    
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
