@@ -41,8 +41,8 @@ jobs:
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         which qmake
-        cmake .
-        make
+        pipenv run cmake .
+        pipenv run make
 
 #     - name: Lint with flake8
 #       run: |
