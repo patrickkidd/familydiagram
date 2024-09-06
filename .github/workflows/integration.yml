@@ -40,9 +40,7 @@ jobs:
         pip install pipenv
         mkdir .venv
         pipenv install --dev
-        pipenv run pip list
-        pipenv run pip show --files sip
-        which sip-install
+        pipenv run which sip-install
   
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -62,7 +60,8 @@ jobs:
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
         which qmake
-        pipenv run cd ./familydiagram-server/vedanaprivate && sip-install
+        cd ./familydiagram-server/vedanaprivate
+        pipenv run sip-install
 
     - name: Write build config
       run: |
