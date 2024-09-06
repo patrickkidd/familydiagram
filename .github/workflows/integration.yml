@@ -49,22 +49,23 @@ jobs:
 
     ## Build
     
-    - name: sip-install for _pkdiagram
-      run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        which qmake
-        pipenv run cmake .
-        pipenv run make
 
     - name: sip-install for vedanaprivate
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
         which qmake
         cd ./familydiagram-server/vedanaprivate
-        rm Pipfile*
         ls -la
+        rm Pipfile*
         pipenv run which sip-install
         pipenv run sip-install
+      
+    - name: sip-install for _pkdiagram
+      run: |
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        which qmake
+        pipenv run cmake .
+        pipenv run make
 
     - name: Write build config
       run: |
