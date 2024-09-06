@@ -56,10 +56,9 @@ jobs:
 
     - name: sip-build for vedanaprivate
       run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        cd ./familydiagram-server/vedanaprivate
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
         which qmake
-        pipenv run sip-install
+        pipenv run cd ./familydiagram-server/vedanaprivate && sip-install
 
     - name: Write build config
       run: |
