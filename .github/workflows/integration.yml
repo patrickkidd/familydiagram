@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Checkout patrickkidd/famildiagram
       uses: actions/checkout@v2
+      with:
+        submodules: true
 
     - name: Checkout patrickkidd/famildiagram-server
       uses: actions/checkout@v2
