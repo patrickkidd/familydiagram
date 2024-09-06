@@ -25,6 +25,7 @@ jobs:
         repository: patrickkidd/famildiagram-server
         path: familydiagram-server
         ref: fdserver-refactor
+        token: ${{ secrets.GH_PAT }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
