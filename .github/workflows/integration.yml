@@ -22,7 +22,7 @@ jobs:
     - name: Checkout patrickkidd/famildiagram-server
       uses: actions/checkout@v2
       with:
-        repository: patrickkidd/famildiagram-server
+        repository: patrickkidd/familydiagram-server
         path: familydiagram-server
         ref: fdserver-refactor
         token: ${{ secrets.GH_PAT }}
