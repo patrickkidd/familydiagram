@@ -39,6 +39,7 @@ jobs:
     - run: |
         pip install pipenv
         pipenv install --dev --verbose
+        which sip-install
   
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
