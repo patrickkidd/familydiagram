@@ -61,7 +61,8 @@ jobs:
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
         which qmake
         cd ./familydiagram-server/vedanaprivate
-        echo $(pwd)
+        rm Pipfile*
+        ls -la
         pipenv run which sip-install
         pipenv run sip-install
 
