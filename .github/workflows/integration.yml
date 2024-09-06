@@ -21,8 +21,9 @@ jobs:
 
     - name: Checkout code
       uses: actions/checkout@v2
-      repository: patrickkidd/famildiagram-server
-      path: famildiagram-server
+      with:
+        repository: patrickkidd/famildiagram-server
+        path: famildiagram-server
 
     - name: Set up Python
       uses: actions/setup-python@v2
