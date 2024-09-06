@@ -41,7 +41,7 @@ jobs:
         mkdir .venv
         pipenv install --dev
         pipenv run pip list
-        pip show --files sip
+        pipenv run pip show --files sip
         which sip-install
   
     # It is faster to install homebrew than to restore from cache
