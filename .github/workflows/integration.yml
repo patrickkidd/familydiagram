@@ -27,6 +27,7 @@ jobs:
         repository: patrickkidd/familydiagram-server
         path: familydiagram-server
         ref: fdserver-refactor
+        submodules: true
         token: ${{ secrets.GH_PAT }}
 
     - name: Set up Python
@@ -47,12 +48,18 @@ jobs:
     ## Build
     
     - name: sip-build for _pkdiagram
-      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         which qmake
         pipenv run cmake .
         pipenv run make
+
+    - name: sip-build for vedanaprivate
+      run: |
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        cd ./familydiagram-server/vedanaprivate
+        which qmake
+        pipenv run sip-install
 
     - name: Write build config
       run: |
