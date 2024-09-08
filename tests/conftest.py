@@ -406,8 +406,13 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
     return reply
 
 
+log.info("IMPORT familydiagram/tests/conftest.py")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def qApp():
+
+    log.info(f"Create qApp for familydiagram/tests")
 
     qApp = Application(sys.argv)
 
