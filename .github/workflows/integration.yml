@@ -30,10 +30,6 @@ jobs:
         submodules: true
         token: ${{ secrets.GH_PAT }}
 
-    # Will provide an SSH command in the logs that you can use to access the runner.
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -88,7 +84,7 @@ jobs:
         export PYTHONPATH="$(pwd)/familydiagram-server"
         echo $PYTHONPATH
         # pipenv run pytest -svv ./tests
-        
+
     # Will provide an SSH command in the logs that you can use to access the runner.
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
