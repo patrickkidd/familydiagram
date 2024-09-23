@@ -12,7 +12,29 @@ _log = logging.getLogger(__name__)
 
 
 def assert_itemToolBar_InEditorMode(itemToolBar: ItemToolBar, on: bool):
-    assert itemToolBar.isVisible() == on
+    assert itemToolBar.isVisible() == True
+    assert itemToolBar.maleButton.requestedVisible() == True
+    assert itemToolBar.femaleButton.requestedVisible() == True
+    assert itemToolBar.marriageButton.requestedVisible() == True
+    assert itemToolBar.childButton.requestedVisible() == True
+    assert itemToolBar.parentsButton.requestedVisible() == True
+    assert itemToolBar.sep1.requestedVisible() == on
+    assert itemToolBar.distanceButton.requestedVisible() == on
+    assert itemToolBar.conflictButton.requestedVisible() == on
+    assert itemToolBar.reciprocityButton.requestedVisible() == on
+    assert itemToolBar.projectionButton.requestedVisible() == on
+    assert itemToolBar.sep2.requestedVisible() == on
+    assert itemToolBar.cutoffButton.requestedVisible() == on
+    assert itemToolBar.fusionButton.requestedVisible() == on
+    assert itemToolBar.insideButton.requestedVisible() == on
+    assert itemToolBar.outsideButton.requestedVisible() == on
+    assert itemToolBar.sep3.requestedVisible() == on
+    assert itemToolBar.towardButton.requestedVisible() == on
+    assert itemToolBar.awayButton.requestedVisible() == on
+    assert itemToolBar.definedSelfButton.requestedVisible() == on
+    assert itemToolBar.sep4.requestedVisible() == on
+    assert itemToolBar.calloutButton.requestedVisible() == on
+    assert itemToolBar.pencilButton.requestedVisible() == on
 
 
 def assert_sceneToolBar_InEditorMode(sceneToolBar: SceneToolBar, on: bool):
