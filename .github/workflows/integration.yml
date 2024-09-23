@@ -90,12 +90,12 @@ jobs:
 #         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    # - name: Test with pytest
-    #   run: |
-    #     export PYTHONPATH="$(pwd)/familydiagram-server"
-    #     pipenv run pytest -svv ./tests
+    - name: Test with pytest
+      run: |
+        export PYTHONPATH="$(pwd)/familydiagram-server"
+        pipenv run pytest -svv ./tests
 
-    # Will provide an SSH command in the logs that you can use to access the runner.
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3
 
