@@ -61,7 +61,7 @@ jobs:
         pipenv run which sip-install
         pipenv run sip-install
 
-        export $PYQT5_DIR=/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5
+        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5"
         install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
         install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
         install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
@@ -77,7 +77,7 @@ jobs:
         pipenv run cmake .
         pipenv run make
 
-        export $PYQT5_DIR=/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5
+        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5"
         install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
         install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
         install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
