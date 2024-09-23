@@ -19,15 +19,18 @@ class UndoStack(QUndoStack):
         super().__init__(*args, **kwargs)
         self.lastId = None
 
-    def push(self, cmd):
+    def push(self, cmd: "UndoCommand"):  # type: ignore
         """Track analytics for non-compressed commands."""
         s = None
         if isinstance(cmd.ANALYTICS, str):
             s = "Commands: " + cmd.ANALYTICS
         elif cmd.ANALYTICS is True and (cmd.id() == -1 or cmd.id() != self.lastId):
             s = "Commands: " + cmd.text()
-        if s:
+        if s and cmd.logKwargs():
             self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
+        elif s and not cmd.logKwargs():
+            log.warning(f"No logKwargs for command: {cmd}")
+            self.track(s)
 
         logKwargs_s = pprint.pformat(cmd.logKwargs())
         log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
@@ -580,7 +583,9 @@ class SetItemProperty(UndoCommand):
         else:
             _addEntry(None, prop, value, prop.get())
         self.firstTime = True  # yep
-        self.debug(name=prop.name(), value=value, layers=[x.name() for x in layers], id=id)
+        self.debug(
+            name=prop.name(), value=value, layers=[x.name() for x in layers], id=id
+        )
 
     def redo(self):
         if self.firstTime:

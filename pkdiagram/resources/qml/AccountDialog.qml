@@ -409,6 +409,7 @@ Page {
                         property int entered_user_id: -1
                         Layout.topMargin: 0
                         Layout.alignment: Qt.AlignHCenter
+                        Layout.minimumWidth: 350
                         Keys.onReturnPressed: authForm.submit()
                         Keys.onEnterPressed: authForm.submit()
                         function setState(x) {

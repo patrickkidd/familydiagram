@@ -828,6 +828,7 @@ PK.Drawer {
                             Layout.minimumHeight: notesFrame.height
                             Layout.maximumHeight: notesFrame.height
                             Layout.fillWidth: true
+                            Layout.bottomMargin: margin * 2
                             Rectangle { // for border
                                 id: notesFrame
                                 property bool isDirty: notesEdit.text != ''
