@@ -2,11 +2,13 @@
 import os, sys, time, pickle, uuid, contextlib, logging
 from datetime import datetime
 import tempfile, shutil
+import enum
 import contextlib
-import PyQt5.QtCore
-import PyQt5.QtGui
+from typing import Callable
 
 # third-party
+import PyQt5.QtCore
+import PyQt5.QtGui
 import requests
 import pytest, mock
 import flask.testing
@@ -1023,3 +1025,25 @@ def _scene_data(*items):
 #     'versionCompat': '1.3.0',
 #     'items': [],
 #     'name': ''}
+
+
+
+class MessageDialogType(enum.Enum):
+    Information = "information"
+    Critical = "critical"
+
+
+def MessageDialog_clickButtonAfter(
+    type: MessageDialogType,
+    action: Callable,
+    button: QMessageBox.StandardButton = QMessageBox.Ok,
+    contains: str = None,
+):
+    """Should probably replace the other QMessageBox helper methods."""
+    with mock.patch.object(QMessageBox, type.value, return_value=button) as method:
+        action()
+        methodCalled = util.Condition(condition=lambda: method.call_count > 0)
+        assert methodCalled.wait() == True
+    assert method.call_count == 1
+    if contains is not None:
+        assert contains in method.call_args[0][2]

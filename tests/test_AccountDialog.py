@@ -13,6 +13,7 @@ import fdserver.extensions
 from fdserver.extensions import db
 from fdserver.models import License, User, Policy
 
+from conftest import MessageDialogType, MessageDialog_clickButtonAfter
 
 # def _logout(dlg, qtbot):
 #     assert dlg.isShown() == True
@@ -102,8 +103,10 @@ def test_register(flask_app, qtbot, create_dlg):
             )
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
-        qtbot.clickOkAfter(
-            lambda: dlg.mouseClick("authSubmitButton"), text="An email was sent with "
+        MessageDialog_clickButtonAfter(
+            MessageDialogType.Information,
+            lambda: dlg.mouseClick("authSubmitButton"),
+            contains="An email was sent with ",
         )
     assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"
