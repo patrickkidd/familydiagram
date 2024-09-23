@@ -90,7 +90,7 @@ jobs:
     #     echo $PYTHONPATH
     #     pipenv run pytest -svv ./tests
 
-    # # Will provide an SSH command in the logs that you can use to access the runner.
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
+    # Will provide an SSH command in the logs that you can use to access the runner.
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
 
