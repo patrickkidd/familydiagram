@@ -49,15 +49,12 @@ jobs:
 
     ## Build
     
-
     - name: sip-install for vedanaprivate
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
         which qmake
         rm ./familydiagram-server/Pipfile*
-        ls -la ./familydiagram-server
         cd ./familydiagram-server/vedanaprivate
-        ls -la
         pipenv run which sip-install
         pipenv run sip-install
 
@@ -67,8 +64,6 @@ jobs:
         install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
         install_name_tool -change /usr/local/opt/qt@5/lib/QtWidgets.framework/Versions/5/QtWidgets @rpath/QtWidgets.framework/Versions/5/QtWidgets /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
         otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-
-        
 
     - name: sip-install for _pkdiagram
       run: |
@@ -95,13 +90,12 @@ jobs:
 #         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    # - name: Test with pytest
-    #   run: |
-    #     export PYTHONPATH="$(pwd)/familydiagram-server"
-    #     echo $PYTHONPATH
-    #     pipenv run pytest -svv ./tests
+    - name: Test with pytest
+      run: |
+        export PYTHONPATH="$(pwd)/familydiagram-server"
+        pipenv run pytest -svv ./tests
 
-    # Will provide an SSH command in the logs that you can use to access the runner.
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3
 
