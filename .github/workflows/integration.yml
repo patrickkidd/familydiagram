@@ -61,8 +61,8 @@ jobs:
         pipenv run which sip-install
         # Links to libs in /usr/local/Cellar/qt@5 so double qt linked?
         pipenv run sip-install
-        ls -la .venv/lib/python3.10/site-packages/
-        otool -L .venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
+        ls -la /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/
+        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
       
     - name: sip-install for _pkdiagram
       run: |
@@ -70,8 +70,8 @@ jobs:
         which qmake
         pipenv run cmake .
         pipenv run make
-        ls -la .venv/lib/python3.10/site-packages/
-        otool -L .venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+        ls -la /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/
+        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
 
     - name: Write build config
       run: |
