@@ -98,7 +98,7 @@ jobs:
 #         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Test with pytest
-      if: ${{ github.event_name == 'workflow_dispatch' && ! inputs.debug_enabled }}
+      if: ${{ ! inputs.debug_enabled }}
       run: |
         export PYTHONPATH="$(pwd)/familydiagram-server"
         pipenv run pytest -svv ./tests
@@ -106,5 +106,6 @@ jobs:
     # Will provide an SSH command in the logs that you can use to access the runner.
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
-      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      if: ${{ inputs.debug_enabled }}
 
