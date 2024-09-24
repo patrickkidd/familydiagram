@@ -40,7 +40,7 @@ jobs:
         cache: 'pipenv'
     - run: |
         pip install pipenv
-        pipenv install
+        pipenv install --verbose --ignore-pipfile
 
     # - name: Install Chocolatey
     #   run: |
