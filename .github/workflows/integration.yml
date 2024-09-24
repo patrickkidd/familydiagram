@@ -42,7 +42,7 @@ jobs:
       with:
         python-version: 3.10.4
         # architecture: 'x64'
-        cache: 'pipenv'
+        # cache: 'pipenv'
     - run: |
         pip install pipenv
         mkdir .venv
