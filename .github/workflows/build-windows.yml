@@ -130,7 +130,7 @@ jobs:
       shell: cmd
         
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: familydiagram-windows
         path: build\win32\Release\Family Diagram.exe
