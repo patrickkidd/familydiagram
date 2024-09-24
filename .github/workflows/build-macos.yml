@@ -59,7 +59,7 @@ jobs:
         cache: 'pipenv'
     - run: |
         pip install pipenv
-        pipenv install --verbose
+        pipenv install --verbose --ignore-pipfile
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
