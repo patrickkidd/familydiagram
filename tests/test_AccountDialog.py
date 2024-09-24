@@ -1,5 +1,6 @@
 import datetime
 import contextlib
+import logging
 
 import pytest
 import mock
@@ -22,6 +23,9 @@ from conftest import MessageDialogType, MessageDialog_clickButtonAfter
 #     sessionDataChanged = util.Condition(dlg.qml.rootObject().sessionDataChanged)
 #     assert sessionDataChanged.wait() == True
 #     assert dlg.isLoggedIn() == False
+
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -108,6 +112,7 @@ def test_register(flask_app, qtbot, create_dlg):
             lambda: dlg.mouseClick("authSubmitButton"),
             contains="An email was sent with ",
         )
+    _log.info("sentResetEmail.wait()")
     assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"
     assert send.call_count == 1

@@ -797,9 +797,9 @@ def validatedDateTimeText(dateText, timeText=None):
 
 
 def pyDateTimeString(dateTime: datetime) -> str:
-            # .strftime("%a %B %d, %I:%M%p")
-            # .replace("AM", "am")
-            # .replace("PM", "pm")
+    # .strftime("%a %B %d, %I:%M%p")
+    # .replace("AM", "am")
+    # .replace("PM", "pm")
 
     return dateTime.strftime("%m/%d/%Y %I:%M %p")
 
@@ -1956,6 +1956,7 @@ class Condition(QObject):
     def test(self):
         """Return true if the condition is true."""
         if self.condition:
+            log.info(f"Testing condition: {self.condition}")
             return self.condition()
         else:
             return self.callCount > 0
@@ -1983,6 +1984,7 @@ class Condition(QObject):
         success = True
         app = QApplication.instance()
         while app and not self.test():
+            log.info(f"Condition[{self.condition}].wait() waiting...")
             try:
                 app.processEvents(QEventLoop.WaitForMoreEvents, interval)
             except KeyboardInterrupt as e:
@@ -1994,6 +1996,7 @@ class Condition(QObject):
                 break
             # else:
             #     time.sleep(.1) # replace with some way to release loop directly from signal
+        log.info(f"Condition[{self.signal}].wait() returned {self.test()}")
         ret = self.test()
         return ret
 
