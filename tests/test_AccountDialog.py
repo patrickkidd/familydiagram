@@ -80,7 +80,6 @@ def test_saved_session_one_license(flask_app, test_session, test_license, create
     assert test_session.user.username in dlg.itemProp("accountUsername", "text")
 
 
-@pytest.mark.skip("not working on CI")
 def test_register(flask_app, qtbot, create_dlg):
 
     # 1. Enter email
