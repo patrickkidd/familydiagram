@@ -94,7 +94,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS-2
+        key: sysroot-macOS
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
     
     - name: Build sysroot
