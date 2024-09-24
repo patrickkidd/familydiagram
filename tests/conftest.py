@@ -1041,9 +1041,11 @@ def MessageDialog_clickButtonAfter(
 ):
     """Should probably replace the other QMessageBox helper methods."""
     with mock.patch.object(QMessageBox, type.value, return_value=button) as method:
-        action()
         methodCalled = util.Condition(condition=lambda: method.call_count > 0)
+        action()
+        log.info(f"methodCalled.wait() type: {type}")
         assert methodCalled.wait() == True
+        log.info(f"{type} message box raised.")
     assert method.call_count == 1
     if contains is not None:
         assert contains in method.call_args[0][2]
