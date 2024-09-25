@@ -40,6 +40,8 @@ jobs:
         cache: 'pipenv'
     - run: |
         pip install pipenv
+        mkdir .venv
+        rm Pipfile.lock
         pipenv install --verbose
 
     # - name: Install Chocolatey
