@@ -47,10 +47,6 @@ jobs:
       with:
         submodules: true
 
-    # Will provide an SSH command in the logs that you can use to access the runner.
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3        
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -60,7 +56,12 @@ jobs:
         pip install pipenv
         # pipenv install --verbose
 
-    # It is faster to install homebrew than to restore from cache
+    # Will provide an SSH command in the logs that you can use to access the runner.
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3        
+
+
+      # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
       run: |
         brew install qt@5 create-dmg
