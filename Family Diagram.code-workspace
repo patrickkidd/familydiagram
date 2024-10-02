@@ -1,12 +1,19 @@
 {
 	"folders": [
 		{
+			"name": "familydiagram",
 			"path": "."
 		},
 		{
+			"name": "familydiagram-server",
 			"path": "../familydiagram-server"
 		},
 		{
+			"name": "vedana",
+			"path": "../vedana"
+		},
+		{
+			"name": "controls",
 			"path": "lib/qt-everywhere-src-5.15.6/qtquickcontrols2/src/imports/controls"
 		}
 	],
@@ -19,6 +26,10 @@
 			"**/sysroot"
 		],
 		"editor.formatOnSave": true,
-		"editor.defaultFormatter": "ms-python.black-formatter"
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"search.exclude": {
+			"*.egg-info": true,
+			"**/dist": true
+		}
 	}
 }
