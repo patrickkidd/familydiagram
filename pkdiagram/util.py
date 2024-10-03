@@ -1956,7 +1956,7 @@ class Condition(QObject):
     def test(self):
         """Return true if the condition is true."""
         if self.condition:
-            log.info(f"Testing condition: {self.condition}")
+            log.debug(f"Testing condition: {self.condition}")
             return self.condition()
         else:
             return self.callCount > 0
@@ -1984,7 +1984,7 @@ class Condition(QObject):
         success = True
         app = QApplication.instance()
         while app and not self.test():
-            log.info(f"Condition[{self.condition}].wait() waiting...")
+            log.debug(f"Condition[{self.condition}].wait() waiting...")
             try:
                 app.processEvents(QEventLoop.WaitForMoreEvents, interval)
             except KeyboardInterrupt as e:
@@ -1996,7 +1996,7 @@ class Condition(QObject):
                 break
             # else:
             #     time.sleep(.1) # replace with some way to release loop directly from signal
-        log.info(f"Condition[{self.signal}].wait() returned {self.test()}")
+        log.debug(f"Condition[{self.signal}].wait() returned {self.test()}")
         ret = self.test()
         return ret
 

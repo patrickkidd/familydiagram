@@ -43,11 +43,7 @@ from pkdiagram import (
     Person,
 )
 from pkdiagram.pyqt import *
-import vedana
-from fdserver import create_app, extensions
-from fdserver.extensions import db
-from fdserver.testclient import TestClient
-from fdserver.models import User, Diagram, License, Policy, Machine, Activation, Session
+from fdserver.tests.conftest import *
 
 import appdirs
 
@@ -106,233 +102,12 @@ pytest_generate_tests._first_call = True
 #     # Debug('Created temp dir:', _tmpAppDataDir)
 
 
-#####################################################
-##
-##  Server fixtures
-##
-#####################################################
-
-
-@pytest.fixture
-def flask_app(tmp_path):
-
-    DB_PATH = tmp_path
-
-    kwargs = {
-        "ENV": "unittest",
-        "CONFIG": "testing",
-        "TESTING": True,
-        "FD_DIR": DB_PATH,
-        "DATABASE": DB_PATH,
-        "MAIL_DEFAULT_SENDER": "patrickkidd@gmail.com",
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-        "SERVER_NAME": "127.0.0.1",
-        "SESSION_COOKIE_DOMAIN": "turin.local",  # avoid warning
-        "STRIPE_ENABLED": ENABLE_STRIPE,
-        "STRIPE_KEY": os.getenv("FD_TEST_STRIPE_KEY"),
-    }
-
-    class TestApp(Flask):
-        def test_client(self, **kwargs):
-            return super().test_client(app=self, **kwargs)
-
-    app = create_app(kwargs, app_class=TestApp)
-
-    # prevent error "Instance <...> is not bound to a Session; attribute refresh operation cannot proceed"
-    from sqlalchemy.orm import scoped_session
-
-    from flask_mail import Mail
-
-    # Apparently, required for app.config['TESTING'] == True
-    extensions.mail = Mail()
-    extensions.mail.init_app(app)
-
-    # db.session = app.db.create_scoped_session()
-    app.test_client_class = TestClient
-
-    with app.app_context():
-        db.create_all()
-        yield app
-
-
-@pytest.fixture
-def test_user(flask_qnam):
-    args = {
-        "username": "patrickkidd+unittest@gmail.com",
-        "password": "something",
-        "first_name": "Unit",
-        "last_name": "Tester",
-    }
-    user = User(
-        username=args["username"],
-        password=args["password"],
-        first_name=args["first_name"],
-        last_name=args["last_name"],
-        status="confirmed",
-    )
-    user._plaintext_password = args["password"]
-    db.session.add(user)
-    db.session.merge(user)
-    user.set_free_diagram(pickle.dumps({}))
-    db.session.commit()
-    return user
-
-
-@pytest.fixture
-def test_user_2(flask_qnam):
-    args = {
-        "username": "patrickkidd+unittest+2@gmail.com",
-        "password": "something else",
-        "first_name": "Unit",
-        "last_name": "Tester 2",
-    }
-    user = User(
-        username=args["username"],
-        password=args["password"],
-        first_name=args["first_name"],
-        last_name=args["last_name"],
-        status="confirmed",
-    )
-    user._plaintext_password = args["password"]
-    db.session.add(user)
-    db.session.commit()
-    return user
-
-
-@pytest.fixture
-def test_policy(flask_qnam):
-    policy = Policy(
-        code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
-        product=vedana.LICENSE_PROFESSIONAL,
-        name="Unit Test Monthly",
-        interval="month",
-        amount=0.99,
-        maxActivations=2,
-        active=True,
-        public=True,
-    )
-    db.session.add(policy)
-    db.session.commit()
-    return policy
-
-
-@pytest.fixture
-def test_license(test_user, test_policy):
-    license = License(user=test_user, policy=test_policy)
-    db.session.add(license)
-    db.session.commit()
-
-    return license
-
-
-@pytest.fixture
-def test_machine(test_user):
-    machine = Machine(user=test_user, name="Some user's iMac", code=util.HARDWARE_UUID)
-    db.session.add(machine)
-    db.session.commit()
-    return machine
-
-
-@pytest.fixture
-def test_activation(test_license, test_machine):
-    activation = Activation(license=test_license, machine=test_machine)
-    db.session.add(activation)
-    db.session.commit()
-    return activation
-
-
-@pytest.fixture
-def test_client_policy(flask_qnam):
-    policy = Policy(
-        code=vedana.LICENSE_CLIENT_ONCE,
-        product=vedana.LICENSE_CLIENT,
-        name="Automated Test Client Once",
-        interval=None,
-        amount=0.99,
-        maxActivations=2,
-        active=True,
-        public=True,
-    )
-    db.session.add(policy)
-    db.session.commit()
-    return policy
-
-
-@pytest.fixture
-def test_client_license(test_user, test_client_policy):
-    license = License(user=test_user, policy=test_client_policy)
-    db.session.add(license)
-    db.session.commit()
-    return license
-
-
-@pytest.fixture
-def test_client_activation(test_client_license, test_machine):
-    activation = Activation(license=test_client_license, machine=test_machine)
-    db.session.add(activation)
-    db.session.commit()
-    return activation
-
-
-@pytest.fixture
-def test_session(test_user):
-    session = Session(user=test_user)
-    db.session.add(session)
-    db.session.commit()
-    return session
-
-
-# # TODO: Pribably remove
-# @pytest.fixture
-# def client(flask_app):
-#     """ An anonymous user that isn't encrypted - normal https. """
-#     from flaskr import customclient
-#     return flask_app.test_client(encrypted=False)
-
-
-# TODO: Should go away, but used in a lot of tests.
-@pytest.fixture
-def test_user_client(flask_qnam, test_user):
-    """A logged in client that is also encrypted."""
-    from flaskr import customclient
-
-    flask_app.test_client_class = customclient.CustomClient
-    return flask_app.test_client(app=flask_app, user=test_user)
-
-
-@pytest.fixture
-def test_user_diagrams(test_user, test_user_2):
-
-    NUM_DIAGRAMS = 10
-
-    data = pickle.dumps(Scene().data())
-    ids = []
-    for i in range(NUM_DIAGRAMS):
-        if i % 2 == 0:
-            user = test_user
-        else:
-            user = test_user_2
-        diagram = Diagram(user_id=user.id, data=data, updated_at=datetime.now())
-        db.session.add(diagram)
-        db.session.merge(diagram)
-        ids.append(diagram.id)
-    return Diagram.query.filter(Diagram.id.in_(ids)).all()
-
-
 @pytest.fixture
 def blockingRequest_200(monkeypatch):
     def _blockingRequest(*args, **kwargs):
         return HTTPResponse(body=b"", status_code=200, headers={})
 
     monkeypatch.setattr(Server, "blockingRequest", _blockingRequest)
-
-
-#####################################################
-##
-##  Qt App fixtures
-##
-#####################################################
 
 
 def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
@@ -423,14 +198,16 @@ def qApp():
     qApp.deinit()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def flask_qnam(flask_app, tmp_path):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 
     # Tie Qt HTTP requests to flask server
     def sendCustomRequest(request, verb, data=b""):
         with flask_app.test_client() as client:
-            return _sendCustomRequest(request, verb, data=data, client=client)
+            ret = _sendCustomRequest(request, verb, data=data, client=client)
+            QApplication.processEvents()
+            return ret
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
@@ -1025,7 +802,6 @@ def _scene_data(*items):
 #     'versionCompat': '1.3.0',
 #     'items': [],
 #     'name': ''}
-
 
 
 class MessageDialogType(enum.Enum):

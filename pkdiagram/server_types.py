@@ -20,6 +20,7 @@ from .pyqt import (
     QEventLoop,
     QUrl,
     QApplication,
+    QTimer,
     pyqtSignal,
 )
 from . import version, util
@@ -319,6 +320,7 @@ class Server(QObject):
         error=None,
         anonymous=False,
         statuses=None,
+        timeout_ms=4000,
     ) -> HTTPResponse:
         if statuses is None:
             statuses = [200]
@@ -332,7 +334,9 @@ class Server(QObject):
             error=error,
             anonymous=anonymous,
         )
+        self._checkRequestsComplete(reply)
         reply.finished.connect(loop.quit)
+        QTimer.singleShot(timeout_ms, loop.quit)
         loop.exec_()
         self.checkHTTPReply(reply, statuses=statuses)
         # status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)

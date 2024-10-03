@@ -8,9 +8,6 @@
 		},
 		{
 			"path": "../vedana"
-		},
-		{
-			"path": "lib/qt-everywhere-src-5.15.6/qtquickcontrols2/src/imports/controls"
 		}
 	],
 	"settings": {
