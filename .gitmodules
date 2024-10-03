@@ -4,6 +4,3 @@
 [submodule "3rdparty/winsparkle"]
 	path = lib/winsparkle
 	url = git@github.com:patrickkidd/winsparkle.git
-[submodule "vedana"]
-	path = vedana
-	url = git@github.com:patrickkidd/vedana.git

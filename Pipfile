@@ -21,30 +21,15 @@ bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
 
+vedana = {git = 'git+ssh://git@github.com/patrickkidd/vedana.git', ref = 'release'}
+fdserver = {git = 'git+ssh://git@github.com/patrickkidd/familydiagram-server.git', ref = 'ci-pipeline'}
+
 [dev-packages]
 pytest = "*"
-pytest-cov = "*"
 pytest-qt = "*"
 pytest-mock = "*"
-pytest-xdist = "*"
 snapshottest = "*"
-psycopg2 = "*"
-flask = "*"
-flask-bcrypt = "*"
-flask-cli = "*"
-flask-graphql = "*"
-flask-mail = "*"
-flask-sqlalchemy = "*"
-flask-wtf = "*"
-bandit = "*"
-apscheduler = "*"
-pygments = "*"
-graphene-sqlalchemy = "*"
-requests = "*"
-coverage = "*"
 mock = "*"
-autopep8 = "*"
-pylint = "*"
 
 [requires]
-python_version = "3.10.4"
+python_version = "3.10"
