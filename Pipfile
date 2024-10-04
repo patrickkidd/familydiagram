@@ -21,7 +21,7 @@ bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
 
-vedana = {git = 'git+ssh://git@github.com/patrickkidd/vedana.git', ref = 'release'}
+vedana = {git = 'https://git@github.com/patrickkidd/vedana.git', ref = 'release'}
 fdserver = {git = 'git+ssh://git@github.com/patrickkidd/familydiagram-server.git', ref = 'ci-pipeline'}
 
 [dev-packages]
