@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - 2.0.0
-  # workflow_run:
-  #   workflows: ["Integration"]
-  #   types:
-  #     - completed
+  workflow_run:
+    workflows: ["Test"]
+    types:
+      - completed
 
 jobs:
   build-windows:
