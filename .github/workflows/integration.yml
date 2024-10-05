@@ -76,6 +76,7 @@ jobs:
       if: ${{ ! inputs.debug_enabled }}
       run: |
         export PYTHONPATH="$(pwd)/familydiagram-server"
+        pipenv run pip show fdserver
         cat /Users/runner/hostedtoolcache/Python/3.10.4/x64/lib/python3.10/site-packages/fdserver/tests/conftest.py
         pipenv run pytest -svv ./tests
 
