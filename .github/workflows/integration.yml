@@ -26,15 +26,6 @@ jobs:
       with:
         submodules: true
 
-    - name: Checkout patrickkidd/famildiagram-server
-      uses: actions/checkout@v2
-      with:
-        repository: patrickkidd/familydiagram-server
-        path: familydiagram-server
-        ref: fdserver-refactor
-        submodules: true
-        token: ${{ secrets.GH_PAT }}
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -75,9 +66,6 @@ jobs:
     - name: Test with pytest
       if: ${{ ! inputs.debug_enabled }}
       run: |
-        export PYTHONPATH="$(pwd)/familydiagram-server"
-        pipenv run pip show fdserver
-        cat /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/fdserver/tests/conftest.py
         pipenv run pytest -svv ./tests
 
     # Will provide an SSH command in the logs that you can use to access the runner.
