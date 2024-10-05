@@ -50,22 +50,6 @@ jobs:
 
     ## Build
     
-    - name: sip-install for vedanaprivate
-      run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"        
-        which qmake
-        rm ./familydiagram-server/Pipfile*
-        cd ./familydiagram-server/vedanaprivate
-        pipenv run which sip-install
-        pipenv run sip-install
-
-        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5"
-        install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtWidgets.framework/Versions/5/QtWidgets @rpath/QtWidgets.framework/Versions/5/QtWidgets /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_vedanaprivate.cpython-310-darwin.so
-
     - name: sip-install for _pkdiagram
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
