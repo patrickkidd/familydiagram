@@ -25,7 +25,7 @@ bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
 pyqt-builder = { index="riverbank" } # "==1.16.4"
-vedana = {git = 'git+ssh://git@github.com/patrickkidd/vedana.git', ref = 'release'}
+vedana = {git = 'https://git@github.com/patrickkidd/vedana.git', ref = 'release'}
 
 [dev-packages]
 pytest = "*"
