@@ -15,6 +15,10 @@ jobs:
   test:
 
     runs-on: macos-12
+    env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
 
     steps:
     - name: Checkout patrickkidd/famildiagram
