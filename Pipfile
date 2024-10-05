@@ -11,7 +11,7 @@ name = "riverbank"
 
 
 [[source]]
-url = "https://pypi.familydiagram.com/simple/"
+url = "${TWINE_REPOSITORY_URL}"
 verify_ssl = true
 name = "familydiagram"
 
