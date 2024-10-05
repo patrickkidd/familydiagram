@@ -9,13 +9,7 @@ on:
       - 2.0.0
     # tags:
     #   - 'v*.*.b*'
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        type: boolean
-        description: 'Enable SSH via tmate (https://github.com/marketplace/actions/debugging-with-tmate)'
-        required: false
-        default: false
+
 
 jobs:
   test:

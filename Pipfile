@@ -7,22 +7,25 @@ name = "pypi"
 url = "https://www.riverbankcomputing.com/pypi/simple/"
 verify_ssl = true
 name = "riverbank"
-
 # build packages are added here since the github runners need it but don't have psychopg.
+
+
+[[source]]
+url = "https://pypi.familydiagram.com/simple/"
+verify_ssl = true
+name = "familydiagram"
+
 [packages]
 sip = "==6.8.6"
 pyqt5 = "5.15.9"
 pyqt5-sip = "==12.15.0"
 pyqt5-qt5 = "==5.15.2"
-pyqtdeploy = { index="riverbank" }
-pyqt-builder = { index="riverbank" } # "==1.16.4"
 bugsnag = "*"
 bcrypt = "*"
 python-dateutil = "*"
 stripe = "*"
-
-vedana = {git = 'https://git@github.com/patrickkidd/vedana.git', ref = 'release'}
-fdserver = {git = 'git+ssh://git@github.com/patrickkidd/familydiagram-server.git', ref = 'ci-pipeline'}
+pyqt-builder = { index="riverbank" } # "==1.16.4"
+vedana = {git = 'git+ssh://git@github.com/patrickkidd/vedana.git', ref = 'release'}
 
 [dev-packages]
 pytest = "*"
@@ -30,6 +33,8 @@ pytest-qt = "*"
 pytest-mock = "*"
 snapshottest = "*"
 mock = "*"
+pyqtdeploy = { index="riverbank" }
+fdserver = { index="familydiagram" }
 
 [requires]
 python_version = "3.10"
