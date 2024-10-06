@@ -198,6 +198,53 @@ def qApp():
     qApp.deinit()
 
 
+TEST_TIMEOUT_MS = 10000
+
+
+@pytest.fixture(autouse=True)
+def watchdog(qApp):
+
+    class Watchdog:
+
+        def __init__(self):
+            self._killed = False
+            self._canceled = False
+
+        def cancel(self):
+            """
+            Really just for test_hangWatchdog()
+            """
+            self._canceled = True
+
+        def kill(self):
+            log.info(
+                f"Watchdog timer reached after {TEST_TIMEOUT_MS}ms, closing window"
+            )
+            w = QApplication.activeWindow()
+            if w:
+                w.close()
+            self._killed = True
+
+        def killed(self):
+            return self._killed
+
+        def cancelled(self):
+            return self._canceled
+
+    watchdog = Watchdog()
+    watchdogTimer = QTimer(qApp)
+    watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+    watchdogTimer.timeout.connect(watchdog.kill)
+    watchdogTimer.start()
+    log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+
+    yield watchdog
+
+    watchdogTimer.stop()
+    if watchdog.killed() and not watchdog.cancelled():
+        pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
+
+
 @pytest.fixture(autouse=True)
 def flask_qnam(flask_app, tmp_path):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""

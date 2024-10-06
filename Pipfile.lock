@@ -191,8 +191,8 @@
         },
         "pyqt-builder": {
             "hashes": [
-                "sha256:19b5d0359098f21d6e1713d8d4782a5672e5b2968e168e95886807110673ecd5",
-                "sha256:51ae282d45febb4b6a64de81e90c7d525dc81949d3a4e2741cd834417b322419"
+                "sha256:2daa3d624e1055464d56e86fccf03413a49730712e2a1d6b188fa6d7f7150e49",
+                "sha256:d2ae0cf644c1d1d30ae6ff79d5170a21d0cf9372610b295e44edd0b62a24a953"
             ],
             "index": "riverbank",
             "version": "==1.16.4"
