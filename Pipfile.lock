@@ -191,8 +191,8 @@
         },
         "pyqt-builder": {
             "hashes": [
-                "sha256:2daa3d624e1055464d56e86fccf03413a49730712e2a1d6b188fa6d7f7150e49",
-                "sha256:d2ae0cf644c1d1d30ae6ff79d5170a21d0cf9372610b295e44edd0b62a24a953"
+                "sha256:705fc2a1c498092f6f615129446d94b265cc24f7e04c52bb95a0960b36aabb8c",
+                "sha256:7579f25a97763c1fa672b5508b0c466569acbdb7da21cf3a1220f720313de153"
             ],
             "index": "riverbank",
             "version": "==1.16.4"
@@ -1285,11 +1285,11 @@
         },
         "termcolor": {
             "hashes": [
-                "sha256:9297c0df9c99445c2412e832e882a7884038a25617c60cea2ad69488d4040d63",
-                "sha256:aab9e56047c8ac41ed798fa36d892a37aca6b3e9159f3e0c24bc64a9b3ac7b7a"
+                "sha256:37b17b5fc1e604945c2642c872a3764b5d547a48009871aea3edd3afa180afb8",
+                "sha256:998d8d27da6d48442e8e1f016119076b690d962507531df4890fcd2db2ef8a6f"
             ],
-            "markers": "python_version >= '3.8'",
-            "version": "==2.4.0"
+            "markers": "python_version >= '3.9'",
+            "version": "==2.5.0"
         },
         "toml": {
             "hashes": [
