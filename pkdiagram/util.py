@@ -2128,6 +2128,6 @@ def wait_for_attach():
 _prefs = None
 
 
-def prefs():
+def prefs() -> QSettings:
     global _prefs
     return _prefs

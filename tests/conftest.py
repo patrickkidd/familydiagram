@@ -176,6 +176,7 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
     )
 
     def doFinished():
+        log.debug(f"doFinished: {verb} {reply.url()}")
         # Debug(verb, request.url())
         reply.finished.emit()
 
@@ -189,7 +190,7 @@ log.info("IMPORT familydiagram/tests/conftest.py")
 @pytest.fixture(scope="session", autouse=True)
 def qApp():
 
-    log.info(f"Create qApp for familydiagram/tests")
+    log.debug(f"Create qApp for familydiagram/tests")
 
     qApp = Application(sys.argv)
 
@@ -236,7 +237,7 @@ def watchdog(qApp):
     watchdogTimer.setInterval(TEST_TIMEOUT_MS)
     watchdogTimer.timeout.connect(watchdog.kill)
     watchdogTimer.start()
-    log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+    # log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
 
     yield watchdog
 
@@ -504,7 +505,7 @@ class PKQtBot(QtBot):
         else:
             text = messageBox.detailedText()
 
-        log.info(f"QMessageBox: '{text}'")
+        log.debug(f"QMessageBox: '{text}'")
         if "text" in kwargs and kwargs["text"] not in messageBox.text():
             messageBox.close()
             pytest.xfail(

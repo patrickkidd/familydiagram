@@ -33,6 +33,8 @@ Rectangle {
         dateTime: model ? model.dateTime : undefined
         datePicker: datePickerTumbler
         timePicker: timePickerTumbler
+        backTabItem: datePickerTumbler
+        tabItem: datePickerTumbler
         onDateTimeChanged: {
             if(model) {
                 model.dateTime = dateTime

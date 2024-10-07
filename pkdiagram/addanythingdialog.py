@@ -138,7 +138,7 @@ class AddAnythingDialog(QmlDrawer):
             self.initWithMultiplePeople(ids)
 
     def onDone(self):
-        _log.info(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
 
         if self.rootProp("kind") is None:
             kind = None
@@ -231,7 +231,7 @@ class AddAnythingDialog(QmlDrawer):
         if pickerLabel:
             text = self.itemProp(pickerLabel, "text")
             msg = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text)
-            _log.info(f"Warning: Unconfirmed field, {msg}")
+            _log.debug(f"Warning: Unconfirmed field, {msg}")
             QMessageBox.warning(
                 self,
                 "Unconfirmed field",
@@ -285,7 +285,7 @@ class AddAnythingDialog(QmlDrawer):
         if labelObjectName:
             name = self.itemProp(labelObjectName, "text")
             msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
-            _log.info(f"AddAnythingDialog validation DIALOG: {msg}")
+            _log.debug(f"AddAnythingDialog validation DIALOG: {msg}")
             QMessageBox.warning(
                 self,
                 "Required field",
@@ -402,7 +402,7 @@ class AddAnythingDialog(QmlDrawer):
             receivers = existingReceivers + newReceivers
             newPeople = newMovers + newReceivers
 
-        _log.info(f"Adding {len(newPeople)} new people to scene")
+        _log.debug(f"Adding {len(newPeople)} new people to scene")
         commands.stack().beginMacro(
             f"Add {kind.value} event, with {len(newPeople)} new people."
         )

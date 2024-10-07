@@ -37,7 +37,7 @@ def add_and_keyClicks(
     resetFocus: bool = False,
 ) -> QQuickItem:
 
-    _log.info(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
+    _log.debug(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
 
     peoplePickerItem = dlg.findItem(peoplePicker)
     _validate(peoplePickerItem)
@@ -126,7 +126,7 @@ def add_existing_person(
 def delete_person(
     picker: QmlWidgetHelper, delegate: QQuickItem, peoplePicker="peoplePicker"
 ):
-    _log.info(f"delete_person({delegate})")
+    _log.debug(f"delete_person({delegate})")
     picker.mouseClick(delegate)
     removeButton = picker.findItem("buttons_removeButton")
     picker.mouseClick(removeButton)

@@ -678,4 +678,4 @@ class DocumentController(QObject):
         self.dv.inspectSelection(tab="notes")
 
     def onAddAnythingSubmitted(self):
-        log.info("onAddAnythingSubmitted")
+        log.debug("onAddAnythingSubmitted")

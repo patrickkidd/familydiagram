@@ -90,14 +90,14 @@ PK.GroupBox {
             var item = list.contentItem.children[i];
             if(item.isPersonPicker) {
                 personPickerIndex++
-                print(' found PK.PersonPicker at index: ' + personPickerIndex)
+                util.debug(' found PK.PersonPicker at index: ' + personPickerIndex)
                 if(personPickerIndex == index) {
-                    print(' <---- Returning PersonPicker: '  + item + ', personName: ' + item.personName + ', person: ' + item.person + ', gender: ' + item.gender)
+                    util.debug(' <---- Returning PersonPicker: '  + item + ', personName: ' + item.personName + ', person: ' + item.person + ', gender: ' + item.gender)
                     return item
                 }
             }
         }
-        print('Could not find picker for index: ' + index)
+        util.warning('Could not find picker for index: ' + index)
     }
 
     function genderBox(index) {
@@ -108,7 +108,7 @@ PK.GroupBox {
             // print('picker: ' + picker)
             return picker.genderBox
         }
-        print('Could not find genderBox for index: ' + index)
+        util.warning('Could not find genderBox for index: ' + index)
     }
 
     function allSubmitted() {

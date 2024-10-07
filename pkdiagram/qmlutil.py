@@ -542,3 +542,15 @@ class QmlUtil(QObject, QObjectHelper):
             f"nextItemInFocusChain: {nextItemParent.objectName()}.{nextItem.objectName()}"
         )
         return nextItemParent
+
+    @pyqtSlot(str)
+    def debug(self, message):
+        log.debug(message)
+
+    @pyqtSlot(str)
+    def info(self, message):
+        log.info(message)
+
+    @pyqtSlot(str)
+    def warning(self, message):
+        log.warning(message)

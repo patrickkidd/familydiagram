@@ -87,7 +87,7 @@ Rectangle {
     }
 
     function setExistingPerson(person) {
-        print('PersonPicker[' + root.objectName + '].setExistingPerson: ' + person.listLabel())
+        util.debug('PersonPicker[' + root.objectName + '].setExistingPerson: ' + person.listLabel())
         root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = false
@@ -102,7 +102,7 @@ Rectangle {
     }
 
     function setNewPerson(personName) {
-        print('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName)
+        util.debug('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName)
         root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = true
