@@ -2046,10 +2046,10 @@ def waitForCondition(condition: callable, maxMS=1000):
         app.processEvents(QEventLoop.WaitForMoreEvents, INTERVAL_MS)
         bleh = condition()
         if bleh:
-            log.info(f"Condition met on waitForCondition()")
+            log.info(f"Condition met on waitForCondition() using condition {condition}")
             ret = True
         if (time.time() - startTime) > maxMS / 1000:
-            log.info(f"Time elapsed on waitForCondition()")
+            log.info(f"Time elapsed on waitForCondition() using condition {condition}")
             ret = False
     return ret
 
