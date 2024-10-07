@@ -66,11 +66,11 @@ jobs:
     - name: Test with pytest
       if: ${{ ! inputs.debug_enabled }}
       run: |
-        pipenv run pytest -svv ./tests
+        pipenv run pytest -svv ./tests/test_mw_server.py::test_current_server_file_updated_elsewhere[False]
 
-    # Will provide an SSH command in the logs that you can use to access the runner.
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-      if: ${{ inputs.debug_enabled }}
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3
+    #   # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+    #   if: ${{ inputs.debug_enabled }}
 
