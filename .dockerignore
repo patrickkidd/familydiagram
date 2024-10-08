@@ -1,0 +1,6 @@
+./.git
+./dist
+./sysroot
+./lib
+./build
+./.venv

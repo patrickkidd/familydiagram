@@ -9,7 +9,6 @@ verify_ssl = true
 name = "riverbank"
 # build packages are added here since the github runners need it but don't have psychopg.
 
-
 [[source]]
 # For tests; requires TWINE_REPOSITORY_URL, TWINE_USERNAME, TWINE_PASSWORD in
 # env.
@@ -19,7 +18,7 @@ name = "familydiagram"
 
 [packages]
 sip = "==6.8.6"
-pyqt5 = "5.15.9"
+pyqt5 = "==5.15.9"
 pyqt5-sip = "==12.15.0"
 pyqt5-qt5 = "==5.15.2"
 bugsnag = "*"
