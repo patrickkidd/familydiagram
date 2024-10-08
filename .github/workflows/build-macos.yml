@@ -4,10 +4,10 @@ name: Build macOS
 
 on:
   push:
-    # branches:
-    #   - 2.0.0
-    tags:
-      - 'v*.*.b*'
+    branches:
+      - 2.0.0
+    # tags:
+    #   - 'v*.*.b*'
   # workflow_run:
   #   workflows: ["Test-noop"]
   #   types:
