@@ -1,13 +1,15 @@
 name: Build Windows
 
 on:
-  # push:
-  #   branches:
-  #     - 2.0.0
-  workflow_run:
-    workflows: ["Test-noops"]
-    types:
-      - completed
+  push:
+    # branches:
+    #   - 2.0.0
+    tags:
+      - 'v*.*.b*'
+  # workflow_run:
+  #   workflows: ["Test-noops"]
+  #   types:
+  #     - completed
 
 jobs:
   build-windows:
