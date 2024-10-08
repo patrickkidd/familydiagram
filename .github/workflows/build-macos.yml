@@ -110,7 +110,13 @@ jobs:
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
-        
+
+    - uses: actions/cache/save@v3
+      if: steps.cache-sysroot.outputs.cache-hit != 'true'
+      with:
+        path: ./sysroot/sysroot-macos-64
+        key: sysroot-macOS      
+
     # - name: Write build config
     #   run: |
     #     pipenv run python bin/update_build_info.py
