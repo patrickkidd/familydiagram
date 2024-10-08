@@ -4,11 +4,6 @@
 name: Test
 
 on:
-  push:
-    # branches:
-    #   - 2.0.0
-    # tags:
-    #   - 'v*.*.b*'
   workflow_dispatch:
 
 

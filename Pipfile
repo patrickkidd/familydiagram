@@ -11,6 +11,8 @@ name = "riverbank"
 
 
 [[source]]
+# For tests; requires TWINE_REPOSITORY_URL, TWINE_USERNAME, TWINE_PASSWORD in
+# env.
 url = "${TWINE_REPOSITORY_URL}"
 verify_ssl = true
 name = "familydiagram"

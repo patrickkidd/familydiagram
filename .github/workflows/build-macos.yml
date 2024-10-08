@@ -20,6 +20,9 @@ jobs:
     runs-on: macos-12
 
     env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       # variables
       FD_BUILD_DIR: ${{ github.workspace }}/build/osx/Release
       FD_BUILD_KEYCHAIN_NAME: ${{ github.workspace }}/build/osx/Release/build.keychain-db
@@ -40,7 +43,7 @@ jobs:
       FD_BUILD_AC_AUTH_KEY_ISSUER: "${{ secrets.FD_BUILD_AC_AUTH_KEY_ISSUER }}"
       FD_BUILD_PEPPER: "${{ secrets.FD_BUILD_PEPPER }}"
       FD_BUILD_BUGSNAG_API_KEY: "${{ secrets.FD_BUILD_BUGSNAG_API_KEY }}"
-      
+            
     steps:
 
     ## Environment

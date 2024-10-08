@@ -16,6 +16,9 @@ jobs:
     runs-on: windows-2019
 
     env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
       FD_BUILD_APPLE_ID_PASSWORD: "${{ secrets.FD_BUILD_APPLE_ID_PASSWORD }}"
       FD_BUILD_PROVISIONING_PROFILE_BASE64: "${{ secrets.FD_BUILD_PROVISIONING_PROFILE_BASE64 }}"
