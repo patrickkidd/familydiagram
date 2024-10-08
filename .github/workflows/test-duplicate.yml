@@ -1,0 +1,72 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Test
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  test:
+
+    runs-on: macos-12
+    env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
+
+    steps:
+    - name: Checkout patrickkidd/famildiagram
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.4
+        # architecture: 'x64'
+        # cache: 'pipenv'
+    - run: |
+        pip install pipenv
+        mkdir .venv
+        pipenv install --dev --verbose
+        pipenv run which sip-install
+  
+    # It is faster to install homebrew than to restore from cache
+    - name: brew install qt@5 create-dmg
+      run: |
+        brew install qt@5 create-dmg
+
+    ## Build
+    
+    - name: sip-install for _pkdiagram
+      run: |
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        which qmake
+        pipenv run cmake .
+        pipenv run make
+
+        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/PyQt5/Qt5"
+        install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+        install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+        install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+        install_name_tool -change /usr/local/opt/qt@5/lib/QtWidgets.framework/Versions/5/QtWidgets @rpath/QtWidgets.framework/Versions/5/QtWidgets /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so
+
+    - name: Write build config
+      run: |
+        pipenv run python bin/update_build_info.py
+    
+    - name: Test with pytest
+      if: ${{ ! inputs.debug_enabled }}
+      run: |
+        pipenv run pytest -svv ./tests/test_mw_server.py
+
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3
+    #   # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+    #   if: ${{ inputs.debug_enabled }}
+

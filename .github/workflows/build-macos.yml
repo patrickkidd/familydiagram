@@ -5,7 +5,7 @@ name: Build macOS
 on:
   push:
     branches:
-      - 2.0.0
+      - noop
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
@@ -111,116 +111,116 @@ jobs:
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
         
-    - name: Write build config
-      run: |
-        pipenv run python bin/update_build_info.py
+    # - name: Write build config
+    #   run: |
+    #     pipenv run python bin/update_build_info.py
             
-    - name: Generate qmake project
-      run: |
-        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
-        rsync -avzq build/common-config/* build/osx
-        rsync -avzq build/osx-config/* build/osx
+    # - name: Generate qmake project
+    #   run: |
+    #     export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+    #     pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
+    #     rsync -avzq build/common-config/* build/osx
+    #     rsync -avzq build/osx-config/* build/osx
 
-    - name: qmake
-      run: |
-        export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
+    # - name: qmake
+    #   run: |
+    #     export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+    #     cd build/osx
+    #     qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
 
-    - name: Setup provisioning profile
-      run: |
-        pipenv run ./bin/setup_provisioning_profile.sh
+    # - name: Setup provisioning profile
+    #   run: |
+    #     pipenv run ./bin/setup_provisioning_profile.sh
 
-    - name: Update xcode project to new build system
-      run: |
-        python3 bin/fixup_xcodeproj_workspace.py
+    # - name: Update xcode project to new build system
+    #   run: |
+    #     python3 bin/fixup_xcodeproj_workspace.py
 
-    - name: Qt Preprocess
-      run: |
-        xcodebuild \
-          -project build/osx/Family\ Diagram.xcodeproj \
-          -target "Qt Preprocess" \
-          -configuration Release
+    # - name: Qt Preprocess
+    #   run: |
+    #     xcodebuild \
+    #       -project build/osx/Family\ Diagram.xcodeproj \
+    #       -target "Qt Preprocess" \
+    #       -configuration Release
 
-    - name: Build App
-      run: |
-        pipenv run xcodebuild \
-          -project build/osx/Family\ Diagram.xcodeproj \
-          -scheme "Family Diagram" \
-          -configuration Release \
-          -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
-          -xcconfig build/osx/Family-Diagram-Release.xcconfig \
-          archive
+    # - name: Build App
+    #   run: |
+    #     pipenv run xcodebuild \
+    #       -project build/osx/Family\ Diagram.xcodeproj \
+    #       -scheme "Family Diagram" \
+    #       -configuration Release \
+    #       -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
+    #       -xcconfig build/osx/Family-Diagram-Release.xcconfig \
+    #       archive
 
-    - name: Export archive
-      run: |
-        xcodebuild \
-          -verbose \
-          -exportArchive \
-          -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
-          -exportOptionsPlist build/osx/ExportOptions.plist \
-          -exportPath $FD_BUILD_DIR/Export
+    # - name: Export archive
+    #   run: |
+    #     xcodebuild \
+    #       -verbose \
+    #       -exportArchive \
+    #       -archivePath ${FD_BUILD_DIR}/Family\ Diagram.xcarchive \
+    #       -exportOptionsPlist build/osx/ExportOptions.plist \
+    #       -exportPath $FD_BUILD_DIR/Export
 
-    - name: Verify app
-      run: |
-        build/osx/Release/Export/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
+    # - name: Verify app
+    #   run: |
+    #     build/osx/Release/Export/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
 
-    - name: Prep App Bundle
-      run: |
-        rm build/osx/Release/Family\ Diagram.app # symlink
-        cp -R $FD_BUILD_DIR/Export/Family\ Diagram.app build/osx/Release
-        ditto -c -k --keepParent \
-            "$FD_BUILD_DIR/Family Diagram.app" \
-            "$FD_BUILD_DIR/Family Diagram.zip"
+    # - name: Prep App Bundle
+    #   run: |
+    #     rm build/osx/Release/Family\ Diagram.app # symlink
+    #     cp -R $FD_BUILD_DIR/Export/Family\ Diagram.app build/osx/Release
+    #     ditto -c -k --keepParent \
+    #         "$FD_BUILD_DIR/Family Diagram.app" \
+    #         "$FD_BUILD_DIR/Family Diagram.zip"
 
-    - name: Uploading for notarization
-      run: |
-        xcrun notarytool submit \
-          --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
-          --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \
-          --issuer "${FD_BUILD_AC_AUTH_KEY_ISSUER}" \
-          --timeout 2h \
-          --wait --progress \
-          --output-format plist \
-          "$FD_BUILD_DIR/Family Diagram.zip" \
-          > ${FD_BUILD_DIR}/NotaryResults.plist || true
+    # - name: Uploading for notarization
+    #   run: |
+    #     xcrun notarytool submit \
+    #       --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
+    #       --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \
+    #       --issuer "${FD_BUILD_AC_AUTH_KEY_ISSUER}" \
+    #       --timeout 2h \
+    #       --wait --progress \
+    #       --output-format plist \
+    #       "$FD_BUILD_DIR/Family Diagram.zip" \
+    #       > ${FD_BUILD_DIR}/NotaryResults.plist || true
         
-        REQUEST_STATUS=$(/usr/libexec/PlistBuddy -c "Print :status" build/osx/Release/NotaryResults.plist)
-        if [ "$REQUEST_STATUS" != "Accepted" ]; then
-            REQUEST_UUID=$(/usr/libexec/PlistBuddy -c "Print :id" ${FD_BUILD_DIR}/NotaryResults.plist)
-            echo "PKS *** Notarizing failed, fetching developer log for Request ID: ${REQUEST_UUID}..."
-            xcrun notarytool log $REQUEST_UUID \
-                --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
-                --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \
-                --issuer "${FD_BUILD_AC_AUTH_KEY_ISSUER}" 
-            exit 1
-        fi
+    #     REQUEST_STATUS=$(/usr/libexec/PlistBuddy -c "Print :status" build/osx/Release/NotaryResults.plist)
+    #     if [ "$REQUEST_STATUS" != "Accepted" ]; then
+    #         REQUEST_UUID=$(/usr/libexec/PlistBuddy -c "Print :id" ${FD_BUILD_DIR}/NotaryResults.plist)
+    #         echo "PKS *** Notarizing failed, fetching developer log for Request ID: ${REQUEST_UUID}..."
+    #         xcrun notarytool log $REQUEST_UUID \
+    #             --key "${FD_BUILD_AC_AUTH_KEY_FPATH}" \
+    #             --key-id "${FD_BUILD_AC_AUTH_KEY_ID}" \
+    #             --issuer "${FD_BUILD_AC_AUTH_KEY_ISSUER}" 
+    #         exit 1
+    #     fi
 
-    - name: Stapling app bundle
-      run: |
-        xcrun stapler staple "${FD_BUILD_DIR}/Family Diagram.app"
+    # - name: Stapling app bundle
+    #   run: |
+    #     xcrun stapler staple "${FD_BUILD_DIR}/Family Diagram.app"
 
-    - name: Create DMG
-      run: |
-        cd build/osx
-        create-dmg \
-          --volname "Family Diagram" \
-          --volicon "PKDiagram-Filled.icns" \
-          --background "DMG-Background.png" \
-          --window-pos 200 200 \
-          --window-size 800 600 \
-          --icon-size 128 \
-          --icon "Family Diagram.app" 200 350 \
-          --hide-extension "Family Diagram.app" \
-          --app-drop-link 600 350 \
-          --no-internet-enable \
-          "Release/Family Diagram.dmg" \
-          "Release/"
+    # - name: Create DMG
+    #   run: |
+    #     cd build/osx
+    #     create-dmg \
+    #       --volname "Family Diagram" \
+    #       --volicon "PKDiagram-Filled.icns" \
+    #       --background "DMG-Background.png" \
+    #       --window-pos 200 200 \
+    #       --window-size 800 600 \
+    #       --icon-size 128 \
+    #       --icon "Family Diagram.app" 200 350 \
+    #       --hide-extension "Family Diagram.app" \
+    #       --app-drop-link 600 350 \
+    #       --no-internet-enable \
+    #       "Release/Family Diagram.dmg" \
+    #       "Release/"
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: familydiagram-macos
-        path: build/osx/Release/Family Diagram.dmg
+    # - name: Upload Artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: familydiagram-macos
+    #     path: build/osx/Release/Family Diagram.dmg
   

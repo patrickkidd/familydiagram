@@ -50,16 +50,9 @@ jobs:
         pipenv --clear
         pipenv install --dev --skip-lock --verbose
 
-    # - name: Install Chocolatey
-    #   run: |
-    #     Set-ExecutionPolicy Bypass -Scope Process -Force; `
-    #     [System.Net.ServicePointManager]::SecurityProtocol = `
-    #     [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
-    #     iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
     # Needed?
-    - name: Install 7zip
-      run: choco install 7zip -y
+    # - name: Install 7zip
+    #   run: choco install 7zip -y
 
     - name: pipenv install aqtinstall
       run: pipenv install aqtinstall
@@ -86,8 +79,8 @@ jobs:
         qmake --version
         cd pkdiagram/_pkdiagram
         pipenv run sip-build --no-compile
-        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+        moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
+        moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
       shell: cmd
 
     - name: Setup sysroot caching
@@ -103,6 +96,8 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+        moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
+        moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
 

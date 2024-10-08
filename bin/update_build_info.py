@@ -4,7 +4,7 @@ Write a new build UUID to pkdiagram/build_uuid.py.
 This file must be self-contained, no python dependencies.
 """
 
-import os.path, uuid
+import os.path, uuid, platform
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
@@ -38,7 +38,7 @@ spec = importlib.util.spec_from_file_location("version", VERSION_PY_FPATH)
 version = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(version)
 
-if os.name == "posix":
+if platform.system() == "Darwin":
 
     osx_plist = os.path.join(ROOT, "build", "osx-config", "Info.plist")
     ios_plist = os.path.join(ROOT, "build", "ios-config", "Info.plist")
@@ -59,7 +59,7 @@ if os.name == "posix":
         print(cmd)
         os.system(cmd)
 
-else:
+elif platform.system() == "Windows":
 
     win32_plist = os.path.join(ROOT, "build", "win32-config", "win32-config.prf")
 

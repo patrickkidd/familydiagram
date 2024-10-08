@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 #include <QFileSystemWatcher>
 #include <QProcess>
+#include <QMessageBox>
 
 #ifdef Q_OS_WINDOWS
 #include <shlwapi.h>
@@ -239,7 +240,9 @@ public:
         QMessageBox::critical(NULL, "Failed to install update.", msg);
     }
 
+#ifdef Q_OS_WINDOWS
     static int OnWinsparkleZipFileDownloaded(const wchar_t *_updateFilePath) {        
+        qint64 pid = 0;
         QProcess process;
         QProcess newProcess;
         QString newExePath;
@@ -300,7 +303,6 @@ public:
         }
 
         qDebug() << "Starting new exe:" << curExePath;
-        qint64 pid = 0;
         if (!newProcess.startDetached(curExePath, QStringList(), curExeDir, &pid)) {
 #ifdef Q_OS_WINDOWS
             errorString << "Could not start updated exe:" << curExePath;
@@ -320,6 +322,8 @@ public:
         emit CUtil::instance()->errorMessageReceived(message);
         return 1;
     }
+
+#endif
 
     CUtilWin(QObject *parent) :
     CUtil(parent),
