@@ -274,7 +274,7 @@ def flask_qnam(flask_app, tmp_path):
 
 
 @pytest.fixture
-def server_down(flask_app, flask_qnam):
+def server_down(flask_app):
     """
     Can be called repeatedly to turn the server on/off.
     - Just sets up a stack for reversion.
@@ -719,7 +719,7 @@ def assertPersonProperties(person, props):
 
 
 @pytest.fixture
-def create_ac_mw(request, qtbot, tmp_path, flask_qnam):
+def create_ac_mw(request, qtbot, tmp_path):
     """
     Create an AppController and MainWindow.
     - Can be called as many times as needed to simulate starting the app again with shared prefs file.

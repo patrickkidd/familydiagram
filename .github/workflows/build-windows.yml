@@ -48,7 +48,7 @@ jobs:
         mkdir .venv
         # rm Pipfile.lock
         pipenv --clear
-        pipenv install --dev --verbose
+        pipenv install --dev --skip-lock --verbose
 
     # - name: Install Chocolatey
     #   run: |
