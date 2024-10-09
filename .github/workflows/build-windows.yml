@@ -97,6 +97,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         cd pkdiagram/_pkdiagram
+        if not exist "build\_pkdiagram\release" mkdir "build\_pkdiagram\release"
         moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
         moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
         cd -
