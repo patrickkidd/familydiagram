@@ -99,8 +99,8 @@ jobs:
         cd pkdiagram\_pkdiagram
         dir build\_pkdiagram\release
         mkdir build\_pkdiagram\release
-        moc -o build\_pkdiagram\release\moc_unsafearea.cpp pkdiagram\_pkdiagram\unsafearea.h
-        moc -o build\_pkdiagram\release\moc__pkdiagram.cpp pkdiagram\_pkdiagram\_pkdiagram.h
+        moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
+        moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
         cd ..\..
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
