@@ -135,6 +135,17 @@ jobs:
         cd build\win32
         msbuild /p:Configuration=Release "Family Diagram.vcxproj"
       shell: cmd
+
+    - name: Get Version
+      run: |
+          echo "version=`pipenv run python -c "import pkdiagram; print(pkdiagram.__version__)"`" >> $GITHUB_ENV
+          echo ">>>${version}<<<"
+        
+    # zip the build exe
+    - name: Zip build
+      run: |
+        7z a -tzip build\win32\Release\Family Diagram.zip build\win32\Release\Family Diagram.exe
+      shell: cmd
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
@@ -142,12 +153,23 @@ jobs:
         name: familydiagram-windows
         path: build\win32\Release\Family Diagram.exe
 
-    - name: Publish Release
-      uses: wzieba/AppCenter-Github-Action@v1
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        appName: pstinson/Family-Diagram-Beta
-        token: ${{secrets.APP_CENTER_TOKEN}}
-        group: Public beta testers
-        file: build\win32\Release\Family Diagram.exe
-        notifyTesters: true
-        debug: false
+        tag_name: ${{ env.version }}
+        release_name: ${{ env.version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build\win32\Release\Family Diagram.zip
+        asset_name: Family Diagram.zip
+        asset_content_type: application/zip
