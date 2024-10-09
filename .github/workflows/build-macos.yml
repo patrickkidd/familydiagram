@@ -5,7 +5,7 @@ name: Build macOS
 on:
   push:
     branches:
-      - disabled
+      - master
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
