@@ -141,3 +141,13 @@ jobs:
       with:
         name: familydiagram-windows
         path: build\win32\Release\Family Diagram.exe
+
+    - name: Publish Release
+      uses: wzieba/AppCenter-Github-Action@v1
+      with:
+        appName: pstinson/Family-Diagram-Beta
+        token: ${{secrets.APP_CENTER_TOKEN}}
+        group: Public beta testers
+        file: build\win32\Release\Family Diagram.exe
+        notifyTesters: true
+        debug: false

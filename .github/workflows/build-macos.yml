@@ -230,3 +230,13 @@ jobs:
         name: familydiagram-macos
         path: build/osx/Release/Family Diagram.dmg
   
+    - name: Publish Release
+      uses: wzieba/AppCenter-Github-Action@v1
+      with:
+        appName: pstinson/Family-Diagram
+        token: ${{secrets.APP_CENTER_TOKEN}}
+        group: Public beta testers
+        file: build/osx/Release/Family Diagram.dmg
+        notifyTesters: true
+        debug: false
+  
