@@ -90,7 +90,11 @@ jobs:
         path: ./sysroot/sysroot-win-64
         key: sysroot-win-64
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
-    
+
+    - name: sysroot cache hit?
+      run: |
+        echo "Cache hit: ${{ steps.cache-sysroot.outputs.cache-hit }}"
+          
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
@@ -104,6 +108,11 @@ jobs:
         cd ..\..
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
+
+    - uses: actions/cache/save@v3
+      with:
+        path: ./sysroot/sysroot-macos-64
+        key: sysroot-win-64
 
     - name: Write build config
       run: |
@@ -138,8 +147,9 @@ jobs:
 
     - name: Get Version
       run: |
-          echo "version=`pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`" >> $GITHUB_ENV
+          echo 'version=`pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`' >> $GITHUB_ENV
           echo $version
+        shell: cmd
         
     # zip the build exe
     - name: Zip build

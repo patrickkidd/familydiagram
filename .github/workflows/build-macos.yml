@@ -104,7 +104,11 @@ jobs:
         path: ./sysroot/sysroot-macos-64
         key: sysroot-macOS
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
-    
+
+    - name: sysroot cache hit?
+      run: |
+        echo "Cache hit: ${{ steps.cache-sysroot.outputs.cache-hit }}"
+
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
@@ -112,10 +116,9 @@ jobs:
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v3
-      if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS      
+        key: sysroot-macOS
 
     - name: Write build config
       run: |
