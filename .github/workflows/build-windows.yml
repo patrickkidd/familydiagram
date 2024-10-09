@@ -149,7 +149,7 @@ jobs:
       run: |
           echo 'version=`pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`' >> $GITHUB_ENV
           echo $version
-        shell: cmd
+      shell: cmd
         
     # zip the build exe
     - name: Zip build
