@@ -77,7 +77,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
         qmake --version
-        cd pkdiagram/_pkdiagram
+        cd pkdiagram\_pkdiagram
         pipenv run sip-build --no-compile
         moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
         moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
@@ -96,10 +96,12 @@ jobs:
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+        cd pkdiagram\_pkdiagram
         dir build\_pkdiagram\release
         mkdir build\_pkdiagram\release
         moc -o build\_pkdiagram\release\moc_unsafearea.cpp pkdiagram\_pkdiagram\unsafearea.h
         moc -o build\_pkdiagram\release\moc__pkdiagram.cpp pkdiagram\_pkdiagram\_pkdiagram.h
+        cd ..\..
         pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
       shell: cmd
 
