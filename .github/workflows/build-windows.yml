@@ -89,6 +89,8 @@ jobs:
       with:
         path: ./sysroot/sysroot-win-64
         key: sysroot-win-64
+        restore-keys: |
+          sysroot-win-64
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
     
     - name: Build sysroot
