@@ -234,7 +234,7 @@ jobs:
 
     - name: Get Version
       run: |
-          echo "version=`pipenv run python -c "import pkdiagram; print(pkdiagram.__version__)"`" >> $GITHUB_ENV
+          echo "version=`pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`" >> $GITHUB_ENV
           echo $version
   
     - name: Create Release
