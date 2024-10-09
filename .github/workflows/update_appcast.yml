@@ -1,4 +1,4 @@
-name: Update AppCast Feed
+name: Update AppCast
 
 on:
   release:
@@ -23,6 +23,8 @@ jobs:
           RELEASE_DATE=$(echo $RELEASE_DATA | jq -r '.published_at')
           RELEASE_NOTES_URL=$(echo $RELEASE_DATA | jq -r '.html_url')
           RELEASE_ASSET_URL=$(echo $RELEASE_DATA | jq -r '.assets[0].browser_download_url')
+          
+          echo $RELEASE_DATA
           
           echo "::set-output name=version::$RELEASE_VERSION"
           echo "::set-output name=date::$RELEASE_DATE"
