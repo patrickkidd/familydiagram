@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - 2.0.0
+      - master
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
@@ -139,7 +139,7 @@ jobs:
     - name: Get Version
       run: |
           echo "version=`pipenv run python -c "import pkdiagram; print(pkdiagram.__version__)"`" >> $GITHUB_ENV
-          echo ">>>${version}<<<"
+          echo $version
         
     # zip the build exe
     - name: Zip build

@@ -5,7 +5,7 @@ name: Build macOS
 on:
   push:
     branches:
-      - works
+      - master
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
@@ -229,14 +229,29 @@ jobs:
       with:
         name: familydiagram-macos
         path: build/osx/Release/Family Diagram.dmg
+
+    - name: Get Version
+      run: |
+          echo "version=`pipenv run python -c "import pkdiagram; print(pkdiagram.__version__)"`" >> $GITHUB_ENV
+          echo $version
   
-    - name: Publish Release
-      uses: wzieba/AppCenter-Github-Action@v1
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        appName: pstinson/Family-Diagram
-        token: ${{secrets.APP_CENTER_TOKEN}}
-        group: Public beta testers
-        file: build/osx/Release/Family Diagram.dmg
-        notifyTesters: true
-        debug: false
-  
+        tag_name: ${{ env.version }}
+        release_name: ${{ env.version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build/osx/Release/Family Diagram.dmg
+        asset_name: Family Diagram.dmg
+        asset_content_type: application/x-apple-diskimage
