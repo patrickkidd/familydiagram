@@ -1,0 +1,9 @@
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>YourApp Updates</title>
+    <link>https://github.com/username/yourapp/releases</link>
+    <description>Most recent updates to YourApp.</description>
+    <language>en</language>
+    {{RELEASE_ITEMS}}
+  </channel>
+</rss>
