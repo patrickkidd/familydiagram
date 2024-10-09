@@ -10,9 +10,11 @@ class VedanaComponent(Component):
     def get_archive_name(self):
         return ""
 
-    target_modules_dir = os.path.realpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-    )
+    @property
+    def target_modules_dir(self):
+        import sysconfig
+
+        return sysconfig.get_paths()["purelib"]
 
     def install(self):
         pass
