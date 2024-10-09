@@ -23,7 +23,7 @@ jobs:
           RELEASE_DATE=$(echo $RELEASE_DATA | jq -r '.published_at')
           RELEASE_NOTES_URL=$(echo $RELEASE_DATA | jq -r '.html_url')
           RELEASE_ASSET_URL=$(echo $RELEASE_DATA | jq -r '.assets[0].browser_download_url')
-          
+
           echo $RELEASE_DATA
           
           echo "::set-output name=version::$RELEASE_VERSION"
@@ -45,7 +45,7 @@ jobs:
           </item>"
 
           # Replace the placeholder in the template with actual release info
-          sed "s|{{RELEASES_PLACEHOLDER}}|$RELEASE_ITEM|" .github/appcast_template.xml > appcast.xml
+          sed 's|{{RELEASES_PLACEHOLDER}}|'"$RELEASE_ITEM"'|' .github/appcast_template.xml > appcast.xml
 
       # Step 4: Secure copy the updated AppCast file to the server
       - name: Push appcast.xml to familydiagram.com/appcast.xml

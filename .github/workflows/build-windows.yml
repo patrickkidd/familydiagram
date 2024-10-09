@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - master
+      - disabled
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
