@@ -87,7 +87,7 @@ jobs:
       id: cache-sysroot
       uses: actions/cache@v2
       with:
-        path: .\sysroot\sysroot-win-64
+        path: sysroot/sysroot-win-64
         key: sysroot-win-64
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
@@ -112,7 +112,7 @@ jobs:
     - uses: actions/cache/save@v3
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
-        path: .\sysroot\sysroot-win-64
+        path: sysroot/sysroot-win-64
         key: sysroot-win-64
 
     - name: Write build config
