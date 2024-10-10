@@ -181,7 +181,7 @@ jobs:
     - name: Set Release URL
       id: set_release_url
       run: |
-        echo "upload_url=${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.url || steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
+        run: echo "::set-output name=upload_url::${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.url || steps.create_release.outputs.upload_url }}"
   
     - name: Create Release
       id: create_release
