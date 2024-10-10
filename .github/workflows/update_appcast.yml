@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      
       # Step 1: Check out the repository
       - name: Check out repository
         uses: actions/checkout@v3
@@ -31,7 +32,7 @@ jobs:
           echo "notes=$RELEASE_NOTES_URL" >> $GITHUB_ENV
           echo "asset_url=$RELEASE_ASSET_URL" >> $GITHUB_ENV
 
-=  # Step 3: Update the AppCast feed with the latest release
+      # Step 3: Update the AppCast feed with the latest release
       - name: Generate appcast file
         run: |
           RELEASE_ITEM="<item>
