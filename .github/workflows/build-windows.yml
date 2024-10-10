@@ -110,6 +110,7 @@ jobs:
       shell: cmd
 
     - uses: actions/cache/save@v3
+      if: always()
       with:
         path: ./sysroot/sysroot-macos-64
         key: sysroot-win-64
