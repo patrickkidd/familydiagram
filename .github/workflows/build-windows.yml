@@ -3,7 +3,7 @@ name: Build Windows
 on:
   push:
     branches:
-      - noop
+      - master
     # tags:
     #   - 'v*.*.b*'
   # workflow_run:
@@ -154,7 +154,7 @@ jobs:
     # zip the build exe
     - name: Zip build
       run: |
-        7z a -tzip build\win32\Release\Family Diagram.zip build\win32\Release\Family Diagram.exe
+        7z a -tzip "build\win32\Release\Family Diagram.zip" "build\win32\Release\Family Diagram.exe"
       shell: cmd
         
     - name: Upload Artifact
@@ -169,8 +169,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.version }}
-        release_name: ${{ env.version }}
+        tag_name: Windows-${{ env.version }}
+        release_name: Windows-${{ env.version }}
         draft: false
         prerelease: false
 
