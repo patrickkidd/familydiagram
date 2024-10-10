@@ -116,7 +116,7 @@ jobs:
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v3
-      if: always()
+      if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
         key: sysroot-macOS

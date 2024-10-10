@@ -26,12 +26,12 @@ jobs:
 
           echo $RELEASE_DATA
           
-          echo "::set-output name=version::$RELEASE_VERSION"
-          echo "::set-output name=date::$RELEASE_DATE"
-          echo "::set-output name=notes::$RELEASE_NOTES_URL"
-          echo "::set-output name=asset_url::$RELEASE_ASSET_URL"
+          echo "version=$RELEASE_VERSION" >> $GITHUB_ENV
+          echo "date=$RELEASE_DATE" >> $GITHUB_ENV
+          echo "notes=$RELEASE_NOTES_URL" >> $GITHUB_ENV
+          echo "asset_url=$RELEASE_ASSET_URL" >> $GITHUB_ENV
 
-      # Step 3: Update the AppCast feed with the latest release
+=  # Step 3: Update the AppCast feed with the latest release
       - name: Generate appcast file
         run: |
           RELEASE_ITEM="<item>
