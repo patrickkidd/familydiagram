@@ -16,7 +16,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Query latest release data
+      - name: Generate appcast.xml
         id: get_release
         run: |
           python bin/github_releases_2_appcast.py
@@ -27,5 +27,6 @@ jobs:
         run: |
           echo "${FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY}" > private_key
           chmod 600 private_key
+          ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
           scp -i private_key appcast.xml patrick@familydiagram.com:/var/www/html/appcast.xml
           rm private_key
