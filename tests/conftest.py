@@ -203,47 +203,55 @@ TEST_TIMEOUT_MS = 10000
 
 
 @pytest.fixture(autouse=True)
-def watchdog(qApp):
+def watchdog(request, qApp):
 
-    class Watchdog:
+    NO_QT = "no_gui" in [m.name for m in request.node.iter_markers()]
 
-        def __init__(self):
-            self._killed = False
-            self._canceled = False
+    if not NO_QT:
 
-        def cancel(self):
-            """
-            Really just for test_hangWatchdog()
-            """
-            self._canceled = True
+        class Watchdog:
 
-        def kill(self):
-            log.info(
-                f"Watchdog timer reached after {TEST_TIMEOUT_MS}ms, closing window"
-            )
-            w = QApplication.activeWindow()
-            if w:
-                w.close()
-            self._killed = True
+            def __init__(self):
+                self._killed = False
+                self._canceled = False
 
-        def killed(self):
-            return self._killed
+            def cancel(self):
+                """
+                Really just for test_hangWatchdog()
+                """
+                self._canceled = True
 
-        def cancelled(self):
-            return self._canceled
+            def kill(self):
+                log.info(
+                    f"Watchdog timer reached after {TEST_TIMEOUT_MS}ms, closing window"
+                )
+                w = QApplication.activeWindow()
+                if w:
+                    w.close()
+                self._killed = True
 
-    watchdog = Watchdog()
-    watchdogTimer = QTimer(qApp)
-    watchdogTimer.setInterval(TEST_TIMEOUT_MS)
-    watchdogTimer.timeout.connect(watchdog.kill)
-    watchdogTimer.start()
-    # log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+            def killed(self):
+                return self._killed
+
+            def cancelled(self):
+                return self._canceled
+
+        watchdog = Watchdog()
+        watchdogTimer = QTimer(qApp)
+        watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+        watchdogTimer.timeout.connect(watchdog.kill)
+        watchdogTimer.start()
+        # log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+
+    else:
+        watchdog = None
 
     yield watchdog
 
-    watchdogTimer.stop()
-    if watchdog.killed() and not watchdog.cancelled():
-        pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
+    if not NO_QT:
+        watchdogTimer.stop()
+        if watchdog.killed() and not watchdog.cancelled():
+            pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
 
 
 @pytest.fixture(autouse=True)

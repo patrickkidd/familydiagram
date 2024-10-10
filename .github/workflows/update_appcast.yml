@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      
+
       # Step 1: Check out the repository
       - name: Check out repository
         uses: actions/checkout@v3
@@ -19,36 +19,8 @@ jobs:
       - name: Query latest release data
         id: get_release
         run: |
-          RELEASE_DATA=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
-          RELEASE_VERSION=$(echo $RELEASE_DATA | jq -r '.tag_name')
-          RELEASE_DATE=$(echo $RELEASE_DATA | jq -r '.published_at')
-          RELEASE_NOTES_URL=$(echo $RELEASE_DATA | jq -r '.html_url')
-          RELEASE_ASSET_URL=$(echo $RELEASE_DATA | jq -r '.assets[0].browser_download_url')
+          python bin/github_releases_2_appcast.py
 
-          echo $RELEASE_DATA
-          
-          echo "version=$RELEASE_VERSION" >> $GITHUB_ENV
-          echo "date=$RELEASE_DATE" >> $GITHUB_ENV
-          echo "notes=$RELEASE_NOTES_URL" >> $GITHUB_ENV
-          echo "asset_url=$RELEASE_ASSET_URL" >> $GITHUB_ENV
-
-      # Step 3: Update the AppCast feed with the latest release
-      - name: Generate appcast file
-        run: |
-          RELEASE_ITEM="<item>
-            <title>Version ${{ steps.get_release.outputs.version }}</title>
-            <sparkle:releaseNotesLink>${{ steps.get_release.outputs.notes }}</sparkle:releaseNotesLink>
-            <pubDate>${{ steps.get_release.outputs.date }}</pubDate>
-            <enclosure url=\"${{ steps.get_release.outputs.asset_url }}\"
-              sparkle:version=\"${{ steps.get_release.outputs.version }}\"
-              sparkle:shortVersionString=\"${{ steps.get_release.outputs.version }}\"
-              type=\"application/octet-stream\"/>
-          </item>"
-
-          # Replace the placeholder in the template with actual release info
-          sed 's|{{RELEASES_PLACEHOLDER}}|'"$RELEASE_ITEM"'|' .github/appcast_template.xml > appcast.xml
-
-      # Step 4: Secure copy the updated AppCast file to the server
       - name: Push appcast.xml to familydiagram.com/appcast.xml
         env:
           FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY: ${{ secrets.FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY }}

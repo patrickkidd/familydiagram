@@ -5,6 +5,9 @@ from pkdiagram.pyqt import QDate, QDateTime, QComboBox, QRect, QMessageBox, QTim
 from pkdiagram import util
 
 
+pytestmark = pytest.mark.no_gui
+
+
 def test_dates():
     bday = util.Date(1980, 5, 11)
     assert bday == util.validatedDateTimeText("05/11/1980")
