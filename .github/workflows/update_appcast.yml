@@ -27,6 +27,7 @@ jobs:
         run: |
           echo "${FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY}" > private_key
           chmod 600 private_key
+          mkdir -p ~/.ssh
           ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
           scp -i private_key appcast.xml patrick@familydiagram.com:/var/www/html/appcast.xml
           rm private_key
