@@ -249,6 +249,7 @@ jobs:
         release_name: macOS-${{ env.version }}
         draft: false
         prerelease: false
+        overwrite: true
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1

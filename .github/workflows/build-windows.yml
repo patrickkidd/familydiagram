@@ -112,7 +112,7 @@ jobs:
     - uses: actions/cache/save@v3
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
-        path: ./sysroot/sysroot-macos-64
+        path: .\sysroot\sysroot-macos-64
         key: sysroot-win-64
 
     - name: Write build config
