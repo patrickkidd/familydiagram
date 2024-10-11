@@ -146,27 +146,12 @@ jobs:
         msbuild /p:Configuration=Release "Family Diagram.vcxproj"
       shell: cmd
 
-    - name: Get Version
-      run: |
-        $version = pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"
-        echo "version=$version" >> $env:GITHUB_ENV
-        Write-Output $version
+    # - name: Get Version
+    #   run: |
+    #     $version = pipenv run python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"
+    #     echo "version=$version" >> $env:GITHUB_ENV
+    #     Write-Output $version
         
-    - name: Check if Release Exists
-      id: check_release
-      uses: actions/github-script@v3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        script: |
-          const { data: releases } = await github.repos.listReleases({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-          });
-          const release = releases.find(r => r.tag_name === `${{ env.version }}`);
-          return release ? { exists: true, url: release.upload_url } : { exists: false };
-
-    # zip the build exe
     - name: Zip build
       run: |
         7z a -tzip "build\win32\Release\Family Diagram.zip" "build\win32\Release\Family Diagram.exe"
@@ -177,30 +162,3 @@ jobs:
       with:
         name: familydiagram-windows
         path: build\win32\Release\Family Diagram.exe
-
-    - name: Set Release URL
-      id: set_release_url
-      run: |
-        echo "::set-output name=upload_url::${{ steps.check_release.outputs.exists == 'true' && steps.check_release.outputs.url || steps.create_release.outputs.upload_url }}"
-  
-    - name: Create Release
-      id: create_release
-      if: steps.check_release.outputs.exists == 'false'
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: Windows-${{ env.version }}
-        release_name: ${{ env.version }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.set_release_url.outputs.upload_url }}
-        asset_path: build\win32\Release\Family Diagram.zip
-        asset_name: Family Diagram ${{ env.version }}.zip
-        asset_content_type: application/zip
