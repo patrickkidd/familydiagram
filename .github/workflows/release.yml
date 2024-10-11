@@ -417,8 +417,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Generate appcast.xml
-        id: get_release
+      - name: Generate Sparkle appcast xml
         run: |
             python bin/github_releases_2_appcast.py
 
@@ -430,5 +429,5 @@ jobs:
             chmod 600 private_key
             mkdir -p ~/.ssh
             ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
-            scp -i private_key appcast.xml patrick@familydiagram.com:/var/www/html/appcast.xml
+            scp -i private_key *.xml patrick@familydiagram.com:/var/www/html/
             rm private_key

@@ -31,8 +31,6 @@ for _os in [extras.OS.Windows, extras.OS.MacOS]:
     appcast_xml = extras.actions_2_appcast(
         _os, releases_json.json(), "patrickkidd", "familydiagram"
     )
-    print(f"Appcast XML ({_os}) ------>")
-    print(appcast_xml)
 
     if version.IS_BETA:
         FPATH = (
@@ -44,6 +42,9 @@ for _os in [extras.OS.Windows, extras.OS.MacOS]:
         FPATH = (
             "appcast_windows.xml" if _os == extras.OS.Windows else "appcast_macos.xml"
         )
+
+    print(f"Appcast XML ({FPATH}) ------>")
+    print(appcast_xml)
 
     with open(FPATH, "w") as f:
         f.write(appcast_xml)
