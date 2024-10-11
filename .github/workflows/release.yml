@@ -319,7 +319,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd pkdiagram\_pkdiagram
-          set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           if not exist build\_pkdiagram\release\moc_unsafearea.cpp (
               moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           )
