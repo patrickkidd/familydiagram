@@ -43,23 +43,11 @@ jobs:
       run: |
         echo "version=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`" >> $GITHUB_OUTPUT
 
-  check-setup:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-    - name: Echo version
-      run: |
-        echo "Got version: ${{ needs.setup.outputs.version }}"
-        if [ -z "${{ needs.setup.outputs.version }}" ]; then
-          echo "ERROR Version not set!"
-          exit 1
-        fi
-
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
     runs-on: macos-12
-    needs: [check-setup]
+    needs: [setup]
 
     steps:
 
@@ -136,10 +124,10 @@ jobs:
     - name: Write build config
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
+        pipenv run python bin/update_build_info.py
         pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
         rsync -avzq build/common-config/* build/osx
         rsync -avzq build/osx-config/* build/osx
-        pipenv run python bin/update_build_info.py
 
     - name: qmake
       run: |
@@ -245,7 +233,7 @@ jobs:
 
   build-windows:
     runs-on: windows-2019
-    needs: [check-setup]
+    needs: [setup]
   
     steps:
 
