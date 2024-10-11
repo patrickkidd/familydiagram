@@ -15,35 +15,47 @@ class OS(enum.Enum):
 
 def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
     """
-        Generate the Appcast XML from the GitHub releases.
+    Generate the Appcast XML from the GitHub releases.
 
-    <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-      <channel>
-        <title>Your Repo Releases</title>
-        <link>https://github.com/patrickkidd/familydiagram/releases</link>
-        <description>Latest updates for Your Repo</description>
-        <item>
-          <title>v1.0.0</title>
-          <link>https://github.com/patrickkidd/familydiagram/releases/tag/v1.0.0</link>
-          <pubDate>Tue, 01 Oct 2024 12:00:00 +0000</pubDate>
-          <description>Release description here...</description>
-          <enclosure url="https://github.com/patrickkidd/familydiagram/releases/download/v1.0.0/app_macos.zip" length="12345678" type="application/octet-stream" sparkle:version="1.0.0" sparkle:os="macos" />
-        </item>
-      </channel>
+    <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+        xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <channel>
+            <title>Family Diagram Beta</title>
+            <link>/v0.1/public/sparkle/apps/f8ac3812-6a64-404a-a924-87e9173a694f</link>
+            <item>
+                <title>Version 2.0.0b4 (2.0.0b4)</title>
+                <description>
+                    <div>
+                        <ul>
+                            <li>Fix beta update url</li>
+                        </ul>
+                    </div>
+                </description>
+                <pubDate>Wed, 28 Aug 2024 18:47:51 GMT</pubDate>
+                <enclosure sparkle:version="2.0.0b4" sparkle:shortVersionString="2.0.0b4"
+                    url="https://appcenter-filemanagement-distrib2ede6f06e.azureedge.net/9924a740-ba85-4139-9340-59c348699bef/Family%20Diagram.dmg?sv=2019-07-07&sr=c&sig=E8WgBPLYIV5zPqO%2BPGE%2BHZUT556JcQOQEH3h4wFhRnM%3D&se=2024-10-12T22%3A03%3A03Z&sp=r"
+                    length="116526409" type="application/octet-stream"></enclosure>
+                <sparkle:minimumSystemVersion />
+            </item>
+        </channel>
     </rss>
 
     """
-    root = ET.Element("rss", version="2.0")
+    root = ET.Element(
+        "rss",
+        version="2.0",
+        attrib={
+            "xmlns:sparkle": "http://www.andymatuschak.org/xml-namespaces/sparkle",
+            "xmlns:dc": "http://purl.org/dc/elements/1.1/",
+        },
+    )
     channel = ET.SubElement(root, "channel")
 
     title = ET.SubElement(channel, "title")
     title.text = f"{repo_name} Releases"
 
     link = ET.SubElement(channel, "link")
-    link.text = f"https://github.com/{repo_owner}/{repo_name}/releases"
-
-    description = ET.SubElement(channel, "description")
-    description.text = f"Latest updates for github.com/{repo_owner}/{repo_name}"
+    link.text = f"https://github.com/{repo_owner}/{repo_name}"
 
     for release in releases:
         if release["draft"] or release["prerelease"]:
@@ -51,22 +63,27 @@ def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
 
         item = ET.SubElement(channel, "item")
 
-        release_title = ET.SubElement(item, "title")
-        release_title.text = release["name"] or release["tag_name"]
+        title = ET.SubElement(item, "title")
+        title.text = release["name"] or release["tag_name"]
 
-        release_link = ET.SubElement(item, "link")
-        release_link.text = release["html_url"]
+        # TODO: This is viewable & useful to the user, should have changelog.
+        description = ET.SubElement(item, "description")
+        description.text = release["body"]
 
-        release_pub_date = ET.SubElement(item, "pubDate")
-        pub_date = datetime.datetime.strptime(
+        pubDate = ET.SubElement(item, "pubDate")
+        pubDate.text = datetime.datetime.strptime(
             release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
+        ).strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+        enclosure = ET.SubElement(
+            item,
+            "enclosure",
+            attrib={
+                "sparkle:version": release["name"],
+                "sparkle:shortVersionString": release["name"],
+            },
         )
-        release_pub_date.text = pub_date.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
-        release_description = ET.SubElement(item, "description")
-        release_description.text = release["body"]
-
-        release_enclosure = ET.SubElement(item, "enclosure")
         _content_type = (
             "application/zip" if os == OS.Windows else "application/x-apple-diskimage"
         )
@@ -75,11 +92,14 @@ def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
             None,
         )
         if asset:
-            release_enclosure.set("url", asset["browser_download_url"])
-            release_enclosure.set("length", str(asset["size"]))
-            release_enclosure.set("type", "application/octet-stream")
+            enclosure.set("url", asset["browser_download_url"])
+            enclosure.set("length", str(asset["size"]))
+            enclosure.set("type", "application/octet-stream")
+
+        ET.SubElement(item, "sparkle:minimumSystemVersion")
 
     output = ET.tostring(root, encoding="utf8").decode("utf8")
+    print(output)
     dom = xml.dom.minidom.parseString(output)
     pretty_xml = dom.toprettyxml(indent="    ")
     return pretty_xml

@@ -213,7 +213,6 @@ jobs:
 
     - name: Create DMG
       run: |
-        sleep 5
         cd build/osx
         create-dmg \
           --volname "Family Diagram" \

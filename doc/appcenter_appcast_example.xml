@@ -1,0 +1,57 @@
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Family Diagram Beta</title>
+        <link>/v0.1/public/sparkle/apps/f8ac3812-6a64-404a-a924-87e9173a694f</link>
+        <item>
+            <title>Version 2.0.0b4 (2.0.0b4)</title>
+            <description>
+                <div>
+                    <ul>
+                        <li>Fix beta update url</li>
+                    </ul>
+                </div>
+            </description>
+            <pubDate>Wed, 28 Aug 2024 18:47:51 GMT</pubDate>
+            <enclosure sparkle:version="2.0.0b4" sparkle:shortVersionString="2.0.0b4"
+                url="https://appcenter-filemanagement-distrib2ede6f06e.azureedge.net/9924a740-ba85-4139-9340-59c348699bef/Family%20Diagram.dmg?sv=2019-07-07&sr=c&sig=E8WgBPLYIV5zPqO%2BPGE%2BHZUT556JcQOQEH3h4wFhRnM%3D&se=2024-10-12T22%3A03%3A03Z&sp=r"
+                length="116526409" type="application/octet-stream"></enclosure>
+            <sparkle:minimumSystemVersion />
+        </item>
+        <item>
+            <title>Version 2.0.0b2 (2.0.0b2)</title>
+            <description>
+                <div>
+                    <ul>
+                        <li>Added reduced left item toolbar back in</li>
+                    </ul>
+                </div>
+            </description>
+            <pubDate>Wed, 28 Aug 2024 06:11:55 GMT</pubDate>
+            <enclosure sparkle:version="2.0.0b2" sparkle:shortVersionString="2.0.0b2"
+                url="https://appcenter-filemanagement-distrib2ede6f06e.azureedge.net/9e6f9105-e259-4f18-9713-619f248a613e/Family%20Diagram.dmg?sv=2019-07-07&sr=c&sig=fw6WHILQix6xf40ZY5N8PdK0llKGZV7bagE3vKlyboQ%3D&se=2024-10-12T22%3A03%3A03Z&sp=r"
+                length="116594322" type="application/octet-stream"></enclosure>
+            <sparkle:minimumSystemVersion />
+        </item>
+        <item>
+            <title>Version 2.0.0b1 (2.0.0b1)</title>
+            <description>
+                <div>
+                    <ul>
+                        <li>First run at simplified interface</li>
+                        <li>New &quot;Add Data Point&quot; form for every kind of event</li>
+                        <li>Automatically arrange new people on diagram</li>
+                        <li>Bottom timeline, diagram, right timeline all in lock-step <ul>
+                                <li>New callout on bottom timeline showing events on current date</li>
+                            </ul></li>
+                    </ul>
+                </div>
+            </description>
+            <pubDate>Tue, 20 Aug 2024 21:17:14 GMT</pubDate>
+            <enclosure sparkle:version="2.0.0b1" sparkle:shortVersionString="2.0.0b1"
+                url="https://appcenter-filemanagement-distrib1ede6f06e.azureedge.net/32e85e06-3785-4c48-8d8b-47c8b130d599/Family%20Diagram.dmg?sv=2019-07-07&sr=c&sig=HQzgcvsZhE3B24Dk7BBaD3qwPrWszfckaLiTPf61XrI%3D&se=2024-10-12T22%3A03%3A03Z&sp=r"
+                length="116596962" type="application/octet-stream"></enclosure>
+            <sparkle:minimumSystemVersion />
+        </item>
+    </channel>
+</rss>
