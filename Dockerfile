@@ -10,7 +10,6 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
-    libssl1.1 \
     libssl-dev \
     qtbase5-dev \
     qtchooser \

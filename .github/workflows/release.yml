@@ -210,6 +210,7 @@ jobs:
 
     - name: Create DMG
       run: |
+        sleep 5
         cd build/osx
         create-dmg \
           --volname "Family Diagram" \
@@ -318,11 +319,11 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd pkdiagram\_pkdiagram
-          if not exist build\_pkdiagram\moc_unsafearea.cpp (
-              moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
+          if not exist build\_pkdiagram\release\moc_unsafearea.cpp (
+              moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           )
-          if not exist build\_pkdiagram\moc__pkdiagram.cpp (
-            moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
+          if not exist build\_pkdiagram\release\moc__pkdiagram.cpp (
+            moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
           )
         shell: cmd
 
