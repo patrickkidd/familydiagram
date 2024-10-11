@@ -286,6 +286,7 @@ jobs:
           key: sysroot-win-64
           # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
   
+      # The moc files are required by the sysroot plugin as well as the build plugin
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
@@ -294,7 +295,6 @@ jobs:
           cd pkdiagram\_pkdiagram
           dir build\_pkdiagram\release
           mkdir build\_pkdiagram\release
-          # These are required by the sysroot plugin as well as the build plugin
           moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
           cd ..\..
@@ -313,11 +313,11 @@ jobs:
           pipenv run python bin\update_build_info.py
         shell: cmd
 
+      # Write these in case sysroot-build did not run
       - name: (Re-)write _pkdiagram moc files
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd pkdiagram\_pkdiagram
-          # Write these in case sysroot-build did not run
           if not exist build\_pkdiagram\moc_unsafearea.cpp (
               moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           )
