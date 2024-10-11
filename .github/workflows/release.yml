@@ -321,6 +321,9 @@ jobs:
           cd pkdiagram\_pkdiagram
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           if not exist build\_pkdiagram\release\moc_unsafearea.cpp (
+            mkdir build\_pkdiagram\release
+          )
+          if not exist build\_pkdiagram\release\moc_unsafearea.cpp (
               moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           )
           if not exist build\_pkdiagram\release\moc__pkdiagram.cpp (
