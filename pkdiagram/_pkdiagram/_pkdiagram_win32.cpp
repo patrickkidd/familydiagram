@@ -444,20 +444,23 @@ public:
 #if PK_ALPHA_BUILD
             qDebug() << "PK_ALPHA_BUILD";
             if (win_sparkle_set_appcast_url) {
-                win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/a7be6c1a-599c-4341-923c-18441ca8a92e");
+                // win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/a7be6c1a-599c-4341-923c-18441ca8a92e");
+                win_sparkle_set_appcast_url("https://familydiagram.com/appcast_windows_alpha.xml");
             } else {
                 qDebug() << "Could not load win_sparkle_set_appcast_url";
             }
 #elif PK_BETA_BUILD
             qDebug() << "PK_BETA_BUILD";
             if (win_sparkle_set_appcast_url) {
-                win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/24bc1e7d-4f27-4172-a6fe-ed65ca74f5f9");
+                // win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/24bc1e7d-4f27-4172-a6fe-ed65ca74f5f9");
+                win_sparkle_set_appcast_url("https://familydiagram.com/appcast_windows_beta.xml");
             } else {
                 qDebug() << "Could not load win_sparkle_set_appcast_url";
             }
 #else
             if (win_sparkle_set_appcast_url) {
-                win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/dc5b20e4-6c8a-434f-9000-69eb18b2b61e");
+                // win_sparkle_set_appcast_url("https://api.appcenter.ms/v0.1/public/sparkle/apps/dc5b20e4-6c8a-434f-9000-69eb18b2b61e");
+                win_sparkle_set_appcast_url("https://familydiagram.com/appcast_windows.xml");
             } else {
                 qDebug() << "Could not load win_sparkle_set_appcast_url";
             }
