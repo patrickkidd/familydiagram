@@ -2,13 +2,37 @@
 No pkdiagram dependencies allowed here except thirdparty packages
 """
 
+import enum
 import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 
-def actions_2_appcast(releases: list, repo_owner: str, repo_name: str):
-    """Generate the Appcast XML from the GitHub releases."""
+class OS(enum.Enum):
+    Windows = "windows"
+    MacOS = "macos"
+
+
+def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
+    """
+        Generate the Appcast XML from the GitHub releases.
+
+    <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+      <channel>
+        <title>Your Repo Releases</title>
+        <link>https://github.com/patrickkidd/familydiagram/releases</link>
+        <description>Latest updates for Your Repo</description>
+        <item>
+          <title>v1.0.0</title>
+          <link>https://github.com/patrickkidd/familydiagram/releases/tag/v1.0.0</link>
+          <pubDate>Tue, 01 Oct 2024 12:00:00 +0000</pubDate>
+          <description>Release description here...</description>
+          <enclosure url="https://github.com/patrickkidd/familydiagram/releases/download/v1.0.0/app_macos.zip" length="12345678" type="application/octet-stream" sparkle:version="1.0.0" sparkle:os="macos" />
+        </item>
+      </channel>
+    </rss>
+
+    """
     root = ET.Element("rss", version="2.0")
     channel = ET.SubElement(root, "channel")
 
@@ -43,12 +67,11 @@ def actions_2_appcast(releases: list, repo_owner: str, repo_name: str):
         release_description.text = release["body"]
 
         release_enclosure = ET.SubElement(item, "enclosure")
+        _content_type = (
+            "application/zip" if os == OS.Windows else "application/x-apple-diskimage"
+        )
         asset = next(
-            (
-                a
-                for a in release["assets"]
-                if a["content_type"] == "application/octet-stream"
-            ),
+            (x for x in release["assets"] if x["content_type"] == _content_type),
             None,
         )
         if asset:
