@@ -208,6 +208,10 @@ jobs:
       run: |
         xcrun stapler staple "${FD_BUILD_DIR}/Family Diagram.app"
 
+    - name: Unmount existing DMG
+      run: |
+        hdiutil detach /Volumes/"Family Diagram" || true
+
     - name: Create DMG
       run: |
         sleep 5
