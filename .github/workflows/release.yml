@@ -38,6 +38,7 @@ jobs:
     steps:
 
     - uses: actions/checkout@v4
+
     - name: Get Version
       id: get-version
       run: |
@@ -68,7 +69,6 @@ jobs:
     - run: |
         pip install pipenv
         mkdir .venv
-        rm Pipfile.lock
         pipenv --clear
         pipenv install --dev  --skip-lock --verbose
 
@@ -239,6 +239,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: true
   
       - name: Set up Python 3.10.4
         uses: actions/setup-python@v5
@@ -248,15 +250,12 @@ jobs:
       - run: |
           pip install pipenv
           mkdir .venv
-          # rm Pipfile.lock
           pipenv --clear
           pipenv install --dev --skip-lock --verbose
   
-      - name: pipenv install aqtinstall
-        run: pipenv install aqtinstall
-  
       - name: Install Qt
         run: |
+          pipenv install aqtinstall
           pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         
       - name: Setup _pkdiagram caching
@@ -295,12 +294,13 @@ jobs:
           cd pkdiagram\_pkdiagram
           dir build\_pkdiagram\release
           mkdir build\_pkdiagram\release
+          # These are required by the sysroot plugin as well as the build plugin
           moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
           cd ..\..
           pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
         shell: cmd
-  
+
       - uses: actions/cache/save@v4
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         with:
@@ -312,7 +312,20 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pipenv run python bin\update_build_info.py
         shell: cmd
-  
+
+      - name: (Re-)write _pkdiagram moc files
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd pkdiagram\_pkdiagram
+          # Write these in case sysroot-build did not run
+          if not exist build\_pkdiagram\moc_unsafearea.cpp (
+              moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
+          )
+          if not exist build\_pkdiagram\moc__pkdiagram.cpp (
+            moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
+          )
+        shell: cmd
+
       - name: pyqtdeploy-build
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
