@@ -89,5 +89,7 @@ def main(attach=False, prefsName=None):
     app.deinit()
 
 
-# def main(*args, **kwargs):
-#     import _pkdiagram
+def main(*args, **kwargs):
+    import pip
+
+    pip.main(["install", "pytest"])

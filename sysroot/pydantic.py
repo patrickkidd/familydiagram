@@ -2,10 +2,10 @@ import os.path
 from pyqtdeploy import Component, PythonPackage
 
 
-class PydanticComponent(Component):
+class SiteComponent(Component):
 
     preinstalls = ["Python"]
-    provides = {"pydantic": PythonPackage()}
+    provides = {"site": PythonPackage()}
 
     def get_archive_name(self):
         return ""
