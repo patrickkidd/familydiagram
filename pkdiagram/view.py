@@ -39,6 +39,10 @@ class DateLabel(QWidget):
         self.flashAnimation.setEndValue(1)
         self.path = QPainterPath()
 
+    def timerEvent(self, e):
+        print(self.geometry())
+        self.update()
+
     def sizeHint(self):
         stroker = QPainterPathStroker(QPen(self.STROKE))
         path = stroker.createStroke(self.path)
@@ -47,8 +51,14 @@ class DateLabel(QWidget):
     def paintEvent(self, e):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
-        p.strokePath(self.path, QPen(QBrush(QColor(255, 255, 255, 255)), self.STROKE))
-        p.fillPath(self.path, QBrush(QColor("black")))
+        if util.IS_UI_DARK_MODE:
+            p.strokePath(self.path, QPen(QBrush(QColor(0, 0, 0, 255)), self.STROKE))
+            p.fillPath(self.path, QBrush(QColor("white")))
+        else:
+            p.strokePath(
+                self.path, QPen(QBrush(QColor(255, 255, 255, 255)), self.STROKE)
+            )
+            p.fillPath(self.path, QBrush(QColor("black")))
         p = None
         super().paintEvent(e)
 
@@ -65,6 +75,8 @@ class DateLabel(QWidget):
             if self.flashAnimation.state() == QAbstractAnimation.Running:
                 self.flashAnimation.stop()
             self.flashAnimation.start()
+
+        self.update()
 
 
 def quadrantFor(rect, pos):
