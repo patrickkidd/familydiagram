@@ -48,6 +48,8 @@ LIBS += -framework AppKit
 QMAKE_TARGET_BUNDLE_PREFIX = com.vedanamedia
 QMAKE_BUNDLE = familydiagrammac
 
+CONFIG += sdk_no_version_check
+
 # Set these to get the default values in the xcode project.
 # This might be a good idea instead of xcconfig files anyway
 # Since the build is only ever debug or release, never both

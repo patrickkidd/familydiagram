@@ -1,11 +1,11 @@
 import os.path
-from pyqtdeploy import Component, PythonPackage
+from pyqtdeploy import Component, PythonModule
 
 
-class PydanticComponent(Component):
+class CompileallComponent(Component):
 
     preinstalls = ["Python"]
-    provides = {"pydantic": PythonPackage()}
+    provides = {"compileall": PythonModule()}
 
     def get_archive_name(self):
         return ""
@@ -15,11 +15,14 @@ class PydanticComponent(Component):
     # Component.target_modules_dir (/Users/patrick/dev/familydiagram/vendor/sysroot-macos-64/lib/python3.7/site-packages)
     # so pyqtdeploy-build will automatically find it there.
 
-    target_modules_dir = os.path.realpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", "lib", "site-packages"
+    @property
+    def target_modules_dir(self):
+        ret = os.path.realpath(
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "lib", "site-packages"
+            )
         )
-    )
+        return ret
 
     def install(self):
         pass

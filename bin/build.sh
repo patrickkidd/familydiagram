@@ -153,14 +153,14 @@ if [[ $TARGET = osx* ]]; then
         echo "PKS version and pepper are up to date"
     fi
 
-    echo "PKS Generating _pkdiagram sources"
-    (
-        set -e
-        cd pkdiagram/_pkdiagram
-        sip-build --no-compile
-        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
-    )
+    # echo "PKS Generating _pkdiagram sources"
+    # (
+    #     set -e
+    #     cd pkdiagram/_pkdiagram
+    #     sip-build --no-compile
+    #     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+    #     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+    # )
 
     echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
 	pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
@@ -168,17 +168,17 @@ if [[ $TARGET = osx* ]]; then
 	rsync -avzq build/common-config/* build/osx
 	rsync -avzq build/osx-config/* build/osx
 
-    . ./bin/setup_provisioning_profile.sh
-
 	# rsync -avzq resources/* build/osx/resources/resources
 
     if [[ $TARGET == "osx" ]]; then
 
+        . ./bin/setup_provisioning_profile.sh
         cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release && cd ../..
         echo "Updating xcode project to new build system"
         python3 bin/fixup_xcodeproj_workspace.py
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null
         # echo "Opening build/osx/Family\ Diagram.xcodeproj..."
+
         # open build/osx/Family\ Diagram.xcodeproj
 
         xcodebuild \
@@ -198,6 +198,7 @@ if [[ $TARGET = osx* ]]; then
     
     elif [[ $TARGET == "osx-release" ]]; then
 
+        . ./bin/setup_provisioning_profile.sh
         cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release $QT_EXTRA_CONFIG && cd ../..
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null
         build_and_notarize
@@ -208,6 +209,7 @@ if [[ $TARGET = osx* ]]; then
 
     elif [[ $TARGET == "osx-debug" ]]; then
 
+        . ./bin/setup_provisioning_profile.sh
         cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release && cd ../..
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" 2> /dev/null
         xcodebuild -project build/osx/Family\ Diagram.xcodeproj -scheme "Family Diagram" -configuration Debug -UseModernBuildSystem=YES build

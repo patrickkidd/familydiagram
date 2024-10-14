@@ -89,7 +89,42 @@ def main(attach=False, prefsName=None):
     app.deinit()
 
 
+import sys
+import os
+
+import importlib.util
+
+
+def import_module_from_file(relative_fpath: str):
+    this_path = os.path.dirname(os.path.abspath(__file__))
+    relative_fpath = os.path.join(this_path, relative_fpath.replace("/", os.sep))
+    basename = os.path.splitext(os.path.basename(relative_fpath))[0]
+    spec = importlib.util.spec_from_file_location(basename, relative_fpath)
+    if spec is None:
+        raise ImportError(f"Cannot find module at {relative_fpath}")
+    mod = importlib.util.module_from_spec(spec)
+    if spec.loader is None:
+        raise ImportError(f"Cannot load module at {relative_fpath}")
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def main(*args, **kwargs):
+    import sys
+
+    sys.path.append(
+        "/Users/patrick/dev/familydiagram/.venv/lib/python3.10/site-packages"
+    )
     import pip
 
-    pip.main(["install", "pytest"])
+    # from pdytools import qrcimporter
+
+    # from pip._vendor.distlib.resources import register_finder
+
+    # register_finder(pip._vendor.distlib, qrcimporter)
+
+    from pkdiagram import site
+
+    sys.modules["site"] = site
+
+    pip.main(["install", "flask"])
