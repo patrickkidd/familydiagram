@@ -267,12 +267,17 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg):
 def test_add_new_person_via_CustomIndividual(dlg, scene):
     DESCRIPTION = "Something Happened"
     GENDER = util.PERSON_KIND_FEMALE
+    NOTES = """Here is another
+    multi-line
+comment.
+"""
 
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.CustomIndividual)
     dlg.add_new_person("peoplePicker", "John Doe", gender=GENDER)
     dlg.set_description(DESCRIPTION)
     dlg.set_startDateTime(START_DATETIME)
+    dlg.set_notes(NOTES)
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
@@ -285,6 +290,7 @@ def test_add_new_person_via_CustomIndividual(dlg, scene):
     event = person.events()[0]
     assert event.uniqueId() == None
     assert event.description() == DESCRIPTION
+    assert event.notes() == NOTES
 
 
 def test_add_new_person_adopted(scene, dlg):
