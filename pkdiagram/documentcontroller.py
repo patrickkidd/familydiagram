@@ -46,11 +46,11 @@ class DocumentController(QObject):
     """
 
     @property
-    def dv(self):
+    def dv(self) -> "DocumentView":
         return self.parent()
 
     @property
-    def view(self):
+    def view(self) -> "View":
         return self.dv.view
 
     ui = None
@@ -187,6 +187,9 @@ class DocumentController(QObject):
             self.scene.showNotes.connect(self.showNotesFor)
         self.onSceneTagsChanged()
         self.onSceneLayersChanged()
+        self.view.itemToolBar.onItemsVisibilityChanged()
+        self.view.sceneToolBar.onItemsVisibilityChanged()
+        self.view.rightToolBar.onItemsVisibilityChanged()
 
     ## Non-verbal reactive event handlers
 
@@ -198,6 +201,11 @@ class DocumentController(QObject):
     def onSceneProperty(self, prop):
         if prop.name() == "tags":
             self.onSceneTagsChanged()
+        elif prop.name() == "readOnly":
+            self.dv.controller.updateActions()
+            self.view.itemToolBar.onItemsVisibilityChanged()
+            self.view.sceneToolBar.onItemsVisibilityChanged()
+            self.view.rightToolBar.onItemsVisibilityChanged()
 
     def onSceneTagsChanged(self):
         if self.scene:
@@ -343,6 +351,7 @@ class DocumentController(QObject):
         # In-view actions
 
         on = bool(self.scene)
+        self.ui.actionAdd_Anything.setEnabled(on and not isReadOnly)
         self.ui.actionShow_Tips.setEnabled(on)
         self.ui.actionShow_Local_Files.setEnabled(not on)
         self.ui.actionShow_Server_Files.setEnabled(not on)

@@ -220,8 +220,11 @@ class ToolBar(QScrollArea):
     @property
     def mw(self):
         """Only use this in late-stage ui interaction, not setup so these can be unit tested."""
-        if util.isInstance(self.parent().mw, "MainWindow"):
-            return self.parent().mw
+        if util.isInstance(self.parent(), "View"):
+            return self.parent().parent().mw
+
+    def view(self):
+        return self.parent()
 
     def __init__(self, parent, ui, position: Position):
         super().__init__(parent)
@@ -233,6 +236,7 @@ class ToolBar(QScrollArea):
         self.helpTipLabels = []
         self._isInEditorMode = False
         self._isAppUpdateAvailable = False
+        self._isNotReadOnly = True
         if self.position == Position.North:
             self.MARGIN_X = util.MARGIN_X
             self.MARGIN_Y = util.MARGIN_Y
@@ -510,6 +514,10 @@ class ToolBar(QScrollArea):
         """
         self._isInEditorMode = self.ui.actionEditor_Mode.isChecked()
         self._isAppUpdateAvailable = self.ui.actionInstall_Update.isEnabled()
+        if self.view() and self.view().scene():
+            self._isNotReadOnly = not self.view().scene().readOnly()
+        else:
+            self._isNotReadOnly = True
         for item in self.items:
             item.updateVisible()
         self.adjust()
@@ -519,6 +527,9 @@ class ToolBar(QScrollArea):
 
     def isAppUpdateAvailable(self) -> bool:
         return self._isAppUpdateAvailable
+
+    def isNotReadOnly(self) -> bool:
+        return self._isNotReadOnly
 
 
 class SceneToolBar(ToolBar):
@@ -853,6 +864,7 @@ class RightToolBar(ToolBar):
                 pixmap="plus-button-green.png",
                 action=self.ui.actionAdd_Anything,
                 autoInvertColor=False,
+                visible=self.isNotReadOnly(),
                 # "help-tip": {
                 #     "pixmap": "family-timeline.png",
                 # },

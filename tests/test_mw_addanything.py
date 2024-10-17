@@ -1,5 +1,7 @@
 import logging
 
+import pytest
+
 from pkdiagram import util, EventKind, MainWindow
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
@@ -52,3 +54,11 @@ def test_close_after_adding_lots(
     qtbot.clickYesAfter(
         lambda: mw.closeDocument(), text=MainWindow.S_CONFIRM_SAVE_CHANGES
     )
+
+
+@pytest.mark.parametrize("readOnly", [True, False])
+def test_addAnything_readOnly(create_ac_mw, readOnly):
+    ac, mw = create_ac_mw()
+    mw.scene.setReadOnly(readOnly)
+    assert mw.documentView.view.rightToolBar.addAnythingButton.isVisible() != readOnly
+    assert mw.ui.actionAdd_Anything.isEnabled() != readOnly
