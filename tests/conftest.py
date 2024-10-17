@@ -330,7 +330,13 @@ class PKQtBot(QtBot):
     def keyClicks(self, *args, **kwargs):
         if self.DEBUG:
             log.info(f"PKQtBot.keyClicks({args}, {kwargs})")
-        return QTest.keyClicks(*args, **kwargs)
+
+        # Qt does the same iteration, just need to avoid sending \n
+        sequence = args[1]
+        for x in sequence:
+            if x == "\n":
+                x = Qt.Key_Return
+            QTest.keyClick(args[0], x, **kwargs)
 
     def __keyClicks(self, *args, **kwargs):
         w = args[0]

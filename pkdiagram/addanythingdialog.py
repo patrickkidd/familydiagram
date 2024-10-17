@@ -496,7 +496,12 @@ class AddAnythingDialog(QmlDrawer):
             for person in people:
                 event = commands.addEvent(
                     person,
-                    Event(description=description, dateTime=startDateTime, **kwargs),
+                    Event(
+                        description=description,
+                        dateTime=startDateTime,
+                        notes=notes,
+                        **kwargs,
+                    ),
                 )
                 if anxiety is not None:
                     event.dynamicProperty(util.ATTR_ANXIETY.lower()).set(anxiety)
