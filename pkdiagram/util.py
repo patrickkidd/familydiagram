@@ -1309,6 +1309,14 @@ def import_source(modname, filePath):
     return foo
 
 
+def waitALittle():
+    # Added for qml components since init is deferred. Works better than
+    # QApplication.processEvents()
+    loop = QEventLoop()
+    QTimer.singleShot(10, loop.quit)  # may need to be longer?
+    loop.exec()
+
+
 ### Geometry functions
 
 
