@@ -743,7 +743,7 @@ PK.Drawer {
                             Layout.fillWidth: true
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                            tabItem: nodalBox
+                            tabItem: anxietyBox
                             backTabItem: isDateRangeBox
                             PK.TextField {
                                 id: locationEdit
@@ -751,7 +751,7 @@ PK.Drawer {
                                 property bool isDirty: text != ''
                                 property Item firstTabItem: this
                                 property Item lastTabItem: this
-                                KeyNavigation.tab: nodalBox
+                                KeyNavigation.tab: anxietyBox
                                 KeyNavigation.backtab: endDateButtons.lastTabItem
                                 Keys.onTabPressed: {
                                     Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
@@ -769,16 +769,6 @@ PK.Drawer {
                             Layout.columnSpan: 2
                         }
                         
-                        PK.Text { id: nodalLabel; text: "Nodal" }
-
-                        PK.CheckBox {
-                            id: nodalBox
-                            objectName: "nodalBox"
-                            KeyNavigation.tab: anxietyBox.firstTabItem
-                            KeyNavigation.backtab: locationEdit
-                            function clear() { checked = false }
-                        }
-
                         PK.Text { text: "Anxiety" }
 
                         PK.VariableBox {
@@ -786,7 +776,7 @@ PK.Drawer {
                             objectName: "anxietyBox"
                             Layout.fillWidth: true
                             tabItem: functioningBox.firstTabItem
-                            backTabItem: nodalBox
+                            backTabItem: locationField.lastTabItem
                         }
 
                         PK.Text { text: "Functioning" }
@@ -806,7 +796,17 @@ PK.Drawer {
                             objectName: "symptomBox"
                             Layout.fillWidth: true
                             backTabItem: functioningBox.lastTabItem
-                            tabItem: notesEdit
+                            tabItem: nodalBox
+                        }
+
+                        PK.Text { id: nodalLabel; text: "Nodal" }
+
+                        PK.CheckBox {
+                            id: nodalBox
+                            objectName: "nodalBox"
+                            KeyNavigation.tab: notesEdit
+                            KeyNavigation.backtab: anxietyBox.lastTabItem
+                            function clear() { checked = false }
                         }
 
                         PK.FormDivider {
