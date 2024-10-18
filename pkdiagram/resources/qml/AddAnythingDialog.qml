@@ -340,14 +340,12 @@ PK.Drawer {
                             }
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             id: kindHelpText
                             objectName: "kindHelpText"
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
+                            text: util.S_EVENT_KIND_HELP_TEXT
                             visible: text != ''
                             Layout.columnSpan: 2
-                            Layout.fillWidth: true
                         }
 
                         // ////////////////////////////////////////////////
@@ -537,14 +535,11 @@ PK.Drawer {
                             }
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             id: peopleHelpText
-                            objectName: "peopleHelpText"
-                            wrapMode: Text.WordWrap
-                            visible: text != ''
-                            font.pixelSize: util.HELP_FONT_SIZE
+                            text: util.S_PEOPLE_HELP_TEXT
+                            visible: text != '' && kindBox.kindBox != -1
                             Layout.columnSpan: 2
-                            Layout.fillWidth: true
                         }
 
                         // ////////////////////////////////////////////////
@@ -779,6 +774,12 @@ PK.Drawer {
                             backTabItem: locationField.lastTabItem
                         }
 
+                        PK.HelpText {
+                            text: util.S_ANXIETY_HELP_TEXT
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
+
                         PK.Text { text: "Functioning" }
 
                         PK.VariableBox {
@@ -789,6 +790,11 @@ PK.Drawer {
                             tabItem: symptomBox.firstTabItem
                         }
 
+                        PK.HelpText {
+                            text: util.S_SYMPTOM_HELP_TEXT
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
                         PK.Text { text: "Symptom" }
 
                         PK.VariableBox {
@@ -797,6 +803,12 @@ PK.Drawer {
                             Layout.fillWidth: true
                             backTabItem: functioningBox.lastTabItem
                             tabItem: nodalBox
+                        }
+
+                        PK.HelpText {
+                            text: util.S_SYMPTOM_HELP_TEXT
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
                         }
 
                         PK.Text { id: nodalLabel; text: "Nodal" }
@@ -828,7 +840,6 @@ PK.Drawer {
                             Layout.minimumHeight: notesFrame.height
                             Layout.maximumHeight: notesFrame.height
                             Layout.fillWidth: true
-                            Layout.bottomMargin: margin * 2
                             Rectangle { // for border
                                 id: notesFrame
                                 property bool isDirty: notesEdit.text != ''
@@ -864,6 +875,17 @@ PK.Drawer {
                                 }
                                 function clear() { notesEdit.text = '' }
                             }
+                        }
+
+                        PK.HelpText {
+                            text: util.S_NOTES_HELP_TEXT
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.columnSpan: 2
+                            Layout.bottomMargin: margin * 2
                         }
                     }
                 }
