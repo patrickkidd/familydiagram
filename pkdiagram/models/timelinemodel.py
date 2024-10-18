@@ -296,7 +296,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def events(self):
         return self._events.to_list()
-    
+
     def eventsAt(self, dateTime: QDateTime):
         return [event for event in self._events if event.dateTime() == dateTime]
 
@@ -622,7 +622,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         try:
             return self._events[row]
         except IndexError:
-            return None
+            return
+
+    @pyqtSlot(int, result=str)
+    def uniqueIdForRow(self, row: int) -> str:
+        try:
+            return self._events[row].uniqueId()
+        except IndexError:
+            return
 
     @pyqtSlot(int, result=QDateTime)
     def dateTimeForRow(self, row):

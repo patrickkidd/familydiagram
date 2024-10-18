@@ -30,6 +30,8 @@ ColumnLayout {
     property int columns: table.columns
     property var innerTable: table
 
+    property var s_NO_EVENTS_TEXT: 'No events to show. Either widen your search criteria or add some events to the diagram.'
+
     property bool showFilterButton: true
 
     property bool canInspect: selectionModel.hasSelection
@@ -78,7 +80,7 @@ ColumnLayout {
             }
         }
     }
-    
+
     function nullIndex() {
         return root.model.index(-1, -1)
     }
@@ -321,6 +323,7 @@ ColumnLayout {
         Layout.fillHeight: true
         clip: true
         model: root.model
+        visible: ! root.noEventsShown
         delayUpdates: root.delayUpdates
         boundsMovement: Flickable.StopAtBounds
         boundsBehavior: Flickable.DragOverBounds
@@ -757,7 +760,42 @@ ColumnLayout {
             }            
         }
     }
-    
+
+    property bool noEventsShown: {
+        if(table.model == null) {
+            return false
+        } else if(table.rows == 1 && table.model.uniqueIdForRow(0) == 'now') {
+            return true
+        } else if(table.rows == 0) {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        color: "transparent"
+        visible: noEventsShown
+
+        Text {
+            objectName: "noEventsLabel"
+            text: s_NO_EVENTS_TEXT
+            color: util.QML_INACTIVE_TEXT_COLOR
+            anchors.centerIn: parent
+            width: parent.width - util.QML_MARGINS * 2
+            height: parent.height - util.QML_MARGINS * 2
+
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+            font.family: "Helvetica"
+            font.pixelSize: 20
+            font.bold: true
+        }
+    }
+
     Rectangle { // border-bottom
         color: util.QML_ITEM_BORDER_COLOR
         height: 1
