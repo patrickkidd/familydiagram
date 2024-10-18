@@ -734,7 +734,7 @@ PK.Drawer {
                         PK.Text {
                             id: locationLabel
                             objectName: "locationLabel"
-                            text: "Location"
+                            text: kindBox.valuesForIndex[kindBox.currentIndex] == util.EventKind.Moved ? "Destination" : "Location"
                         }
 
                         PK.FormField {
