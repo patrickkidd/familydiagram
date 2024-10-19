@@ -283,12 +283,6 @@ def test_nextTaggedDate_prevTaggedDateTime():
     scene.nextTaggedDateTime()  # 3
     assert scene.currentDateTime() == event3.dateTime()
 
-    scene.nextTaggedDateTime()  # 4
-    assert scene.currentDateTime() == scene.nowEvent.dateTime()
-
-    scene.prevTaggedDateTime()  # 3
-    assert scene.currentDateTime() == event3.dateTime()
-
     scene.prevTaggedDateTime()  # 2
     assert scene.currentDateTime() == event2.dateTime()
 
@@ -327,11 +321,8 @@ def test_nextTaggedDate_uses_search_tags():
     scene.nextTaggedDateTime()
     assert scene.currentDateTime() == person3.birthDateTime()
 
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == scene.nowEvent.dateTime()
-
     scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == scene.nowEvent.dateTime()
+    assert scene.currentDateTime() == person3.birthDateTime()
 
     # then test after setting tags
     person1.birthEvent.setTags(tags)
@@ -380,11 +371,8 @@ def test_nextTaggedDate_uses_searchModel():
     scene.nextTaggedDateTime()
     assert scene.currentDateTime() == person3.birthDateTime()
 
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == scene.nowEvent.dateTime()
-
     scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == scene.nowEvent.dateTime()
+    assert scene.currentDateTime() == person3.birthDateTime()
 
     # then test after setting tags
     person1.birthEvent.setTags(tags)

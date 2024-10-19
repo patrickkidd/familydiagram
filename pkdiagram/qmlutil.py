@@ -108,6 +108,12 @@ class QmlUtil(QObject, QObjectHelper):
         "VAR_FUNCTIONING_DOWN",
         "VAR_FUNCTIONING_SAME",
         "S_PERSON_NOT_FOUND",
+        "S_PEOPLE_HELP_TEXT",
+        "S_EVENT_KIND_HELP_TEXT",
+        "S_ANXIETY_HELP_TEXT",
+        "S_FUNCTIONING_HELP_TEXT",
+        "S_SYMPTOM_HELP_TEXT",
+        "S_NOTES_HELP_TEXT",
     ]
     QObjectHelper.registerQtProperties(
         [

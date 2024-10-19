@@ -185,11 +185,10 @@ class SceneModel(QObject, ModelHelper):
         if self._scene.eventProperties():
             hasPropSet = 0
             for event in self._scene.events():
-                if event.uniqueId() != "now":
-                    for attr in propAttrs:
-                        prop = event.dynamicProperty(attr)
-                        if prop.get() is not None:
-                            hasPropSet += 1
+                for attr in propAttrs:
+                    prop = event.dynamicProperty(attr)
+                    if prop.get() is not None:
+                        hasPropSet += 1
             if hasPropSet:
                 btn = QMessageBox.question(
                     QApplication.activeWindow(),
@@ -237,8 +236,6 @@ class SceneModel(QObject, ModelHelper):
         model = selectionModel.model()
         selection = selectionModel.selectedRows()
         items = [model.idForRow(index.row()) for index in selection]
-        if None in items:  # nowEvent
-            items.remove(None)
         if items:
             self.flashItems.emit(items)
 

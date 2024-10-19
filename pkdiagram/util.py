@@ -441,8 +441,36 @@ When a discrete move, they may be a move toward, away, or defined self by a sing
 """
 )
 
+S_EVENT_KIND_HELP_TEXT = LONG_TEXT("")
+
+S_PEOPLE_HELP_TEXT = LONG_TEXT("")
+
 S_PERSON_NOT_FOUND = LONG_TEXT(
     """A person with that name does not exist. Do you want to add it?"""
+)
+
+S_ANXIETY_HELP_TEXT = LONG_TEXT(
+    "Shift in automatic response to real or imagined threat. "
+    "Goes down when calm. "
+    "Higher arousal, often subjectively felt as fear. "
+    "Occurs in some urgent problem with no clear solution. "
+)
+
+S_SYMPTOM_HELP_TEXT = LONG_TEXT(
+    "Shift up, down or same in any physical or emotional problem. "
+    "Symptoms can increase or decrease with anxiety"
+)
+
+S_FUNCTIONING_HELP_TEXT = LONG_TEXT(
+    "Shift up or down in ability to appropriately balance thinking and feeling/emotion, "
+    "where neither overpowers the other. Hypothesized to manage anxiety "
+    "and problems more efficiently."
+)
+
+S_NOTES_HELP_TEXT = LONG_TEXT(
+    "Details of the event including opinions, "
+    "emotional content, justification for coding anxiety, "
+    "symptom, functioning, or event type."
 )
 
 

@@ -282,7 +282,9 @@ def test_no_Marriage_DeferredDelete(qtbot, create_ac_mw):
     assert onDeferredDelete.call_count == 0
 
 
-@pytest.mark.skip(reason="Started not accurately reproducing the problem. Was at one point though")
+@pytest.mark.skip(
+    reason="Started not accurately reproducing the problem. Was at one point though"
+)
 def test_no_Marriage_DeferredDelete_2(qtbot, create_ac_mw):
     """
     Disable the hack in PathItem.eventFilter for DeferredDelete and see how this

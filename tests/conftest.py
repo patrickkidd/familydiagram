@@ -241,7 +241,7 @@ def watchdog(request, qApp):
         watchdogTimer.setInterval(TEST_TIMEOUT_MS)
         watchdogTimer.timeout.connect(watchdog.kill)
         watchdogTimer.start()
-        # log.info(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+        log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
 
     else:
         watchdog = None

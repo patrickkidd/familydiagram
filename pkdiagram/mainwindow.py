@@ -1553,14 +1553,13 @@ class MainWindow(QMainWindow):
             # commands.stack().resetClean()
             self.fileManager.onLocalUUIDUpdated(self.document.url(), prop.get())
         elif prop.name() == "currentDateTime":
-            firstEvent = self.scene.timelineModel.eventForRow(0)
-            firstDate = firstEvent.dateTime() if firstEvent else None
-            if prop.get() == self.scene.nowEvent.dateTime():
-                self.ui.actionNext_Event.setEnabled(False)
-                self.ui.actionPrevious_Event.setEnabled(True)
-            elif firstDate and prop.get() == firstDate:
+            firstDate = self.scene.timelineModel.firstEventDateTime()
+            if firstDate and prop.get() == firstDate:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(False)
+            elif prop.get() == self.scene.timelineModel.lastEventDateTime():
+                self.ui.actionNext_Event.setEnabled(False)
+                self.ui.actionPrevious_Event.setEnabled(True)
             else:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(True)

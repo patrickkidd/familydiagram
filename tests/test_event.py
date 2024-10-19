@@ -11,20 +11,6 @@ def test_init():
     assert event in person.events()
 
 
-def test___lt__nowEvent():
-    # test now event listed after dates on same day
-    now = QDateTime.currentDateTime()
-    nowEvent = Event(uniqueId="now", dateTime=now)
-    today = Event(dateTime=now)
-    assert nowEvent > today
-    assert today < nowEvent
-
-    # test now event listed before dates after today
-    tomorrow = Event(dateTime=QDateTime.currentDateTime().addDays(1))
-    assert nowEvent < tomorrow
-    assert tomorrow > nowEvent
-
-
 def __test___lt__():
     parent = Person()
     birth = Event(uniqueId=EventKind.Birth.value)
@@ -59,8 +45,6 @@ def test_sorted_every_other():
             event.setDateTime(dateTime)
             dateTime = dateTime.addDays(1)
         events.append(event)
-    nowEvent = Event(uniqueId="Now", dateTime=QDateTime.currentDateTime())
-    events.append(nowEvent)
     sortedEvents = sorted(events)
 
     # events with dates should filter to the front
