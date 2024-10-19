@@ -31,7 +31,7 @@ jobs:
     - run: |
         pip install pipenv
         mkdir .venv
-        pipenv install --dev --verbose
+        pipenv install --dev --verbose --skip-lock
         pipenv run which sip-install
   
     # It is faster to install homebrew than to restore from cache
@@ -62,7 +62,7 @@ jobs:
     - name: Test with pytest
       if: ${{ ! inputs.debug_enabled }}
       run: |
-        pipenv run pytest -svv ./tests/test_mw_server.py
+        pipenv run pytest -svv tests
 
     # # Will provide an SSH command in the logs that you can use to access the runner.
     # - name: Setup tmate session
