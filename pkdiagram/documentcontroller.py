@@ -172,6 +172,7 @@ class DocumentController(QObject):
             self.scene.layerAdded[Layer].disconnect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].disconnect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].disconnect(self.onSceneLayersChanged)
+            self.scene.eventRemoved[Event].disconnect(self.onSceneEventsChanged)
             self.scene.activeLayersChanged.disconnect(self.onActiveLayers)
             self.scene.showNotes.disconnect(self.showNotesFor)
         self.scene = scene
@@ -183,6 +184,7 @@ class DocumentController(QObject):
             self.scene.layerAdded[Layer].connect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].connect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].connect(self.onSceneLayersChanged)
+            self.scene.eventRemoved[Event].connect(self.onSceneEventsChanged)
             self.scene.activeLayersChanged.connect(self.onActiveLayers)
             self.scene.showNotes.connect(self.showNotesFor)
         self.onSceneTagsChanged()
@@ -283,6 +285,9 @@ class DocumentController(QObject):
         self.ui.menuLayers.addSeparator()
         self.ui.menuLayers.addAction(self.ui.actionDeactivate_All_Layers)
         self.updateActions()
+
+    def onSceneEventsChanged(self, event):
+        self.dv.updateTimelineCallout()
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item

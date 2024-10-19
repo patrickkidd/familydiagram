@@ -349,3 +349,16 @@ def test_show_events_from_timeline_callout(qtbot, dv):
     #
     # assert ( dv.caseProps.itemProp("caseProps_timelineView.table", "contentY")
     #     == util.QML_ITEM_HEIGHT * firstRow )
+
+
+def test_remove_last_event(qtbot, dv):
+    person = dv.scene.addItem(Person(name="person"))
+    event = Event(person, dateTime=util.Date(2001, 1, 1))
+    dv.scene.addItem(event)
+    assert dv.scene.timelineModel.events() == [event]
+    assert dv.graphicalTimelineCallout.isVisible() == False
+
+    dv.scene.setCurrentDateTime(event.dateTime())
+    dv.scene.removeItem(event)
+    assert dv.scene.timelineModel.events() == []
+    assert dv.graphicalTimelineCallout.isVisible() == False
