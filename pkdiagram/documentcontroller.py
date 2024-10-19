@@ -172,9 +172,11 @@ class DocumentController(QObject):
             self.scene.layerAdded[Layer].disconnect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].disconnect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].disconnect(self.onSceneLayersChanged)
-            self.scene.eventRemoved[Event].disconnect(self.onSceneEventsChanged)
             self.scene.activeLayersChanged.disconnect(self.onActiveLayers)
             self.scene.showNotes.disconnect(self.showNotesFor)
+            self.scene.timelineModel.rowsInserted.disconnect(self.onSceneEventsChanged)
+            self.scene.timelineModel.rowsRemoved.disconnect(self.onSceneEventsChanged)
+            self.scene.timelineModel.modelReset.disconnect(self.onSceneEventsChanged)
         self.scene = scene
         if self.scene:
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -184,9 +186,11 @@ class DocumentController(QObject):
             self.scene.layerAdded[Layer].connect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].connect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].connect(self.onSceneLayersChanged)
-            self.scene.eventRemoved[Event].connect(self.onSceneEventsChanged)
             self.scene.activeLayersChanged.connect(self.onActiveLayers)
             self.scene.showNotes.connect(self.showNotesFor)
+            self.scene.timelineModel.rowsInserted.connect(self.onSceneEventsChanged)
+            self.scene.timelineModel.rowsRemoved.connect(self.onSceneEventsChanged)
+            self.scene.timelineModel.modelReset.connect(self.onSceneEventsChanged)
         self.onSceneTagsChanged()
         self.onSceneLayersChanged()
 
@@ -287,7 +291,11 @@ class DocumentController(QObject):
         self.updateActions()
 
     def onSceneEventsChanged(self, event):
-        self.dv.updateTimelineCallout()
+        events = self.scene.timelineModel.events()
+        if len(events) == 1:
+            self.scene.setCurrentDateTime(events[0].dateTime())
+        elif len(events) == 0:
+            self.dv.updateTimelineCallout()
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item

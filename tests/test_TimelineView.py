@@ -66,9 +66,7 @@ def test_some_events_shown(tv):
 
 def test_no_events(tv):
     assert tv.itemProp("noEventsLabel", "visible") == True
-    assert tv.itemProp("noEventsLabel", "text") == tv.itemProp(
-        "timelineView", "s_NO_EVENTS_TEXT"
-    )
+    assert tv.itemProp("noEventsLabel", "text") == util.S_NO_EVENTS_TEXT
 
 
 def test_some_events_filtered_out(tv):
@@ -86,6 +84,4 @@ def test_some_events_filtered_out(tv):
     scene.searchModel.startDateTime = util.Date(2020, 1, 1)
     util.waitALittle()
     assert tv.itemProp("noEventsLabel", "visible") == True
-    assert tv.itemProp("noEventsLabel", "text") == tv.itemProp(
-        "timelineView", "s_NO_EVENTS_TEXT"
-    )
+    assert tv.itemProp("noEventsLabel", "text") == util.S_NO_EVENTS_TEXT

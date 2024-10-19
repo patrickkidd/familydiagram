@@ -31,8 +31,6 @@ ColumnLayout {
     property int columns: table.columns
     property var innerTable: table
 
-    property var s_NO_EVENTS_TEXT: 'No events to show. Either widen your search criteria or add some events to the diagram.'
-
     property bool showFilterButton: true
 
     property bool canInspect: selectionModel.hasSelection
@@ -780,7 +778,7 @@ ColumnLayout {
 
         Text {
             objectName: "noEventsLabel"
-            text: s_NO_EVENTS_TEXT
+            text: util.S_NO_EVENTS_TEXT
             color: util.QML_INACTIVE_TEXT_COLOR
             anchors.centerIn: parent
             width: parent.width - util.QML_MARGINS * 2

@@ -473,6 +473,10 @@ S_NOTES_HELP_TEXT = LONG_TEXT(
     "symptom, functioning, or event type."
 )
 
+S_NO_EVENTS_TEXT = LONG_TEXT(
+    "No events to show. Either widen your search criteria or click the green plus (+) button to add some data points to the timeline."
+)
+
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 

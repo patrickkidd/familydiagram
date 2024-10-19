@@ -164,6 +164,8 @@ class PeopleModel(QAbstractListModel, ModelHelper):
 
     @pyqtSlot(int, result=QObject)
     def personForRow(self, row):
+        if row < 0 or row >= len(self._sortedIds):
+            return None
         personId = self._sortedIds[row]
         ret = next(x for x in self._people if x.id == personId)
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
