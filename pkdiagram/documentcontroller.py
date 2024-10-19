@@ -290,7 +290,7 @@ class DocumentController(QObject):
         self.ui.menuLayers.addAction(self.ui.actionDeactivate_All_Layers)
         self.updateActions()
 
-    def onSceneEventsChanged(self, event):
+    def onSceneEventsChanged(self, event=None):
         events = self.scene.timelineModel.events()
         if len(events) == 1:
             self.scene.setCurrentDateTime(events[0].dateTime())

@@ -787,8 +787,8 @@ ColumnLayout {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
-            font.family: "Helvetica"
-            font.pixelSize: 20
+            font.family: util.NO_ITEMS_FONT_FAMILY
+            font.pixelSize: util.NO_ITEMS_FONT_PIXEL_SIZE
             font.bold: true
         }
     }

@@ -1,0 +1,24 @@
+Data-dependent displays
+-------------------------
+- No items on diagram
+    - View.scene.itemAdded
+        * View.onItemAdded()
+        * View.noItemsCTALabel.hide()
+    - View.scene.itemRemoved
+        * View.onItemRemoved()
+        * View.noItemsCTALabel.show()
+
+- No events in timeline
+    - DocumentController.scene.timelineModel.rowsInserted|rowsRemoved|modelReset
+        * DocumentController.onSceneEventsChanged()
+        * DocumentView.updateTimelineCallout()
+        * DocumentView.hideBottomTimeline()
+
+
+Search-Dependent displays
+--------------------------
+- Hidden items display
+    - DocumentView.onSceneProperty['currentDateTime']
+        * View.updateHiddenItemsLabel()
+    - DocumentView.onLayerAnimationFinished()
+        * View.updateHiddenItemsLabel()

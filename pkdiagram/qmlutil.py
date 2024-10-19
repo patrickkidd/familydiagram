@@ -114,6 +114,10 @@ class QmlUtil(QObject, QObjectHelper):
         "S_FUNCTIONING_HELP_TEXT",
         "S_SYMPTOM_HELP_TEXT",
         "S_NOTES_HELP_TEXT",
+        "S_NO_ITEMS_LABEL",
+        "S_NO_EVENTS_TEXT",
+        "NO_ITEMS_FONT_FAMILY",
+        "NO_ITEMS_FONT_PIXEL_SIZE"
     ]
     QObjectHelper.registerQtProperties(
         [

@@ -509,7 +509,7 @@ class PKQtBot(QtBot):
                 msgBoxAccepted.wait() == True
             ), f'QMessageBox not raised in time containing: "{contains}"'
         else:
-            assert msgBoxAccepted.wait() == True, f"QMessageBox not raised in time."
+            assert msgBoxAccepted.wait() == True, f"QMessageBox not raised in time. {QApplication.activeWindow()}"
 
     def assert_QMessageBox_hasText(self, messageBox, **kwargs):
         if messageBox.text():

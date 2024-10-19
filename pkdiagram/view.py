@@ -175,6 +175,16 @@ class View(QGraphicsView):
             % util.FONT_FAMILY
         )
 
+        self.noItemsCTALabel = QLabel(self)
+        self.noItemsCTALabel.setText(util.S_NO_ITEMS_LABEL)
+        font = QFont(util.NO_ITEMS_FONT_FAMILY, util.NO_ITEMS_FONT_PIXEL_SIZE * 2)
+        font.setBold(True)
+        self.noItemsCTALabel.setFont(font)
+        self.noItemsCTALabel.setStyleSheet(f"color: {util.INACTIVE_TEXT_COLOR.name()}")
+        self.noItemsCTALabel.setWordWrap(True)
+        self.noItemsCTALabel.setMaximumWidth(util.NO_ITEMS_FONT_PIXEL_SIZE * 50)
+        self.noItemsCTALabel.setAlignment(Qt.AlignCenter)
+
         self.zoomFitAnim = QVariantAnimation(self)
         self.zoomFitAnim.setDuration(util.ANIM_DURATION_MS)
         self.zoomFitAnim.setEasingCurve(util.ANIM_EASING)
@@ -318,7 +328,7 @@ class View(QGraphicsView):
     def setScene(self, scene):
         if self.scene():
             self.scene().itemDragged.disconnect(self.onItemDragged)
-            self.scene().itemRemoved.connect(self.onItemRemoved)
+            self.scene().itemRemoved.disconnect(self.onItemRemoved)
             self.scene().printRectChanged.disconnect(self.onScenePrintRectChanged)
             self.scene().propertyChanged[objects.Property].disconnect(
                 self.onSceneProperty
@@ -339,6 +349,7 @@ class View(QGraphicsView):
                 self.resetLegend(scene.legendData(), animate=False)
             scene.itemDragged.connect(self.onItemDragged)
             scene.itemAdded.connect(self.onItemAdded)
+            scene.itemRemoved.connect(self.onItemRemoved)
             scene.printRectChanged.connect(self.onScenePrintRectChanged)
             scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
             scene.activeLayersChanged.connect(self.onActiveLayersChanged)
@@ -427,6 +438,9 @@ class View(QGraphicsView):
 
         self.adjustToolBars()
         self.helpOverlay.adjust()
+        self.noItemsCTALabel.move(
+            self.rect().center() - QPoint(self.noItemsCTALabel.rect().center())
+        )
         #
         self.hiddenItemsLabel.move(
             self.width() - (self.hiddenItemsLabel.width() + 3), 0
@@ -1003,9 +1017,12 @@ class View(QGraphicsView):
         if item.isItemDetails:
             ratio = self.getVisibleSceneScaleRatio()
             item.onVisibleSizeChanged(self, ratio)
+        if item.isPerson:
+            self.noItemsCTALabel.hide()
 
     def onItemRemoved(self, item):
-        pass
+        if item.isPerson and len(self.scene().people()) == 0:
+            self.noItemsCTALabel.show()
 
     def onItemDragged(self, item):
         if self.panZoomer.begun():

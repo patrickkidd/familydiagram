@@ -3,6 +3,7 @@ v2.0.0
 
 USABILITY
 - Add CTA to empty diagram.
+  - Don't show bottom timeline until there are some events
 - Too hard to add new events with tags.
   - Can set tags on existing events then new event disappears on timeline.
   - Maybe make selected tags very obvious, like primary display feature?

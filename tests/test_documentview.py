@@ -96,12 +96,25 @@ def test_set_item_mode(qtbot, dv):
 
 
 def test_add_person(qtbot, dv):
+    assert dv.view.noItemsCTALabel.isVisible() == True
     dv.scene.setItemMode(util.ITEM_MALE)
     qtbot.mouseClick(
         dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, dv.view.rect().center()
     )
     assert len(dv.scene.people()) == 1
     assert dv.scene.query1(gender="male")
+    assert dv.view.noItemsCTALabel.isVisible() == False
+
+
+def test_remove_person(qtbot, dv):
+    person = Person(name="Hey", lastName="You")
+    dv.scene.addItem(person)
+    assert dv.view.noItemsCTALabel.isVisible() == False
+
+    person.setSelected(True)
+    qtbot.clickYesAfter(lambda: dv.controller.onDelete())
+    assert dv.scene.people() == []
+    assert dv.view.noItemsCTALabel.isVisible() == True
 
 
 def test_set_person_props(qtbot, dv: DocumentView, personProps):
@@ -352,11 +365,12 @@ def test_show_events_from_timeline_callout(qtbot, dv):
 
 
 def test_remove_last_event(qtbot, dv):
+    assert dv.graphicalTimelineCallout.isVisible() == False
+    
     person = dv.scene.addItem(Person(name="person"))
     event = Event(person, dateTime=util.Date(2001, 1, 1))
-    dv.scene.addItem(event)
     assert dv.scene.timelineModel.events() == [event]
-    assert dv.graphicalTimelineCallout.isVisible() == False
+    assert dv.graphicalTimelineCallout.isVisible() == True
 
     dv.scene.setCurrentDateTime(event.dateTime())
     dv.scene.removeItem(event)

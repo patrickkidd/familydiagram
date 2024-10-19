@@ -249,6 +249,8 @@ CURRENT_DATE_FONT = QFont(FONT_FAMILY, 36)
 AGE_FONT = QFont("Helvetica Neue", 12, QFont.Medium)
 DETAILS_FONT = QFont(FONT_FAMILY, 16, QFont.Light)
 DETAILS_BIG_FONT = QFont(FONT_FAMILY, 26, QFont.Light)
+NO_ITEMS_FONT_FAMILY = "Helvetica"
+NO_ITEMS_FONT_PIXEL_SIZE = 20
 DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
 
@@ -471,6 +473,10 @@ S_NOTES_HELP_TEXT = LONG_TEXT(
     "Details of the event including opinions, "
     "emotional content, justification for coding anxiety, "
     "symptom, functioning, or event type."
+)
+
+S_NO_ITEMS_LABEL = LONG_TEXT(
+    "Click the green (+) button in the upper right to start adding people and data points."
 )
 
 S_NO_EVENTS_TEXT = LONG_TEXT(
