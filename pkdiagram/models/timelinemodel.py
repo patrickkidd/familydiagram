@@ -145,9 +145,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def _shouldHide(self, event):
         hidden = False
-        if not self.isSceneModel() and event.uniqueId() == "now":
-            hidden = True
-        elif not self._scene:  # SceneModel.nullTimelineModel
+        if not self._scene:  # SceneModel.nullTimelineModel
             hidden = False
         elif self._scene.searchModel.shouldHide(event):
             hidden = True
@@ -192,8 +190,6 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             if item.isPerson or item.isScene:
                 for emotion in item.emotions():
                     events.update(emotion.events())
-        if not self._scene.nowEvent in events:
-            events.add(self._scene.nowEvent)
         # sort and filter
         self._events = util.SortedList()
         for event in events:
@@ -443,7 +439,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             ret = ", ".join(event.tags())
         elif not event.parent.isScene:
             attr = self.dynamicPropertyAttr(index)
-            if attr and event.uniqueId() != "now":
+            if attr:
                 prop = event.dynamicProperty(attr)
                 ret = prop.get()
         return ret
@@ -535,8 +531,6 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         else:
             if event.parent is None:  # being removed, so pass
                 pass
-            elif event.uniqueId() == "now":
-                pass
             elif self.dynamicPropertyAttr(index):
                 ret |= Qt.ItemIsEditable
             # elif event.parent.isMarriage:
@@ -588,16 +582,6 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return None
 
     ## Row Accessors
-
-    @pyqtSlot(result=int)
-    def nowRow(self):
-        if self._scene:
-            try:
-                return self._events.index(self._scene.nowEvent)
-            except ValueError:
-                return -1
-        else:
-            return -1
 
     @pyqtSlot(int, result=int)
     def idForRow(self, row):
@@ -675,6 +659,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                         ret = i - 1
                         break
         return ret
+    
+    def firstEventDateTime(self):
+        if self._events:
+            return self._events[0].dateTime()
+
+    def lastEventDateTime(self):
+        if self._events:
+            return self._events[-1].dateTime()
 
     def dateBuddyForRow(self, row):
         """Return the emotion row that is a date buddy to this one."""
@@ -723,8 +715,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             if index.column() > 0:
                 continue
             event = self.eventForRow(index.row())
-            if event.uniqueId() != "now":
-                events.add(event)
+            events.add(event)
         # for event in events:
         #     if event.uniqueId() is not None:
         #         events.append(event)

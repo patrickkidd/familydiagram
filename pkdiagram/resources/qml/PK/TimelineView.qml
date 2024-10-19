@@ -18,6 +18,7 @@ ColumnLayout {
     signal selectionChanged
     signal rowClicked(int row)
     signal inspectNotes(int row)
+    signal ensureVisibleSet(int destinationY) // for testing
 
     property var _: Qt._
 
@@ -50,14 +51,11 @@ ColumnLayout {
         onSelectionChanged: {
             var selectedEvents = []
             var selectedRows = selectionModel.selectedRows(1)
-            var nowRow = root.model.nowRow()
             for(var i=0; i < selectedRows.length; i++) {
                 var row = selectedRows[i].row
-                if(row != nowRow) {
-                    var event = model.eventForRow(row)
-                    if(selectedEvents.indexOf(event) == -1) {
-                        selectedEvents.push(event)
-                    }
+                var event = model.eventForRow(row)
+                if(selectedEvents.indexOf(event) == -1) {
+                    selectedEvents.push(event)
                 }
             }
             root.selectedEvents = selectedEvents
@@ -432,14 +430,17 @@ ColumnLayout {
                         ensureVisAnimation.start();
                     }
                 } else {
-                    // print('ensureVisible: setting contentY: ' + contentY)
+                    // print('ensureVisible: setting contentY (' + contentY + ') to destinationY: ' + destinationY)
                     contentY = destinationY
+                    // print('max contentY: ' + (table.contentHeight - table.height))
+                    // print('contentY: ' + contentY)
                     ensureVisAnimation.finished()
                 }
+                root.ensureVisibleSet(destinationY)
             }
         }
 
-        // onContentYChanged: print('onContentYChanged: ' + contentY)
+        onContentYChanged: print('onContentYChanged: ' + contentY)
         //This animation is for the ensure-visible feature.
         NumberAnimation on contentY {
             id: ensureVisAnimation
@@ -764,8 +765,6 @@ ColumnLayout {
     property bool noEventsShown: {
         if(table.model == null) {
             return false
-        } else if(table.rows == 1 && table.model.uniqueIdForRow(0) == 'now') {
-            return true
         } else if(table.rows == 0) {
             return true
         } else {

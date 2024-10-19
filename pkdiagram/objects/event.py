@@ -16,9 +16,7 @@ class Event(item.Item):
             {"attr": "notes"},
             {"attr": "parentName"},
             {"attr": "location"},
-            {
-                "attr": "uniqueId"
-            },  # 'birth', 'death', 'adopted', 'bonded', 'married', 'separated', 'divorced', 'now'
+            {"attr": "uniqueId"},  # TODO: Rename to `kind`, one of EventKind
             {"attr": "includeOnDiagram", "default": False},
         )
     )
@@ -40,7 +38,7 @@ class Event(item.Item):
         self._onShowAliases = False
         self.parent = None
         # avoid adding to the parent in various cases
-        if parent and kwargs.get("uniqueId") != "now":  # for tidyness in ctors
+        if parent:  # for tidyness in ctors
             self.setParent(parent, notify=False)
             self.updateDescription()
 
@@ -68,20 +66,6 @@ class Event(item.Item):
     def __lt__(self, other):
         if other.isEmotion:
             return True
-        elif self.uniqueId() == "now":
-            if self.dateTime() == other.dateTime():
-                return False
-            elif other.dateTime():
-                return self.dateTime() < other.dateTime()
-            else:
-                return False
-        elif other.uniqueId() == "now":
-            if self.dateTime() == other.dateTime():
-                return True
-            elif self.dateTime():
-                return self.dateTime() < other.dateTime()
-            else:
-                return True
         elif self.dateTime() and not other.dateTime():
             return True
         elif not self.dateTime() and other.dateTime():
@@ -201,7 +185,7 @@ class Event(item.Item):
                 self.updateNotes()
         elif prop.name() == "uniqueId":
             self.updateDescription()
-        if not self.uniqueId() == "now" and not self.addDummy:
+        if not self.addDummy:
             super().onProperty(prop)
             if self.parent:
                 self.parent.onEventProperty(prop)
@@ -307,9 +291,7 @@ class Event(item.Item):
             uniqueId = self.uniqueId()
         ret = None
         if self.parent:
-            if self.parent.isScene and self is self.parent.nowEvent:
-                ret = "Now"
-            elif self.parent.isPerson:
+            if self.parent.isPerson:
                 if uniqueId == EventKind.Birth.value:
                     ret = util.BIRTH_TEXT
                 elif uniqueId == EventKind.Adopted.value:
@@ -390,14 +372,13 @@ class Event(item.Item):
     def addDynamicProperty(self, attr):
         """Doesn't add dynamic getters/setters."""
         prop = self.dynamicProperty(attr)
-        if prop is None and self.uniqueId() != "now":
+        if prop is None:
             prop = property.Property(self, attr=attr, dynamic=True)
             self.dynamicProperties.append(prop)
         return prop
 
     def renameDynamicProperty(self, oldAttr, newAttr):
-        if self.uniqueId() != "now":
-            self.dynamicProperty(oldAttr).setAttr(newAttr)
+        self.dynamicProperty(oldAttr).setAttr(newAttr)
 
     def removeDynamicProperty(self, attr):
         for prop in list(self.dynamicProperties):

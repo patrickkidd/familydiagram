@@ -468,7 +468,7 @@ S_FUNCTIONING_HELP_TEXT = LONG_TEXT(
 )
 
 S_NOTES_HELP_TEXT = LONG_TEXT(
-    "Optionally details of the event including opinions, "
+    "Details of the event including opinions, "
     "emotional content, justification for coding anxiety, "
     "symptom, functioning, or event type."
 )

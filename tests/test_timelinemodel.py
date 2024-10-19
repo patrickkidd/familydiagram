@@ -20,19 +20,18 @@ def model(timelineScene):
 
 
 def test_internals(model):
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
     event = Event(dateTime=util.Date(2012, 1, 1))
     model._ensureEvent(event)
-    assert model.rowForEvent(event) == 2  # just before nowEvent
+    assert model.rowForEvent(event) == 2
 
 
 def test_init_deinit(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
     assert model.eventForRow(0) == p1.birthEvent
     assert model.eventForRow(1) == p2.birthEvent
-    assert model.eventForRow(2) == timelineScene.nowEvent
     # date
     col = model.columnIndex(model.DATETIME)
     assert model.index(0, col).data(Qt.DisplayRole) == util.dateString(
@@ -61,8 +60,6 @@ def test_init_deinit(timelineScene, model):
     assert model.index(1, col).data(Qt.DisplayRole) == util.dateString(
         QDateTime.currentDateTime()
     )
-    # nowEvent is last
-    assert timelineScene.nowEvent == model.eventForRow(model.rowCount() - 1)
 
     # qtmodeltester.check(model)
 
@@ -133,7 +130,7 @@ def test_init_multiple_people():
     model.scene = scene
     model.items = [personA, personB]
 
-    assert model.rowCount() == 10  # no now event for person|marriage props
+    assert model.rowCount() == 10
     assert (
         model.data(model.index(0, 0), model.DateTimeRole)
         == personA.birthEvent.dateTime()
@@ -216,14 +213,7 @@ def test_flags(qtbot, timelineScene, model):
             assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
         else:
             event = model.eventForRow(row)
-            if event.uniqueId() == "now":
-                assert not model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
-                assert (
-                    not model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
-                )
-                assert not model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-                assert not model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
-            elif event.uniqueId():
+            if event.uniqueId():
                 assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
                 assert (
                     not model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
@@ -249,13 +239,12 @@ def test_add_item(timelineScene, model):
     fusion.endEvent.setDateTime(util.Date(2015, 1, 1))
     timelineScene.addItem(fusion)
     #
-    assert model.rowCount() == 5
+    assert model.rowCount() == 4
     #
     assert model.eventForRow(0) == p1.birthEvent  # birthDateTime
     assert model.eventForRow(1) == p2.birthEvent  # birthDateTime
     assert model.eventForRow(2) == fusion.startEvent  # startDateTime
     assert model.eventForRow(3) == fusion.endEvent  # endDateTime
-    assert model.eventForRow(4) == timelineScene.nowEvent
     # fusion dates
     col = model.columnIndex(model.DATETIME)
     assert model.index(2, col).data(Qt.DisplayRole) == util.dateString(
@@ -285,45 +274,45 @@ def test_add_person_marriage():
 
 
 def test_remove_item(timelineScene, model):
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
 
     p2 = timelineScene.query1(name="p2")
     timelineScene.removeItem(p2)
-    assert model.rowCount() == 2
+    assert model.rowCount() == 1
 
 
 def test_set_birthdate(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p1.birthEvent.prop("dateTime").reset()
 
-    assert model.rowCount() == 2
+    assert model.rowCount() == 1
 
     p1.setBirthDateTime(util.Date(1955, 12, 3))
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
 
 
 def test_unset_birthDate(timelineScene, model):
     # should remove from rows
     p1 = timelineScene.query1(name="p1")
     p1.setBirthDateTime(util.Date(1955, 12, 3))
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
 
     p1.birthEvent.prop("dateTime").reset()
-    assert model.rowCount() == 2
+    assert model.rowCount() == 1
 
 
 def test_delete_birthDate(qtbot, timelineScene, model):
     # should clear date
     p1 = timelineScene.query1(name="p1")
     p1.setBirthDateTime(util.Date(1955, 12, 3))
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
 
     selectionModel = QItemSelectionModel(model)
     selectionModel.select(
         model.index(0, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows
     )
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
-    assert model.rowCount() == 2
+    assert model.rowCount() == 1
 
 
 def test_delete_emotion_date(qtbot, timelineScene, model):
@@ -336,14 +325,14 @@ def test_delete_emotion_date(qtbot, timelineScene, model):
         endDateTime=util.Date(2001, 1, 1),
     )
     timelineScene.addItem(conflict)
-    assert model.rowCount() == 5
+    assert model.rowCount() == 4
 
     selectionModel = QItemSelectionModel(model)
     selectionModel.select(
         model.index(3, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows
     )
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
-    assert model.rowCount() == 4
+    assert model.rowCount() == 3
     assert conflict.endEvent.dateTime() == None
     assert conflict.endEvent in timelineScene.events()
 
@@ -351,7 +340,7 @@ def test_delete_emotion_date(qtbot, timelineScene, model):
         model.index(2, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows
     )
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
-    assert model.rowCount() == 3
+    assert model.rowCount() == 2
     assert conflict.startEvent.dateTime() == None
     assert conflict.startEvent in timelineScene.events()
 
@@ -367,7 +356,6 @@ def test_dont_show_not_deceased_with_deceased_date():
     person.setDeceasedDateTime(util.Date(2000, 1, 1))
     scene.addItem(person)
     assert model.rowCount() == 1
-    assert model.eventForRow(0) == scene.nowEvent
 
 
 ## TODO: test consistency of internal data structures (perhaps using accecssors methods?)
@@ -581,7 +569,7 @@ def test_emotion_parentName_changed():
     )
     scene.addItems(p1, p2, fusion)
     # util.printModel(model)
-    assert model.rowCount() == 3  # startDateTime, endDateTime, now
+    assert model.rowCount() == 2  # startDateTime, endDateTime
     assert model.rowForEvent(fusion.startEvent) == 0
     assert model.rowForEvent(fusion.endEvent) == 1
     assert model.data(model.index(0, model.COLUMNS.index(model.PARENT))) == "p1 & p2"
@@ -782,7 +770,6 @@ def test_showAliases_signals():
 
 
 def test_get_all_variables():
-    """model was bombing on now event."""
     scene = Scene()
     scene.addEventProperty("anxiety")
     person = Person(name="Person A")

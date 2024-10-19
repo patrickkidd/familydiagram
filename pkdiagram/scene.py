@@ -190,15 +190,6 @@ class Scene(QGraphicsScene, Item):
         self._itemDetails = []
         self._layers = []
         self._activeLayers = []
-        self.nowEvent = Event(
-            None,
-            uniqueId="now",
-            dateTime=QDateTime.currentDateTime(),
-            description="Now",
-            parentName="",
-        )
-        self.nowEvent.parent = self
-        self.addItem(self.nowEvent)
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -252,7 +243,6 @@ class Scene(QGraphicsScene, Item):
 
         self.isInitializing = False
         self.initialized = True
-        self.startTimer(60 * 1000)  # update the now event periodically
         if _items:
             if not isinstance(_items, list):
                 _items = [_items]
@@ -612,7 +602,6 @@ class Scene(QGraphicsScene, Item):
         try:
             compat.update_data(data)
             super().read(data, None)
-            self.addItem(self.nowEvent)  # super().read() sets lastItemId to -1
             ## Set 'em up
             itemChunks = []
             self.futureItems = []
@@ -676,10 +665,9 @@ class Scene(QGraphicsScene, Item):
                     raise ValueError("Found Item object stored without id!" + item)
             # add event dynamic properties
             for e in self.events():
-                if e.uniqueId() != "now":
-                    for entry in self.eventProperties():
-                        if e.dynamicProperty(entry["attr"]) is None:
-                            e.addDynamicProperty(entry["attr"])
+                for entry in self.eventProperties():
+                    if e.dynamicProperty(entry["attr"]) is None:
+                        e.addDynamicProperty(entry["attr"])
             self.pencilCanvas.setColor(self.pencilColor())
             compat.update_scene(self, data)
             self.resortLayersFromOrder()
@@ -981,13 +969,6 @@ class Scene(QGraphicsScene, Item):
         #     f.write(sdata)
 
     ## Events
-
-    def timerEvent(self, e):
-        if (
-            QDateTime.currentDateTime().date().day()
-            != self.nowEvent.dateTime().date().day()
-        ):
-            self.nowEvent.setDateTime(QDateTime.currentDateTime(), notify=False)
 
     def pencilEvent(self, e, pos, pressure):
         """Shared by touch events and mouse events."""
@@ -1943,20 +1924,22 @@ class Scene(QGraphicsScene, Item):
         dummy = Event(dateTime=self.currentDateTime())
         nextRow = bisect.bisect_right(events, dummy)
         if nextRow == len(events):  # end
-            nextDate = events[-1].dateTime()
+            nextDate = self.timelineModel.lastEventDateTime()
         else:
             nextDate = events[nextRow].dateTime()
-        self.setCurrentDateTime(nextDate)
+        if nextDate:
+            self.setCurrentDateTime(nextDate)
 
     def prevTaggedDateTime(self):
         events = self.timelineModel.events()
         dummy = Event(dateTime=self.currentDateTime())
         prevRow = bisect.bisect_left(events, dummy) - 1
         if prevRow <= 0:
-            prevDate = events[0].dateTime()
+            prevDate = self.timelineModel.firstEventDateTime()
         else:
             prevDate = events[prevRow].dateTime()
-        self.setCurrentDateTime(prevDate)
+        if prevDate:
+            self.setCurrentDateTime(prevDate)
 
     ## Properties
 
@@ -2085,7 +2068,7 @@ class Scene(QGraphicsScene, Item):
         # self.update()
 
     def jumpToNow(self):
-        self.setCurrentDateTime(self.nowEvent.dateTime(), undo=True)
+        self.setCurrentDateTime(QDateTime.currentDateTime(), undo=True)
 
     def resetAll(self):
         id = commands.nextId()
@@ -2093,7 +2076,7 @@ class Scene(QGraphicsScene, Item):
             layer.setActive(False, undo=id, notify=False)
         self.updateActiveLayers()
         self.searchModel.clear()
-        self.setCurrentDateTime(self.nowEvent.dateTime(), undo=True)
+        self.jumpToNow()
         self.diagramReset.emit()
 
     def addTag(self, tag, notify=True):

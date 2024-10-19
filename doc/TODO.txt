@@ -7,6 +7,7 @@ USABILITY
   - Maybe make selected tags very obvious, like primary display feature?
   - Maybe make new events have selected tags?
   - Tag selection needs to feel like you are in a room and everything that happens in that room stays in that room.
+- Make it obvious when not showing today's date.
 - Can't set parents for exiting person and existing parents from add anything form
 - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
 - Make person picker yellow, then green when submitted? (same as create account dialog)

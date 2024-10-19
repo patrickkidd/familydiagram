@@ -1103,11 +1103,10 @@ class RemoveEventProperty(UndoCommand):
                 continue
             attrEntries = {}
             for event in scene.events():
-                if event.uniqueId() != "now":
-                    attrEntries[event.id] = {
-                        "value": event.dynamicProperty(attr).get(),
-                        "event": event,
-                    }
+                attrEntries[event.id] = {
+                    "value": event.dynamicProperty(attr).get(),
+                    "event": event,
+                }
             ret.append((attr, attrEntries))
         return ret
 
