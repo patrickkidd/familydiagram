@@ -373,10 +373,8 @@ PK.Drawer {
                                 onCheckedChanged: sceneModel.hideVariablesOnDiagram = checked
                             }
 
-                            PK.Text {
+                            PK.HelpText {
                                 text: "This prevents variable values from being shown on the diagram. This can clean up the diagram for presentation purposes.";
-                                font.pixelSize: util.HELP_FONT_SIZE
-                                wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }
 
@@ -387,11 +385,9 @@ PK.Drawer {
                                 Layout.fillWidth: true
                                 onCheckedChanged: sceneModel.hideVariableSteadyStates = checked
                             }
-                            PK.Text {
+                            PK.HelpText {
                                 text: "This makes it so variable values are only shown when the diagram shows the exact date that a variable shift occured. For example, if a variable has the value `up` on 1/1/1970, and `down` on 1/1/1980, then be no value shown on the diagram for 1/1/1972." ;
                                 enabled: !sceneModel.readOnly && !hideVariablesOnDiagramBox.checked
-                                font.pixelSize: util.HELP_FONT_SIZE
-                                wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }
                         }
@@ -412,10 +408,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                             onCheckedChanged: sceneModel.trySetShowAliases(checked)
                         }
-                        PK.Text {
+                        PK.HelpText {
                             text: "This ensures anonymity for presentations. <b>NOTE:</b> Event descriptions and notes are not hidden and may reveal names if you have entered them into those fields." ;
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
 
@@ -425,10 +419,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                             onCheckedChanged: sceneModel.hideEmotionalProcess = checked
                         }
-                        PK.Text {
+                        PK.HelpText {
                             text: "This is useful when you want to focus on geoneological data and not emotional process."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
 
@@ -438,10 +430,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                             onCheckedChanged: sceneModel.hideEmotionColors = checked
                         }
-                        PK.Text {
+                        PK.HelpText {
                             text: "Check this to show all emotional process symbols in black instead of their own color."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
 
@@ -451,10 +441,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                             onCheckedChanged: sceneModel.hideLayers = checked
                         }
-                        PK.Text {
+                        PK.HelpText {
                             text: "Hide all layers and just show the plain diagram."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
                         
@@ -464,10 +452,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                             onCheckedChanged: sceneModel.hideToolBars = checked
                         }
-                        PK.Text {
+                        PK.HelpText {
                             text: "Don't show toolbars for use in presentations."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
                     }
@@ -497,7 +483,7 @@ PK.Drawer {
                         anchors.fill: parent
                         spacing: util.QML_MARGINS
 
-                        PK.Text {
+                        PK.HelpText {
                             visible: sceneModel.isOnServer
                             enabled: accessRightsBox.enabled
                             property string header: "This diagram is stored securely on the server. ";
@@ -509,8 +495,6 @@ PK.Drawer {
                                 else
                                     header + "It is owned by " + sceneModel.accessRightsModel.owner + "\n\nYou are able to save changes to it, but only the owner can who can view and save changes to it."
                             }
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                             padding: util.QML_MARGINS / 2
                         }
@@ -662,12 +646,10 @@ PK.Drawer {
 
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             visible: serverBox.showAccessRightsBox
                             enabled: accessRightsBox.enabled
                             text: "Here you can set access rights for other users using their email. Each person you add can either have read-only access or write access. In either case, your diagram will appear in their own server view in the app and you will be listed as the diagram\'s owner.\n\nEnter the username of the account you want to share this diagram with, and hit enter or click the add button. The text input will turn from red to green when a matching user is found."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                             padding: util.QML_MARGINS / 2
                             topPadding: 0
@@ -694,12 +676,10 @@ PK.Drawer {
                             }
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             visible: uploadBox.visible
                             // enabled: uploadBox.enabled
                             text: 'Click upload if you want to copy this diagram to the server so that you can share it with others. You will have an option to keep the copy on your local computer if you wish.'
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                             padding: util.QML_MARGINS / 2
                             topPadding: 0
@@ -731,10 +711,8 @@ PK.Drawer {
                             Layout.fillWidth: true
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             text: "If this option is checked then an anonymized copy of this diagram will be maintained on the research server. All names will be replaced with aliases and notes will be excluded unless \"Use real names for research\" is checked below. It will be accessible on the server using the alias above."
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
 
@@ -746,12 +724,10 @@ PK.Drawer {
                             onCheckedChanged: sceneModel.useRealNames = checked
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             enabled: contributeBox.checked
                             text: "Family identities are protected by default on diagrams that are contributed to family systems research. However, it makes sense to use real names when the family has consented to their release, or when using data that is publically availble as in the case of celebrities or political figures."
-                            font.pixelSize: util.HELP_FONT_SIZE
                             Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
                         }
 
                         PK.CheckBox {
@@ -779,11 +755,9 @@ PK.Drawer {
                             }
                         }
 
-                        PK.Text {
+                        PK.HelpText {
                             text: "If checked, this will allow only people with this password to view the real names stored in this case. This can be useful when using the server to share sensitive case data with others. The server administrators will also not be able to see identifying information unless you provide them with the password."
                             enabled: contributeBox.checked && passwordBox.checked && sceneModel.useRealNames
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
                     }

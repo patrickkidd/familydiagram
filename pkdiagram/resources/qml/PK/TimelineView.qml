@@ -804,12 +804,12 @@ ColumnLayout {
         id: buttons
         objectName: root.objectName + '_crudButtons'
         Layout.fillWidth: true
-        addEventButton: true
-        addEventButtonEnabled: root.model && root.model.items.length > 0 && !sceneModel.readOnly
-        onAddEvent: sceneModel.addEvent(root.model.items, root)
-        addEmotionButton: true
-        addEmotionButtonEnabled: root.model && root.model.items.length > 0 && !sceneModel.readOnly
-        onAddEmotion: sceneModel.addEmotion(root.model.items, root)
+        // addEventButton: true
+        // addEventButtonEnabled: root.model && root.model.items.length > 0 && !sceneModel.readOnly
+        // onAddEvent: sceneModel.addEvent(root.model.items, root)
+        // addEmotionButton: true
+        // addEmotionButtonEnabled: root.model && root.model.items.length > 0 && !sceneModel.readOnly
+        // onAddEmotion: sceneModel.addEmotion(root.model.items, root)
         inspectButton: true
         inspectButtonEnabled: root.canInspect
         onInspect: root.inspect()

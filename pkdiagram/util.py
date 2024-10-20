@@ -370,6 +370,7 @@ TEXT_COLOR = None
 DROP_SHADOW_COLOR = None
 ACTIVE_TEXT_COLOR = None
 INACTIVE_TEXT_COLOR = None
+ACTIVE_HELP_TEXT_COLOR = None
 GRID_COLOR = None
 SAME_DATE_HIGHLIGHT_COLOR = None
 NODAL_COLOR = None
@@ -388,6 +389,7 @@ QML_HIGHLIGHT_TEXT_COLOR = (
 )
 QML_ACTIVE_TEXT_COLOR = ""
 QML_INACTIVE_TEXT_COLOR = ""
+QML_ACTIVE_HELP_TEXT_COLOR = ""
 QML_HIGHLIGHT_COLOR = ""  # synonym for 'CURRENT'
 QML_SELECTION_COLOR = ""
 QML_ITEM_ALTERNATE_BG = ""
@@ -445,6 +447,10 @@ When a discrete move, they may be a move toward, away, or defined self by a sing
 
 S_EVENT_KIND_HELP_TEXT = LONG_TEXT("")
 
+S_DESCRIPTION_HELP_TEXT = LONG_TEXT(
+    "What occurred written as a fact; opinions and other emotions go in quotes, or move into 'Details' below."
+)
+
 S_PEOPLE_HELP_TEXT = LONG_TEXT("")
 
 S_PERSON_NOT_FOUND = LONG_TEXT(
@@ -480,7 +486,7 @@ S_NO_ITEMS_LABEL = LONG_TEXT(
 )
 
 S_NO_EVENTS_TEXT = LONG_TEXT(
-    "No events to show. Either widen your search criteria or click the green plus (+) button to add some data points to the timeline."
+    "No events to show. Either widen your search criteria or click the green (+) button to add some data points to the timeline."
 )
 
 

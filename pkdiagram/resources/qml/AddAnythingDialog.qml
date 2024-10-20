@@ -560,7 +560,7 @@ PK.Drawer {
                         PK.FormField {
                             id: descriptionField
                             objectName: "descriptionField"
-                            visible: util.isCustomEventKind(kindBox.valuesForIndex[kindBox.currentIndex])
+                            visible: descriptionLabel.visible
                             KeyNavigation.backtab: receiversPicker.lastTabItem
                             KeyNavigation.tab: startDateButtons.firstTabItem
                             tabItem: startDateButtons.firstTabItem
@@ -576,6 +576,13 @@ PK.Drawer {
                                 property bool isDirty: text != ''
                                 function clear() { text = '' }
                             }
+                        }
+
+                        PK.HelpText {
+                            text: util.S_DESCRIPTION_HELP_TEXT
+                            visible: descriptionField.visible
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
                         }
 
                         PK.FormDivider {

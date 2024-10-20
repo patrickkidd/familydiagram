@@ -80,6 +80,7 @@ class QmlUtil(QObject, QObjectHelper):
         "QML_HIGHLIGHT_TEXT_COLOR",
         "QML_ACTIVE_TEXT_COLOR",
         "QML_INACTIVE_TEXT_COLOR",
+        "QML_ACTIVE_HELP_TEXT_COLOR",
         "QML_HIGHLIGHT_COLOR",
         "QML_SELECTION_COLOR",
         "QML_SAME_DATE_HIGHLIGHT_COLOR",
@@ -110,6 +111,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_PERSON_NOT_FOUND",
         "S_PEOPLE_HELP_TEXT",
         "S_EVENT_KIND_HELP_TEXT",
+        "S_DESCRIPTION_HELP_TEXT",
         "S_ANXIETY_HELP_TEXT",
         "S_FUNCTIONING_HELP_TEXT",
         "S_SYMPTOM_HELP_TEXT",
@@ -117,7 +119,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_NO_ITEMS_LABEL",
         "S_NO_EVENTS_TEXT",
         "NO_ITEMS_FONT_FAMILY",
-        "NO_ITEMS_FONT_PIXEL_SIZE"
+        "NO_ITEMS_FONT_PIXEL_SIZE",
     ]
     QObjectHelper.registerQtProperties(
         [
@@ -179,9 +181,11 @@ class QmlUtil(QObject, QObjectHelper):
         if util.IS_UI_DARK_MODE:
             util.TEXT_COLOR = QColor(Qt.white)
             util.ACTIVE_TEXT_COLOR = QColor(Qt.white)
+            util.ACTIVE_HELP_TEXT_COLOR = QColor(Qt.white).darker(120)
         else:
             util.TEXT_COLOR = QColor(Qt.black)
             util.ACTIVE_TEXT_COLOR = QColor(Qt.black)
+            util.ACTIVE_HELP_TEXT_COLOR = QColor(Qt.black)
         util.PEN = QPen(
             QBrush(util.TEXT_COLOR), 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin
         )
@@ -233,6 +237,7 @@ class QmlUtil(QObject, QObjectHelper):
         util.QML_DROP_SHADOW_COLOR = util.DROP_SHADOW_COLOR.name()
         util.QML_INACTIVE_TEXT_COLOR = util.INACTIVE_TEXT_COLOR.name()
         util.QML_ACTIVE_TEXT_COLOR = util.ACTIVE_TEXT_COLOR.name()
+        util.QML_ACTIVE_HELP_TEXT_COLOR = util.ACTIVE_HELP_TEXT_COLOR.name()
         util.QML_SELECTION_COLOR = util.SELECTION_COLOR.name()
         util.QML_SELECTION_TEXT_COLOR = util.SELECTION_TEXT_COLOR.name()
         util.QML_HIGHLIGHT_TEXT_COLOR = util.HIGHLIGHT_TEXT_COLOR.name()
