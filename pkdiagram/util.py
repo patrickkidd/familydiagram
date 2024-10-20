@@ -476,7 +476,7 @@ S_NOTES_HELP_TEXT = LONG_TEXT(
 )
 
 S_NO_ITEMS_LABEL = LONG_TEXT(
-    "Click the green (+) button in the upper right to start adding people and data points."
+    "Click the green (+) button in the upper right to add people and data points."
 )
 
 S_NO_EVENTS_TEXT = LONG_TEXT(

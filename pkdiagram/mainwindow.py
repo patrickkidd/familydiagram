@@ -1568,10 +1568,11 @@ class MainWindow(QMainWindow):
             timelineModel = self.scene.timelineModel
             firstRow = timelineModel.firstRowForDateTime(prop.get())
             lastRow = timelineModel.lastRowForDateTime(prop.get())
-            for row in range(firstRow, lastRow + 1):
-                event = timelineModel.eventForRow(row)
-                if not self.scene.searchModel.shouldHide(event):
-                    self.documentView.sceneModel.flashTimelineItem(row)
+            if firstRow > -1 and lastRow > -1:
+                for row in range(firstRow, lastRow + 1):
+                    event = timelineModel.eventForRow(row)
+                    if not self.scene.searchModel.shouldHide(event):
+                        self.documentView.sceneModel.flashTimelineItem(row)
 
         elif prop.name() == "alias":
             self.updateWindowTitle()

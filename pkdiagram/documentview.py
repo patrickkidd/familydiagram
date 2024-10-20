@@ -80,6 +80,7 @@ class DocumentView(QWidget):
             QSizePolicy.Expanding, QSizePolicy.Fixed
         )
         self.graphicalTimelineShim.setObjectName("graphicalTimelineShim")
+        self.graphicalTimelineShim.setFixedHeight(0)
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
         self.graphicalTimelineView = GraphicalTimelineView(self)
         self.graphicalTimelineView.expandedChanged.connect(
@@ -252,7 +253,7 @@ class DocumentView(QWidget):
             self.sceneModel.addEmotion.connect(self.onAddEmotion)
             self.sceneModel.addEmotion[QVariant].connect(self.onAddEmotion)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
-            if self.scene.hideDateSlider():
+            if self.scene.hideDateSlider() or len(self.scene.events()) == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:
                 self.graphicalTimelineShim.setFixedHeight(
@@ -275,7 +276,12 @@ class DocumentView(QWidget):
 
     def onSceneProperty(self, prop):
         if prop.name() == "hideDateSlider":
-            self.setShowGraphicalTimeline(not prop.get())
+            if (
+                not self.isGraphicalTimelineShown()
+                and not prop.get()
+                and len(self.scene.events()) > 0
+            ):
+                self.setShowGraphicalTimeline()
         elif prop.name() == "currentDateTime":
             self.updateTimelineCallout()
             self.caseProps.scrollTimelineToDateTime(prop.get())
@@ -318,6 +324,11 @@ class DocumentView(QWidget):
         if not self.isAnimatingDrawer:
             for drawer in self.drawers:
                 drawer.adjust()
+
+    def isGraphicalTimelineShown(self):
+        return (
+            self.graphicalTimelineShim.height() == util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT
+        )
 
     def updateTimelineCallout(self):
         if not self.scene:

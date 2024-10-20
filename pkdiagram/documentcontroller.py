@@ -294,8 +294,14 @@ class DocumentController(QObject):
         events = self.scene.timelineModel.events()
         if len(events) == 1:
             self.scene.setCurrentDateTime(events[0].dateTime())
+            if (
+                not self.dv.isGraphicalTimelineShown()
+                and not self.scene.hideDateSlider()
+            ):
+                self.dv.setShowGraphicalTimeline(True)
         elif len(events) == 0:
             self.dv.updateTimelineCallout()
+            self.dv.setShowGraphicalTimeline(False)
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item

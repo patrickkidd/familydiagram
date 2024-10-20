@@ -11,6 +11,7 @@ from pkdiagram import (
     TagsModel,
     Layer,
     Event,
+    DocumentView,
 )
 from pkdiagram.mainwindow_form import Ui_MainWindow
 from pkdiagram.pyqt import (
@@ -115,6 +116,33 @@ def test_remove_person(qtbot, dv):
     qtbot.clickYesAfter(lambda: dv.controller.onDelete())
     assert dv.scene.people() == []
     assert dv.view.noItemsCTALabel.isVisible() == True
+
+
+def test_remove_last_event(qtbot, dv):
+    assert dv.graphicalTimelineCallout.isVisible() == False
+
+    def _setShowGraphicalTimeline(self, on):
+        if on:
+            self.graphicalTimelineShim.setFixedHeight(
+                util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT
+            )
+        else:
+            self.graphicalTimelineShim.setFixedHeight(0)
+
+    with mock.patch.object(
+        DocumentView, "setShowGraphicalTimeline", _setShowGraphicalTimeline
+    ):
+        person = dv.scene.addItem(Person(name="person"))
+        event = Event(person, dateTime=util.Date(2001, 1, 1))
+        assert dv.scene.timelineModel.events() == [event]
+        assert dv.graphicalTimelineCallout.isVisible() == True
+        assert dv.isGraphicalTimelineShown() == True
+
+        dv.scene.setCurrentDateTime(event.dateTime())
+        dv.scene.removeItem(event)
+        assert dv.scene.timelineModel.events() == []
+        assert dv.graphicalTimelineCallout.isVisible() == False
+        assert dv.isGraphicalTimelineShown() == False
 
 
 def test_set_person_props(qtbot, dv: DocumentView, personProps):
@@ -362,17 +390,3 @@ def test_show_events_from_timeline_callout(qtbot, dv):
     #
     # assert ( dv.caseProps.itemProp("caseProps_timelineView.table", "contentY")
     #     == util.QML_ITEM_HEIGHT * firstRow )
-
-
-def test_remove_last_event(qtbot, dv):
-    assert dv.graphicalTimelineCallout.isVisible() == False
-    
-    person = dv.scene.addItem(Person(name="person"))
-    event = Event(person, dateTime=util.Date(2001, 1, 1))
-    assert dv.scene.timelineModel.events() == [event]
-    assert dv.graphicalTimelineCallout.isVisible() == True
-
-    dv.scene.setCurrentDateTime(event.dateTime())
-    dv.scene.removeItem(event)
-    assert dv.scene.timelineModel.events() == []
-    assert dv.graphicalTimelineCallout.isVisible() == False

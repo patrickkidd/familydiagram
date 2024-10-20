@@ -249,7 +249,6 @@ string"""
 
 
 def test_rename_tag_retains_tag_on_items():
-
     s = Scene()
     s.setTags(["aaa", "ccc", "ddd"])
     item = Item()
@@ -260,6 +259,17 @@ def test_rename_tag_retains_tag_on_items():
 
     assert s.tags() == ["aaa", "bbb", "ccc"]
     assert item.tags() == ["bbb"]
+
+
+def test_add_events_sets_currentDateTime(qApp):
+    scene = Scene()
+    person = Person(name="Hey", lastName="You")
+    scene.addItem(person)
+    event_1 = Event(person, dateTime=util.Date(2001, 1, 1))
+    assert scene.currentDateTime() == event_1.dateTime()
+
+    event_2 = Event(person, dateTime=util.Date(2002, 1, 1))
+    assert scene.currentDateTime() == event_2.dateTime()
 
 
 def test_nextTaggedDate_prevTaggedDateTime():

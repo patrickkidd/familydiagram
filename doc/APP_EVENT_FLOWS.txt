@@ -12,7 +12,7 @@ Data-dependent displays
     - DocumentController.scene.timelineModel.rowsInserted|rowsRemoved|modelReset
         * DocumentController.onSceneEventsChanged()
         * DocumentView.updateTimelineCallout()
-        * DocumentView.hideBottomTimeline()
+        * DocumentView.hideBottomTimeline()        
 
 
 Search-Dependent displays

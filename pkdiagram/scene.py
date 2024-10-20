@@ -334,6 +334,7 @@ class Scene(QGraphicsScene, Item):
                     item.addDynamicProperty(entry["attr"])
             if not self.isBatchAddingRemovingItems():
                 self.eventAdded.emit(item)
+                self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
             if not self.isBatchAddingRemovingItems():
