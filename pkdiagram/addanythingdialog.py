@@ -422,7 +422,7 @@ class AddAnythingDialog(QmlDrawer):
             if symptom and util.ATTR_SYMPTOM not in existingEventProperties:
                 self.scene.addEventProperty(util.ATTR_SYMPTOM)
 
-        # Kind-specific logic
+        # Kind-specific event logic
 
         propertyUndoId = commands.nextId()
 
@@ -481,6 +481,8 @@ class AddAnythingDialog(QmlDrawer):
                     commands.setParents(person, marriage)
             elif kind == EventKind.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
+                if notes:
+                    kwargs['notes'] = notes
                 commands.addEmotion(
                     self.scene,
                     Emotion(
@@ -527,6 +529,8 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs["uniqueId"] = kind.value
             if location:
                 kwargs["location"] = location
+            if notes:
+                kwargs["notes"] = notes
 
             _log.debug(
                 f"Adding {kind} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
@@ -542,6 +546,8 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs = {"endDateTime": endDateTime}
             else:
                 kwargs = {}
+            if notes:
+                kwargs["notes"] = notes
             for personA in movers:
                 for personB in receivers:
                     commands.addEmotion(

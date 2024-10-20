@@ -337,11 +337,17 @@ def test_add_multiple_events_to_new_person(scene, dlg):
 
 
 def test_add_new_person_cutoff_with_date_range(scene, dlg):
+    NOTES = """
+Here are the
+notes
+for this event.
+"""
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.Cutoff)
     dlg.set_new_person("personPicker", "John Doe")
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_endDateTime(END_DATETIME)
+    dlg.set_notes(NOTES)
     dlg.mouseClick("AddEverything_submitButton")
     newPerson = scene.query1(name="John", lastName="Doe")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
@@ -349,13 +355,21 @@ def test_add_new_person_cutoff_with_date_range(scene, dlg):
     assert newPerson.emotions()[0].kind() == util.ITEM_CUTOFF
     assert newPerson.emotions()[0].startEvent.dateTime() == START_DATETIME
     assert newPerson.emotions()[0].endEvent.dateTime() == END_DATETIME
+    assert newPerson.emotions()[0].notes() == NOTES
 
 
-def test_add_new_dyadic(scene, dlg):
-    dlg.set_kind(EventKind.Away)
+@pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isDyadic(x)])
+def test_add_new_dyadic(scene, dlg, kind):
+    NOTES = """
+Here are the
+notes
+for this event.
+"""
+    dlg.set_kind(kind)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
     dlg.set_startDateTime(START_DATETIME)
+    dlg.set_notes(NOTES)
     dlg.mouseClick("AddEverything_submitButton")
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
@@ -363,17 +377,24 @@ def test_add_new_dyadic(scene, dlg):
     assert len(personA.emotions()) == 1
     assert len(personB.emotions()) == 1
     assert personA.emotions() == personB.emotions()
-    assert personA.emotions()[0].kind() == util.ITEM_AWAY
+    assert personA.emotions()[0].kind() == EventKind.itemModeFor(kind)
     assert personA.emotions()[0].startDateTime() == START_DATETIME
     assert personA.emotions()[0].endDateTime() == START_DATETIME
+    assert personA.emotions()[0].notes() == NOTES
 
 
 def test_add_new_dyadic_isDateRange(scene, dlg):
+    NOTES = """
+Here are the
+notes
+for this event.
+"""
     dlg.set_kind(EventKind.Away)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_endDateTime(END_DATETIME)
+    dlg.set_notes(NOTES)
     dlg.mouseClick("AddEverything_submitButton")
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
@@ -384,6 +405,7 @@ def test_add_new_dyadic_isDateRange(scene, dlg):
     assert personA.emotions()[0].kind() == util.ITEM_AWAY
     assert personA.emotions()[0].startDateTime() == START_DATETIME
     assert personA.emotions()[0].endDateTime() == END_DATETIME
+    assert personA.emotions()[0].notes() == NOTES
 
 
 def test_add_existing_dyadic(scene, dlg):
