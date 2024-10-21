@@ -126,12 +126,14 @@ class EventKind(enum.Enum):
             cls.Death.value,
             cls.Cutoff.value,
             cls.CustomIndividual.value,
+            #
             cls.Bonded.value,
             cls.Married.value,
             cls.Separated.value,
             cls.Divorced.value,
             cls.Moved.value,
             cls.CustomPairBond.value,
+            #
             cls.Conflict.value,
             cls.Distance.value,
             cls.Projection.value,

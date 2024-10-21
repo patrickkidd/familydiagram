@@ -318,10 +318,28 @@ PK.Drawer {
                             model: util.eventKindLabels()
                             property var valuesForIndex: util.eventKindValues()
                             property var lastCurrentIndex: -1
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
+                            Layout.maximumWidth: root.fieldWidth - 28
+                            Layout.minimumWidth: root.fieldWidth - 28
                             KeyNavigation.tab: personPicker.firstTabItem
                             KeyNavigation.backtab: notesEdit
+                            // property var firstInSections: [5, 11]
+                            delegate: ItemDelegate {
+                                width: ListView.view.width
+                                text: kindBox.textRole ? (Array.isArray(kindBox.model) ? modelData[kindBox.textRole] : model[kindBox.textRole]) : modelData
+                                palette.text: kindBox.palette.text
+                                palette.highlightedText: kindBox.palette.highlightedText
+                                font.weight: kindBox.currentIndex === index ? Font.DemiBold : Font.Normal
+                                highlighted: kindBox.highlightedIndex === index
+                                hoverEnabled: kindBox.hoverEnabled
+                                Rectangle {
+                                    x: 0
+                                    y: 0
+                                    width: parent.width
+                                    height: 1
+                                    color: util.QML_ACTIVE_TEXT_COLOR
+                                    visible: index == 5 || index == 11
+                                }
+                            }
                             onCurrentIndexChanged: {
                                 if (currentIndex != lastCurrentIndex) {
                                     lastCurrentIndex = currentIndex
@@ -742,7 +760,8 @@ PK.Drawer {
                         PK.FormField {
                             id: locationField
                             objectName: "locationField"
-                            Layout.fillWidth: true
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                             tabItem: anxietyBox
