@@ -52,13 +52,13 @@ class DateLabel(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
         if util.IS_UI_DARK_MODE:
-            p.strokePath(self.path, QPen(QBrush(QColor(0, 0, 0, 255)), self.STROKE))
-            p.fillPath(self.path, QBrush(QColor("white")))
+            # p.strokePath(self.path, QPen(QBrush(QColor(0, 0, 0, 255)), self.STROKE))
+            p.fillPath(self.path, QBrush(util.INACTIVE_TEXT_COLOR))
         else:
-            p.strokePath(
-                self.path, QPen(QBrush(QColor(255, 255, 255, 255)), self.STROKE)
-            )
-            p.fillPath(self.path, QBrush(QColor("black")))
+            # p.strokePath(
+            #     self.path, QPen(QBrush(QColor(255, 255, 255, 255)), self.STROKE)
+            # )
+            p.fillPath(self.path, QBrush(util.INACTIVE_TEXT_COLOR))
         p = None
         super().paintEvent(e)
 
