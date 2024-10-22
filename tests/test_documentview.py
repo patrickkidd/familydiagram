@@ -118,6 +118,19 @@ def test_remove_person(qtbot, dv):
     assert dv.view.noItemsCTALabel.isVisible() == True
 
 
+def test_load_from_file_with_people(dv):
+    scene = Scene()
+    scene.addItems(Person(name="p1"), Person(name="p2"))
+    dv.setScene(scene)
+    assert dv.view.noItemsCTALabel.isVisible() == False
+
+
+def test_load_from_file_empty(dv):
+    scene = Scene()
+    dv.setScene(scene)
+    assert dv.view.noItemsCTALabel.isVisible() == True
+
+
 def test_remove_last_event(qtbot, dv):
     assert dv.graphicalTimelineCallout.isVisible() == False
 

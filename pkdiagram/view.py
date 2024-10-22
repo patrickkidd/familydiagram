@@ -355,6 +355,10 @@ class View(QGraphicsView):
             scene.activeLayersChanged.connect(self.onActiveLayersChanged)
             scene.layerAnimationGroup.finished.connect(self.onLayerAnimationFinished)
             self.onSceneProperty(scene.prop("currentDateTime"))
+            if scene.people():
+                self.noItemsCTALabel.hide()
+            else:
+                self.noItemsCTALabel.show()
 
             # auto-zoom fit on load screen
             # if this isn't delayed it gets the wrong scene rect, not sure why
