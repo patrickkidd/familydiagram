@@ -1422,13 +1422,14 @@ class Person(PathItem):
             elif self.scene() and self.scene().readOnly():
                 # Prevent moving person after double-click and hold when drawer is animating open
                 variant = self.pos()
-            elif (
-                self.scene()
-                and self.scene().isAnimatingDrawer()
-                and self.scene().isDraggingSomething()
-            ):
-                # Prevent moving person after double-click and hold when drawer is animating open
-                variant = self.pos()
+            # Re-enabled to accomodate correcting arrangements from AddAnythingDialog.
+            # elif (
+            #     self.scene()
+            #     and self.scene().isAnimatingDrawer()
+            #     and self.scene().isDraggingSomething()
+            # ):
+            #     # Prevent moving person after double-click and hold when drawer is animating open
+            #     variant = self.pos()
             elif self.scene() and self.scene().canSnapDrag and self.mouseDownPos:
                 # snap to people?
                 yDelta = self.mouseMovePos.y() - self.mouseDownPos.y()
