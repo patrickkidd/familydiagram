@@ -468,6 +468,7 @@ class AddAnythingDialog(QmlDrawer):
                             QPointF(),
                             self.scene.newPersonSize(),
                         )
+                        newPeople.append(parentA)
                     if not parentB:
                         parentB = commands.addPerson(
                             self.scene,
@@ -475,6 +476,7 @@ class AddAnythingDialog(QmlDrawer):
                             QPointF(),
                             self.scene.newPersonSize(),
                         )
+                        newPeople.append(parentB)
                     marriage = Marriage.marriageForSelection([parentA, parentB])
                     if not marriage:
                         marriage = commands.addMarriage(self.scene, parentA, parentB)
@@ -482,7 +484,7 @@ class AddAnythingDialog(QmlDrawer):
             elif kind == EventKind.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
                 if notes:
-                    kwargs['notes'] = notes
+                    kwargs["notes"] = notes
                 commands.addEmotion(
                     self.scene,
                     Emotion(

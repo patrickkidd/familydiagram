@@ -1,13 +1,6 @@
 v2.0.0
 =============================================================================
 
-
-BUGS
-- Parents + child not arranged for `Birth` kind with only father no mother
-- All pathitems deselected when scene currentDateTime changes
-- Drag person jittery when selecting new person (Person.itemChange() - isAnimatingDrawer)
-
-
 USABILITY
 - Add CTA to empty diagram.
   - Don't show bottom timeline until there are some events

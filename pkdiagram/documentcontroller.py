@@ -384,8 +384,6 @@ class DocumentController(QObject):
         self.ui.actionShow_Legend.setEnabled(on)
         self.ui.actionShow_Graphical_Timeline.setEnabled(on)
         self.ui.actionExpand_Graphical_Timeline.setEnabled(on)
-        self.ui.actionNext_Event.setEnabled(on)
-        self.ui.actionPrevious_Event.setEnabled(on)
         # self.ui.actionAdd_Event.setEnabled(on)
         # self.ui.actionAdd_Relationship.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
@@ -520,6 +518,13 @@ class DocumentController(QObject):
         childOfs = [i for i in allSelected if isinstance(i, ChildOf)]
         if not forceOff:
             on = (len(people) + len(marriages) + len(emotions) + len(childOfs)) > 0
+
+        # Event-dependent actions
+
+        inView = bool(self.scene)
+        anyEvents = False if not self.scene else self.scene.timelineModel.rowCount() > 0
+        self.ui.actionNext_Event.setEnabled(inView and anyEvents)
+        self.ui.actionPrevious_Event.setEnabled(inView and anyEvents)
 
         # Inspectable|Deletable-dependent action
 

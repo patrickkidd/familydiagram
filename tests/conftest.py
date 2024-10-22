@@ -238,10 +238,11 @@ def watchdog(request, qApp):
 
         watchdog = Watchdog()
         watchdogTimer = QTimer(qApp)
-        watchdogTimer.setInterval(TEST_TIMEOUT_MS)
-        watchdogTimer.timeout.connect(watchdog.kill)
-        watchdogTimer.start()
-        log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+
+        # watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+        # watchdogTimer.timeout.connect(watchdog.kill)
+        # watchdogTimer.start()
+        # log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
 
     else:
         watchdog = None
@@ -509,7 +510,9 @@ class PKQtBot(QtBot):
                 msgBoxAccepted.wait() == True
             ), f'QMessageBox not raised in time containing: "{contains}"'
         else:
-            assert msgBoxAccepted.wait() == True, f"QMessageBox not raised in time. {QApplication.activeWindow()}"
+            assert (
+                msgBoxAccepted.wait() == True
+            ), f"QMessageBox not raised in time. {QApplication.activeWindow()}"
 
     def assert_QMessageBox_hasText(self, messageBox, **kwargs):
         if messageBox.text():

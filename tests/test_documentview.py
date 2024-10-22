@@ -118,17 +118,24 @@ def test_remove_person(qtbot, dv):
     assert dv.view.noItemsCTALabel.isVisible() == True
 
 
-def test_load_from_file_with_people(dv):
+def test_load_from_file_with_people_and_events(dv):
+    people = [Person(name="p1"), Person(name="p2")]
     scene = Scene()
-    scene.addItems(Person(name="p1"), Person(name="p2"))
+    scene.addItems(*people)
+    people[0].setBirthDateTime(util.Date(2001, 1, 1))
     dv.setScene(scene)
     assert dv.view.noItemsCTALabel.isVisible() == False
+    assert dv.ui.actionNext_Event.isEnabled() == True
+    assert dv.ui.actionPrevious_Event.isEnabled() == True
 
 
 def test_load_from_file_empty(dv):
     scene = Scene()
     dv.setScene(scene)
     assert dv.view.noItemsCTALabel.isVisible() == True
+    # no events yet, so...
+    assert dv.ui.actionNext_Event.isEnabled() == False
+    assert dv.ui.actionPrevious_Event.isEnabled() == False
 
 
 def test_remove_last_event(qtbot, dv):
