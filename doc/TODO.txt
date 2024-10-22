@@ -4,6 +4,7 @@ v2.0.0
 BUGS
 - View.currentDateTimeLabel doesn't paint right on open with file
 - Hide current datetime label and clear current time from window title bar when no events.
+- PersonPicker text is invisible in light mode in not submitted
 
 USABILITY
 - Too hard to add new events with tags.

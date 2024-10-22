@@ -272,6 +272,21 @@ def test_add_events_sets_currentDateTime(qApp):
     assert scene.currentDateTime() == event_2.dateTime()
 
 
+def test_init_has_clear_currentDateTime(qApp):
+    assert Scene().currentDateTime().isNull()
+
+
+def test_remove_all_events_clears_currentDateTime(qApp):
+    scene = Scene()
+    person = Person(name="Hey", lastName="You")
+    scene.addItem(person)
+    event_1 = Event(person, dateTime=util.Date(2001, 1, 1))
+    assert scene.currentDateTime() == event_1.dateTime()
+
+    scene.removeItem(event_1)
+    assert Scene().currentDateTime().isNull()
+
+
 def test_nextTaggedDate_prevTaggedDateTime():
     scene = Scene()
     scene.replaceEventProperties(["Var 1", "Var 2"])

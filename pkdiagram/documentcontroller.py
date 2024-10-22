@@ -174,9 +174,6 @@ class DocumentController(QObject):
             self.scene.layerRemoved[Layer].disconnect(self.onSceneLayersChanged)
             self.scene.activeLayersChanged.disconnect(self.onActiveLayers)
             self.scene.showNotes.disconnect(self.showNotesFor)
-            self.scene.timelineModel.rowsInserted.disconnect(self.onSceneEventsChanged)
-            self.scene.timelineModel.rowsRemoved.disconnect(self.onSceneEventsChanged)
-            self.scene.timelineModel.modelReset.disconnect(self.onSceneEventsChanged)
         self.scene = scene
         if self.scene:
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -188,9 +185,6 @@ class DocumentController(QObject):
             self.scene.layerRemoved[Layer].connect(self.onSceneLayersChanged)
             self.scene.activeLayersChanged.connect(self.onActiveLayers)
             self.scene.showNotes.connect(self.showNotesFor)
-            self.scene.timelineModel.rowsInserted.connect(self.onSceneEventsChanged)
-            self.scene.timelineModel.rowsRemoved.connect(self.onSceneEventsChanged)
-            self.scene.timelineModel.modelReset.connect(self.onSceneEventsChanged)
         self.onSceneTagsChanged()
         self.onSceneLayersChanged()
 
@@ -202,7 +196,28 @@ class DocumentController(QObject):
         self.dv.sceneModel.onEditorMode(on)
 
     def onSceneProperty(self, prop):
-        if prop.name() == "tags":
+        if prop.name() == "currentDateTime":
+            # Canonical way to set event-dependent views.
+            if prop.get():
+                if (
+                    not self.dv.isGraphicalTimelineShown()
+                    and not self.scene.hideDateSlider()
+                ):
+                    self.dv.setShowGraphicalTimeline(True)
+                self.dv.caseProps.scrollTimelineToDateTime(prop.get())
+            else:
+                self.dv.setShowGraphicalTimeline(False)
+            self.dv.updateTimelineCallout()
+
+        elif prop.name() == "hideDateSlider":
+            if (
+                not self.dv.isGraphicalTimelineShown()
+                and not prop.get()
+                and len(self.scene.events()) > 0
+            ):
+                self.dv.setShowGraphicalTimeline(False)
+
+        elif prop.name() == "tags":
             self.onSceneTagsChanged()
 
     def onSceneTagsChanged(self):
@@ -289,19 +304,6 @@ class DocumentController(QObject):
         self.ui.menuLayers.addSeparator()
         self.ui.menuLayers.addAction(self.ui.actionDeactivate_All_Layers)
         self.updateActions()
-
-    def onSceneEventsChanged(self, event=None):
-        events = self.scene.timelineModel.events()
-        if len(events) == 1:
-            self.scene.setCurrentDateTime(events[0].dateTime())
-            if (
-                not self.dv.isGraphicalTimelineShown()
-                and not self.scene.hideDateSlider()
-            ):
-                self.dv.setShowGraphicalTimeline(True)
-        elif len(events) == 0:
-            self.dv.updateTimelineCallout()
-            self.dv.setShowGraphicalTimeline(False)
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item

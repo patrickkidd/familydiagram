@@ -9,10 +9,11 @@ Data-dependent displays
         * View.noItemsCTALabel.show()
 
 - No events in timeline
-    - DocumentController.scene.timelineModel.rowsInserted|rowsRemoved|modelReset
-        * DocumentController.onSceneEventsChanged()
+    - AddAnythingDialog.onDone()
+        * Scene.setCurrentDateTime()
+        * DocumentController.onSceneProperty()
         * DocumentView.updateTimelineCallout()
-        * DocumentView.hideBottomTimeline()        
+        * DocumentView.setShowGraphicalTimeline(...)
 
 
 Search-Dependent displays

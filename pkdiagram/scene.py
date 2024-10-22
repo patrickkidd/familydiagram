@@ -130,7 +130,10 @@ class Scene(QGraphicsScene, Item):
                 "type": bool,
                 "default": False,
             },  # obsolete
-            {"attr": "currentDateTime", "default": QDateTime.currentDateTime()},
+            {
+                "attr": "currentDateTime",
+                "default": QDateTime(),
+            },  # reset to QDateTime() when no events
             {"attr": "scaleFactor", "type": float, "default": util.DEFAULT_SCENE_SCALE},
             {"attr": "pencilColor", "default": util.PEN.color()},
             {
@@ -462,6 +465,8 @@ class Scene(QGraphicsScene, Item):
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
+            if self.timelineModel.rowCount() == 0:
+                self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
@@ -671,6 +676,8 @@ class Scene(QGraphicsScene, Item):
                         e.addDynamicProperty(entry["attr"])
             self.pencilCanvas.setColor(self.pencilColor())
             compat.update_scene(self, data)
+            if self.timelineModel.rowCount() == 0:
+                self.setCurrentDateTime(QDateTime())
             self.resortLayersFromOrder()
             self.setBatchAddingRemovingItems(False)
         except Exception as e:
@@ -1635,9 +1642,7 @@ class Scene(QGraphicsScene, Item):
 
     def onItemProperty(self, prop):
         item = prop.item
-        if item.isEvent:
-            self.eventChanged.emit(prop)
-        elif item.isPerson:
+        if item.isPerson:
             self.personChanged.emit(prop)
         elif item.isMarriage:
             self.marriageChanged.emit(prop)
@@ -1651,6 +1656,14 @@ class Scene(QGraphicsScene, Item):
             self.layerChanged.emit(prop)
         elif item.isEvent:
             self.eventChanged.emit(prop)
+            # # Vulnerable to aggregate QUndoCommand's, but not sure how to
+            # # condense them when signals originate in C++ from QUndoStack.
+            # if (
+            #     prop.name() == "dateTime"
+            #     and prop.get()
+            #     and self.currentDateTime().isNull()
+            # ):
+            #     self.setCurrentDateTime(prop.get())
         elif item.isEmotion:
             self.emotionChanged.emit(prop)
         if prop.name() == "notes":
@@ -1666,6 +1679,10 @@ class Scene(QGraphicsScene, Item):
             self.setCurrentDateTime(firstDate)
         elif not self._areActiveLayersChanging:
             self._updateAllItemsForLayersAndTags()
+
+    def ensureCurrentDateTime(self):
+        if self.currentDateTime().isNull() and self.timelineModel.rowCount() > 0:
+            self.setCurrentDateTime(self.timelineModel.lastEventDateTime())
 
     def setShowNotesIcons(self, on):
         self._showNotesIcons = on

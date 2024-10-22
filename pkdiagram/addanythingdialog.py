@@ -660,6 +660,13 @@ class AddAnythingDialog(QmlDrawer):
             for i, person in enumerate(newPeople):
                 person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
+        if (
+            self.scene.currentDateTime().isNull()
+            and self.scene.timelineModel.rowCount() > 0
+        ):
+            self.scene.setCurrentDateTime(
+                self.scene.timelineModel.lastEventDateTime(), undo=propertyUndoId
+            )
         commands.stack().endMacro()
         self.submitted.emit()  # for testing
         self.clear()

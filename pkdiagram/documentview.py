@@ -235,9 +235,6 @@ class DocumentView(QWidget):
         self.currentDrawer = None
         self.controller.setScene(scene)
         if self.scene:
-            self.scene.propertyChanged[objects.Property].disconnect(
-                self.onSceneProperty
-            )
             self.scene.selectionChanged.disconnect(self.onSceneSelectionChanged)
             self.sceneModel.addEvent[QVariant, QVariant].disconnect(self.onAddEvent)
             self.sceneModel.addEmotion.disconnect(self.onAddEmotion)
@@ -247,7 +244,6 @@ class DocumentView(QWidget):
             )
         self.scene = scene
         if scene:
-            self.scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.addEvent[QVariant, QVariant].connect(self.onAddEvent)
             self.sceneModel.addEmotion.connect(self.onAddEmotion)
@@ -273,18 +269,6 @@ class DocumentView(QWidget):
         self.session.refreshAllProperties()
         self.adjust()
         self._isInitializing = False
-
-    def onSceneProperty(self, prop):
-        if prop.name() == "hideDateSlider":
-            if (
-                not self.isGraphicalTimelineShown()
-                and not prop.get()
-                and len(self.scene.events()) > 0
-            ):
-                self.setShowGraphicalTimeline()
-        elif prop.name() == "currentDateTime":
-            self.updateTimelineCallout()
-            self.caseProps.scrollTimelineToDateTime(prop.get())
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -332,6 +316,10 @@ class DocumentView(QWidget):
 
     def updateTimelineCallout(self):
         if not self.scene:
+            self.graphicalTimelineCallout.hide()
+            return
+        elif not self.scene.currentDateTime():
+            self.graphicalTimelineCallout.hide()
             return
         events = self.scene.timelineModel.eventsAt(self.scene.currentDateTime())
         self.graphicalTimelineCallout.setEvents(events)
