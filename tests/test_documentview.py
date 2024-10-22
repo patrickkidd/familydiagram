@@ -181,7 +181,7 @@ def test_set_person_props(qtbot, dv: DocumentView, personProps):
     setPersonProperties(dv.personProps, personProps)
     assert dv.personProps.rootProp("personModel").items == [
         person
-    ]  # test drawer did not hide
+    ], "test drawer did not hide"
     assertPersonProperties(person, personProps)
 
 

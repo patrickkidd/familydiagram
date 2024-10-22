@@ -339,8 +339,12 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
             return
         on = self.shouldShowRightNow()
         self._shouldShowForDateLayersAndTags = on
-        if self.isSelected():
-            self.setSelected(False)
+        # Commenting out after adding event via addanything / prop sheets sets
+        # Scene.currentDateTime, thereby triggering this deselection line. It
+        # wasn't clear why this was here in the first place.
+        #
+        # if self.isSelected():
+        #     self.setSelected(False)
         self.updatePathItemVisible()
         self.updateGeometry()
 

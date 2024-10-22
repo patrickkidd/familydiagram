@@ -22,3 +22,9 @@ Search-Dependent displays
         * View.updateHiddenItemsLabel()
     - DocumentView.onLayerAnimationFinished()
         * View.updateHiddenItemsLabel()
+
+Select-Dependent flows
+-----------------------------
+- Scene.setCurrentDateTime
+    - PathItem.onCurrentDateTime
+        * self.setSelected(False) # commented out for now
