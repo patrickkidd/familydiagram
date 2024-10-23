@@ -1,3 +1,4 @@
+import enum
 import logging
 from .pyqt import (
     QWidget,
@@ -49,6 +50,13 @@ class CaseProperties(QmlDrawer):
         super().show(items, tab, **kwargs)
 
 
+class RightDrawerView(enum.Enum):
+    AddAnything = "addanything"
+    Timeline = "timeline"
+    Search = "search"
+    Settings = "settings"
+
+
 class DocumentView(QWidget):
     """
     Contains the View and drawers to edit a document.
@@ -67,6 +75,7 @@ class DocumentView(QWidget):
         self.isAnimatingDrawer = False
         self._isInitializing = True
         self._isReloadingCurrentDiagram = False
+        self._settingCurrentDrawer = False
 
         self.view = View(self, parent.ui)
         self.view.escape.connect(self.onEscape)
@@ -198,8 +207,6 @@ class DocumentView(QWidget):
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
             drawer.qmlFocusItemChanged.connect(self.controller.onQmlFocusItemChanged)
         self._forceSceneUpdate = False  # fix for scene update bug
-
-        self.addAnythingDialog.submitted.connect(self.controller.onAddAnythingSubmitted)
 
         self.graphicalTimelineShim.lower()
         self.drawerShim.lower()
@@ -351,7 +358,7 @@ class DocumentView(QWidget):
             self.graphicalTimelineCallout.hide()
 
     def onShowDateTimeOnTimeline(self):
-        self.showTimeline(self.scene.currentDateTime())
+        self.showTimeline(dateTime=self.scene.currentDateTime())
 
     ## Non-Verbal Internal Events
 
@@ -370,6 +377,36 @@ class DocumentView(QWidget):
         #         d.hide()
         if self.currentDrawer and not self.currentDrawer.canClose():
             return
+
+        # To basically implement an exclusive QActionGroup for the actions below
+        if self._settingCurrentDrawer:
+            return
+        self._settingCurrentDrawer = True
+
+        if (
+            drawer != self.addAnythingDialog
+            and self.view.ui.actionAdd_Anything.isChecked()
+        ):
+            self.view.ui.actionAdd_Anything.setChecked(False)
+
+        if self.view.ui.actionShow_Timeline.isChecked() and (
+            drawer != self.caseProps
+            or kwargs.get("tab") != RightDrawerView.Timeline.value
+        ):
+            self.view.ui.actionShow_Timeline.setChecked(False)
+
+        if self.view.ui.actionShow_Search.isChecked() and (
+            drawer != self.caseProps
+            or kwargs.get("tab") != RightDrawerView.Search.value
+        ):
+            self.view.ui.actionShow_Search.setChecked(False)
+
+        if self.view.ui.actionShow_Settings.isChecked() and (
+            drawer != self.caseProps
+            or kwargs.get("tab") != RightDrawerView.Settings.value
+        ):
+            self.view.ui.actionShow_Settings.setChecked(False)
+
         was = self.currentDrawer
         self.currentDrawer = drawer
         if was is drawer and was is not None:  # same drawer, new data
@@ -383,6 +420,8 @@ class DocumentView(QWidget):
             ):
                 # same drawer new data
                 was.setCurrentTab(tab)
+            elif was is drawer and tab is not None:
+                drawer.setCurrentTab(tab)
             else:
                 if not "tab" in kwargs:
                     kwargs["tab"] = drawer.currentTab()
@@ -412,6 +451,7 @@ class DocumentView(QWidget):
                 self.scene.update()
 
         QTimer.singleShot(1, doSceneUpdate)
+        self._settingCurrentDrawer = False
 
     def inspectSelection(self, selection=None, tab=None):
         """Can only inspect what is visible. `tab` is only passed for MW tab-shortcuts."""
@@ -447,13 +487,6 @@ class DocumentView(QWidget):
                 tab = self.layerItemProps.currentTab()
             self.setCurrentDrawer(self.layerItemProps, items=layerItems, tab=tab)
             commands.trackView("Edit layer item")
-
-    def onAddAnything(self):
-        if self.currentDrawer == self.addAnythingDialog:
-            self.setCurrentDrawer(None)
-        else:
-            self.addAnythingDialog.initForSelection(self.scene.selectedItems())
-            self.setCurrentDrawer(self.addAnythingDialog)
 
     def onAddEvent(self, parent=None, rootItem=None):
         if isinstance(parent, QJSValue):
@@ -681,43 +714,36 @@ class DocumentView(QWidget):
         if self.scene:
             self.scene.update()
 
-    def showTimeline(self, dateTime=None):
-        """Set current tab, otherwise toggle."""
-        if dateTime:
-            # always show
-            if self.currentDrawer != self.caseProps:
-                self.setCurrentDrawer(self.caseProps, tab="timeline")
-            if self.caseProps.currentTab() != "timeline":
-                self.caseProps.setCurrentTab("timeline")
-            self.caseProps.scrollTimelineToDateTime(dateTime)
+    def showAddAnything(self, on: bool):
+        if on:
+            self.setCurrentDrawer(self.addAnythingDialog)
+            self.addAnythingDialog.initForSelection(self.scene.selectedItems())
         else:
-            if self.currentDrawer == self.caseProps:
-                if self.caseProps.currentTab() == "timeline":
-                    self.setCurrentDrawer(None)
-                else:
-                    self.caseProps.setCurrentTab("timeline")
-            else:
-                self.setCurrentDrawer(self.caseProps, tab="timeline")
+            self.setCurrentDrawer(None)
 
-    def showSearch(self):
-        if self.currentDrawer == self.caseProps:
-            if self.caseProps.currentTab() == "search":
-                self.setCurrentDrawer(None)
-            else:
-                self.caseProps.setCurrentTab("search")
+    def showTimeline(self, on=True, dateTime=None):
+        if on or dateTime is not None:
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Timeline.value)
+            if dateTime is not None:
+                self.caseProps.scrollTimelineToDateTime(dateTime)
+        else:
+            self.setCurrentDrawer(None)
+
+    def showSearch(self, on=True):
+        if on:
+            was_tab = self.caseProps.currentTab()
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Search.value)
+            if was_tab != RightDrawerView.Search:
                 self.caseProps.setFocus(Qt.MouseFocusReason)
                 self.caseProps.findItem("descriptionEdit").forceActiveFocus()
         else:
-            self.setCurrentDrawer(self.caseProps, tab="search")
+            self.setCurrentDrawer(None)
 
-    def showSettings(self):
-        if self.currentDrawer == self.caseProps:
-            if self.caseProps.currentTab() == "settings":
-                self.setCurrentDrawer(None)
-            else:
-                self.caseProps.setCurrentTab("settings")
+    def showSettings(self, on=True):
+        if on:
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Settings.value)
         else:
-            self.setCurrentDrawer(self.caseProps, tab="settings")
+            self.setCurrentDrawer(None)
 
     def showUndoHistory(self):
         pass

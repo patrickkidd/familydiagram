@@ -177,8 +177,9 @@
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>
     <addaction name="actionShow_Search"/>
-    <addaction name="actionShow_Items_with_Notes"/>
     <addaction name="actionShow_Settings"/>
+    <addaction name="separator"/>
+    <addaction name="actionShow_Items_with_Notes"/>
     <addaction name="actionShow_Aliases"/>
     <addaction name="actionUndo_History"/>
     <addaction name="actionShow_Graphical_Timeline"/>
@@ -489,6 +490,9 @@
    </property>
   </action>
   <action name="actionShow_Timeline">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Show Timeline</string>
    </property>
@@ -848,6 +852,9 @@
    </property>
   </action>
   <action name="actionShow_Search">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Show Search</string>
    </property>
@@ -1074,6 +1081,9 @@
    </property>
   </action>
   <action name="actionShow_Settings">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Show Settings</string>
    </property>
@@ -1306,6 +1316,9 @@
    </property>
   </action>
   <action name="actionAdd_Anything">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Add Data Point</string>
    </property>

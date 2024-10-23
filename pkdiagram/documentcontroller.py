@@ -145,17 +145,17 @@ class DocumentController(QObject):
             self.onDeactivateAllLayers
         )
         #
-        self.ui.actionAdd_Anything.triggered.connect(self.dv.onAddAnything)
+        self.ui.actionAdd_Anything.toggled[bool].connect(self.dv.showAddAnything)
         self.ui.actionShow_Diagram.triggered.connect(self.dv.showDiagram)
-        self.ui.actionShow_Timeline.triggered.connect(self.dv.showTimeline)
+        self.ui.actionShow_Timeline.toggled[bool].connect(self.dv.showTimeline)
         self.ui.actionShow_Items_with_Notes.toggled.connect(
             self.dv.view.showItemsWithNotes
         )
-        self.ui.actionShow_Search.triggered.connect(self.dv.showSearch)
+        self.ui.actionShow_Search.toggled[bool].connect(self.dv.showSearch)
         self.ui.actionShow_Search.setShortcuts(
             [self.ui.actionShow_Search.shortcuts()[0], QKeySequence("Shift+Ctrl+f")]
         )
-        self.ui.actionShow_Settings.triggered.connect(self.dv.showSettings)
+        self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
         self.ui.actionZoom_Out.triggered.connect(self.view.zoomOut)
@@ -706,6 +706,3 @@ class DocumentController(QObject):
             pathItem.setSelected(True)
         self._ignoreSelectionChanges = False
         self.dv.inspectSelection(tab="notes")
-
-    def onAddAnythingSubmitted(self):
-        log.debug("onAddAnythingSubmitted")

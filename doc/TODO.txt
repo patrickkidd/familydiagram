@@ -6,6 +6,7 @@ BUGS
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:90: TypeError: Cannot call method 'listLabel' of null
 
 USABILITY
+- Add option to hide logged date time
 - Too hard to add new events with tags.
   - Can set tags on existing events then new event disappears on timeline.
   - Maybe make selected tags very obvious, like primary display feature?
