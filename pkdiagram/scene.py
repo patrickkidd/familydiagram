@@ -335,7 +335,7 @@ class Scene(QGraphicsScene, Item):
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
-            if not self.isBatchAddingRemovingItems():
+            if item.dateTime() and not self.isBatchAddingRemovingItems():
                 self.eventAdded.emit(item)
                 self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
@@ -1916,6 +1916,23 @@ class Scene(QGraphicsScene, Item):
     def removeEvent(self, event):
         """Accomodate scene as dummy parent for new events."""
         pass
+
+    def addParentsToSelection(self):
+        selectedPeople = self.selectedPeople()
+        if not selectedPeople:
+            return
+        
+        undoId = commands.nextId()
+        for person in selectedPeople:
+            rect = person.mapToScene(person.boundingRect()).boundingRect()
+            fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
+            motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
+            father = commands.addPerson(self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId)
+            mother = commands.addPerson(
+                self, util.PERSON_KIND_FEMALE, motherPos, person.size(), id=undoId
+            )
+            marriage = commands.addMarriage(self, father, mother, id=undoId)
+            commands.setParents(person, marriage, id=undoId)
 
     def setStopOnAllEvents(self, on):
         self._stopOnAllEvents = on

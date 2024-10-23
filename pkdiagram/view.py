@@ -1194,19 +1194,8 @@ class View(QGraphicsView):
         self.rightTBAnimation.start()
 
     def addParentsToSelection(self):
-        selectedPeople = self.scene().selectedPeople()
-        if not selectedPeople:
-            return
-        for person in selectedPeople:
-            rect = person.mapToScene(person.boundingRect()).boundingRect()
-            fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
-            motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(self.scene(), "male", fatherPos, person.size())
-            mother = commands.addPerson(
-                self.scene(), "female", motherPos, person.size()
-            )
-            marriage = commands.addMarriage(self.scene(), father, mother)
-            commands.setParents(person, marriage)
+        if self.scene():
+            self.scene().addParentsToSelection()
 
     def showItemsWithNotes(self, on):
         if self.scene():

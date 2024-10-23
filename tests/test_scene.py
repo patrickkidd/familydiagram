@@ -272,6 +272,17 @@ def test_add_events_sets_currentDateTime(qApp):
     assert scene.currentDateTime() == event_2.dateTime()
 
 
+def test_addParentsToSelection_doesnt_reset_currentDateTime(qApp):
+    scene = Scene()
+    person = Person(name="Hey", lastName="You")
+    scene.addItem(person)
+    event = Event(person, dateTime=util.Date(2001, 1, 1))
+    assert scene.currentDateTime() == event.dateTime()
+    person.setSelected(True)
+    scene.addParentsToSelection()
+    assert scene.currentDateTime() == event.dateTime()
+
+
 def test_init_has_clear_currentDateTime(qApp):
     assert Scene().currentDateTime().isNull()
 
