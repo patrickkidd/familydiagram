@@ -22,11 +22,13 @@ PK.Drawer {
         objectName: 'selectedPeopleModel'
     }
 
-    // Keys.onPressed: {
-    //     if(event.key == Qt.Key_Return || event.key == Qt.Key_Enter) {
-    //         done()
-    //     }
-    // }
+    Keys.onPressed: {
+        // TODO: Not clear when focus makes this happen. Need to nail down field
+        // focus auras.
+        if((event.key == Qt.Key_Return || event.key == Qt.Key_Enter) && event.modifiers & Qt.ControlModifier) {
+            done()
+        }
+    }
 
     property var kind: null
     property var description: descriptionEdit.text

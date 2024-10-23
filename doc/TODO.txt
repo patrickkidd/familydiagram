@@ -5,6 +5,11 @@ BUGS
 - View.currentDateTimeLabel doesn't paint right on open with file
 - Hide current datetime label and clear current time from window title bar when no events.
 - PersonPicker text is invisible in light mode in not submitted
+- Hold shift and drag the only two items in the scene and observe:
+  2024-10-22 18:03:46,897 ERROR application.py:84          IndexError: list index out of range
+  2024-10-22 18:03:46,904 ERROR application.py:84          Traceback (most recent call last):
+  2024-10-22 18:03:46,905 ERROR application.py:84            File "/Users/patrick/dev/familydiagram/pkdiagram/objects/person.py", line 1459, in itemChange
+      other, _otherSceneRect, diff = diffs[0]  
 
 USABILITY
 - Too hard to add new events with tags.
