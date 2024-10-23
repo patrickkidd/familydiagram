@@ -1455,27 +1455,28 @@ class Person(PathItem):
                         ).boundingRect()
                         diff = abs(_otherSceneRect.y() - rectWouldBe.y())
                         diffs.append((other, _otherSceneRect, diff))
-                diffs = sorted(diffs, key=lambda x: x[2])
-                other, _otherSceneRect, diff = diffs[0]
-                if diff < THRESHOLD:
-                    otherSceneRect = _otherSceneRect
-                    snapTo = other  # sync frames after pos has changed
-                # stop old snap
-                if self.snappedOther and self.snappedOther is not snapTo:
-                    self.scene().onPersonUnsnapped(self)
-                    self.snappedOther = None
-                # start or continue snap
-                if snapTo:
-                    selfSceneRect = self.mapToScene(self.boundingRect()).boundingRect()
-                    diffY = selfSceneRect.height() * 0.5
-                    variant.setY(otherSceneRect.y() + diffY)
-                    if snapTo is not self.snappedOther:
-                        self.snappedOther = snapTo
-                        self.scene().onPersonSnapped(self, self.snappedOther, variant)
-                    else:
-                        self.scene().onPersonSnapUpdated(
-                            self, self.snappedOther, variant
-                        )
+                if diffs:
+                    diffs = sorted(diffs, key=lambda x: x[2])
+                    other, _otherSceneRect, diff = diffs[0]
+                    if diff < THRESHOLD:
+                        otherSceneRect = _otherSceneRect
+                        snapTo = other  # sync frames after pos has changed
+                    # stop old snap
+                    if self.snappedOther and self.snappedOther is not snapTo:
+                        self.scene().onPersonUnsnapped(self)
+                        self.snappedOther = None
+                    # start or continue snap
+                    if snapTo:
+                        selfSceneRect = self.mapToScene(self.boundingRect()).boundingRect()
+                        diffY = selfSceneRect.height() * 0.5
+                        variant.setY(otherSceneRect.y() + diffY)
+                        if snapTo is not self.snappedOther:
+                            self.snappedOther = snapTo
+                            self.scene().onPersonSnapped(self, self.snappedOther, variant)
+                        else:
+                            self.scene().onPersonSnapUpdated(
+                                self, self.snappedOther, variant
+                            )
             if self.mouseDownPersonPos:
                 diffX2 = variant.x() - self.mouseDownPersonPos.x()
                 diffY2 = variant.y() - self.mouseDownPersonPos.y()
