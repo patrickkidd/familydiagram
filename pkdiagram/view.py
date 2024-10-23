@@ -1,4 +1,5 @@
 import time
+import logging
 from .pyqt import *
 from .pyqt import (
     QWidget,
@@ -19,6 +20,8 @@ from . import panzoom, dragpan, wheelzoom
 from . import legend
 from .helpoverlay import HelpOverlay
 
+_log = logging.getLogger(__name__)
+
 
 HOTSPOT_SIZE = 64
 
@@ -38,10 +41,6 @@ class DateLabel(QWidget):
         self.flashAnimation.setStartValue(0)
         self.flashAnimation.setEndValue(1)
         self.path = QPainterPath()
-
-    def timerEvent(self, e):
-        print(self.geometry())
-        self.update()
 
     def sizeHint(self):
         stroker = QPainterPathStroker(QPen(self.STROKE))
@@ -475,6 +474,13 @@ class View(QGraphicsView):
         # self.purchaseButton.move(self.width() - self.purchaseButton.width(), 0)
 
     ## Virtuals
+
+    def paintEvent(self, e):
+        super().paintEvent(e)
+        # Weird workaround to get the label to do it's initial paint using the
+        # correct geometry. It was painting and clipping it around 100px to the
+        # right, despite reporting the correct geometry.
+        self.currentDateTimeLabel.update()
 
     def resizeEvent(self, e):
         self._isResizeEvent = True

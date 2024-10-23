@@ -676,10 +676,10 @@ class Scene(QGraphicsScene, Item):
                         e.addDynamicProperty(entry["attr"])
             self.pencilCanvas.setColor(self.pencilColor())
             compat.update_scene(self, data)
-            if self.timelineModel.rowCount() == 0:
-                self.setCurrentDateTime(QDateTime())
             self.resortLayersFromOrder()
             self.setBatchAddingRemovingItems(False)
+            if self.timelineModel.rowCount() == 0:
+                self.setCurrentDateTime(QDateTime())
         except Exception as e:
             import traceback
 
