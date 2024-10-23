@@ -2,14 +2,13 @@ v2.0.0
 =============================================================================
 
 BUGS
-- View.currentDateTimeLabel doesn't paint right on open with file
-- Hide current datetime label and clear current time from window title bar when no events.
-- PersonPicker text is invisible in light mode in not submitted
 - Hold shift and drag the only two items in the scene and observe:
   2024-10-22 18:03:46,897 ERROR application.py:84          IndexError: list index out of range
   2024-10-22 18:03:46,904 ERROR application.py:84          Traceback (most recent call last):
   2024-10-22 18:03:46,905 ERROR application.py:84            File "/Users/patrick/dev/familydiagram/pkdiagram/objects/person.py", line 1459, in itemChange
-      other, _otherSceneRect, diff = diffs[0]  
+      other, _otherSceneRect, diff = diffs[0]
+- Start w empty diagram, set birth kind, submit new person name, switch to Married, observe:
+  file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:90: TypeError: Cannot call method 'listLabel' of null
 
 USABILITY
 - Too hard to add new events with tags.

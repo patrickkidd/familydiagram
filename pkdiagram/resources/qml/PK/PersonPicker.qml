@@ -144,7 +144,6 @@ Rectangle {
         PK.TextInput {
             id: pickerTextEdit
             objectName: "textEdit"
-            color: util.textColor(true, true)
             text: root.person ? root.person.listLabel() : root.personName
             clip: true
             width: contentWidth
@@ -155,7 +154,7 @@ Rectangle {
             Layout.leftMargin: util.QML_ITEM_MARGINS
             Layout.minimumWidth: 40
             onTextChanged: {
-                // print('[' + root.objectName + '].onTextChanged: ' + text)
+                // print('[' + root.objectName + '].onTextChanged: >>' + text + '<< color: ' + color)
                 if(text && !isSubmitted) {
                     var numMatches = 0
                     var debug_matches = [];
