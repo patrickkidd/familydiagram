@@ -7,17 +7,17 @@ BUGS
 
 USABILITY
 - Add option to hide logged date time
-- Too hard to add new events with tags.
+- Too hard to add new events with tags
   - Can set tags on existing events then new event disappears on timeline.
   - Maybe make selected tags very obvious, like primary display feature?
   - Maybe make new events have selected tags?
   - Tag selection needs to feel like you are in a room and everything that happens in that room stays in that room.
-- Make it obvious when not showing today's date.
-- Command+Enter to submit form
-- Can't set parents for exiting person and existing parents from add anything form
-- Focus box around PersonPicker, kindBox on initial tab after show, functioning box
-- Make person picker yellow, then green when submitted? (same as create account dialog)
-- New people picker PersonPicker text edit doesn't get focus in new row
+- Command+Enter to submit AddAnythingDialog; need more obvious active field aura
+- Can't set parents for existing person and existing parents from add anything form
+- PersonPicker
+  - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
+  - Make PersonPicker yellow, then green when submitted? (same as create account dialog)
+  - New people picker PersonPicker text edit doesn't get focus in new row
 
 ERRORS
   - on close file after using form a bit:
@@ -51,9 +51,6 @@ BUGS
   -> Title bar fpath w/ diagram ID in server cache, doesn't save to server.
 - Can't select all events on timeline and delete (Kathy's `Fann In Bug.fd`)
 - graphical timeline doesn't show within-day time granularity
-- Edit event description field in prop sheet doesn't update timeline
-- Timeline events
-
 - R symbols don't fan in when new tags selected in search
   Traceback (most recent call last):
     File "/Users/patrick/dev/familydiagram/pkdiagram/scene.py", line 1531, in onSearchChanged
