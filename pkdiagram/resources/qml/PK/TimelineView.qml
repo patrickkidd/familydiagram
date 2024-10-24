@@ -438,7 +438,7 @@ ColumnLayout {
             }
         }
 
-        onContentYChanged: print('onContentYChanged: ' + contentY)
+        // onContentYChanged: print('onContentYChanged: ' + contentY)
         //This animation is for the ensure-visible feature.
         NumberAnimation on contentY {
             id: ensureVisAnimation

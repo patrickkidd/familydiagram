@@ -2,12 +2,16 @@ v2.0.0
 =============================================================================
 
 BUGS
+- Reset diagram sets hideDateSlider to True?
+- Can't switch between 1.5.4 and beta, get "app tampered with message"
+
 - Start w empty diagram, set birth kind, submit new person name, switch to Married, observe:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:90: TypeError: Cannot call method 'listLabel' of null
 
 USABILITY
 - Add option to hide logged date time
-- Too hard to add new events with tags
+- How to include "tags" in simplified view
+  - Add field in AddAnythignDialog?
   - Can set tags on existing events then new event disappears on timeline.
   - Maybe make selected tags very obvious, like primary display feature?
   - Maybe make new events have selected tags?

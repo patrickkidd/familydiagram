@@ -390,9 +390,10 @@ class FannedBox(QGraphicsObject):
                 entries[emotion]["beginPosDelta"] = QPointF(0, 0)
         # 3) Set destination as origin for emotions hiding after this animation.
         for emotion in self._toRemoveAfterAnim:
-            entries[emotion].update({"endPosDelta": QPointF(0, 0)})
-            if not "beginPosDelta" in entries[emotion]:
-                entries[emotion]["beginPosDelta"] = QPointF(0, 0)
+            if emotion in entries: # bug from Laura H in removeEmotion called during init, unsure of origin
+                entries[emotion].update({"endPosDelta": QPointF(0, 0)})
+                if not "beginPosDelta" in entries[emotion]:
+                    entries[emotion]["beginPosDelta"] = QPointF(0, 0)
         self.entries = entries
         if self.entries:  # could be destructing
             for emotion in self.entries:

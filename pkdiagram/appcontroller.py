@@ -107,7 +107,7 @@ class AppController(QObject):
         util.ENABLE_WHEEL_PAN = self.prefs.value("enableWheelPan", defaultValue=True)
 
         showCurrentDate = self.prefs.value(
-            "showCurrentDate", type=bool, defaultValue=False
+            "showCurrentDate", type=bool, defaultValue=True
         )
         mw.onShowCurrentDateTime(showCurrentDate)
 
