@@ -1553,6 +1553,14 @@ class MainWindow(QMainWindow):
             # commands.stack().resetClean()
             self.fileManager.onLocalUUIDUpdated(self.document.url(), prop.get())
         elif prop.name() == "currentDateTime":
+            # Graphical timeline should never be shown if there are no events,
+            # and if there are events then currentDateTime will never be null.
+            if prop.get():
+                self.ui.actionShow_Graphical_Timeline.setEnabled(True)
+                self.ui.actionExpand_Graphical_Timeline.setEnabled(True)
+            else:
+                self.ui.actionShow_Graphical_Timeline.setEnabled(False)
+                self.ui.actionExpand_Graphical_Timeline.setEnabled(False)
             firstDate = self.scene.timelineModel.firstEventDateTime()
             if firstDate and prop.get() == firstDate:
                 self.ui.actionNext_Event.setEnabled(True)

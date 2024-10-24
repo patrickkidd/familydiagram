@@ -328,6 +328,9 @@ class DocumentView(QWidget):
         elif not self.scene.currentDateTime():
             self.graphicalTimelineCallout.hide()
             return
+        elif not self.isGraphicalTimelineShown():
+            self.graphicalTimelineCallout.hide()
+            return
         events = self.scene.timelineModel.eventsAt(self.scene.currentDateTime())
         self.graphicalTimelineCallout.setEvents(events)
         canvas = self.graphicalTimelineView.timeline.canvas

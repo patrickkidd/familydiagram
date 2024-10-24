@@ -211,11 +211,13 @@ class DocumentController(QObject):
 
         elif prop.name() == "hideDateSlider":
             if (
-                not self.dv.isGraphicalTimelineShown()
-                and not prop.get()
-                and len(self.scene.events()) > 0
+                prop.get()
+                and self.scene.currentDateTime()
+                and self.dv.isGraphicalTimelineShown()
             ):
                 self.dv.setShowGraphicalTimeline(False)
+            elif not prop.get():
+                self.dv.setShowGraphicalTimeline(True)
 
         elif prop.name() == "tags":
             self.onSceneTagsChanged()
@@ -384,8 +386,6 @@ class DocumentController(QObject):
         self.ui.actionJump_to_Now.setEnabled(on)
         self.ui.actionShow_Current_Date.setEnabled(on)
         self.ui.actionShow_Legend.setEnabled(on)
-        self.ui.actionShow_Graphical_Timeline.setEnabled(on)
-        self.ui.actionExpand_Graphical_Timeline.setEnabled(on)
         # self.ui.actionAdd_Event.setEnabled(on)
         # self.ui.actionAdd_Relationship.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
@@ -527,6 +527,8 @@ class DocumentController(QObject):
         anyEvents = False if not self.scene else self.scene.timelineModel.rowCount() > 0
         self.ui.actionNext_Event.setEnabled(inView and anyEvents)
         self.ui.actionPrevious_Event.setEnabled(inView and anyEvents)
+        self.ui.actionShow_Graphical_Timeline.setEnabled(inView and anyEvents)
+        self.ui.actionExpand_Graphical_Timeline.setEnabled(inView and anyEvents)
 
         # Inspectable|Deletable-dependent action
 

@@ -185,7 +185,10 @@ Page {
                         }
                     }
 
-                    PK.Text { text: "Logged Start Date" }
+                    PK.Text {
+                        text: "Logged Start Date"
+                        visible: sceneModel.isInEditorMode
+                    }
 
                     PK.DatePickerButtons {
                         id: loggedStartDateTimeButtons
@@ -194,6 +197,7 @@ Page {
                         timePicker: loggedStartDateTimePicker
                         dateTime: model.loggedStartDateTime
                         hideUnsure: true
+                        visible: sceneModel.isInEditorMode
                         onDateTimeChanged: if(model && model.loggedStartDateTime != dateTime) model.loggedStartDateTime = dateTime
                         backTabItem: endDateButtons.lastTabItem
                         tabItem: loggedEndDateTimeButtons.firstTabItem
@@ -206,6 +210,7 @@ Page {
                     PK.DatePicker {
                         id: loggedStartDateDatePicker
                         objectName: 'loggedStartDateDatePicker'
+                        visible: sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
@@ -219,6 +224,7 @@ Page {
                     PK.TimePicker {
                         id: loggedStartDateTimePicker
                         objectName: 'loggedStartDateTimePicker'
+                        visible: sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
@@ -229,7 +235,10 @@ Page {
                         }
                     }                    
 
-                    PK.Text { text: "Logged End Date" }
+                    PK.Text {
+                        text: "Logged End Date"
+                        visible: sceneModel.isInEditorMode
+                    }
 
                     PK.DatePickerButtons {
                         id: loggedEndDateTimeButtons
@@ -238,6 +247,7 @@ Page {
                         timePicker: loggedEndDateTimePicker
                         dateTime: model.loggedEndDateTime
                         hideUnsure: true
+                        visible: sceneModel.isInEditorMode
                         onDateTimeChanged: if(model && model.loggedEndDateTime != dateTime) model.loggedEndDateTime = dateTime
                         backTabItem: loggedStartDateTimeButtons.lastTabItem
                         tabItem: nodalBox
@@ -250,6 +260,7 @@ Page {
                     PK.DatePicker {
                         id: loggedEndDateDatePicker
                         objectName: 'loggedEndDateDatePicker'
+                        visible: sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
@@ -263,6 +274,7 @@ Page {
                     PK.TimePicker {
                         id: loggedEndDateTimePicker
                         objectName: 'loggedEndDateTimePicker'
+                        visible: sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight

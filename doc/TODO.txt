@@ -1,9 +1,14 @@
 v2.0.0
 =============================================================================
 
+- User analytics
+
 BUGS
 - Reset diagram sets hideDateSlider to True?
+- Undo delete all events doesn't set Scene.setCurrentDate() to valid date, bottom timeline doesn't come back
 - Can't switch between 1.5.4 and beta, get "app tampered with message"
+- Clicking tab in CaseProps doesn't update right toolbar button state
+- CaseProps Settings view is still visible in editor mode
 
 - Start w empty diagram, set birth kind, submit new person name, switch to Married, observe:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:90: TypeError: Cannot call method 'listLabel' of null
@@ -11,7 +16,9 @@ BUGS
 USABILITY
 - Add option to hide logged date time
 - How to include "tags" in simplified view
-  - Add field in AddAnythignDialog?
+  - Add "Emotional Unit" field in AddAnythignDialog?
+    - Values "Nuclear Family", "Emotional Unit"?
+    - Add field to search
   - Can set tags on existing events then new event disappears on timeline.
   - Maybe make selected tags very obvious, like primary display feature?
   - Maybe make new events have selected tags?
