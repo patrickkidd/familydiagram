@@ -7,11 +7,6 @@
 #import <AppKit/AppKit.h>
 #endif
 
-#ifdef PK_USE_APPCENTER
-@import AppCenter;
-@import AppCenterAnalytics;
-@import AppCenterCrashes;
-#endif
 
 #ifdef PK_USE_SPARKLE
 #import <Sparkle/Sparkle.h>
@@ -875,23 +870,6 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
                 
 #endif
 
-#ifdef PK_USE_APPCENTER
-        if(!AmIBeingDebugged()) {
-#if PK_ALPHA_BUILD
-            [MSAppCenter start:@"40fb47d9-8e02-43f7-b594-bbb72c6f38e9" withServices:@[[MSAnalytics class], [MSCrashes class]]];
-#elif PK_BETA_BUILD
-            [MSAppCenter start:@"f8ac3812-6a64-404a-a924-87e9173a694f" withServices:@[[MSAnalytics class], [MSCrashes class]]];
-#else
-            [MSAppCenter start:@"1857bd26-2675-4f63-98e9-1cdb6381ef34" withServices:@[[MSAnalytics class], [MSCrashes class]]];
-#endif
-//            [MSDistribute setEnabled:true];
-//            qDebug() << "MSDistribute.isEnabled()" << [MSDistribute isEnabled];
-            [MSAnalytics setEnabled:true];
-//            qDebug() << "MSAnalytics.isEnabled()" << [MSAnalytics isEnabled];
-        }
-#else
-        (void) AmIBeingDebugged;
-#endif
 
 #ifdef PK_USE_BUGSNAG
         [Bugsnag start];
@@ -1948,11 +1926,6 @@ QColor qt_mac_toQColor(const NSColor *color) const
     }
     
     void showFeedbackWindow() const {
-#ifdef PK_USE_APPCENTER
-        dispatch_async(dispatch_get_main_queue(), ^{
-                //
-        });
-#endif
     }
     
     void checkForUpdates() const {
@@ -1970,27 +1943,6 @@ QColor qt_mac_toQColor(const NSColor *color) const
     void trackAnalyticsEvent(QString eventName, QMap<QString, QString> properties) {
         (void) eventName;
         (void) properties;
-#ifdef PK_USE_APPCENTER
-        if(properties.count() > 0) {
-            NSMutableDictionary *nsd = [NSMutableDictionary dictionaryWithCapacity:properties.count()];
-            QMapIterator<QString, QString> i(properties);
-            // this crashes on toNSString()
-            // while(i.hasNext()) {
-            //     nsd[i.key().toNSString()] = i.value().toNSString();
-            // }
-            while(i.hasNext()) {
-                i.next();
-                NSString *key = i.key().toNSString();
-                NSString *value = i.value().toNSString();
-                if (key != nil && value != nil) {
-                    nsd[key] = value;
-                }
-            }
-            [MSAnalytics trackEvent:eventName.toNSString() withProperties:nsd];
-        } else {
-            [MSAnalytics trackEvent:eventName.toNSString()];
-        }
-#endif
     }
 
 };

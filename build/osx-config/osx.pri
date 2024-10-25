@@ -14,11 +14,6 @@ alpha|beta|release {
     QMAKE_CXXFLAGS += -F$$PWD -DPK_USE_SPARKLE=1
     LIBS += -L$$PWD -framework Sparkle
 
-    # AppCenter
-    LIBS += -FVendor -framework AppCenter -framework AppCenterAnalytics -framework AppCenterCrashes
-    QMAKE_CFLAGS += -fmodules -fcxx-modules -DPK_USE_APPCENTER=1
-    QMAKE_CXXFLAGS += -Werror -fmodules -fcxx-modules -Wno-module-import-in-extern-c -DPK_USE_APPCENTER=1
-
     QMAKE_LFLAGS += -rpath @executable_path/../Frameworks -F$$PWD
 }
 
