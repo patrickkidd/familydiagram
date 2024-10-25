@@ -1,13 +1,27 @@
 import os.path
 import logging
+import enum
 
 from . import util, version, pepper
 from pkdiagram.pyqt import QApplication
 
 
-def init_bugsnag(app: QApplication):
+## Bugsnag
 
-    # Bugsnag
+
+class AccumulativeLogHandler(logging.Handler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._records = []
+
+    def emit(self, record):
+        self._records.append(record)
+
+    def read(self):
+        return "\n".join([self.format(record) for record in self._records])
+
+
+def init_bugsnag(app: QApplication):
 
     if pepper.BUGSNAG_API_KEY and not util.IS_DEV and not util.IS_TEST:
 
@@ -27,10 +41,16 @@ def init_bugsnag(app: QApplication):
             project_root=root_folder_path,
             app_version=version.VERSION,
         )
+
         logger = logging.getLogger(__name__)
         handler = BugsnagHandler()
         # send only ERROR-level logs and above
         handler.setLevel(logging.ERROR)
+        logger.addHandler(handler)
+
+        accumulativeHandler = AccumulativeLogHandler()
+        accumulativeHandler.addFilter(util.logging_allFilter)
+        accumulativeHandler.setFormatter(logging.Formatter(util.LOG_FORMAT))
         logger.addHandler(handler)
 
         def findTheMainWindow():
@@ -78,5 +98,44 @@ def init_bugsnag(app: QApplication):
         bugsnag.before_notify(bugsnag_before_notify)
 
 
+## Mixpanel
+
+mixpanelApp = None
+
+
+def trackAnalyticsEvent(eventName: str, username: str, properties: dict = None):
+    global mixpanelApp
+
+    if mixpanelApp is None:
+        return
+
+    if properties is None:
+        properties = {}
+
+    properties.update({"version": version.VERSION})
+
+    if eventName in ("logged_in", "re_logged_in"):
+        mixpanelApp.people_set(username, properties)
+
+    mixpanelApp.track(username, eventName, properties)
+
+
+def init_mixpanel(app: QApplication):
+    global mixpanelApp
+
+    if not pepper.BUGSNAG_API_KEY or util.IS_TEST:
+        return
+    import mixpanel
+
+    mixpanelApp = mixpanel.Mixpanel(pepper.MIXPANEL_PROJECT_TOKEN)
+
+    specific_package_logger = logging.getLogger("urllib3")
+    specific_package_logger.setLevel(logging.WARNING)
+
+
+## App
+
+
 def init_app(app: QApplication):
     init_bugsnag(app)
+    init_mixpanel(app)

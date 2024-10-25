@@ -104,6 +104,7 @@ public:
     void checkForUpdates();
     bool isUpdateAvailable() const;
 
+    // deprecated
     void trackAnalyticsEvent(QString, QMap<QString, QString>);
 
     QList<QUrl> fileList() const;

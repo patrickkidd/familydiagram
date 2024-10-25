@@ -1,7 +1,7 @@
 import sys, signal, os.path, logging
 from .pyqt import QObject, QTimer, QSize, QMessageBox
 import vedana
-from . import util, CUtil, AppConfig, Session
+from . import util, CUtil, AppConfig, Session, commands
 
 
 log = logging.getLogger(__name__)
@@ -52,6 +52,8 @@ class AppController(QObject):
     def init(self):
         assert not self.isInitialized
 
+        commands.setActiveSession(self.session)  # hack
+
         self.appConfig.init()
 
         self.isInitialized = True
@@ -59,6 +61,8 @@ class AppController(QObject):
     def deinit(self):
         self.appConfig.deinit()
         self.session.deinit()
+
+        commands.setActiveSession(None)  # hack
 
     def _pre_event_loop(self, mw):
         """

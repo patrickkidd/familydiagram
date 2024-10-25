@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>476</width>
-    <height>674</height>
+    <height>702</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -171,7 +171,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_2">
+    <widget class="QGroupBox" name="analyticsGroupBox">
      <property name="title">
       <string>Usage Analytics</string>
      </property>

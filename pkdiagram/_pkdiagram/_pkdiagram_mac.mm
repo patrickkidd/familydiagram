@@ -1940,6 +1940,7 @@ QColor qt_mac_toQColor(const NSColor *color) const
         return d.isUpdateAvailable;
     }
     
+    // deprecated
     void trackAnalyticsEvent(QString eventName, QMap<QString, QString> properties) {
         (void) eventName;
         (void) properties;

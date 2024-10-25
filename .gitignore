@@ -41,6 +41,7 @@ lib/PyQt*
 lib/Python-*
 .VSCodeCounter
 Defaults.properties
+.cache_ggshield
 
 .vscode/settings.json
 .vscode/c_cpp_properties.json

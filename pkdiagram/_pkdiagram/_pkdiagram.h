@@ -127,6 +127,7 @@ public:
 	virtual void checkForUpdates() const {}
 	virtual bool isUpdateAvailable() const { return false; }
     
+    // deprecated
 	virtual void trackAnalyticsEvent(QString, QMap<QString, QString>) {}
     
     //

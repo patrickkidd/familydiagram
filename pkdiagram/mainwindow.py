@@ -280,7 +280,7 @@ class MainWindow(QMainWindow):
     def init(self):
         """Called after CUtil is initialized."""
         self.isInitializing = True
-        commands.trackApp("init " + version.VERSION)
+        log.debug(f"init {version.VERSION}")
         commands.stack().cleanChanged[bool].connect(self.onUndoCleanChanged)
 
         ## Document View
@@ -374,7 +374,7 @@ class MainWindow(QMainWindow):
     def deinit(self):
         if not self.isInitialized:
             return
-        commands.trackApp("deinit " + version.VERSION)
+        log.debug(f"deinit {version.VERSION}")
         commands.stack().cleanChanged[bool].disconnect(self.onUndoCleanChanged)
 
         QApplication.clipboard().changed.disconnect(self.onClipboardChanged)

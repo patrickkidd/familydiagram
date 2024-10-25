@@ -29,6 +29,8 @@ class Preferences(QDialog):
         self.ui.analyticsBox.toggled[bool].connect(self.onAnalytics)
         CUtil.instance().iCloudOnChanged[bool].connect(self.oniCloudOnChanged)
 
+        self.ui.analyticsGroupBox.hide()
+
     @util.blocked
     def init(self, prefs):
         """Called just before exec()."""

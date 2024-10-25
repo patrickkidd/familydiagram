@@ -13,7 +13,7 @@ from .pyqt import (
     QMessageBox,
     QApplication,
 )
-from . import util, version
+from . import util, version, extensions
 from .models import QObjectHelper
 from .server_types import User, License, Server, HTTPError
 
@@ -73,6 +73,18 @@ class Session(QObject, QObjectHelper):
                 for x in sessionData.get("licenses", [])
                 if x["policy"]["code"] != vedana.LICENSE_FREE
             ]
+            extensions.trackAnalyticsEvent(
+                "re_logged_in",
+                self.user.username,
+                properties={
+                    "$email": self.user.username,
+                    "$first_name": self.user.first_name,
+                    "$last_name": self.user.last_name,
+                    "roles": self.user.roles,
+                    "free_diagram_id": self.user.free_diagram_id,
+                    "licenses": [x.policy.code for x in self.user.licenses],
+                },
+            )
         else:
             lastLicenses = []
 
@@ -103,7 +115,8 @@ class Session(QObject, QObjectHelper):
         self._isInitializing = False
 
     def deinit(self):
-        self._server.deinit()  # Required so latent HTTP requests don't return after Server C++ obejct is deleted
+        self._server.deinit()  # Required so latent HTTP requests don't return after Server C++ object is deleted
+        extensions.trackAnalyticsEvent("session_deinit", self.user.username)
 
     def setData(self, data):
         oldFeatures = self.activeFeatures()
@@ -330,9 +343,15 @@ class Session(QObject, QObjectHelper):
             except HTTPError as e:
                 self.loginFailed.emit()
                 self.setData(None)
+                extensions.trackAnalyticsEvent(
+                    "logged_failed", username, properties={"token": token}
+                )
             else:
                 data = pickle.loads(response.body)
                 self.setData(data)
+                extensions.trackAnalyticsEvent(
+                    "logged_in", username, properties=dict(self.userDict())
+                )
         else:
             args = {"username": username, "password": password}
             try:
@@ -343,10 +362,15 @@ class Session(QObject, QObjectHelper):
             else:
                 data = pickle.loads(response.body)
                 self.setData(data)
+                extensions.trackAnalyticsEvent(
+                    "logged_in", username, properties={"session": data}
+                )
 
     @pyqtSlot()
     def logout(self):
         if self._data:
+            wasData = self._data if self._data else None
+            wasUsername = self._user.username if self._user else None
             try:
                 self.server().blockingRequest("DELETE", f"/sessions/{self.token}")
             except HTTPError as e:
@@ -354,6 +378,9 @@ class Session(QObject, QObjectHelper):
             finally:
                 self.setData(None)
                 self.logoutFinished.emit()
+                extensions.trackAnalyticsEvent(
+                    "logged_out", wasUsername, properties={"session": wasData}
+                )
 
     @pyqtSlot()
     def update(self):
@@ -362,6 +389,19 @@ class Session(QObject, QObjectHelper):
         """
         if self._data and self._data["session"]["token"]:
             self.login(token=self._data["session"]["token"])
+
+    def track(self, eventName: str, properties=None):
+        """
+        The typical entrypoint for analytics, includes the username and that
+        user's session. Tracking without a session is handled as a manual edge case.
+        """
+        if properties is None:
+            properties = {}
+        session_id = self._data["session"]["id"] if self._data else None
+        username = self._user.username if self._user else None
+        extensions.trackAnalyticsEvent(
+            eventName, username, properties={"session_id": session_id}
+        )
 
 
 from .pyqt import qmlRegisterType

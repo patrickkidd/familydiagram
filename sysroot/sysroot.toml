@@ -146,6 +146,9 @@ installed_modules = [
 [bugsnag]
 version = "6.9.2"
 
+[mixpanel]
+version = "4.10.1"
+
 [six]
 version = "1.14.0"
 

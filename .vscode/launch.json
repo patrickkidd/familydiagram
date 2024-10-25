@@ -15,6 +15,9 @@
             "variablePresentation": {
                 "all": "hide",
                 "protected": "inline",
+            },
+            "env": {
+                // "FD_LOG_LEVEL": "DEBUG",
             }
         },
         {

@@ -1,8 +1,8 @@
 import os, shutil, logging
 import pprint
 
-from .pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
-from . import util, objects
+from pkdiagram.pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
+from pkdiagram import util, objects, extensions
 
 
 # Custom compression ids
@@ -11,6 +11,21 @@ START_ID = 10
 
 
 log = logging.getLogger(__name__)
+
+
+_activeSession = None
+
+
+def setActiveSession(session):
+    """
+    Hack to allow commands.track*() to access the session from the global
+    QUndoStack. Remove this if/when commands are refactored from global stack to
+    a local stack.
+
+    Set to None when the mainwindow goes away.
+    """
+    global _activeSession
+    _activeSession = session
 
 
 class UndoStack(QUndoStack):
@@ -26,27 +41,33 @@ class UndoStack(QUndoStack):
             s = "Commands: " + cmd.ANALYTICS
         elif cmd.ANALYTICS is True and (cmd.id() == -1 or cmd.id() != self.lastId):
             s = "Commands: " + cmd.text()
-        if s and cmd.logKwargs():
-            self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
-        elif s and not cmd.logKwargs():
-            log.warning(f"No logKwargs for command: {cmd}")
-            self.track(s)
-
-        logKwargs_s = pprint.pformat(cmd.logKwargs())
-        log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
+        if cmd.ANALYTICS:
+            if s and cmd.logKwargs():
+                self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
+            elif s and not cmd.logKwargs():
+                log.warning(f"No logKwargs for command: {cmd}")
+                self.track(s)
+                
+            logKwargs_s = pprint.pformat(cmd.logKwargs())
+            log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
 
         super().push(cmd)
         self.lastId = cmd.id()
 
     def track(self, eventName, properties={}):
+
         if not util.prefs() or util.IS_IOS:
             return
         log.debug(f"{eventName}, {properties}")
+
         enableAppUsageAnalytics = util.prefs().value(
             "enableAppUsageAnalytics", defaultValue=True, type=bool
         )
         if enableAppUsageAnalytics:
-            return util.CUtil.instance().trackAnalyticsEvent(eventName, properties)
+            if _activeSession:
+                _activeSession.track(eventName, properties)
+            else:
+                extensions.trackAnalyticsEvent(eventName, username=None, properties=properties)
 
 
 def track(eventName, properties={}):

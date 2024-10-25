@@ -595,6 +595,7 @@ public:
         return FileIsCurrent;
     }
     
+    // deprecated
     void trackAnalyticsEvent(const QString eventName) {
         qDebug() << "TODO:" << eventName;
     }

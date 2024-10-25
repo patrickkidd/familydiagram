@@ -22,6 +22,8 @@ with open(fpath, "w") as f:
     f.write(f"PEPPER = b'{FD_BUILD_PEPPER}'\n")
     FD_BUILD_BUGSNAG_API_KEY = os.getenv("FD_BUILD_BUGSNAG_API_KEY")
     f.write(f"BUGSNAG_API_KEY = '{FD_BUILD_BUGSNAG_API_KEY}'\n")
+    FD_BUILD_MIXPANEL_PROJECT_TOKEN = os.getenv("FD_BUILD_MIXPANEL_PROJECT_TOKEN")
+    f.write(f"MIXPANEL_PROJECT_TOKEN = '{FD_BUILD_MIXPANEL_PROJECT_TOKEN}'\n")
 
 
 # Update version in platform-specific locations
