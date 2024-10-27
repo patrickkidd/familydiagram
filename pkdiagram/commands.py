@@ -170,8 +170,8 @@ def addPeople(scene, people, id=-1, batch=True):
 
 class RemoveItems(UndoCommand):
 
-    def __init__(self, scene, items):
-        super().__init__("Remove items")
+    def __init__(self, scene, items, id=-1):
+        super().__init__("Remove items", id=id)
         self.scene = scene
         if isinstance(items, list):
             self.items = list(items)
@@ -479,8 +479,8 @@ class RemoveItems(UndoCommand):
         self.scene.setBatchAddingRemovingItems(False)
 
 
-def removeItems(*args):
-    stack().push(RemoveItems(*args))
+def removeItems(*args, id=-1):
+    stack().push(RemoveItems(*args, id=id))
 
 
 class MoveItems(UndoCommand):
@@ -984,8 +984,8 @@ class CreateTag(UndoCommand):
 
     ANALYTICS = "Create tag"
 
-    def __init__(self, scene, tag):
-        super().__init__('Create tag "%s"' % tag)
+    def __init__(self, scene, tag, id=-1):
+        super().__init__('Create tag "%s"' % tag, id=id)
         self.scene = scene
         self.tag = tag
         self.debug(tag=tag)
@@ -997,16 +997,16 @@ class CreateTag(UndoCommand):
         self.scene.removeTag(self.tag)
 
 
-def createTag(*args):
-    stack().push(CreateTag(*args))
+def createTag(*args, id=-1):
+    stack().push(CreateTag(*args, id=id))
 
 
 class DeleteTag(UndoCommand):
 
     ANALYTICS = "Delete tag"
 
-    def __init__(self, scene, tag):
-        super().__init__('Delete tag "%s"' % tag)
+    def __init__(self, scene, tag, id=-1):
+        super().__init__('Delete tag "%s"' % tag, id=id)
         self.scene = scene
         self.tag = tag
         self.items = []
@@ -1024,8 +1024,8 @@ class DeleteTag(UndoCommand):
             item.setTag(self.tag)
 
 
-def deleteTag(*args):
-    stack().push(DeleteTag(*args))
+def deleteTag(*args, id=-1):
+    stack().push(DeleteTag(*args, id=id))
 
 
 class RenameTag(UndoCommand):
@@ -1320,8 +1320,8 @@ class AddLayer(UndoCommand):
 
     ANALYTICS = "Add layer"
 
-    def __init__(self, scene, layer):
-        super().__init__("Add layer %s" % layer.itemName())
+    def __init__(self, scene, layer, id=-1):
+        super().__init__("Add layer %s" % layer.itemName(), id)
         self.scene = scene
         self.layer = layer
 
@@ -1337,8 +1337,8 @@ class AddLayer(UndoCommand):
             self.layer.setOrder(i, notify=False)
 
 
-def addLayer(scene, layer):
-    cmd = AddLayer(scene, layer)
+def addLayer(scene, layer, id=-1):
+    cmd = AddLayer(scene, layer, id=id)
     stack().push(cmd)
     return cmd.layer
 

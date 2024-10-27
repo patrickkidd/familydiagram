@@ -170,6 +170,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "categoriesmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "emotionpropertiesmodel.py"
 included = true
 is_directory = false

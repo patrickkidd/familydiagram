@@ -1515,7 +1515,7 @@ class Scene(QGraphicsScene, Item):
 
     def layersForPerson(self, person):
         return [self.find(id=layerId) for layerId in person.layers()]
-
+    
     def draggableUnder(self, pos):
         for item in self.items(pos):
             if item.flags() & QGraphicsItem.ItemIsMovable:
@@ -1783,9 +1783,10 @@ class Scene(QGraphicsScene, Item):
         if iActiveLayer >= 0:
             self.setExclusiveActiveLayerIndex(iActiveLayer)
 
-    def setExclusiveActiveLayerIndex(self, iLayer):
+    def setExclusiveActiveLayerIndex(self, iLayer, id=None):
         """Put in batch job so zoomFit can run after all items are shown|hidden."""
-        id = commands.nextId()
+        if id is None:
+            id = commands.nextId()
         activeLayers = []
         changedLayers = []
         for layer in self.layers():

@@ -185,6 +185,10 @@ Page {
                         }
                     }
 
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                    }
+
                     PK.Text {
                         text: "Logged Start Date"
                         visible: sceneModel.isInEditorMode
@@ -305,6 +309,10 @@ Page {
                         onCheckedChanged: if(model && model.hideRelationships != checked) model.hideRelationships = checked
                     }
 
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                    }
+
                     /* PK.Text { text: "Hide Brackets" } */
 
                     /* PK.CheckBox { */
@@ -313,6 +321,61 @@ Page {
                     /*     /\* checked: sceneModel.hideDateBuddies *\/ */
                     /*     /\* onCheckedChanged: sceneModel.hideDateBuddies = checked *\/ */
                     /* } */
+
+
+                    PK.GroupBox {
+
+                        id: categoriesBox
+                        objectName: 'categoriesBox'
+
+                        padding: 0
+                        Layout.fillWidth: true
+                        Layout.topMargin: util.QML_MARGINS / 2
+                        Layout.columnSpan: 2
+                        visible: ! sceneModel.isInEditorMode
+
+                        ColumnLayout {
+                            id: categoriesCL
+
+                            spacing: 0
+                            anchors.fill: parent                            
+
+
+                            PK.Text {
+                                text: "Diagram Views are like powerpoint slides that focus on a sub-set of family members, with alterations like position, color, deemphasize. Diagram views can also be annotated with text callouts, pencil strokes. They are for small tweaks to get a point across that do not affect the data of the family. Expand the left edge of this drawer further to the left to show the 'Store Geometry' column." + (sceneLayerView.responsive1 ? "\n\n'Store Goemetry' will store the positions for items in that view, and rearrange the diagram to reflect those positions when you activate the view." : '');
+                                wrapMode: Text.WordWrap
+                                font.pixelSize: util.HELP_FONT_SIZE
+                                Layout.fillWidth: true
+                                Layout.margins: util.QML_MARGINS / 3
+                                Layout.columnSpan: 2 
+                            }
+
+                            Rectangle { // border-top
+                                height: 1
+                                color: util.QML_ITEM_BORDER_COLOR
+                                Layout.fillWidth: true
+                            }
+
+                            PK.SceneLayerView {
+                                id: sceneLayerView
+                                objectName: root.objectName + '_sceneLayerView'
+                                model: CategoriesModel {
+                                    scene: sceneModel.scene
+                                }
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.margins: 1
+                                Layout.minimumHeight: 200
+                                model: SceneLayerModel {
+                                    id: layerModel
+                                    objectName: root.objectName + 'timelineSearch_layerModel'
+                                    scene: sceneModel.scene
+                                    items: sceneModel.scene ? [sceneModel.scene] : []
+                                }
+                            }
+                        }
+                    }
+
 
                     PK.GroupBox {
 

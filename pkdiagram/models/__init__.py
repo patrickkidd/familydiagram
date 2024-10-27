@@ -17,3 +17,4 @@ from .filemanagermodel import FileManagerModel
 from .localfilemanagermodel import LocalFileManagerModel
 from .serverfilemanagermodel import ServerFileManagerModel
 from .accessrightsmodel import AccessRightsModel
+from .categoriesmodel import CategoriesModel

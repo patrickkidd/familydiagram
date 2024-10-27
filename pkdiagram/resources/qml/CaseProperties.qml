@@ -146,7 +146,7 @@ PK.Drawer {
         }
 
         PK.Label {
-            text: 'Entire Family'
+            text: 'Search / Filter'
             elide: Text.ElideRight
             anchors.centerIn: parent
             font.family: util.FONT_FAMILY_TITLE
