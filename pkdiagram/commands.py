@@ -66,10 +66,8 @@ class UndoStack(QUndoStack):
             if _activeSession:
                 _activeSession.track(eventName, properties=properties)
             else:
-                extensions.analytics().track(
-                    extensions.MixpanelEvent(
-                        eventName, username=None, properties=properties
-                    )
+                log.warning(
+                    f"Cannot track analytics event {eventName}: no active session."
                 )
 
 
