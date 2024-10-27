@@ -356,15 +356,22 @@ Page {
                                 Layout.fillWidth: true
                             }
 
-                            PK.CategoriesListView {
-                                id: categoriesView
-                                objectName: root.objectName + '_categoriesView'
+                            PK.ComboBox {
                                 model: sceneModel.categoriesModel
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                Layout.margins: 1
-                                Layout.minimumHeight: 200
+                                onCurrentTextChanged: {
+                                    root.model.tags
+                                }
                             }
+
+                            // PK.CategoriesListView {
+                            //     id: categoriesView
+                            //     objectName: root.objectName + '_categoriesView'
+                            //     model: sceneModel.categoriesModel
+                            //     Layout.fillWidth: true
+                            //     Layout.fillHeight: true
+                            //     Layout.margins: 1
+                            //     Layout.minimumHeight: 200
+                            // }
                         }
                     }
 
@@ -427,7 +434,7 @@ Page {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.margins: 1
-                                        Layout.minimumHeight: 200
+                                        Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                                         model: TagsModel {
                                             id: tagsModel
                                             objectName: 'SearchView_tagsModel'

@@ -45,7 +45,7 @@ def test_add_tag():
     modelReset = util.Condition()
     model.modelReset.connect(modelReset)
 
-    model.addTag()
+    model.addRow()
     assert modelReset.callCount == 1
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0)) == model.NEW_NAME_TMPL % 1

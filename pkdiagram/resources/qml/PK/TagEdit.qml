@@ -116,7 +116,7 @@ ColumnLayout {
         width: parent.width
         addButton: true
         addButtonEnabled: sceneModel ? !sceneModel.readOnly : false
-        onAdd: model.addTag()
+        onAdd: model.addRow()
         removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
         removeButton: true
         onRemove: model.removeTag(currentIndex)

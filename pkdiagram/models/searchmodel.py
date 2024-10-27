@@ -1,4 +1,4 @@
-from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
+from ..pyqt import Qt, QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
 from ..objects import Item
 from .. import commands
@@ -19,6 +19,7 @@ class SearchModel(QObject, QObjectHelper):
             {"attr": "nodal", "type": bool, "default": False},
             {"attr": "tags", "type": list},
             {"attr": "hideRelationships", "type": bool, "default": False},
+            {"attr": "category", "type": str},
             {"attr": "isBlank", "type": bool},
         ]
     )
@@ -41,6 +42,7 @@ class SearchModel(QObject, QObjectHelper):
 
     @pyqtSlot()
     def clear(self):
+        self.reset("category")
         self.reset("description")
         self.reset("startDateTime")
         self.reset("endDateTime")
@@ -53,6 +55,7 @@ class SearchModel(QObject, QObjectHelper):
         if attr == "isBlank":
             ret = True
             for name in (
+                "category",
                 "description",
                 "startDateTime",
                 "endDateTime",
@@ -67,6 +70,14 @@ class SearchModel(QObject, QObjectHelper):
         else:
             ret = super().get(attr)
         return ret
+
+    def set(self, attr, value):
+        if attr == "category":
+            self.set("tags", [value])
+            layer = self._scene.layers(name=value)
+            iLayer = self._scene.layers().index(layer)
+            self._scene.setExclusiveLayerIndex(iLayer)
+        super().set(attr, value)
 
     def shouldHide(self, event):
         """Search kernel."""

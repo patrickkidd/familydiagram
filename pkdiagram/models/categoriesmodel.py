@@ -35,6 +35,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     S_CONFIRM_DELETE_VIEW = "Are you sure you want to delete this view?"
 
     ActiveRole = Qt.UserRole + 1
+    FlagsRole = ActiveRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -90,6 +91,12 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     def onSceneProperty(self, prop):
         if prop.name() == "tags":
             self.updateData()
+
+    def indexForCategory(self, category) -> int:
+        try:
+            return self._categories.index(category)
+        except ValueError:
+            return -1
 
     @pyqtSlot()
     def addRow(self):
@@ -162,10 +169,17 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     ## Qt Virtuals
 
     def roleNames(self):
-        return {self.ActiveRole: b"active"}
+        return {
+            Qt.ItemDataRole.DisplayRole: b"name",
+            self.ActiveRole: b"active",
+            self.FlagsRole: b"flags",
+        }
 
     def rowCount(self, index=QModelIndex()):
         return len(self._categories)
+
+    def flags(self, index):
+        return super().flags(index) | Qt.ItemIsEditable
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         category = self._categories[index.row()]
@@ -180,6 +194,8 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
                 ret = Qt.Checked
             else:
                 ret = Qt.Unchecked
+        elif role == self.FlagsRole:
+            ret = self.flags(index)
         else:
             return super().data(index, role)
         return ret
@@ -220,20 +236,20 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
                             commands.renameTag(self._scene, category, value)
                     self.updateData()
                     success = True
-        elif role == self.ActiveRole:
-            if value == Qt.Unchecked or not value:
-                value = False
-            else:
-                value = True
-            layer = self._scene.layers()[index.row()]
-            iLayer = self._scene.layers().index(layer)
-            with self.updatingData():
-                with commands.macro("Set Category"):
-                    self._scene.setExclusiveActiveLayerIndex(iLayer, id=id)
-                    self._scene.searchModel.setTags([layer.name()])
-            self.updateData()
-            success = True
-        else:
+            # elif role == self.ActiveRole:
+            #     if value == Qt.Unchecked or not value:
+            #         value = False
+            #     else:
+            #         value = True
+            #     layer = self._scene.layers()[index.row()]
+            #     iLayer = self._scene.layers().index(layer)
+            #     with self.updatingData():
+            #         with commands.macro("Set Category"):
+            #             self._scene.setExclusiveActiveLayerIndex(iLayer)
+            #             self._scene.searchModel.setTags([layer.name()])
+            #     self.updateData()
+            #     success = True
+            # else:
             success = False
         if success:
             self.dataChanged.emit(index, index, [role])

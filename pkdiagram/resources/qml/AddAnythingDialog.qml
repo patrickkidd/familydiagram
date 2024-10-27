@@ -853,15 +853,26 @@ PK.Drawer {
                             Layout.columnSpan: 2
                         }
 
+                        PK.Text { id: categoryLabel; text: "Category" }
+
                         PK.FormField {
                             id: categoryField
                             objectName: "categoryField"
                             tabItem: kindBox
                             backTabItem: symptomBox.lastTabItem
-
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
+                            Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
+                            border {
+                                width: 1
+                                color: util.QML_ITEM_BORDER_COLOR
+                            }
                             PK.TagEdit {
                                 id: categoryEdit
-                                model: scene.categoriesModel
+                                model: sceneModel.categoriesModel
+                                property Item firstTabItem: this
+                                property Item lastTabItem: this
                             }
                         }
 
