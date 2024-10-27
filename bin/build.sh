@@ -214,6 +214,8 @@ if [[ $TARGET = osx* ]]; then
 
     fi
 
+    . ./bin/teardown_provisioning_profile.sh
+
 elif [[ $TARGET = ios* ]]; then
 
     SYSROOT=`cd "$ROOT/sysroot-ios-64"; pwd`
