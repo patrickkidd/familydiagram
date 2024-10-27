@@ -14,6 +14,10 @@ alpha|beta|release {
     QMAKE_CXXFLAGS += -F$$PWD -DPK_USE_SPARKLE=1
     LIBS += -L$$PWD -framework Sparkle
 
+    # Common Vendor
+    LIBS += -FVendor
+    QMAKE_CFLAGS += -fmodules -fcxx-modules
+    QMAKE_CXXFLAGS += -Werror -fmodules -fcxx-modules -Wno-module-import-in-extern-c
     QMAKE_LFLAGS += -rpath @executable_path/../Frameworks -F$$PWD
 }
 
