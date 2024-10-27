@@ -13,7 +13,7 @@ from pkdiagram.pyqt import (
     QTimer,
 )
 from pkdiagram import util
-from pkdiagram.extensions import Analytics, MixpanelEvent, MixpanelProfile
+from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
 
 QNAM = util.QNAM
 
@@ -56,7 +56,7 @@ def mockRequest(status_code: int):
 
 @pytest.fixture(autouse=True)
 def _init():
-    with mock.patch("pkdiagram.extensions.Analytics.killTimer"):
+    with mock.patch("pkdiagram.analytics.Analytics.killTimer"):
         yield
 
 

@@ -4,7 +4,7 @@ from sqlalchemy import inspect
 
 import vedana
 from pkdiagram import util, version, Session, Diagram
-from pkdiagram.extensions import MixpanelEvent, MixpanelProfile
+from pkdiagram.analytics import MixpanelEvent, MixpanelProfile
 
 from fdserver import util as fdserver_util
 
@@ -27,7 +27,7 @@ def create_session(request, analytics):
 @pytest.fixture
 def Analytics_send():
     with mock.patch("time.time", return_value=123):
-        with mock.patch("pkdiagram.extensions.Analytics.send") as send:
+        with mock.patch("pkdiagram.analytics.Analytics.send") as send:
             yield send
 
 
@@ -37,8 +37,14 @@ def test_init(test_session, create_session, Analytics_send):
     assert len(test_session.account_editor_dict()["users"]) == len(session.users)
     assert session.activeFeatures() == [vedana.LICENSE_FREE]
     assert Analytics_send.call_count == 2
-    assert Analytics_send.call_args_list[0][0][0].username == "patrickkidd+unittest@gmail.com"
-    assert Analytics_send.call_args_list[1][0][0].username == "patrickkidd+unittest@gmail.com"
+    assert (
+        Analytics_send.call_args_list[0][0][0].username
+        == "patrickkidd+unittest@gmail.com"
+    )
+    assert (
+        Analytics_send.call_args_list[1][0][0].username
+        == "patrickkidd+unittest@gmail.com"
+    )
 
 
 def test_init_no_server(create_session, server_down, Analytics_send):
@@ -189,3 +195,9 @@ def test_version_not_deactivated():
     session = Session()
     session.init()
     assert session.isVersionDeactivated() == False
+
+
+def test_deinit(analytics):
+    session = Session(analytics)
+    session.init()
+    session.deinit()

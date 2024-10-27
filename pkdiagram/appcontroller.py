@@ -1,7 +1,7 @@
 import sys, signal, os.path, logging
 from .pyqt import QObject, QTimer, QSize, QMessageBox
 import vedana
-from pkdiagram import util, extensions, AppConfig, Session, commands
+from pkdiagram import util, AppConfig, Session, commands, pepper, Analytics
 
 
 CUtil = util.CUtil
@@ -36,8 +36,11 @@ class AppController(QObject):
         self.prefs = prefs
         self._pendingOpenFilePath = None
         self.appConfig = AppConfig(app, prefsName=prefsName)
-        extensions.analytics().init()
-        self.session = Session(extensions.analytics())
+        self._analytics = Analytics(
+            mixpanel_project_id=pepper.MIXPANEL_PROJECT_ID,
+            mixpanel_project_token=pepper.MIXPANEL_PROJECT_TOKEN,
+        )
+        self.session = Session(self._analytics)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
         self.session.changed.connect(self.onSessionChanged)
@@ -55,6 +58,7 @@ class AppController(QObject):
     def init(self):
         assert not self.isInitialized
 
+        self._analytics.init()
         commands.setActiveSession(self.session)  # hack
 
         self.appConfig.init()
@@ -65,7 +69,7 @@ class AppController(QObject):
         self.appConfig.deinit()
         self.session.deinit()
 
-        extensions.analytics().deinit()
+        self._analytics.deinit()
         commands.setActiveSession(None)  # hack
 
     def _pre_event_loop(self, mw):

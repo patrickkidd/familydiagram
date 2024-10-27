@@ -10,8 +10,7 @@ from .pyqt import (
     QStandardPaths,
     QFontDatabase,
 )
-from pkdiagram import util, version, commands, pepper, extensions
-from pkdiagram.extensions import Analytics
+from pkdiagram import util, version, extensions
 
 CUtil = util.CUtil
 

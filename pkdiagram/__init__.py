@@ -11,6 +11,7 @@ from .util import CUtil, EventKind
 
 
 PathItemBase = util.PathItemBase
+from .analytics import Analytics
 from .qmlhelpers import *
 from .qmlwidgethelper import QmlWidgetHelper
 from .qmldrawer import QmlDrawer

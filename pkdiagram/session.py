@@ -5,7 +5,7 @@ import vedana
 
 from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QVariant, pyqtSlot, pyqtProperty
 from pkdiagram import util, version
-from pkdiagram.extensions import Analytics, MixpanelEvent, MixpanelProfile
+from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import User, License, Server, HTTPError
 
@@ -370,9 +370,9 @@ class Session(QObject, QObjectHelper):
         as a manual edge case.
         """
         if not self._analytics:
-            log.warning("extensions.Analytics not initialized on Session object.")
+            log.warning("Analytics not initialized on Session object.")
             return
-        
+
         if properties is None:
             properties = {}
         session_id = self._data["session"]["id"] if self._data else None

@@ -41,8 +41,8 @@ from pkdiagram import (
     Server,
     AppController,
     Person,
+    Analytics,
 )
-from pkdiagram.extensions import Analytics
 from pkdiagram.pyqt import *
 from fdserver.tests.conftest import *
 
@@ -195,7 +195,7 @@ def qApp():
 
     qApp = Application(sys.argv)
 
-    with mock.patch("pkdiagram.extensions.Analytics.startTimer", return_value=123):
+    with mock.patch("pkdiagram.Analytics.startTimer", return_value=123):
         yield qApp
 
     qApp.deinit()
