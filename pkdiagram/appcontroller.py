@@ -10,9 +10,12 @@ log = logging.getLogger(__name__)
 
 
 class AppController(QObject):
-    """App-level singleton that manages MainWindows verbs.
+    """
+    App-level singleton that manages MainWindows verbs.
+    
+    Handles pre-window init like appconfig, cached session creds login, EULA.
 
-    Handles pre-window init like appconfig, cached session creds login, EULA
+    Synonym: MainwindowController
 
     Currently the app only has one mainwindow, so it manages that one.
     This allows the MainWindow to focus on the documentview instead of
