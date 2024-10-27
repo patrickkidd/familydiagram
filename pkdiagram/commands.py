@@ -47,7 +47,6 @@ class UndoStack(QUndoStack):
             elif s and not cmd.logKwargs():
                 log.warning(f"No logKwargs for command: {cmd}")
                 self.track(s)
-                
             logKwargs_s = pprint.pformat(cmd.logKwargs())
             log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
 
@@ -65,9 +64,13 @@ class UndoStack(QUndoStack):
         )
         if enableAppUsageAnalytics:
             if _activeSession:
-                _activeSession.track(eventName, properties)
+                _activeSession.track(eventName, properties=properties)
             else:
-                extensions.trackAnalyticsEvent(eventName, username=None, properties=properties)
+                extensions.analytics().track(
+                    extensions.MixpanelEvent(
+                        eventName, username=None, properties=properties
+                    )
+                )
 
 
 def track(eventName, properties={}):

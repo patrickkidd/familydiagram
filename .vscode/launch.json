@@ -16,9 +16,9 @@
                 "all": "hide",
                 "protected": "inline",
             },
-            "env": {
-                // "FD_LOG_LEVEL": "DEBUG",
-            }
+            // "env": {
+            //     "FD_LOG_LEVEL": "DEBUG",
+            // }
         },
         {
             "name": "App (prefs: 'free')",

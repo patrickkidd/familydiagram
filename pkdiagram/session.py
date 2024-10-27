@@ -1,21 +1,13 @@
+import time
 import uuid, pickle, logging, copy
+
 import vedana
-from .pyqt import (
-    Qt,
-    QObject,
-    QTimer,
-    pyqtSignal,
-    QVariant,
-    pyqtSlot,
-    pyqtProperty,
-    QNetworkRequest,
-    QDateTime,
-    QMessageBox,
-    QApplication,
-)
-from . import util, version, extensions
-from .models import QObjectHelper
-from .server_types import User, License, Server, HTTPError
+
+from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QVariant, pyqtSlot, pyqtProperty
+from pkdiagram import util, version
+from pkdiagram.extensions import Analytics, MixpanelEvent, MixpanelProfile
+from pkdiagram.models import QObjectHelper
+from pkdiagram.server_types import User, License, Server, HTTPError
 
 
 log = logging.getLogger(__name__)
@@ -36,8 +28,9 @@ class Session(QObject, QObjectHelper):
         [{"attr": "hash", "type": str}, {"attr": "isAdmin", "type": bool}]
     )
 
-    def __init__(self, parent=None):
+    def __init__(self, analytics: Analytics = None, parent=None):
         super().__init__(parent)
+        self._analytics = analytics
         self._server = Server(self)
         self._data = None
         self._user = None
@@ -73,18 +66,7 @@ class Session(QObject, QObjectHelper):
                 for x in sessionData.get("licenses", [])
                 if x["policy"]["code"] != vedana.LICENSE_FREE
             ]
-            extensions.trackAnalyticsEvent(
-                "re_logged_in",
-                self.user.username,
-                properties={
-                    "$email": self.user.username,
-                    "$first_name": self.user.first_name,
-                    "$last_name": self.user.last_name,
-                    "roles": self.user.roles,
-                    "free_diagram_id": self.user.free_diagram_id,
-                    "licenses": [x.policy.code for x in self.user.licenses],
-                },
-            )
+            self.track("re_logged_in")
         else:
             lastLicenses = []
 
@@ -116,7 +98,7 @@ class Session(QObject, QObjectHelper):
 
     def deinit(self):
         self._server.deinit()  # Required so latent HTTP requests don't return after Server C++ object is deleted
-        extensions.trackAnalyticsEvent("session_deinit", self.user.username)
+        self.track("session_deinit")
 
     def setData(self, data):
         oldFeatures = self.activeFeatures()
@@ -343,15 +325,11 @@ class Session(QObject, QObjectHelper):
             except HTTPError as e:
                 self.loginFailed.emit()
                 self.setData(None)
-                extensions.trackAnalyticsEvent(
-                    "logged_failed", username, properties={"token": token}
-                )
+                self.track("logged_failed", properties={"token": token})
             else:
                 data = pickle.loads(response.body)
                 self.setData(data)
-                extensions.trackAnalyticsEvent(
-                    "logged_in", username, properties=dict(self.userDict())
-                )
+                self.track("logged_in")
         else:
             args = {"username": username, "password": password}
             try:
@@ -362,14 +340,11 @@ class Session(QObject, QObjectHelper):
             else:
                 data = pickle.loads(response.body)
                 self.setData(data)
-                extensions.trackAnalyticsEvent(
-                    "logged_in", username, properties={"session": data}
-                )
+                self.track("logged_in")
 
     @pyqtSlot()
     def logout(self):
         if self._data:
-            wasData = self._data if self._data else None
             wasUsername = self._user.username if self._user else None
             try:
                 self.server().blockingRequest("DELETE", f"/sessions/{self.token}")
@@ -378,9 +353,7 @@ class Session(QObject, QObjectHelper):
             finally:
                 self.setData(None)
                 self.logoutFinished.emit()
-                extensions.trackAnalyticsEvent(
-                    "logged_out", wasUsername, properties={"session": wasData}
-                )
+                self.track("logged_out", username=wasUsername)
 
     @pyqtSlot()
     def update(self):
@@ -390,17 +363,43 @@ class Session(QObject, QObjectHelper):
         if self._data and self._data["session"]["token"]:
             self.login(token=self._data["session"]["token"])
 
-    def track(self, eventName: str, properties=None):
+    def track(self, eventName: str, username: str = None, properties=None):
         """
-        The typical entrypoint for analytics, includes the username and that
-        user's session. Tracking without a session is handled as a manual edge case.
+        The typical entrypoint for analytics is from a session, includes the
+        username and that user's session. Tracking without a session is handled
+        as a manual edge case.
         """
+        if not self._analytics:
+            log.warning("extensions.Analytics not initialized on Session object.")
+            return
+        
         if properties is None:
             properties = {}
         session_id = self._data["session"]["id"] if self._data else None
-        username = self._user.username if self._user else None
-        extensions.trackAnalyticsEvent(
-            eventName, username, properties={"session_id": session_id}
+        if username is None and self._user:
+            username = self._user.username
+
+        if eventName in ("logged_in", "re_logged_in"):
+            self._analytics.send(
+                MixpanelProfile(
+                    username=username,
+                    email=username,
+                    first_name=self.user.first_name,
+                    last_name=self.user.last_name,
+                    properties={
+                        "free_diagram_id": self.user.free_diagram_id,
+                        "licenses": [x.policy.code for x in self.user.licenses],
+                    },
+                )
+            )
+
+        self._analytics.send(
+            MixpanelEvent(
+                eventName=eventName,
+                username=username,
+                time=time.time(),
+                properties={"session_id": session_id},
+            )
         )
 
 

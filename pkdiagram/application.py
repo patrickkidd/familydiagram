@@ -1,6 +1,5 @@
 import os, os.path, sys, traceback, logging
-from . import util, version, commands, pepper, extensions
-from .util import CUtil
+
 from .pyqt import (
     Qt,
     QApplication,
@@ -9,12 +8,12 @@ from .pyqt import (
     QFileInfo,
     qInstallMessageHandler,
     QStandardPaths,
-    QDateTime,
     QFontDatabase,
-    QEvent,
-    QtMsgType,
 )
-from .qmlengine import QmlEngine
+from pkdiagram import util, version, commands, pepper, extensions
+from pkdiagram.extensions import Analytics
+
+CUtil = util.CUtil
 
 
 log = logging.getLogger(__name__)
@@ -132,6 +131,8 @@ class Application(QApplication):
         # def _onQmlWarning(warnings):
         #     for warning in warnings:
         #         log.warning(warning.toString())
+
+        from pkdiagram.qmlengine import QmlEngine
 
         self._qmlEngine = QmlEngine(self)
         # self._qmlEngine.warnings.connect(_onQmlWarning)

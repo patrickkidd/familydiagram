@@ -1,7 +1,10 @@
 import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
+import json
+import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
+
 from . import appdirs, util
 
 
@@ -1017,7 +1020,7 @@ def rindex(li, x):
     raise ValueError("{} is not in list".format(x))
 
 
-def qtHTTPReply2String(reply):
+def qtHTTPReply2String(reply: QNetworkReply) -> str:
     if reply.operation() == QNetworkAccessManager.HeadOperation:
         verb = "HEAD"
     elif reply.operation() == QNetworkAccessManager.GetOperation:
@@ -1032,6 +1035,9 @@ def qtHTTPReply2String(reply):
         verb = "<custom>"
     else:
         verb = None
+    body = reply.readAll().data().decode()
+    if reply.rawHeader(b"Content-Type") == b"application/json":
+        body = json.dumps(json.loads(body), indent=4)
     message = "\n".join(
         [
             f"{verb} {reply.request().url().toString()}",
@@ -1041,6 +1047,7 @@ def qtHTTPReply2String(reply):
                 f"        {bytes(k).decode()}, {bytes(v).decode()}"
                 for k, v in reply.rawHeaderPairs()
             ],
+            f"    BODY: \n" + body,
         ]
     )
     return message
@@ -1981,6 +1988,7 @@ class Condition(QObject):
         self.callCount = 0
         self.callArgs = []
         # self.senders = []
+        self.testCount = 0
         self.lastCallArgs = None
         self.only = only
         self.condition = condition
@@ -2002,8 +2010,8 @@ class Condition(QObject):
 
     def test(self):
         """Return true if the condition is true."""
+        self.testCount += 1
         if self.condition:
-            log.debug(f"Testing condition: {self.condition}")
             return self.condition()
         else:
             return self.callCount > 0
@@ -2028,10 +2036,12 @@ class Condition(QObject):
     def wait(self, maxMS=1000, onError=None, interval=10):
         """Wait for the condition to be true. onError is a callback."""
         startTime = time.time()
-        success = True
         app = QApplication.instance()
+        # sig_or_cond = self.signal or self.condition
         while app and not self.test():
-            log.debug(f"Condition[{self.condition}].wait() waiting...")
+            # log.debug(
+            #     f"Condition[{sig_or_cond}].wait() still waiting... test count: {self.testCount}, interval (ms): {interval}"
+            # )
             try:
                 app.processEvents(QEventLoop.WaitForMoreEvents, interval)
             except KeyboardInterrupt as e:
@@ -2043,7 +2053,7 @@ class Condition(QObject):
                 break
             # else:
             #     time.sleep(.1) # replace with some way to release loop directly from signal
-        log.debug(f"Condition[{self.signal}].wait() returned {self.test()}")
+        # log.debug(f"Condition[{sig_or_cond}].wait() returned {self.test()}")
         ret = self.test()
         return ret
 

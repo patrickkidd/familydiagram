@@ -4,39 +4,54 @@ from sqlalchemy import inspect
 
 import vedana
 from pkdiagram import util, version, Session, Diagram
+from pkdiagram.extensions import MixpanelEvent, MixpanelProfile
+
 from fdserver import util as fdserver_util
+
+from tests.test_analytics import analytics
 
 
 @pytest.fixture
-def create_session(request):
+def create_session(request, analytics):
 
     def _create_session(db_session=True):
-        ret = Session()
+        ret = Session(analytics)
         if db_session:
             test_session = request.getfixturevalue("test_session")
             ret.init(test_session.account_editor_dict(), syncWithServer=False)
         return ret
 
-    return _create_session
+    yield _create_session
 
 
-def test_init(test_session, create_session):
+@pytest.fixture
+def Analytics_send():
+    with mock.patch("time.time", return_value=123):
+        with mock.patch("pkdiagram.extensions.Analytics.send") as send:
+            yield send
+
+
+def test_init(test_session, create_session, Analytics_send):
     session = create_session()
     assert session.isLoggedIn() == True
     assert len(test_session.account_editor_dict()["users"]) == len(session.users)
     assert session.activeFeatures() == [vedana.LICENSE_FREE]
+    assert Analytics_send.call_count == 2
+    assert Analytics_send.call_args_list[0][0][0].username == "patrickkidd+unittest@gmail.com"
+    assert Analytics_send.call_args_list[1][0][0].username == "patrickkidd+unittest@gmail.com"
 
 
-def test_init_no_server(create_session, server_down):
+def test_init_no_server(create_session, server_down, Analytics_send):
     with server_down():
         session = create_session(db_session=False)
     assert session.isLoggedIn() == False
     assert len(session.users) == 0
     assert session.activeFeatures() == []
+    assert Analytics_send.call_count == 0
 
 
-def test_login_with_username_password(test_user):
-    session = Session()
+def test_login_with_username_password(test_user, analytics):
+    session = Session(analytics)
     changed = util.Condition(session.changed)
     session.init()
     changed.wait()
@@ -46,17 +61,17 @@ def test_login_with_username_password(test_user):
     assert session.isLoggedIn() == True
 
 
-def test_login_expired_session(test_session):
+def test_login_expired_session(test_session, analytics):
     sessionData = test_session.account_editor_dict()
     sessionData["session"]["token"] = "something-expired"
 
-    session = Session()
+    session = Session(analytics)
     session.init(sessionData=sessionData)
     assert session.isLoggedIn() == False
 
 
-def test_logout(test_session):
-    session = Session()
+def test_logout(test_session, analytics):
+    session = Session(analytics)
     changed = util.Condition(session.changed)
     failed = util.Condition(session.logoutFailed)
     finished = util.Condition(session.logoutFinished)
@@ -67,8 +82,8 @@ def test_logout(test_session):
     assert finished.wait() == True
 
 
-def test_logout_failed(test_session):
-    session = Session()
+def test_logout_failed(test_session, analytics):
+    session = Session(analytics)
     failed = util.Condition(session.logoutFailed)
     finished = util.Condition(session.logoutFinished)
     session.init(test_session.account_editor_dict(), syncWithServer=False)
@@ -129,8 +144,8 @@ def test_hasFeature_beta(create_session):
             assert session.hasFeature(vedana.LICENSE_CLIENT) == False
 
 
-def test_hasFeature_professional():
-    session = Session()
+def test_hasFeature_professional(analytics):
+    session = Session(analytics)
 
     with mock.patch.object(version, "IS_ALPHA", False):
         with mock.patch.object(version, "IS_BETA", False):
@@ -143,8 +158,8 @@ def test_hasFeature_professional():
                 assert session.hasFeature(vedana.LICENSE_CLIENT) == False
 
 
-def test_hasFeature_client():
-    session = Session()
+def test_hasFeature_client(analytics):
+    session = Session(analytics)
 
     with mock.patch.object(version, "IS_ALPHA", False):
         with mock.patch.object(version, "IS_BETA", False):
@@ -159,13 +174,13 @@ def test_hasFeature_client():
                 assert session.hasFeature(vedana.LICENSE_CLIENT) == True
 
 
-def test_version_deactivated(test_session):
+def test_version_deactivated(test_session, analytics):
     with mock.patch.object(
         fdserver_util,
         "DEACTIVATED_VERSIONS",
         list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION],
     ):
-        session = Session()
+        session = Session(analytics)
         session.init(sessionData=test_session.account_editor_dict())
         assert session.isVersionDeactivated() == True
 

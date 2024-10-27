@@ -1,8 +1,10 @@
 import sys, signal, os.path, logging
 from .pyqt import QObject, QTimer, QSize, QMessageBox
 import vedana
-from . import util, CUtil, AppConfig, Session, commands
+from pkdiagram import util, extensions, AppConfig, Session, commands
 
+
+CUtil = util.CUtil
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +36,8 @@ class AppController(QObject):
         self.prefs = prefs
         self._pendingOpenFilePath = None
         self.appConfig = AppConfig(app, prefsName=prefsName)
-        self.session = Session()
+        extensions.analytics().init()
+        self.session = Session(extensions.analytics())
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
         self.session.changed.connect(self.onSessionChanged)
@@ -62,6 +65,7 @@ class AppController(QObject):
         self.appConfig.deinit()
         self.session.deinit()
 
+        extensions.analytics().deinit()
         commands.setActiveSession(None)  # hack
 
     def _pre_event_loop(self, mw):

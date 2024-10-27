@@ -24,6 +24,8 @@ with open(fpath, "w") as f:
     f.write(f"BUGSNAG_API_KEY = '{FD_BUILD_BUGSNAG_API_KEY}'\n")
     FD_BUILD_MIXPANEL_PROJECT_TOKEN = os.getenv("FD_BUILD_MIXPANEL_PROJECT_TOKEN")
     f.write(f"MIXPANEL_PROJECT_TOKEN = '{FD_BUILD_MIXPANEL_PROJECT_TOKEN}'\n")
+    FD_BUILD_MIXPANEL_PROJECT_ID = os.getenv("FD_BUILD_MIXPANEL_PROJECT_ID")
+    f.write(f"MIXPANEL_PROJECT_ID = '{FD_BUILD_MIXPANEL_PROJECT_ID}'\n")
 
 
 # Update version in platform-specific locations
