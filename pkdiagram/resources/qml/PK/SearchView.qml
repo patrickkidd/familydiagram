@@ -356,22 +356,14 @@ Page {
                                 Layout.fillWidth: true
                             }
 
-                            PK.SceneLayerView {
-                                id: sceneLayerView
-                                objectName: root.objectName + '_sceneLayerView'
-                                model: CategoriesModel {
-                                    scene: sceneModel.scene
-                                }
+                            PK.CategoriesListView {
+                                id: categoriesView
+                                objectName: root.objectName + '_categoriesView'
+                                model: sceneModel.categoriesModel
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 Layout.margins: 1
                                 Layout.minimumHeight: 200
-                                model: SceneLayerModel {
-                                    id: layerModel
-                                    objectName: root.objectName + 'timelineSearch_layerModel'
-                                    scene: sceneModel.scene
-                                    items: sceneModel.scene ? [sceneModel.scene] : []
-                                }
                             }
                         }
                     }

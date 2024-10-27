@@ -227,6 +227,11 @@ class Scene(QGraphicsScene, Item):
         self.accessRightsModel.setObjectName("Scene.accessRightsModel")
         self.accessRightsModel.scene = self
 
+        from .models import CategoriesModel
+        self.categoriesModel = CategoriesModel(self)
+        self.categoriesModel.setObjectName("Scene.categoriesModel")
+        self.categoriesModel.scene = self
+
         # snap
         self.canSnapDrag = False
         self.snapItem = QGraphicsLineItem()

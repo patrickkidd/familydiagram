@@ -49,7 +49,6 @@ Rectangle {
             opacity: wrappedItem.isDirty ? util.CLEAR_BUTTON_OPACITY : 0
             enabled: opacity > 0
             onClicked: {
-                print('clearButton.onClicked')
                 wrappedItem.clear()
             }
             Layout.leftMargin: 5

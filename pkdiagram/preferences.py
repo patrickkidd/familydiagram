@@ -78,10 +78,14 @@ class Preferences(QDialog):
         self.ui.setDocsPathButton.setEnabled(usingLocal)
         self.ui.localDocsPathLabel.setEnabled(usingLocal)
 
-        enableAppUsageAnalytics = self.prefs.value(
-            "enableAppUsageAnalytics", defaultValue=True, type=bool
-        )
-        self.ui.analyticsBox.setChecked(enableAppUsageAnalytics)
+        if version.IS_BETA:
+            self.ui.analyticsBox.setChecked(True)
+            self.ui.analyticsBox.setEnabled(False)
+        else:
+            enableAppUsageAnalytics = self.prefs.value(
+                "enableAppUsageAnalytics", defaultValue=True, type=bool
+            )
+            self.ui.analyticsBox.setChecked(enableAppUsageAnalytics)
 
     def deinit(self):
         self.prefs = None

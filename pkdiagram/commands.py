@@ -1,8 +1,9 @@
 import os, shutil, logging
 import pprint
+import contextlib
 
-from pkdiagram.pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
-from pkdiagram import util, objects, extensions
+from pkdiagram.pyqt import QUndoStack, QUndoCommand, QPointF
+from pkdiagram import util, objects, version
 
 
 # Custom compression ids
@@ -54,21 +55,20 @@ class UndoStack(QUndoStack):
         self.lastId = cmd.id()
 
     def track(self, eventName, properties={}):
+        global _activeSession
 
         if not util.prefs() or util.IS_IOS:
             return
         log.debug(f"{eventName}, {properties}")
 
-        enableAppUsageAnalytics = util.prefs().value(
-            "enableAppUsageAnalytics", defaultValue=True, type=bool
-        )
-        if enableAppUsageAnalytics:
-            if _activeSession:
-                _activeSession.track(eventName, properties=properties)
-            else:
-                log.warning(
-                    f"Cannot track analytics event {eventName}: no active session."
-                )
+        if version.IS_BETA:
+            enableAppUsageAnalytics = True
+        else:
+            enableAppUsageAnalytics = util.prefs().value(
+                "enableAppUsageAnalytics", defaultValue=True, type=bool
+            )
+        if enableAppUsageAnalytics and _activeSession:
+            _activeSession.track(eventName, properties=properties)
 
 
 def track(eventName, properties={}):
@@ -92,6 +92,13 @@ _stack = UndoStack()
 
 def stack():
     return _stack
+
+
+@contextlib.contextmanager
+def macro(name: str):
+    stack().beginMacro(name)
+    yield
+    stack().endMacro()
 
 
 lastId = START_ID
@@ -639,7 +646,8 @@ class SetItemProperty(UndoCommand):
                             data["prop"].reset()
 
     def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore="was")
+        if isinstance(other, SetItemProperty):
+            util.deepMerge(self.data, other.data, ignore="was")
         return True
 
 
@@ -995,8 +1003,8 @@ class CreateTag(UndoCommand):
         self.scene.removeTag(self.tag)
 
 
-def createTag(*args, id=-1):
-    stack().push(CreateTag(*args, id=id))
+def createTag(scene, tag, id=-1):
+    stack().push(CreateTag(scene, tag, id=id))
 
 
 class DeleteTag(UndoCommand):
@@ -1030,8 +1038,8 @@ class RenameTag(UndoCommand):
 
     ANALYTICS = "Rename tag"
 
-    def __init__(self, scene, old, new):
-        super().__init__('Rename tag "%s" to "%s"' % (old, new))
+    def __init__(self, scene, old, new, id=-1):
+        super().__init__('Rename tag "%s" to "%s"' % (old, new), id=id)
         self.scene = scene
         self.old = old
         self.new = new
@@ -1044,8 +1052,8 @@ class RenameTag(UndoCommand):
         self.scene.renameTag(self.new, self.old)
 
 
-def renameTag(*args):
-    stack().push(RenameTag(*args))
+def renameTag(scene, old, new, id=-1):
+    stack().push(RenameTag(scene, old, new, id=id))
 
 
 class SetTag(UndoCommand):

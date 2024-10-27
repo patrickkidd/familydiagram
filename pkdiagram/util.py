@@ -1102,7 +1102,7 @@ def sameOf(items, getter):
         return first
 
 
-def newNameOf(items, tmpl, key):
+def newNameOf(items, tmpl, key=None):
     if not items:
         return tmpl % 1
     name = None
@@ -1110,7 +1110,11 @@ def newNameOf(items, tmpl, key):
         name = tmpl % (i + 1)
         found = False
         for row, item in enumerate(items):
-            if key(item) == name:
+            if key is not None:
+                _key = key(item)
+            else:
+                _key = item
+            if _key == name:
                 found = True
                 break
         if not found:

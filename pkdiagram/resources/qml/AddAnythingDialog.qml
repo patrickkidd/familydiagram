@@ -853,6 +853,22 @@ PK.Drawer {
                             Layout.columnSpan: 2
                         }
 
+                        PK.FormField {
+                            id: categoryField
+                            objectName: "categoryField"
+                            tabItem: kindBox
+                            backTabItem: symptomBox.lastTabItem
+
+                            PK.TagEdit {
+                                id: categoryEdit
+                                model: scene.categoriesModel
+                            }
+                        }
+
+                        PK.FormDivider {
+                            Layout.columnSpan: 2
+                        }
+
                         PK.Text {
                             id: notesLabel
                             objectName: "notesLabel"
