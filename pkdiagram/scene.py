@@ -228,6 +228,7 @@ class Scene(QGraphicsScene, Item):
         self.accessRightsModel.scene = self
 
         from .models import CategoriesModel
+
         self.categoriesModel = CategoriesModel(self)
         self.categoriesModel.setObjectName("Scene.categoriesModel")
         self.categoriesModel.scene = self
@@ -1418,8 +1419,11 @@ class Scene(QGraphicsScene, Item):
 
     def query(self, **kwargs):
         """Query based on property value."""
+        _type = kwargs.pop("type", None)
         ret = []
         for id, item in self.itemRegistry.items():
+            if _type is not None and not isinstance(item, _type):
+                continue
             matchingProps = {
                 prop.attr: prop.get() for prop in item.props if prop.attr in kwargs
             }
@@ -1520,7 +1524,7 @@ class Scene(QGraphicsScene, Item):
 
     def layersForPerson(self, person):
         return [self.find(id=layerId) for layerId in person.layers()]
-    
+
     def draggableUnder(self, pos):
         for item in self.items(pos):
             if item.flags() & QGraphicsItem.ItemIsMovable:
@@ -1927,13 +1931,15 @@ class Scene(QGraphicsScene, Item):
         selectedPeople = self.selectedPeople()
         if not selectedPeople:
             return
-        
+
         undoId = commands.nextId()
         for person in selectedPeople:
             rect = person.mapToScene(person.boundingRect()).boundingRect()
             fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
             motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId)
+            father = commands.addPerson(
+                self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId
+            )
             mother = commands.addPerson(
                 self, util.PERSON_KIND_FEMALE, motherPos, person.size(), id=undoId
             )

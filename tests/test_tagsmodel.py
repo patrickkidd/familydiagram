@@ -62,7 +62,7 @@ def test_remove_tag(qtbot):
     modelReset = util.Condition()
     model.modelReset.connect(modelReset)
 
-    qtbot.clickYesAfter(lambda: model.removeTag(1))
+    qtbot.clickYesAfter(lambda: model.removeRow(1))
     assert modelReset.callCount == 1
     assert model.rowCount() == 2
     assert model.data(model.index(0, 0)) == "are"

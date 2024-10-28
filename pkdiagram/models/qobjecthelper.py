@@ -212,7 +212,7 @@ class QObjectHelper:
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
         if self.PRINT_EMITS:
-            print(f"{attr}Changed[{x}]")
+            print(f"{attr}Changed({x})")
         getattr(self, attr + "Changed").emit(x)
 
     def refreshingAttr(self):

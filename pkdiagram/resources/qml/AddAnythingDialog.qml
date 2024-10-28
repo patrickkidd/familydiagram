@@ -899,8 +899,8 @@ PK.Drawer {
                                 id: notesFrame
                                 property bool isDirty: notesEdit.text != ''
                                 color: 'transparent'
-                                Layout.minimumHeight: 250
-                                Layout.maximumHeight: 250
+                                Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
+                                Layout.maximumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                                 border {
                                     width: 1
                                     color: util.QML_ITEM_BORDER_COLOR

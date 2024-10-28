@@ -293,11 +293,9 @@ class Person(PathItem):
             ]:
                 event.updateParentName()
         if "layers" in kwargs:
-            layers = kwargs["layers"]
-            if not isinstance(layers, list):
-                layers = [layers]
-            layerIds = [x.id for x in layers]
-            self.setLayers(layerIds)
+            raise KeyError(
+                'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
+            )
         self.isInit = True
 
     def initialDetailsPos(self):
@@ -812,7 +810,8 @@ class Person(PathItem):
                     emotion.updateGeometry()
         elif prop.name() == "layers":
             if self.scene():
-                self._layers = [self.scene().find(id=x) for x in prop.get()]
+                sceneLayers = self.scene().layers()
+                self._layers = [x for x in sceneLayers if x.id in prop.get()]
                 self.onActiveLayersChanged()
             else:
                 self._layers = []
@@ -1467,12 +1466,16 @@ class Person(PathItem):
                         self.snappedOther = None
                     # start or continue snap
                     if snapTo:
-                        selfSceneRect = self.mapToScene(self.boundingRect()).boundingRect()
+                        selfSceneRect = self.mapToScene(
+                            self.boundingRect()
+                        ).boundingRect()
                         diffY = selfSceneRect.height() * 0.5
                         variant.setY(otherSceneRect.y() + diffY)
                         if snapTo is not self.snappedOther:
                             self.snappedOther = snapTo
-                            self.scene().onPersonSnapped(self, self.snappedOther, variant)
+                            self.scene().onPersonSnapped(
+                                self, self.snappedOther, variant
+                            )
                         else:
                             self.scene().onPersonSnapUpdated(
                                 self, self.snappedOther, variant

@@ -659,7 +659,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                         ret = i - 1
                         break
         return ret
-    
+
     def firstEventDateTime(self):
         if self._events:
             return self._events[0].dateTime()

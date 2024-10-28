@@ -119,7 +119,7 @@ ColumnLayout {
         onAdd: model.addRow()
         removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
         removeButton: true
-        onRemove: model.removeTag(currentIndex)
+        onRemove: model.removeRow(currentIndex)
     }    
 
 }

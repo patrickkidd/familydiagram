@@ -17,26 +17,28 @@ class SearchViewTest(QWidget, QmlWidgetHelper):
 
 @pytest.fixture
 def tst_stuff():
-    person = Person()
+    inside = Person(name="Inside")
+    inside_2 = Person(name="Inside 2")
+    outside = Person(name="Outside")
     event1 = Event(
-        parent=person,
+        parent=inside,
         loggedDateTime=util.Date(2000, 1, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item1",
     )
     event2 = Event(
-        parent=person,
+        parent=inside_2,
         loggedDateTime=util.Date(2000, 2, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item2",
     )
     event3 = Event(
-        parent=person,
+        parent=outside,
         loggedDateTime=util.Date(2000, 3, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item3",
     )
-    return person, event1, event2, event3
+    return inside, inside_2, outside, event1, event2, event3
 
 
 @pytest.fixture
@@ -137,7 +139,7 @@ def test_clear(tst):
 
 
 def test_description(tst, tst_stuff):
-    person, event1, event2, event3 = tst_stuff
+    inside, inside_2, outside, event1, event2, event3 = tst_stuff
     timelineModel = tst.rootProp("sceneModel").scene.timelineModel
     model = tst.rootProp("model")
     tst.keyClicks("descriptionEdit", "item1")
@@ -147,7 +149,7 @@ def test_description(tst, tst_stuff):
 
 
 def test_loggedStartDateTime(tst, tst_stuff):
-    person, event1, event2, event3 = tst_stuff
+    inside, inside_2, outside, event1, event2, event3 = tst_stuff
     model = tst.rootProp("model")
     timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
@@ -182,7 +184,7 @@ def test_loggedStartDateTime(tst, tst_stuff):
 
 
 def test_loggedEndDateTime(tst, tst_stuff):
-    person, event1, event2, event3 = tst_stuff
+    inside, inside_2, outside, event1, event2, event3 = tst_stuff
     model = tst.rootProp("model")
     timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
@@ -217,7 +219,7 @@ def test_loggedEndDateTime(tst, tst_stuff):
 
 
 def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
-    person, event1, event2, event3 = tst_stuff
+    inside, inside_2, outside, event1, event2, event3 = tst_stuff
     model = tst.rootProp("model")
     timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
@@ -236,3 +238,29 @@ def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
     assert model.shouldHide(event1) == True
     assert model.shouldHide(event2) == False
     assert model.shouldHide(event3) == True
+
+
+def test_category(tst, tst_stuff):
+    inside, inside_2, outside, event1, event2, event3 = tst_stuff
+    scene = tst.rootProp("sceneModel").scene
+    scene.categoriesModel.addRow()
+    category = scene.categoriesModel.data(scene.categoriesModel.index(0, 0))
+    event1.setTags([category])
+    layer = scene.layers()[0]
+    scene.addItems(inside, inside_2, outside, event1, event2, event3)
+    inside.setLayers([layer.id])
+    inside_2.setLayers([layer.id])
+    assert scene.searchModel.shouldHide(event1) == False
+    assert scene.searchModel.shouldHide(event2) == False
+    assert scene.searchModel.shouldHide(event3) == False
+    assert inside.shouldShowRightNow() == True
+    assert inside_2.shouldShowRightNow() == True
+    assert outside.shouldShowRightNow() == True
+
+    scene.searchModel.category = category
+    assert scene.searchModel.shouldHide(event1) == False
+    assert scene.searchModel.shouldHide(event2) == True
+    assert scene.searchModel.shouldHide(event3) == True
+    assert inside.shouldShowRightNow() == True
+    assert inside_2.shouldShowRightNow() == True
+    assert outside.shouldShowRightNow() == False

@@ -77,12 +77,12 @@ class TagsModel(QAbstractListModel, ModelHelper):
         return self._sceneTags[row]
 
     @pyqtSlot()
-    def addTag(self):
+    def addRow(self):
         tag = util.newNameOf(self._sceneTags, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
         commands.createTag(self._scene, tag)
 
     @pyqtSlot(int)
-    def removeTag(self, row):
+    def removeRow(self, row):
         tag = self.data(self.index(row, 0))
         items = self._scene.find(tags=tag)
         ok = QMessageBox.Yes

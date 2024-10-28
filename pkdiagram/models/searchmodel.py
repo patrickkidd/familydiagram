@@ -1,11 +1,17 @@
+import logging
+
 from ..pyqt import Qt, QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
-from ..objects import Item
+from ..objects import Item, Layer
 from .. import commands
+
+_log = logging.getLogger(__name__)
 
 
 class SearchModel(QObject, QObjectHelper):
     """Just a Scene-global placeholder for a bunch of properties."""
+
+    PRINT_EMITS = True
 
     changed = pyqtSignal()
 
@@ -27,14 +33,15 @@ class SearchModel(QObject, QObjectHelper):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.initQObjectHelper(storage=True)
-        self.startDateTimeChanged.connect(self.onChanged)
+        self.categoryChanged.connect(self.onChanged)
+        self.descriptionChanged.connect(self.onChanged)
         self.endDateTimeChanged.connect(self.onChanged)
+        self.hideRelationshipsChanged.connect(self.onChanged)
         self.loggedStartDateTimeChanged.connect(self.onChanged)
         self.loggedEndDateTimeChanged.connect(self.onChanged)
-        self.descriptionChanged.connect(self.onChanged)
+        self.startDateTimeChanged.connect(self.onChanged)
         self.nodalChanged.connect(self.onChanged)
         self.tagsChanged.connect(self.onChanged)
-        self.hideRelationshipsChanged.connect(self.onChanged)
 
     def onChanged(self):
         self.changed.emit()
@@ -73,10 +80,13 @@ class SearchModel(QObject, QObjectHelper):
 
     def set(self, attr, value):
         if attr == "category":
-            self.set("tags", [value])
-            layer = self._scene.layers(name=value)
-            iLayer = self._scene.layers().index(layer)
-            self._scene.setExclusiveLayerIndex(iLayer)
+            layer = self.scene.query1(type=Layer, name=value)
+            if layer:
+                iLayer = self.scene.layers().index(layer)
+                self.set("tags", [value])
+                self.scene.setExclusiveActiveLayerIndex(iLayer)
+            else:
+                _log.warning(f"Layer '{value}' not found.")
         super().set(attr, value)
 
     def shouldHide(self, event):

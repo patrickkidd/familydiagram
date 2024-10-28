@@ -1,29 +1,42 @@
+import logging
+
 import pytest
+
 from pkdiagram.pyqt import *
 from pkdiagram import util, Scene, Person, Event, Layer, Emotion
 
 
+_log = logging.getLogger(__name__)
+
+
 @pytest.fixture
-def model():
+def model(qApp):
     scene = Scene()
-    person = Person()
+    category = scene.categoriesModel.addRow()
+    layer = scene.layers()[0]
+    inside = Person(name="Inside")
+    inside_2 = Person(name="Inside 2")
+    outside = Person(name="Outside")
     event1 = Event(
-        parent=person,
+        parent=inside,
         loggedDateTime=util.Date(2000, 1, 10),
         dateTime=util.Date(1900, 1, 1),
+        tags=[category],
     )
     event2 = Event(
-        parent=person,
+        parent=inside,
         loggedDateTime=util.Date(2000, 2, 10),
         dateTime=util.Date(1900, 1, 1),
     )
     event3 = Event(
-        parent=person,
+        parent=inside,
         loggedDateTime=util.Date(2000, 3, 10),
         dateTime=util.Date(1900, 1, 1),
     )
-    scene.addItem(person)
-    scene.searchModel.items = [person]
+    scene.addItems(inside, inside_2, outside)
+    inside.setLayers([layer.id])
+    inside_2.setLayers([layer.id])
+    scene.searchModel.items = [inside]
     return scene.searchModel, event1, event2, event3
 
 
@@ -43,6 +56,49 @@ def test_isBlank_separate(model):
 
     model.reset("tags")
     assert model.isBlank == True
+
+
+PROPERTY_VALUES = {
+    "category": "Some Category",
+    "description": "something",
+    "startDateTime": util.Date(2000, 1, 1),
+    "endDateTime": util.Date(2000, 1, 1),
+    "loggedStartDateTime": util.Date(2000, 1, 1),
+    "loggedEndDateTime": util.Date(2000, 1, 1),
+    "nodal": True,
+    "tags": ["some", "tags"],
+}
+
+
+@pytest.mark.parametrize("attr", PROPERTY_VALUES.keys())
+def test_changed_and_isBlank(model, attr):
+    model, event1, event2, event3 = model
+
+    attrChanged = util.Condition(getattr(model, attr + "Changed"))
+    changed = util.Condition(model.changed)
+
+    def onChanged():
+        _log.debug("onChanged")
+
+    model.changed.connect(onChanged)
+
+    value = PROPERTY_VALUES[attr]
+    scene = Scene()
+    model = scene.searchModel
+    assert model.isBlank == True
+
+    model.changed.emit()
+
+    setattr(model, attr, value)
+    assert model.isBlank == False
+    assert changed.test() == True
+    assert attrChanged.test() == True
+
+    changed.reset()
+    model.reset(attr)
+    assert model.isBlank == True
+    assert changed.test() == True
+    assert attrChanged.test() == True
 
 
 def test_isBlank_clear(model):
@@ -239,3 +295,26 @@ def test_loggedEndDateTime_emotions(emotion_model):
     model.resetLoggedEndDateTime()
     assert model.shouldHide(startEvent) == False
     assert model.shouldHide(endEvent) == False
+
+
+def test_category(model):
+    model, event1, event2, event3 = model
+    scene = model.scene
+    inside = scene.query1(type=Person, name="Inside")
+    inside_2 = scene.query1(type=Person, name="Inside 2")
+    outside = scene.query1(type=Person, name="Outside")
+    category = scene.categoriesModel.data(scene.categoriesModel.index(0, 0))
+    assert scene.searchModel.shouldHide(event1) == False
+    assert scene.searchModel.shouldHide(event2) == False
+    assert scene.searchModel.shouldHide(event3) == False
+    assert inside.shouldShowRightNow() == True
+    assert inside_2.shouldShowRightNow() == True
+    assert outside.shouldShowRightNow() == True
+
+    scene.searchModel.category = category
+    assert scene.searchModel.shouldHide(event1) == False
+    assert scene.searchModel.shouldHide(event2) == True
+    assert scene.searchModel.shouldHide(event3) == True
+    assert inside.shouldShowRightNow() == True
+    assert inside_2.shouldShowRightNow() == True
+    assert outside.shouldShowRightNow() == False

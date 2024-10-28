@@ -69,6 +69,17 @@ def test_query_methods():
     assert people[0].fullNameOrAlias() == "John Doe"
 
 
+def test_query_by_type():
+    people = (
+        Person(name="John", lastName="Doe", tags=["tag1"]),
+        Person(name="Jane", lastName="Doe", tags=["tag1"]),
+        Person(name="John", lastName="Smith", tags=["tag2"]),
+    )
+    scene = Scene()
+    scene.addItems(*people)
+    assert scene.query(type=Person, tags=["tag1"]) == [people[0], people[1]]
+
+
 def test_find_by_types(simpleScene):
     """ """
     people = simpleScene.find(types=Person)

@@ -32,6 +32,7 @@ Page {
     property var tags: model ? model.tags : []
     property var nodal: model ? model.nodal : false
     property var hideRelationships: model ? model.hideRelationships : false
+    property var category: model ? model.category : ''
 
     Keys.enabled: true
     Keys.onPressed: {
@@ -323,58 +324,28 @@ Page {
                     /* } */
 
 
-                    PK.GroupBox {
-
-                        id: categoriesBox
-                        objectName: 'categoriesBox'
-
-                        padding: 0
-                        Layout.fillWidth: true
-                        Layout.topMargin: util.QML_MARGINS / 2
-                        Layout.columnSpan: 2
+                    PK.Text {
+                        text: "Category"
                         visible: ! sceneModel.isInEditorMode
-
-                        ColumnLayout {
-                            id: categoriesCL
-
-                            spacing: 0
-                            anchors.fill: parent                            
-
-
-                            PK.Text {
-                                text: "Diagram Views are like powerpoint slides that focus on a sub-set of family members, with alterations like position, color, deemphasize. Diagram views can also be annotated with text callouts, pencil strokes. They are for small tweaks to get a point across that do not affect the data of the family. Expand the left edge of this drawer further to the left to show the 'Store Geometry' column." + (sceneLayerView.responsive1 ? "\n\n'Store Goemetry' will store the positions for items in that view, and rearrange the diagram to reflect those positions when you activate the view." : '');
-                                wrapMode: Text.WordWrap
-                                font.pixelSize: util.HELP_FONT_SIZE
-                                Layout.fillWidth: true
-                                Layout.margins: util.QML_MARGINS / 3
-                                Layout.columnSpan: 2 
-                            }
-
-                            Rectangle { // border-top
-                                height: 1
-                                color: util.QML_ITEM_BORDER_COLOR
-                                Layout.fillWidth: true
-                            }
-
-                            PK.ComboBox {
-                                model: sceneModel.categoriesModel
-                                onCurrentTextChanged: {
-                                    root.model.tags
-                                }
-                            }
-
-                            // PK.CategoriesListView {
-                            //     id: categoriesView
-                            //     objectName: root.objectName + '_categoriesView'
-                            //     model: sceneModel.categoriesModel
-                            //     Layout.fillWidth: true
-                            //     Layout.fillHeight: true
-                            //     Layout.margins: 1
-                            //     Layout.minimumHeight: 200
-                            // }
-                        }
                     }
 
+                    PK.ComboBox {
+                        id: categoriesBox
+                        objectName: 'categoriesBox'
+                        textRole: 'name'
+                        model: sceneModel.categoriesModel
+                        visible: ! sceneModel.isInEditorMode
+                        // Layout.topMargin: util.QML_MARGINS / 2
+                        Layout.fillWidth: true
+                        currentIndex: sceneModel.categoriesModel.indexForCategory(root.category)
+                        onCurrentIndexChanged: {
+                            print('currentIndex: ' + currentIndex)
+                            if(model && model.category != currentIndex) {
+                                model.category = sceneModel.categoriesModel.categoryForRow(currentIndex)
+                                print('category changed to: ' + model.category)
+                            }
+                        }
+                    }
 
                     PK.GroupBox {
 

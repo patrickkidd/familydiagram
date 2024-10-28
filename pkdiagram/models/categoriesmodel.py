@@ -92,14 +92,15 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         if prop.name() == "tags":
             self.updateData()
 
-    def indexForCategory(self, category) -> int:
+    @pyqtSlot(str, result=int)
+    def indexForCategory(self, category: str) -> int:
         try:
             return self._categories.index(category)
         except ValueError:
             return -1
 
     @pyqtSlot()
-    def addRow(self):
+    def addRow(self) -> str:
         allLayersAndTags = set(self.scene.tags()) | set(
             x.name() for x in self.scene.layers()
         )
@@ -111,6 +112,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
                 commands.createTag(self._scene, name)
             self._scene.tidyLayerOrder()
         self.updateData()
+        return name
 
     @pyqtSlot(int)
     def duplicateRow(self, row):
@@ -150,13 +152,10 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
             commands.removeItems(self.scene, layer)
             commands.deleteTag(self.scene, category)
 
-    def categoryForIndex(self, index):
-        if index.row() >= 0 and index.row() < len(self._categories):
-            return self._categories[index.row()]
-
     @pyqtSlot(int, result=QVariant)
     def categoryForRow(self, row):
-        return self.categoryForIndex(self.createIndex(row, 0))
+        if row >= 0 and row < len(self._categories):
+            return self._categories[row]
 
     @pyqtSlot(int, int)
     def moveCategory(self, oldRow, newRow):

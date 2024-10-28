@@ -1330,6 +1330,7 @@ class AddLayer(UndoCommand):
         super().__init__("Add layer %s" % layer.itemName(), id)
         self.scene = scene
         self.layer = layer
+        self.debug(layer=layer.itemName())
 
     def redo(self):
         layers = self.scene.layers()
