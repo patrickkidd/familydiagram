@@ -1,3 +1,5 @@
+import logging
+
 import inspect
 import enum
 from ..pyqt import (
@@ -14,6 +16,8 @@ from ..pyqt import (
 )
 from .. import objects
 
+
+_log = logging.getLogger(__name__)
 
 CLASS_PROPERTIES = {}
 
@@ -212,7 +216,7 @@ class QObjectHelper:
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
         if self.PRINT_EMITS:
-            print(f"{attr}Changed({x})")
+            _log.info(f"{attr}Changed({x})")
         getattr(self, attr + "Changed").emit(x)
 
     def refreshingAttr(self):

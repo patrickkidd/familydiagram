@@ -2,6 +2,7 @@ import pytest
 import conftest
 from pkdiagram.pyqt import *
 from pkdiagram import util, Scene, Person, Event, QmlWidgetHelper, SceneModel
+from pkdiagram.objects import Layer
 
 
 class SearchViewTest(QWidget, QmlWidgetHelper):
@@ -47,6 +48,7 @@ def tst(qtbot, request, tst_stuff):
     scene.addItems(*tst_stuff)
     sceneModel = SceneModel()
     sceneModel.scene = scene
+    scene.categoriesModel.addRow()
     w = SearchViewTest()
     w.setRootProp("sceneModel", sceneModel)
     w.resize(600, 800)
@@ -58,11 +60,25 @@ def tst(qtbot, request, tst_stuff):
 
 
 def test_init(tst):
-    pass
-
-
-def test_properties(tst):
     model = tst.rootProp("model")
+    assert model.description == ""
+    assert model.startDateTime == QDateTime()
+    assert model.endDateTime == QDateTime()
+    assert model.loggedStartDateTime == QDateTime()
+    assert model.loggedEndDateTime == QDateTime()
+    assert model.category == ""
+
+    assert tst.itemProp("categoryBox", "currentIndex") == -1
+    assert model.description == ""
+    assert model.startDateTime == QDateTime()
+    assert model.endDateTime == QDateTime()
+    assert model.loggedStartDateTime == QDateTime()
+    assert model.loggedEndDateTime == QDateTime()
+
+
+def test_fields(tst):
+    model = tst.rootProp("model")
+    category = model.scene.categoriesModel.categories()[0]
 
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
@@ -78,6 +94,11 @@ def test_properties(tst):
 
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
+
+    tst.clickComboBoxItem("categoryBox", category)
+    assert model.category == category
+    assert model.tags == [category]
+    assert model.scene.activeLayers() == [model.scene.query1(type=Layer, name=category)]
 
     # reset
 
@@ -95,6 +116,8 @@ def test_properties(tst):
 
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
+
+    # can't reset category box (yet)
 
 
 def test_clear_0(tst):
@@ -121,6 +144,7 @@ def test_clear(tst):
     assert (
         tst.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "02/02/2002"
     )
+    assert tst.itemProp("categoryBox", "currentText") == ""
 
     model.clear()
     assert model.description == ""
@@ -136,6 +160,7 @@ def test_clear(tst):
     assert (
         tst.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "--/--/----"
     )
+    assert tst.itemProp("categoryBox", "currentText") == ""
 
 
 def test_description(tst, tst_stuff):
@@ -243,7 +268,6 @@ def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
 def test_category(tst, tst_stuff):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
     scene = tst.rootProp("sceneModel").scene
-    scene.categoriesModel.addRow()
     category = scene.categoriesModel.data(scene.categoriesModel.index(0, 0))
     event1.setTags([category])
     layer = scene.layers()[0]

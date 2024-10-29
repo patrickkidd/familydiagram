@@ -56,6 +56,7 @@ class Application(QApplication):
                 "QOpenGLFramebufferObject: Framebuffer incomplete attachment.",
                 "QOpenGLFramebufferObject: Framebuffer incomplete, missing attachment.",
                 "Binding loop detected for property",
+                "chose IMK",
             ]
             for line in GREP_V:
                 if line in msg:

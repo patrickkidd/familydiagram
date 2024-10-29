@@ -34,6 +34,10 @@ Page {
     property var hideRelationships: model ? model.hideRelationships : false
     property var category: model ? model.category : ''
 
+    property var categoriesModel: sceneModel.categoriesModel
+
+    // onCategoryChanged: print('root.onCategoryChanged: ' + root.category)
+
     Keys.enabled: true
     Keys.onPressed: {
         if(event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
@@ -323,29 +327,136 @@ Page {
                     /*     /\* onCheckedChanged: sceneModel.hideDateBuddies = checked *\/ */
                     /* } */
 
-
                     PK.Text {
                         text: "Category"
                         visible: ! sceneModel.isInEditorMode
                     }
 
+                    property var description: sceneModel.searchModel.description
+
+
+                    property var categories: sceneModel.searchModel.categories
+                    onCategoriesChanged: {
+                        print('>>> onCategoriesChanged: >>>' + categories + '<<<')
+                    }
+
                     PK.ComboBox {
-                        id: categoriesBox
-                        objectName: 'categoriesBox'
+                        id: categoryBox
+                        objectName: 'categoryBox'
                         textRole: 'name'
                         model: sceneModel.categoriesModel
-                        visible: ! sceneModel.isInEditorMode
-                        // Layout.topMargin: util.QML_MARGINS / 2
                         Layout.fillWidth: true
-                        currentIndex: sceneModel.categoriesModel.indexForCategory(root.category)
                         onCurrentIndexChanged: {
-                            print('currentIndex: ' + currentIndex)
-                            if(model && model.category != currentIndex) {
-                                model.category = sceneModel.categoriesModel.categoryForRow(currentIndex)
-                                print('category changed to: ' + model.category)
+                            print('>>> onCurrentIndexChanged: ' + currentIndex + ': ' + categoryBox.textAt(currentIndex))
+                            category = sceneModel.categoriesModel.categoryForRow(currentIndex)
+                            if(root.model && root.model.category != category) {
+                                print(' --- >>> onCurrentIndexChanged: root.model.category = ' + category)
+                                root.model.category = category
+                                print(' --- <<< onCurrentIndexChanged: root.model.category = ' + category)
+                            }
+
+                            print('<<< onCurrentIndexChanged')
+                        }
+                        onModelChanged: {
+                            print('>>> onModelChanged: ' + model + ', categories: ' + (model ? model.categories : undefined))
+                            categoryBox.currentIndex = -1
+                        }
+
+                        Binding {
+                            target: categoryBox
+                            property: "model"
+                            value: categoriesModel
+                            // onValueChanged: {
+                            //     print("Binding.onValueChanged: " + value)
+                            //     categoryBox.currentIndex = -1
+                            // }
+                        }
+
+
+                        Connections {
+                            target: root.model
+                            function onCategoryChanged() {
+                                var row = sceneModel.categoriesModel.rowForCategory(root.category)
+                                if(categoryBox.currentIndex != row) {
+                                    print('>>> Connections.onCategoryChanged root.category: ' + root.category + ', row: ' + row)
+                                    categoryBox.currentIndex = row
+                                    print('<<< Connections.onCategoryChanged[root.model] categoryBox.currentIndex: ' + categoryBox.currentIndex)
+                                }
                             }
                         }
+
                     }
+
+
+                    // PK.ComboBox {
+                    //     id: categoryBox
+                    //     objectName: 'categoryBox'
+                    //     textRole: 'name'
+                    //     model: sceneModel.categoriesModel
+                    //     // currentIndex: sceneModel.searchModel.categoryIndex
+                    //     // model: ['hey', 'you']
+                    //     visible: ! sceneModel.isInEditorMode
+                    //     // Layout.topMargin: util.QML_MARGINS / 2
+                    //     Layout.fillWidth: true
+
+                    //     // currentIndex: {
+                    //     //     print('>>> currentIndex: ' + sceneModel.searchModel.categoryIndex)
+                    //     //     return sceneModel.searchModel.categoryIndex
+                    //     // }
+
+                    //     // currentIndex: {
+                    //     //     print('>>> currentIndex: ' + sceneModel.categoriesModel.categories)
+                    //     //     var ret = sceneModel.categoriesModel.categories.indexOf(root.category)
+                    //     //     print('<<< currentIndex: <--- ' + ret)
+                    //     //     return ret
+                    //     // }
+                        
+                    //     // currentIndex: {
+                    //     //     var ret
+                    //     //     // sceneModel.categoriesModel ? sceneModel.categoriesModel.rowForCategory(root.category) : -1
+                    //     //     if(sceneModel.categoriesModel) {
+                    //     //         print('currentIndex -- rowForCategory --------> ')
+                    //     //         var row = sceneModel.categoriesModel.rowForCategory(root.category)
+                    //     //         print('currentIndex -- rowForCategory("' + root.category + '"): ' + row)
+                    //     //         ret = row
+                    //     //     } else {
+                    //     //         print('currentIndex -- : -1')
+                    //     //         ret = -1
+                    //     //     }
+                    //     //     print('currentIndex: <--- ' + ret)
+                    //     //     return ret
+                    //     // }
+
+                    //     onCurrentIndexChanged: {
+                    //         print('>>> onCurrentIndexChanged: ' + currentIndex)
+                    //         // sceneModel.searchModel.categoryIndex = currentIndex
+
+                    //         // print('>>>>>>> sceneModel.categoriesModel.categoryForRow(' + currentIndex + '): ' + categoryBox.textAt(currentIndex))
+                    //         // category = sceneModel.categoriesModel.categoryForRow(currentIndex)
+                    //         // print('<<<<<<< "' + categoryBox.currentText + '" -> ' + category)
+                    //         // if(root.model && root.model.category != categoryBox.currentText) {
+                    //         //     print(' --- >>> onCurrentIndexChanged: root.model.category = ' + category)
+                    //         //     root.model.category = category
+                    //         //     print(' --- <<< onCurrentIndexChanged: root.model.category = ' + category)
+                    //         // }
+
+                    //         // print('<<< onCurrentIndexChanged')
+                    //     }
+
+                    //     // Connections {
+                    //     //     target: root
+                    //     //     function onCategoryChanged() {
+                    //     //         print('>>> Connections.onCategoryChanged root.category: ' + root.category + ', root.model: ' + root.model)
+                    //     //         var row = sceneModel.categoriesModel.rowForCategory(root.category)
+                    //     //         print('Connections.onCategoryChanged row ' + row)
+                    //     //         if(categoryBox.currentIndex != row) {
+                    //     //             categoryBox.currentIndex = row
+                    //     //             print(' ----> Connections.onCategoryChanged[root.model] categoryBox.currentIndex: ' + categoryBox.currentIndex)
+                    //     //         }
+                    //     //         print('<<< Connections.onCategoryChanged[root.model] categoryBox.currentIndex: ' + categoryBox.currentIndex)
+                    //     //     }
+                    //     // }
+                    // }
 
                     PK.GroupBox {
 

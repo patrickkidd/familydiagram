@@ -10,7 +10,7 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def model(qApp):
+def model():
     scene = Scene()
     category = scene.categoriesModel.addRow()
     layer = scene.layers()[0]
@@ -74,20 +74,11 @@ PROPERTY_VALUES = {
 def test_changed_and_isBlank(model, attr):
     model, event1, event2, event3 = model
 
-    attrChanged = util.Condition(getattr(model, attr + "Changed"))
     changed = util.Condition(model.changed)
-
-    def onChanged():
-        _log.debug("onChanged")
-
-    model.changed.connect(onChanged)
+    attrChanged = util.Condition(getattr(model, f"{attr}Changed"))
 
     value = PROPERTY_VALUES[attr]
-    scene = Scene()
-    model = scene.searchModel
     assert model.isBlank == True
-
-    model.changed.emit()
 
     setattr(model, attr, value)
     assert model.isBlank == False

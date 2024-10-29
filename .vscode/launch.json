@@ -16,6 +16,10 @@
                 "all": "hide",
                 "protected": "inline",
             },
+            "env": {
+//                "QT_LOGGING_RULES": "qt.quick.*=true",
+                // "QT_LOGGING_RULES": "qt.qpa.*=true"
+            }
             // "env": {
             //     "FD_LOG_LEVEL": "DEBUG",
             // }
@@ -460,10 +464,10 @@
             "args": [
                 "-svvx"
             ],
-            "env": {
-                // "QT_LOGGING_RULES": "qt.quick.*=true"
-                // "QT_LOGGING_RULES": "qt.qpa.*=true"
-            }
+            // "env": {
+            //     "QT_LOGGING_RULES": "qt.quick.*=true",
+            //     "QT_LOGGING_RULES": "qt.qpa.*=true"
+            // }
         },        
         {
             "name": "(gdb) Attach",

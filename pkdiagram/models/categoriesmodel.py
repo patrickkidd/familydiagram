@@ -4,6 +4,8 @@ from ..pyqt import (
     Qt,
     QAbstractListModel,
     QModelIndex,
+    pyqtSignal,
+    pyqtProperty,
     pyqtSlot,
     qmlRegisterType,
     QVariant,
@@ -37,6 +39,8 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     ActiveRole = Qt.UserRole + 1
     FlagsRole = ActiveRole + 1
 
+    categoriesChanged = pyqtSignal(list)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._categories = []
@@ -66,6 +70,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         self._categories = sorted(categories)
         # added = [x for x in categories if x not in wasCategories]
         # removed = [x for x in wasCategories if x in categories]
+        self.categoriesChanged.emit(self._categories)
         self.modelReset.emit()
 
     def set(self, attr, value):
@@ -92,8 +97,12 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         if prop.name() == "tags":
             self.updateData()
 
+    @pyqtProperty(list, notify=categoriesChanged)
+    def categories(self):
+        return self._categories if self._scene else []
+
     @pyqtSlot(str, result=int)
-    def indexForCategory(self, category: str) -> int:
+    def rowForCategory(self, category: str) -> int:
         try:
             return self._categories.index(category)
         except ValueError:
@@ -156,14 +165,20 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     def categoryForRow(self, row):
         if row >= 0 and row < len(self._categories):
             return self._categories[row]
+        else:
+            return None
 
     @pyqtSlot(int, int)
     def moveCategory(self, oldRow, newRow):
         self._reorderingLayers = True
         self._categories.insert(newRow, self._categories.pop(oldRow))
         commands.setLayerOrder(self._scene, self._categories)
+        self.categoriesChanged.emit(self._categories)
         self.modelReset.emit()
         self._reorderingLayers = False
+
+    def categories(self) -> list[str]:
+        return list(self._categories)
 
     ## Qt Virtuals
 
@@ -252,6 +267,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
             success = False
         if success:
             self.dataChanged.emit(index, index, [role])
+            self.categoriesChanged.emit(self._categories)
         return success
 
 

@@ -188,7 +188,7 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
 log.info("IMPORT familydiagram/tests/conftest.py")
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def qApp():
 
     log.debug(f"Create qApp for familydiagram/tests")
@@ -258,11 +258,15 @@ def watchdog(request, qApp):
 
 
 @pytest.fixture(autouse=True)
-def flask_qnam(flask_app, tmp_path):
+def flask_qnam(tmp_path, request):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 
     # Tie Qt HTTP requests to flask server
     def sendCustomRequest(request, verb, data=b""):
+
+        # on demand, not every test
+        flask_app = request.get_fixture_value("flask_app")
+
         with flask_app.test_client() as client:
             ret = _sendCustomRequest(request, verb, data=data, client=client)
             QApplication.processEvents()

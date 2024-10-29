@@ -3,7 +3,7 @@ import logging
 from ..pyqt import Qt, QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
 from ..objects import Item, Layer
-from .. import commands
+from .. import util, commands
 
 _log = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 class SearchModel(QObject, QObjectHelper):
     """Just a Scene-global placeholder for a bunch of properties."""
 
-    PRINT_EMITS = True
+    # PRINT_EMITS = True
 
     changed = pyqtSignal()
 
@@ -25,13 +25,21 @@ class SearchModel(QObject, QObjectHelper):
             {"attr": "nodal", "type": bool, "default": False},
             {"attr": "tags", "type": list},
             {"attr": "hideRelationships", "type": bool, "default": False},
-            {"attr": "category", "type": str},
+            {"attr": "category"},
+            {"attr": "categories", "type": list},
             {"attr": "isBlank", "type": bool},
         ]
     )
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        if util.isInstance(parent, "Scene"):
+            self._scene = parent
+            self._scene.categoriesModel.categoriesChanged.connect(
+                self.onCategoriesChanged
+            )
+        else:
+            self._scene = None
         self.initQObjectHelper(storage=True)
         self.categoryChanged.connect(self.onChanged)
         self.descriptionChanged.connect(self.onChanged)
@@ -55,8 +63,22 @@ class SearchModel(QObject, QObjectHelper):
         self.reset("endDateTime")
         self.reset("loggedStartDateTime")
         self.reset("loggedEndDateTime")
+        self.reset("hideRelationships")
         self.reset("nodal")
         self.reset("tags")
+
+    @property
+    def scene(self):
+        return self._scene
+
+    def onCategoriesChanged(self):
+        return
+        self._scene.categoriesModel
+        categories = [""] + [
+            self._scene.categoriesModel.data()
+            for i in range(self._scene.categoriesModel.rowCount())
+        ]
+        self.set("categories", categories)
 
     def get(self, attr):
         if attr == "isBlank":
@@ -74,19 +96,27 @@ class SearchModel(QObject, QObjectHelper):
                 if getattr(self, name) != self.defaultFor(name):
                     ret = False
                     break
+        elif attr == "categories":
+            if self._scene:
+                ret = self._scene.categoriesModel.categories()
+            else:
+                ret = []
         else:
             ret = super().get(attr)
         return ret
 
+    def _setCategory(self, category: str):
+        layer = self.scene.query1(type=Layer, name=category)
+        if layer:
+            iLayer = self.scene.layers().index(layer)
+            self.set("tags", [category])
+            self.scene.setExclusiveActiveLayerIndex(iLayer)
+        else:
+            _log.warning(f"Layer '{category}' not found.")
+
     def set(self, attr, value):
-        if attr == "category":
-            layer = self.scene.query1(type=Layer, name=value)
-            if layer:
-                iLayer = self.scene.layers().index(layer)
-                self.set("tags", [value])
-                self.scene.setExclusiveActiveLayerIndex(iLayer)
-            else:
-                _log.warning(f"Layer '{value}' not found.")
+        if attr == "category" and self.scene:
+            self._setCategory(value)
         super().set(attr, value)
 
     def shouldHide(self, event):
