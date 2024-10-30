@@ -17,7 +17,7 @@ from pkdiagram.pyqt import (
     QNetworkReply,
     QUrl,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.server_types import Server, HTTPError
 
 
@@ -201,6 +201,7 @@ class Analytics(QObject):
                     "$email": x.email,
                     "roles": x.properties.get("roles", []),
                     "license": x.properties.get("licenses", []),
+                    "version": version.VERSION,
                 },
             }
             for username, x in self._profilesCache.items()
