@@ -25,20 +25,21 @@ class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
 
-    def initQmlWidgetHelper(self, source, sceneModel=None, session=None):
+    def initQmlWidgetHelper(self, source, **contextProperties):
         self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
-        self._sceneModel = sceneModel
-        self._session = session
+        self._contextProperties = contextProperties
         self.initQObjectHelper()
 
     @property
     def sceneModel(self):
-        return self._sceneModel
+        """Deprecated"""
+        return self._contextProperties.get("sceneModel")
 
     @property
     def session(self):
-        return self._session
+        """Deprecated"""
+        return self._contextProperties.get("session")
 
     # def __getattr__(self, attr):
     #     if not hasattr(self, attr) and \
@@ -115,8 +116,6 @@ class QmlWidgetHelper(QObjectHelper):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child
         if self.sceneModel:
-            self.qml.rootObject().setProperty("sceneModel", self.sceneModel)
-            # capture changes in sceneModel attrs, e.g. sceneModel.peopleModel
 
             def makeOnPropChanged(attr):
                 def _onPropChanged():
@@ -130,8 +129,6 @@ class QmlWidgetHelper(QObjectHelper):
                 getattr(self.sceneModel, f"{attr}Changed").connect(_set)
                 _set()
 
-        if self.session:
-            self.qml.rootObject().setProperty("session", self.session)
         self.onInitQml()
         return True
 
