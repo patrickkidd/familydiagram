@@ -62,7 +62,7 @@ jobs:
         pip install pipenv
         mkdir .venv
         pipenv --clear
-        pipenv install --dev  --skip-lock --verbose
+        pipenv install --dev --verbose
 
     # Will provide an SSH command in the logs that you can use to access the runner.
     - name: Setup tmate session
@@ -251,7 +251,7 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          pipenv install --dev --skip-lock --verbose
+          pipenv install --dev --verbose
   
       - name: Install Qt
         run: |
