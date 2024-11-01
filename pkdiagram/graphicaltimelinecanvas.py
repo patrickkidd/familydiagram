@@ -104,26 +104,26 @@ class GraphicalTimelineCanvas(QWidget):
         self.update()
 
     def firstAndLast(self, events=None):  # should be sorted
-        if self.scene.searchModel.startDateTime:
-            firstE = objects.Event(
-                dateTime=self.scene.searchModel.startDateTime, uniqueId="search_dummy"
-            )
-        else:
-            firstE = None
-            for event in events:
-                if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    firstE = event
-                    break
-        if self.scene.searchModel.endDateTime:
-            lastE = objects.Event(
-                dateTime=self.scene.searchModel.endDateTime, uniqueId="search_dummy"
-            )
-        else:
-            lastE = None
-            for event in reversed(events):
-                if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    lastE = event
-                    break
+        # if self.scene.searchModel.startDateTime:
+        #     firstE = objects.Event(
+        #         dateTime=self.scene.searchModel.startDateTime, uniqueId="search_dummy"
+        #     )
+        # else:
+        firstE = None
+        for event in events:
+            if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
+                firstE = event
+                break
+        # if self.scene.searchModel.endDateTime:
+        #     lastE = objects.Event(
+        #         dateTime=self.scene.searchModel.endDateTime, uniqueId="search_dummy"
+        #     )
+        # else:
+        lastE = None
+        for event in reversed(events):
+            if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
+                lastE = event
+                break
         return firstE, lastE
 
     ## Qt Events

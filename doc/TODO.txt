@@ -2,6 +2,8 @@ v2.0.0
 =============================================================================
 
 BUGS
+- set Scene.currentDateTime when it falls out of current search range
+  - ensure that graphical timeline callout changes as well.
 - Send warning to bugsnag when detecting emotion that doesn't have one of the people set
 - 2024-10-31 15:48:36,369 ERROR application.pyo:82         Traceback (most recent call last):
   2024-10-31 15:48:36,369 ERROR application.pyo:82           File ":/pkdiagram/commands.pyo", line 700, in redo
@@ -18,12 +20,12 @@ BUGS
   2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 355, in jigFor
   2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 90, in __init__
   2024-10-31 15:48:36,370 ERROR application.pyo:82         TypeError: : argument 2 has unexpected type 'NoneType'
-  - The add input panel I was working would not accept the new entry and the
-  screen didn’t shift as usual back to a panel with blank fields.  So I tried
-  multiple times and then found the timeline with a lot of copies of that entry.
-  I think it happened after I tried to add multiple people to the recipient
-  field which I hadn’t done before. I tried to delete the copies and it seemed
-  like they kept coming.  
+  - The add input panel I was working would not accept the new entry (no
+  response to Add button) and the screen didn’t shift as usual back to a panel
+  with blank fields.  So I tried multiple times and then found the timeline with
+  a lot of copies of that entry. I think it happened after I tried to add
+  multiple people to the recipient field which I hadn’t done before. I tried to
+  delete the copies and it seemed like they kept coming.  
 - 2024-11-01 09:17:35,489 DEBUG analytics.pyo:217          Attempting to send 1 profiles to Mixpanel...
   2024-11-01 09:17:35,927 DEBUG server_types.pyo:208       https://api.mixpanel.com/engage#profile-batch-update: status_code: None, SSL handshake with server failed.
 - 2024-11-01 09:17:33,548 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
