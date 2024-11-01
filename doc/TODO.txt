@@ -2,7 +2,28 @@ v2.0.0
 =============================================================================
 
 BUGS
-- Send error to bugsnag when detecting emotion that doesn't have one of the people set
+- Send warning to bugsnag when detecting emotion that doesn't have one of the people set
+- 2024-10-31 15:48:36,369 ERROR application.pyo:82         Traceback (most recent call last):
+  2024-10-31 15:48:36,369 ERROR application.pyo:82           File ":/pkdiagram/commands.pyo", line 700, in redo
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/event.pyo", line 160, in setParent
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/person.pyo", line 928, in _onAddEvent
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/scene.pyo", line 340, in addItem
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/property.pyo", line 179, in set
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/scene.pyo", line 1611, in onProperty
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 1748, in beginUpdateFrame
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 1724, in updateFannedBox
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 300, in addEmotion
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 387, in updateFannedState
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 438, in endPosDeltaFor
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 355, in jigFor
+  2024-10-31 15:48:36,370 ERROR application.pyo:82           File ":/pkdiagram/objects/emotions.pyo", line 90, in __init__
+  2024-10-31 15:48:36,370 ERROR application.pyo:82         TypeError: : argument 2 has unexpected type 'NoneType'
+  - The add input panel I was working would not accept the new entry and the
+  screen didn’t shift as usual back to a panel with blank fields.  So I tried
+  multiple times and then found the timeline with a lot of copies of that entry.
+  I think it happened after I tried to add multiple people to the recipient
+  field which I hadn’t done before. I tried to delete the copies and it seemed
+  like they kept coming.  
 - 2024-11-01 09:17:35,489 DEBUG analytics.pyo:217          Attempting to send 1 profiles to Mixpanel...
   2024-11-01 09:17:35,927 DEBUG server_types.pyo:208       https://api.mixpanel.com/engage#profile-batch-update: status_code: None, SSL handshake with server failed.
 - 2024-11-01 09:17:33,548 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
@@ -11,6 +32,8 @@ BUGS
   2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 0
   2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 1
   2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 2
+- 2024-10-31 15:53:43,213 INFO :0                         QUndoStack::setClean(): cannot set clean in the middle of a macro
+- 2024-10-31 15:52:13,721 INFO :0                         QUnifiedTimer::stopAnimationDriver: driver is not running
 - Reset diagram sets hideDateSlider to True?
 - Undo delete all events doesn't set Scene.setCurrentDate() to valid date, bottom timeline doesn't come back
 - Can't switch between 1.5.4 and beta, get "app tampered with message"
