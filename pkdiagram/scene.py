@@ -663,6 +663,9 @@ class Scene(QGraphicsScene, Item):
                 if item.isEmotion and item.personA() is None:
                     log.warning(f"Emotion {item} has no personA, skipping loading...")
                     continue
+                elif item.isEmotion and item.isDyadic() and item.personB() is None:
+                    log.warning(f"Emotion {item} has no personB, skipping loading...")
+                    continue
                 self.addItem(
                     item
                 )  # don't use addItems() to avoid calling updateAll() until layer
@@ -1921,13 +1924,15 @@ class Scene(QGraphicsScene, Item):
         selectedPeople = self.selectedPeople()
         if not selectedPeople:
             return
-        
+
         undoId = commands.nextId()
         for person in selectedPeople:
             rect = person.mapToScene(person.boundingRect()).boundingRect()
             fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
             motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId)
+            father = commands.addPerson(
+                self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId
+            )
             mother = commands.addPerson(
                 self, util.PERSON_KIND_FEMALE, motherPos, person.size(), id=undoId
             )

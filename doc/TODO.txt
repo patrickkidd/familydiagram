@@ -1,18 +1,22 @@
 v2.0.0
 =============================================================================
 
-- User analytics
-- App Center API
-  - API token: 491b4d66b6801a151d44399560f09df7b5fa4714
-  - owner_name: pstinson
-  - app_name: Family-Diagram-2
-
 BUGS
+- Send error to bugsnag when detecting emotion that doesn't have one of the people set
+- 2024-11-01 09:17:35,489 DEBUG analytics.pyo:217          Attempting to send 1 profiles to Mixpanel...
+  2024-11-01 09:17:35,927 DEBUG server_types.pyo:208       https://api.mixpanel.com/engage#profile-batch-update: status_code: None, SSL handshake with server failed.
+- 2024-11-01 09:17:33,548 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
+  2024-11-01 09:17:33,657 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
+- 024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             <---- Returning PersonPicker: PersonPicker_QMLTYPE_192_QML_202(0x6000088f1600, "dRoot"), personName: Lillian Anne Havstad, person: Person(0x600000b765d0), gender: female
+  2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 0
+  2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 1
+  2024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             found PK.PersonPicker at index: 2
 - Reset diagram sets hideDateSlider to True?
 - Undo delete all events doesn't set Scene.setCurrentDate() to valid date, bottom timeline doesn't come back
 - Can't switch between 1.5.4 and beta, get "app tampered with message"
 - Clicking tab in CaseProps doesn't update right toolbar button state
 - CaseProps Settings view is still visible in editor mode
+- Set search start date time always paints a bubble at the beginning even when there is no event on that date.
 
 - Start w empty diagram, set birth kind, submit new person name, switch to Married, observe:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/PersonPicker.qml:90: TypeError: Cannot call method 'listLabel' of null
