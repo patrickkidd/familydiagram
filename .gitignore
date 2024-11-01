@@ -17,8 +17,6 @@ __pycache__
 *.pyo
 *~
 .env
-server.log
-server/instance/activity.log
 crash.log
 *.autosave
 .pytest_cache

@@ -586,7 +586,7 @@ def addMarriage(scene, a, b, id=-1):
 class SetItemProperty(UndoCommand):
     """Only called from Property.set()."""
 
-    ANALYTICS = "SetItemProperty"
+    ANALYTICS = False # "SetItemProperty"
 
     def __init__(self, prop, value, layers=[], id=-1):
         if layers:
