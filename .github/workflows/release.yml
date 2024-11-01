@@ -51,13 +51,11 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
-
     # # Will provide an SSH command in the logs that you can use to access the runner.
     # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3        
+    #   uses: mxschmitt/action-tmate@v3
+
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -68,7 +66,7 @@ jobs:
         pip install pipenv
         mkdir .venv
         pipenv --clear
-        pipenv install --dev  --skip-lock --verbose
+        pipenv install --dev --verbose
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -253,7 +251,7 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          pipenv install --dev --skip-lock --verbose
+          pipenv install --dev --verbose
   
       - name: Install Qt
         run: |
