@@ -45,10 +45,10 @@ def init_bugsnag(app: QApplication):
             app_version=version.VERSION,
         )
 
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger()
         handler = BugsnagHandler()
         # send only ERROR-level logs and above
-        handler.setLevel(logging.ERROR)
+        handler.setLevel(logging.WARNING)
         logger.addHandler(handler)
 
         accumulativeHandler = AccumulativeLogHandler()
