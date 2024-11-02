@@ -346,6 +346,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if attr == "scene":
             if self._scene:
                 self._scene.searchModel.changed.connect(self.onSearchChanged)
+            else:
+                self._events = util.SortedList()
         elif attr == "items":
             self.refreshColumnHeaders()
             self._refreshRows()
@@ -372,16 +374,18 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def columnCount(self, index=QModelIndex()):
         return len(self._columnHeaders)
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
                 return self._columnHeaders[section]
         return QVariant()
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        event = self._events[index.row()] if self._events else []
         ret = None
-        event = self._events[index.row()]
-        if role == self.FlagsRole:
+        if not self._scene:
+            ret = None
+        elif role == self.FlagsRole:
             ret = self.flags(index)
         elif role == self.DateTimeRole:
             ret = event.dateTime()
@@ -659,7 +663,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                         ret = i - 1
                         break
         return ret
-    
+
     def firstEventDateTime(self):
         if self._events:
             return self._events[0].dateTime()
