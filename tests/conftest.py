@@ -262,13 +262,13 @@ def flask_qnam(tmp_path, request):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 
     # Tie Qt HTTP requests to flask server
-    def sendCustomRequest(request, verb, data=b""):
+    def sendCustomRequest(qt_request, verb, data=b""):
 
         # on demand, not every test
-        flask_app = request.get_fixture_value("flask_app")
+        flask_app = request.getfixturevalue("flask_app")
 
         with flask_app.test_client() as client:
-            ret = _sendCustomRequest(request, verb, data=data, client=client)
+            ret = _sendCustomRequest(qt_request, verb, data=data, client=client)
             QApplication.processEvents()
             return ret
 

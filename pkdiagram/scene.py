@@ -202,12 +202,6 @@ class Scene(QGraphicsScene, Item):
         # This is contained here because many TimelineModels (person, marriage,
         # graphical timeline) use the same SearchModel.
 
-        from .models import CategoriesModel
-
-        self.categoriesModel = CategoriesModel(self)
-        self.categoriesModel.setObjectName("Scene.categoriesModel")
-        self.categoriesModel.scene = self
-
         from .models import SearchModel
 
         self.searchModel = SearchModel(self)
@@ -1705,12 +1699,6 @@ class Scene(QGraphicsScene, Item):
 
     def onNotesIconClicked(self, pathItem):
         self.showNotes.emit(pathItem)
-
-    def activeCategory(self) -> str:
-        if self.searchModel.category:
-            category = self.searchModel.category
-            assert self.categoriesModel.rowForCategory(category) > -1
-            category
 
     def _updateAllItemsForLayersAndTags(self):
         # Tell the items to add their animations to the group if a layered property has changed.

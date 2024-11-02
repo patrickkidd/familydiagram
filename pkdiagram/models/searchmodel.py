@@ -1,9 +1,9 @@
 import logging
 
-from ..pyqt import Qt, QObject, QDateTime, pyqtSlot, pyqtSignal
+from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
-from ..objects import Item, Layer
-from .. import util, commands
+from ..objects import Layer
+from .. import util
 
 _log = logging.getLogger(__name__)
 
@@ -26,7 +26,6 @@ class SearchModel(QObject, QObjectHelper):
             {"attr": "tags", "type": list},
             {"attr": "hideRelationships", "type": bool, "default": False},
             {"attr": "category"},
-            {"attr": "categories", "type": list},
             {"attr": "isBlank", "type": bool},
         ]
     )
@@ -35,9 +34,6 @@ class SearchModel(QObject, QObjectHelper):
         super().__init__(parent)
         if util.isInstance(parent, "Scene"):
             self._scene = parent
-            self._scene.categoriesModel.categoriesChanged.connect(
-                self.onCategoriesChanged
-            )
         else:
             self._scene = None
         self.initQObjectHelper(storage=True)
@@ -71,15 +67,6 @@ class SearchModel(QObject, QObjectHelper):
     def scene(self):
         return self._scene
 
-    def onCategoriesChanged(self):
-        return
-        self._scene.categoriesModel
-        categories = [""] + [
-            self._scene.categoriesModel.data()
-            for i in range(self._scene.categoriesModel.rowCount())
-        ]
-        self.set("categories", categories)
-
     def get(self, attr):
         if attr == "isBlank":
             ret = True
@@ -96,11 +83,6 @@ class SearchModel(QObject, QObjectHelper):
                 if getattr(self, name) != self.defaultFor(name):
                     ret = False
                     break
-        elif attr == "categories":
-            if self._scene:
-                ret = self._scene.categoriesModel.categories()
-            else:
-                ret = []
         else:
             ret = super().get(attr)
         return ret

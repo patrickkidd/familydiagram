@@ -40,6 +40,8 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         propSheetModel=None,
         objectName=None,
         sceneModel=None,
+        categoriesModel=None,
+        # TODO: Deal with the rest of the models as well...
     ):  # dev
         super().__init__(parent=parent, resizable=resizable)
         if objectName is not None:
@@ -49,7 +51,9 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         else:
             self._documentView = None
         self.propSheetModel = propSheetModel
-        self.initQmlWidgetHelper(source, sceneModel=sceneModel)
+        self.initQmlWidgetHelper(
+            source, sceneModel=sceneModel, categoriesModel=categoriesModel
+        )
         self.checkInitQml()
         self.installEventFilter(self)
 

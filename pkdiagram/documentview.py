@@ -26,7 +26,7 @@ from . import addeventdialog, addemotiondialog
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
 from .widgets import Drawer, TimelineCallout
-from .models import SceneModel
+from .models import SceneModel, CategoriesModel
 from .qmldrawer import QmlDrawer
 
 
@@ -128,6 +128,10 @@ class DocumentView(QWidget):
         # self.drawerShimAnimation.finished.connect(self.onDrawerAnimationFinished)
 
         # property sheets
+
+        self.categoriesModel = CategoriesModel(self)
+        self.categoriesModel.setObjectName("categoriesModel")
+
         self.sceneModel = SceneModel(self, session=session)
         self.sceneModel.setObjectName("documentView_sceneModel")
         self.caseProps = CaseProperties(
@@ -135,6 +139,7 @@ class DocumentView(QWidget):
             parent=self,
             objectName="caseProps",
             sceneModel=self.sceneModel,
+            categoriesModel=self.categoriesModel,
         )
         self.caseProps.findItem("stack").currentIndexChanged.connect(
             self.onCasePropsTabChanged

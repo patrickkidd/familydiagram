@@ -15,7 +15,6 @@ from .modelhelper import ModelHelper
 from .peoplemodel import PeopleModel
 from .timelinemodel import TimelineModel
 from .searchmodel import SearchModel
-from .categoriesmodel import CategoriesModel
 from .accessrightsmodel import AccessRightsModel
 from ..session import Session
 from ..server_types import Diagram
@@ -41,7 +40,6 @@ class SceneModel(QObject, ModelHelper):
             {"attr": "searchModel", "type": QVariant, "default": None},
             {"attr": "peopleModel", "type": QVariant, "default": None},
             {"attr": "accessRightsModel", "type": QVariant, "default": None},
-            {"attr": "categoriesModel", "type": QVariant, "default": None},
             {"attr": "hasActiveLayers", "type": bool},
             {"attr": "authenticated", "type": bool, "default": False},
             {"attr": "eventPropertiesTemplateIndex", "type": int, "default": -1},
@@ -69,8 +67,6 @@ class SceneModel(QObject, ModelHelper):
         self._nullPeopleModel.setObjectName("nullPeopleModel")
         self._nullAccessRightsModel = AccessRightsModel(self)
         self._nullAccessRightsModel.setObjectName("accessRightModel")
-        self._nullCategoriesModel = CategoriesModel(self)
-        self._nullCategoriesModel.setObjectName("categoriesModel")
         self._activeFeatures = []
         self._isInEditorMode = False
         self.initModelHelper(storage=True)
@@ -125,11 +121,6 @@ class SceneModel(QObject, ModelHelper):
                 ret = self._scene.accessRightsModel
             else:
                 ret = self._nullAccessRightsModel
-        elif attr == "categoriesModel":
-            if self._scene:
-                ret = self._scene.categoriesModel
-            else:
-                ret = self._nullCategoriesModel
         elif attr == "session":
             ret = self._session
         else:

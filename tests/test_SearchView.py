@@ -3,16 +3,20 @@ import conftest
 from pkdiagram.pyqt import *
 from pkdiagram import util, Scene, Person, Event, QmlWidgetHelper, SceneModel
 from pkdiagram.objects import Layer
+from pkdiagram.models import CategoriesModel
 
 
 class SearchViewTest(QWidget, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
 
-    def __init__(self, parent=None):
+    def __init__(self, categoriesModel, parent=None):
         super().__init__(parent)
-        Layout = QVBoxLayout(self)
-        self.initQmlWidgetHelper("tests/qml/SearchViewTest.qml")
+        QVBoxLayout(self)
+        self.categoriesModel = categoriesModel
+        self.initQmlWidgetHelper(
+            "tests/qml/SearchViewTest.qml", categoriesModel=categoriesModel
+        )
         self.checkInitQml()
 
 
@@ -48,8 +52,10 @@ def tst(qtbot, request, tst_stuff):
     scene.addItems(*tst_stuff)
     sceneModel = SceneModel()
     sceneModel.scene = scene
-    scene.categoriesModel.addRow()
-    w = SearchViewTest()
+    categoriesModel = CategoriesModel()
+    categoriesModel.scene = scene
+    categoriesModel.addRow()
+    w = SearchViewTest(categoriesModel)
     w.setRootProp("sceneModel", sceneModel)
     w.resize(600, 800)
     w.show()
@@ -78,7 +84,7 @@ def test_init(tst):
 
 def test_fields(tst):
     model = tst.rootProp("model")
-    category = model.scene.categoriesModel.categories()[0]
+    category = tst.categoriesModel.categories()[0]
 
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
@@ -268,7 +274,7 @@ def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
 def test_category(tst, tst_stuff):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
     scene = tst.rootProp("sceneModel").scene
-    category = scene.categoriesModel.data(scene.categoriesModel.index(0, 0))
+    category = tst.categoriesModel.data(tst.categoriesModel.index(0, 0))
     event1.setTags([category])
     layer = scene.layers()[0]
     scene.addItems(inside, inside_2, outside, event1, event2, event3)
