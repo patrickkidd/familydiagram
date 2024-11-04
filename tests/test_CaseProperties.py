@@ -11,42 +11,52 @@ from pkdiagram import (
     Person,
     Event,
     QmlWidgetHelper,
-    SceneModel,
     Session,
     CaseProperties,
+)
+from pkdiagram import (
+    SearchModel,
+    TimelineModel,
+    SceneModel,
+    PeopleModel,
     AccessRightsModel,
 )
 
 from fdserver.extensions import db
 from fdserver.models import User, Diagram
 
+pytestmark = [
+    pytest.mark.component("CaseProperties"),
+    pytest.mark.depends_on(
+        "Scene", "Session", "SearchView", "TagsModel", "AccessRightsModel"
+    ),
+]
+
 
 @pytest.fixture
-def create_cp(request, test_session, test_user, qtbot):
+def create_cp(request, test_session, test_user, qtbot, qmlEngine):
 
     created = []
 
     def _create_cp(session=True, loadFreeDiagram=False):
-        session = Session()
         if session:
             test_session = request.getfixturevalue("test_session")
             db.session.add(test_session)
-            session.init(sessionData=test_session.account_editor_dict())
+            qmlEngine.session.init(sessionData=test_session.account_editor_dict())
         else:
-            session.init()
-        sceneModel = SceneModel(session=session)
-        sceneModel.scene = Scene()
-
+            qmlEngine.session.init()
+        scene = Scene()
+        qmlEngine.setScene(scene)
         if loadFreeDiagram:
             diagram = Diagram.query.get(test_user.free_diagram_id).as_dict()
             diagram = pkdiagram.Diagram.create(diagram)
-            sceneModel.setServerDiagram(diagram)
+            qmlEngine.sceneModel.setServerDiagram(diagram)
+            qmlEngine.accessRightsModel.setServerDiagram(diagram)
 
-        w = CaseProperties("qml/CaseProperties.qml", parent=None, sceneModel=sceneModel)
+        w = CaseProperties(qmlEngine, "qml/CaseProperties.qml", parent=None)
         w.show(animate=False, tab="settings")
         w.resize(510, 600)
         w.setItemProp("settingsView", "contentY", 643)
-        sceneModel.sessionChanged.emit(sceneModel.session)
 
         created.append(w)
         return w
@@ -55,7 +65,6 @@ def create_cp(request, test_session, test_user, qtbot):
 
     for w in created:
         w.deinit()
-        w.sceneModel.session.deinit()
 
 
 def test_serverBox_disabled_free(create_cp):
@@ -65,12 +74,12 @@ def test_serverBox_disabled_free(create_cp):
 
 
 def test_add_access_right_as_client(
-    test_user, test_user_2, test_client_activation, create_cp
+    test_user, test_user_2, test_client_activation, create_cp, qmlEngine
 ):
     db.session.add(test_user.free_diagram)
     cp = create_cp(loadFreeDiagram=True)
     data = pickle.loads(test_user.free_diagram.data)
-    cp.sceneModel.scene.read(data)
+    qmlEngine.sceneModel.scene.read(data)
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
@@ -78,7 +87,7 @@ def test_add_access_right_as_client(
 
 
 def test_add_only_one_access_right_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp
+    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine
 ):
     test_user_3 = User(
         username="patrickkidd+unittest+3@gmail.com",
@@ -93,7 +102,7 @@ def test_add_only_one_access_right_as_client(
     cp = create_cp(loadFreeDiagram=True)
     db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
-    cp.sceneModel.scene.read(data)
+    qmlEngine.sceneModel.scene.read(data)
 
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
     db.session.add(test_user)
@@ -114,12 +123,12 @@ def test_add_only_one_access_right_as_client(
 
 
 def test_add_one_access_right_for_free_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp
+    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine
 ):
     cp = create_cp(loadFreeDiagram=True)
     db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
-    cp.sceneModel.scene.read(data)
+    qmlEngine.sceneModel.scene.read(data)
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
     db.session.add(test_user)
     diagram = Diagram.query.get(test_user.free_diagram.id)
@@ -163,7 +172,7 @@ def test_delete_access_right(test_user, test_user_2, test_client_activation, cre
 
 @pytest.mark.parametrize("is_on_server", [True, False])
 def test_serverBox_enabled_with_client_license(
-    tmp_path, test_session, test_client_activation, create_cp, is_on_server
+    tmp_path, test_session, test_client_activation, create_cp, is_on_server, qmlEngine
 ):
     if is_on_server:
         cp = create_cp(loadFreeDiagram=True)
@@ -175,7 +184,7 @@ def test_serverBox_enabled_with_client_license(
             data = pickle.loads(f.read())
             scene = Scene()
             scene.read(data)
-            cp.sceneModel.scene = scene
+            qmlEngine.sceneModel.scene = scene
 
     if is_on_server:
         assert cp.itemProp("accessRightsBox", "enabled") == True
@@ -201,9 +210,9 @@ def test_serverBox_enabled_with_pro_license(test_activation, create_cp, is_on_se
 
 
 @pytest.mark.parametrize("is_read_only", [True, False])
-def test_variablesBox_enabled(test_activation, create_cp, is_read_only):
+def test_variablesBox_enabled(test_activation, create_cp, is_read_only, qmlEngine):
     cp = create_cp(loadFreeDiagram=True)
-    cp.sceneModel.scene.setReadOnly(is_read_only)
-    cp.sceneModel.refreshProperty("readOnly")
+    qmlEngine.sceneModel.scene.setReadOnly(is_read_only)
+    qmlEngine.sceneModel.refreshProperty("readOnly")
 
     assert cp.itemProp("variablesBox", "enabled") == (not is_read_only)

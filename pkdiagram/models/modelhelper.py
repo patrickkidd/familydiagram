@@ -4,7 +4,8 @@ from ..scene import Scene
 
 
 class ModelHelper(QObjectHelper):
-    """Handle properties for a list of like Item's.
+    """
+    Handle properties for a list of like Item's.
     calls refreshAllProperties() when items and/or scene changed.
     """
 

@@ -1,5 +1,13 @@
+import pytest
+
 from pkdiagram.pyqt import *
 from pkdiagram import Person, Scene, PersonPropertiesModel
+
+
+pytestmark = [
+    pytest.mark.component("PersonPropertiesModel"),
+    pytest.mark.depends_on("Scene"),
+]
 
 
 def test_checkStates(simpleScene):

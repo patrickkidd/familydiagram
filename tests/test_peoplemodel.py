@@ -79,7 +79,8 @@ def test_change_person(simpleScene, peopleModel):
 
 def test_set_existing_persons_name():
     scene = Scene()
-    model = scene.peopleModel
+    model = PeopleModel()
+    model.scene = scene
 
     rowsInserted = util.Condition(model.rowsInserted)
     personA = Person()
@@ -95,7 +96,8 @@ def test_set_existing_persons_name():
 
 def test_set_existing_peoples_names():
     scene = Scene()
-    model = scene.peopleModel
+    model = PeopleModel()
+    model.scene = scene
     personA = Person()
     personB = Person(name="B")
     scene.addItems(personA, personB)

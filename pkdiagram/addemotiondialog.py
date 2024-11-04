@@ -6,8 +6,9 @@ from .qmldrawer import QmlDrawer
 
 class AddEmotionDialog(QmlDrawer):
 
-    def __init__(self, view=None, sceneModel=None):
+    def __init__(self, engine, view=None, sceneModel=None):
         super().__init__(
+            engine,
             "qml/EmotionPropertiesDrawer.qml",
             parent=view,
             resizable=False,

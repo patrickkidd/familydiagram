@@ -3,6 +3,9 @@ from pkdiagram.pyqt import QPointF
 from pkdiagram import util, commands, Scene, Layer, PathItem, Person, Property, Callout
 
 
+pytestmark = [pytest.mark.component("Layer")]
+
+
 @pytest.fixture
 def undoStack():
     commands.stack().clear()

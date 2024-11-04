@@ -1,11 +1,27 @@
-#####################################################
-##
-##  Qml
-##
-#####################################################
-
 import pickle, json, datetime, time, logging
-from .pyqt import *
+from .pyqt import (
+    Qt,
+    QObject,
+    QDateTime,
+    pyqtSlot,
+    pyqtSignal,
+    QVariant,
+    QItemSelectionModel,
+    QAbstractItemModel,
+    QModelIndex,
+    QItemSelection,
+    QJSValue,
+    QDesktopServices,
+    QUrl,
+    QMessageBox,
+    QApplication,
+    QColor,
+    QPen,
+    QBrush,
+    QPalette,
+    QNetworkRequest,
+    QQmlEngine,
+)
 from . import util
 from .util import CUtil, EventKind
 from .models import QObjectHelper
@@ -25,7 +41,10 @@ def find_global_type(attr):
 
 
 class QmlUtil(QObject, QObjectHelper):
-    """This module exposed to qml."""
+    """
+    TODO: This whole class should not manage dynamic globals from util, it should
+    store them locally. The util module should just be static constants.
+    """
 
     CONSTANTS = [
         "QRC",
@@ -135,10 +154,10 @@ class QmlUtil(QObject, QObjectHelper):
         globalContext=util.__dict__,
     )
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QApplication):
         super().__init__(parent)
         self.setObjectName("util")
-        QApplication.instance().paletteChanged.connect(self.initColors)
+        parent.paletteChanged.connect(self.initColors)
         self._httpReplies = {}
         self._lastHttpRequestId = 0
         self._httpRequests = []
@@ -192,7 +211,9 @@ class QmlUtil(QObject, QObjectHelper):
         if util.HIGHLIGHT_COLOR is None:
             util.HIGHLIGHT_COLOR = palette.color(QPalette.Highlight)
         if util.SAME_DATE_HIGHLIGHT_COLOR is None:
-            util.SAME_DATE_HIGHLIGHT_COLOR = lightenOpacity(util.SELECTION_COLOR, 0.7)
+            util.SAME_DATE_HIGHLIGHT_COLOR = util.lightenOpacity(
+                util.SELECTION_COLOR, 0.7
+            )
         util.SELECTION_TEXT_COLOR = util.contrastTo(util.SELECTION_COLOR)
         util.HIGHLIGHT_TEXT_COLOR = util.contrastTo(util.HIGHLIGHT_COLOR)
         util.HOVER_COLOR = util.SELECTION_COLOR
@@ -395,7 +416,7 @@ class QmlUtil(QObject, QObjectHelper):
                 # Can maybe try QJSValue(callback) to retain callable status?
                 # - https://wiki.python.org/moin/PyQt/QML%20callback%20function
                 # self.here(requestId, reply.url(), reply.attribute(QNetworkRequest.HttpStatusCodeAttribute))
-                args = QApplication.instance().qmlEngine().newObject()
+                args = self._qmlEngine.newObject()
                 try:
                     session.server().checkHTTPReply(reply, quiet=False)
                 except HTTPError as e:

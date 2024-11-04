@@ -1,18 +1,29 @@
 import pytest
-import conftest
-from pkdiagram.pyqt import *
+
+from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget
 from pkdiagram import util, Scene, Person, Event, QmlWidgetHelper, SceneModel
+
+
+pytestmark = [
+    pytest.mark.component("SearchView"),
+    pytest.mark.depends_on("Scene", "SearchModel", "TagsModel"),
+]
 
 
 class SearchViewTest(QWidget, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
 
-    def __init__(self, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
         Layout = QVBoxLayout(self)
-        self.initQmlWidgetHelper("tests/qml/SearchViewTest.qml")
+        self.initQmlWidgetHelper(engine, "tests/qml/SearchViewTest.qml")
         self.checkInitQml()
+
+
+@pytest.fixture
+def model(qmlEngine):
+    return qmlEngine.searchModel
 
 
 @pytest.fixture
@@ -40,28 +51,28 @@ def tst_stuff():
 
 
 @pytest.fixture
-def tst(qtbot, request, tst_stuff):
+def tst(qtbot, tst_stuff, qmlEngine):
     scene = Scene()
     scene.addItems(*tst_stuff)
     sceneModel = SceneModel()
     sceneModel.scene = scene
-    w = SearchViewTest()
-    w.setRootProp("sceneModel", sceneModel)
+    w = SearchViewTest(qmlEngine)
     w.resize(600, 800)
     w.show()
     qtbot.addWidget(w)
     qtbot.waitActive(w)
+
     yield w
+
     w.hide()
+    w.deinit()
 
 
-def test_init(tst):
+def test_init(tst, model):
     pass
 
 
-def test_properties(tst):
-    model = tst.rootProp("model")
-
+def test_properties(tst, model):
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
 
@@ -95,15 +106,14 @@ def test_properties(tst):
     assert model.loggedEndDateTime == QDateTime()
 
 
-def test_clear_0(tst):
-    model = tst.rootProp("model")
+def test_clear_0(tst, model):
     tst.keyClicks("descriptionEdit", "item1")
     model.clear()
     assert model.description == ""
 
 
-def test_clear(tst):
-    model = tst.rootProp("model")
+def test_clear(tst, model):
+
     tst.keyClicks("descriptionEdit", "item1")
     tst.keyClicks("startDateButtons.dateTextInput", "01/01/2001")
     tst.keyClicks("endDateButtons.dateTextInput", "02/02/2002")
@@ -136,20 +146,16 @@ def test_clear(tst):
     )
 
 
-def test_description(tst, tst_stuff):
+def test_description(tst, tst_stuff, model):
     person, event1, event2, event3 = tst_stuff
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
-    model = tst.rootProp("model")
     tst.keyClicks("descriptionEdit", "item1")
     assert model.shouldHide(event1) == False
     assert model.shouldHide(event2) == True
     assert model.shouldHide(event3) == True
 
 
-def test_loggedStartDateTime(tst, tst_stuff):
+def test_loggedStartDateTime(tst, tst_stuff, model):
     person, event1, event2, event3 = tst_stuff
-    model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
     # before first date
     tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2000")
@@ -181,10 +187,8 @@ def test_loggedStartDateTime(tst, tst_stuff):
     assert model.shouldHide(event3) == False
 
 
-def test_loggedEndDateTime(tst, tst_stuff):
+def test_loggedEndDateTime(tst, tst_stuff, model):
     person, event1, event2, event3 = tst_stuff
-    model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
     # after last date
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/12/2000")
@@ -216,10 +220,8 @@ def test_loggedEndDateTime(tst, tst_stuff):
     assert model.shouldHide(event3) == False
 
 
-def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
+def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff, model):
     person, event1, event2, event3 = tst_stuff
-    model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
     # same as first date
     tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/10/2000")

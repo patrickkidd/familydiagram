@@ -9,7 +9,4 @@ PK.EventProperties {
 
     signal resize
 
-    property var sceneModel: SceneModel {
-        objectName: 'EventProperties_default_sceneModel'
-    } // just to allow for a slight delay before setProperty in DocumentView
 }

@@ -3,12 +3,18 @@ import logging
 import pytest
 import mock
 
-from pkdiagram.pyqt import Qt, QWidget, QSize, QMainWindow
-from pkdiagram import MainWindow, QmlWidgetHelper
+from pkdiagram.pyqt import QSize, QMainWindow
+from pkdiagram import MainWindow
 from pkdiagram.mainwindow_form import Ui_MainWindow
 from pkdiagram.toolbars import SceneToolBar, RightToolBar, ItemToolBar
 
 _log = logging.getLogger(__name__)
+
+
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView"),
+]
 
 
 def assert_itemToolBar_InEditorMode(itemToolBar: ItemToolBar, on: bool):

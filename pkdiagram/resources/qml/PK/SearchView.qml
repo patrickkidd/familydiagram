@@ -18,20 +18,9 @@ Page {
         Edit.forceActiveFocus()
     }
 
+    property alias tagsModel: tagsModel
     property int margin: util.QML_MARGINS
     property bool canInspect: false
-
-    property var model: sceneModel.searchModel
-
-    // Read-Only: Just here to have reliable signals to connect to
-    property var description: model ? model.description : ''
-    property var startDateTime: model ? model.startDateTime : new Date
-    property var endDateTime: model ? model.endDateTime : new Date
-    property var loggedStartDateTime: model ? model.loggedStartDateTime : new Date
-    property var loggedEndDateTime: model ? model.loggedEndDateTime : new Date
-    property var tags: model ? model.tags : []
-    property var nodal: model ? model.nodal : false
-    property var hideRelationships: model ? model.hideRelationships : false
 
     Keys.enabled: true
     Keys.onPressed: {
@@ -89,11 +78,19 @@ Page {
                         objectName: 'descriptionEdit'
                         Layout.fillWidth: true
                         Layout.bottomMargin: 5
-                        onTextChanged: if(model.description != text) model.description = text
+                        onTextChanged: {
+                            if(searchModel.description != text) {
+                                searchModel.description = text
+                            }
+                        }
                         KeyNavigation.tab: startDateButtons.firstTabItem
                         Connections {
-                            target: root
-                            function onDescriptionChanged() { if(model) descriptionEdit.text = model.description }
+                            target: searchModel
+                            function onDescriptionChanged() {
+                                if(descriptionEdit.text != searchModel.description) {
+                                    descriptionEdit.text = searchModel.description
+                                }
+                            }
                         }
                     }
 
@@ -104,14 +101,14 @@ Page {
                         objectName:'startDateButtons'
                         datePicker: startDatePicker
                         timePicker: startTimePicker
-                        dateTime: model ? root.startDateTime : undefined
+                        dateTime: searchModel.startDateTime
                         hideUnsure: true
-                        onDateTimeChanged: if(model && model.startDateTime != dateTime) model.startDateTime = dateTime
+                        onDateTimeChanged: { if(searchModel.startDateTime != dateTime) searchModel.startDateTime = dateTime }
                         backTabItem: descriptionEdit
                         tabItem: endDateButtons.firstTabItem
                         Connections {
-                            target: root
-                            function onStartDateTimeChanged() { startDateButtons.dateTime = root.startDateTime }
+                            target: searchModel
+                            function onStartDateTimeChanged() { startDateButtons.dateTime = searchModel.startDateTime }
                         }
                     }
 
@@ -121,10 +118,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.startDateTime != dateTime) model.startDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.startDateTime != dateTime) searchModel.startDateTime = dateTime
                         Connections {
-                            target: root
-                            function onStartDateTimeChanged() { startDatePicker.dateTime = root.startDateTime }
+                            target: searchModel
+                            function onStartDateTimeChanged() { startDatePicker.dateTime = searchModel.startDateTime }
                         }
                     }
 
@@ -134,10 +131,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.startDateTime != dateTime) model.startDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.startDateTime != dateTime) searchModel.startDateTime = dateTime
                         Connections {
-                            target: root
-                            function onStartDateTimeChanged() { startTimePicker.dateTime = root.startDateTime }
+                            target: searchModel
+                            function onStartDateTimeChanged() { startTimePicker.dateTime = searchModel.startDateTime }
                         }
                     }
 
@@ -148,14 +145,14 @@ Page {
                         objectName:'endDateButtons'
                         datePicker: endDatePicker
                         timePicker: endTimePicker
-                        dateTime: model.endDateTime
+                        dateTime: searchModel.endDateTime
                         hideUnsure: true
-                        onDateTimeChanged: if(model && model.endDateTime != dateTime) model.endDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.endDateTime != dateTime) searchModel.endDateTime = dateTime
                         backTabItem: startDateButtons.lastTabItem
                         tabItem: loggedStartDateTimeButtons.firstTabItem
                         Connections {
-                            target: root
-                            function onEndDateTimeChanged() { endDateButtons.dateTime = root.endDateTime }
+                            target: searchModel
+                            function onEndDateTimeChanged() { endDateButtons.dateTime = searchModel.endDateTime }
                         }
                     }
 
@@ -165,10 +162,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.endDateTime != dateTime) model.endDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.endDateTime != dateTime) searchModel.endDateTime = dateTime
                         Connections {
-                            target: root
-                            function onEndDateTimeChanged() { endDatePicker.dateTime = root.endDateTime }
+                            target: searchModel
+                            function onEndDateTimeChanged() { endDatePicker.dateTime = searchModel.endDateTime }
                         }
                     }
 
@@ -178,10 +175,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.endDateTime != dateTime) model.endDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.endDateTime != dateTime) searchModel.endDateTime = dateTime
                         Connections {
-                            target: root
-                            function onEndDateTimeChanged() { endTimePicker.dateTime = root.endDateTime }
+                            target: searchModel
+                            function onEndDateTimeChanged() { endTimePicker.dateTime = searchModel.endDateTime }
                         }
                     }
 
@@ -195,15 +192,15 @@ Page {
                         objectName:'loggedStartDateTimeButtons'
                         datePicker: loggedStartDateDatePicker
                         timePicker: loggedStartDateTimePicker
-                        dateTime: model.loggedStartDateTime
+                        dateTime: searchModel.loggedStartDateTime
                         hideUnsure: true
                         visible: sceneModel.isInEditorMode
-                        onDateTimeChanged: if(model && model.loggedStartDateTime != dateTime) model.loggedStartDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedStartDateTime != dateTime) searchModel.loggedStartDateTime = dateTime
                         backTabItem: endDateButtons.lastTabItem
                         tabItem: loggedEndDateTimeButtons.firstTabItem
                         Connections {
-                            target: root
-                            function onLoggedStartDateTimeChanged() { loggedStartDateTimeButtons.dateTime = root.loggedStartDateTime }
+                            target: searchModel
+                            function onLoggedStartDateTimeChanged() { loggedStartDateTimeButtons.dateTime = searchModel.loggedStartDateTime }
                         }
                     }
 
@@ -214,10 +211,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.loggedStartDateTime != dateTime) model.loggedStartDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedStartDateTime != dateTime) searchModel.loggedStartDateTime = dateTime
                         Connections {
-                            target: root
-                            function onLoggedStartDateTimeChanged() { loggedStartDateDatePicker.dateTime = root.loggedStartDateTime }
+                            target: searchModel
+                            function onLoggedStartDateTimeChanged() { loggedStartDateDatePicker.dateTime = searchModel.loggedStartDateTime }
                         }
                     }
 
@@ -228,10 +225,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.loggedStartDateTime != dateTime) model.loggedStartDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedStartDateTime != dateTime) searchModel.loggedStartDateTime = dateTime
                         Connections {
-                            target: root
-                            function onLoggedStartDateTimeChanged() { loggedStartDateTimePicker.dateTime = root.loggedStartDateTime }
+                            target: searchModel
+                            function onLoggedStartDateTimeChanged() { loggedStartDateTimePicker.dateTime = searchModel.loggedStartDateTime }
                         }
                     }                    
 
@@ -245,15 +242,15 @@ Page {
                         objectName:'loggedEndDateTimeButtons'
                         datePicker: loggedEndDateDatePicker
                         timePicker: loggedEndDateTimePicker
-                        dateTime: model.loggedEndDateTime
+                        dateTime: searchModel.loggedEndDateTime
                         hideUnsure: true
                         visible: sceneModel.isInEditorMode
-                        onDateTimeChanged: if(model && model.loggedEndDateTime != dateTime) model.loggedEndDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedEndDateTime != dateTime) searchModel.loggedEndDateTime = dateTime
                         backTabItem: loggedStartDateTimeButtons.lastTabItem
                         tabItem: nodalBox
                         Connections {
-                            target: root
-                            function onLoggedEndDateTimeChanged() { loggedEndDateTimeButtons.dateTime = root.loggedEndDateTime }
+                            target: searchModel
+                            function onLoggedEndDateTimeChanged() { loggedEndDateTimeButtons.dateTime = searchModel.loggedEndDateTime }
                         }
                     }
 
@@ -264,10 +261,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.loggedEndDateTime != dateTime) model.loggedEndDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedEndDateTime != dateTime) searchModel.loggedEndDateTime = dateTime
                         Connections {
-                            target: root
-                            function onLoggedEndDateTimeChanged() { loggedEndDateDatePicker.dateTime = root.loggedEndDateTime }
+                            target: searchModel
+                            function onLoggedEndDateTimeChanged() { loggedEndDateDatePicker.dateTime = searchModel.loggedEndDateTime }
                         }
                     }
 
@@ -278,10 +275,10 @@ Page {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         Layout.preferredHeight: implicitHeight
-                        onDateTimeChanged: if(model && model.loggedEndDateTime != dateTime) model.loggedEndDateTime = dateTime
+                        onDateTimeChanged: if(searchModel.loggedEndDateTime != dateTime) searchModel.loggedEndDateTime = dateTime
                         Connections {
-                            target: root
-                            function onLoggedEndDateTimeChanged() { loggedEndDateTimePicker.dateTime = root.loggedEndDateTime }
+                            target: searchModel
+                            function onLoggedEndDateTimeChanged() { loggedEndDateTimePicker.dateTime = searchModel.loggedEndDateTime }
                         }
                     }
 
@@ -290,10 +287,10 @@ Page {
                     PK.CheckBox {
                         id: nodalBox
                         objectName: 'nodalBox'
-                        checked: model ? model.nodal : false                        
+                        checked: searchModel.nodal
                         KeyNavigation.tab: hideRelationshipsBox
                         KeyNavigation.backtab: loggedEndDateTimeButtons.lastTabItem
-                        onCheckedChanged: if(model && model.nodal != checked) model.nodal = checked
+                        onCheckedChanged: if(searchModel.nodal != checked) searchModel.nodal = checked
                     }
 
                     PK.Text { text: "Hide Relationships" }
@@ -301,8 +298,8 @@ Page {
                     PK.CheckBox {
                         id: hideRelationshipsBox
                         objectName: 'hideRelationshipsBox'
-                        checked: model ? model.hideRelationships : false
-                        onCheckedChanged: if(model && model.hideRelationships != checked) model.hideRelationships = checked
+                        checked: searchModel.hideRelationships
+                        onCheckedChanged: if(searchModel.hideRelationships != checked) searchModel.hideRelationships = checked
                     }
 
                     /* PK.Text { text: "Hide Brackets" } */
@@ -377,7 +374,7 @@ Page {
                                             id: tagsModel
                                             objectName: 'SearchView_tagsModel'
                                             scene: sceneModel.scene
-                                            items: [sceneModel.scene]
+                                            searchModel: searchModel
                                         }
                                     }
                                 }

@@ -11,6 +11,12 @@ from fdserver import util as fdserver_util
 from tests.test_analytics import analytics
 
 
+pytestmark = [
+    pytest.mark.component("Session"),
+    pytest.mark.depends_on("Scene"),
+]
+
+
 @pytest.fixture
 def create_session(request, analytics):
 

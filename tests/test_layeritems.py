@@ -1,5 +1,9 @@
+import pytest
+
 from pkdiagram.pyqt import QPointF, QRectF, QGraphicsItem
 from pkdiagram import util, Scene, Layer, Callout, Person
+
+pytestmark = [pytest.mark.component("LayerItem")]
 
 
 def test_callout_init_pos():
@@ -61,8 +65,8 @@ def test_Callout_layeredSceneBoundingRect():
     scene.addItem(layer)  # add first so another one is not automatically added.
     callout = Callout(layers=[layer.id])
     scene.addItem(callout)
-    assert callout.layeredSceneBoundingRect([], []) == QRectF()
-    assert callout.layeredSceneBoundingRect([layer], []) == (
+    assert callout.layeredSceneBoundingRect([]) == QRectF()
+    assert callout.layeredSceneBoundingRect([layer]) == (
         callout.sceneBoundingRect() | callout.childrenBoundingRect()
     )
 

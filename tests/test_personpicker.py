@@ -20,28 +20,23 @@ class PersonPickerTest(QWidget, QmlWidgetHelper):
         ]
     )
 
-    def __init__(self, sceneModel, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
         QVBoxLayout(self)
-        self.initQmlWidgetHelper(
-            "tests/qml/PersonPickerTest.qml", sceneModel=sceneModel
-        )
+        self.initQmlWidgetHelper(engine, "tests/qml/PersonPickerTest.qml")
         self.checkInitQml()
 
 
 @pytest.fixture
 def scene():
-    scene = Scene()
-    scene._sceneModel = SceneModel()
-    scene._sceneModel.scene = scene
-    yield scene
+    return Scene()
 
 
 @pytest.fixture
-def picker(scene, qtbot):
-    dlg = PersonPickerTest(scene._sceneModel)
+def picker(qtbot, scene, qmlEngine):
+    qmlEngine.setScene(scene)
+    dlg = PersonPickerTest(qmlEngine)
     dlg.resize(600, 800)
-    dlg.setRootProp("sceneModel", scene._sceneModel)
     dlg.show()
     dlg.findItem("personPicker").clear()
     qtbot.addWidget(dlg)
@@ -51,9 +46,10 @@ def picker(scene, qtbot):
     yield dlg
 
     dlg.hide()
+    dlg.deinit()
 
 
-def test_set_new_person(scene, picker):
+def test_set_new_person(picker):
     PERSON_NAME = "Someone New"
     set_new_person(picker, PERSON_NAME, returnToFinish=True)
     assert picker.itemProp("personPicker", "isSubmitted") == True
@@ -118,7 +114,7 @@ def test_clear_button_existing_person(scene, picker):
     assert picker.itemProp("personPicker.genderBox", "currentIndex") == 0
 
 
-def test_clear_button_new_person(scene, picker):
+def test_clear_button_new_person(picker):
 
     PERSON_NAME = "Someone New"
 

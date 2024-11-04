@@ -1,4 +1,11 @@
+import pytest
+
 from pkdiagram import util, Scene, SceneModel, Layer
+
+pytestmark = [
+    pytest.mark.component("SceneModel"),
+    pytest.mark.depends_on("Scene"),
+]
 
 
 def test_sceneChanged():
@@ -34,3 +41,18 @@ def __test_valid_props():
     for kwargs in attrs:
         attr = kwargs["attr"]
         Debug(attr, model.get(attr))
+
+
+def test_eventPropertiesTemplateIndexChanged():
+    """
+    Punting this to a test so as to avoid to many refactoring changes at once
+    """
+    scene = Scene()
+    model = SceneModel()
+    assert model.eventPropertiesTemplateIndex == -1
+
+    model.eventPropertiesTemplateIndex = 2
+    assert model.eventPropertiesTemplateIndex == 2
+
+    model.eventPropertiesTemplateIndex = 0
+    assert model.eventPropertiesTemplateIndex == 0

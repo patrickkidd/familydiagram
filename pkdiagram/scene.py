@@ -1,13 +1,39 @@
 import os, sys, re, logging
-import json
-import bisect
-from .pyqt import *
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    pyqtProperty,
+    Qt,
+    QDateTime,
+    QElapsedTimer,
+    QPen,
+    QGraphicsTextItem,
+    QGraphicsRectItem,
+    QMarginsF,
+    QRectF,
+    QColor,
+    QGraphicsScene,
+    QGraphicsObject,
+    QGraphicsItem,
+    QEvent,
+    QGraphicsSimpleTextItem,
+    QGraphicsLineItem,
+    QGraphicsPathItem,
+    QGraphicsTextItem,
+    QGraphicsRectItem,
+    QParallelAnimationGroup,
+    QPointF,
+    QApplePencilEvent,
+    QCursor,
+    QPoint,
+    QLineF,
+    QAbstractAnimation,
+    QApplication,
+    QMessageBox,
+    QFileInfo,
+)
 from . import version, util, commands, version, compat, slugify
 from .objects import *
 from .itemgarbage import ItemGarbage
-
-if not util.IS_IOS:
-    import xlsxwriter
 
 
 AUTO_PENCIL_MODE = True
@@ -95,6 +121,7 @@ class Scene(QGraphicsScene, Item):
     marriageRemoved = pyqtSignal(Marriage)
     showNotes = pyqtSignal(PathItem)
     itemDoubleClicked = pyqtSignal(PathItem)
+    finishedBatchAddingRemovingItems = pyqtSignal(list, list)
 
     Item.registerProperties(
         (
@@ -199,34 +226,6 @@ class Scene(QGraphicsScene, Item):
         self.clipboard = None
         self._printRect = QRectF()
 
-        # This is contained here because many TimelineModels (person, marriage,
-        # graphical timeline) use the same SearchModel.
-        from .models import SearchModel
-
-        self.searchModel = SearchModel(self)
-        self.searchModel.setObjectName("Scene.searchModel")
-        self.searchModel.scene = self
-        self.searchModel.changed.connect(self.onSearchChanged)
-
-        from .models import TimelineModel
-
-        self.timelineModel = TimelineModel(self)
-        self.timelineModel.setObjectName("Scene.timelineModel")
-        self.timelineModel.scene = self
-        self.timelineModel.items = [self]
-
-        from .models import PeopleModel
-
-        self.peopleModel = PeopleModel(self)
-        self.peopleModel.setObjectName("Scene.peopleModel")
-        self.peopleModel.scene = self
-
-        from .models import AccessRightsModel
-
-        self.accessRightsModel = AccessRightsModel(self)
-        self.accessRightsModel.setObjectName("Scene.accessRightsModel")
-        self.accessRightsModel.scene = self
-
         # snap
         self.canSnapDrag = False
         self.snapItem = QGraphicsLineItem()
@@ -272,12 +271,8 @@ class Scene(QGraphicsScene, Item):
     def isDeinitializing(self):
         return self.isDeinitializing
 
-    def setSession(self, session):
-        self.accessRightsModel.setSession(session)
-
     def setServerDiagram(self, diagram):
         self._serverDiagram = diagram
-        self.accessRightsModel.setServerDiagram(diagram)
 
     def serverDiagram(self):
         return self._serverDiagram
@@ -341,7 +336,6 @@ class Scene(QGraphicsScene, Item):
         elif item.isEmotion:
             self._emotions.append(item)
             if not self.isBatchAddingRemovingItems():
-                item.addTags(self.searchModel.tags)
                 self.emotionAdded.emit(item)
         elif item.isLayer:
             self._layers.append(item)
@@ -428,10 +422,7 @@ class Scene(QGraphicsScene, Item):
                 for item in self._batchAddedItems + self._batchRemovedItems:
                     if item.isEmotion:
                         item.updateFannedBox()
-                self.timelineModel.cleanupBatchAddingRemovingItems(
-                    self._batchAddedItems, self._batchRemovedItems
-                )
-                self.peopleModel.cleanupBatchAddingRemovingItems(
+                self.finishedBatchAddingRemovingItems.emit(
                     self._batchAddedItems, self._batchRemovedItems
                 )
                 self._batchAddedItems = []
@@ -465,7 +456,7 @@ class Scene(QGraphicsScene, Item):
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
-            if self.timelineModel.rowCount() == 0:
+            if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
             self._emotions.remove(item)
@@ -598,9 +589,6 @@ class Scene(QGraphicsScene, Item):
             # self.here('RESETTING UUID:', data.get('uuid'))
             data["uuid"] = None
         self._hasRead = True
-        self.timelineModel.reset("scene")
-        self.timelineModel.reset("items")
-        self.peopleModel.reset("scene")
         # TODO: copy this forward, sort of like future items...
         self.lastLoadData = dict(((p.name(), p.get()) for p in self.props))
         self.lastLoadData["name"] = data.get("name")
@@ -678,7 +666,7 @@ class Scene(QGraphicsScene, Item):
             compat.update_scene(self, data)
             self.resortLayersFromOrder()
             self.setBatchAddingRemovingItems(False)
-            if self.timelineModel.rowCount() == 0:
+            if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
         except Exception as e:
             import traceback
@@ -687,10 +675,6 @@ class Scene(QGraphicsScene, Item):
             return "This file is currupt and cannot be opened"
         finally:
             self.isInitializing = False
-        # models
-        self.timelineModel.scene = self
-        self.timelineModel.items = [self]
-        self.peopleModel.scene = self
 
     def write(self, data, selectionOnly=False):
         super().write(data)
@@ -751,13 +735,9 @@ class Scene(QGraphicsScene, Item):
         currentDateTime = self.currentDateTime()
         for item in self.find(types=[Person, LayerItem]):
             if item.isLayerItem and item.shouldShowForLayers(forLayers):
-                itemRect = item.layeredSceneBoundingRect(
-                    forLayers=forLayers, forTags=forTags
-                )
-            elif item.shouldShowFor(currentDateTime, forTags, forLayers):
-                itemRect = item.layeredSceneBoundingRect(
-                    forLayers=forLayers, forTags=forTags
-                )
+                itemRect = item.layeredSceneBoundingRect(forLayers)
+            elif item.shouldShowFor(currentDateTime, forLayers):
+                itemRect = item.layeredSceneBoundingRect(forLayers)
             else:
                 continue
             rect |= itemRect
@@ -781,200 +761,6 @@ class Scene(QGraphicsScene, Item):
             return self.getPrintRect(forLayers=forLayers)
         else:
             return self._printRect
-
-    def __writePDF(self, filePath=None, printer=None):
-        rect = self.printRect()
-        sourceRect = rect.size()
-        if printer is None:
-            printer = QPrinter()
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        painter = QPainter()
-        painter.begin(printer)
-        printerRect = printer.pageRect(QPrinter.Point).toRect()
-        if filePath is not None:
-            printer.setOutputFileName(filePath)
-            # printer.setOrientation(QPrinter.Landscape)
-        # elif printer is not None:
-        #     # make it fit
-        #     sourceRect = image.rect()
-        #     if sourceRect.width() > sourceRect.height():
-        #         scale = printRect.width() / sourceRect.width()
-        #         targetRect = QRect(printRect.x(), printRect.y(),
-        #                            sourceRect.width() * scale,
-        #                            sourceRect.height() * scale)
-        #     else:
-        #         scale = printRect.height() / sourceRect.height()
-        #         targetRect = QRect(printRect.x(),
-        #                            printRect.y(),
-        #                            sourceRect.width() * scale,
-        #                            sourceRect.height() * scale)
-        #     p.drawImage(targetRect, image, sourceRect)
-        #     p.end()
-        self.render(painter, QRectF(printerRect), self.printRect())
-        painter.end()
-        painter = None  # control dtor order, before printer
-
-    def writeJPG(self, filePath=None, printer=None):
-        rect = self.printRect()
-        size = rect.size().toSize() * util.PRINT_DEVICE_PIXEL_RATIO
-        image = QImage(size, QImage.Format_RGB32)
-        image.setDevicePixelRatio(
-            self.view().devicePixelRatio() / util.PRINT_DEVICE_PIXEL_RATIO
-        )
-        image.fill(QColor("white"))
-        painter = QPainter()
-        painter.begin(image)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        self.render(painter, QRectF(0, 0, size.width(), size.height()), rect)
-        painter.end()
-        if filePath is not None:
-            image.save(filePath, "JPEG", 80)
-        elif printer is not None:
-            p = QPainter()
-            p.begin(printer)
-            # make it fit
-            printRect = printer.pageRect(QPrinter.Point).toRect()
-            sourceRect = image.rect()
-            if sourceRect.width() > sourceRect.height():
-                scale = printRect.width() / sourceRect.width()
-                targetRect = QRect(
-                    printRect.x(),
-                    printRect.y(),
-                    sourceRect.width() * scale,
-                    sourceRect.height() * scale,
-                )
-            else:
-                scale = printRect.height() / sourceRect.height()
-                targetRect = QRect(
-                    printRect.x(),
-                    printRect.y(),
-                    sourceRect.width() * scale,
-                    sourceRect.height() * scale,
-                )
-            p.drawImage(targetRect, image, sourceRect)
-            p.end()
-
-    def writePNG(self, filePath):
-        rect = self.printRect()
-        size = rect.size().toSize() * util.PRINT_DEVICE_PIXEL_RATIO
-        image = QImage(size, QImage.Format_ARGB32)
-        image.setDevicePixelRatio(
-            self.view().devicePixelRatio() / util.PRINT_DEVICE_PIXEL_RATIO
-        )
-        image.fill(Qt.transparent)
-        painter = QPainter()
-        painter.begin(image)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        self.render(painter, QRectF(0, 0, size.width(), size.height()), rect)
-        image.save(filePath, "PNG", 100)
-        painter.end()
-
-    def writeExcel(self, filePath):
-        book = xlsxwriter.Workbook(filePath)
-        wrap_format = book.add_format({"text_wrap": True})  # doesn't work
-        wrap_format.set_text_wrap()  # doesn't work
-        ## Events
-        sheet = book.add_worksheet("Timeline")
-        sheet.set_column(0, 0, 10)  # Date width
-        sheet.set_column(1, 1, 35)  # Description width
-        sheet.set_column(2, 2, 10)  # Location width
-        sheet.set_column(3, 3, 15)  # Person width
-        sheet.set_column(4, 4, 10)  # Logged width
-        sheet.set_column(5, 5, 100)  # Notes width
-        sheet.write(0, 0, "Date")
-        sheet.write(0, 1, "Description")
-        sheet.write(0, 2, "Location")
-        sheet.write(0, 3, "Person")
-        sheet.write(0, 4, "Logged")
-        sheet.write(0, 5, "Notes", wrap_format)
-        for i, entry in enumerate(self.eventProperties()):
-            sheet.write(0, 6 + i, entry["name"])
-
-        model = self.timelineModel
-        rowDisplay = lambda row, col: model.data(model.index(row, col))
-        for row in range(model.rowCount()):
-            index = row + 1
-            event = model.eventForRow(row)
-            sheet.write(index, 0, rowDisplay(row, 1))  # date
-            sheet.write(index, 1, rowDisplay(row, 3))  # description
-            sheet.write(index, 2, rowDisplay(row, 4))  # location
-            sheet.write(index, 3, rowDisplay(row, 5))  # parent
-            sheet.write(index, 4, rowDisplay(row, 6))  # logged
-            sheet.write(index, 5, event.notes())  # notes
-
-            # sheet.write(index, 1, event.description() and event.description() or '')
-            # sheet.write(index, 2, event.location() and event.location() or '')
-            # sheet.write(index, 3, event.parentName())
-            # sheet.write(index, 4, util.dateString(event.loggedDateTime()))
-            # sheet.write(index, 5, event.notes())
-            for i, entry in enumerate(self.eventProperties()):
-                prop = item.dynamicProperty(entry["attr"])
-                if prop:
-                    sheet.write(index, 6 + i, prop.get())
-        ## People
-        sheet = book.add_worksheet("People")
-        sheet.write(0, 0, "Birth Date")
-        sheet.write(0, 1, "First Name")
-        sheet.write(0, 2, "Middle Name")
-        sheet.write(0, 3, "Last Name")
-        sheet.write(0, 4, "Nick Name")
-        sheet.write(0, 5, "Birth Name")
-        sheet.write(0, 6, "Sex")
-        sheet.write(0, 7, "Deceased")
-        sheet.write(0, 8, "Deceased Reason")
-        sheet.write(0, 9, "Date of Death")
-        sheet.write(0, 10, "Adopted")
-        sheet.write(0, 11, "Adoption Date")
-        sheet.write(0, 12, "Notes")
-        #
-        sheet.write(0, 13, "Show Middle Name")
-        sheet.write(0, 14, "Show Last Name")
-        sheet.write(0, 15, "Show Nick Name")
-        sheet.write(0, 16, "Primary")
-        sheet.write(0, 17, "Hide Details")
-        people = self.find(
-            sort="birthDateTime", types=Person, tags=list(self.searchModel.tags)
-        )
-        for index, person in enumerate(people):
-            sheet.write(index + 1, 0, person.birthDateTime(string=True))
-            sheet.write(
-                index + 1,
-                1,
-                self.showAliases() and ("[%s]" % person.alias()) or person.name(),
-            )
-            sheet.write(index + 1, 2, self.showAliases() and " " or person.middleName())
-            sheet.write(index + 1, 3, self.showAliases() and " " or person.lastName())
-            sheet.write(index + 1, 4, self.showAliases() and " " or person.nickName())
-            sheet.write(index + 1, 5, self.showAliases() and " " or person.birthName())
-            sheet.write(index + 1, 6, person.gender())
-            sheet.write(index + 1, 7, person.deceased() and "YES" or "")
-            sheet.write(index + 1, 8, person.deceasedReason())
-            sheet.write(index + 1, 9, person.deceasedDateTime(string=True))
-            sheet.write(index + 1, 10, person.adopted() and "YES" or "")
-            sheet.write(index + 1, 11, person.adoptedDateTime(string=True))
-            sheet.write(index + 1, 12, self.showAliases() and " " or person.notes())
-            #
-            sheet.write(index + 1, 13, person.showMiddleName() and "YES" or "")
-            sheet.write(index + 1, 14, person.showLastName() and "YES" or "")
-            sheet.write(index + 1, 15, person.showNickName() and "YES" or "")
-            sheet.write(index + 1, 16, person.primary() and "YES" or "")
-            sheet.write(index + 1, 17, person.hideDetails() and "YES" or "")
-        book.close()
-
-    def writeJSON(self, filePath):
-        data = {}
-        self.write(data)
-
-        import pprint
-
-        p_sdata = pprint.pformat(data, indent=4)
-        log.info(p_sdata)
-        with open(filePath, "w") as f:
-            f.write(p_sdata)
-
-        # sdata = json.dumps(data, indent=4)
-        # with open(filePath, 'w') as f:
-        #     f.write(sdata)
 
     ## Events
 
@@ -1066,26 +852,26 @@ class Scene(QGraphicsScene, Item):
             self.pencilParent = None
         return True
 
-    def __event(self, e):
-        """touch.pressure() == NaN when not pencil"""
-        if e.type() in [
-            QEvent.TouchBegin,
-            QEvent.TouchUpdate,
-            QEvent.TouchEnd,
-            QEvent.TouchCancel,
-        ]:
-            touch = e.touchPoints()[0]
-            if self.itemMode() == util.ITEM_PENCIL:
-                if e.type() == QEvent.TouchBegin:
-                    return self.pencilEvent(e, touch.scenePos(), pressure)
-                elif e.type() == QEvent.TouchUpdate:
-                    return self.pencilEvent(e, touch.scenePos(), pressure)
-                elif e.type() in [QEvent.TouchEnd, QEvent.TouchCancel]:
-                    return self.pencilEvent(e, touch.scenePos(), pressure)
-            else:
-                return super().event(e)
-        else:
-            return super().event(e)
+    # def __event(self, e):
+    #     """touch.pressure() == NaN when not pencil"""
+    #     if e.type() in [
+    #         QEvent.TouchBegin,
+    #         QEvent.TouchUpdate,
+    #         QEvent.TouchEnd,
+    #         QEvent.TouchCancel,
+    #     ]:
+    #         touch = e.touchPoints()[0]
+    #         if self.itemMode() == util.ITEM_PENCIL:
+    #             if e.type() == QEvent.TouchBegin:
+    #                 return self.pencilEvent(e, touch.scenePos(), pressure)
+    #             elif e.type() == QEvent.TouchUpdate:
+    #                 return self.pencilEvent(e, touch.scenePos(), pressure)
+    #             elif e.type() in [QEvent.TouchEnd, QEvent.TouchCancel]:
+    #                 return self.pencilEvent(e, touch.scenePos(), pressure)
+    #         else:
+    #             return super().event(e)
+    #     else:
+    #         return super().event(e)
 
     ## This can work around a bug where a scene won't track mouse
     ## events until an item has been added. Very annoying, no idea why.
@@ -1435,11 +1221,12 @@ class Scene(QGraphicsScene, Item):
         if ret:
             return ret[0]
 
-    def find(self, id=None, tags=None, types=None, sort=None):
+    def find(self, id=None, ids=None, tags=None, types=None, sort=None):
         """Match is AND."""
         if id is not None:  # exclusive; most common use case
             ret = self.itemRegistry.get(id, None)
         else:
+            # Setup
             if types is not None:
                 if isinstance(types, list):
                     types = tuple(types)
@@ -1448,11 +1235,14 @@ class Scene(QGraphicsScene, Item):
             if tags is not None:
                 if not isinstance(tags, list):
                     tags = [tags]
+            # Filter
             ret = []
             for id, item in self.itemRegistry.items():
                 if types is not None and not isinstance(item, types):
                     continue
                 if tags is not None and not item.hasTags(tags):
+                    continue
+                if ids is not None and item.id not in ids:
                     continue
                 ret.append(item)
         if sort:
@@ -1473,7 +1263,7 @@ class Scene(QGraphicsScene, Item):
 
     def people(self, sort=None, name=None):
         if name is not None:
-            ret = [p for id, p in self._people if i.name() == name]
+            ret = [x for id, x in self._people if x.name() == name]
         else:
             ret = list(self._people)
         if sort:
@@ -1622,9 +1412,6 @@ class Scene(QGraphicsScene, Item):
         elif prop.name() in ("hideEmotionalProcess", "hideEmotionColors"):
             for item in self.emotions():
                 item.updateAll()
-            if prop.name() == "hideEmotionalProcess":
-                if self.searchModel.hideRelationships != prop.get():
-                    self.searchModel.hideRelationships = prop.get()
         elif prop.name() == "hideVariablesOnDiagram":
             for person in self.people():
                 person.onHideVariablesOnDiagram()
@@ -1672,17 +1459,6 @@ class Scene(QGraphicsScene, Item):
 
     def onEventProperty(self, prop):
         pass
-
-    def onSearchChanged(self):
-        firstDate = self.timelineModel.dateTimeForRow(0)
-        if firstDate > self.currentDateTime():
-            self.setCurrentDateTime(firstDate)
-        elif not self._areActiveLayersChanging:
-            self._updateAllItemsForLayersAndTags()
-
-    def ensureCurrentDateTime(self):
-        if self.currentDateTime().isNull() and self.timelineModel.rowCount() > 0:
-            self.setCurrentDateTime(self.timelineModel.lastEventDateTime())
 
     def setShowNotesIcons(self, on):
         self._showNotesIcons = on
@@ -1921,13 +1697,15 @@ class Scene(QGraphicsScene, Item):
         selectedPeople = self.selectedPeople()
         if not selectedPeople:
             return
-        
+
         undoId = commands.nextId()
         for person in selectedPeople:
             rect = person.mapToScene(person.boundingRect()).boundingRect()
             fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
             motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId)
+            father = commands.addPerson(
+                self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId
+            )
             mother = commands.addPerson(
                 self, util.PERSON_KIND_FEMALE, motherPos, person.size(), id=undoId
             )
@@ -1953,28 +1731,6 @@ class Scene(QGraphicsScene, Item):
                 elif item.includeOnDiagram():
                     return True
             return False
-
-    def nextTaggedDateTime(self):
-        events = self.timelineModel.events()
-        dummy = Event(dateTime=self.currentDateTime())
-        nextRow = bisect.bisect_right(events, dummy)
-        if nextRow == len(events):  # end
-            nextDate = self.timelineModel.lastEventDateTime()
-        else:
-            nextDate = events[nextRow].dateTime()
-        if nextDate:
-            self.setCurrentDateTime(nextDate)
-
-    def prevTaggedDateTime(self):
-        events = self.timelineModel.events()
-        dummy = Event(dateTime=self.currentDateTime())
-        prevRow = bisect.bisect_left(events, dummy) - 1
-        if prevRow <= 0:
-            prevDate = self.timelineModel.firstEventDateTime()
-        else:
-            prevDate = events[prevRow].dateTime()
-        if prevDate:
-            self.setCurrentDateTime(prevDate)
 
     ## Properties
 
@@ -2110,7 +1866,6 @@ class Scene(QGraphicsScene, Item):
         for layer in self.activeLayers():
             layer.setActive(False, undo=id, notify=False)
         self.updateActiveLayers()
-        self.searchModel.clear()
         self.jumpToNow()
         self.diagramReset.emit()
 

@@ -185,7 +185,7 @@ def init_logging():
     fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
 
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         handlers=[consoleHandler, fileHandler],
     )
 
@@ -2181,6 +2181,8 @@ def wait_for_attach():
 ##
 #####################################################
 
+
+# TODO: None of the following should be global
 
 _prefs = None
 

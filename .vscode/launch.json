@@ -538,5 +538,21 @@
             "program": "${file}",
             "--commandLineArguments": "osx"
         },
-   ]
+         // {
+        //     "name": "pytest-depends",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "module": "pytest",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "variablePresentation": {
+        //         "all": "hide",
+        //         "protected": "inline",
+        //     },
+        //     "args": [
+        //         "-svv",
+        //         "tests/test_graphicaltimelineview.py"
+        //     ]
+        // },
+    ]
 }

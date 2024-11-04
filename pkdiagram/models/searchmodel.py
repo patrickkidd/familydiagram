@@ -1,7 +1,7 @@
 from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
-from ..objects import Item
-from .. import commands
+from .modelhelper import ModelHelper
+from ..objects import Item, Property
 
 
 class SearchModel(QObject, QObjectHelper):
@@ -9,9 +9,9 @@ class SearchModel(QObject, QObjectHelper):
 
     changed = pyqtSignal()
 
-    QObjectHelper.registerQtProperties(
+    PROPERTIES = ModelHelper.registerQtProperties(
         [
-            {"attr": "description"},
+            {"attr": "description", "type": str},
             {"attr": "startDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "endDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "loggedStartDateTime", "type": QDateTime, "default": QDateTime()},
@@ -20,24 +20,33 @@ class SearchModel(QObject, QObjectHelper):
             {"attr": "tags", "type": list},
             {"attr": "hideRelationships", "type": bool, "default": False},
             {"attr": "isBlank", "type": bool},
-        ]
+        ],
     )
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.initQObjectHelper(storage=True)
-        self.startDateTimeChanged.connect(self.onChanged)
-        self.endDateTimeChanged.connect(self.onChanged)
-        self.loggedStartDateTimeChanged.connect(self.onChanged)
-        self.loggedEndDateTimeChanged.connect(self.onChanged)
-        self.descriptionChanged.connect(self.onChanged)
-        self.nodalChanged.connect(self.onChanged)
-        self.tagsChanged.connect(self.onChanged)
-        self.hideRelationshipsChanged.connect(self.onChanged)
+        self._initializing = True
 
-    def onChanged(self):
-        self.changed.emit()
-        self.refreshProperty("isBlank")
+        # # Item-like hack
+        # self._propertyListeners = []
+        # self._properties = {}
+        # for entry in self.PROPERTIES:
+        #     _type = entry["type"] if "type" in entry else str
+        #     _default = entry["default"] if "default" in entry else _type()
+        #     prop = Property(self, attr=entry["attr"], type=_type, default=_default)
+        #     prop.set(_default, notify=False)
+        #     self._properties[entry["attr"]] = prop
+
+        self.initQObjectHelper(storage=True)
+        # self.startDateTimeChanged.connect(self.onChanged)
+        # self.endDateTimeChanged.connect(self.onChanged)
+        # self.loggedStartDateTimeChanged.connect(self.onChanged)
+        # self.loggedEndDateTimeChanged.connect(self.onChanged)
+        # self.descriptionChanged.connect(self.onChanged)
+        # self.nodalChanged.connect(self.onChanged)
+        # self.tagsChanged.connect(self.onChanged)
+        # self.hideRelationshipsChanged.connect(self.onChanged)
+        self._initializing = False
 
     @pyqtSlot()
     def clear(self):
@@ -48,6 +57,7 @@ class SearchModel(QObject, QObjectHelper):
         self.reset("loggedEndDateTime")
         self.reset("nodal")
         self.reset("tags")
+        self.reset("hideRelationships")
 
     def get(self, attr):
         if attr == "isBlank":
@@ -60,6 +70,7 @@ class SearchModel(QObject, QObjectHelper):
                 "loggedEndDateTime",
                 "nodal",
                 "tags",
+                "hideRelationships",
             ):
                 if getattr(self, name) != self.defaultFor(name):
                     ret = False
@@ -67,6 +78,42 @@ class SearchModel(QObject, QObjectHelper):
         else:
             ret = super().get(attr)
         return ret
+
+    # Item-like hacks for TagsModel
+
+    # def prop(self, attr):
+    #     return self._properties[attr]
+
+    # def addPropertyListener(self, x):
+    #     if not x in self._propertyListeners:
+    #         self._propertyListeners.append(x)
+
+    # def removePropertyListener(self, x):
+    #     if x in self._propertyListeners:
+    #         self._propertyListeners.remove(x)
+
+    def onQObjectHelperPropertyChanged(self, attr, value):
+        if self._initializing:
+            return
+        if attr in (
+            "description",
+            "startDateTime",
+            "endDateTime",
+            "loggedStartDateTime",
+            "loggedEndDateTime",
+            "nodal",
+            "tags",
+        ):
+            self.changed.emit()
+            self.refreshProperty("isBlank")
+
+        # # Item-like hack
+        # prop = self._properties[attr]
+        # prop.set(value, notify=False)
+        # for item in self.__propertyListeners:
+        #     item.onProperty(prop)
+
+    # Verbs
 
     def shouldHide(self, event):
         """Search kernel."""

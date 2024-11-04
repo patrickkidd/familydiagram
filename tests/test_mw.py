@@ -6,19 +6,17 @@ import pytest
 
 import vedana
 from pkdiagram.pyqt import *
-from pkdiagram import version, util, version, PathItem, mainwindow
+from pkdiagram import util
 from pkdiagram import (
     Person,
-    Marriage,
-    Emotion,
-    Layer,
-    TagsModel,
     Scene,
-    Session,
-    AppConfig,
-    AppController,
     MainWindow,
 )
+
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView"),
+]
 
 
 def test_load_fd(test_session, test_activation, tmp_path, create_ac_mw):

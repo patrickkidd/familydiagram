@@ -370,7 +370,7 @@ class Session(QObject, QObjectHelper):
         as a manual edge case.
         """
         if not self._analytics:
-            log.warning("Analytics not initialized on Session object.")
+            # log.warning("Analytics not initialized on Session object.")
             return
 
         if properties is None:

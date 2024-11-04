@@ -1,7 +1,54 @@
 import os.path, sys, datetime, shutil, logging
 import pickle
+
+from PyQt5.QtCore import QT_VERSION_STR
+
 import vedana
-from .pyqt import *
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    tr,
+    Qt,
+    QAction,
+    QAbstractAnimation,
+    QAbstractButton,
+    QApplication,
+    QCheckBox,
+    QCoreApplication,
+    QDateTime,
+    QDesktopServices,
+    QDialog,
+    QDir,
+    QFile,
+    QFileDialog,
+    QFileInfo,
+    QHBoxLayout,
+    QIcon,
+    QInputDialog,
+    QIODevice,
+    QKeyEvent,
+    QLineEdit,
+    QMainWindow,
+    QMargins,
+    QMessageBox,
+    QNetworkAccessManager,
+    QPalette,
+    QPixmap,
+    QPoint,
+    QPrinter,
+    QPrintDialog,
+    QPropertyAnimation,
+    QStandardPaths,
+    QTimer,
+    QTextEdit,
+    QPushButton,
+    QUndoView,
+    QUrl,
+    QVBoxLayout,
+    QSize,
+    QEasingCurve,
+    QEvent,
+    QKeyEvent,
+)
 from . import version, util, scene, commands, filemanager
 from .objects import *
 from .util import CUtil
@@ -59,7 +106,7 @@ class MainWindow(QMainWindow):
             self.setUnifiedTitleAndToolBarOnMac(True)  # crash
 
         #
-        _translate = QtCore.QCoreApplication.translate
+        _translate = QCoreApplication.translate
         self.ui.actionMarriage.setShortcuts(
             [
                 _translate("MainWindow", "Ctrl+Shift+P"),
@@ -71,6 +118,8 @@ class MainWindow(QMainWindow):
         self.fileStatuses = {}
 
         if util.ENABLE_OPENGL:  # ios should already be OpenGL
+            from pkdiagram.pyqt import QOpenGLWidget, QSurfaceFormat
+
             self.ui.centralWidget = QOpenGLWidget(self)
             fmt = QSurfaceFormat.defaultFormat()
             fmt.setSamples(util.OPENGL_SAMPLES)
@@ -137,7 +186,7 @@ class MainWindow(QMainWindow):
 
         ## File Manager
 
-        self.fileManager = filemanager.FileManager(self.session, self)
+        self.fileManager = filemanager.FileManager(self.documentView.qmlEngine(), self)
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -315,7 +364,6 @@ class MainWindow(QMainWindow):
         CUtil.instance().updateIsNotAvailable.connect(self.onAppUpdateIsNotAvailable)
         # self.documentView.sceneModel.selectionChanged.connect(self.onSceneModelSelectionChanged)
         self.documentView.sceneModel.trySetShowAliases[bool].connect(self.onShowAliases)
-        self.documentView.sceneModel.flashItems.connect(self.onFlashPathItems)
         self.documentView.sceneModel.uploadToServer.connect(self.onUploadToServer)
         #
 
@@ -766,16 +814,18 @@ class MainWindow(QMainWindow):
                     self.document.saveAs(QUrl.fromLocalFile(filePath))
                     self.prefs.setValue("lastFileSavePath", filePath)
                     self.updateWindowTitle()
-                elif format == "PDF":
-                    self.scene.writePDF(filePath)
+                # elif format == "PDF":
+                #     self.documentView.controller.writePDF(filePath)
                 elif format == "JPG":
-                    self.scene.writeJPG(filePath)
+                    self.documentView.controller.writeJPG(filePath)
                 elif format == "PNG":
-                    self.scene.writePNG(filePath)
+                    self.documentView.controller.writePNG(filePath)
                 elif format == "XLSX":
-                    self.scene.writeExcel(filePath)
+                    self.documentView.controller.writeExcel(
+                        filePath, self.documentView.searchModel
+                    )
                 elif format == "JSON":
-                    self.scene.writeJSON(filePath)
+                    self.documentView.controller.writeJSON(filePath)
         for item in selectedItems:
             item.setSelected(True)
         return True
@@ -814,7 +864,7 @@ class MainWindow(QMainWindow):
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
-        self.documentView.sceneModel.setServerDiagram(diagram)
+        self.documentView.accessRightsModel.setServerDiagram(diagram)
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():
@@ -1248,8 +1298,6 @@ class MainWindow(QMainWindow):
             return False
 
     def showAbout(self):
-        from PyQt5.QtCore import QT_VERSION_STR
-
         QMessageBox.about(
             self,
             tr("About Family Diagram"),
@@ -1527,7 +1575,7 @@ class MainWindow(QMainWindow):
         CUtil.instance().dev_crash()
 
     def onTriggerException(self):
-        here = there
+        here = there  # type: ignore
 
     def onFocusChanged(self, old, new):
         if not self.scene:
@@ -1561,27 +1609,17 @@ class MainWindow(QMainWindow):
             else:
                 self.ui.actionShow_Graphical_Timeline.setEnabled(False)
                 self.ui.actionExpand_Graphical_Timeline.setEnabled(False)
-            firstDate = self.scene.timelineModel.firstEventDateTime()
+            firstDate = self.documentView.timelineModel.firstEventDateTime()
             if firstDate and prop.get() == firstDate:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(False)
-            elif prop.get() == self.scene.timelineModel.lastEventDateTime():
+            elif prop.get() == self.documentView.timelineModel.lastEventDateTime():
                 self.ui.actionNext_Event.setEnabled(False)
                 self.ui.actionPrevious_Event.setEnabled(True)
             else:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(True)
             self.updateWindowTitle()
-            # Flash timeline items for events when date changes.
-            timelineModel = self.scene.timelineModel
-            firstRow = timelineModel.firstRowForDateTime(prop.get())
-            lastRow = timelineModel.lastRowForDateTime(prop.get())
-            if firstRow > -1 and lastRow > -1:
-                for row in range(firstRow, lastRow + 1):
-                    event = timelineModel.eventForRow(row)
-                    if not self.scene.searchModel.shouldHide(event):
-                        self.documentView.sceneModel.flashTimelineItem(row)
-
         elif prop.name() == "alias":
             self.updateWindowTitle()
         elif prop.name() == "showAliases":
@@ -1674,12 +1712,6 @@ class MainWindow(QMainWindow):
         self._blocked = False
         if self.scene:
             self.scene.setShowAliases(on, undo=True)
-
-    def onFlashPathItems(self, ids):
-        """Called when case props timeline selection is changed."""
-        items = [self.scene.find(id=id) for id in ids]
-        for item in items:
-            item.flash()
 
     @util.blocked
     def onHideEmotionalProcess(self, on):
@@ -1780,7 +1812,7 @@ class MainWindow(QMainWindow):
     def onResetAll(self):
         hadActiveLayers = bool(self.scene.activeLayers())
         self.scene.resetAll()  # should call zoomFit via activeLayersChanged
-        self.scene.searchModel.clear()
+        self.documentView.searchModel.clear()
         if not hadActiveLayers:
             self.view.zoomFit()
 

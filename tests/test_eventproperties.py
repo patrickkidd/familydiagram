@@ -40,14 +40,13 @@ def event(eventProps):
 
 
 @pytest.fixture
-def ep(qtbot):
+def ep(qtbot, qmlEngine):
     scene = Scene()
-    sceneModel = SceneModel()
-    sceneModel.scene = scene
-    ep = QmlDrawer("qml/EventPropertiesDrawer.qml", propSheetModel="eventModel")
-    ep.setScene(scene)
+    qmlEngine.setScene(scene)
+    ep = QmlDrawer(
+        qmlEngine, "qml/EventPropertiesDrawer.qml", propSheetModel="eventModel"
+    )
     ep.checkInitQml()
-    ep.setRootProp("sceneModel", sceneModel)
     ep.show()
     ep.eventModel = ep.rootProp("eventModel")
     qtbot.addWidget(ep)
@@ -255,10 +254,10 @@ def test_edit_multiple(qtbot, ep, eventProps):
     assertEventProperties(event2, eventProps)
 
 
-def test_readOnlyFields(ep):
+def test_readOnlyFields(ep, qmlEngine):
     scene = Scene(readOnly=True)
     event = Event(description="here we are", uniqueId="blah")
-    ep.rootProp("sceneModel").scene = scene
+    qmlEngine.setScene(scene)
     ep.show(event)
     assert ep.findItem("descriptionEdit").property("enabled") == False
     assert ep.findItem("nameBox").property("enabled") == False
@@ -314,14 +313,16 @@ def __test_tabs_disabled(qtbot, ep):
 #     assert ui.tabWidget.currentIndex() == 0
 
 
-def test_empty_strings_reset_props(qtbot, ep, event):
+def test_empty_strings_reset_props(qtbot, ep, event, qmlEngine):
+    person = Person(name="Me")
+    event.setParent(person)
     scene = Scene()
-    scene.addItem(event)
+    scene.addItem(person)
     ep.setScene(scene)
-    ep.rootProp("sceneModel").scene = scene
+    qmlEngine.setScene(scene)
     ep.show(event)
 
-    assert ep.rootProp("sceneModel").readOnly == False
+    assert qmlEngine.sceneModel.readOnly == False
 
     # clear all fields possible
     # ep.keyClicksClear('dateButtons.dateTextInput')

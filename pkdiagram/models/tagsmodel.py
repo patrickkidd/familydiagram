@@ -2,6 +2,7 @@ from ..pyqt import (
     Qt,
     QAbstractListModel,
     qmlRegisterUncreatableType,
+    QObject,
     QModelIndex,
     QVariant,
     pyqtSlot,
@@ -14,10 +15,19 @@ from .. import util, objects, commands
 from ..objects import Item, Property, Layer
 from ..scene import Scene
 from .modelhelper import ModelHelper
+from pkdiagram.models import SearchModel
 
 
 class TagsModel(QAbstractListModel, ModelHelper):
-    """Manages a list of tags from the scene and their active state pulled from the items."""
+    """
+    Manages a list of tags from the scene and their active state in either a
+    list of items or a searchModel.
+    """
+
+    # Mutually exclusive with items
+    ModelHelper.registerQtProperties(
+        [{"attr": "searchModel", "type": QObject, "default": None}]
+    )
 
     NEW_NAME_TMPL = "New Tag %i"
 
@@ -30,28 +40,60 @@ class TagsModel(QAbstractListModel, ModelHelper):
         super().__init__(parent)
         self._sceneTags = []
         self._settingTags = False
+        self._searchModel = None
         self.initModelHelper()
+
+    def get(self, attr):
+        if attr == "searchModel":
+            return self._searchModel
+        else:
+            return super().get(attr)
 
     def set(self, attr, value):
         if attr == "scene":
-            if self._scene:
-                self._scene.searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
+            # Manage the list of tags from the scene
             super().set(attr, value)
             if self._scene:
                 self._sceneTags = sorted(self._scene.tags())
-                self._scene.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
             else:
                 self._sceneTags = []
             self.modelReset.emit()
+        elif attr == "searchModel":
+            if self._items:
+                raise ValueError(
+                    "Cannot set TagsModel.searchModel when TagsModel.items is set"
+                )
+            # mutually exclusive with `tags`; just to manage active states
+            if self._searchModel:
+                self._searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
+            self._searchModel = value
+            super().set(attr, value)
+            if self._searchModel:
+                self._searchModel.tagsChanged.connect(self.onSearchTagsChanged)
+            self.modelReset.emit()
         elif attr == "items":
+            if self._searchModel:
+                raise ValueError(
+                    "Cannot set TagsModel.items when TagsModel.searchModel is set"
+                )
+            # mutually exclusive with `searchModel`; just to manage active states
             super().set(attr, value)
             self.modelReset.emit()
         else:
             super().set(attr, value)
 
-    ## Data
+    ## Reactive data
+
+    def onSceneProperty(self, prop):
+        """For the list of tags"""
+        if prop.name() == "tags":
+            self._sceneTags = sorted(self._scene.tags())
+            self._blocked = True
+            self.modelReset.emit()
+            self._blocked = False
 
     def onItemProperty(self, prop):
+        """For the active states"""
         if self._settingTags:
             return
         if prop.name() == "tags":
@@ -59,17 +101,13 @@ class TagsModel(QAbstractListModel, ModelHelper):
             endIndex = self.index(self.rowCount() - 1, 0)
             self.dataChanged.emit(startIndex, endIndex, [self.ActiveRole])
 
-    def onSceneProperty(self, prop):
-        if prop.name() == "tags":
-            self._sceneTags = sorted(self._scene.tags())
-            self._blocked = True
-            self.modelReset.emit()
-            self._blocked = False
-
     def onSearchTagsChanged(self):
+        """For the active states"""
         startIndex = self.index(0, 0)
         endIndex = self.index(self.rowCount() - 1, 0)
         self.dataChanged.emit(startIndex, endIndex, [self.ActiveRole])
+
+    # Scene tags: Manage the list
 
     def tagAtRow(self, row):
         if row < 0 or row >= len(self._sceneTags):
@@ -104,8 +142,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
             commands.deleteTag(self._scene, tag)
             self._blocked = False
 
-    ## Qt Virtuals
-
     def roleNames(self):
         return {
             self.NameRole: b"name",
@@ -133,14 +169,19 @@ class TagsModel(QAbstractListModel, ModelHelper):
             ret = self.tagAtRow(index.row())
         elif role == self.ActiveRole:
             tag = self.tagAtRow(index.row())
-            numChecked = 0
-            for item in self._items:
-                if item.isScene:
-                    itemTags = item.searchModel.tags
-                else:
-                    itemTags = item.tags()
-                if tag in itemTags:
-                    numChecked += 1
+            if self._searchModel:
+                itemTags = self._searchModel.tags
+                if tag in self._searchModel.tags:
+                    numChecked = 1
+            else:
+                numChecked = 0
+                for item in self._items:
+                    if isinstance(item, SearchModel):
+                        itemTags = item.tags
+                    else:
+                        itemTags = item.tags()
+                    if tag in itemTags:
+                        numChecked += 1
             if numChecked == 0:
                 return Qt.Unchecked
             elif numChecked == len(self._items):
@@ -165,16 +206,16 @@ class TagsModel(QAbstractListModel, ModelHelper):
             else:  # trigger a cancel
                 self.dataChanged.emit(index, index)
         elif role == self.ActiveRole:
-            if self._items and self._items[0] == self._scene:
-                newTags = list(self._scene.searchModel.tags)
+            if self._searchModel:
+                newTags = list(self._searchModel.tags)
                 if value:
                     if not tag in newTags:
                         newTags.append(tag)
                 else:
                     if tag in newTags:
                         newTags.remove(tag)
-                if newTags != self._scene.searchModel.tags:
-                    self._scene.searchModel.tags = newTags
+                if newTags != self._searchModel.tags:
+                    self._searchModel.tags = newTags
                     success = True
             elif self._items and value != self.data(index, role):
                 # Emotions and their events are bound to the same tags.

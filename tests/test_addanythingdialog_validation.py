@@ -17,6 +17,11 @@ from tests.test_addanythingdialog import (
 
 log = logging.getLogger(__name__)
 
+pytestmark = [
+    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.depends_on("Scene"),
+]
+
 
 def test_required_field_kind(dlg):
     dlg.expectedFieldLabel("kindLabel")

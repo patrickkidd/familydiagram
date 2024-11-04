@@ -13,23 +13,22 @@ from fdserver.extensions import db
 
 
 @pytest.fixture
-def create_fm(qtbot, request):
+def create_fm(qtbot, request, qmlEngine):
 
     created = []
 
     def _create_fm(session=True):
 
-        _session = Session()
         if session:
             if session is True:
                 test_session = request.getfixturevalue("test_session")
             else:
                 test_session = session
-            _session.init(sessionData=test_session.account_editor_dict())
+            qmlEngine.session.init(sessionData=test_session.account_editor_dict())
         else:
-            _session.deinit()
+            qmlEngine.session.deinit()
 
-        fm = FileManager(_session, parent=None)
+        fm = FileManager(qmlEngine, parent=None)
         fm.init()
         fm.resize(800, 600)
         fm.show()
@@ -44,9 +43,8 @@ def create_fm(qtbot, request):
     QApplication.instance().processEvents()
 
     for fm in created:
-        fm.deinit()
         fm.hide()
-        fm.session.deinit()
+        fm.deinit()
 
 
 def test_local_filter(tmp_path, create_fm):
@@ -77,7 +75,13 @@ def test_local_filter(tmp_path, create_fm):
 
 
 def test_server_filter_owner(
-    test_user, test_user_diagrams, test_session, test_activation, test_user_2, create_fm
+    test_user,
+    test_user_diagrams,
+    test_session,
+    test_activation,
+    test_user_2,
+    create_fm,
+    qmlEngine,
 ):
     for diagram in test_user_diagrams:
         if diagram.user_id == test_user_2.id:
@@ -87,7 +91,7 @@ def test_server_filter_owner(
     fm = create_fm()
     serverFileModel = fm.rootProp("serverFileModel")
     updateFinished = util.Condition(serverFileModel.updateFinished)
-    fm.session.init(
+    qmlEngine.session.init(
         sessionData=test_session.account_editor_dict(), syncWithServer=False
     )
     assert updateFinished.wait() == True
@@ -103,13 +107,13 @@ def test_server_filter_owner(
 
 
 def test_server_doesnt_init_in_edit_mode_admin_user(
-    test_user, test_user_diagrams, create_fm
+    test_user, test_user_diagrams, create_fm, qmlEngine
 ):
     test_user.roles = "admin"
     db.session.commit()
 
     fm = create_fm()
-    assert fm.session.isAdmin
+    assert qmlEngine.session.isAdmin
     assert fm.findItem("serverFileList").property("editMode") == False
 
 

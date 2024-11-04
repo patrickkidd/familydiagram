@@ -1,5 +1,8 @@
 import pytest
+
 from pkdiagram import Scene, Item, PathItem, Person, Marriage, ChildOf, Layer, commands
+
+pytestmark = [pytest.mark.component("Item")]
 
 
 def test_forward_compat():
@@ -52,12 +55,24 @@ class LayeredItem(Item):
 
 
 def test_hasTags():
-    """The basic tags test."""
+    """The basic tags condition test."""
     item = Item(tags=["one"])
     assert item.hasTags([]) == True
     assert item.hasTags(["one"]) == True
     assert item.hasTags(["one", "two"]) == True
     assert item.hasTags(["two"]) == False
+
+
+def test_addTags():
+    item = Item(tags=["one"])
+    item.addTags(["one", "two"])
+    assert item.tags() == ["one", "two"]
+
+    item.addTags(["two"])
+    assert item.tags() == ["one", "two"]
+
+    item.addTags(["three"])
+    assert set(item.tags()) == set(["one", "two", "three"])
 
 
 def test_layered_property():

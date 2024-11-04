@@ -6,9 +6,15 @@ from pkdiagram import util, EventKind, Person, Marriage, Event, Scene
 from pkdiagram.qmldrawer import QmlDrawer
 
 
+pytestmark = [pytest.mark.component("MarriageProperties")]
+
+
 @pytest.fixture
-def mp(qtbot, qmlScene, request):
-    mp = QmlDrawer("qml/MarriageProperties.qml", propSheetModel="marriageModel")
+def mp(qtbot, qmlScene, qmlEngine, request):
+    qmlEngine.setScene(qmlScene)
+    mp = QmlDrawer(
+        qmlEngine, "qml/MarriageProperties.qml", propSheetModel="marriageModel"
+    )
     mp.checkInitQml()
     mp.scene = qmlScene
     mp.marriageModel = mp.rootProp("marriageModel")

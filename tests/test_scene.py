@@ -1,7 +1,18 @@
-import os, os.path, pickle, itertools
+import os, os.path, pickle
+
 import pytest
 import conftest
-from pkdiagram.pyqt import QDateTime, QPointF, QRectF
+
+from pkdiagram.pyqt import (
+    QMouseEvent,
+    QEvent,
+    Qt,
+    QGraphicsView,
+    QApplication,
+    QDateTime,
+    QPointF,
+    QRectF,
+)
 from pkdiagram.util import EventKind
 from pkdiagram import (
     util,
@@ -17,6 +28,12 @@ from pkdiagram import (
     SceneLayerModel,
     SearchModel,
 )
+
+pytestmark = [
+    pytest.mark.component("Scene"),
+    pytest.mark.depends_on("Item"),
+]
+
 
 # class AddPeopleTest(test_util.TestCase):
 
@@ -67,6 +84,22 @@ def test_query_methods():
     people = scene.query(methods={"fullNameOrAlias": "John Doe"})
     assert len(people) == 1
     assert people[0].fullNameOrAlias() == "John Doe"
+
+
+def test_find_by_ids():
+    person_1 = Person(name="John", lastName="Doe")
+    person_2 = Person(name="Jane", lastName="Doe")
+    person_3 = Person(name="John", lastName="Smith")
+    scene = Scene()
+    scene.addItems(person_1, person_2, person_3)
+
+    items = scene.find(ids=[person_1.id, person_2.id])
+    assert len(items) == 2
+    assert set(items) == {person_1, person_2}
+
+    items = scene.find(ids=[person_1.id, person_2.id, person_3.id])
+    assert len(items) == 3
+    assert set(items) == {person_1, person_2, person_3}
 
 
 def test_find_by_types(simpleScene):
@@ -298,143 +331,6 @@ def test_remove_all_events_clears_currentDateTime(qApp):
     assert Scene().currentDateTime().isNull()
 
 
-def test_nextTaggedDate_prevTaggedDateTime():
-    scene = Scene()
-    scene.replaceEventProperties(["Var 1", "Var 2"])
-    person1 = Person()
-    person1.setBirthDateTime(util.Date(2000, 1, 1))  # 0
-    scene.addItem(person1)
-    event1 = Event(parent=person1, dateTime=util.Date(2001, 1, 1))  # 1
-    event1.dynamicProperty("var-1").set("One")
-    event2 = Event(parent=person1, dateTime=util.Date(2002, 1, 1))  # 2
-    event3 = Event(parent=person1, dateTime=util.Date(2003, 1, 1))  # 3
-    event3.dynamicProperty("var-2").set("Two")
-    scene.setCurrentDateTime(person1.birthDateTime())  # 0
-    scene.nextTaggedDateTime()  # 1
-    assert scene.currentDateTime() == event1.dateTime()
-
-    scene.nextTaggedDateTime()  # 2
-    assert scene.currentDateTime() == event2.dateTime()
-
-    scene.nextTaggedDateTime()  # 3
-    assert scene.currentDateTime() == event3.dateTime()
-
-    scene.prevTaggedDateTime()  # 2
-    assert scene.currentDateTime() == event2.dateTime()
-
-    scene.prevTaggedDateTime()  # 1
-    assert scene.currentDateTime() == event1.dateTime()
-
-    scene.prevTaggedDateTime()  # 0
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-
-def test_nextTaggedDate_uses_search_tags():
-    scene = Scene()
-    tags = ["test"]
-
-    person1 = Person()
-    person1.setBirthDateTime(util.Date(1980, 1, 1))
-    person2 = Person()
-    person2.setBirthDateTime(util.Date(1990, 2, 2))
-    person3 = Person()
-    person3.setBirthDateTime(util.Date(2000, 3, 3))
-    scene.addItem(person1)
-    scene.addItem(person2)
-    scene.addItem(person3)
-
-    # test first before setting tags
-
-    scene.setCurrentDateTime(person1.birthDateTime())
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.prevTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == person2.birthDateTime()
-
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    # then test after setting tags
-    person1.birthEvent.setTags(tags)
-    person3.birthEvent.setTags(tags)
-    scene.searchModel.setTags(tags)
-
-    taggedEvents = [e for e in scene.events() if e.hasTags(tags)]
-    scene.setCurrentDateTime(taggedEvents[0].dateTime())
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.prevTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.nextTaggedDateTime()  # skip person 2 for tags
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-
-def test_nextTaggedDate_uses_searchModel():
-    scene = Scene()
-    tags = ["test"]
-
-    person1 = Person(name="One")
-    person1.setBirthDateTime(util.Date(1980, 1, 1))
-    person2 = Person(name="Two")
-    person2.setBirthDateTime(util.Date(1990, 2, 2))
-    person3 = Person(name="Three")
-    person3.setBirthDateTime(util.Date(2000, 3, 3))
-    scene.addItem(person1)
-    scene.addItem(person2)
-    scene.addItem(person3)
-
-    # test first before setting tags
-
-    scene.setCurrentDateTime(person1.birthDateTime())
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.prevTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == person2.birthDateTime()
-
-    scene.nextTaggedDateTime()
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    # then test after setting tags
-    person1.birthEvent.setTags(tags)
-    person3.birthEvent.setTags(tags)
-    scene.searchModel.setTags(tags)
-
-    taggedEvents = [e for e in scene.events() if e.hasTags(tags)]
-    scene.setCurrentDateTime(taggedEvents[0].dateTime())
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.prevTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.nextTaggedDateTime()  # skip person 2 for tags
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    scene.nextTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person3.birthDateTime()
-
-    scene.prevTaggedDateTime()
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-    scene.prevTaggedDateTime()  # noop
-    assert scene.currentDateTime() == person1.birthDateTime()
-
-
 def test_new_persons_get_current_layers():
 
     s = Scene()
@@ -469,37 +365,6 @@ def test_new_persons_get_current_layers():
     assert p2.layers() == [layer1.id]
     assert p3.layers() == [layer1.id, layer2.id]
     assert p4.layers() == [layer2.id]
-
-
-@pytest.mark.skip(
-    reason="Probahly doesn't apply any more since layers don't have tags any more"
-)
-def test_update_set_tag_on_inspected_items_out_of_layer():
-    """Show layer with people that have emotional process
-    symbols that don’t have the layer’s tags, inspect those
-    symbols from personal timeline, add tag for the layer -> symbols don’t appear.
-    """
-    tags = ["here"]
-    s = Scene()
-    s.setTags(tags)
-    layer1 = Layer(tags=tags)
-    s.addItem(layer1)
-    p1 = Person(name="p1", tags=tags)
-    p2 = Person(name="p2", tags=tags)
-    s.addItems(p1, p2)
-    cutoff = Emotion(kind=util.ITEM_CUTOFF, personA=p1, personB=p2)
-    s.addItems(cutoff)
-    layer1.setActive(True)
-    dateTime = QDateTime.currentDateTime()
-    assert p1.shouldShowFor(dateTime, tags) == True
-    assert p2.shouldShowFor(dateTime, tags) == True
-    assert cutoff.shouldShowFor(dateTime, tags) == False
-    assert cutoff.isVisible() == False
-
-    # Simulate inspecting a hidden emotion from person props
-    cutoff.setTags(tags)
-    assert cutoff.shouldShowFor(dateTime, tags) == True
-    assert cutoff.isVisible() == True
 
 
 def test_read():
@@ -969,168 +834,6 @@ def test_import(simpleScene):
     simpleScene.selectAll()
     commands.importItems(scene, simpleScene.selectedItems())
     assert len(scene.items()) == len(simpleScene.items())
-
-
-def test_write_excel_no_exception(simpleScene, tmp_path):
-    p1 = simpleScene.query1(name="p1")
-    p2 = simpleScene.query1(name="p2")
-    kinds = itertools.cycle(
-        [
-            util.ITEM_CUTOFF,
-            util.ITEM_CONFLICT,
-            util.ITEM_PROJECTION,
-            util.ITEM_DISTANCE,
-            util.ITEM_TOWARD,
-            util.ITEM_AWAY,
-            util.ITEM_DEFINED_SELF,
-            util.ITEM_RECIPROCITY,
-            util.ITEM_INSIDE,
-            util.ITEM_OUTSIDE,
-        ]
-    )
-    iDay = 0
-    stride = 2
-    firstDate = QDateTime.currentDateTime().addDays(-365 * 5)
-    for i in range(100):
-        for parent in (p1, p2):
-            iDay += stride
-            dateTime = firstDate.addDays(iDay)
-            Event(parent, description="Test event %i" % iDay, dateTime=dateTime)
-        iDay += stride
-        dateTime = firstDate.addDays(iDay)
-        Emotion(personA=p1, personB=p2, kind=next(kinds), dateTime=dateTime)
-    # util.printModel(simpleScene.timelineModel)
-    filePath = os.path.join(tmp_path, "test.xlsx")
-    simpleScene.writeExcel(filePath)
-
-
-# PRISCILLA_SCENE = {
-#     'items': [{
-#         'adopted': False,
-#         'adoptedEvent': {
-#             'dateTime': None,
-#             'description': 'Adopted',
-#             'dynamicProperties': {},
-#             'id': 1526,
-#             'includeOnDiagram': False,
-#             'location': None,
-#             'loggedDateTime': util.Date(2020, 12, 26),
-#             'nodal': False,
-#             'notes': None,
-#             'parentName': None,
-#             'tags': [],
-#             'uniqueId': 'adopted',
-#             'unsure': True
-#         },
-#         'alias': 'Annabel',
-#         'bigFont': False,
-#         'birthEvent': {
-#             'dateTime': None,
-#             'description': 'Birth',
-#             'dynamicProperties': {},
-#             'id': 1524,
-#             'includeOnDiagram': False,
-#             'location': None,
-#             'loggedDateTime': util.Date(2020, 12, 26),
-#             'nodal': False,
-#             'notes': None,
-#             'parentName': 'Elsie',
-#             'tags': [],
-#             'uniqueId': 'birth',
-#             'unsure': False
-#         },
-#         'birthName': 'Harder',
-#         'childOf': {},
-#         'color': None,
-#         'deathEvent': {
-#             'dateTime': util.Date(2002, 11, 25),
-#             'description': 'Death',
-#             'dynamicProperties': {},
-#             'id': 1525,
-#             'location': None,
-#             'loggedDateTime': util.Date(2020, 12, 26),
-#             'nodal': False,
-#             'notes': None,
-#             'parentName': None,
-#             'tags': [],
-#             'uniqueId': 'death',
-#             'unsure': False
-#         },
-#         'deceased': True,
-#         'deceasedReason': None,
-#         'detailsText': {
-#             'id': 1523,
-#             'itemPos': QPointF(70.0, -50.0),
-#             'loggedDateTime': util.Date(2020, 12, 26),
-#             'tags': []
-#         },
-#         'diagramNotes': None,
-#         'events': []
-#         'gender': 'female',
-#         'hideDetails': True,
-#         'id': 1527,
-#         'itemOpacity': None,
-#         'itemPos': QPointF(2782.64741504785, 7531.047913485266),
-#         'kind': 'Person',
-#         'lastName': 'Friesen',
-#         'loggedDateTime': util.Date(2020, 12, 26),
-#         'marriages': [],
-#         'middleName': None,
-#         'name': 'Elsie',
-#         'nickName': None,
-#         'notes': None,
-#         'primary': False,
-#         'showLastName': True,
-#         'showMiddleName': True,
-#         'showNickName': True,
-#         'size': 4,
-#         'tags': []
-#     }
-#     ],
-#     'lastItemId': 8026,
-# }
-
-
-PRISCILLA_SCENE = {
-    "lastItemId": 8026,
-    "version": "1.3.0",
-    "items": [
-        {
-            "id": 1527,
-            "deathEvent": {
-                "id": 1525,
-                "dateTime": util.Date(2002, 11, 25),
-                "parentName": None,
-                "uniqueId": EventKind.Death.value,
-            },
-            "deceased": True,
-            "kind": "Person",
-            "lastName": "Friesen",
-            "name": "Elsie",
-        }
-    ],
-}
-
-
-def test_parentName_not_None():
-    scene = Scene()
-    scene.read(PRISCILLA_SCENE)
-    model = scene.timelineModel
-    index = scene.timelineModel.index(0, 5)
-    person = scene.people()[0]
-    assert index.data(model.ParentIdRole) == person.id
-
-    # event = Event(person, description='Mine')
-
-    # data2 = {}
-    # scene.write(data2)
-    # Debug(data2)
-
-    display = index.data()
-    assert display
-
-
-from pkdiagram.pyqt import QMouseEvent, QEvent, Qt, QGraphicsView, QApplication
 
 
 class View(QGraphicsView):

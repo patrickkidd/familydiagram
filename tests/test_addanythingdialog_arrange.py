@@ -7,6 +7,12 @@ from pkdiagram import Person, Marriage
 from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 
 
+pytestmark = [
+    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.depends_on("Scene"),
+]
+
+
 def test_parents_to_existing_person(dlg):
     scene = dlg.scene
     submitted = util.Condition(dlg.submitted)

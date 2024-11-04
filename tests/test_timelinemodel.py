@@ -1,7 +1,12 @@
 import pytest
+
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util, objects, EventKind
 from pkdiagram import Scene, Person, Marriage, Event, Emotion, TimelineModel
+from pkdiagram.models import SearchModel
+
+
+pytestmark = pytest.mark.component("TimelineModel")
 
 
 @pytest.fixture
@@ -16,7 +21,10 @@ def timelineScene(simpleScene):
 
 @pytest.fixture
 def model(timelineScene):
-    return timelineScene.timelineModel
+    _model = TimelineModel()
+    _model.scene = timelineScene
+    _model.items = [timelineScene]
+    return _model
 
 
 def test_internals(model):
@@ -66,18 +74,22 @@ def test_init_deinit(timelineScene, model):
 
 def test_shouldHide():
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
+    model.searchModel = SearchModel()
+    model.searchModel.scene = scene
     assert model._shouldHide(Event(dateTime=util.Date(2000, 1, 1))) == False
     assert model._shouldHide(Event()) == True
 
-    scene.searchModel.tags = ["here"]
+    model.searchModel.tags = ["here"]
     assert model._shouldHide(Event(dateTime=util.Date(2000, 1, 1))) == True
     assert (
         model._shouldHide(Event(dateTime=util.Date(2000, 1, 1), tags=["here"])) == False
     )
 
-    scene.searchModel.tags = []
-    scene.searchModel.description = "there"
+    model.searchModel.tags = []
+    model.searchModel.description = "there"
     assert model._shouldHide(Event(dateTime=util.Date(2000, 1, 1))) == True
     assert (
         model._shouldHide(Event(dateTime=util.Date(2000, 1, 1), tags=["here"])) == True
@@ -88,6 +100,48 @@ def test_shouldHide():
         )
         == False
     )
+
+
+def test_set_searchModel():
+    scene = Scene()
+    personA, personB, personC = Person(), Person(), Person()
+    personA.setBirthDateTime(util.Date(2000, 1, 1))
+    personB.setBirthDateTime(util.Date(2001, 1, 1))
+    eventA = Event(
+        parent=personA,
+        description="PersonA something",
+        dateTime=util.Date(2002, 1, 1),
+        tags=["here"],
+    )
+    eventB = Event(
+        parent=personB,
+        description="PersonB something",
+        dateTime=util.Date(2003, 1, 1),
+        tags=["there"],
+    )
+    eventB2 = Event(
+        parent=personB,
+        description="PersonB something 2",
+        dateTime=util.Date(2004, 1, 1),
+        tags=["there"],
+    )
+    scene.addItems(personA, personB, personC, eventA, eventB, eventB2)
+
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
+
+    searchModel_1 = SearchModel()
+    searchModel_1.tags = ["here"]
+    searchModel_1.scene = scene
+    model.searchModel = searchModel_1
+    assert model.rowCount() == 1
+
+    searchModel_2 = SearchModel()
+    searchModel_2.tags = ["there"]
+    searchModel_2.scene = scene
+    model.searchModel = searchModel_2
+    assert model.rowCount() == 2
 
 
 def test_init_multiple_people():
@@ -350,7 +404,9 @@ def test_delete_emotion_date(qtbot, timelineScene, model):
 )
 def test_dont_show_not_deceased_with_deceased_date():
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     person = Person()
     # set deceased date but not `deceased`
     person.setDeceasedDateTime(util.Date(2000, 1, 1))
@@ -376,7 +432,9 @@ def test_dont_show_not_deceased_with_deceased_date():
 
 def test_set_datetime():
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     person = Person(name="Person A")
     person.birthEvent.setDateTime(util.Date(2000, 1, 1))
     scene.addItems(person)
@@ -391,7 +449,9 @@ def test_set_datetime():
 @pytest.mark.parametrize("role", [Qt.DisplayRole, Qt.EditRole])
 def test_set_date_retains_time(role):
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     person = Person(name="Person A")
     person.birthEvent.setDateTime(util.Date(2000, 1, 1, 12, 35, 0))
     scene.addItems(person)
@@ -404,7 +464,7 @@ def test_set_date_retains_time(role):
 def test_set_emotion_date():
 
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
     model.scene = scene
     model.items = [scene]
 
@@ -557,7 +617,9 @@ def test_dateBuddies_sameDate(timelineScene, model):
 
 def test_emotion_parentName_changed():
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     p1 = Person(name="p1")
     p2 = Person(name="p2")
     fusion = Emotion(
@@ -589,7 +651,9 @@ def test_emotion_parentName_changed():
 def test_rows_for_date():
     # Add an emotion start and arbitrary event on the same date, emotion end on another
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     p1 = Person(name="p1")
     event1 = Event(parent=p1, dateTime=util.Date(1900, 1, 2))
     event2 = Event(parent=p1, dateTime=util.Date(1910, 1, 2))
@@ -632,7 +696,11 @@ def test_rows_for_date():
 def test_rows_for_date_search():
     # Add an emotion start and arbitrary event on the same date, emotion end on another
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
+    model.searchModel = SearchModel()
+    model.searchModel.scene = scene
     p1 = Person(name="p1")
     event1 = Event(parent=p1, dateTime=util.Date(1900, 1, 2))
     event2 = Event(parent=p1, dateTime=util.Date(1910, 1, 2), tags=["bleh"])  # 0
@@ -641,7 +709,7 @@ def test_rows_for_date_search():
     event5 = Event(parent=p1, dateTime=util.Date(1920, 1, 2), tags=["bleh"])  # 2
     scene.addItems(p1)
 
-    scene.searchModel.tags = ["bleh"]
+    model.searchModel.tags = ["bleh"]
 
     dateTime = util.Date(1899, 1, 2)  # before first date
     assert model.firstRowForDateTime(dateTime) == -1
@@ -676,6 +744,9 @@ def test_rows_for_date_search():
 
 def test_showAliases_signals():
     scene = Scene()
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
     patrick = Person(name="Patrick", alias="Marco", notes="Patrick Bob")
     bob = Person(name="Bob", nickName="Robby", alias="John")
     e1 = Event(
@@ -705,7 +776,6 @@ def test_showAliases_signals():
         dateTime=util.Date(1900, 1, 5),
     )
     scene.addItems(patrick, bob, distance, marriage)
-    model = scene.timelineModel
     newValues = {}
 
     def namesAndDescriptions(fromIndex, toIndex, roles):
@@ -777,7 +847,6 @@ def test_get_all_variables():
     scene.addItem(person)
     prop = person.birthEvent.dynamicProperty("anxiety")
     prop.set("up")
-    model = scene.timelineModel
     # for i in range(model.rowCount()):
     #     for j in range(model.columnCount()):
     #         Debug(i, j, model.data(model.index(i, j)))

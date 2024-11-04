@@ -25,30 +25,14 @@ class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
 
-    def initQmlWidgetHelper(self, source, **contextProperties):
+    def initQmlWidgetHelper(self, engine, source):
+        self._engine = engine
         self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
-        self._contextProperties = contextProperties
         self.initQObjectHelper()
 
-    @property
-    def sceneModel(self):
-        """Deprecated"""
-        return self._contextProperties.get("sceneModel")
-
-    @property
-    def session(self):
-        """Deprecated"""
-        return self._contextProperties.get("session")
-
-    # def __getattr__(self, attr):
-    #     if not hasattr(self, attr) and \
-    #        hasattr(self, 'qml') and \
-    #        hasattr(self.qml.rootObject(), attr) and \
-    #        isinstance(getattr(self.qml.rootObject(), attr), pyqtSignal):
-    #         return getattr(self.qml.rootObject(), attr)
-    #     else:
-    #         return super().__getattr__(self, o)
+    def qmlEngine(self):
+        return self._engine
 
     def isQmlReady(self):
         return hasattr(self, "qml")
@@ -62,7 +46,7 @@ class QmlWidgetHelper(QObjectHelper):
         """Returns True if initialized on this call."""
         if hasattr(self, "qml"):
             return False
-        self.qml = QQuickWidget(QApplication.instance().qmlEngine(), self)
+        self.qml = QQuickWidget(self._engine, self)
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -82,32 +66,10 @@ class QmlWidgetHelper(QObjectHelper):
             raise RuntimeError(
                 "Could not load qml component from: %s" % self._qmlSource
             )
-        # map all signals
-
-        # properties = []
-        # signals = []
-        # mo = self.qml.rootObject().metaObject()
-        # for i in range(mo.propertyCount()):
-        #     properties.append(mo.property(i).name())
-        # for i in range(mo.methodCount()):
-        #     meth = mo.method(i)
-        #     if meth.methodType() == QMetaMethod.Signal:
-        #         signature = bytes(meth.methodSignature()).decode()
-        #         attr = signature[:signature.index('(')]
-        #         x = getattr(self.qml.rootObject(), attr)
-        #         isPyQtSignal = 'PYQT_SIGNAL' in str(type(x))
-        #         print(signature, attr, isPyQtSignal)
-        #         signals.append(x)
-        #         if not hasattr(self, k) and isinstance(v, pyqtSignal):
-        #             self.here('Mapped pyqtSignal on [%s]: %s' % (self.objectName(), k))
-        #             setattr(self, k, v)
-
         for k, v in self.qml.rootObject().__dict__:
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        # for k, v in self._qmlKWArgs.items():
-        #     self.qml.rootObject().setProperty(k, v)
         self.layout().addWidget(self.qml)
         self.qml.setParent(self)
         self.qml.resize(800, 600)
@@ -115,25 +77,17 @@ class QmlWidgetHelper(QObjectHelper):
         for child in self.qml.rootObject().findChildren(QQuickItem):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child
-        if self.sceneModel:
-
-            def makeOnPropChanged(attr):
-                def _onPropChanged():
-                    value = getattr(self.sceneModel, attr)
-                    self.qml.rootObject().setProperty(attr, value)
-
-                return _onPropChanged
-
-            for attr in ["timelineModel", "peopleModel", "searchModel"]:
-                _set = makeOnPropChanged(attr)
-                getattr(self.sceneModel, f"{attr}Changed").connect(_set)
-                _set()
 
         self.onInitQml()
         return True
 
     def onInitQml(self):
         """Virtual"""
+
+    def deinit(self):
+        # Prevent qml exceptions when context props are set to null
+        self.qml.setSource(QUrl(""))
+        self.qml = None
 
     ##
     ## Test utils

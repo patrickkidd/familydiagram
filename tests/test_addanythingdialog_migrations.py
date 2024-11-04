@@ -12,6 +12,11 @@ from test_addanythingdialog import scene, dlg
 
 _log = logging.getLogger(__name__)
 
+pytestmark = [
+    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.depends_on("Scene"),
+]
+
 
 @pytest.mark.parametrize(
     "kind",

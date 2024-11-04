@@ -1,7 +1,12 @@
-import os.path, datetime
 import pytest
-from pkdiagram import util, mainwindow, Scene, Person, Marriage, Emotion
+
+from pkdiagram import util, Person, Marriage, Emotion
 from pkdiagram.pyqt import Qt
+
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView"),
+]
 
 
 def test_person_kb_shortcut_item(qtbot, create_ac_mw):

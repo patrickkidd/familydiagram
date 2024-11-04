@@ -1,11 +1,18 @@
 import logging
 
+import pytest
+
 from pkdiagram import util, EventKind, MainWindow
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 
 
 _log = logging.getLogger(__name__)
+
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView", "AddAnythingDialog"),
+]
 
 
 def test_close_after_adding_lots(

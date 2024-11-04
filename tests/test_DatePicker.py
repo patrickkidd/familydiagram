@@ -2,7 +2,9 @@ from pkdiagram.pyqt import *
 from pkdiagram import util, commands, ModelHelper, QmlWidgetHelper
 from pkdiagram.objects import Item
 import pytest
-import conftest
+
+
+pytestmark = [pytest.mark.component("DatePicker")]
 
 
 class DatedItem(Item):
@@ -40,11 +42,11 @@ class DatePickerTest(QWidget, QmlWidgetHelper):
         ]
     )
 
-    def __init__(self, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
-        Layout = QVBoxLayout(self)
+        QVBoxLayout(self)
         self.model = DateModel()
-        self.initQmlWidgetHelper("tests/qml/DatePickerTest.qml")
+        self.initQmlWidgetHelper(engine, "tests/qml/DatePickerTest.qml")
         self.checkInitQml()
         self.setRootProp("model", self.model)
         item = DatedItem()
@@ -53,8 +55,8 @@ class DatePickerTest(QWidget, QmlWidgetHelper):
 
 
 @pytest.fixture
-def datePickerTest(qtbot):
-    dlg = DatePickerTest()
+def datePickerTest(qtbot, qmlEngine):
+    dlg = DatePickerTest(qmlEngine)
     dlg.show()
     qtbot.addWidget(dlg)
     qtbot.waitActive(dlg)
@@ -117,8 +119,8 @@ def test_reset_prop_by_text_input(qtbot, datePickerTest):
     assert view.model.dateTime == QDateTime()
 
 
-def test_reset_prop_by_prop():
-    view = DatePickerTest()
+def test_reset_prop_by_prop(qmlEngine):
+    view = DatePickerTest(qmlEngine)
 
     view.model.dateTime = QDateTime(2001, 2, 3, 0, 0)
     assert view.itemProp("dateButtons", "dateTime") == QDateTime(2001, 2, 3, 0, 0)

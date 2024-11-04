@@ -1,6 +1,14 @@
 import pytest
-from pkdiagram.pyqt import *
+
+from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, Scene, Person, Event, Layer, Emotion
+from pkdiagram.models import TimelineModel, SearchModel
+
+
+pytestmark = [
+    pytest.mark.component("SearchModel"),
+    pytest.mark.depends_on("Scene"),
+]
 
 
 @pytest.fixture
@@ -23,8 +31,10 @@ def model():
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItem(person)
-    scene.searchModel.items = [person]
-    return scene.searchModel, event1, event2, event3
+    searchModel = SearchModel()
+    searchModel.scene = scene
+    searchModel.items = [person]
+    return searchModel, event1, event2, event3
 
 
 def test_isBlank_separate(model):
@@ -148,26 +158,32 @@ def test_loggedStartDateTime_loggedEndDateTime(model):
 
 def test_ignores_layer_tags(model):
     model, event1, event2, event3 = model
+    scene = model.scene
+
+    timelineModel = TimelineModel()
+    timelineModel.scene = scene
+    timelineModel.items = [scene]
+    timelineModel.searchModel = model
 
     def num_shown():
         total = 0
-        for row in range(scene.timelineModel.rowCount()):
-            event = scene.timelineModel.eventForRow(row)
-            if not scene.searchModel.shouldHide(event):
+        for row in range(timelineModel.rowCount()):
+            event = timelineModel.eventForRow(row)
+            if not model.shouldHide(event):
                 total += 1
         return total
 
     scene = model.scene
     layer = Layer(name="View 1")
     scene.addItems(layer)
-    assert num_shown() == scene.timelineModel.rowCount()
+    assert num_shown() == timelineModel.rowCount()
 
     layer.setActive(True)
-    assert num_shown() == scene.timelineModel.rowCount()
+    assert num_shown() == timelineModel.rowCount()
 
 
 @pytest.fixture
-def emotion_model():
+def emotionModel():
     scene = Scene()
     personA = Person(name="Person A")
     personB = Person(name="Person B")
@@ -181,12 +197,14 @@ def emotion_model():
     conflict.startEvent.setLoggedDateTime(util.Date(2000, 1, 10))
     conflict.endEvent.setLoggedDateTime(util.Date(2000, 2, 10))
     scene.addItems(personA, personB, conflict)
-    scene.searchModel.items = scene
-    return scene.searchModel, conflict.startEvent, conflict.endEvent
+    searchModel = SearchModel()
+    searchModel.scene = scene
+    searchModel.items = scene
+    return searchModel, conflict.startEvent, conflict.endEvent
 
 
-def test_loggedStartDateTime_emotions(emotion_model):
-    model, startEvent, endEvent = emotion_model
+def test_loggedStartDateTime_emotions(emotionModel):
+    model, startEvent, endEvent = emotionModel
 
     # before first date
     model.loggedStartDateTime = QDateTime(util.Date(2000, 1, 1))
@@ -213,8 +231,8 @@ def test_loggedStartDateTime_emotions(emotion_model):
     assert model.shouldHide(endEvent) == False
 
 
-def test_loggedEndDateTime_emotions(emotion_model):
-    model, startEvent, endEvent = emotion_model
+def test_loggedEndDateTime_emotions(emotionModel):
+    model, startEvent, endEvent = emotionModel
 
     # after last date
     model.loggedEndDateTime = QDateTime(util.Date(2000, 2, 12))

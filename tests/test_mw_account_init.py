@@ -5,6 +5,12 @@ from pkdiagram import util, MainWindow
 from fdserver.extensions import db
 
 
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView", "AccountDialog"),
+]
+
+
 @pytest.mark.parametrize("is_server_down", [True, False])
 def test_show_account_when_no_session_no_license(
     create_ac_mw, server_down, is_server_down

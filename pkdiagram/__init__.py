@@ -20,6 +20,7 @@ from .objects import *
 from .scene import Scene
 from .widgets import *
 from .session import Session
+from .qmlengine import QmlEngine
 from .graphicaltimelinecanvas import GraphicalTimelineCanvas
 from .graphicaltimelineview import GraphicalTimelineView
 from .filemanager import FileManager

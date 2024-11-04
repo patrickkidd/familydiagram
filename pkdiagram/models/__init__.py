@@ -1,5 +1,6 @@
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
+from .searchmodel import SearchModel
 from .scenelayermodel import SceneLayerModel
 from .peoplemodel import PeopleModel
 from .tagsmodel import TagsModel
@@ -12,7 +13,6 @@ from .emotionpropertiesmodel import EmotionPropertiesModel
 from .personpropertiesmodel import PersonPropertiesModel
 from .marriagepropertiesmodel import MarriagePropertiesModel
 from .layeritempropertiesmodel import LayerItemPropertiesModel, LayerItemLayersModel
-from .searchmodel import SearchModel
 from .filemanagermodel import FileManagerModel
 from .localfilemanagermodel import LocalFileManagerModel
 from .serverfilemanagermodel import ServerFileManagerModel

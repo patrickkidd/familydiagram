@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 class GraphicalTimeline(QScrollArea):
     """Scroll area container for a GraphicalTimelineView that contains a GraphicalTimelineCanvas."""
 
-    def __init__(self, parent=None):
+    def __init__(self, searchModel, timelineModel, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -20,6 +20,7 @@ class GraphicalTimeline(QScrollArea):
         self.scaleFactor = 1.0
         self.tags = []  # cache to maintain click order
         self.heightMultiplier = None
+        self._searchModel = searchModel
         self._freezeScroll = False
         self._isResizeEvent = False
         self._isWheelEvent = False
@@ -44,7 +45,7 @@ class GraphicalTimeline(QScrollArea):
         self.sullivanianTimeBox = QCheckBox("Sullivanian Time", self.controls)
         ControlsLayout.addWidget(self.sullivanianTimeBox)
 
-        self.canvas = GraphicalTimelineCanvas(self)
+        self.canvas = GraphicalTimelineCanvas(searchModel, timelineModel, self)
         self.setWidget(self.canvas)
         self.canvas.wheel[QWheelEvent].connect(self.wheelEvent)
         self.canvas.mouseButtonClicked[QPoint].connect(self.onCanvasMouseButtonClicked)
@@ -56,16 +57,13 @@ class GraphicalTimeline(QScrollArea):
         self.nominalWidth = self.canvas.width()
         QScroller.grabGesture(self.viewport(), QScroller.LeftMouseButtonGesture)
 
+        self._searchModel.tagsChanged.connect(self.onSearchTagsChanged)
+        self._searchModel.changed.connect(self.onSearchChanged)
+
         self.controls.hide()
 
     def setScene(self, scene):
-        if self.scene:
-            self.scene.searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
-            self.scene.searchModel.changed.disconnect(self.onSearchChanged)
         self.scene = scene
-        if self.scene:
-            self.scene.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
-            self.scene.searchModel.changed.connect(self.onSearchChanged)
         self.canvas.setScene(self.scene)
         self.canvas.resize(self.size())
         self.zoomAbsolute(self.scaleFactor)

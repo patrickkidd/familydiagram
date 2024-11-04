@@ -9,10 +9,10 @@ from test_emotionproperties import (
 
 
 @pytest.fixture
-def ep(qmlScene, qtbot):
-    dlg = AddEmotionDialog()
+def ep(qmlScene, qtbot, qmlEngine):
+    qmlEngine.setScene(qmlScene)
+    dlg = AddEmotionDialog(qmlEngine)
     dlg.resize(600, 800)
-    dlg.setRootProp("sceneModel", qmlScene._sceneModel)
     dlg.setScene(qmlScene)
     dlg.show()
     qtbot.addWidget(dlg)
@@ -24,6 +24,7 @@ def ep(qmlScene, qtbot):
 
     dlg.setScene(None)
     dlg.hide()
+    dlg.deinit()
 
 
 def test_add_emotion_to_person(ep, emotionProps):

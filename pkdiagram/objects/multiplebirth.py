@@ -169,9 +169,9 @@ class MultipleBirth(PathItem):
     def children(self):
         return self._children
 
-    def shouldShowFor(self, dateTime, tags=[], layers=[]):
+    def shouldShowFor(self, dateTime, layers=[]):
         for person in self._children:
-            if person.childOf.shouldShowFor(dateTime, tags=tags, layers=layers):
+            if person.childOf.shouldShowFor(dateTime, layers=layers):
                 return True
         return False
 

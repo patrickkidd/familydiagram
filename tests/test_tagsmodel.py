@@ -1,6 +1,14 @@
 import pytest
+
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene, TagsModel, Item, Layer
+from pkdiagram import util, Scene, TagsModel, Item
+from pkdiagram.models import SearchModel
+
+
+pytestmark = [
+    pytest.mark.component("TagsModel"),
+    pytest.mark.depends_on("Scene", "SearchModel", "TagsModel"),
+]
 
 
 def test_init_deinit():
@@ -133,21 +141,21 @@ def test_set_active_SearchModel():
     scene = Scene()
     model = TagsModel()
     model.scene = scene
-    model.items = [scene]
-
+    model.searchModel = SearchModel()
+    model.searchModel.scene = scene
     scene.setTags(["here", "we", "are"])
 
     def set(row, value):
         assert model.setData(model.index(row, 0), value, model.ActiveRole) is True
 
     set(0, True)
-    assert scene.searchModel.tags == ["are"]
+    assert model.searchModel.tags == ["are"]
 
     set(2, True)
-    assert scene.searchModel.tags == ["are", "we"]
+    assert model.searchModel.tags == ["are", "we"]
 
     set(0, False)
-    assert scene.searchModel.tags == ["we"]
+    assert model.searchModel.tags == ["we"]
 
     set(2, False)
-    assert scene.searchModel.tags == []
+    assert model.searchModel.tags == []

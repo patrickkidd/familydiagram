@@ -23,18 +23,17 @@ class PeoplePickerTest(QWidget, QmlWidgetHelper):
         ]
     )
 
-    def __init__(self, sceneModel, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
         QVBoxLayout(self)
-        self.initQmlWidgetHelper(
-            "tests/qml/PeoplePickerTest.qml", sceneModel=sceneModel
-        )
+        self.initQmlWidgetHelper(engine, "tests/qml/PeoplePickerTest.qml")
         self.checkInitQml()
 
     def test_setExistingPeople(self, people):
         peoplePickerItem = self.findItem("peoplePicker")
         itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
         self.setExistingPeople(people)
+        util.waitALittle()
         while itemAddDone.callCount < len(people):
             _log.info(
                 f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
@@ -53,10 +52,10 @@ def scene():
 
 
 @pytest.fixture
-def picker(scene, qtbot):
-    dlg = PeoplePickerTest(scene._sceneModel)
+def picker(scene, qtbot, qmlEngine):
+    qmlEngine.setScene(scene)
+    dlg = PeoplePickerTest(qmlEngine)
     dlg.resize(600, 800)
-    dlg.setRootProp("sceneModel", scene._sceneModel)
     dlg.show()
     dlg.findItem("peoplePicker").clear()
     qtbot.addWidget(dlg)
@@ -66,6 +65,7 @@ def picker(scene, qtbot):
     yield dlg
 
     dlg.hide()
+    dlg.deinit()
 
 
 def test_init_fields(scene, picker):

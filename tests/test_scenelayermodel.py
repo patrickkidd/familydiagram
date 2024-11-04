@@ -3,6 +3,12 @@ from pkdiagram.pyqt import Qt
 from pkdiagram import util, Scene, SceneLayerModel, Layer, Person
 
 
+pytestmark = [
+    pytest.mark.component("SceneLayerModel"),
+    pytest.mark.depends_on("Scene", "Layer"),
+]
+
+
 def test_init_deinit():
     model = SceneLayerModel()
     assert model.rowCount() == 0

@@ -65,10 +65,10 @@ class UndoStack(QUndoStack):
         if enableAppUsageAnalytics:
             if _activeSession:
                 _activeSession.track(eventName, properties=properties)
-            else:
-                log.warning(
-                    f"Cannot track analytics event {eventName}: no active session."
-                )
+            # else:
+            #     log.warning(
+            #         f"Cannot track analytics event {eventName}: no active session."
+            #     )
 
 
 def track(eventName, properties={}):
@@ -579,7 +579,7 @@ def addMarriage(scene, a, b, id=-1):
 class SetItemProperty(UndoCommand):
     """Only called from Property.set()."""
 
-    ANALYTICS = False # "SetItemProperty"
+    ANALYTICS = False  # "SetItemProperty"
 
     def __init__(self, prop, value, layers=[], id=-1):
         if layers:

@@ -17,8 +17,10 @@ class GraphicalTimelineCanvas(QWidget):
     wheel = pyqtSignal(QWheelEvent)
     mouseButtonClicked = pyqtSignal(QPoint)
 
-    def __init__(self, parent=None):
+    def __init__(self, searchModel, timelineModel, parent=None):
         super().__init__(parent)
+        self._timelineModel = timelineModel
+        self._searchModel = searchModel
         self._events = SortedList()
         self._rows = []
         self._lastMousePos = None
@@ -41,6 +43,13 @@ class GraphicalTimelineCanvas(QWidget):
         QApplication.instance().paletteChanged.connect(self.onPaletteChanged)
         self.onPaletteChanged()
 
+        self._timelineModel.modelReset.connect(self.refresh)
+        self._timelineModel.rowsInserted.connect(self.refresh)
+        self._timelineModel.rowsMoved.connect(self.refresh)
+        self._timelineModel.rowsRemoved.connect(self.refresh)
+        self._timelineModel.dataChanged.connect(self.refresh)
+        self.refresh()
+
     def onPaletteChanged(self):
         self.setFont(QFont(util.FONT_FAMILY, util.TEXT_FONT_SIZE))
 
@@ -48,19 +57,7 @@ class GraphicalTimelineCanvas(QWidget):
         return self.parent().parent().parent().documentView()
 
     def setScene(self, scene):
-        if self.scene:
-            self.scene.timelineModel.modelReset.disconnect(self.refresh)
-            self.scene.timelineModel.rowsInserted.disconnect(self.refresh)
-            self.scene.timelineModel.rowsMoved.disconnect(self.refresh)
-            self.scene.timelineModel.rowsRemoved.disconnect(self.refresh)
-            self.scene.timelineModel.dataChanged.disconnect(self.refresh)
         self.scene = scene
-        if self.scene:
-            self.scene.timelineModel.modelReset.connect(self.refresh)
-            self.scene.timelineModel.rowsInserted.connect(self.refresh)
-            self.scene.timelineModel.rowsMoved.connect(self.refresh)
-            self.scene.timelineModel.rowsRemoved.connect(self.refresh)
-            self.scene.timelineModel.dataChanged.connect(self.refresh)
         self.refresh()
 
     def refresh(self):
@@ -72,9 +69,9 @@ class GraphicalTimelineCanvas(QWidget):
             self.update()
             return
         self.refreshPending = False
-        self._events = self.scene.timelineModel.events()
+        self._events = self._timelineModel.events()
         self._rows = []
-        if not self.isSlider() and self.scene.searchModel.tags:
+        if not self.isSlider() and self._searchModel.tags:
             # init day range
             if self.paintSullivanianTime():
                 self._dayRange = 0  # take from tag with greatest day range
@@ -84,7 +81,7 @@ class GraphicalTimelineCanvas(QWidget):
             else:
                 self._dayRange = 0
             # init rows
-            for tag in self.scene.searchModel.tags:
+            for tag in self._searchModel.tags:
                 thisTagEvents = [e for e in self._events if e.hasTags([tag])]
                 if not self.paintSullivanianTime():
                     if thisTagEvents and thisTagEvents[0] != firstEvent:
@@ -104,9 +101,9 @@ class GraphicalTimelineCanvas(QWidget):
         self.update()
 
     def firstAndLast(self, events=None):  # should be sorted
-        if self.scene.searchModel.startDateTime:
+        if self._searchModel.startDateTime:
             firstE = objects.Event(
-                dateTime=self.scene.searchModel.startDateTime, uniqueId="search_dummy"
+                dateTime=self._searchModel.startDateTime, uniqueId="search_dummy"
             )
         else:
             firstE = None
@@ -114,9 +111,9 @@ class GraphicalTimelineCanvas(QWidget):
                 if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
                     firstE = event
                     break
-        if self.scene.searchModel.endDateTime:
+        if self._searchModel.endDateTime:
             lastE = objects.Event(
-                dateTime=self.scene.searchModel.endDateTime, uniqueId="search_dummy"
+                dateTime=self._searchModel.endDateTime, uniqueId="search_dummy"
             )
         else:
             lastE = None
@@ -498,7 +495,7 @@ class GraphicalTimelineCanvas(QWidget):
     def paintSullivanianTime(self):
         """Only when tags are set."""
         if self.scene:
-            return bool(self.scene.searchModel.tags and self.sullivanianTime)
+            return bool(self._searchModel.tags and self.sullivanianTime)
 
     def setSullivanianTime(self, on):
         if on != self.sullivanianTime:

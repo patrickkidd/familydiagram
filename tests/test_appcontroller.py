@@ -5,9 +5,14 @@ import mock
 import pytest
 
 import vedana
-from pkdiagram.pyqt import QSettings
-from pkdiagram import version, util, AppController, MainWindow, Scene, Person, AppConfig
+from pkdiagram import version, util, AppController, Scene, Person
 from fdserver import util as fdserver_util
+
+
+pytestmark = [
+    pytest.mark.component("AppController"),
+    pytest.mark.depends_on("MainWindow"),
+]
 
 
 SCENE_NAME = "Some Scene"

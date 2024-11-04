@@ -79,16 +79,17 @@ def assertEmotionProperties(
 
 
 @pytest.fixture
-def ep(qtbot, qmlScene):
-    ep = QmlDrawer("qml/EmotionPropertiesDrawer.qml", propSheetModel="emotionModel")
+def ep(qtbot, qmlScene, qmlEngine):
+    qmlEngine.setScene(qmlScene)
+    ep = QmlDrawer(
+        qmlEngine, "qml/EmotionPropertiesDrawer.qml", propSheetModel="emotionModel"
+    )
     ep.checkInitQml()
     ep.emotionModel = ep.rootProp("emotionModel")
-    ep.setRootProp("sceneModel", qmlScene._sceneModel)
     ep.setScene(qmlScene)
     ep.show()
     qtbot.waitActive(ep)
     assert ep.isShown()
-
     yield ep
 
     ep.setScene(None)

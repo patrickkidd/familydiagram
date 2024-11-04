@@ -1,18 +1,14 @@
 # std lib
-import os, sys, time, pickle, uuid, contextlib, logging
-from datetime import datetime
-import tempfile, shutil
+import os, sys
+import contextlib
+import logging
 import enum
 import contextlib
 from typing import Callable
 
 # third-party
-import PyQt5.QtCore
-import PyQt5.QtGui
-import requests
 import pytest, mock
 import flask.testing
-from flask import Flask
 
 # Load python init by path since it doesn't exist in a package.
 import importlib
@@ -42,6 +38,7 @@ from pkdiagram import (
     AppController,
     Person,
     Analytics,
+    QmlEngine,
 )
 from pkdiagram.pyqt import *
 from fdserver.tests.conftest import *
@@ -73,34 +70,72 @@ def pytest_addoption(parser):
     )
 
 
+_componentStatus = {}
+_currentTestItem = None
+
+
 def pytest_generate_tests(metafunc):
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    attach = metafunc.config.getoption("attach")
-    if attach and pytest_generate_tests._first_call:
-        util.wait_for_attach()
-        pytest_generate_tests._first_call = False
 
 
-pytest_generate_tests._first_call = True
+def pytest_collection_modifyitems(session, config, items):
+    """Reorder test items based on component dependencies."""
+    component_tests = {}
+    ordered_items = []
+    non_component_items = []
+
+    # Sort items into their respective component lists
+    for item in items:
+        component_marker = item.get_closest_marker("component")
+        if component_marker:
+            component = component_marker.args[0]
+            component_tests.setdefault(component, []).append(item)
+        else:
+            non_component_items.append(item)
+
+    visited = set()
+
+    def add_with_dependencies(component):
+        if component in visited:
+            return
+        visited.add(component)
+        for item in component_tests.get(component, []):
+            dependency_marker = item.get_closest_marker("depends_on")
+            if dependency_marker:
+                for dependency in dependency_marker.args:
+                    add_with_dependencies(dependency)
+            ordered_items.append(item)
+
+    for component in component_tests.keys():
+        add_with_dependencies(component)
+
+    items[:] = ordered_items + non_component_items
 
 
-# def cleanupSessionAppDataDir():
-#     global _tmpAppDataDir
-#     if util._tmpAppDataDir:
-#         # Debug('Deleting', _tmpAppDataDir)
-#         shutil.rmtree(_tmpAppDataDir)
-#         _tmpAppDataDir = None
-# import atexit
-# atexit.register(cleanupSessionAppDataDir)
+def pytest_runtest_setup(item):
+    """Skip tests based on component dependency rules if dependencies failed."""
+    global _currentTestItem
+
+    _currentTestItem = item
+
+    dependency_marker = item.get_closest_marker("depends_on")
+    if dependency_marker:
+        for dependency in dependency_marker.args:
+            if _componentStatus.get(dependency) == "failed":
+                pytest.skip(
+                    f"Skipping {item.name} tests because {dependency} tests failed"
+                )
 
 
-# def resetSessionAppDataDir():
-#     global _tmpAppDataDir
-#     if util._tmpAppDataDir:
-#         cleanupTmpAppDataDir()
-#     import shutil, tempfile, atexit
-#     _tmpAppDataDir = tempfile.mkdtemp()
-#     # Debug('Created temp dir:', _tmpAppDataDir)
+def pytest_report_teststatus(report, config):
+    """Track failures for components so dependent tests case be skipped."""
+    global _currentTestItem, _componentStatus
+
+    if report.failed:  # during call
+        component_marker = _currentTestItem.get_closest_marker("component")
+        if component_marker:
+            component = component_marker.args[0]
+            _componentStatus[component] = "failed"
 
 
 @pytest.fixture
@@ -185,11 +220,9 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
     return reply
 
 
-log.info("IMPORT familydiagram/tests/conftest.py")
-
-
 @pytest.fixture(scope="session", autouse=True)
 def qApp():
+    global _currentTestItem
 
     log.debug(f"Create qApp for familydiagram/tests")
 
@@ -255,6 +288,29 @@ def watchdog(request, qApp):
         watchdogTimer.stop()
         if watchdog.killed() and not watchdog.cancelled():
             pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
+
+
+@pytest.fixture
+def qmlEngine(qApp):
+    from pkdiagram import Session
+
+    qmlErrors = []
+    _qmlEngine = QmlEngine(qApp, Session())
+
+    def _onWarnings(errors: list[QQmlError]):
+        qmlErrors.extend(errors)
+
+    _qmlEngine.warnings.connect(_onWarnings)
+
+    yield _qmlEngine
+
+    _qmlEngine.deinit()
+
+    # Ignore errors after teardown and before the next test case, they don't
+    # effect the logic under test.
+    if qmlErrors:
+        msgs = "\n".join(x.toString() for x in qmlErrors)
+        pytest.fail(f"QmlEngine warnings/errors: {msgs}")
 
 
 @pytest.fixture(autouse=True)
@@ -527,7 +583,7 @@ class PKQtBot(QtBot):
         log.debug(f"QMessageBox: '{text}'")
         if "text" in kwargs and kwargs["text"] not in messageBox.text():
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: '{kwargs['text']}', found text: '{messageBox.text()}'."
             )
         elif (
@@ -535,7 +591,7 @@ class PKQtBot(QtBot):
             and kwargs["informativeText"] not in messageBox.informativeText()
         ):
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: {kwargs['informativeText']}, QMessageBox::informativeText: {messageBox.informativeText()}."
             )
         elif (
@@ -543,7 +599,7 @@ class PKQtBot(QtBot):
             and kwargs["detailedText"] not in messageBox.detailedText()
         ):
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: {kwargs['detailedText']}, QMessageBox::detailedText: {messageBox.detailedText()}."
             )
 

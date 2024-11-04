@@ -760,6 +760,7 @@ PK.Drawer {
                 objectName: 'personProps_timelineView'
                 model: TimelineModel {
                     objectName: 'personTimelineModel'
+                    searchModel: searchModel
                     scene: sceneModel.scene
                     items: personModel.items.length > 0 ? personModel.items : undefined
                 }

@@ -1,13 +1,19 @@
 import pytest
+
 from pkdiagram.pyqt import Qt, QPoint, QDate, QDateTime
 from pkdiagram import (
     util,
     GraphicalTimelineView,
-    GraphicalTimelineCanvas,
     Scene,
     Event,
     Person,
 )
+from pkdiagram.models import SearchModel, TimelineModel
+
+pytestmark = [
+    pytest.mark.component("GraphicalTimelineView"),
+    pytest.mark.depends_on("TimelineModel"),
+]
 
 
 @pytest.fixture
@@ -23,7 +29,12 @@ def create_gtv(qtbot):
             Person(birthDateTime=QDateTime(QDate(2000 + i, 1, 1))) for i in range(5)
         )
         scene.addItems(*folks)
-        gtv = GraphicalTimelineView()
+        searchModel = SearchModel()
+        searchModel.scene = scene
+        timelineModel = TimelineModel()
+        timelineModel.scene = scene
+        timelineModel.items = [scene]
+        gtv = GraphicalTimelineView(searchModel, timelineModel)
         gtv.resize(800, 600)
         gtv.show()
         gtv.setScene(scene)
@@ -48,7 +59,7 @@ def test_is_slider_multiple_tags(create_gtv):
     gtv = create_gtv()
     canvas = gtv.timeline.canvas
     canvas.setIsSlider(False)
-    canvas.scene.searchModel.tags = [TAG_1, TAG_2]
+    canvas._searchModel.tags = [TAG_1, TAG_2]
 
     person = Person()
     event1 = Event(

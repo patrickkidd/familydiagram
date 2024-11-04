@@ -13,6 +13,9 @@ from pkdiagram import util, version, appconfig, Scene, Person
 import conftest
 
 
+pytestmark = [pytest.mark.component("AppConfig")]
+
+
 # test_data_files = {}
 TEST_DATA = os.path.join(os.path.dirname(__file__), "data")
 # for name in os.listdir(TEST_DATA):

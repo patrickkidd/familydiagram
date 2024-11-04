@@ -215,15 +215,15 @@ def test_shouldShowFor():
     layer = Layer(name="View 1")
     scene.addItems(person, layer)
 
-    assert person.shouldShowFor(QDateTime(), [], []) == True
+    assert person.shouldShowFor(QDateTime(), []) == True
 
-    assert person.shouldShowFor(QDateTime(), [], [layer]) == False
+    assert person.shouldShowFor(QDateTime(), [layer]) == False
 
     person.setLayers([layer.id])
-    assert person.shouldShowFor(QDateTime(), [], [layer]) == True
+    assert person.shouldShowFor(QDateTime(), [layer]) == True
 
     person.setLayers([])
-    assert person.shouldShowFor(QDateTime(), [], [layer]) == False
+    assert person.shouldShowFor(QDateTime(), [layer]) == False
 
 
 def test_person_setLayers():

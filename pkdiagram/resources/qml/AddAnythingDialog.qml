@@ -17,7 +17,6 @@ PK.Drawer {
     property int margin: util.QML_MARGINS
     property var focusResetter: addPage
     property bool canInspect: false
-    property var peopleModel: ListModel { }
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
@@ -285,7 +284,15 @@ PK.Drawer {
             id: addPage
             objectName: 'addPage'
             contentWidth: width
-            contentHeight: addPageInner.childrenRect.height + root.margin / 4
+
+            // contentHeight: addPageInner.childrenRect.height + root.margin / 4
+            // was causing a binding loop
+            Timer {
+                interval: 0
+                running: true
+                repeat: false
+                onTriggered: addPage.contentHeight = addPageInner.childrenRect.height + root.margin / 4
+            }
             function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
@@ -396,7 +403,7 @@ PK.Drawer {
                             PK.PersonPicker {
                                 id: personPicker
                                 objectName: "personPicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 border.width: 1
                                 border.color: util.QML_ITEM_BORDER_COLOR
@@ -427,7 +434,7 @@ PK.Drawer {
                             PK.PeoplePicker {
                                 id: peoplePicker
                                 objectName: "peoplePicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 // width: peopleField.width - peopleField.clearButton.width
                                 Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -457,7 +464,7 @@ PK.Drawer {
                             PK.PersonPicker {
                                 id: personAPicker
                                 objectName: "personAPicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 border.width: 1
                                 border.color: util.QML_ITEM_BORDER_COLOR
@@ -488,7 +495,7 @@ PK.Drawer {
                             PK.PersonPicker {
                                 id: personBPicker
                                 objectName: "personBPicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 border.width: 1
                                 border.color: util.QML_ITEM_BORDER_COLOR
@@ -519,7 +526,7 @@ PK.Drawer {
                             PK.PeoplePicker {
                                 id: moversPicker
                                 objectName: "moversPicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                                 Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -548,7 +555,7 @@ PK.Drawer {
                             PK.PeoplePicker {
                                 id: receiversPicker
                                 objectName: "receiversPicker"
-                                scenePeopleModel: root.peopleModel
+                                scenePeopleModel: peopleModel
                                 selectedPeopleModel: root.selectedPeopleModel
                                 Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
                                 Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -627,7 +634,7 @@ PK.Drawer {
                             objectName: 'startDateButtons'
                             datePicker: startDatePicker
                             timePicker: startTimePicker
-                            dateTime: root.startDateTime
+                            // dateTime: root.startDateTime
                             showInspectButton: false
                             backTabItem: descriptionField.backTabItem
                             tabItem: endDateButtons.firstTabItem
@@ -645,7 +652,7 @@ PK.Drawer {
                         PK.DatePicker {
                             id: startDatePicker
                             objectName: 'startDatePicker'
-                            dateTime: root.startDateTime                            
+                            // dateTime: root.startDateTime                            
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -660,7 +667,7 @@ PK.Drawer {
                         PK.TimePicker {
                             id: startTimePicker
                             objectName: 'startTimePicker'
-                            dateTime: root.startDateTime                            
+                            // dateTime: root.startDateTime                            
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -684,7 +691,7 @@ PK.Drawer {
                             objectName: 'endDateButtons'
                             datePicker: endDatePicker
                             timePicker: endTimePicker
-                            dateTime: root.endDateTime                            
+                            // dateTime: root.endDateTime
                             showInspectButton: true
                             visible: root.isDateRange
                             backTabItem: startDateButtons.lastTabItem
@@ -702,7 +709,7 @@ PK.Drawer {
                         PK.DatePicker {
                             id: endDatePicker
                             objectName: 'endDatePicker'
-                            dateTime: root.endDateTime                            
+                            // dateTime: root.endDateTime
                             visible: root.isDateRange
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -718,7 +725,7 @@ PK.Drawer {
                         PK.TimePicker {
                             id: endTimePicker
                             objectName: 'endTimePicker'
-                            dateTime: root.endDateTime
+                            // dateTime: root.endDateTime
                             visible: root.isDateRange
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -881,10 +888,10 @@ PK.Drawer {
                                 property Item firstTabItem: notesEdit
                                 property Item lastTabItem: notesEdit
                                 ScrollView {
+                                    id: notesScrollView
                                     width: notesFrame.width - 4
                                     height: notesFrame.height - 4
                                     contentWidth: notesEdit.width
-                                    contentHeight: notesEdit.height
                                     anchors.fill: parent
                                     clip: true
 
@@ -899,6 +906,7 @@ PK.Drawer {
                                         rightPadding: margin
                                         KeyNavigation.tab: kindBox
                                         KeyNavigation.backtab: symptomBox.lastTabItem
+                                        onWidthChanged: notesScrollView.contentWidth = width
                                     }
                                 }
                                 function clear() { notesEdit.text = '' }

@@ -27,6 +27,12 @@ from fdserver.models import Diagram
 _log = logging.getLogger(__name__)
 
 
+pytestmark = [
+    pytest.mark.component("MainWindow"),
+    pytest.mark.depends_on("DocumentView"),
+]
+
+
 @pytest.mark.parametrize("license", (vedana.LICENSE_FREE, vedana.LICENSE_CLIENT))
 def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, license):
     if license == vedana.LICENSE_CLIENT:

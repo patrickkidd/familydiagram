@@ -116,7 +116,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         """Placeholder for when scene() is None."""
         if self.scene() and (
             self.scene().isResettingSomeLayerProps()
-            or (self.scene()._areActiveLayersChanging and not self.isUpdatingAll())
+            or (self.scene().areActiveLayersChanging() and not self.isUpdatingAll())
         ):
             self.scene().startLayerAnimation(anim)
         else:
@@ -233,13 +233,13 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     def itemId(self):
         return self.id
 
-    def layeredSceneBoundingRect(self, forLayers, forTags):
+    def layeredSceneBoundingRect(self, forLayers):
         ret = super().sceneBoundingRect()
         offset = None
         itemPos = self.prop("itemPos")
         if itemPos.layered:
             itemPos = itemPos.get(forLayers=forLayers)
-            if itemPos is not None and self.hasTags(forTags):
+            if itemPos is not None:
                 origPos = self.pos()
                 ret.moveCenter(itemPos)
                 offset = itemPos - origPos
@@ -253,7 +253,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
             ret = ret2
         return ret
 
-    def shouldShowFor(self, dateTime, tags=[], layers=[]):
+    def shouldShowFor(self, dateTime, layers=[]):
         """virtual"""
         return True
 
@@ -262,7 +262,6 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         if scene:
             return self.shouldShowFor(
                 scene.currentDateTime(),
-                tags=scene.searchModel.tags,
                 layers=scene.activeLayers(),
             )
         else:

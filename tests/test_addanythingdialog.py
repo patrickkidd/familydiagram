@@ -25,6 +25,8 @@ ONE_NAME = "John Doe"
 START_DATETIME = util.Date(2001, 1, 1, 6, 7)
 END_DATETIME = util.Date(2002, 1, 1, 6, 7)
 
+DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
+
 
 class TestAddAnythingDialog(AddAnythingDialog):
 
@@ -60,14 +62,10 @@ def scene():
 
 
 @pytest.fixture
-def dlg(qtbot, scene):
-    sceneModel = SceneModel()
-    sceneModel.scene = scene
-    scene._sceneModel = sceneModel
-
-    dlg = TestAddAnythingDialog(sceneModel=sceneModel)
+def dlg(qtbot, scene, qmlEngine):
+    qmlEngine.setScene(scene)
+    dlg = TestAddAnythingDialog(qmlEngine)
     dlg.resize(600, 800)
-    dlg.setRootProp("sceneModel", sceneModel)
     dlg.setScene(scene)
     dlg.show()
     qtbot.addWidget(dlg)
@@ -80,6 +78,7 @@ def dlg(qtbot, scene):
 
     dlg.setScene(None)
     dlg.hide()
+    dlg.deinit()
 
 
 def test_init(dlg):
@@ -160,7 +159,7 @@ def test_clear_dyadic(dlg):
     assert dlg.receiverEntries() == []
 
 
-def test_add_new_person_via_Birth(scene, dlg):
+def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
@@ -168,7 +167,7 @@ def test_add_new_person_via_Birth(scene, dlg):
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
-    scene = dlg.sceneModel.scene
+    scene = qmlEngine.sceneModel.scene
     assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
     person = scene.query1(name="John", lastName="Doe")
     assert person, f"Could not find created person {ONE_NAME}"
@@ -178,7 +177,7 @@ def test_add_new_person_via_Birth(scene, dlg):
     assert event.description() == EventKind.Birth.name
 
 
-def test_add_new_person_via_Birth_with_one_parent(scene, dlg):
+def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
@@ -191,7 +190,7 @@ def test_add_new_person_via_Birth_with_one_parent(scene, dlg):
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
-    scene = dlg.sceneModel.scene
+    scene = qmlEngine.sceneModel.scene
     assert len(scene.people()) == 3, f"Incorrect number of people added to scene"
     person = scene.query1(name="John", lastName="Doe")
     personA = scene.query1(name="Joseph", lastName="Doe")
@@ -206,7 +205,9 @@ def test_add_new_person_via_Birth_with_one_parent(scene, dlg):
     assert personB.gender() == util.PERSON_KIND_FEMALE
 
 
-def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
+def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
+    scene, dlg, qmlEngine
+):
     BIRTH_NOTES = """asd fd fgfg"""
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
@@ -220,7 +221,7 @@ def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal not emitted exactly once"
 
-    scene = dlg.sceneModel.scene
+    scene = qmlEngine.sceneModel.scene
     assert len(scene.people()) == 3, f"Incorrect number of people added to scene"
     child = scene.query1(name="Josephine", lastName="Doe")
     assert child, f"Could not find created child {ONE_NAME}"
@@ -235,7 +236,7 @@ def test_add_new_person_with_one_existing_parent_one_new_via_Birth(scene, dlg):
     assert {x.id for x in child.parents().people} == {parentA.id, parentB.id}
 
 
-def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg):
+def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg, qmlEngine):
     BIRTH_NOTES = "asd fd fgfg "
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
@@ -248,7 +249,7 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg):
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal not emitted exactly once"
 
-    scene = dlg.sceneModel.scene
+    scene = qmlEngine.sceneModel.scene
     assert len(scene.people()) == 3, f"Incorrect number of people added to scene"
     child = scene.query1(name="Josephine", lastName="Doe")
     assert child, f"Could not find created child {ONE_NAME}"
@@ -264,7 +265,7 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg):
     assert parentB.fullNameOrAlias() == ""
 
 
-def test_add_new_person_via_CustomIndividual(dlg, scene):
+def test_add_new_person_via_CustomIndividual(dlg, scene, qmlEngine):
     DESCRIPTION = "Something Happened"
     GENDER = util.PERSON_KIND_FEMALE
     NOTES = """Here is another
@@ -281,7 +282,7 @@ comment.
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
-    scene = dlg.sceneModel.scene
+    scene = qmlEngine.sceneModel.scene
     assert len(scene.people()) == 1, f"Incorrect number of people added to scene"
     person = scene.query1(name="John", lastName="Doe")
     assert person, f"Could not find created person {ONE_NAME}"

@@ -1,39 +1,41 @@
 import pytest
 
-from pkdiagram.pyqt import *
+from pkdiagram.pyqt import QVBoxLayout, QWidget
 from pkdiagram import util, QmlWidgetHelper, objects, Scene
 from pkdiagram.objects import Person, Event
-from pkdiagram.models import SceneModel
+from pkdiagram.models import SceneModel, TimelineModel
 
 
 class TimelineViewTest(QWidget, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods([{"name": "test_getDelegates", "return": True}])
 
-    def __init__(self, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
-        Layout = QVBoxLayout(self)
+        QVBoxLayout(self)
         scene = Scene()
         sceneModel = SceneModel()
         sceneModel.scene = scene
-        self.initQmlWidgetHelper(
-            "tests/qml/TimelineViewTest.qml", sceneModel=sceneModel
-        )
+        timelineModel = TimelineModel()
+        timelineModel.scene = scene
+        timelineModel.items = [scene]
+        self.initQmlWidgetHelper(engine, "tests/qml/TimelineViewTest.qml")
         self.checkInitQml()
-        self.setItemProp("timelineView", "model", scene.timelineModel)
+        self.setItemProp("timelineView", "model", timelineModel)
         self.resize(600, 800)
 
 
 @pytest.fixture
-def tv(qtbot):
+def tv(qtbot, qmlEngine):
 
-    tv = TimelineViewTest()
+    tv = TimelineViewTest(qmlEngine)
     qtbot.addWidget(tv)
     qtbot.waitActive(tv)
     tv.show()
     yield tv
 
     tv.hide()
+    tv.deinit()
 
 
 def test_init(tv):

@@ -29,7 +29,6 @@ Page {
     signal licenseImported
     signal licenseImportFailed
     signal authStateChanged(string state) // testing
-    property var session: Session {}
 
     property var user: (function(hash) {
         if(session.hash && session.isLoggedIn())

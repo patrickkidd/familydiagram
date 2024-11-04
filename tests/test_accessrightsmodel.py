@@ -1,6 +1,7 @@
-import pytest
 import pickle
 import datetime
+
+import pytest
 
 import vedana
 from fdserver.extensions import db
@@ -8,6 +9,8 @@ from pkdiagram import util, Scene, AccessRightsModel, Session, HTTPResponse
 import pkdiagram
 
 from fdserver.models import Diagram, AccessRight
+
+pytestmark = pytest.mark.component("AccessRightsModel")
 
 
 @pytest.fixture

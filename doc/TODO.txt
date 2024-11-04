@@ -1,11 +1,10 @@
 v2.0.0
 =============================================================================
 
+
 - User analytics
-- App Center API
-  - API token: 491b4d66b6801a151d44399560f09df7b5fa4714
-  - owner_name: pstinson
-  - app_name: Family-Diagram-2
+- remove add event|emotion dialogs?
+  - might speed up load time
 
 BUGS
 - Reset diagram sets hideDateSlider to True?

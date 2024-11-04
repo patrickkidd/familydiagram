@@ -1,8 +1,8 @@
 import pytest
-from pkdiagram.pyqt import QPointF, QDate
+from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util, objects, Scene, commands
 from pkdiagram.objects.emotions import Jig, FannedBox
-import pkdiagram.objects.emotions
+from pkdiagram.models import SearchModel
 
 
 @pytest.fixture
@@ -232,7 +232,10 @@ def test_FannedBox_peers_multiple():
 
 
 def test_FannedBox_peers_different_tags():
+    ## TODO: Not sure if emotions respond to tags?
     scene = Scene(tags=["tag-1"])
+    searchModel = SearchModel()
+    searchModel.scene = scene
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
@@ -245,13 +248,13 @@ def test_FannedBox_peers_different_tags():
     assert fusion.isVisible() == True
     assert projection.isVisible() == True
 
-    scene.searchModel.setTags(["tag-1"])
+    searchModel.setTags(["tag-1"])
     assert fusion.peers() == set()
     assert projection.peers() == set()
     assert fusion.isVisible() == False
     assert projection.isVisible() == True
 
-    scene.searchModel.setTags([])
+    searchModel.setTags([])
     assert fusion.peers() == {projection}
     assert projection.peers() == {fusion}
     assert fusion.isVisible() == True
@@ -282,7 +285,7 @@ def test_FannedBox_posDelta_adapt():
     )
 
 
-@pytest.mark.skip("Not sure this is needed if the layer test is below")
+@pytest.mark.skip("Need to replace with a meaningful test")
 def test_shouldShowFor():
     scene = Scene()
     personA = objects.Person(name="A")
@@ -291,56 +294,58 @@ def test_shouldShowFor():
     scene.addItems(personA, personB, conflict)
 
     # No tags
-    assert conflict.shouldShowFor(QDateTime(), [], []) == True
+    assert conflict.shouldShowFor(QDateTime()) == True
 
     # Parents not shown
     conflict.setTags(["tags1"])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
+    assert conflict.shouldShowFor(QDateTime()) == False
 
     # One parent shown, one not
     personA.setTags(["tags1"])
     conflict.setTags(["tags1"])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
+    assert conflict.shouldShowFor(QDateTime()) == False
 
     # One parent shown, one not
     personA.setTags(["tags1"])
     personB.setTags(["tags2"])
     conflict.setTags(["tags1"])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == False
+    assert conflict.shouldShowFor(QDateTime()) == False
 
     # Both parent shown + emotion shown
     personA.setTags(["tags1"])
     personB.setTags(["tags1"])
     conflict.setTags(["tags1"])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
+    assert conflict.shouldShowFor(QDateTime()) == True
 
     # Both parent shown + emotion hidden
     personA.setTags(["tags1"])
     personB.setTags(["tags1"])
     conflict.setTags([])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
+    assert conflict.shouldShowFor(QDateTime()) == True
 
     # Both parent shown + emotion hidden
     personA.setTags(["tags1"])
     personB.setTags(["tags1"])
     conflict.setTags(["tags2"])
-    assert conflict.shouldShowFor(QDateTime(), ["tags1"], []) == True
+    assert conflict.shouldShowFor(QDateTime()) == True
 
 
 def test_honors_searchModel_tags():
     TAGS = ["triangle"]
     scene = Scene()
+    searchModel = SearchModel()
+    searchModel.scene = scene
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT, tags=TAGS)
-    scene.searchModel.setTags(TAGS)
+    searchModel.setTags(TAGS)
     scene.addItems(personA, personB, conflict)
     assert conflict.isVisible() == True
 
-    scene.searchModel.tags = ["nowhere"]
+    searchModel.tags = ["nowhere"]
     assert conflict.isVisible() == False
 
-    scene.searchModel.tags = TAGS
+    searchModel.tags = TAGS
     assert conflict.isVisible() == True
 
 
@@ -381,6 +386,8 @@ def test_honors_searchModel_tags_plus_dates():
 def test_persons_hidden_tags_shown():
     TAGS = ["triangle"]
     scene = Scene()
+    searchModel = SearchModel()
+    searchModel.scene = scene
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(
@@ -394,7 +401,7 @@ def test_persons_hidden_tags_shown():
     layer = objects.Layer(name="View 1")
     scene.addItems(personA, personB, conflict, layer)
     personA.setLayers([layer.id])
-    scene.searchModel.setTags(TAGS)
+    searchModel.setTags(TAGS)
     scene.setCurrentDateTime(util.Date(2000, 5, 1))  # during conflict
     assert personA.isVisible() == True
     assert personB.isVisible() == True

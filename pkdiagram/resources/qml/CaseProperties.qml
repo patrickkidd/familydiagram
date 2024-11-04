@@ -14,16 +14,19 @@ PK.Drawer {
 
     signal addEvent
     signal hidden
+    signal addEventProperty()
+    signal removeEventProperty(int index)
+    signal flashTimelineRow(int index)
+    signal flashTimelineSelection(var selectionModel)
+    signal eventPropertiesTemplateIndexChanged(int index)
 
     property int margin: util.QML_MARGINS
     property bool isDrawerOpen: eventPropertiesDrawer.visible
     property bool canRemove: tabBar.currentIndex == 0 && timelineView.canRemove
     property bool canInspect: tabBar.currentIndex == 0 && timelineView.canInspect
-    property bool notJustFreeLicense: {
-        sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
+    property bool notJustFreeLicense: session.hasFeature(
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
-        )) : false
-    }
+    )
 
     signal clearSearch;
 
@@ -140,9 +143,9 @@ PK.Drawer {
             id: resetSearchButton
             objectName: 'resetSearchButton'
             text: "Reset"
-            visible: ! root.sceneModel.searchModel.isBlank
+            visible: ! searchModel.isBlank
             x: resizeButton.x + width + margin
-            onClicked: root.sceneModel.searchModel.clear()
+            onClicked: searchModel.clear()
         }
 
         PK.Label {
@@ -197,10 +200,10 @@ PK.Drawer {
             id: timelineView
             objectName: 'caseProps_timelineView'
             enabled: Qt.binding(function() { model.count > 0 })
-            model: sceneModel.timelineModel
+            model: timelineModel
             showFilterButton: false
             Connections {
-                target: sceneModel.timelineModel
+                target: timelineModel
                 function onItemsChanged() { timelineView.clearSelection() }
             }
             margin: root.margin
@@ -208,10 +211,10 @@ PK.Drawer {
             Layout.fillWidth: true
             onSelectionChanged: {
                 sceneModel.selectionChanged()
-                sceneModel.flashTimelineItems(timelineView.selectionModel)
+                root.flashTimelineSelection(timelineView.selectionModel)
             }
             onRowClicked: function(row) {
-                sceneModel.flashTimelineItem(row)
+                root.flashTimelineRow(row)
             }
             onInspect: root.onInspect()
             onInspectNotes: root.onInspectNotes(row)
@@ -234,9 +237,16 @@ PK.Drawer {
             id: settingsView
             objectName: 'settingsView'
             flickableDirection: Flickable.VerticalFlick
-            contentHeight: settingsLayout.implicitHeight + root.margin * 2
             contentWidth: width
             clip: true
+
+            // Avoid binding loop on contentHeight
+            Timer {
+                interval: 0
+                running: true
+                repeat: false
+                onTriggered: settingsView.contentHeight = settingsLayout.implicitHeight + root.margin * 2
+            }
 
             Rectangle {
                 color: util.QML_WINDOW_BG
@@ -337,11 +347,11 @@ PK.Drawer {
                                 addButtonEnabled: !sceneModel.readOnly
                                 removeButton: true
                                 removeButtonEnabled: variablesList.currentIndex > -1 && !sceneModel.readOnly
-                                onAdd: sceneModel.addEventProperty()
+                                onAdd: root.addEventProperty()
                                 onRemove: {
                                     // workaround to possibly prevent QQuickTableView assertion when removing visible column
                                     timelineView.delayUpdates = true
-                                    sceneModel.removeEventProperty(variablesList.currentIndex)
+                                    root.removeEventProperty(variablesList.currentIndex)
                                     timelineView.delayUpdates = false
                                     variablesList.currentIndex = -1
                                 }
@@ -354,7 +364,7 @@ PK.Drawer {
                                 displayText: currentIndex == -1 ? 'Set from template' : model.get(currentIndex)
                                 model: ['Havstad Model', 'Papero Model', "Stinson Model"]
                                 onCurrentIndexChanged: {
-                                    sceneModel.eventPropertiesTemplateIndex = currentIndex
+                                    root.eventPropertiesTemplateIndexChanged(currentIndex)
                                     currentIndex = -1 // change back
                                     variablesList.currentIndex = -1
                                 }
@@ -489,11 +499,11 @@ PK.Drawer {
                             property string header: "This diagram is stored securely on the server. ";
                             text: {
                                 if(sceneModel.readOnly)
-                                    header + "It is owned by " + sceneModel.accessRightsModel.owner + "\n\nYou have been granted read-only access by the owner. You have access to all of the data, but cannot save your changes and cannot make a copy of this diagram."
+                                    header + "It is owned by " + accessRightsModel.owner + "\n\nYou have been granted read-only access by the owner. You have access to all of the data, but cannot save your changes and cannot make a copy of this diagram."
                                 else if(sceneModel.isMyDiagram)
                                     header + "You own it.";
                                 else
-                                    header + "It is owned by " + sceneModel.accessRightsModel.owner + "\n\nYou are able to save changes to it, but only the owner can who can view and save changes to it."
+                                    header + "It is owned by " + accessRightsModel.owner + "\n\nYou are able to save changes to it, but only the owner can who can view and save changes to it."
                             }
                             Layout.fillWidth: true
                             padding: util.QML_MARGINS / 2
@@ -513,7 +523,7 @@ PK.Drawer {
                                 // onEnabledChanged: print('serverAccessRightsBox.onEnabledChanged()[' + enabled + ']:', 'isOnServer:', sceneModel.isOnServer, 'notJustFreeLicense:', root.notJustFreeLicense)
                                 currentIndex: -1
                                 clip: true
-                                model: sceneModel.accessRightsModel
+                                model: accessRightsModel
 
                                 property var accessRightItems: { // for testing
                                     var ret = []
@@ -609,7 +619,7 @@ PK.Drawer {
                                 removeButtonEnabled: accessRightsBox.currentIndex > -1 && !sceneModel.readOnly
                                 onAdd: addAccessRightBox.addAccessRight()
                                 onRemove: {
-                                    accessRightsBox.model.deleteRight(accessRightsBox.currentIndex)
+                                    accessRightsModel.deleteRight(accessRightsBox.currentIndex)
                                     accessRightsBox.currentIndex = -1
                                 }
                             }
@@ -619,10 +629,10 @@ PK.Drawer {
                                 objectName: 'addAccessRightBox'
                                 placeholderText: 'some.user@somewhere.com'
                                 Layout.minimumWidth: 180
-                                property bool isValidUsername: accessRightsBox.model.findUser(text) !== undefined
+                                property bool isValidUsername: accessRightsModel.findUser(text) !== undefined
                                 property var greenColor: util.IS_UI_DARK_MODE ? '#801aa260' : '#8056d366'
                                 property var redColor: util.IS_UI_DARK_MODE ? '#80ff0000' : '#80e8564e'
-                                property var currentUser: accessRightsBox.model.findUser(text)
+                                property var currentUser: accessRightsModel.findUser(text)
                                 // onCurrentUserChanged: print(currentUser ? currentUser.username : currentUser)
                                 palette.base: {
                                     if(text == '') {
@@ -636,7 +646,7 @@ PK.Drawer {
                                 validator: RegExpValidator { regExp:/\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/ }
                                 function addAccessRight() {
                                     if(text) {
-                                        var success = accessRightsBox.model.addRight(text)
+                                        var success = accessRightsModel.addRight(text)
                                         if(success)
                                             text = ''
                                     }

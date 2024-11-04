@@ -5,24 +5,23 @@ from test_eventproperties import eventProps, runEventProperties, assertEventProp
 
 
 @pytest.fixture
-def aed(qtbot, request):
+def aed(qtbot, request, qmlEngine):
     scene = Scene()
-    ret = AddEventDialog()
-    sceneModel = SceneModel()
-    sceneModel.scene = scene
-    ret.setRootProp("sceneModel", sceneModel)
+    qmlEngine.setScene(scene)
+    ret = AddEventDialog(qmlEngine)
     ret.setScene(scene)
     ret.show()
     ret.resize(600, 800)  # default size to small for elements to be clickable.
 
-    def cleanup():
-        ret.hide()
-        scene.deinit()
-
-    request.addfinalizer(cleanup)
     qtbot.addWidget(ret)
     qtbot.waitActive(ret)
-    return ret
+
+    yield ret
+
+    ret.setScene(None)
+    ret.hide()
+    ret.deinit()
+    scene.deinit()
 
 
 def test_add_event_to_person(aed, eventProps):
@@ -44,7 +43,7 @@ def test_add_event_to_person(aed, eventProps):
     assertEventProperties(event, eventProps, personName=person.name())
 
 
-def test_complaints(aed, qtbot):
+def test_complaints(aed, qtbot, qmlEngine):
 
     qtbot.clickOkAfter(
         lambda: aed.mouseClick("event_doneButton"),
@@ -60,7 +59,7 @@ def test_complaints(aed, qtbot):
         text="You must set a parent before adding an event.",
     )
 
-    scene = aed.rootProp("sceneModel").scene
+    scene = qmlEngine.sceneModel.scene
     person = Person(name="Person")
     scene.addItem(person)
     aed.clickComboBoxItem("nameBox", person.name())

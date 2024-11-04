@@ -14,6 +14,11 @@ from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIM
 
 _log = logging.getLogger(__name__)
 
+pytestmark = [
+    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.depends_on("Scene"),
+]
+
 
 def test_add_pairbond_and_children(dlg):
     scene = dlg.scene
