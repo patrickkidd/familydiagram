@@ -1,10 +1,10 @@
+
 v2.0.0
 =============================================================================
 
-
-- User analytics
 - remove add event|emotion dialogs?
   - might speed up load time
+- Speed up mainwindow tests. Need account login and everything?
 
 BUGS
 - Reset diagram sets hideDateSlider to True?

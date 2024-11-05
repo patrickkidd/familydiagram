@@ -388,7 +388,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(QVariant, int, str, str)
     @pyqtSlot(QVariant, int, str, str, QVariant)
     def jsServerHttp(self, session, requestId, method, path, args=None):
-        # log.info(f"{session}, {requestId}, {method}, {path}, {args}")
+        log.debug(f"{requestId}, {method}, {path}")
         if args is not None:
             data = args.toVariant()
             bdata = pickle.dumps(data)
@@ -416,7 +416,7 @@ class QmlUtil(QObject, QObjectHelper):
                 # Can maybe try QJSValue(callback) to retain callable status?
                 # - https://wiki.python.org/moin/PyQt/QML%20callback%20function
                 # self.here(requestId, reply.url(), reply.attribute(QNetworkRequest.HttpStatusCodeAttribute))
-                args = self._qmlEngine.newObject()
+                args = session.qmlEngine().newObject()
                 try:
                     session.server().checkHTTPReply(reply, quiet=False)
                 except HTTPError as e:

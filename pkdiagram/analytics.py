@@ -76,6 +76,7 @@ class Analytics(QObject):
             raise ValueError("mixpanel_project_token is required")
         self._mixpanel_project_id = mixpanel_project_id
         self._mixpanel_project_token = mixpanel_project_token
+        self._enabled = True
         # Queue up events with timestamps stored and in order they are sent
         self._eventQueue = []
         # Cache the last profile data since only the most recent ones apply
@@ -101,10 +102,6 @@ class Analytics(QObject):
         with open(self.filePath(), "wb") as f:
             pickle.dump((self._eventQueue, self._profilesCache), f)
 
-    def timerEvent(self, e):
-        self._writeToDisk()
-        self.tick()
-
     def deinit(self):
         if self._timer is None:
             return
@@ -113,6 +110,13 @@ class Analytics(QObject):
         if self._currentRequest:
             util.wait(self.completedOneRequest)
         self._writeToDisk()
+
+    def timerEvent(self, e):
+        self._writeToDisk()
+        self.tick()
+
+    def setEnabled(self, on: bool):
+        self._enabled = on
 
     def numProfilesQueued(self) -> int:
         return len(self._profilesCache.keys())
@@ -147,6 +151,7 @@ class Analytics(QObject):
 
         def onFinished():
             reply = self._currentReply
+            log.info(f"Mixpanel request finished: {util.summarizeReplyShort(reply)}")
             self._currentReply.finished.disconnect(onFinished)
             try:
                 Server.checkHTTPReply(self._currentReply, statuses=[200])
@@ -177,7 +182,7 @@ class Analytics(QObject):
         ]
 
         def onSuccess():
-            # log.debug(f"Sent {len(self._currentRequest._chunk)} events to Mixpanel")
+            log.debug(f"Sent {len(self._currentRequest._chunk)} events to Mixpanel")
             self._numEventsSent += len(self._currentRequest._chunk)
             for event in self._currentRequest._chunk:
                 self._eventQueue.remove(event)
@@ -232,6 +237,8 @@ class Analytics(QObject):
             self._postNextEvents()
 
     def send(self, item: Union[MixpanelEvent, MixpanelProfile], defer=False):
+        if not self._enabled:
+            return
         if isinstance(item, MixpanelEvent):
             self._eventQueue.append(item)
         elif isinstance(item, MixpanelProfile):

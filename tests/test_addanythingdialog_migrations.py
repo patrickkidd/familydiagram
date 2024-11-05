@@ -1,11 +1,8 @@
 import logging
 
 import pytest
-import mock
 
-from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marriage
-from pkdiagram.pyqt import Qt, QQuickItem, QApplication, QEventLoop, QTimer
-from pkdiagram.addanythingdialog import AddAnythingDialog
+from pkdiagram import EventKind, Person
 from pkdiagram.widgets.qml.peoplepicker import waitForPersonPickers
 
 from test_addanythingdialog import scene, dlg

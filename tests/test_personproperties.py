@@ -26,8 +26,8 @@ def pp(qtbot, qmlEngine):
     scene = Scene()
     qmlEngine.setScene(scene)
     pp = QmlDrawer(
+        qmlEngine,
         "qml/PersonProperties.qml",
-        engine=qmlEngine,
         propSheetModel="personModel",
         resizable=True,
     )

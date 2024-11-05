@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
         self.documentView.qmlSelectionChanged.connect(self.onQmlSelectionChanged)
         self.documentView.move(self.width(), 0)
 
-        self.accountDialog = AccountDialog(self.session, self)
+        self.accountDialog = AccountDialog(self.documentView.qmlEngine(), self)
         self.accountDialog.init()
 
         ## File Manager
@@ -436,6 +436,7 @@ class MainWindow(QMainWindow):
             self.onShowAliases
         )
         self.setDocument(None)
+        self.documentView.deinit()
         self.fileManager.deinit()
         self.accountDialog.deinit()
         self.welcomeDialog.deinit()
@@ -864,7 +865,7 @@ class MainWindow(QMainWindow):
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
-        self.documentView.accessRightsModel.setServerDiagram(diagram)
+        self.documentView.qmlEngine().setServerDiagram(diagram)
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():

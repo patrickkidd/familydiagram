@@ -30,7 +30,7 @@ def create_session(request, analytics):
     yield _create_session
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def Analytics_send():
     with mock.patch("time.time", return_value=123):
         with mock.patch("pkdiagram.analytics.Analytics.send") as send:

@@ -178,5 +178,6 @@ class Preferences(QDialog):
         CUtil.instance().forceDocsPath(fpath)
 
     @util.blocked
-    def onAnalytics(self, on):
+    def onAnalytics(self, on: bool):
         self.prefs.setValue("enableAppUsageAnalytics", on)
+        self.mw.session.analytics().setEnabled(on)

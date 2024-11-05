@@ -154,7 +154,9 @@ class Server(QObject):
     object may be deleted before the python object.
     """
 
-    _allRequestsFinished = pyqtSignal()  # mostly avoids C++ error in tests
+    # Avoids underlying C++ obejct deleted error when requests complete after
+    # the object has been deleted in tests.
+    allRequestsFinished = pyqtSignal()
 
     def __init__(self, parent=None, user=None):
         super().__init__(parent)
@@ -162,14 +164,19 @@ class Server(QObject):
         self._repliesInFlight = []
 
     def deinit(self):
-        if util.IS_TEST and self._repliesInFlight:
-            util.wait(self._allRequestsFinished, maxMS=2000)
+        pass
+
+    def pendingUrls(self):
+        return [reply.request().url().toString() for reply in self._repliesInFlight]
+
+    def summarizePendingRequests(self):
+        return "\n".join(util.summarizeReplyShort(x) for x in self._repliesInFlight)
 
     def _checkRequestsComplete(self, reply):
-        # log.info(reply.request().url())
-        self._repliesInFlight.remove(reply)
+        if reply in self._repliesInFlight:
+            self._repliesInFlight.remove(reply)
         if not self._repliesInFlight:
-            self._allRequestsFinished.emit()
+            self.allRequestsFinished.emit()
 
     @staticmethod
     def checkHTTPReply(reply, statuses=None, quiet=True):
@@ -178,11 +185,8 @@ class Server(QObject):
             statuses = [200, 404]
         error = reply.error()
         failMessage = None
-        status_code = None
-        if (
-            error == QNetworkReply.NoError
-            and reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) in statuses
-        ):
+        status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if error == QNetworkReply.NoError and status_code in statuses:
             pass
         elif error == QNetworkReply.HostNotFoundError:  # no internet connection
             failMessage = "No internet connection"
@@ -201,13 +205,9 @@ class Server(QObject):
             failMessage = "QNetworkReply.OperationCanceledError"
         elif error == QNetworkReply.SslHandshakeFailedError:
             failMessage = "SSL handshake with server failed."
-        else:
-            status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-            if status_code not in statuses:
-                failMessage = util.qtHTTPReply2String(reply)
-        log.debug(
-            f"{reply.request().url().toString()}: status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)}, {failMessage}"
-        )
+        elif status_code not in statuses:
+            failMessage = util.qtHTTPReply2String(reply)
+        # log.debug(f"{reply.request().url().toString()}: status_code: {status_code}")
         if failMessage:
             raise HTTPError(
                 failMessage,
@@ -259,46 +259,42 @@ class Server(QObject):
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
         request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
         request.setAttribute(QNetworkRequest.CustomVerbAttribute, verb.encode("utf-8"))
-        # Debug(verb+':', url)
         # for name in request.rawHeaderList():
         #     Debug('    %s: %s' % (name.data().decode('utf-8'),
         #                                 request.rawHeader(name).data().decode('utf-8')))
         reply = util.QNAM.instance().sendCustomRequest(request, verb.encode(), bdata)
-        # log.info(f"{verb} :: {path}")
-        if success or error or finished:
 
-            def onFinished():
-                reply = QApplication.instance().sender()
-                # log.info(f"{verb} :: {path}")
-                success, error, finished, server = (
-                    reply.property("pk_success"),
-                    reply.property("pk_error"),
-                    reply.property("pk_finished"),
-                    reply.property("pk_server"),
-                )
+        def onFinished():
+            reply = QApplication.instance().sender()
+            success, error, finished, server = (
+                reply.property("pk_success"),
+                reply.property("pk_error"),
+                reply.property("pk_finished"),
+                reply.property("pk_server"),
+            )
+            try:
+                server.checkHTTPReply(reply)
+            except HTTPError as e:
+                if error:
+                    error()
+            else:
+                bdata = reply.readAll()
                 try:
-                    server.checkHTTPReply(reply)
-                except HTTPError as e:
-                    if error:
-                        error()
-                else:
-                    bdata = reply.readAll()
-                    try:
-                        data = pickle.loads(bdata)
-                    except pickle.UnpicklingError as e:
-                        data = None
-                    if success:
-                        success(data)
-                finally:
-                    if finished:
-                        finished(reply)
-                    self._checkRequestsComplete(reply)
+                    data = pickle.loads(bdata)
+                except pickle.UnpicklingError as e:
+                    data = None
+                if success:
+                    success(data)
+            finally:
+                if finished:
+                    finished(reply)
+                self._checkRequestsComplete(reply)
 
-            reply.setProperty("pk_success", success)
-            reply.setProperty("pk_error", error)
-            reply.setProperty("pk_finished", finished)
-            reply.setProperty("pk_server", self)
-            reply.finished.connect(onFinished)
+        reply.setProperty("pk_success", success)
+        reply.setProperty("pk_error", error)
+        reply.setProperty("pk_finished", finished)
+        reply.setProperty("pk_server", self)
+        reply.finished.connect(onFinished)
 
         def onSSLErrors(self, errors):
             log.error("SSL Errors:")

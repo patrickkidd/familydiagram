@@ -232,8 +232,9 @@ def test_server_diagram_access(
 
 def test_delete_server_file(test_user_diagrams, qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
+    updateFinished = util.Condition(mw.serverFileModel.updateFinished)
     model = mw.fileManager.serverFileModel
-    util.wait(mw.serverFileModel.updateFinished)
+    assert updateFinished.wait() == True
     assert model.rowCount() == len(test_user_diagrams) / 2 + 1
 
     ROW = 2

@@ -58,6 +58,10 @@ class Application(QApplication):
                 "QOpenGLFramebufferObject: Framebuffer incomplete attachment.",
                 "QOpenGLFramebufferObject: Framebuffer incomplete, missing attachment.",
                 "Binding loop detected for property",
+                "QObject::connect: No such signal QQuickPalette::destroyed(QObject *)",
+                "QObject::connect: No such signal QQuickIcon::destroyed(QObject *)",
+                "QObject::connect: No such signal QQuickFontValueType::destroyed(QObject *)",
+                "QObject::connect: No such signal QQmlEasingValueType::destroyed(QObject *)",
             ]
             for line in GREP_V:
                 if line in msg:

@@ -86,6 +86,7 @@ class DocumentView(QWidget):
         self._settingCurrentDrawer = False
 
         self._qmlEngine = QmlEngine(self, session)
+        self.session.setQmlEngine(self._qmlEngine)
         self.sceneModel = self._qmlEngine.sceneModel
         self.searchModel = self._qmlEngine.searchModel
         self.timelineModel = self._qmlEngine.timelineModel

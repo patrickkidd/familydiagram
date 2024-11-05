@@ -3,7 +3,15 @@ import uuid, pickle, logging, copy
 
 import vedana
 
-from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QVariant, pyqtSlot, pyqtProperty
+from pkdiagram.pyqt import (
+    pyqtSlot,
+    pyqtProperty,
+    QObject,
+    QTimer,
+    pyqtSignal,
+    QVariant,
+    QQmlEngine,
+)
 from pkdiagram import util, version
 from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
 from pkdiagram.models import QObjectHelper
@@ -31,6 +39,9 @@ class Session(QObject, QObjectHelper):
     def __init__(self, analytics: Analytics = None, parent=None):
         super().__init__(parent)
         self._analytics = analytics
+        self._engine = (
+            None  # Hack for engine.newObject() so long as QmlUtil is a singleton
+        )
         self._server = Server(self)
         self._data = None
         self._user = None
@@ -99,6 +110,18 @@ class Session(QObject, QObjectHelper):
     def deinit(self):
         self._server.deinit()  # Required so latent HTTP requests don't return after Server C++ object is deleted
         self.track("session_deinit")
+
+    # Session is a convenient place to put a lot of things
+
+    def setQmlEngine(self, engine: QQmlEngine):
+        # Hack for engine.newObject() so long as QmlUtil is a singleton
+        self._qmlEngine = engine
+
+    def qmlEngine(self) -> QQmlEngine:
+        return self._qmlEngine
+
+    def analytics(self):
+        return self._analytics
 
     def setData(self, data):
         oldFeatures = self.activeFeatures()

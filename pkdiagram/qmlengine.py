@@ -50,6 +50,7 @@ class QmlEngine(QQmlEngine):
         self.accessRightsModel = AccessRightsModel(self)
         self.accessRightsModel.setSession(self.session)
 
+        self.rootContext().setContextProperty("engine", self)
         self.rootContext().setContextProperty("util", self.util)
         self.rootContext().setContextProperty("commands", self.commands)
         self.rootContext().setContextProperty("vedana", self.vedana)
@@ -75,6 +76,10 @@ class QmlEngine(QQmlEngine):
         self.peopleModel.scene = scene
         self.accessRightsModel.scene = scene
         self.searchModel.scene = scene
+
+    def setServerDiagram(self, diagram):
+        self.sceneModel.setServerDiagram(diagram)
+        self.accessRightsModel.setServerDiagram(diagram)
 
     def onWarnings(self, qmlErrors: list[QQmlError]):
         self._errors.extend(qmlErrors)

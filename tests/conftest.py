@@ -62,14 +62,6 @@ log = logging.getLogger(__name__)
 util.init_logging()
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--attach",
-        action="store_true",
-        help="Wait for an attached debugger before running test",
-    )
-
-
 _componentStatus = {}
 _currentTestItem = None
 
@@ -188,6 +180,7 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
                 return QByteArray(b"")
 
     reply = NetworkReply()
+    reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
     if noconnect:
         reply.setAttribute(QNetworkRequest.HttpStatusCodeAttribute, 0)
     else:
@@ -212,8 +205,9 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
     )
 
     def doFinished():
-        log.debug(f"doFinished: {verb} {reply.url()}")
-        # Debug(verb, request.url())
+        # log.info(
+        #     f"<<<<<<<<<<<<<<<<<<<< doFinished: {verb} {reply.request().url().toString()}, status code: {response.status_code}"
+        # )
         reply.finished.emit()
 
     QTimer.singleShot(10, doFinished)  # after return
@@ -228,7 +222,37 @@ def qApp():
 
     qApp = Application(sys.argv)
 
-    with mock.patch("pkdiagram.Analytics.startTimer", return_value=123):
+    from pkdiagram import ServerFileManagerModel, Server
+
+    _orig_Server_deinit = Server.deinit
+
+    def _Server_deinit(self):
+        _orig_Server_deinit(self)
+        if self._repliesInFlight:
+            assert (
+                util.wait(self.allRequestsFinished, maxMS=2000) == True
+            ), f"Did not complete Server requests: {self.summarizePendingRequests()}"
+
+    _orig_ServerFileManagerModel_deinit = ServerFileManagerModel.deinit
+
+    def _ServerFileManagerModel_deinit(self):
+        _orig_ServerFileManagerModel_deinit(self)
+        if self._indexReplies:
+            assert (
+                util.wait(self.updateFinished, maxMS=2000) == True
+            ), f"Did not complete ServerFileManager requests: {self.summarizePendingRequests()}"
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(mock.patch.object(Server, "deinit", _Server_deinit))
+        stack.enter_context(
+            mock.patch.object(
+                ServerFileManagerModel, "deinit", _ServerFileManagerModel_deinit
+            )
+        )
+        stack.enter_context(
+            mock.patch("pkdiagram.Analytics.startTimer", return_value=123)
+        )
+        stack.enter_context(mock.patch("pkdiagram.Analytics.killTimer"))
         yield qApp
 
     qApp.deinit()
@@ -274,10 +298,12 @@ def watchdog(request, qApp):
         watchdog = Watchdog()
         watchdogTimer = QTimer(qApp)
 
-        # watchdogTimer.setInterval(TEST_TIMEOUT_MS)
-        # watchdogTimer.timeout.connect(watchdog.kill)
-        # watchdogTimer.start()
-        # log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+        # if not util.IS_DEBUGGER:
+        #     # Only in debugger
+        #     watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+        #     watchdogTimer.timeout.connect(watchdog.kill)
+        #     watchdogTimer.start()
+        #     log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
 
     else:
         watchdog = None
@@ -321,7 +347,6 @@ def flask_qnam(flask_app, tmp_path):
     def sendCustomRequest(request, verb, data=b""):
         with flask_app.test_client() as client:
             ret = _sendCustomRequest(request, verb, data=data, client=client)
-            QApplication.processEvents()
             return ret
 
     with contextlib.ExitStack() as stack:
@@ -351,20 +376,16 @@ def server_down(flask_app):
     @contextlib.contextmanager
     def _server_down(down=True):
 
-        # No connection to server
         def sendCustomRequest(request, verb, data=b""):
             with flask_app.test_client() as client:
                 return _sendCustomRequest(
                     request, verb, data=data, client=client, noconnect=down
                 )
 
-        was = util.QNAM.instance().sendCustomRequest
-
-        util.QNAM.instance().sendCustomRequest = sendCustomRequest
-
-        yield
-
-        util.QNAM.instance().sendCustomRequest = was
+        with mock.patch.object(
+            util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
+        ):
+            yield
 
     return _server_down
 
@@ -815,6 +836,7 @@ def create_ac_mw(request, qtbot, tmp_path):
             prefs = util.Settings(dpath, "pytests")
             prefs.setValue("dontShowWelcome", True)
             prefs.setValue("acceptedEULA", True)
+            prefs.setValue("enableAppUsageAnalytics", False)
 
         if editorMode is not None:
             prefs.setValue("editorMode", editorMode)
@@ -859,6 +881,10 @@ def create_ac_mw(request, qtbot, tmp_path):
 
     for ac, mw in created:
         mw.deinit()
+        util.Condition(
+            condition=lambda: mw.fileManager.serverFileModel._indexReplies == []
+        ).wait()
+        assert mw.fileManager.serverFileModel._indexReplies == []
         ac.deinit()
 
 

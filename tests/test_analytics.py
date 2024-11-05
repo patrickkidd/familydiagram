@@ -2,6 +2,7 @@ import os.path
 import pickle
 import contextlib
 import base64
+import logging
 
 import pytest
 import mock
@@ -16,6 +17,9 @@ from pkdiagram import util
 from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
 
 QNAM = util.QNAM
+
+
+_log = logging.getLogger(__name__)
 
 
 class NetworkReply(QNetworkReply):
@@ -348,15 +352,22 @@ def test_send_profiles_before_events(analytics):
     )
     assert analytics.numProfilesQueued() == 2
 
-    with mockRequest(200):
-        analytics.tick()
-        assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 2
-    assert analytics.numProfilesQueued() == 0
+    urls = []
+    orig_sendJSONRequest = analytics.sendJSONRequest
 
-    completedOneRequest.reset()
-    with mockRequest(200):
-        analytics.tick()
-        assert completedOneRequest.wait() == True
+    def _sendJSONRequest(url, data, verb, success):
+        urls.append(url)
+        orig_sendJSONRequest(url, data, verb, success)
+
+    with mock.patch(
+        "pkdiagram.analytics.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
+    ) as sendJSONRequest:
+        with mockRequest(200):
+            analytics.tick()
+            assert completedOneRequest.wait() == True
+    assert urls == [
+        analytics.profilesUrl(),
+        analytics.importUrl(),
+    ]
     assert analytics.numEventsQueued() == 0
     assert analytics.numProfilesQueued() == 0
