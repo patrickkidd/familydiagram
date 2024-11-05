@@ -4,7 +4,7 @@ import pytest
 
 import vedana
 import pkdiagram
-from pkdiagram.pyqt import QObject
+from pkdiagram.pyqt import QObject, QApplication
 from pkdiagram import (
     util,
     Scene,
@@ -38,7 +38,8 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
 
     created = []
 
-    def _create_cp(session=True, loadFreeDiagram=False):
+    def _create_cp(session=True, loadFreeDiagram=False, editorMode=True):
+        qmlEngine.sceneModel.onEditorMode(editorMode)
         if session:
             test_session = request.getfixturevalue("test_session")
             db.session.add(test_session)
@@ -65,6 +66,12 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
 
     for w in created:
         w.deinit()
+
+
+@pytest.mark.parametrize("editorMode", [True, False])
+def test_editorMode_enabled(test_session, create_cp, qmlEngine, editorMode):
+    cp = create_cp(editorMode=editorMode)
+    assert cp.itemProp("variablesBox", "visible") == editorMode
 
 
 def test_serverBox_disabled_free(create_cp):

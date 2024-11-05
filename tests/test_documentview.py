@@ -80,6 +80,12 @@ def dv(test_session, test_activation, qtbot):
     w.session.deinit()
 
 
+@pytest.mark.parametrize("editorMode", [True, False])
+def test_editorMode_enabled(dv, editorMode):
+    dv.controller.onEditorMode(editorMode)
+    assert dv.caseProps.itemProp("variablesBox", "visible") == editorMode
+
+
 def test_set_item_mode(qtbot, dv):
     # Hack - couldn't figure out how to get anythign to focus with QT_QPA_PLATFORM=offscreen
     with mock.patch.object(QApplication, "focusWidget", return_value=dv.view):

@@ -18,7 +18,7 @@ from pkdiagram import (
     MainWindow,
     FileManager,
 )
-from pkdiagram.pyqt import Qt, QFileInfo, QSettings, QMetaObject
+from pkdiagram.pyqt import Qt, QFileInfo, QSettings, QMetaObject, QApplication
 
 from fdserver.extensions import db
 from fdserver.models import Diagram
@@ -179,6 +179,7 @@ def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete
     localFileName = QFileInfo(mw.document.url().toLocalFile()).baseName()
     mw.documentView.caseProps.scrollSettingsToBottom()
     qtbot.mouseClick(mw.view.rightToolBar.settingsButton, Qt.LeftButton)
+    QApplication.instance().exec_()
     if delete_local:
         qtbot.clickYesAfter(
             lambda: qtbot.clickYesAfter(

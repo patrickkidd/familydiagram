@@ -261,9 +261,16 @@ PK.Drawer {
                 
                 PK.GroupBox {
                     title: 'Timeline Variables'
+                    id: variablesBox
                     objectName: "variablesBox"
                     enabled: !sceneModel.readOnly
                     visible: sceneModel.isInEditorMode
+                    Timer {
+                        interval: 1000
+                        running: true
+                        repeat: true
+                        onTriggered: print('variablesBox.visible:', variablesBox.visible)
+                    }
                     Layout.fillWidth: true
                     padding: 1 // bring variables ListView flush with group box
                     ColumnLayout {

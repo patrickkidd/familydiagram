@@ -72,10 +72,7 @@ class SceneModel(QObject, ModelHelper):
             else:
                 ret = False
         elif attr == "isInEditorMode":
-            if util.isInstance(self.parent(), "DocumentView"):
-                ret = self._isInEditorMode
-            else:
-                ret = False
+            ret = self._isInEditorMode
         elif attr == "session":
             ret = self._session
         else:

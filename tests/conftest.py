@@ -66,8 +66,8 @@ _componentStatus = {}
 _currentTestItem = None
 
 
-def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+# def pytest_generate_tests(metafunc):
+#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -298,12 +298,12 @@ def watchdog(request, qApp):
         watchdog = Watchdog()
         watchdogTimer = QTimer(qApp)
 
-        # if not util.IS_DEBUGGER:
-        #     # Only in debugger
-        #     watchdogTimer.setInterval(TEST_TIMEOUT_MS)
-        #     watchdogTimer.timeout.connect(watchdog.kill)
-        #     watchdogTimer.start()
-        #     log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+        if not util.IS_DEBUGGER:
+            # Only in debugger
+            watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+            watchdogTimer.timeout.connect(watchdog.kill)
+            watchdogTimer.start()
+            log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
 
     else:
         watchdog = None
@@ -460,10 +460,14 @@ class PKQtBot(QtBot):
             self.wait(10)  # processEvents()
 
     def mouseClick(self, *args, **kwargs):
-        if self.DEBUG:
-            log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
+        log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
         if len(args) == 1:
             args = (args[0], Qt.LeftButton)
+        if args[0] is None:
+            QApplication.instance().exec_()
+        assert (
+            args[0] is not None
+        ), f"qtbot.mouseClick will crash if passing `None` as the widget."
         return super().mouseClick(*args, **kwargs)
 
     def mouseDClick(self, *args, **kwargs):
