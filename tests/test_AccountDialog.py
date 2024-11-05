@@ -27,16 +27,16 @@ from conftest import MessageDialogType, MessageDialog_clickButtonAfter
 
 _log = logging.getLogger(__name__)
 
-pytest.skip("AccountDialog tests are broken in CI/CD", allow_module_level=True)
+# pytest.skip("AccountDialog tests are broken in CI/CD", allow_module_level=True)
 
 
 @pytest.fixture
-def create_dlg(qtbot, flask_qnam, request):
+def create_dlg(qtbot, flask_qnam, request, qmlEngine):
 
     created = []
 
     def _create_dlg(session=True):
-        dlg = AccountDialog(Session())
+        dlg = AccountDialog(qmlEngine)
         # dlg.sceneModel.scene = Scene()
         dlg.init()
         dlg.show()
@@ -46,23 +46,24 @@ def create_dlg(qtbot, flask_qnam, request):
         if session:
             test_session = request.getfixturevalue("test_session")
             db.session.add(test_session)
-            dlg.session.init(sessionData=test_session.account_editor_dict())
-            assert dlg.session.isLoggedIn() == True
+            qmlEngine.session.init(sessionData=test_session.account_editor_dict())
+            assert qmlEngine.session.isLoggedIn() == True
 
         created.append(dlg)
         return dlg
 
     yield _create_dlg
 
+    qmlEngine.session.deinit()
+    QApplication.processEvents()
     for dlg in created:
         dlg.deinit()
         dlg.hide()
-        dlg.session.deinit()
 
 
-def test_init_not_logged_in(create_dlg):
+def test_init_not_logged_in(create_dlg, qmlEngine):
     dlg = create_dlg(session=False)
-    dlg.session.init()
+    qmlEngine.session.init()
     assert dlg.itemProp("slideView", "currentIndex") == 0
 
 
@@ -82,7 +83,7 @@ def test_saved_session_one_license(flask_app, test_session, test_license, create
     assert test_session.user.username in dlg.itemProp("accountUsername", "text")
 
 
-def test_register(flask_app, qtbot, create_dlg):
+def test_register(flask_app, qtbot, create_dlg, qmlEngine):
 
     # 1. Enter email
 
@@ -136,17 +137,17 @@ def test_register(flask_app, qtbot, create_dlg):
     dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
     dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
     dlg.mouseClick("authSubmitButton")
-    assert util.wait(dlg.session.changed)
+    assert util.wait(qmlEngine.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email'  # Doesn't really make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 1
-    assert dlg.session.isLoggedIn() == True
+    assert qmlEngine.session.isLoggedIn() == True
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
     assert user.check_password(ARGS["password"])
     assert user.status == "confirmed"
 
 
-def test_register_pending(flask_app, test_user, qtbot, create_dlg):
+def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     flask_app.config["STRIPE_ENABLED"] = False
     test_user.status = "pending"
     db.session.commit()
@@ -197,17 +198,17 @@ def test_register_pending(flask_app, test_user, qtbot, create_dlg):
     dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
     dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
     dlg.mouseClick("authSubmitButton")
-    assert util.wait(dlg.session.changed)
+    assert util.wait(qmlEngine.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 1
-    assert dlg.session.isLoggedIn() == True
+    assert qmlEngine.session.isLoggedIn() == True
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
     assert user.check_password(ARGS["password"])
     assert user.status == "confirmed"
 
 
-def test_reset_password(flask_app, test_user, qtbot, create_dlg):
+def test_reset_password(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     flask_app.config["STRIPE_ENABLED"] = False
 
     ARGS = {
@@ -259,10 +260,10 @@ def test_reset_password(flask_app, test_user, qtbot, create_dlg):
     dlg.keyClicks("authNewPasswordField", ARGS["password"], returnToFinish=False)
     dlg.keyClicks("authConfirmPasswordField", ARGS["password"], returnToFinish=False)
     dlg.mouseClick("authSubmitButton")
-    assert util.wait(dlg.session.changed)
+    assert util.wait(qmlEngine.session.changed)
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 1
-    assert dlg.session.isLoggedIn() == True
+    assert qmlEngine.session.isLoggedIn() == True
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
     assert user.check_password(ARGS["password"])
@@ -296,7 +297,7 @@ def test_edit_user(flask_app, test_user, create_dlg):
     assert user.last_name == ARGS["last_name"]
 
 
-def test_purchase(test_session, qtbot, create_dlg):
+def test_purchase(test_session, qtbot, create_dlg, qmlEngine):
     p1 = Policy(
         code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
         product=vedana.LICENSE_PROFESSIONAL,
@@ -323,7 +324,7 @@ def test_purchase(test_session, qtbot, create_dlg):
 
     hidden = util.Condition(dlg.hidden)
     purchasedLicense = util.Condition(dlg.qml.rootObject().purchasedLicense)
-    loggedIn = util.Condition(dlg.session.changed)
+    loggedIn = util.Condition(qmlEngine.session.changed)
     purchaseButton = dlg.rootProp("purchaseButtons").toVariant()[0]
     dlg.mouseClickItem(purchaseButton)
     assert dlg.itemProp("authForm", "visible")
@@ -357,17 +358,17 @@ def test_cancel(qtbot, dlg, test_session, test_license):
     assert test_license.active == False
 
 
-def test_freeVersionCTA_visible_free_license(create_dlg):
+def test_freeVersionCTA_visible_free_license(create_dlg, qmlEngine):
     dlg = create_dlg()
     userLicenses = dlg.rootProp("userLicenses").toVariant()
-    hasAnyPaidFeature = dlg.session.hasAnyPaidFeature()
+    hasAnyPaidFeature = qmlEngine.session.hasAnyPaidFeature()
     assert dlg.itemProp("freeVersionCTA", "visible") == True
 
 
-def test_freeVersionCTA_visible_pro_license(test_activation, create_dlg):
+def test_freeVersionCTA_visible_pro_license(test_activation, create_dlg, qmlEngine):
     dlg = create_dlg()
     userLicenses = dlg.rootProp("userLicenses").toVariant()
-    hasAnyPaidFeature = dlg.session.hasAnyPaidFeature()
+    hasAnyPaidFeature = qmlEngine.session.hasAnyPaidFeature()
     assert dlg.itemProp("freeVersionCTA", "visible") == False
 
 

@@ -177,3 +177,12 @@ function server(util, session, method, path, data, callback) {
     }
 }
 
+// for tests because requests were lingering after the QQmlWidget source was
+// cleare, causing reference errors on context properties (e.g. session, util)
+function deinit() {
+    for (var key in _serverRequests) {
+        if (_serverRequests.hasOwnProperty(key)) {
+            delete _serverRequests[key];
+        }
+    }
+}

@@ -59,6 +59,9 @@ Page {
         // print(s)
     }
 
+    // for tests only
+    Component.onDestruction: Global.deinit()
+
     /////////////////////////////////////////////////
     //
     //  Verbs

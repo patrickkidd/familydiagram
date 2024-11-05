@@ -19,9 +19,13 @@ class CommandsWrapper(QObject):
 
 class QmlEngine(QQmlEngine):
     """
-    Contains the basic context properties available to every view.
+    Contains the basic context properties available to every view. Each model
+    type is only instantiated once, and then the properties are updated as the
+    underlying scene data changes. This allows qml bindings to be set once since
+    they are fragile, a pain to debug, and not terribly fast to init & deinit.
 
-    A new instance of this is managed along with every new DocumentView instance.
+    A new instance of this is managed along with every new DocumentView
+    instance.
     """
 
     def __init__(self, parent, session):
@@ -36,6 +40,7 @@ class QmlEngine(QQmlEngine):
         # Models
 
         self.session = session
+        self.session.setQmlEngine(self)
 
         self.sceneModel = SceneModel(self)
         self.sceneModel.session = session

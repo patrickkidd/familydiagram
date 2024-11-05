@@ -278,7 +278,9 @@ class Server(QObject):
                 if error:
                     error()
             else:
-                bdata = reply.readAll()
+                # lazy hack to only read once since QNetworkReply is a
+                # sequential QIODevice
+                bdata = reply._pk_body = reply.readAll()
                 try:
                     data = pickle.loads(bdata)
                 except pickle.UnpicklingError as e:
@@ -340,6 +342,6 @@ class Server(QObject):
         #     headers = [f"{x}: {reply.request().rawHeader(x)}" for x in reply.request().rawHeaderList()]
         #     self.checkHTTPReply(reply, statuses=[200])
         #     raise HTTPError(reply.url().toString(), status_code, bytes(reply.readAll()).decode(), headers, None)
-        bdata = bytes(reply.readAll())
+        bdata = bytes(reply._pk_body)
         response = HTTPResponse(body=bdata, _reply=reply)
         return response

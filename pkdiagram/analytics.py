@@ -136,7 +136,7 @@ class Analytics(QObject):
     def profilesUrl(self) -> str:
         return f"https://api.mixpanel.com/engage#profile-batch-update"
 
-    def sendJSONRequest(self, url, data, verb, success: Callable):
+    def sendJSONRequest(self, url, data, verb, success: Callable, finished: Callable):
         self._currentRequest = QNetworkRequest(QUrl(url))
         self._currentRequest.setRawHeader(b"Content-Type", b"application/json")
         self._currentRequest.setRawHeader(b"Accept", b"application/json")
@@ -156,9 +156,11 @@ class Analytics(QObject):
             try:
                 Server.checkHTTPReply(self._currentReply, statuses=[200])
             except HTTPError as e:
-                log.debug(f"Mixpanel error: {self._currentReply.errorString()}")
+                log.info(f"Mixpanel error: {self._currentReply.errorString()}")
             else:
                 success()
+            finally:
+                finished()
             self.completedOneRequest.emit(self._currentReply)
             self._currentRequest = None
             self._currentReply = None
@@ -184,6 +186,8 @@ class Analytics(QObject):
         def onSuccess():
             log.debug(f"Sent {len(self._currentRequest._chunk)} events to Mixpanel")
             self._numEventsSent += len(self._currentRequest._chunk)
+
+        def onFinished():
             for event in self._currentRequest._chunk:
                 self._eventQueue.remove(event)
             # in case there is a dangling reference somewhere
@@ -191,7 +195,7 @@ class Analytics(QObject):
             self._writeToDisk()
 
         log.debug(f"Attempting to send {len(chunk)} events to Mixpanel...")
-        self.sendJSONRequest(self.importUrl(), data, b"POST", onSuccess)
+        self.sendJSONRequest(self.importUrl(), data, b"POST", onSuccess, onFinished)
         # so they can be popped from the queue afterward
         self._currentRequest._chunk = chunk
 
@@ -216,13 +220,15 @@ class Analytics(QObject):
             log.debug(
                 f"Successfully sent {len(self._profilesCache.keys())} profiles to Mixpanel"
             )
+
+        def onFinished():
             self._profilesCache = {}
             self._writeToDisk()
 
         log.debug(
             f"Attempting to send {len(self._profilesCache.keys())} profiles to Mixpanel..."
         )
-        self.sendJSONRequest(self.profilesUrl(), data, b"POST", onSuccess)
+        self.sendJSONRequest(self.profilesUrl(), data, b"POST", onSuccess, onFinished)
 
     def tick(self):
         """

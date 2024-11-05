@@ -149,7 +149,7 @@ PK.Drawer {
         }
 
         PK.Label {
-            text: 'Entire Family'
+            text: 'Family Timeline'
             elide: Text.ElideRight
             anchors.centerIn: parent
             font.family: util.FONT_FAMILY_TITLE
@@ -242,10 +242,19 @@ PK.Drawer {
 
             // Avoid binding loop on contentHeight
             Timer {
-                interval: 0
+                interval: 10
                 running: true
                 repeat: false
-                onTriggered: settingsView.contentHeight = settingsLayout.implicitHeight + root.margin * 2
+                onTriggered: settingsView.hack_setContentHeight()
+            }
+
+            Connections {
+                target: sceneModel
+                function onIsInEditorModeChanged() { settingsView.hack_setContentHeight() }
+            }
+
+            function hack_setContentHeight() {
+                settingsView.contentHeight = settingsLayout.implicitHeight + root.margin * 2
             }
 
             Rectangle {
@@ -265,14 +274,9 @@ PK.Drawer {
                     objectName: "variablesBox"
                     enabled: !sceneModel.readOnly
                     visible: sceneModel.isInEditorMode
-                    Timer {
-                        interval: 1000
-                        running: true
-                        repeat: true
-                        onTriggered: print('variablesBox.visible:', variablesBox.visible)
-                    }
                     Layout.fillWidth: true
                     padding: 1 // bring variables ListView flush with group box
+
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 0
@@ -415,7 +419,8 @@ PK.Drawer {
                     id: viewSettingsBox
                     title: 'View'
                     Layout.fillWidth: true
-                    Layout.topMargin: sceneModel.isInEditorMode ? 0 : margin
+                    Layout.topMargin: sceneModel.isInEditorMode ? margin: 0
+
                     ColumnLayout {
                         anchors.fill: parent                        
                         PK.CheckBox {

@@ -39,7 +39,7 @@ class Session(QObject, QObjectHelper):
     def __init__(self, analytics: Analytics = None, parent=None):
         super().__init__(parent)
         self._analytics = analytics
-        self._engine = (
+        self._qmlEngine = (
             None  # Hack for engine.newObject() so long as QmlUtil is a singleton
         )
         self._server = Server(self)

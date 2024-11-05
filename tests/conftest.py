@@ -66,8 +66,8 @@ _componentStatus = {}
 _currentTestItem = None
 
 
-# def pytest_generate_tests(metafunc):
-#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
+def pytest_generate_tests(metafunc):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -174,6 +174,9 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
         # def readData(self, maxSize):
         #     return self._data
         def readAll(self):
+            if getattr(self, "_hasReadAll", False):
+                return QByteArray(b"")
+            self._hasReadAll = True
             if hasattr(self, "_data"):
                 return QByteArray(self._data)
             else:
@@ -460,7 +463,6 @@ class PKQtBot(QtBot):
             self.wait(10)  # processEvents()
 
     def mouseClick(self, *args, **kwargs):
-        log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
         if len(args) == 1:
             args = (args[0], Qt.LeftButton)
         if args[0] is None:
@@ -972,9 +974,7 @@ def MessageDialog_clickButtonAfter(
     with mock.patch.object(QMessageBox, type.value, return_value=button) as method:
         methodCalled = util.Condition(condition=lambda: method.call_count > 0)
         action()
-        log.info(f"methodCalled.wait() type: {type}")
         assert methodCalled.wait() == True
-        log.info(f"{type} message box raised.")
     assert method.call_count == 1
     if contains is not None:
         assert contains in method.call_args[0][2]

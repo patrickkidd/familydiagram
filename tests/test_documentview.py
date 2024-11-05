@@ -81,8 +81,9 @@ def dv(test_session, test_activation, qtbot):
 
 
 @pytest.mark.parametrize("editorMode", [True, False])
-def test_editorMode_enabled(dv, editorMode):
+def test_editorMode_enabled(qtbot, dv, editorMode):
     dv.controller.onEditorMode(editorMode)
+    qtbot.mouseClick(dv.view.rightToolBar.settingsButton, Qt.LeftButton)
     assert dv.caseProps.itemProp("variablesBox", "visible") == editorMode
 
 

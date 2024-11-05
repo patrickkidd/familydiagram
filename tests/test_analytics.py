@@ -106,6 +106,19 @@ def test_send_request(analytics):
     assert sendCustomRequest.call_args[0][2] == b'{"event": "test_event"}'
 
 
+def test_http_error_does_not_repeat(analytics):
+    completedOneRequest = util.Condition(analytics.completedOneRequest)
+    analytics.init()
+    event = MixpanelEvent(
+        eventName="test_event", username="user_1", time=123, properties={}
+    )
+    with mockRequest(400):
+        analytics.send(event)
+    assert completedOneRequest.wait() == True
+    assert analytics.numEventsQueued() == 0
+    assert analytics.currentRequest() is None
+
+
 def test_mixpanel_send_events_api(analytics):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()

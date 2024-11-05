@@ -31,7 +31,7 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         QmlWidgetHelper.deinit(self)
 
     def canClose(self):
-        return bool(self.session.isLoggedIn())
+        return bool(self.qmlEngine().session.isLoggedIn())
 
     def onDone(self):
         self.hide()
