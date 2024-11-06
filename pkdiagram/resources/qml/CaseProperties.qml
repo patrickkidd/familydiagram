@@ -24,9 +24,11 @@ PK.Drawer {
     property bool isDrawerOpen: eventPropertiesDrawer.visible
     property bool canRemove: tabBar.currentIndex == 0 && timelineView.canRemove
     property bool canInspect: tabBar.currentIndex == 0 && timelineView.canInspect
-    property bool notJustFreeLicense: session.hasFeature(
+    property bool notJustFreeLicense: {
+        sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
-    )
+        )) : false
+    }
 
     signal clearSearch;
 
@@ -92,7 +94,7 @@ PK.Drawer {
 
     function scrollSettingsToBottom() {
         // for testing
-        settingsView.contentY = settingsView.contentHeight - root.height - util.QML_MARGINS
+        settingsView.contentY = settingsView.contentHeight // - root.height - util.QML_MARGINS
     }
 
     function scrollTimelineToDateTime(dateTime) {
@@ -417,6 +419,7 @@ PK.Drawer {
                 
                 PK.GroupBox {
                     id: viewSettingsBox
+                    objectName: 'viewSettingsBox'
                     title: 'View'
                     Layout.fillWidth: true
                     Layout.topMargin: sceneModel.isInEditorMode ? margin: 0

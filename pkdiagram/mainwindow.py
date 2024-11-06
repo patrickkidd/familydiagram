@@ -65,6 +65,10 @@ log = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
+    """
+    The main application window that manages the menus and any document-agnostic
+    dialogs, etc.
+    """
 
     S_DIAGRAM_UPDATED_FROM_SERVER = "This diagram has been updated from the newer version on the server. If this is unexpected, you may find it useful to plan updates with other users that share access to this diagram, as it will always auotmatically update to the newest version saved from any computer."
 
@@ -167,6 +171,7 @@ class MainWindow(QMainWindow):
         # Document View
 
         self.documentView = DocumentView(self, self.session)
+        self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
         self.view = self.documentView.view
         self.qmlWidgets = list(self.documentView.drawers)
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
@@ -364,7 +369,6 @@ class MainWindow(QMainWindow):
         CUtil.instance().updateIsNotAvailable.connect(self.onAppUpdateIsNotAvailable)
         # self.documentView.sceneModel.selectionChanged.connect(self.onSceneModelSelectionChanged)
         self.documentView.sceneModel.trySetShowAliases[bool].connect(self.onShowAliases)
-        self.documentView.sceneModel.uploadToServer.connect(self.onUploadToServer)
         #
 
         if not util.ENABLE_COPY_PASTE:
@@ -1783,9 +1787,6 @@ class MainWindow(QMainWindow):
     def onServerReload(self):
         self.serverFileModel.reload()
 
-    def onUploadedToServer(self):
-        self.serverFileModel.update()
-
     def onBetaWiki(self):
         QDesktopServices.openUrl(
             QUrl("http://vedanamedia.com/our-products/family-diagram/beta-program/")
@@ -1891,6 +1892,10 @@ class MainWindow(QMainWindow):
     ## Server
 
     def onUploadToServer(self):
+        """
+        This goes here because it connects a button in the DocumentView to the
+        ServerFileModel, and then also opens the resulting file.
+        """
 
         def onFinished():
             reply = onFinished._reply
@@ -1904,7 +1909,10 @@ class MainWindow(QMainWindow):
                     "There was a problem uploading this file to the server. Please contact support at info@alaskafamilysystems.com.\n\nYour local copy of this file is unchanged.",
                 )
                 return
-            bdata = reply.readAll()
+            if hasattr(reply, "_pk_body"):
+                bdata = reply._pk_body
+            else:
+                bdata = reply.readAll()
             data = pickle.loads(bdata)
             data["status"] = CUtil.FileIsCurrent
             data["owner"] = data["user"]["username"]

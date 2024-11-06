@@ -12,6 +12,10 @@ from .modelhelper import ModelHelper
 
 
 class SceneModel(QObject, ModelHelper):
+    """
+    The main entry point for binding to scene properties, and also upstream
+    communication with the DocumentView.
+    """
 
     NEW_VAR_TMPL = "Variable %i"
 
@@ -111,6 +115,13 @@ class SceneModel(QObject, ModelHelper):
     def onEditorMode(self, on):
         self._isInEditorMode = on
         self.refreshProperty("isInEditorMode")
+
+    @pyqtSlot()
+    def onUploadToServer(self):
+        """
+        Just here to avoid signals connected to signals for debugging purposes.
+        """
+        self.uploadToServer.emit()
 
     @pyqtSlot(int, result=QObject)
     def item(self, id):

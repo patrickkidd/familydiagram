@@ -32,6 +32,7 @@ from .appconfig import AppConfig
 from .application import Application
 from .appcontroller import AppController
 from .accountdialog import AccountDialog
+from .documentcontroller import DocumentController
 from .documentview import DocumentView, CaseProperties
 from .server_types import (
     Diagram,

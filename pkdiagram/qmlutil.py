@@ -421,8 +421,10 @@ class QmlUtil(QObject, QObjectHelper):
                     session.server().checkHTTPReply(reply, quiet=False)
                 except HTTPError as e:
                     pass
-                bdata = bytes(reply._pk_body)
-                # bdata = reply.readAll().data()
+                if hasattr(reply, "_pk_body"):
+                    bdata = bytes(reply._pk_body)
+                else:
+                    bdata = reply.readAll().data()
                 if bdata:
                     try:
                         data = pickle.loads(bdata)

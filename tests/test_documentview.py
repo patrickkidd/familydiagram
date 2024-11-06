@@ -597,3 +597,13 @@ def test_add_emotion_adds_tags(dv: DocumentView):
     emotion = Emotion(personA=person1, personB=person2, kind=util.ITEM_CONFLICT)
     dv.scene.addItem(emotion)
     assert emotion.tags() == ["conflict"]
+
+
+def test_uploadButton(qtbot, dv: DocumentView):
+    uploadToServer = util.Condition(dv.controller.uploadToServer)
+    qtbot.mouseClick(dv.view.rightToolBar.settingsButton, Qt.LeftButton)
+    dv.caseProps.scrollSettingsToBottom()
+    QApplication.processEvents()  # for scroll to complete
+    dv.caseProps.mouseClick("uploadButton")
+    assert uploadToServer.wait() == True
+    assert uploadToServer.callCount == 1

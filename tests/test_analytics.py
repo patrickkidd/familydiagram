@@ -91,8 +91,11 @@ def test_send_request(analytics):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
     onSuccess = mock.Mock()
+    onFinished = mock.Mock()
     with mockRequest(200) as sendCustomRequest:
-        analytics.sendJSONRequest(URL, DATA, verb=b"POST", success=onSuccess)
+        analytics.sendJSONRequest(
+            URL, DATA, verb=b"POST", success=onSuccess, finished=onFinished
+        )
     assert analytics.currentRequest() is not None
 
     assert completedOneRequest.wait() == True
@@ -368,9 +371,9 @@ def test_send_profiles_before_events(analytics):
     urls = []
     orig_sendJSONRequest = analytics.sendJSONRequest
 
-    def _sendJSONRequest(url, data, verb, success):
+    def _sendJSONRequest(url, data, verb, success, finished):
         urls.append(url)
-        orig_sendJSONRequest(url, data, verb, success)
+        return orig_sendJSONRequest(url, data, verb, success, finished)
 
     with mock.patch(
         "pkdiagram.analytics.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
@@ -378,9 +381,9 @@ def test_send_profiles_before_events(analytics):
         with mockRequest(200):
             analytics.tick()
             assert completedOneRequest.wait() == True
+    assert analytics.numEventsQueued() == 0
+    assert analytics.numProfilesQueued() == 0
     assert urls == [
         analytics.profilesUrl(),
         analytics.importUrl(),
     ]
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0

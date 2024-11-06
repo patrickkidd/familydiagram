@@ -288,7 +288,9 @@ class QmlWidgetHelper(QObjectHelper):
             item = self.findItem(objectName)
         else:
             item = objectName
-        assert item.property("enabled") == True
+        assert (
+            item.property("enabled") == True
+        ), f"{self.rootProp('objectName')}.{objectName} is not enabled"
         self.mouseClickItem(item, button=button)
 
     def mouseDClickItem(self, item, button=Qt.LeftButton, pos=None):

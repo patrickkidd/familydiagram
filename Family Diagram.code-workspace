@@ -18,7 +18,17 @@
 		"python.analysis.exclude": [
 			"**/sysroot"
 		],
-		"editor.defaultFormatter": "ms-python.black-formatter",
+		"python.testing.pytestEnabled": false,
+		"[python]": {
+			"editor.formatOnSave": true,
+			"editor.defaultFormatter": "ms-python.black-formatter",
+		},
+		"[javascript]": {
+			"editor.formatOnSave": true,
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.tabSize": 4,
+			"editor.insertSpaces": true,
+		},
 		"[json]": {
 			"editor.defaultFormatter": "vscode.json-language-features"
 		},

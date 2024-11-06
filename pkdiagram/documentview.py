@@ -36,6 +36,7 @@ from .models import (
     AccessRightsModel,
 )
 from .qmldrawer import QmlDrawer
+from _pkdiagram import FDDocument
 
 
 log = logging.getLogger(__name__)

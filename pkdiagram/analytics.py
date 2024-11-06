@@ -136,7 +136,9 @@ class Analytics(QObject):
     def profilesUrl(self) -> str:
         return f"https://api.mixpanel.com/engage#profile-batch-update"
 
-    def sendJSONRequest(self, url, data, verb, success: Callable, finished: Callable):
+    def sendJSONRequest(
+        self, url, data, verb, success: Callable, finished: Callable
+    ) -> QNetworkReply:
         self._currentRequest = QNetworkRequest(QUrl(url))
         self._currentRequest.setRawHeader(b"Content-Type", b"application/json")
         self._currentRequest.setRawHeader(b"Accept", b"application/json")
@@ -151,27 +153,27 @@ class Analytics(QObject):
 
         def onFinished():
             reply = self._currentReply
-            log.info(f"Mixpanel request finished: {util.summarizeReplyShort(reply)}")
-            self._currentReply.finished.disconnect(onFinished)
-            try:
-                Server.checkHTTPReply(self._currentReply, statuses=[200])
-            except HTTPError as e:
-                log.info(f"Mixpanel error: {self._currentReply.errorString()}")
-            else:
-                success()
-            finally:
-                finished()
-            self.completedOneRequest.emit(self._currentReply)
             self._currentRequest = None
             self._currentReply = None
-            # skip if no internet connection
-            if (
-                reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) != 0
-                and reply.error() != QNetworkReply.HostNotFoundError
-            ):
+            reply.finished.disconnect(onFinished)
+
+            status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+            if status_code != 0 and reply.error() == QNetworkReply.NoError:
+                success(reply)
+                finished(reply)
                 self.tick()
+            elif (
+                status_code != status_code
+                or reply.error() == QNetworkReply.HostNotFoundError
+            ):
+                log.debug(f"Mixpanel request failed with HTTP code: {status_code}")
+                finished()
+            else:
+                log.debug("Mixpanel request failed: no internet connection")
+            self.completedOneRequest.emit(reply)
 
         self._currentReply.finished.connect(onFinished)
+        return self._currentReply
 
     def _postNextEvents(self):
         chunk = self._eventQueue[: self.MIXPANEL_BATCH_MAX]
@@ -183,21 +185,23 @@ class Analytics(QObject):
             for x in chunk
         ]
 
-        def onSuccess():
-            log.debug(f"Sent {len(self._currentRequest._chunk)} events to Mixpanel")
-            self._numEventsSent += len(self._currentRequest._chunk)
+        def onSuccess(reply):
+            log.debug(f"Sent {len(reply._chunk)} events to Mixpanel")
+            self._numEventsSent += len(reply._chunk)
 
-        def onFinished():
-            for event in self._currentRequest._chunk:
+        def onFinished(reply):
+            for event in reply._chunk:
                 self._eventQueue.remove(event)
             # in case there is a dangling reference somewhere
-            self._currentRequest._chunk = None
+            reply_chunk = None
             self._writeToDisk()
 
         log.debug(f"Attempting to send {len(chunk)} events to Mixpanel...")
-        self.sendJSONRequest(self.importUrl(), data, b"POST", onSuccess, onFinished)
+        reply = self.sendJSONRequest(
+            self.importUrl(), data, b"POST", onSuccess, onFinished
+        )
         # so they can be popped from the queue afterward
-        self._currentRequest._chunk = chunk
+        reply._chunk = chunk
 
     def _postProfiles(self):
         data = [
@@ -216,12 +220,12 @@ class Analytics(QObject):
             for username, x in self._profilesCache.items()
         ]
 
-        def onSuccess():
+        def onSuccess(reply):
             log.debug(
                 f"Successfully sent {len(self._profilesCache.keys())} profiles to Mixpanel"
             )
 
-        def onFinished():
+        def onFinished(reply):
             self._profilesCache = {}
             self._writeToDisk()
 

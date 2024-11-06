@@ -1,8 +1,11 @@
 import logging
 import bisect
+import pickle
+import shutil
 
 import vedana
 from pkdiagram.pyqt import (
+    pyqtSignal,
     Qt,
     QObject,
     QApplication,
@@ -19,6 +22,7 @@ from pkdiagram.pyqt import (
     QPrinter,
     QPainter,
     QColor,
+    QFileInfo,
 )
 from pkdiagram import (
     util,
@@ -32,6 +36,8 @@ from pkdiagram import (
     Layer,
     ChildOf,
 )
+from .server_types import Diagram, HTTPError
+from _pkdiagram import FDDocument
 
 if not util.IS_IOS:
     import xlsxwriter
@@ -46,23 +52,27 @@ class DocumentController(QObject):
     - Wrangling views goes in DocumentController.
     """
 
-    @property
-    def view(self):
-        return self.dv.view
+    S_CONFIRM_UPLOAD_DIAGRAM = "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others."
+    S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM = "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?"
 
-    ui = None
-    scene = None
+    uploadToServer = pyqtSignal()
+
     _ignoreSelectionChanges = False
     _isUpdatingSearchTags = False
     _currentQmlFocusItem = None
 
-    def __init__(self, parent: "DocumentView" = None):
-        super().__init__(parent)
-        self.dv = parent
+    def __init__(self, dv: "DocumentView"):
+        super().__init__(dv)
+        self.dv = dv
+        self.ui = None
+        self.scene = None
+        self.view = self.dv.view
 
     def init(self):
         assert self.ui is None
         self.ui = self.dv.ui
+
+        self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
         # Edit
         self.ui.actionUndo.triggered.connect(self.view.onUndo)
@@ -835,6 +845,9 @@ class DocumentController(QObject):
                 self.scene.setCurrentDateTime(firstDate)
             elif not self.scene.areActiveLayersChanging():
                 self.scene._updateAllItemsForLayersAndTags()
+
+    def onUploadToServer(self):
+        self.uploadToServer.emit()
 
     def __writePDF(self, filePath=None, printer=None):
         rect = self.printRect()

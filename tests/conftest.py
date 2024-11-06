@@ -123,7 +123,7 @@ def pytest_report_teststatus(report, config):
     """Track failures for components so dependent tests case be skipped."""
     global _currentTestItem, _componentStatus
 
-    if report.failed:  # during call
+    if _currentTestItem and report.failed:  # during call
         component_marker = _currentTestItem.get_closest_marker("component")
         if component_marker:
             component = component_marker.args[0]
