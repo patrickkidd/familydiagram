@@ -66,12 +66,28 @@ _componentStatus = {}
 _currentTestItem = None
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--disable-dependencies",
+        action="store_true",
+        default=False,
+        help="Disable skipping tests when a component test fails.",
+    )
+
+
+def pytest_configure(config):
+    config.dependency_disabled = config.getoption("--disable-dependencies")
+
+
 def pytest_generate_tests(metafunc):
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
     """Reorder test items based on component dependencies."""
+    if config.dependency_disabled:
+        return
+
     component_tests = {}
     ordered_items = []
     non_component_items = []
@@ -108,13 +124,16 @@ def pytest_runtest_setup(item):
     """Skip tests based on component dependency rules if dependencies failed."""
     global _currentTestItem
 
+    if item.config.dependency_disabled:
+        return
+
     _currentTestItem = item
 
     dependency_marker = item.get_closest_marker("depends_on")
     if dependency_marker:
         for dependency in dependency_marker.args:
             if _componentStatus.get(dependency) == "failed":
-                pytest.skip(
+                pytest.fail(
                     f"Skipping {item.name} tests because {dependency} tests failed"
                 )
 
@@ -122,6 +141,9 @@ def pytest_runtest_setup(item):
 def pytest_report_teststatus(report, config):
     """Track failures for components so dependent tests case be skipped."""
     global _currentTestItem, _componentStatus
+
+    if config.dependency_disabled:
+        return
 
     if _currentTestItem and report.failed:  # during call
         component_marker = _currentTestItem.get_closest_marker("component")

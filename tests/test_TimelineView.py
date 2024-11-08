@@ -13,21 +13,14 @@ class TimelineViewTest(QWidget, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         super().__init__(parent)
         QVBoxLayout(self)
-        scene = Scene()
-        sceneModel = SceneModel()
-        sceneModel.scene = scene
-        timelineModel = TimelineModel()
-        timelineModel.scene = scene
-        timelineModel.items = [scene]
         self.initQmlWidgetHelper(engine, "tests/qml/TimelineViewTest.qml")
         self.checkInitQml()
-        self.setItemProp("timelineView", "model", timelineModel)
         self.resize(600, 800)
 
 
 @pytest.fixture
 def tv(qtbot, qmlEngine):
-
+    qmlEngine.setScene(Scene())
     tv = TimelineViewTest(qmlEngine)
     qtbot.addWidget(tv)
     qtbot.waitActive(tv)
@@ -38,8 +31,8 @@ def tv(qtbot, qmlEngine):
     tv.deinit()
 
 
-def test_init(tv):
-    scene = tv.rootProp("sceneModel").scene
+def test_init(tv, qmlEngine):
+    # scene = qmlEngine.sceneModel.scene
     assert tv.itemProp("table", "visible") == False
     assert tv.itemProp("noEventsLabel", "visible") == True
     # delegates = tvt.test_getDelegates().toVariant()
@@ -54,8 +47,8 @@ def test_init(tv):
     # assert len(delegates) == 1
 
 
-def test_some_events_shown(tv):
-    scene = tv.rootProp("sceneModel").scene
+def test_some_events_shown(tv, qmlEngine):
+    scene = qmlEngine.sceneModel.scene
     person = Person(name="Hey", lastName="There")
     event = Event(
         person, dateTime=util.Date(2001, 1, 1), description="Something happened"
@@ -71,8 +64,8 @@ def test_no_events(tv):
     assert tv.itemProp("noEventsLabel", "text") == util.S_NO_EVENTS_TEXT
 
 
-def test_some_events_filtered_out(tv):
-    scene = tv.rootProp("sceneModel").scene
+def test_some_events_filtered_out(tv, qmlEngine):
+    scene = qmlEngine.sceneModel.scene
     person = Person(name="Hey", lastName="You")
     events = [
         Event(
@@ -83,7 +76,7 @@ def test_some_events_filtered_out(tv):
         for i in range(3)
     ]
     scene.addItems(person)
-    scene.searchModel.startDateTime = util.Date(2020, 1, 1)
+    qmlEngine.searchModel.startDateTime = util.Date(2020, 1, 1)
     util.waitALittle()
     assert tv.itemProp("noEventsLabel", "visible") == True
     assert tv.itemProp("noEventsLabel", "text") == util.S_NO_EVENTS_TEXT
