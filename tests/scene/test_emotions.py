@@ -333,13 +333,13 @@ def test_shouldShowFor():
 def test_honors_searchModel_tags():
     TAGS = ["triangle"]
     scene = Scene()
-    searchModel = SearchModel()
-    searchModel.scene = scene
     personA = objects.Person(name="A")
     personB = objects.Person(name="B")
     conflict = objects.Emotion(personA, personB, kind=util.ITEM_CONFLICT, tags=TAGS)
-    searchModel.setTags(TAGS)
     scene.addItems(personA, personB, conflict)
+    searchModel = SearchModel()
+    searchModel.scene = scene
+    searchModel.tags = TAGS
     assert conflict.isVisible() == True
 
     searchModel.tags = ["nowhere"]
