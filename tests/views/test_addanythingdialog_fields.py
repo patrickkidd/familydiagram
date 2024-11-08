@@ -7,7 +7,7 @@ from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marri
 from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
 
-from test_addanythingdialog import scene, dlg
+from .test_addanythingdialog import scene, dlg
 
 _log = logging.getLogger(__name__)
 

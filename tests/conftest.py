@@ -283,9 +283,6 @@ def qApp():
     qApp.deinit()
 
 
-TEST_TIMEOUT_MS = 10000
-
-
 @pytest.fixture(autouse=True)
 def watchdog(request, qApp):
 
@@ -294,6 +291,8 @@ def watchdog(request, qApp):
     if not NO_QT:
 
         class Watchdog:
+
+            TIMEOUT_MS = 10000
 
             def __init__(self):
                 self._killed = False
@@ -307,7 +306,7 @@ def watchdog(request, qApp):
 
             def kill(self):
                 log.info(
-                    f"Watchdog timer reached after {TEST_TIMEOUT_MS}ms, closing window"
+                    f"Watchdog timer reached after {watchdog.TIMEOUT_MS}ms, closing window"
                 )
                 w = QApplication.activeWindow()
                 if w:
@@ -325,10 +324,10 @@ def watchdog(request, qApp):
 
         if not util.IS_DEBUGGER:
             # Only in debugger
-            watchdogTimer.setInterval(TEST_TIMEOUT_MS)
+            watchdogTimer.setInterval(watchdog.TIMEOUT_MS)
             watchdogTimer.timeout.connect(watchdog.kill)
             watchdogTimer.start()
-            log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+            log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
 
     else:
         watchdog = None
@@ -338,7 +337,7 @@ def watchdog(request, qApp):
     if not NO_QT:
         watchdogTimer.stop()
         if watchdog.killed() and not watchdog.cancelled():
-            pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
+            pytest.fail(f"Watchdog triggered after {watchdog.TIMEOUT_MS}ms.")
 
 
 @pytest.fixture
@@ -413,6 +412,11 @@ def server_down(flask_app):
             yield
 
     return _server_down
+
+
+@pytest.fixture
+def data_root():
+    return DATA_ROOT
 
 
 from pytestqt.qtbot import QtBot
@@ -786,62 +790,6 @@ def personProps():
     }
 
 
-def setPersonProperties(pp, props):
-    pp.setItemProp("personPage", "contentY", 0)
-    pp.keyClicks("firstNameEdit", props["name"])
-    pp.keyClicks("middleNameEdit", props["middleName"])
-    pp.keyClicks("lastNameEdit", props["lastName"])
-    pp.keyClicks("nickNameEdit", props["nickName"])
-    pp.keyClicks("birthNameEdit", props["birthName"])
-    pp.clickComboBoxItem("sizeBox", util.personSizeNameFromSize(props["size"]))
-    pp.clickComboBoxItem("kindBox", util.personKindNameFromKind(props["gender"]))
-    pp.setItemProp("personPage", "contentY", -300)
-    pp.keyClick("adoptedBox", Qt.Key_Space)
-    if pp.itemProp("adoptedBox", "checkState") != props["adopted"]:
-        pp.mouseClick("adoptedBox")
-    assert pp.itemProp("adoptedDateButtons", "enabled") == util.csToBool(
-        props["adopted"]
-    )
-    pp.keyClicks(
-        "adoptedDateButtons.dateTextInput", util.dateString(props["adoptedDateTime"])
-    )
-    pp.mouseClick("primaryBox")
-    if pp.itemProp("primaryBox", "checkState") != props["primary"]:
-        pp.mouseClick("primaryBox")
-    pp.mouseClick("deceasedBox")
-    if pp.itemProp("deceasedBox", "checkState") != props["deceased"]:
-        pp.keyClick("deceasedBox", Qt.Key_Space)
-    assert pp.itemProp("deceasedReasonEdit", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    assert pp.itemProp("deceasedDateButtons", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    if util.csToBool(props["deceased"]):
-        pp.keyClicks("deceasedReasonEdit", props["deceasedReason"])
-        pp.keyClicks(
-            "deceasedDateButtons.dateTextInput",
-            util.dateString(props["deceasedDateTime"]),
-        )
-    pp.setCurrentTab("notes")
-    pp.keyClicks("notesEdit", props["notes"])
-
-
-def assertPersonProperties(person, props):
-    assert person.name() == props["name"]
-    assert person.middleName() == props["middleName"]
-    assert person.lastName() == props["lastName"]
-    assert person.nickName() == props["nickName"]
-    assert person.birthName() == props["birthName"]
-    assert person.gender() == props["gender"]
-    assert person.adopted() == util.csToBool(props["adopted"])
-    assert person.adoptedDateTime() == props["adoptedDateTime"]
-    assert person.deceased() == util.csToBool(props["deceased"])
-    assert person.deceasedDateTime() == props["deceasedDateTime"]
-    assert person.deceasedReason() == props["deceasedReason"]
-    assert person.primary() == util.csToBool(props["primary"])
-
-
 @pytest.fixture
 def create_ac_mw(request, qtbot, tmp_path):
     """
@@ -979,24 +927,3 @@ def _scene_data(*items):
 #     'versionCompat': '1.3.0',
 #     'items': [],
 #     'name': ''}
-
-
-class MessageDialogType(enum.Enum):
-    Information = "information"
-    Critical = "critical"
-
-
-def MessageDialog_clickButtonAfter(
-    type: MessageDialogType,
-    action: Callable,
-    button: QMessageBox.StandardButton = QMessageBox.Ok,
-    contains: str = None,
-):
-    """Should probably replace the other QMessageBox helper methods."""
-    with mock.patch.object(QMessageBox, type.value, return_value=button) as method:
-        methodCalled = util.Condition(condition=lambda: method.call_count > 0)
-        action()
-        assert methodCalled.wait() == True
-    assert method.call_count == 1
-    if contains is not None:
-        assert contains in method.call_args[0][2]

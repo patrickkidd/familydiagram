@@ -1,7 +1,11 @@
 import pytest
 from pkdiagram import util, Scene, Person, Qt, SceneModel
 from pkdiagram.addeventdialog import AddEventDialog
-from test_eventproperties import eventProps, runEventProperties, assertEventProperties
+from tests.views.test_eventproperties import (
+    eventProps,
+    runEventProperties,
+    assertEventProperties,
+)
 
 
 @pytest.fixture

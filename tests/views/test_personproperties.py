@@ -11,14 +11,69 @@ from pkdiagram import (
     Scene,
 )
 from pkdiagram.models import SearchModel
-from test_eventproperties import runEventProperties
-from conftest import setPersonProperties, assertPersonProperties
+from tests.views.test_eventproperties import runEventProperties
 
 
 pytestmark = [
     pytest.mark.component("PersonProperties"),
     pytest.mark.depends_on("PersonPropertiesModel"),
 ]
+
+
+def setPersonProperties(pp, props):
+    pp.setItemProp("personPage", "contentY", 0)
+    pp.keyClicks("firstNameEdit", props["name"])
+    pp.keyClicks("middleNameEdit", props["middleName"])
+    pp.keyClicks("lastNameEdit", props["lastName"])
+    pp.keyClicks("nickNameEdit", props["nickName"])
+    pp.keyClicks("birthNameEdit", props["birthName"])
+    pp.clickComboBoxItem("sizeBox", util.personSizeNameFromSize(props["size"]))
+    pp.clickComboBoxItem("kindBox", util.personKindNameFromKind(props["gender"]))
+    pp.setItemProp("personPage", "contentY", -300)
+    pp.keyClick("adoptedBox", Qt.Key_Space)
+    if pp.itemProp("adoptedBox", "checkState") != props["adopted"]:
+        pp.mouseClick("adoptedBox")
+    assert pp.itemProp("adoptedDateButtons", "enabled") == util.csToBool(
+        props["adopted"]
+    )
+    pp.keyClicks(
+        "adoptedDateButtons.dateTextInput", util.dateString(props["adoptedDateTime"])
+    )
+    pp.mouseClick("primaryBox")
+    if pp.itemProp("primaryBox", "checkState") != props["primary"]:
+        pp.mouseClick("primaryBox")
+    pp.mouseClick("deceasedBox")
+    if pp.itemProp("deceasedBox", "checkState") != props["deceased"]:
+        pp.keyClick("deceasedBox", Qt.Key_Space)
+    assert pp.itemProp("deceasedReasonEdit", "enabled") == util.csToBool(
+        props["deceased"]
+    )
+    assert pp.itemProp("deceasedDateButtons", "enabled") == util.csToBool(
+        props["deceased"]
+    )
+    if util.csToBool(props["deceased"]):
+        pp.keyClicks("deceasedReasonEdit", props["deceasedReason"])
+        pp.keyClicks(
+            "deceasedDateButtons.dateTextInput",
+            util.dateString(props["deceasedDateTime"]),
+        )
+    pp.setCurrentTab("notes")
+    pp.keyClicks("notesEdit", props["notes"])
+
+
+def assertPersonProperties(person, props):
+    assert person.name() == props["name"]
+    assert person.middleName() == props["middleName"]
+    assert person.lastName() == props["lastName"]
+    assert person.nickName() == props["nickName"]
+    assert person.birthName() == props["birthName"]
+    assert person.gender() == props["gender"]
+    assert person.adopted() == util.csToBool(props["adopted"])
+    assert person.adoptedDateTime() == props["adoptedDateTime"]
+    assert person.deceased() == util.csToBool(props["deceased"])
+    assert person.deceasedDateTime() == props["deceasedDateTime"]
+    assert person.deceasedReason() == props["deceasedReason"]
+    assert person.primary() == util.csToBool(props["primary"])
 
 
 @pytest.fixture

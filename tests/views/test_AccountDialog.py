@@ -7,14 +7,12 @@ import mock
 import flask_mail
 
 import vedana
-from pkdiagram.pyqt import *
-from pkdiagram import util, EventKind, AccountDialog, SceneModel, Scene, Session
+from pkdiagram.pyqt import QApplication
+from pkdiagram import util, AccountDialog
 
 import fdserver.extensions
 from fdserver.extensions import db
 from fdserver.models import License, User, Policy
-
-from conftest import MessageDialogType, MessageDialog_clickButtonAfter
 
 # def _logout(dlg, qtbot):
 #     assert dlg.isShown() == True
@@ -110,11 +108,9 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
             )
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
-        MessageDialog_clickButtonAfter(
-            MessageDialogType.Information,
-            lambda: dlg.mouseClick("authSubmitButton"),
-            contains="An email was sent with ",
-        )
+        with mock.patch("PyQt5.QtWidgets.QMessageBox.information") as information:
+            dlg.mouseClick("authSubmitButton")
+        assert information.call_args[0][1] == "An email was sent with "
     _log.info("sentResetEmail.wait()")
     assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"

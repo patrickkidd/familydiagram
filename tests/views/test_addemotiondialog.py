@@ -1,7 +1,7 @@
 import pytest
 from pkdiagram import util, objects
 from pkdiagram.addemotiondialog import AddEmotionDialog
-from test_emotionproperties import (
+from tests.views.test_emotionproperties import (
     emotionProps,
     runEmotionProperties,
     assertEmotionProperties,

@@ -1,16 +1,8 @@
 import os.path, tempfile
-import pickle
-import datetime
 
-import flask
 import pytest
 
-from sqlalchemy import inspect
-
-import fdserver
-from pkdiagram.pyqt import QDateTime
-from pkdiagram import util, version, appconfig, Scene, Person
-import conftest
+from pkdiagram import appconfig
 
 
 pytestmark = [pytest.mark.component("AppConfig")]

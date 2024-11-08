@@ -8,7 +8,7 @@ from pkdiagram.analytics import MixpanelEvent, MixpanelProfile
 
 from fdserver import util as fdserver_util
 
-from tests.test_analytics import analytics
+from .test_analytics import analytics
 
 
 pytestmark = [

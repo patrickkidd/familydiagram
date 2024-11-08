@@ -5,7 +5,6 @@ import pytest
 import mock
 from sqlalchemy import inspect
 
-from conftest import _scene_data
 import vedana
 from pkdiagram import (
     util,
@@ -273,7 +272,11 @@ def test_current_server_file_updated_elsewhere(
     assert mw.scene.query1(name="Patrick") == None
 
     # Simulate save on another machine
-    data = _scene_data(Person(name="Patrick"))
+
+    data = {}
+    scene = Scene()
+    scene.addItems(Person(name="Patrick"))
+    scene.write(data)
     diagram = Diagram.query.get(diagram_id)
     diagram.update(data=pickle.dumps(data), _commit=True)
     inspect(diagram).session.add(diagram)

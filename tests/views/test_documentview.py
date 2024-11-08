@@ -4,7 +4,6 @@ import itertools
 
 import pytest, mock
 
-from conftest import setPersonProperties, assertPersonProperties
 from pkdiagram import (
     util,
     Scene,
@@ -23,9 +22,7 @@ from pkdiagram.pyqt import (
     QWidget,
     QMainWindow,
     QPointF,
-    QTest,
     QApplication,
-    QEventLoop,
     QDateTime,
 )
 
@@ -190,7 +187,7 @@ def test_remove_last_event(qtbot, dv):
         assert dv.isGraphicalTimelineShown() == False
 
 
-def test_set_person_props(qtbot, dv: DocumentView, personProps):
+def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView, personProps):
     dv.scene.addItems(Person(name="p1", pos=QPointF(-200, -200)))
 
     # Single-click select first person
@@ -208,13 +205,11 @@ def test_set_person_props(qtbot, dv: DocumentView, personProps):
     assert dv.currentDrawer == dv.personProps
     assert dv.personProps.rootProp("personModel").items == [person]
 
-    # Edit all fields on person props
+    dv.personProps.qml.rootObject().done.emit()
     person = dv.scene.people()[0]
-    setPersonProperties(dv.personProps, personProps)
-    assert dv.personProps.rootProp("personModel").items == [
-        person
-    ], "test drawer did not hide"
-    assertPersonProperties(person, personProps)
+    assert (
+        dv.personProps.rootProp("personModel").items == []
+    ), "test drawer did not hide"
 
 
 def test_load_reload_clears_SearchModel(dv):
@@ -513,7 +508,6 @@ def test_nextTaggedDate_uses_searchModel(dv: DocumentView):
     assert scene.currentDateTime() == person1.birthDateTime()
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_writePDF(tmp_path, dv: DocumentView):
     FILE_PATH = os.path.join(tmp_path, "test_out.xlsx")
 

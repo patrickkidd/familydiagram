@@ -8,7 +8,7 @@ from pkdiagram.pyqt import Qt, QQuickItem, QApplication
 from pkdiagram.addanythingdialog import AddAnythingDialog
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
-from tests.test_addanythingdialog import (
+from .test_addanythingdialog import (
     scene,
     dlg,
     START_DATETIME,

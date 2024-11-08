@@ -1,10 +1,10 @@
 import copy, pickle
-from pkdiagram.models.marriagepropertiesmodel import MarriagePropertiesModel
+
 import pytest
-import conftest
+
 from pkdiagram.pyqt import QDateTime, Qt
-from pkdiagram.util import EventKind
-from pkdiagram import util, Scene, Event, Person, Marriage
+from pkdiagram import util, Scene, Event, Person, Marriage, EventKind
+from pkdiagram.models.marriagepropertiesmodel import MarriagePropertiesModel
 
 
 def test_no_dupe_events(simpleMarriage):
@@ -94,6 +94,7 @@ def test_marriagesFor_none(noEvents):
     personA, personB = noEvents.people
     personC = Person(name="Person C")
     assert noEvents.marriagesFor(personA, personC) == []
+
 
 def test_marriagesFor_reversed(noEvents):
     personA, personB = noEvents.people
@@ -697,12 +698,10 @@ def test_lines(simpleMarriage):
     )
 
 
-def test_compat_marriage_events():
+def test_compat_marriage_events(data_root):
     import os.path
 
-    with open(
-        os.path.join(conftest.DATA_ROOT, "v114a7_simplefamily.pickle"), "rb"
-    ) as f:
+    with open(os.path.join(data_root, "v114a7_simplefamily.pickle"), "rb") as f:
         v1147_simplefamily = pickle.loads(f.read())
 
         from pkdiagram import compat

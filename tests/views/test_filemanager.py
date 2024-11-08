@@ -1,12 +1,8 @@
-import time
 import os.path
 import pytest
-import conftest
-
-from sqlalchemy import inspect
 
 import vedana
-from pkdiagram import util, CUtil, SceneModel, Session, FileManager
+from pkdiagram import util, CUtil, FileManager
 from pkdiagram.pyqt import QApplication, QTest
 
 from fdserver.extensions import db

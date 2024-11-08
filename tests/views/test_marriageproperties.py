@@ -1,12 +1,20 @@
 import pytest
-import conftest
-from test_marriage import noEvents
-from pkdiagram.pyqt import Qt, QDate, QApplication, QDateTime
-from pkdiagram import util, EventKind, Person, Marriage, Event, Scene
+
+from pkdiagram.pyqt import Qt
+from pkdiagram import util, EventKind, Person, Marriage, Event
 from pkdiagram.qmldrawer import QmlDrawer
 
 
 pytestmark = [pytest.mark.component("MarriageProperties")]
+
+
+@pytest.fixture
+def noEvents(qmlScene, request):
+    personA, personB = Person(), Person()
+    marriage = Marriage(personA=personA, personB=personB)
+    qmlScene.addItems(personA, personB, marriage)
+    request.addfinalizer(lambda: qmlScene.deinit())
+    return marriage
 
 
 @pytest.fixture

@@ -1,15 +1,10 @@
 import os, os.path, pickle
 
 import pytest
-import conftest
 
 from pkdiagram.pyqt import (
-    QMouseEvent,
-    QEvent,
     Qt,
     QGraphicsView,
-    QApplication,
-    QDateTime,
     QPointF,
     QRectF,
 )
@@ -26,7 +21,6 @@ from pkdiagram import (
     MultipleBirth,
     Layer,
     SceneLayerModel,
-    SearchModel,
 )
 
 pytestmark = [
@@ -399,10 +393,8 @@ def test_read():
 #     assert scene.read(data) == None
 
 
-def test_clean_stale_refs():
-    with open(
-        os.path.join(conftest.DATA_ROOT, "stale-refs.fd/diagram.pickle"), "rb"
-    ) as f:
+def test_clean_stale_refs(data_root):
+    with open(os.path.join(data_root, "stale-refs.fd/diagram.pickle"), "rb") as f:
         bdata = f.read()
     scene = Scene()
     data = pickle.loads(bdata)

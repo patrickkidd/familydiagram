@@ -4,7 +4,7 @@ import datetime
 from pkdiagram.pyqt import QApplication, Qt, QPointF
 from pkdiagram import util, EventKind, MainWindow
 from pkdiagram import Person, Marriage
-from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
+from .test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 
 
 pytestmark = [

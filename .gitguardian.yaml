@@ -1,0 +1,5 @@
+secret:
+  ignored_matches:
+  - match: 32c6b461334a4113650a894658204f71cc111d9b79cb810a8c86038cbcceb115
+    name: Generic Password - familydiagram/tests/views/test_AccountDialog.py:l.92
+version: 2

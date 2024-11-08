@@ -9,7 +9,7 @@ import datetime
 from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox, QEventLoop
 from pkdiagram import util, EventKind, MainWindow, commands
 from pkdiagram import Person, Marriage, Event
-from tests.test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
+from .test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 
 
 _log = logging.getLogger(__name__)
