@@ -18,7 +18,7 @@ def noEvents(qmlScene, request):
 
 
 @pytest.fixture
-def mp(qtbot, qmlScene, qmlEngine, request):
+def mp(qtbot, qmlScene, qmlEngine):
     qmlEngine.setScene(qmlScene)
     mp = QmlDrawer(
         qmlEngine, "qml/MarriageProperties.qml", propSheetModel="marriageModel"
@@ -29,11 +29,9 @@ def mp(qtbot, qmlScene, qmlEngine, request):
     qtbot.addWidget(mp)
     mp.resize(600, 800)
 
-    def cleanupMP():
-        mp.rootProp("marriageModel").items = []
+    yield mp
 
-    request.addfinalizer(cleanupMP)
-    return mp
+    mp.deinit()
 
 
 @pytest.fixture

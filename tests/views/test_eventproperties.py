@@ -55,6 +55,7 @@ def ep(qtbot, qmlEngine):
     yield ep
 
     ep.hide()
+    ep.deinit()
     scene.deinit()
 
 

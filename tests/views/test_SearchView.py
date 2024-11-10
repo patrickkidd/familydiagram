@@ -1,6 +1,8 @@
+import logging
+
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget
+from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
 from pkdiagram import util, Scene, Person, Event, QmlWidgetHelper, SceneModel
 
 
@@ -9,6 +11,8 @@ pytestmark = [
     pytest.mark.depends_on("Scene", "SearchModel", "TagsModel"),
 ]
 
+_log = logging.getLogger(__name__)
+
 
 class SearchViewTest(QWidget, QmlWidgetHelper):
 
@@ -16,7 +20,7 @@ class SearchViewTest(QWidget, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)
-        Layout = QVBoxLayout(self)
+        QVBoxLayout(self)
         self.initQmlWidgetHelper(engine, "tests/qml/SearchViewTest.qml")
         self.checkInitQml()
 
@@ -24,6 +28,11 @@ class SearchViewTest(QWidget, QmlWidgetHelper):
 @pytest.fixture
 def model(qmlEngine):
     return qmlEngine.searchModel
+
+
+TAG_1 = "tag_1"
+TAG_2 = "tag_2"
+TAG_3 = "tag_3"
 
 
 @pytest.fixture
@@ -34,18 +43,21 @@ def tst_stuff():
         loggedDateTime=util.Date(2000, 1, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item1",
+        tags=[TAG_1, TAG_2],
     )
     event2 = Event(
         parent=person,
         loggedDateTime=util.Date(2000, 2, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item2",
+        tags=[TAG_1, TAG_2],
     )
     event3 = Event(
         parent=person,
         loggedDateTime=util.Date(2000, 3, 10),
         dateTime=util.Date(1900, 1, 1),
         description="item3",
+        tags=[TAG_3],
     )
     return person, event1, event2, event3
 
@@ -53,9 +65,9 @@ def tst_stuff():
 @pytest.fixture
 def tst(qtbot, tst_stuff, qmlEngine):
     scene = Scene()
+    scene.setTags([TAG_1, TAG_2, TAG_3])
     scene.addItems(*tst_stuff)
-    sceneModel = SceneModel()
-    sceneModel.scene = scene
+    qmlEngine.setScene(scene)
     w = SearchViewTest(qmlEngine)
     w.resize(600, 800)
     w.show()
@@ -72,7 +84,9 @@ def test_init(tst, model):
     pass
 
 
-def test_properties(tst, model):
+def test_properties(tst, model, qmlEngine):
+    qmlEngine.sceneModel.onEditorMode(True)
+
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
 
@@ -87,6 +101,9 @@ def test_properties(tst, model):
 
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
+
+    tst.clickTagActivateBox("SearchView_tagEdit", TAG_1)
+    assert model.tags == [TAG_1]
 
     # reset
 
@@ -104,6 +121,9 @@ def test_properties(tst, model):
 
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
+
+    tst.clickTagActivateBox("SearchView_tagEdit", TAG_1)
+    assert model.tags == []
 
 
 def test_clear_0(tst, model):

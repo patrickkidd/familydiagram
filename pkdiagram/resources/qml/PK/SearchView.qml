@@ -19,8 +19,13 @@ Page {
     }
 
     property alias tagsModel: tagsModel
+    property alias tagEdit: tagEdit
+
     property int margin: util.QML_MARGINS
     property bool canInspect: false
+
+    // Get around TagEdit.searchModel attr name
+    property var searchViewSearchModel: searchModel
 
     Keys.enabled: true
     Keys.onPressed: {
@@ -364,8 +369,8 @@ Page {
                                     }
 
                                     PK.TagEdit {
-                                        id: tagsList
-                                        objectName: root.objectName + 'tagsList'
+                                        id: tagEdit
+                                        objectName: 'SearchView_tagEdit'
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.margins: 1
@@ -374,7 +379,7 @@ Page {
                                             id: tagsModel
                                             objectName: 'SearchView_tagsModel'
                                             scene: sceneModel.scene
-                                            searchModel: searchModel
+                                            searchModel: searchViewSearchModel
                                         }
                                     }
                                 }

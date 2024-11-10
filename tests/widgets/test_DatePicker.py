@@ -60,8 +60,11 @@ def datePickerTest(qtbot, qmlEngine):
     dlg.show()
     qtbot.addWidget(dlg)
     qtbot.waitActive(dlg)
+
     yield dlg
+
     dlg.hide()
+    dlg.deinit()
 
 
 def test_init(datePickerTest):

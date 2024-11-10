@@ -64,7 +64,7 @@ def dv(test_session, test_activation, qtbot):
     w.session.init(sessionData=test_session.account_editor_dict())
 
     w.setScene(Scene())  # leave empty
-    mw.resize(800, 600)
+    mw.resize(800, 800)
     mw.show()
     qtbot.addWidget(w)
     qtbot.waitActive(w)
@@ -74,7 +74,6 @@ def dv(test_session, test_activation, qtbot):
     w.setScene(None)
     w.hide()
     w.deinit()
-    w.session.deinit()
 
 
 @pytest.mark.parametrize("editorMode", [True, False])

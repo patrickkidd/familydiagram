@@ -1,3 +1,5 @@
+import logging
+
 from ..pyqt import (
     QObject,
     QVariant,
@@ -9,6 +11,8 @@ from ..pyqt import (
 from .. import objects, util
 from ..scene import Scene
 from .modelhelper import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class SceneModel(QObject, ModelHelper):

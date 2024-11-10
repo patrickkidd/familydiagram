@@ -697,7 +697,7 @@ PK.Drawer {
                                 Layout.fillWidth: true
                                 Layout.margins: util.QML_MARGINS / 2
                                 Layout.bottomMargin: 0
-                                onClicked: sceneModel.uploadToServer()
+                                onClicked: sceneModel.onUploadToServer()
                             }
                         }
 

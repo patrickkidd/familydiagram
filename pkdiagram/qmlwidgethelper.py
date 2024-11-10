@@ -471,6 +471,37 @@ class QmlWidgetHelper(QObjectHelper):
         #     for _child in child.childItems():
         #         self.here('    ', _child.metaObject().className())
 
+    def clickTagActivateBox(self, itemName: str, tagName: str):
+        tagEdit = self.findItem(itemName)
+        model = tagEdit.property("model")
+        assert (
+            model.rowCount() > 0
+        ), "Can't click the tag activate checkbox if the TagsModel is empty"
+        tagEdit_objectName = tagEdit.objectName()
+        listView = self.findItem(f"{tagEdit_objectName}_listView")
+        #
+        delegates = listView.property("delegates").toVariant()
+        found = False
+        foundTags = []
+        for delegate in delegates:
+            iTag = delegate.property("iTag")
+            itemTagName = delegate.property("tagName")
+            foundTags.append(itemTagName)
+            if tagName == itemTagName:
+                checkBox = delegate.property("checkBox")
+                was = model.data(model.index(iTag, 0), role=model.ActiveRole)
+                assert checkBox.isVisible() == True
+                self.mouseClickItem(checkBox)
+                assert (
+                    model.data(model.index(iTag), role=model.ActiveRole) != was
+                ), f"Checkbox for tag '{tagName}' did not change check state"
+                found = True
+        #
+        if not found:
+            raise RuntimeError(
+                f"Could not find tag '{tagName}' in TagEdit '{itemName}', only found: {foundTags}"
+            )
+
     # def clickComboBoxItem_actual(self, objectName, itemText, comboBox=None):
     #     if isinstance(objectName, str):
     #         comboBox = self.findItem(objectName)

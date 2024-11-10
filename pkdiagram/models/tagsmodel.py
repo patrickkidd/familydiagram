@@ -1,3 +1,5 @@
+import logging
+
 from ..pyqt import (
     Qt,
     QAbstractListModel,
@@ -16,6 +18,9 @@ from ..objects import Item, Property, Layer
 from ..scene import Scene
 from .modelhelper import ModelHelper
 from pkdiagram.models import SearchModel
+
+
+_log = logging.getLogger(__name__)
 
 
 class TagsModel(QAbstractListModel, ModelHelper):
@@ -39,8 +44,9 @@ class TagsModel(QAbstractListModel, ModelHelper):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._sceneTags = []
-        self._settingTags = False
+        self._settingItemTags = False
         self._searchModel = None
+        self._settingSearchTags = False
         self.initModelHelper()
 
     def get(self, attr):
@@ -67,7 +73,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
             if self._searchModel:
                 self._searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
             self._searchModel = value
-            super().set(attr, value)
             if self._searchModel:
                 self._searchModel.tagsChanged.connect(self.onSearchTagsChanged)
             self.modelReset.emit()
@@ -94,7 +99,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
 
     def onItemProperty(self, prop):
         """For the active states"""
-        if self._settingTags:
+        if self._settingItemTags:
             return
         if prop.name() == "tags":
             startIndex = self.index(0, 0)
@@ -103,16 +108,21 @@ class TagsModel(QAbstractListModel, ModelHelper):
 
     def onSearchTagsChanged(self):
         """For the active states"""
+        if self._settingSearchTags:
+            return
         startIndex = self.index(0, 0)
         endIndex = self.index(self.rowCount() - 1, 0)
         self.dataChanged.emit(startIndex, endIndex, [self.ActiveRole])
 
     # Scene tags: Manage the list
 
-    def tagAtRow(self, row):
+    def tagAtRow(self, row) -> str:
         if row < 0 or row >= len(self._sceneTags):
             raise KeyError("No tag at row: %s" % row)
         return self._sceneTags[row]
+
+    def rowForTag(self, tag: str) -> int:
+        return self._sceneTags.index(tag)
 
     @pyqtSlot()
     def addTag(self):
@@ -169,12 +179,12 @@ class TagsModel(QAbstractListModel, ModelHelper):
             ret = self.tagAtRow(index.row())
         elif role == self.ActiveRole:
             tag = self.tagAtRow(index.row())
+            numChecked = 0
             if self._searchModel:
                 itemTags = self._searchModel.tags
                 if tag in self._searchModel.tags:
                     numChecked = 1
             else:
-                numChecked = 0
                 for item in self._items:
                     if isinstance(item, SearchModel):
                         itemTags = item.tags
@@ -184,7 +194,9 @@ class TagsModel(QAbstractListModel, ModelHelper):
                         numChecked += 1
             if numChecked == 0:
                 return Qt.Unchecked
-            elif numChecked == len(self._items):
+            elif self._items and numChecked == len(self._items):
+                return Qt.Checked
+            elif self._searchModel:
                 return Qt.Checked
             else:
                 return Qt.PartiallyChecked
@@ -215,7 +227,9 @@ class TagsModel(QAbstractListModel, ModelHelper):
                     if tag in newTags:
                         newTags.remove(tag)
                 if newTags != self._searchModel.tags:
+                    self._settingSearchTags = True
                     self._searchModel.tags = newTags
+                    self._settingSearchTags = False
                     success = True
             elif self._items and value != self.data(index, role):
                 # Emotions and their events are bound to the same tags.
@@ -229,7 +243,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
                         todo.add(item.endEvent)
                 # Do the value set
                 id = commands.nextId()
-                self._settingTags = True
+                self._settingItemTags = True
                 for item in todo:
                     if value == Qt.Checked or value:
                         if not tag in item.tags():
@@ -239,7 +253,11 @@ class TagsModel(QAbstractListModel, ModelHelper):
                         if tag in item.tags():
                             item.unsetTag(tag, undo=id)
                             success = True
-                self._settingTags = False
+                self._settingItemTags = False
+            else:
+                raise RuntimeError(
+                    f"Setting TagsModel.ActiveRole requires either `items` or `searchModel`  to be set."
+                )
         if success and emit:
             self.dataChanged.emit(index, index, [role])
         return success

@@ -17,7 +17,6 @@ from .pyqt import (
     QPointF,
     QJSValue,
     QMainWindow,
-    QQmlEngine,
     Qt,
 )
 from .view import View
@@ -245,6 +244,7 @@ class DocumentView(QWidget):
         self.addAnythingDialog.deinit()
         self.addEventDialog.deinit()
         self.addEmotionDialog.deinit()
+        self._qmlEngine.deinit()
 
     def qmlEngine(self):
         return self._qmlEngine
