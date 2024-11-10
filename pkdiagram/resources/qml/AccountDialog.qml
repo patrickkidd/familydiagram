@@ -73,11 +73,11 @@ Page {
         target: root
 
         function onSentResetEmail() {
-            util.informationBox('Sent email', 'An email was sent with instructions for how to change your password.')
+            util.informationBox('Sent email', util.S_EMAIL_SENT_TO_CHANGE_PASSWORD)
         }
 
         function onSentResetEmailFailed() {
-            util.criticalBox('Server error', 'Failed to send email to set or change your password. Please contact support at info@alaskafamilysystems.com.')
+            util.criticalBox('Server error', util.S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL)
         }
     }
 

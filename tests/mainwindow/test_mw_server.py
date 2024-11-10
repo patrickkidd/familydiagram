@@ -236,25 +236,6 @@ def test_server_diagram_access(
         assert mw.documentView.sceneModel.readOnly == True
 
 
-def test_delete_server_file(test_user_diagrams, qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-    updateFinished = util.Condition(mw.serverFileModel.updateFinished)
-    model = mw.fileManager.serverFileModel
-    assert updateFinished.wait() == True
-    assert model.rowCount() == len(test_user_diagrams) / 2 + 1
-
-    ROW = 2
-    diagram_id = model.index(ROW, 0).data(model.IDRole)
-    diagram = model.findDiagram(diagram_id)
-    fpath = model.localPathForID(diagram_id)
-    assert os.path.exists(fpath) == True
-    assert Diagram.query.get(diagram_id) != None
-
-    qtbot.clickYesAfter(lambda: model.deleteFileAtRow(ROW))
-    assert os.path.exists(fpath) == False
-    assert Diagram.query.get(diagram_id) == None
-
-
 @pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])
 def test_current_server_file_updated_elsewhere(
     qtbot, test_user, create_ac_mw, dontShowServerFileUpdated

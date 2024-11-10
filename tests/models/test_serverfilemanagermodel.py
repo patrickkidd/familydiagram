@@ -274,8 +274,13 @@ def test_save_free_diagram_persists(test_session):
 
 def test_delete_file(qtbot, create_model):
     model = create_model()
-    # session = Session()
-    # session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
+    assert model.rowCount() == 1
+
+    ROW = 0
+    diagram_id = model.index(ROW, 0).data(model.IDRole)
+    fpath = model.localPathForID(diagram_id)
+    assert os.path.exists(fpath) == True
+    assert Diagram.query.get(diagram_id) != None
 
     qtbot.clickYesAfter(lambda: model.deleteFileAtRow(0))
     assert model.rowCount() == 0

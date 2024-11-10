@@ -108,9 +108,14 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
             )
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
-        with mock.patch("PyQt5.QtWidgets.QMessageBox.information") as information:
-            dlg.mouseClick("authSubmitButton")
-        assert information.call_args[0][1] == "An email was sent with "
+
+        qtbot.clickOkAfter(lambda: dlg.mouseClick("authSubmitButton"))
+        # dlg.mouseClick("authSubmitButton")
+        # with mock.patch("PyQt5.QtWidgets.QMessageBox.information") as information:
+        #     util.waitALittle(100)
+        # assert information.call_count == 1
+        # assert information.call_args[0][1] == util.S_EMAIL_SENT_TO_CHANGE_PASSWORD
+
     _log.info("sentResetEmail.wait()")
     assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"

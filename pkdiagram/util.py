@@ -497,6 +497,14 @@ S_NO_EVENTS_TEXT = LONG_TEXT(
     "No events to show. Either widen your search criteria or click the green (+) button to add some data points to the timeline."
 )
 
+S_EMAIL_SENT_TO_CHANGE_PASSWORD = LONG_TEXT(
+    "An email was sent with instructions for how to change your password."
+)
+
+S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL = LONG_TEXT(
+    "Failed to send email to set or change your password."
+    "Please contact support at info@alaskafamilysystems.com."
+)
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 
