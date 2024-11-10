@@ -245,17 +245,15 @@ def test_add_second_marriage_to_person(dlg):
     assert person in spouse2.marriages[0].people
 
 
-def test_no_Marriage_DeferredDelete(qtbot, create_ac_mw):
+def test_no_Marriage_DeferredDelete(qtbot, data_root, create_ac_mw):
     """
     Disable the hack in PathItem.eventFilter for DeferredDelete and see how this
     causes it to get called.
     """
 
-    from conftest import DATA_ROOT
-
     ac, mw = create_ac_mw()
     mw.show()
-    mw.open(os.path.join(DATA_ROOT, "blow-up-itemdetails.fd"))
+    mw.open(os.path.join(data_root, "blow-up-itemdetails.fd"))
     scene = mw.scene
     dlg = mw.documentView.addAnythingDialog
     addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton

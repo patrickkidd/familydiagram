@@ -117,11 +117,11 @@ class LayerItem(PathItem):
                     return True
         return False
 
-    def layeredSceneBoundingRect(self, forLayers):
+    def layeredSceneBoundingRect(self, forLayers, forTags):
         if not self.shouldShowForLayers(forLayers):
             return QRectF()
         else:
-            return super().layeredSceneBoundingRect(forLayers)
+            return super().layeredSceneBoundingRect(forLayers, forTags)
 
     def onActiveLayersChanged(self):
         super().onActiveLayersChanged()

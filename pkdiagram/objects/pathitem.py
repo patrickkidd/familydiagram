@@ -233,13 +233,13 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
     def itemId(self):
         return self.id
 
-    def layeredSceneBoundingRect(self, forLayers):
+    def layeredSceneBoundingRect(self, forLayers, forTags):
         ret = super().sceneBoundingRect()
         offset = None
         itemPos = self.prop("itemPos")
         if itemPos.layered:
             itemPos = itemPos.get(forLayers=forLayers)
-            if itemPos is not None:
+            if itemPos is not None and self.hasTags(forTags):
                 origPos = self.pos()
                 ret.moveCenter(itemPos)
                 offset = itemPos - origPos
@@ -253,7 +253,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
             ret = ret2
         return ret
 
-    def shouldShowFor(self, dateTime, layers=[]):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
         """virtual"""
         return True
 
@@ -262,6 +262,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         if scene:
             return self.shouldShowFor(
                 scene.currentDateTime(),
+                tags=scene.activeTags(),
                 layers=scene.activeLayers(),
             )
         else:

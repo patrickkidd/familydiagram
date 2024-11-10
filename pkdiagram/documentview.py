@@ -24,17 +24,9 @@ from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
 from . import addeventdialog, addemotiondialog
 from .qmlengine import QmlEngine
-from .qmlvedana import QmlVedana
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
 from .widgets import TimelineCallout
-from .models import (
-    SceneModel,
-    PeopleModel,
-    TimelineModel,
-    SearchModel,
-    AccessRightsModel,
-)
 from .qmldrawer import QmlDrawer
 from _pkdiagram import FDDocument
 

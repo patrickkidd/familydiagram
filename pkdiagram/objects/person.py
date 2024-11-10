@@ -1292,7 +1292,7 @@ class Person(PathItem):
         self.updateGeometry()
         self.updateDetails()
 
-    def shouldShowFor(self, dateTime, layers=[]):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
         if (
             self.isSelected()
         ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange

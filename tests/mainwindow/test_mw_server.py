@@ -191,15 +191,12 @@ def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete
         "pkdiagram.pyqt.QMessageBox.question", side_effect=_question
     ) as question:
         mw.documentView.controller.uploadToServer.emit()
-        QApplication.processEvents()  # for the network request to complete, then raise the "delete" confirm dialog
+        util.waitALittle()  # for the network request to complete, then raise the "delete" confirm dialog
     assert question.call_count == 2
-    assert (
-        question.call_args_list[0].args[2]
-        == DocumentController.S_CONFIRM_UPLOAD_DIAGRAM
-    )
+    assert question.call_args_list[0].args[2] == MainWindow.S_CONFIRM_UPLOAD_DIAGRAM
     assert (
         question.call_args_list[1].args[2]
-        == DocumentController.S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM
+        == MainWindow.S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM
     )
     diagram_id = mw.scene.serverDiagram().id
     server_diagram = Diagram.query.get(diagram_id)

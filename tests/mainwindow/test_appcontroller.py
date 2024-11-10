@@ -53,11 +53,9 @@ def test_login_loads_last_loaded_diagram(tmp_path, test_activation, create_ac_mw
     assert mw1.scene.people()[0].name() == "Patrick"
 
 
-def test_appconfig_tampered_with_should_just_log_out(qtbot, create_ac_mw):
+def test_appconfig_tampered_with_should_just_log_out(qtbot, data_root, create_ac_mw):
     # Write appconfig that was tampered with
-    tamperedFPath = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "data/cherries_high_sierra"
-    )
+    tamperedFPath = os.path.join(data_root, "cherries_high_sierra")
     acFPath = os.path.join(util.appDataDir(), "cherries")
     with open(tamperedFPath, "rb") as infile:
         with open(acFPath, "wb") as outfile:

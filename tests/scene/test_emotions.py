@@ -236,6 +236,7 @@ def test_FannedBox_peers_different_tags():
     scene = Scene(tags=["tag-1"])
     searchModel = SearchModel()
     searchModel.scene = scene
+    searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
     personA = objects.Person()
     personB = objects.Person()
     fusion = objects.Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
@@ -340,6 +341,7 @@ def test_honors_searchModel_tags():
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.tags = TAGS
+    searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
     assert conflict.isVisible() == True
 
     searchModel.tags = ["nowhere"]

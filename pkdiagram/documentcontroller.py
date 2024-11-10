@@ -52,9 +52,6 @@ class DocumentController(QObject):
     - Wrangling views goes in DocumentController.
     """
 
-    S_CONFIRM_UPLOAD_DIAGRAM = "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others."
-    S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM = "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?"
-
     uploadToServer = pyqtSignal()
 
     _ignoreSelectionChanges = False
@@ -215,6 +212,7 @@ class DocumentController(QObject):
             self.scene.layerRemoved[Layer].connect(self.onSceneLayersChanged)
             self.scene.activeLayersChanged.connect(self.onActiveLayers)
             self.scene.showNotes.connect(self.showNotesFor)
+            self.scene.setActiveTags(self.dv.searchModel.tags, skipUpdate=False)
         self.onSceneTagsChanged()
         self.onSceneLayersChanged()
 
@@ -290,6 +288,7 @@ class DocumentController(QObject):
             on = action.data() in tags
             if on != action.isChecked:
                 action.setChecked(on)
+        self.scene.setActiveTags(tags)
         self._isUpdatingSearchTags = False
 
     def onTagToggled(self, on):

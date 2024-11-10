@@ -81,6 +81,9 @@ class MainWindow(QMainWindow):
     S_IMPORTING_TO_FREE_DIAGRAM = "Importing a diagram will overwrite all of the data in your one free diagram. You must purchase the full version of Family Diagram to edit more than one diagram.\n\nAre you sure want to continue?"
     S_CONFIRM_SAVE_CHANGES = "Do you want to save your changes?"
 
+    S_CONFIRM_UPLOAD_DIAGRAM = "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others."
+    S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM = "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?"
+
     OPEN_DIAGRAM_SYNC_MS = (
         1000 * 60 * 30
     )  # 30 minutes; just enough for infrequent updates
@@ -1924,7 +1927,7 @@ class MainWindow(QMainWindow):
             deleteLocalCopy = QMessageBox.question(
                 None,
                 "Delete local copy?",
-                "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?",
+                self.S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM,
             )
             if deleteLocalCopy == QMessageBox.Yes:
                 shutil.rmtree(localFPath)
@@ -1932,7 +1935,7 @@ class MainWindow(QMainWindow):
         ok = QMessageBox.question(
             None,
             "Are you sure?",
-            "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others.",
+            self.S_CONFIRM_UPLOAD_DIAGRAM,
         )
         if ok != QMessageBox.Yes:
             return

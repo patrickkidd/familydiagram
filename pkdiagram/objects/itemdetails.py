@@ -123,7 +123,7 @@ class ItemDetails(PathItem):
                 self.setZValue(util.DETAILS_Z)
         return super().itemChange(change, variant)
 
-    def shouldShowFor(self, dateTime, layers=[]):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
         """virtual"""
         return True  # let parent show|hide
         # if self.parentItem():

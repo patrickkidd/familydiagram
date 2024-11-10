@@ -112,10 +112,15 @@ class ChildOf(PathItem):
         pen.setCapStyle(self.penCapStyle)
         self.setPen(pen)
 
-    def shouldShowFor(self, dateTime, layers=[]):
-        if not self.person.shouldShowFor(dateTime, layers=layers):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
+        """
+        Just link to whether the parents are shown.
+        """
+        if not self.person.shouldShowFor(dateTime, tags=tags, layers=layers):
             return False
-        if self._parents and not self._parents.shouldShowFor(dateTime, layers=layers):
+        if self._parents and not self._parents.shouldShowFor(
+            dateTime, tags=tags, layers=layers
+        ):
             return False
         else:
             return True

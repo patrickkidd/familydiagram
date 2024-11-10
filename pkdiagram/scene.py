@@ -220,6 +220,7 @@ class Scene(QGraphicsScene, Item):
         self._itemDetails = []
         self._layers = []
         self._activeLayers = []
+        self._activeTags = []
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -735,9 +736,13 @@ class Scene(QGraphicsScene, Item):
         currentDateTime = self.currentDateTime()
         for item in self.find(types=[Person, LayerItem]):
             if item.isLayerItem and item.shouldShowForLayers(forLayers):
-                itemRect = item.layeredSceneBoundingRect(forLayers)
-            elif item.shouldShowFor(currentDateTime, forLayers):
-                itemRect = item.layeredSceneBoundingRect(forLayers)
+                itemRect = item.layeredSceneBoundingRect(
+                    forLayers=forLayers, forTags=forTags
+                )
+            elif item.shouldShowFor(currentDateTime, forTags, forLayers):
+                itemRect = item.layeredSceneBoundingRect(
+                    forLayers=forLayers, forTags=forTags
+                )
             else:
                 continue
             rect |= itemRect
@@ -1581,6 +1586,25 @@ class Scene(QGraphicsScene, Item):
     def clearActiveLayers(self):
         for layer in self._layers:
             layer.setActive(False)
+
+    # Tags
+
+    def setActiveTags(self, tags: list[str], skipUpdate=False):
+        changed = set(tags) != set(self._activeTags)
+        self._activeTags = tags
+        if skipUpdate:
+            return
+        if not changed:
+            return
+        tagEvents = [x for x in self.events(tags=tags) if x.dateTime()]
+        if tagEvents and tags:
+            firstDateTime = min([x.dateTime() for x in tagEvents])
+            self.setCurrentDateTime(firstDateTime)
+        elif not self._areActiveLayersChanging:
+            self._updateAllItemsForLayersAndTags()
+
+    def activeTags(self) -> list[str]:
+        return self._activeTags
 
     ## Actions
 

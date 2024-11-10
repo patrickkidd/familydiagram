@@ -1534,7 +1534,7 @@ class Emotion(PathItem):
 
     ## Scene Events
 
-    def shouldShowFor(self, dateTime, layers=[]):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
         if (
             self.isSelected()
         ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
@@ -1542,8 +1542,13 @@ class Emotion(PathItem):
         if self.scene().hideEmotionalProcess() is True:
             return False
         for person in self.people:
-            if person and person.shouldShowFor(dateTime, layers=layers) is False:
+            if (
+                person
+                and person.shouldShowFor(dateTime, tags=tags, layers=layers) is False
+            ):
                 return False
+        if not self.hasTags(tags):
+            return False
         on = False
         if not self.startDateTime() and not self.endDateTime():
             on = True
@@ -1563,6 +1568,7 @@ class Emotion(PathItem):
             return
         on = self.shouldShowFor(
             self.scene().currentDateTime(),
+            tags=self.scene().activeTags(),
             layers=self.scene().activeLayers(),
         )
         if not on:

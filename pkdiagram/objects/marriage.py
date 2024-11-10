@@ -620,20 +620,20 @@ class Marriage(PathItem):
 
     ## Scene Events
 
-    def shouldShowFor(self, dateTime, layers=[]):
+    def shouldShowFor(self, dateTime, tags=[], layers=[]):
         # 1
         if (
             self.isSelected()
         ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
             return True
         # 2
-        personAShown = self.people[0].shouldShowFor(dateTime, layers=layers)
-        personBShown = self.people[1].shouldShowFor(dateTime, layers=layers)
+        personAShown = self.people[0].shouldShowFor(dateTime, tags=tags, layers=layers)
+        personBShown = self.people[1].shouldShowFor(dateTime, tags=tags, layers=layers)
         if False in (personAShown, personBShown):
             return False
         # 3
         for child in self.children:
-            if child.shouldShowFor(dateTime, layers=layers):
+            if child.shouldShowFor(dateTime, tags=tags, layers=layers):
                 return True
         # 5
         anyBondedMarriedDates = [
@@ -655,6 +655,7 @@ class Marriage(PathItem):
         if self.scene():
             on = self.shouldShowFor(
                 self.scene().currentDateTime(),
+                tags=self.scene().activeTags(),
                 layers=self.scene().activeLayers(),
             )
         else:

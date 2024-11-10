@@ -65,8 +65,8 @@ def test_Callout_layeredSceneBoundingRect():
     scene.addItem(layer)  # add first so another one is not automatically added.
     callout = Callout(layers=[layer.id])
     scene.addItem(callout)
-    assert callout.layeredSceneBoundingRect([]) == QRectF()
-    assert callout.layeredSceneBoundingRect([layer]) == (
+    assert callout.layeredSceneBoundingRect([], []) == QRectF()
+    assert callout.layeredSceneBoundingRect([layer], []) == (
         callout.sceneBoundingRect() | callout.childrenBoundingRect()
     )
 
