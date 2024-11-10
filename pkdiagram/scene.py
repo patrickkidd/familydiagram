@@ -1,4 +1,5 @@
 import os, sys, re, logging
+import contextlib
 from pkdiagram.pyqt import (
     pyqtSignal,
     pyqtProperty,
@@ -394,6 +395,12 @@ class Scene(QGraphicsScene, Item):
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
 
+    @contextlib.contextmanager
+    def batchAddRemoveItems(self):
+        self.setBatchAddingRemovingItems(True)
+        yield
+        self.setBatchAddingRemovingItems(False)
+
     def isBatchAddingRemovingItems(self):
         return self._batchAddRemoveStackLevel > 0
 
@@ -647,26 +654,27 @@ class Scene(QGraphicsScene, Item):
                     item.read(chunk, itemMap.get) == False
                 ):  # have to read in ids before addItem()
                     erroredOut.append(item)
-            self.setBatchAddingRemovingItems(True)
-            for item in items:
-                if item.isEmotion and item.personA() is None:
-                    log.warning(f"Emotion {item} has no personA, skipping loading...")
-                    continue
-                self.addItem(
-                    item
-                )  # don't use addItems() to avoid calling updateAll() until layer
-            for itemId, item in self.itemRegistry.items():
-                if itemId is None:
-                    raise ValueError("Found Item object stored without id!" + item)
-            # add event dynamic properties
-            for e in self.events():
-                for entry in self.eventProperties():
-                    if e.dynamicProperty(entry["attr"]) is None:
-                        e.addDynamicProperty(entry["attr"])
-            self.pencilCanvas.setColor(self.pencilColor())
-            compat.update_scene(self, data)
-            self.resortLayersFromOrder()
-            self.setBatchAddingRemovingItems(False)
+            with self.batchAddRemoveItems():
+                for item in items:
+                    if item.isEmotion and item.personA() is None:
+                        log.warning(
+                            f"Emotion {item} has no personA, skipping loading..."
+                        )
+                        continue
+                    self.addItem(
+                        item
+                    )  # don't use addItems() to avoid calling updateAll() until layer
+                for itemId, item in self.itemRegistry.items():
+                    if itemId is None:
+                        raise ValueError("Found Item object stored without id!" + item)
+                # add event dynamic properties
+                for e in self.events():
+                    for entry in self.eventProperties():
+                        if e.dynamicProperty(entry["attr"]) is None:
+                            e.addDynamicProperty(entry["attr"])
+                self.pencilCanvas.setColor(self.pencilColor())
+                compat.update_scene(self, data)
+                self.resortLayersFromOrder()
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
         except Exception as e:

@@ -346,12 +346,15 @@ def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):
     ensureVisibleSet = util.Condition(
         dv.caseProps.findItem("caseProps_timelineView").ensureVisibleSet
     )
-    events = [
-        Event(
-            parent=person, dateTime=util.Date(2000 + i, 1, 1), description=f"Event {i}"
-        )
-        for i in range(100)
-    ]
+    with dv.scene.batchAddRemoveItems():
+        events = [
+            Event(
+                parent=person,
+                dateTime=util.Date(2000 + i, 1, 1),
+                description=f"Event {i}",
+            )
+            for i in range(100)
+        ]
     DATETIME = events[50].dateTime()
     dv.scene.setCurrentDateTime(DATETIME)
     # dv.onNextEvent()
