@@ -17,7 +17,6 @@ Rectangle {
 
     property int margin: util.QML_MARGINS
     property int cbMinWidth: 160
-    property var session: Session {}
     property bool adminMode: session.isAdmin
     property var localFileModel: LocalFileManagerModel {
         searchText: localSearchBar.text
