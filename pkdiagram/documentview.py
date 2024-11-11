@@ -25,7 +25,6 @@ from . import addeventdialog, addemotiondialog
 from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
-from .models import SceneModel, CategoriesModel
 from .widgets import TimelineCallout
 from .qmldrawer import QmlDrawer
 from _pkdiagram import FDDocument

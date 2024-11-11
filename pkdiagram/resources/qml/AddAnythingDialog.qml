@@ -877,7 +877,7 @@ PK.Drawer {
                             }
                             PK.TagEdit {
                                 id: categoryEdit
-                                model: sceneModel.categoriesModel
+                                model: categoriesModel
                                 property Item firstTabItem: this
                                 property Item lastTabItem: this
                             }

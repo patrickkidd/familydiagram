@@ -46,6 +46,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         self._categories = []
         self._reorderingLayers = False
         self._updatingData = False
+        self._activeCategories = []
         self.initModelHelper()
 
     @contextlib.contextmanager
@@ -68,6 +69,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         if list(categories) == wasCategories:
             return
         self._categories = sorted(categories)
+        self._activeCategories = []
         # added = [x for x in categories if x not in wasCategories]
         # removed = [x for x in wasCategories if x in categories]
         self.categoriesChanged.emit(self._categories)
@@ -255,12 +257,11 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
                 value = False
             else:
                 value = True
-            layer = self._scene.layers()[index.row()]
-            iLayer = self._scene.layers().index(layer)
-            with self.updatingData():
-                with commands.macro("Set Category"):
-                    self._scene.setExclusiveActiveLayerIndex(iLayer)
-                    self._scene.searchModel.setTags([layer.name()])
+            #
+            if value and category not in self._activeCategories:
+                self._activeCategories.append(category)
+            elif not value and category in self._activeCategories:
+                self._activeCategories.remove(category)
             self.updateData()
             success = True
         else:

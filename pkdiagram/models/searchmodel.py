@@ -1,10 +1,9 @@
 import logging
 
 from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
-from .. import util
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
-from ..objects import Layer, Item, Property
+from ..objects import Layer
 
 _log = logging.getLogger(__name__)
 
@@ -79,18 +78,15 @@ class SearchModel(QObject, QObjectHelper):
             ret = super().get(attr)
         return ret
 
-    def _setCategory(self, category: str):
-        layer = self.scene.query1(type=Layer, name=category)
-        if layer:
-            iLayer = self.scene.layers().index(layer)
-            self.set("tags", [category])
-            self.scene.setExclusiveActiveLayerIndex(iLayer)
-        else:
-            _log.warning(f"Layer '{category}' not found.")
-
     def set(self, attr, value):
         if attr == "category" and self.scene:
-            self._setCategory(value)
+            layer = self.scene.query1(type=Layer, name=value)
+            if layer:
+                iLayer = self.scene.layers().index(layer)
+                self.set("tags", [value])
+                self.scene.setExclusiveActiveLayerIndex(iLayer)
+            else:
+                _log.warning(f"Layer '{value}' not found.")
         super().set(attr, value)
 
     def onQObjectHelperPropertyChanged(self, attr, value):

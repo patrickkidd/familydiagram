@@ -20,13 +20,13 @@ def model():
 
 
 def test_add_category(model):
-    NAME = model.NEW_NAME_TMPL % 1
+    CATEGORY_NAME = model.NEW_NAME_TMPL % 1
 
     model.addRow()
     assert model.rowCount() == 1
-    assert model.data(model.index(0)) == NAME
-    assert model.scene.tags() == [NAME]
-    assert [x.name() for x in model.scene.layers()] == [NAME]
+    assert model.data(model.index(0)) == CATEGORY_NAME
+    assert model.scene.tags() == [CATEGORY_NAME]
+    assert [x.name() for x in model.scene.layers()] == [CATEGORY_NAME]
 
 
 def test_add_category_when_tag_exists_with_template_name(model):
@@ -79,7 +79,6 @@ def test_rename_category_when_category_exists_with_same(qtbot, model):
 
 def test_rename_category_when_tag_exists_with_same(qtbot, model):
     TAG_NAME = "Some Tag"
-    CATEGORY_NAME = model.NEW_NAME_TMPL % 1
 
     model.scene.addTag(TAG_NAME)
     model.addRow()
@@ -91,7 +90,6 @@ def test_rename_category_when_tag_exists_with_same(qtbot, model):
 
 def test_rename_category_when_layer_exists_with_same(qtbot, model):
     LAYER_NAME = "Some Layer"
-    CATEGORY_NAME = model.NEW_NAME_TMPL % 1
 
     model.scene.addItem(Layer(name=LAYER_NAME))
     model.addRow()
@@ -158,8 +156,8 @@ def test_delete_category_layer_from_scene(model):
 def test_set_category_active_when_tag_is_already_active(model):
     NAME = model.NEW_NAME_TMPL % 1
 
-    searchModel = SearchModel()
-    searchModel.scene = model.scene
+    # searchModel = SearchModel()
+    # searchModel.scene = model.scene
 
     model.addRow()
     searchModel.setTags([NAME])
