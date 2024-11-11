@@ -250,20 +250,20 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
                             commands.renameTag(self._scene, category, value)
                     self.updateData()
                     success = True
-            # elif role == self.ActiveRole:
-            #     if value == Qt.Unchecked or not value:
-            #         value = False
-            #     else:
-            #         value = True
-            #     layer = self._scene.layers()[index.row()]
-            #     iLayer = self._scene.layers().index(layer)
-            #     with self.updatingData():
-            #         with commands.macro("Set Category"):
-            #             self._scene.setExclusiveActiveLayerIndex(iLayer)
-            #             self._scene.searchModel.setTags([layer.name()])
-            #     self.updateData()
-            #     success = True
-            # else:
+        elif role == self.ActiveRole:
+            if value == Qt.Unchecked or not value:
+                value = False
+            else:
+                value = True
+            layer = self._scene.layers()[index.row()]
+            iLayer = self._scene.layers().index(layer)
+            with self.updatingData():
+                with commands.macro("Set Category"):
+                    self._scene.setExclusiveActiveLayerIndex(iLayer)
+                    self._scene.searchModel.setTags([layer.name()])
+            self.updateData()
+            success = True
+        else:
             success = False
         if success:
             self.dataChanged.emit(index, index, [role])

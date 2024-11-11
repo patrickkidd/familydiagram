@@ -116,7 +116,8 @@ def test_delete_category(qtbot, model):
 def test_delete_category_with_layerItems_and_events(qtbot, model):
     model.addRow()
     layer = model.scene.layers()[0]
-    person = Person(name="Hey", tags=model.scene.tags(), layers=[layer])
+    person = Person(name="Hey", tags=model.scene.tags())
+    person.setLayers([layer.id])
     event = Event(person, tags=model.scene.tags())
     callout = Callout(layers=[layer.id])
     model.scene.addItems(person, event, callout)
