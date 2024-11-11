@@ -59,7 +59,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             self.updateData()
         super().onSceneProperty(prop)
 
-    def cleanupBatchAddingRemovingItems(self, added, removed):
+    def onFinishedBatchAddingRemovingItems(self, added, removed):
         """Just reset the model."""
         self.updateData()
 
@@ -139,12 +139,18 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                 self.scene.personAdded.disconnect(self.onPersonAdded)
                 self.scene.personChanged.disconnect(self.onPersonChanged)
                 self.scene.personRemoved.disconnect(self.onPersonRemoved)
+                self.scene.finishedBatchAddingRemovingItems[list, list].disconnect(
+                    self.onFinishedBatchAddingRemovingItems
+                )
         super().set(attr, value)
         if attr == "scene":
             if value:
                 value.personAdded.connect(self.onPersonAdded)
                 value.personChanged.connect(self.onPersonChanged)
                 value.personRemoved.connect(self.onPersonRemoved)
+                value.finishedBatchAddingRemovingItems[list, list].connect(
+                    self.onFinishedBatchAddingRemovingItems
+                )
             self.updateData()
 
     @pyqtSlot(int, result=int)

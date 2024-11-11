@@ -2,6 +2,7 @@ import os.path
 import pickle
 import contextlib
 import base64
+import logging
 
 import pytest
 import mock
@@ -16,6 +17,9 @@ from pkdiagram import util
 from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
 
 QNAM = util.QNAM
+
+
+_log = logging.getLogger(__name__)
 
 
 class NetworkReply(QNetworkReply):
@@ -87,8 +91,11 @@ def test_send_request(analytics):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
     onSuccess = mock.Mock()
+    onFinished = mock.Mock()
     with mockRequest(200) as sendCustomRequest:
-        analytics.sendJSONRequest(URL, DATA, verb=b"POST", success=onSuccess)
+        analytics.sendJSONRequest(
+            URL, DATA, verb=b"POST", success=onSuccess, finished=onFinished
+        )
     assert analytics.currentRequest() is not None
 
     assert completedOneRequest.wait() == True
@@ -100,6 +107,19 @@ def test_send_request(analytics):
     ) == b"Basic " + base64.b64encode("some-token:".encode("utf-8"))
     assert sendCustomRequest.call_args[0][1] == b"POST"
     assert sendCustomRequest.call_args[0][2] == b'{"event": "test_event"}'
+
+
+def test_http_error_does_not_repeat(analytics):
+    completedOneRequest = util.Condition(analytics.completedOneRequest)
+    analytics.init()
+    event = MixpanelEvent(
+        eventName="test_event", username="user_1", time=123, properties={}
+    )
+    with mockRequest(400):
+        analytics.send(event)
+    assert completedOneRequest.wait() == True
+    assert analytics.numEventsQueued() == 0
+    assert analytics.currentRequest() is None
 
 
 def test_mixpanel_send_events_api(analytics):
@@ -348,15 +368,22 @@ def test_send_profiles_before_events(analytics):
     )
     assert analytics.numProfilesQueued() == 2
 
-    with mockRequest(200):
-        analytics.tick()
-        assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 2
-    assert analytics.numProfilesQueued() == 0
+    urls = []
+    orig_sendJSONRequest = analytics.sendJSONRequest
 
-    completedOneRequest.reset()
-    with mockRequest(200):
-        analytics.tick()
-        assert completedOneRequest.wait() == True
+    def _sendJSONRequest(url, data, verb, success, finished):
+        urls.append(url)
+        return orig_sendJSONRequest(url, data, verb, success, finished)
+
+    with mock.patch(
+        "pkdiagram.analytics.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
+    ) as sendJSONRequest:
+        with mockRequest(200):
+            analytics.tick()
+            assert completedOneRequest.wait() == True
     assert analytics.numEventsQueued() == 0
     assert analytics.numProfilesQueued() == 0
+    assert urls == [
+        analytics.profilesUrl(),
+        analytics.importUrl(),
+    ]

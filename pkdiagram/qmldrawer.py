@@ -9,6 +9,7 @@ from .pyqt import (
     QVBoxLayout,
     QEvent,
     QQuickItem,
+    QQmlEngine,
 )
 from . import util, widgets
 from .widgets import Drawer
@@ -34,13 +35,13 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
 
     def __init__(
         self,
-        source,
+        engine: QQmlEngine,
+        source: str,
         parent=None,
         resizable=True,
         propSheetModel=None,
         objectName=None,
-        sceneModel=None,
-    ):  # dev
+    ):
         super().__init__(parent=parent, resizable=resizable)
         if objectName is not None:
             self.setObjectName(objectName)
@@ -49,7 +50,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         else:
             self._documentView = None
         self.propSheetModel = propSheetModel
-        self.initQmlWidgetHelper(source, sceneModel=sceneModel)
+        self.initQmlWidgetHelper(engine, source)
         self.checkInitQml()
         self.installEventFilter(self)
 
@@ -73,7 +74,6 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         )
 
     def deinit(self):
-        super().deinit()
         self.qml.rootObject().window().activeFocusItemChanged.disconnect(
             self.onActiveFocusItemChanged
         )
@@ -83,6 +83,8 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
                 model.resetItems()
             if model and model.scene:
                 model.resetScene()
+        super().deinit()
+        QmlWidgetHelper.deinit(self)
 
     def rootModel(self):
         return self.rootProp(self.propSheetModel)

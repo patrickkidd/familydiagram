@@ -4,6 +4,7 @@ import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
+from typing import Optional
 
 from . import appdirs, util
 
@@ -31,6 +32,7 @@ if not hasattr(QSysInfo, "macVersion") or not QSysInfo.macVersion() & QSysInfo.M
 else:
     IS_IOS = True
 
+IS_DEBUGGER = bool(sys.gettrace() is not None)
 IS_TEST = "pytest" in sys.modules
 IS_APPLE = bool(CUtil.operatingSystem() & CUtil.OS_Mac)
 IS_WINDOWS = bool(CUtil.operatingSystem() & CUtil.OS_Windows)
@@ -123,6 +125,14 @@ def serverUrl(path):
     return "%s/%s%s" % (SERVER_URL_ROOT, vedana.SERVER_API_VERSION, path)
 
 
+def summarizeReplyShort(reply: QNetworkReply):
+    request = reply.request()
+    url = request.url().toString()
+    verb = reply.attribute(QNetworkRequest.CustomVerbAttribute)
+    status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+    return f"{verb} {url} {status_code}"
+
+
 # TODO: Deprecate
 try:
     from .sales_tax_rates import zips as SALES_TAX_RATES
@@ -185,7 +195,7 @@ def init_logging():
     fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
 
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         handlers=[consoleHandler, fileHandler],
     )
 
@@ -487,6 +497,14 @@ S_NO_EVENTS_TEXT = LONG_TEXT(
     "No events to show. Either widen your search criteria or click the green (+) button to add some data points to the timeline."
 )
 
+S_EMAIL_SENT_TO_CHANGE_PASSWORD = LONG_TEXT(
+    "An email was sent with instructions for how to change your password."
+)
+
+S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL = LONG_TEXT(
+    "Failed to send email to set or change your password."
+    "Please contact support at info@alaskafamilysystems.com."
+)
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 
@@ -1355,11 +1373,12 @@ def import_source(modname, filePath):
     return foo
 
 
-def waitALittle():
+def waitALittle(ms=10):
+    log.debug("Waiting a little...")
     # Added for qml components since init is deferred. Works better than
     # QApplication.processEvents()
     loop = QEventLoop()
-    QTimer.singleShot(10, loop.quit)  # may need to be longer?
+    QTimer.singleShot(ms, loop.quit)  # may need to be longer?
     loop.exec()
 
 
@@ -2103,10 +2122,12 @@ def waitForCondition(condition: callable, maxMS=1000):
         app.processEvents(QEventLoop.WaitForMoreEvents, INTERVAL_MS)
         bleh = condition()
         if bleh:
-            log.info(f"Condition met on waitForCondition() using condition {condition}")
+            log.debug(
+                f"Condition met on waitForCondition() using condition {condition}"
+            )
             ret = True
         if (time.time() - startTime) > maxMS / 1000:
-            log.info(f"Time elapsed on waitForCondition() using condition {condition}")
+            log.error(f"Time elapsed on waitForCondition() using condition {condition}")
             ret = False
     return ret
 
@@ -2163,24 +2184,14 @@ def test_finish_group(group):
             log.error(f"TEST: Unknown animation type: {animation}")
 
 
-def wait_for_attach():
-    PORT = 3001
-    log.info(f"Waiting for debugger to attach to port {PORT}...")
-    # import ptvsd
-    # ptvsd.enable_attach(address=('127.0.0.1', PORT)) #, redirect_output=True)
-    # ptvsd.wait_for_attach()
-    import debugpy
-
-    debugpy.listen(PORT)
-    debugpy.wait_for_client()
-
-
 #####################################################
 ##
 ##  Init
 ##
 #####################################################
 
+
+# TODO: None of the following should be global
 
 _prefs = None
 

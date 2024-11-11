@@ -185,7 +185,7 @@ Page {
                         PK.ComboBox {
                             id: personABox
                             objectName: 'personABox'
-                            model: sceneModel.peopleModel
+                            model: peopleModel
                             textRole: 'name'
                             displayText: {
                                 if(emotionModel.personAId != -1 && currentIndex != -1)
@@ -246,7 +246,7 @@ Page {
                                     'Unnamed Person'
                             }
                             enabled: emotionModel.dyadic
-                            model: sceneModel.peopleModel
+                            model: peopleModel
                             currentIndex: {
                                 model.resetter
                                 model.rowForId(emotionModel.personBId)
@@ -476,6 +476,7 @@ Page {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 model: TagsModel {
+                                    objectName: "EmotionProperties_tagsModel"
                                     scene: sceneModel.scene
                                     items: emotionModel.items
                                 }

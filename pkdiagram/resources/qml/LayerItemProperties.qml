@@ -80,7 +80,7 @@ PK.Drawer {
                     Layout.fillWidth: true
                     PK.ComboBox {
                         id: parentBox
-                        model: sceneModel.peopleModel
+                        model: peopleModel
                         textRole: 'name'
                         currentIndex: {
                             model.resetter

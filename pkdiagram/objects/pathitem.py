@@ -116,7 +116,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         """Placeholder for when scene() is None."""
         if self.scene() and (
             self.scene().isResettingSomeLayerProps()
-            or (self.scene()._areActiveLayersChanging and not self.isUpdatingAll())
+            or (self.scene().areActiveLayersChanging() and not self.isUpdatingAll())
         ):
             self.scene().startLayerAnimation(anim)
         else:
@@ -262,7 +262,7 @@ class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
         if scene:
             return self.shouldShowFor(
                 scene.currentDateTime(),
-                tags=scene.searchModel.tags,
+                tags=scene.activeTags(),
                 layers=scene.activeLayers(),
             )
         else:

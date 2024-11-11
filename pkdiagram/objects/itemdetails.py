@@ -127,7 +127,7 @@ class ItemDetails(PathItem):
         """virtual"""
         return True  # let parent show|hide
         # if self.parentItem():
-        #     return self.parentItem().shouldShowFor(date, tags=tags, layers=layers)
+        #     return self.parentItem().shouldShowFor(date, layers=layers)
         # else:
         #     return False
 

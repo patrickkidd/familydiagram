@@ -1,5 +1,25 @@
 import os, shutil, random, logging, math
-from ..pyqt import *
+from ..pyqt import (
+    pyqtSignal,
+    pyqtSlot,
+    Qt,
+    QColor,
+    QBrush,
+    QPen,
+    QDateTime,
+    QGraphicsView,
+    QRectF,
+    QGraphicsItem,
+    QFileInfo,
+    QGraphicsSimpleTextItem,
+    QGraphicsPathItem,
+    QPainterPath,
+    QMarginsF,
+    QFont,
+    QVariantAnimation,
+    QAbstractAnimation,
+    QPointF,
+)
 from .. import util, random_names
 from ..util import EventKind
 from . import Property
@@ -892,7 +912,6 @@ class Person(PathItem):
                 # # 1) hiding based on item.shouldShowFor takes first priority
                 # # 2) 0 < opacity < 1.0 takes second priority
                 # on = item.shouldShowFor(self.scene().currentDateTime(),
-                #                         tags=self.scene().searchModel.tags,
                 #                         reverseTags=self.scene().reverseTags())
                 # self.here(opacity, self.name())
                 # if not on or opacity == 0:
@@ -1467,12 +1486,16 @@ class Person(PathItem):
                         self.snappedOther = None
                     # start or continue snap
                     if snapTo:
-                        selfSceneRect = self.mapToScene(self.boundingRect()).boundingRect()
+                        selfSceneRect = self.mapToScene(
+                            self.boundingRect()
+                        ).boundingRect()
                         diffY = selfSceneRect.height() * 0.5
                         variant.setY(otherSceneRect.y() + diffY)
                         if snapTo is not self.snappedOther:
                             self.snappedOther = snapTo
-                            self.scene().onPersonSnapped(self, self.snappedOther, variant)
+                            self.scene().onPersonSnapped(
+                                self, self.snappedOther, variant
+                            )
                         else:
                             self.scene().onPersonSnapUpdated(
                                 self, self.snappedOther, variant

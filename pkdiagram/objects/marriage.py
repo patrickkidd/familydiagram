@@ -655,7 +655,7 @@ class Marriage(PathItem):
         if self.scene():
             on = self.shouldShowFor(
                 self.scene().currentDateTime(),
-                tags=self.scene().searchModel.tags,
+                tags=self.scene().activeTags(),
                 layers=self.scene().activeLayers(),
             )
         else:

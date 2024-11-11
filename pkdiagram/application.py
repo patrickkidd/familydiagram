@@ -11,6 +11,7 @@ from .pyqt import (
     QFontDatabase,
 )
 from pkdiagram import util, version, extensions
+from pkdiagram.qmlutil import QmlUtil
 
 CUtil = util.CUtil
 
@@ -26,6 +27,7 @@ class Application(QApplication):
 
         # Prefs
 
+        # TODO: Should not be global
         if util.IS_MOD_TEST or util.IS_TEST:
             import tempfile
 
@@ -56,6 +58,10 @@ class Application(QApplication):
                 "QOpenGLFramebufferObject: Framebuffer incomplete attachment.",
                 "QOpenGLFramebufferObject: Framebuffer incomplete, missing attachment.",
                 "Binding loop detected for property",
+                "QObject::connect: No such signal QQuickPalette::destroyed(QObject *)",
+                "QObject::connect: No such signal QQuickIcon::destroyed(QObject *)",
+                "QObject::connect: No such signal QQuickFontValueType::destroyed(QObject *)",
+                "QObject::connect: No such signal QQmlEasingValueType::destroyed(QObject *)",
             ]
             for line in GREP_V:
                 if line in msg:
@@ -108,6 +114,9 @@ class Application(QApplication):
         # )
         super().__init__(*args, **kwargs)
 
+        # TODO: Should not be global
+        self._qmlUtil = QmlUtil(self)
+
         self.appFilter = util.AppFilter(
             self
         )  # Move global app filtering to C++ for speed
@@ -130,11 +139,6 @@ class Application(QApplication):
         # def _onQmlWarning(warnings):
         #     for warning in warnings:
         #         log.warning(warning.toString())
-
-        from pkdiagram.qmlengine import QmlEngine
-
-        self._qmlEngine = QmlEngine(self)
-        # self._qmlEngine.warnings.connect(_onQmlWarning)
 
         # self.paletteChanged.connect(self.onPaletteChanged)
 
@@ -181,6 +185,7 @@ class Application(QApplication):
         # C++ Init
 
         CUtil.instance().init()  # blocking now, at end of __init__()
+        self._qmlUtil.initColors()  # After CUtil.init()
 
     def deinit(self):
         def iCloudDevPostInit():
@@ -201,9 +206,6 @@ class Application(QApplication):
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())
 
-    def qmlEngine(self):
-        return self._qmlEngine
-
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:
             self.firstFocusWindow = w
@@ -220,3 +222,6 @@ class Application(QApplication):
     #         commands.trackApp('Open file from Dock')
     #         return True
     #     return super().event(e)
+
+    def qmlUtil(self):
+        return self._qmlUtil

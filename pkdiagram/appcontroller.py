@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 class AppController(QObject):
     """
     App-level singleton that manages MainWindows verbs.
-    
+
     Handles pre-window init like appconfig, cached session creds login, EULA.
 
     Synonym: MainwindowController
@@ -44,6 +44,8 @@ class AppController(QObject):
             mixpanel_project_token=pepper.MIXPANEL_PROJECT_TOKEN,
         )
         self.session = Session(self._analytics)
+        if not prefs.value("enableAppUsageAnalytics", defaultValue=True, type=bool):
+            self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
         self.session.changed.connect(self.onSessionChanged)

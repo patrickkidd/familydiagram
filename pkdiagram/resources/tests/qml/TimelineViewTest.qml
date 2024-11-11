@@ -6,8 +6,6 @@ import PK.Models 1.0
 
 ColumnLayout {
 
-    property var sceneModel: SceneModel {}
-    
     PK.TimelineView {
         id: timelineView
         objectName: 'timelineView'

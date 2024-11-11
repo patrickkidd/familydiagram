@@ -394,6 +394,7 @@ PK.Drawer {
                 objectName: 'marriageProps_timelineView'
                 model: TimelineModel {
                     objectName: 'marriageTimelineModel'
+                    searchModel: searchModel
                     scene: sceneModel.scene
                     items: marriageModel.items.length > 0 ? marriageModel.items : undefined
                 }
@@ -448,6 +449,7 @@ PK.Drawer {
         //                         Layout.fillWidth: true
         //                         Layout.fillHeight: true
         //                         model: TagsModel {
+        //                             searchModel: searchModel
         //                             scene: sceneModel.scene
         //                             items: marriageModel.items
         //                         }

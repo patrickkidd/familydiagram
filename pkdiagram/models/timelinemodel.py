@@ -9,6 +9,7 @@ from ..pyqt import (
     QDate,
     QDateTime,
     QModelIndex,
+    QObject,
     pyqtProperty,
     pyqtSlot,
     qmlRegisterType,
@@ -80,7 +81,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     DisplayExpandedRole = HasNotesRole + 1
     TagsRole = DisplayExpandedRole + 1
 
-    ModelHelper.registerQtProperties([{"attr": "dateBuddies", "type": list}])
+    ModelHelper.registerQtProperties(
+        [
+            {"attr": "dateBuddies", "type": list},
+            {"attr": "searchModel", "type": QObject, "default": None},
+        ]
+    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -88,6 +94,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._columnHeaders = []
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
+        self._searchModel = None
         self.initModelHelper()
 
     # def __repr__(self):
@@ -145,9 +152,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def _shouldHide(self, event):
         hidden = False
-        if not self._scene:  # SceneModel.nullTimelineModel
+        if event.dateTime() is None or event.dateTime().isNull():
+            hidden = True
+        elif not self._scene:  # SceneModel.nullTimelineModel
             hidden = False
-        elif self._scene.searchModel.shouldHide(event):
+        elif self._searchModel and self._searchModel.shouldHide(event):
             hidden = True
         return hidden
 
@@ -275,7 +284,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._removeEvent(emotion.endEvent)
         # emotion.eventAdded.disconnect(self.onEventChanged)
 
-    def cleanupBatchAddingRemovingItems(self, added, removed):
+    def onFinishedBatchAddingRemovingItems(self, added, removed):
         """Just reset the model."""
         for item in added:
             if item.isEvent:
@@ -305,15 +314,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 {"startRow": start, "endRow": end, "color": item.color()}
                 for start, end, item in self.dateBuddiesInternal()
             ]
+        elif attr == "searchModel":
+            ret = self._searchModel
         else:
             ret = super().get(attr)
         return ret
 
     def set(self, attr, value):
-        if attr == "scene":
-            if self._scene:
-                self._scene.searchModel.changed.disconnect(self.onSearchChanged)
-        elif attr == "items":
+        if attr == "items":
             if self._items:
                 for item in self._items:
                     item.eventAdded.disconnect(self.onEventAdded)
@@ -328,6 +336,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                     if item.isScene or item.isPerson:
                         for emotion in item.emotions():
                             self.onEmotionRemoved(emotion)
+                        if item.isScene:
+                            item.finishedBatchAddingRemovingItems[
+                                list, list
+                            ].disconnect(self.onFinishedBatchAddingRemovingItems)
             if value:
                 for item in value:
                     item.eventAdded.connect(self.onEventAdded)
@@ -342,6 +354,13 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                     # if item.isScene or item.isPerson:
                     #     for emotion in item.emotions():
                     #         emotion.eventChanged.disconnect(self.onEventChanged)
+        elif attr == "searchModel":
+            if self._searchModel:
+                self._searchModel.changed.disconnect(self.onSearchChanged)
+            self._searchModel = value
+            if self._searchModel:
+                self._searchModel.changed.connect(self.onSearchChanged)
+            self._refreshRows()
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
@@ -351,6 +370,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif attr == "items":
             self.refreshColumnHeaders()
             self._refreshRows()
+            if self._items:
+                for item in self._items:
+                    if item.isScene:
+                        item.finishedBatchAddingRemovingItems[list, list].connect(
+                            self.onFinishedBatchAddingRemovingItems
+                        )
 
     ## Qt Virtuals
 
