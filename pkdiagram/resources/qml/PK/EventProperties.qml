@@ -308,7 +308,10 @@ Page {
                             onCheckStateChanged: if(!eventModel.uniqueId) eventModel.includeOnDiagram = checkState
                         }                        
 
-                        PK.FormDivider { visible: eventModel.parentIsMarriage }
+                        PK.FormDivider {
+                            visible: eventModel.parentIsMarriage
+                            Layout.columnSpan: 2
+                        }
 
                         PK.Text { text: "Kind"; visible: eventModel.parentIsMarriage }
 
@@ -353,7 +356,7 @@ Page {
                         }
 
 
-                        PK.FormDivider { }
+                        PK.FormDivider { Layout.columnSpan: 2}
 
                         PK.Text {
                             text: util.EVENT_PROPS_HELP_TEXT

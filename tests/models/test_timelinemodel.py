@@ -203,6 +203,17 @@ def test_init_multiple_people():
     assert model.data(model.index(9, 0), model.DateTimeRole) == emotionC.endDateTime()
 
 
+def test_access_data_after_deinit():
+    scene = Scene()
+    model = scene.timelineModel
+    personA, personB = Person(name="A"), Person(name="B")
+    pairBond = Marriage(personA=personA, personB=personB)
+    Event(parent=pairBond, description="Married", dateTime=util.Date(2000, 1, 1))
+    scene.addItems(personA, personB, pairBond)
+    model.scene = None
+    model.data(model.index(0, 1), model.FlagsRole)
+
+
 def test_include_marriage_events():
 
     scene = Scene()

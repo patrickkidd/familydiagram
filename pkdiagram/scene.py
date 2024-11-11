@@ -661,6 +661,11 @@ class Scene(QGraphicsScene, Item):
                             f"Emotion {item} has no personA, skipping loading..."
                         )
                         continue
+                    elif item.isEmotion and item.isDyadic() and item.personB() is None:
+                        log.warning(
+                            f"Emotion {item} has no personB, skipping loading..."
+                        )
+                        continue
                     self.addItem(
                         item
                     )  # don't use addItems() to avoid calling updateAll() until layer
