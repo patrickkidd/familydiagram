@@ -162,7 +162,7 @@ Page {
                                 id: nameBox
                                 objectName: "nameBox"
                                 visible: !eventModel.parentIsMarriage && !eventModel.parentIsEmotion
-                                model: sceneModel ? sceneModel.peopleModel : undefined
+                                model: peopleModel
                                 textRole: 'name'
                                 currentIndex: {
                                     model ? model.resetter : undefined
@@ -521,6 +521,7 @@ Page {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 model: TagsModel {
+                                    objectName: "EventProperties_tagsModel"
                                     scene: sceneModel ? sceneModel.scene : undefined
                                     items: eventModel.items
                                 }

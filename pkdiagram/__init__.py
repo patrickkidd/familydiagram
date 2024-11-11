@@ -20,6 +20,7 @@ from .objects import *
 from .scene import Scene
 from .widgets import *
 from .session import Session
+from .qmlengine import QmlEngine
 from .graphicaltimelinecanvas import GraphicalTimelineCanvas
 from .graphicaltimelineview import GraphicalTimelineView
 from .filemanager import FileManager
@@ -31,6 +32,7 @@ from .appconfig import AppConfig
 from .application import Application
 from .appcontroller import AppController
 from .accountdialog import AccountDialog
+from .documentcontroller import DocumentController
 from .documentview import DocumentView, CaseProperties
 from .server_types import (
     Diagram,

@@ -1,9 +1,10 @@
 import logging
 
 from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
-from .qobjecthelper import QObjectHelper
-from ..objects import Layer
 from .. import util
+from .qobjecthelper import QObjectHelper
+from .modelhelper import ModelHelper
+from ..objects import Layer, Item, Property
 
 _log = logging.getLogger(__name__)
 
@@ -15,9 +16,9 @@ class SearchModel(QObject, QObjectHelper):
 
     changed = pyqtSignal()
 
-    QObjectHelper.registerQtProperties(
+    PROPERTIES = ModelHelper.registerQtProperties(
         [
-            {"attr": "description"},
+            {"attr": "description", "type": str},
             {"attr": "startDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "endDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "loggedStartDateTime", "type": QDateTime, "default": QDateTime()},
@@ -27,7 +28,7 @@ class SearchModel(QObject, QObjectHelper):
             {"attr": "hideRelationships", "type": bool, "default": False},
             {"attr": "category"},
             {"attr": "isBlank", "type": bool},
-        ]
+        ],
     )
 
     def __init__(self, parent=None):
@@ -46,10 +47,9 @@ class SearchModel(QObject, QObjectHelper):
         self.startDateTimeChanged.connect(self.onChanged)
         self.nodalChanged.connect(self.onChanged)
         self.tagsChanged.connect(self.onChanged)
-
-    def onChanged(self):
-        self.changed.emit()
-        self.refreshProperty("isBlank")
+        self._initializing = True
+        self.initQObjectHelper(storage=True)
+        self._initializing = False
 
     @pyqtSlot()
     def clear(self):
@@ -62,6 +62,7 @@ class SearchModel(QObject, QObjectHelper):
         self.reset("hideRelationships")
         self.reset("nodal")
         self.reset("tags")
+        self.reset("hideRelationships")
 
     @property
     def scene(self):
@@ -79,6 +80,7 @@ class SearchModel(QObject, QObjectHelper):
                 "loggedEndDateTime",
                 "nodal",
                 "tags",
+                "hideRelationships",
             ):
                 if getattr(self, name) != self.defaultFor(name):
                     ret = False
@@ -100,6 +102,23 @@ class SearchModel(QObject, QObjectHelper):
         if attr == "category" and self.scene:
             self._setCategory(value)
         super().set(attr, value)
+
+    def onQObjectHelperPropertyChanged(self, attr, value):
+        if self._initializing:
+            return
+        if attr in (
+            "description",
+            "startDateTime",
+            "endDateTime",
+            "loggedStartDateTime",
+            "loggedEndDateTime",
+            "nodal",
+            "tags",
+        ):
+            self.changed.emit()
+            self.refreshProperty("isBlank")
+
+    # Verbs
 
     def shouldHide(self, event):
         """Search kernel."""

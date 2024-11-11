@@ -1,5 +1,23 @@
 import random, collections, logging
-from ..pyqt import *
+from ..pyqt import (
+    pyqtSignal,
+    Qt,
+    QRectF,
+    QPointF,
+    QFont,
+    QParallelAnimationGroup,
+    QGraphicsObject,
+    QGraphicsItem,
+    QPainterPath,
+    QPen,
+    QPolygonF,
+    QLineF,
+    QAbstractAnimation,
+    QVariantAnimation,
+    QEasingCurve,
+    QColor,
+    QMarginsF,
+)
 from .. import util, commands
 from . import Property
 from ..util import CUtil
@@ -122,8 +140,8 @@ class Jig:
             points.append(nextP)
             dist = CUtil.distance(middle, self.aP)
             if dist > stopD or dist == 0.0:
-                if DEBUG:
-                    showPoint(path, middle, "middle" + str(i))
+                # if DEBUG:
+                #     showPoint(path, middle, "middle" + str(i))
                 break
             i += 1
             if i > 350:
@@ -390,7 +408,9 @@ class FannedBox(QGraphicsObject):
                 entries[emotion]["beginPosDelta"] = QPointF(0, 0)
         # 3) Set destination as origin for emotions hiding after this animation.
         for emotion in self._toRemoveAfterAnim:
-            if emotion in entries: # bug from Laura H in removeEmotion called during init, unsure of origin
+            if (
+                emotion in entries
+            ):  # bug from Laura H in removeEmotion called during init, unsure of origin
                 entries[emotion].update({"endPosDelta": QPointF(0, 0)})
                 if not "beginPosDelta" in entries[emotion]:
                     entries[emotion]["beginPosDelta"] = QPointF(0, 0)
@@ -1527,7 +1547,7 @@ class Emotion(PathItem):
                 and person.shouldShowFor(dateTime, tags=tags, layers=layers) is False
             ):
                 return False
-        if not self.hasTags(tags):  # hack
+        if not self.hasTags(tags):
             return False
         on = False
         if not self.startDateTime() and not self.endDateTime():
@@ -1548,7 +1568,7 @@ class Emotion(PathItem):
             return
         on = self.shouldShowFor(
             self.scene().currentDateTime(),
-            tags=self.scene().searchModel.tags,
+            tags=self.scene().activeTags(),
             layers=self.scene().activeLayers(),
         )
         if not on:

@@ -1,18 +1,14 @@
 # std lib
-import os, sys, time, pickle, uuid, contextlib, logging
-from datetime import datetime
-import tempfile, shutil
+import os, sys
+import contextlib
+import logging
 import enum
 import contextlib
 from typing import Callable
 
 # third-party
-import PyQt5.QtCore
-import PyQt5.QtGui
-import requests
 import pytest, mock
 import flask.testing
-from flask import Flask
 
 # Load python init by path since it doesn't exist in a package.
 import importlib
@@ -42,6 +38,7 @@ from pkdiagram import (
     AppController,
     Person,
     Analytics,
+    QmlEngine,
 )
 from pkdiagram.pyqt import *
 from fdserver.tests.conftest import *
@@ -65,42 +62,94 @@ log = logging.getLogger(__name__)
 util.init_logging()
 
 
+_componentStatus = {}
+_currentTestItem = None
+
+
 def pytest_addoption(parser):
     parser.addoption(
-        "--attach",
+        "--disable-dependencies",
         action="store_true",
-        help="Wait for an attached debugger before running test",
+        default=False,
+        help="Disable skipping tests when a component test fails.",
     )
+
+
+def pytest_configure(config):
+    config.dependency_disabled = config.getoption("--disable-dependencies")
 
 
 def pytest_generate_tests(metafunc):
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    attach = metafunc.config.getoption("attach")
-    if attach and pytest_generate_tests._first_call:
-        util.wait_for_attach()
-        pytest_generate_tests._first_call = False
 
 
-pytest_generate_tests._first_call = True
+def pytest_collection_modifyitems(session, config, items):
+    """Reorder test items based on component dependencies."""
+    if config.dependency_disabled:
+        return
+
+    component_tests = {}
+    ordered_items = []
+    non_component_items = []
+
+    # Sort items into their respective component lists
+    for item in items:
+        component_marker = item.get_closest_marker("component")
+        if component_marker:
+            component = component_marker.args[0]
+            component_tests.setdefault(component, []).append(item)
+        else:
+            non_component_items.append(item)
+
+    visited = set()
+
+    def add_with_dependencies(component):
+        if component in visited:
+            return
+        visited.add(component)
+        for item in component_tests.get(component, []):
+            dependency_marker = item.get_closest_marker("depends_on")
+            if dependency_marker:
+                for dependency in dependency_marker.args:
+                    add_with_dependencies(dependency)
+            ordered_items.append(item)
+
+    for component in component_tests.keys():
+        add_with_dependencies(component)
+
+    items[:] = ordered_items + non_component_items
 
 
-# def cleanupSessionAppDataDir():
-#     global _tmpAppDataDir
-#     if util._tmpAppDataDir:
-#         # Debug('Deleting', _tmpAppDataDir)
-#         shutil.rmtree(_tmpAppDataDir)
-#         _tmpAppDataDir = None
-# import atexit
-# atexit.register(cleanupSessionAppDataDir)
+def pytest_runtest_setup(item):
+    """Skip tests based on component dependency rules if dependencies failed."""
+    global _currentTestItem
+
+    if item.config.dependency_disabled:
+        return
+
+    _currentTestItem = item
+
+    dependency_marker = item.get_closest_marker("depends_on")
+    if dependency_marker:
+        for dependency in dependency_marker.args:
+            if _componentStatus.get(dependency) == "failed":
+                pytest.fail(
+                    f"Skipping {item.name} tests because {dependency} tests failed"
+                )
 
 
-# def resetSessionAppDataDir():
-#     global _tmpAppDataDir
-#     if util._tmpAppDataDir:
-#         cleanupTmpAppDataDir()
-#     import shutil, tempfile, atexit
-#     _tmpAppDataDir = tempfile.mkdtemp()
-#     # Debug('Created temp dir:', _tmpAppDataDir)
+def pytest_report_teststatus(report, config):
+    """Track failures for components so dependent tests case be skipped."""
+    global _currentTestItem, _componentStatus
+
+    if config.dependency_disabled:
+        return
+
+    if _currentTestItem and report.failed:  # during call
+        component_marker = _currentTestItem.get_closest_marker("component")
+        if component_marker:
+            component = component_marker.args[0]
+            _componentStatus[component] = "failed"
 
 
 @pytest.fixture
@@ -147,12 +196,16 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
         # def readData(self, maxSize):
         #     return self._data
         def readAll(self):
+            if getattr(self, "_hasReadAll", False):
+                return QByteArray(b"")
+            self._hasReadAll = True
             if hasattr(self, "_data"):
                 return QByteArray(self._data)
             else:
                 return QByteArray(b"")
 
     reply = NetworkReply()
+    reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
     if noconnect:
         reply.setAttribute(QNetworkRequest.HttpStatusCodeAttribute, 0)
     else:
@@ -177,31 +230,57 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
     )
 
     def doFinished():
-        log.debug(f"doFinished: {verb} {reply.url()}")
-        # Debug(verb, request.url())
+        # log.info(
+        #     f"<<<<<<<<<<<<<<<<<<<< doFinished: {verb} {reply.request().url().toString()}, status code: {response.status_code}"
+        # )
         reply.finished.emit()
 
     QTimer.singleShot(10, doFinished)  # after return
     return reply
 
 
-log.info("IMPORT familydiagram/tests/conftest.py")
-
-
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def qApp():
+    global _currentTestItem
 
     log.debug(f"Create qApp for familydiagram/tests")
 
     qApp = Application(sys.argv)
 
-    with mock.patch("pkdiagram.Analytics.startTimer", return_value=123):
+    from pkdiagram import ServerFileManagerModel, Server
+
+    _orig_Server_deinit = Server.deinit
+
+    def _Server_deinit(self):
+        _orig_Server_deinit(self)
+        if self._repliesInFlight:
+            assert (
+                util.wait(self.allRequestsFinished, maxMS=2000) == True
+            ), f"Did not complete Server requests: {self.summarizePendingRequests()}"
+
+    _orig_ServerFileManagerModel_deinit = ServerFileManagerModel.deinit
+
+    def _ServerFileManagerModel_deinit(self):
+        _orig_ServerFileManagerModel_deinit(self)
+        if self._indexReplies:
+            assert (
+                util.wait(self.updateFinished, maxMS=2000) == True
+            ), f"Did not complete ServerFileManager requests: {self.summarizePendingRequests()}"
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(mock.patch.object(Server, "deinit", _Server_deinit))
+        stack.enter_context(
+            mock.patch.object(
+                ServerFileManagerModel, "deinit", _ServerFileManagerModel_deinit
+            )
+        )
+        stack.enter_context(
+            mock.patch("pkdiagram.Analytics.startTimer", return_value=123)
+        )
+        stack.enter_context(mock.patch("pkdiagram.Analytics.killTimer"))
         yield qApp
 
     qApp.deinit()
-
-
-TEST_TIMEOUT_MS = 10000
 
 
 @pytest.fixture(autouse=True)
@@ -212,6 +291,8 @@ def watchdog(request, qApp):
     if not NO_QT:
 
         class Watchdog:
+
+            TIMEOUT_MS = 10000
 
             def __init__(self):
                 self._killed = False
@@ -225,7 +306,7 @@ def watchdog(request, qApp):
 
             def kill(self):
                 log.info(
-                    f"Watchdog timer reached after {TEST_TIMEOUT_MS}ms, closing window"
+                    f"Watchdog timer reached after {watchdog.TIMEOUT_MS}ms, closing window"
                 )
                 w = QApplication.activeWindow()
                 if w:
@@ -241,10 +322,12 @@ def watchdog(request, qApp):
         watchdog = Watchdog()
         watchdogTimer = QTimer(qApp)
 
-        # watchdogTimer.setInterval(TEST_TIMEOUT_MS)
-        # watchdogTimer.timeout.connect(watchdog.kill)
-        # watchdogTimer.start()
-        # log.debug(f"Starting watchdog timer for {TEST_TIMEOUT_MS}ms")
+        if not util.IS_DEBUGGER:
+            # Only in debugger
+            watchdogTimer.setInterval(watchdog.TIMEOUT_MS)
+            watchdogTimer.timeout.connect(watchdog.kill)
+            watchdogTimer.start()
+            log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
 
     else:
         watchdog = None
@@ -254,7 +337,30 @@ def watchdog(request, qApp):
     if not NO_QT:
         watchdogTimer.stop()
         if watchdog.killed() and not watchdog.cancelled():
-            pytest.fail(f"Watchdog triggered after {TEST_TIMEOUT_MS}ms.")
+            pytest.fail(f"Watchdog triggered after {watchdog.TIMEOUT_MS}ms.")
+
+
+@pytest.fixture
+def qmlEngine(qApp):
+    from pkdiagram import Session
+
+    qmlErrors = []
+    _qmlEngine = QmlEngine(qApp, Session())
+
+    def _onWarnings(errors: list[QQmlError]):
+        qmlErrors.extend(errors)
+
+    _qmlEngine.warnings.connect(_onWarnings)
+
+    yield _qmlEngine
+
+    _qmlEngine.deinit()
+
+    # Ignore errors after teardown and before the next test case, they don't
+    # effect the logic under test.
+    if qmlErrors:
+        msgs = "\n".join(x.toString() for x in qmlErrors)
+        pytest.fail(f"QmlEngine warnings/errors: {msgs}")
 
 
 @pytest.fixture(autouse=True)
@@ -269,7 +375,7 @@ def flask_qnam(tmp_path, request):
 
         with flask_app.test_client() as client:
             ret = _sendCustomRequest(qt_request, verb, data=data, client=client)
-            QApplication.processEvents()
+            # QApplication.processEvents()
             return ret
 
     with contextlib.ExitStack() as stack:
@@ -299,22 +405,23 @@ def server_down(flask_app):
     @contextlib.contextmanager
     def _server_down(down=True):
 
-        # No connection to server
         def sendCustomRequest(request, verb, data=b""):
             with flask_app.test_client() as client:
                 return _sendCustomRequest(
                     request, verb, data=data, client=client, noconnect=down
                 )
 
-        was = util.QNAM.instance().sendCustomRequest
-
-        util.QNAM.instance().sendCustomRequest = sendCustomRequest
-
-        yield
-
-        util.QNAM.instance().sendCustomRequest = was
+        with mock.patch.object(
+            util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
+        ):
+            yield
 
     return _server_down
+
+
+@pytest.fixture
+def data_root():
+    return DATA_ROOT
 
 
 from pytestqt.qtbot import QtBot
@@ -387,14 +494,15 @@ class PKQtBot(QtBot):
             self.wait(10)  # processEvents()
 
     def mouseClick(self, *args, **kwargs):
-        if self.DEBUG:
-            log.info(f"PKQtBot.mouseClick({args}, {kwargs})")
         if len(args) == 1:
             args = (args[0], Qt.LeftButton)
         if args[0] is None:
             raise ValueError(
                 "Cannot click on None, will cause assertion in QtTest.framework/Headers/qtestmouse.h, line 185"
             )
+        assert (
+            args[0] is not None
+        ), f"qtbot.mouseClick will crash if passing `None` as the widget."
         return super().mouseClick(*args, **kwargs)
 
     def mouseDClick(self, *args, **kwargs):
@@ -535,7 +643,7 @@ class PKQtBot(QtBot):
         log.debug(f"QMessageBox: '{text}'")
         if "text" in kwargs and kwargs["text"] not in messageBox.text():
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: '{kwargs['text']}', found text: '{messageBox.text()}'."
             )
         elif (
@@ -543,7 +651,7 @@ class PKQtBot(QtBot):
             and kwargs["informativeText"] not in messageBox.informativeText()
         ):
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: {kwargs['informativeText']}, QMessageBox::informativeText: {messageBox.informativeText()}."
             )
         elif (
@@ -551,7 +659,7 @@ class PKQtBot(QtBot):
             and kwargs["detailedText"] not in messageBox.detailedText()
         ):
             messageBox.close()
-            pytest.xfail(
+            pytest.fail(
                 f"expected text: {kwargs['detailedText']}, QMessageBox::detailedText: {messageBox.detailedText()}."
             )
 
@@ -693,62 +801,6 @@ def personProps():
     }
 
 
-def setPersonProperties(pp, props):
-    pp.setItemProp("personPage", "contentY", 0)
-    pp.keyClicks("firstNameEdit", props["name"])
-    pp.keyClicks("middleNameEdit", props["middleName"])
-    pp.keyClicks("lastNameEdit", props["lastName"])
-    pp.keyClicks("nickNameEdit", props["nickName"])
-    pp.keyClicks("birthNameEdit", props["birthName"])
-    pp.clickComboBoxItem("sizeBox", util.personSizeNameFromSize(props["size"]))
-    pp.clickComboBoxItem("kindBox", util.personKindNameFromKind(props["gender"]))
-    pp.setItemProp("personPage", "contentY", -300)
-    pp.keyClick("adoptedBox", Qt.Key_Space)
-    if pp.itemProp("adoptedBox", "checkState") != props["adopted"]:
-        pp.mouseClick("adoptedBox")
-    assert pp.itemProp("adoptedDateButtons", "enabled") == util.csToBool(
-        props["adopted"]
-    )
-    pp.keyClicks(
-        "adoptedDateButtons.dateTextInput", util.dateString(props["adoptedDateTime"])
-    )
-    pp.mouseClick("primaryBox")
-    if pp.itemProp("primaryBox", "checkState") != props["primary"]:
-        pp.mouseClick("primaryBox")
-    pp.mouseClick("deceasedBox")
-    if pp.itemProp("deceasedBox", "checkState") != props["deceased"]:
-        pp.keyClick("deceasedBox", Qt.Key_Space)
-    assert pp.itemProp("deceasedReasonEdit", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    assert pp.itemProp("deceasedDateButtons", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    if util.csToBool(props["deceased"]):
-        pp.keyClicks("deceasedReasonEdit", props["deceasedReason"])
-        pp.keyClicks(
-            "deceasedDateButtons.dateTextInput",
-            util.dateString(props["deceasedDateTime"]),
-        )
-    pp.setCurrentTab("notes")
-    pp.keyClicks("notesEdit", props["notes"])
-
-
-def assertPersonProperties(person, props):
-    assert person.name() == props["name"]
-    assert person.middleName() == props["middleName"]
-    assert person.lastName() == props["lastName"]
-    assert person.nickName() == props["nickName"]
-    assert person.birthName() == props["birthName"]
-    assert person.gender() == props["gender"]
-    assert person.adopted() == util.csToBool(props["adopted"])
-    assert person.adoptedDateTime() == props["adoptedDateTime"]
-    assert person.deceased() == util.csToBool(props["deceased"])
-    assert person.deceasedDateTime() == props["deceasedDateTime"]
-    assert person.deceasedReason() == props["deceasedReason"]
-    assert person.primary() == util.csToBool(props["primary"])
-
-
 @pytest.fixture
 def create_ac_mw(request, qtbot, tmp_path):
     """
@@ -771,6 +823,7 @@ def create_ac_mw(request, qtbot, tmp_path):
             prefs = util.Settings(dpath, "pytests")
             prefs.setValue("dontShowWelcome", True)
             prefs.setValue("acceptedEULA", True)
+            prefs.setValue("enableAppUsageAnalytics", False)
 
         if editorMode is not None:
             prefs.setValue("editorMode", editorMode)
@@ -815,6 +868,10 @@ def create_ac_mw(request, qtbot, tmp_path):
 
     for ac, mw in created:
         mw.deinit()
+        util.Condition(
+            condition=lambda: mw.fileManager.serverFileModel._indexReplies == []
+        ).wait()
+        assert mw.fileManager.serverFileModel._indexReplies == []
         ac.deinit()
 
 
@@ -881,26 +938,3 @@ def _scene_data(*items):
 #     'versionCompat': '1.3.0',
 #     'items': [],
 #     'name': ''}
-
-
-class MessageDialogType(enum.Enum):
-    Information = "information"
-    Critical = "critical"
-
-
-def MessageDialog_clickButtonAfter(
-    type: MessageDialogType,
-    action: Callable,
-    button: QMessageBox.StandardButton = QMessageBox.Ok,
-    contains: str = None,
-):
-    """Should probably replace the other QMessageBox helper methods."""
-    with mock.patch.object(QMessageBox, type.value, return_value=button) as method:
-        methodCalled = util.Condition(condition=lambda: method.call_count > 0)
-        action()
-        log.info(f"methodCalled.wait() type: {type}")
-        assert methodCalled.wait() == True
-        log.info(f"{type} message box raised.")
-    assert method.call_count == 1
-    if contains is not None:
-        assert contains in method.call_args[0][2]

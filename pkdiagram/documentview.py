@@ -1,8 +1,10 @@
 import enum
 import logging
 from .pyqt import (
-    QWidget,
     pyqtSignal,
+    pyqtSlot,
+    QWidget,
+    QObject,
     QSizePolicy,
     QApplication,
     QVariant,
@@ -13,21 +15,20 @@ from .pyqt import (
     QRectF,
     QPoint,
     QPointF,
-    QActionGroup,
-    QAction,
-    QQuickWidget,
     QJSValue,
     QMainWindow,
     Qt,
 )
 from .view import View
-from . import util, objects, commands, Person, Marriage, Emotion, Event, LayerItem
+from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
 from . import addeventdialog, addemotiondialog
+from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
-from .widgets import Drawer, TimelineCallout
 from .models import SceneModel, CategoriesModel
+from .widgets import TimelineCallout
 from .qmldrawer import QmlDrawer
+from _pkdiagram import FDDocument
 
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,14 @@ class DocumentView(QWidget):
         self._isReloadingCurrentDiagram = False
         self._settingCurrentDrawer = False
 
+        self._qmlEngine = QmlEngine(self, session)
+        self.session.setQmlEngine(self._qmlEngine)
+        self.sceneModel = self._qmlEngine.sceneModel
+        self.searchModel = self._qmlEngine.searchModel
+        self.timelineModel = self._qmlEngine.timelineModel
+        self.peopleModel = self._qmlEngine.peopleModel
+        self.accessRightsModel = self._qmlEngine.accessRightsModel
+
         self.view = View(self, parent.ui)
         self.view.escape.connect(self.onEscape)
 
@@ -91,7 +100,9 @@ class DocumentView(QWidget):
         self.graphicalTimelineShim.setObjectName("graphicalTimelineShim")
         self.graphicalTimelineShim.setFixedHeight(0)
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
-        self.graphicalTimelineView = GraphicalTimelineView(self)
+        self.graphicalTimelineView = GraphicalTimelineView(
+            self.searchModel, self.timelineModel, self
+        )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded
         )
@@ -127,51 +138,45 @@ class DocumentView(QWidget):
         # self.drawerShimAnimation.valueChanged.connect(self.onDrawerAnimationTick)
         # self.drawerShimAnimation.finished.connect(self.onDrawerAnimationFinished)
 
-        # property sheets
+        # Property sheets
 
-        self.categoriesModel = CategoriesModel(self)
-        self.categoriesModel.setObjectName("categoriesModel")
-
-        self.sceneModel = SceneModel(self, session=session)
-        self.sceneModel.setObjectName("documentView_sceneModel")
         self.caseProps = CaseProperties(
+            self._qmlEngine,
             "qml/CaseProperties.qml",
             parent=self,
             objectName="caseProps",
-            sceneModel=self.sceneModel,
-            categoriesModel=self.categoriesModel,
         )
         self.caseProps.findItem("stack").currentIndexChanged.connect(
             self.onCasePropsTabChanged
         )
         self.personProps = QmlDrawer(
+            self._qmlEngine,
             "qml/PersonProperties.qml",
             parent=self,
             propSheetModel="personModel",
             objectName="personProps",
-            sceneModel=self.sceneModel,
         )
         self.marriageProps = QmlDrawer(
+            self._qmlEngine,
             "qml/MarriageProperties.qml",
             parent=self,
             propSheetModel="marriageModel",
             objectName="marriageProps",
-            sceneModel=self.sceneModel,
         )
         self.emotionProps = QmlDrawer(
+            self._qmlEngine,
             "qml/EmotionPropertiesDrawer.qml",
             parent=self,
             resizable=False,
             propSheetModel="emotionModel",
             objectName="emotionProps",
-            sceneModel=self.sceneModel,
         )
         self.layerItemProps = QmlDrawer(
+            self._qmlEngine,
             "qml/LayerItemProperties.qml",
             parent=self,
             propSheetModel="layerItemModel",
             objectName="layerItemProps",
-            sceneModel=self.sceneModel,
             resizable=False,
         )
         #
@@ -180,16 +185,10 @@ class DocumentView(QWidget):
         self.caseProps.qml.rootObject().clearSearch.connect(
             self.controller.onClearSearch
         )
-        self.addAnythingDialog = AddAnythingDialog(
-            parent=self, sceneModel=self.sceneModel
-        )
-        self.addEventDialog = addeventdialog.AddEventDialog(
-            self, sceneModel=self.sceneModel
-        )
+        self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
+        self.addEventDialog = addeventdialog.AddEventDialog(self._qmlEngine, self)
         self.addEventDialog.hide(animate=False)
-        self.addEmotionDialog = addemotiondialog.AddEmotionDialog(
-            self, sceneModel=self.sceneModel
-        )
+        self.addEmotionDialog = addemotiondialog.AddEmotionDialog(self._qmlEngine, self)
         self.addEmotionDialog.hide(animate=False)
         self.emotionProps.stackUnder(self.addEventDialog)
         self.emotionProps.stackUnder(self.addEmotionDialog)
@@ -223,6 +222,20 @@ class DocumentView(QWidget):
         self.controller.init()
         self.controller.updateActions()
 
+    def deinit(self):
+        self.caseProps.deinit()
+        self.personProps.deinit()
+        self.marriageProps.deinit()
+        self.emotionProps.deinit()
+        self.layerItemProps.deinit()
+        self.addAnythingDialog.deinit()
+        self.addEventDialog.deinit()
+        self.addEmotionDialog.deinit()
+        self._qmlEngine.deinit()
+
+    def qmlEngine(self):
+        return self._qmlEngine
+
     def onApplicationPaletteChanged(self):
         self.drawerShim.setStyleSheet("background-color: %s " % util.QML_CONTROL_BG)
 
@@ -236,7 +249,6 @@ class DocumentView(QWidget):
 
     def setScene(self, scene):
         self._isInitializing = True
-        self.sceneModel.scene = scene
         self.graphicalTimelineView.setScene(scene)
         self.emotionProps.hide(animate=False)
         self.layerItemProps.hide(animate=False)
@@ -245,7 +257,7 @@ class DocumentView(QWidget):
         self.caseProps.hide(animate=False)
         self.addAnythingDialog.hide(animate=False)
         self.currentDrawer = None
-        self.controller.setScene(scene)
+        self.controller.setScene(None)
         if self.scene:
             self.scene.selectionChanged.disconnect(self.onSceneSelectionChanged)
             self.sceneModel.addEvent[QVariant, QVariant].disconnect(self.onAddEvent)
@@ -255,6 +267,7 @@ class DocumentView(QWidget):
                 self.controller.onInspectItemById
             )
         self.scene = scene
+        self._qmlEngine.setScene(scene)
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.addEvent[QVariant, QVariant].connect(self.onAddEvent)
@@ -280,6 +293,7 @@ class DocumentView(QWidget):
         self.updateSceneStopOnAllEvents()
         self.session.refreshAllProperties()
         self.adjust()
+        self.controller.setScene(scene)
         self._isInitializing = False
 
     def resizeEvent(self, e):
@@ -336,7 +350,7 @@ class DocumentView(QWidget):
         elif not self.isGraphicalTimelineShown():
             self.graphicalTimelineCallout.hide()
             return
-        events = self.scene.timelineModel.eventsAt(self.scene.currentDateTime())
+        events = self.timelineModel.eventsAt(self.scene.currentDateTime())
         self.graphicalTimelineCallout.setEvents(events)
         canvas = self.graphicalTimelineView.timeline.canvas
         if events and canvas.isSlider() and canvas.events():

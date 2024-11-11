@@ -1,11 +1,27 @@
-#####################################################
-##
-##  Qml
-##
-#####################################################
-
 import pickle, json, datetime, time, logging
-from .pyqt import *
+from .pyqt import (
+    Qt,
+    QObject,
+    QDateTime,
+    pyqtSlot,
+    pyqtSignal,
+    QVariant,
+    QItemSelectionModel,
+    QAbstractItemModel,
+    QModelIndex,
+    QItemSelection,
+    QJSValue,
+    QDesktopServices,
+    QUrl,
+    QMessageBox,
+    QApplication,
+    QColor,
+    QPen,
+    QBrush,
+    QPalette,
+    QNetworkRequest,
+    QQmlEngine,
+)
 from . import util
 from .util import CUtil, EventKind
 from .models import QObjectHelper
@@ -25,7 +41,10 @@ def find_global_type(attr):
 
 
 class QmlUtil(QObject, QObjectHelper):
-    """This module exposed to qml."""
+    """
+    TODO: This whole class should not manage dynamic globals from util, it should
+    store them locally. The util module should just be static constants.
+    """
 
     CONSTANTS = [
         "QRC",
@@ -119,6 +138,8 @@ class QmlUtil(QObject, QObjectHelper):
         "S_NOTES_HELP_TEXT",
         "S_NO_ITEMS_LABEL",
         "S_NO_EVENTS_TEXT",
+        "S_EMAIL_SENT_TO_CHANGE_PASSWORD",
+        "S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
     ]
@@ -136,10 +157,10 @@ class QmlUtil(QObject, QObjectHelper):
         globalContext=util.__dict__,
     )
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QApplication):
         super().__init__(parent)
         self.setObjectName("util")
-        QApplication.instance().paletteChanged.connect(self.initColors)
+        parent.paletteChanged.connect(self.initColors)
         self._httpReplies = {}
         self._lastHttpRequestId = 0
         self._httpRequests = []
@@ -193,7 +214,9 @@ class QmlUtil(QObject, QObjectHelper):
         if util.HIGHLIGHT_COLOR is None:
             util.HIGHLIGHT_COLOR = palette.color(QPalette.Highlight)
         if util.SAME_DATE_HIGHLIGHT_COLOR is None:
-            util.SAME_DATE_HIGHLIGHT_COLOR = lightenOpacity(util.SELECTION_COLOR, 0.7)
+            util.SAME_DATE_HIGHLIGHT_COLOR = util.lightenOpacity(
+                util.SELECTION_COLOR, 0.7
+            )
         util.SELECTION_TEXT_COLOR = util.contrastTo(util.SELECTION_COLOR)
         util.HIGHLIGHT_TEXT_COLOR = util.contrastTo(util.HIGHLIGHT_COLOR)
         util.HOVER_COLOR = util.SELECTION_COLOR
@@ -368,7 +391,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(QVariant, int, str, str)
     @pyqtSlot(QVariant, int, str, str, QVariant)
     def jsServerHttp(self, session, requestId, method, path, args=None):
-        # log.info(f"{session}, {requestId}, {method}, {path}, {args}")
+        log.debug(f"{requestId}, {method}, {path}")
         if args is not None:
             data = args.toVariant()
             bdata = pickle.dumps(data)
@@ -396,12 +419,15 @@ class QmlUtil(QObject, QObjectHelper):
                 # Can maybe try QJSValue(callback) to retain callable status?
                 # - https://wiki.python.org/moin/PyQt/QML%20callback%20function
                 # self.here(requestId, reply.url(), reply.attribute(QNetworkRequest.HttpStatusCodeAttribute))
-                args = QApplication.instance().qmlEngine().newObject()
+                args = session.qmlEngine().newObject()
                 try:
                     session.server().checkHTTPReply(reply, quiet=False)
                 except HTTPError as e:
                     pass
-                bdata = reply.readAll().data()
+                if hasattr(reply, "_pk_body"):
+                    bdata = bytes(reply._pk_body)
+                else:
+                    bdata = reply.readAll().data()
                 if bdata:
                     try:
                         data = pickle.loads(bdata)

@@ -875,9 +875,8 @@ class RightToolBar(ToolBar):
                 pixmap="settings-button.png",
                 action=self.ui.actionShow_Settings,
                 helpPixmap="diagram-settings.png",
-                visible=self.isInEditorMode,
             ),
-            Separator(objectName="sep2", visible=self.isInEditorMode),
+            Separator(objectName="sep2"),
             PushButton(
                 objectName="detailsButton",
                 pixmap="details-button.png",

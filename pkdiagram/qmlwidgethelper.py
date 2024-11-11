@@ -25,20 +25,14 @@ class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
 
-    def initQmlWidgetHelper(self, source, **contextProperties):
+    def initQmlWidgetHelper(self, engine, source):
+        self._engine = engine
         self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
-        self._contextProperties = contextProperties
         self.initQObjectHelper()
 
-    # def __getattr__(self, attr):
-    #     if not hasattr(self, attr) and \
-    #        hasattr(self, 'qml') and \
-    #        hasattr(self.qml.rootObject(), attr) and \
-    #        isinstance(getattr(self.qml.rootObject(), attr), pyqtSignal):
-    #         return getattr(self.qml.rootObject(), attr)
-    #     else:
-    #         return super().__getattr__(self, o)
+    def qmlEngine(self):
+        return self._engine
 
     def isQmlReady(self):
         return hasattr(self, "qml")
@@ -52,7 +46,7 @@ class QmlWidgetHelper(QObjectHelper):
         """Returns True if initialized on this call."""
         if hasattr(self, "qml"):
             return False
-        self.qml = QQuickWidget(QApplication.instance().qmlEngine(), self)
+        self.qml = QQuickWidget(self._engine, self)
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -95,32 +89,10 @@ class QmlWidgetHelper(QObjectHelper):
             raise RuntimeError(
                 "Could not load qml component from: %s" % self._qmlSource
             )
-        # map all signals
-
-        # properties = []
-        # signals = []
-        # mo = self.qml.rootObject().metaObject()
-        # for i in range(mo.propertyCount()):
-        #     properties.append(mo.property(i).name())
-        # for i in range(mo.methodCount()):
-        #     meth = mo.method(i)
-        #     if meth.methodType() == QMetaMethod.Signal:
-        #         signature = bytes(meth.methodSignature()).decode()
-        #         attr = signature[:signature.index('(')]
-        #         x = getattr(self.qml.rootObject(), attr)
-        #         isPyQtSignal = 'PYQT_SIGNAL' in str(type(x))
-        #         print(signature, attr, isPyQtSignal)
-        #         signals.append(x)
-        #         if not hasattr(self, k) and isinstance(v, pyqtSignal):
-        #             self.here('Mapped pyqtSignal on [%s]: %s' % (self.objectName(), k))
-        #             setattr(self, k, v)
-
         for k, v in self.qml.rootObject().__dict__:
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        # for k, v in self._qmlKWArgs.items():
-        #     self.qml.rootObject().setProperty(k, v)
         self.layout().addWidget(self.qml)
         self.qml.setParent(self)
         self.qml.resize(800, 600)
@@ -133,6 +105,11 @@ class QmlWidgetHelper(QObjectHelper):
 
     def onInitQml(self):
         """Virtual"""
+
+    def deinit(self):
+        # Prevent qml exceptions when context props are set to null
+        self.qml.setSource(QUrl(""))
+        self.qml = None
 
     ##
     ## Test utils
@@ -333,7 +310,9 @@ class QmlWidgetHelper(QObjectHelper):
             item = self.findItem(objectName)
         else:
             item = objectName
-        assert item.property("enabled") == True
+        assert (
+            item.property("enabled") == True
+        ), f"{self.rootProp('objectName')}.{objectName} is not enabled"
         self.mouseClickItem(item, button=button)
 
     def mouseDClickItem(self, item, button=Qt.LeftButton, pos=None):
@@ -515,6 +494,37 @@ class QmlWidgetHelper(QObjectHelper):
         #     self.here(child.metaObject().className())
         #     for _child in child.childItems():
         #         self.here('    ', _child.metaObject().className())
+
+    def clickTagActivateBox(self, itemName: str, tagName: str):
+        tagEdit = self.findItem(itemName)
+        model = tagEdit.property("model")
+        assert (
+            model.rowCount() > 0
+        ), "Can't click the tag activate checkbox if the TagsModel is empty"
+        tagEdit_objectName = tagEdit.objectName()
+        listView = self.findItem(f"{tagEdit_objectName}_listView")
+        #
+        delegates = listView.property("delegates").toVariant()
+        found = False
+        foundTags = []
+        for delegate in delegates:
+            iTag = delegate.property("iTag")
+            itemTagName = delegate.property("tagName")
+            foundTags.append(itemTagName)
+            if tagName == itemTagName:
+                checkBox = delegate.property("checkBox")
+                was = model.data(model.index(iTag, 0), role=model.ActiveRole)
+                assert checkBox.isVisible() == True
+                self.mouseClickItem(checkBox)
+                assert (
+                    model.data(model.index(iTag), role=model.ActiveRole) != was
+                ), f"Checkbox for tag '{tagName}' did not change check state"
+                found = True
+        #
+        if not found:
+            raise RuntimeError(
+                f"Could not find tag '{tagName}' in TagEdit '{itemName}', only found: {foundTags}"
+            )
 
     # def clickComboBoxItem_actual(self, objectName, itemText, comboBox=None):
     #     if isinstance(objectName, str):

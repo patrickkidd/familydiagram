@@ -9,8 +9,6 @@ Rectangle {
     anchors.fill: parent
 
     property var model: null
-    property var sceneModel: null; // just a dummy to be a false/null condition
-    property var peopleModel: null;
     signal done;
     color: util.QML_ITEM_BG
 

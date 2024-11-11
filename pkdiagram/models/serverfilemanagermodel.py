@@ -92,6 +92,12 @@ class ServerFileManagerModel(FileManagerModel):
         self.write()
         self.initialized = False
 
+    def pendingUrls(self):
+        return [reply.request().url().toString() for reply in self._indexReplies]
+
+    def summarizePendingRequests(self):
+        return "\n".join(util.summarizeReplyShort(x) for x in self._indexReplies)
+
     def setSession(self, session):
         if self.session:
             self.session.changed.disconnect(self.update)
@@ -193,9 +199,11 @@ class ServerFileManagerModel(FileManagerModel):
 
             def onSingleGETSuccess(data):
                 """Called for each file needing updating."""
+                # log.debug(f"GET /diagrams/{reply.request().url().toString()} SUCCESS.")
                 self._addOrUpdateDiagram(Diagram.create(data))
 
             def onSingleGETFinished(reply):
+                # log.debug(f"GET /diagrams/{reply.request().url().toString()} FINISHED.")
                 self.diagramGETResponse.emit(reply)
                 checkIndexRequestsComplete(reply)
 
@@ -393,8 +401,8 @@ class ServerFileManagerModel(FileManagerModel):
             if btn != QMessageBox.Yes:
                 return
         url = self._serverDiagramUrl(diagram_id)
-        response = self.session.server().blockingRequest("DELETE", url)
-        entry = self.findDiagram(diagram_id)
+        self.session.server().blockingRequest("DELETE", url)
+        # entry = self.findDiagram(diagram_id)
         del self.diagramCache[diagram_id]
         fpath = self.localPathForID(diagram_id)
         self.removeFileEntry(fpath)

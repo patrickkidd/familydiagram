@@ -26,11 +26,11 @@ class FileManager(QWidget, QmlWidgetHelper):
     newButtonClicked = pyqtSignal()
     localFilesShownChanged = pyqtSignal(bool)
 
-    def __init__(self, session, parent=None):
+    def __init__(self, engine, parent=None):
         QWidget.__init__(self, parent)
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
-        self.initQmlWidgetHelper("qml/FileManager.qml", session=session)
+        self.initQmlWidgetHelper(engine, "qml/FileManager.qml")
         self.checkInitQml()
         self.qml.rootObject().localFileClicked.connect(self.localFileClicked)
         self.qml.rootObject().serverFileClicked.connect(self.onServerFileClicked)
@@ -44,10 +44,11 @@ class FileManager(QWidget, QmlWidgetHelper):
 
     def init(self):
         self.serverFileModel.init()
-        self.serverFileModel.setSession(self.session)
+        self.serverFileModel.setSession(self.qmlEngine().session)
 
     def deinit(self):
         self.serverFileModel.deinit()
+        QmlWidgetHelper.deinit(self)
 
     def showEvent(self, e):
         super().showEvent(e)

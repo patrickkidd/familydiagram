@@ -46,12 +46,12 @@ class GraphicalTimelineView(QFrame):
     expandedChanged = pyqtSignal(bool)
     dateTimeClicked = pyqtSignal(QDateTime)
 
-    def __init__(self, parent=None):
+    def __init__(self, searchModel, timelineModel, parent=None):
         super().__init__(parent)
         self.scene = None
         self.documentView = parent if util.isInstance(parent, "DocumentView") else None
 
-        self.timeline = GraphicalTimeline(self)
+        self.timeline = GraphicalTimeline(searchModel, timelineModel, self)
         self.timeline.setStyleSheet("background-color: transparent")
         self.timeline.canvas.setStyleSheet("background-color: transparent")
         self.lastScaleFactor = self.timeline.scaleFactor
@@ -121,7 +121,7 @@ class GraphicalTimelineView(QFrame):
         if scene:
             scene.propertyChanged[objects.Property].connect(self.onSceneProperty)
         self.timeline.setScene(self.scene)
-        self.state = self.CONTRACTING  # hack.1        
+        self.state = self.CONTRACTING  # hack.1
         if scene:
             self.onAnimationFinished()  # hack.2
 

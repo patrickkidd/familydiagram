@@ -6,12 +6,12 @@ from .qmlwidgethelper import QmlWidgetHelper
 
 class AccountDialog(Dialog, QmlWidgetHelper):
 
-    def __init__(self, session, parent=None):
+    def __init__(self, engine, parent=None):
         super().__init__(parent)
         self._sizeHint = QSize()
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
-        self.initQmlWidgetHelper("qml/AccountDialog.qml", session=session)
+        self.initQmlWidgetHelper(engine, "qml/AccountDialog.qml")
 
     def init(self):
         self.checkInitQml()
@@ -28,9 +28,10 @@ class AccountDialog(Dialog, QmlWidgetHelper):
 
     def deinit(self):
         self.qml.rootObject().done.disconnect(self.onDone)
+        QmlWidgetHelper.deinit(self)
 
     def canClose(self):
-        return bool(self.session.isLoggedIn())
+        return bool(self.qmlEngine().session.isLoggedIn())
 
     def onDone(self):
         self.hide()

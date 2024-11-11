@@ -12,7 +12,8 @@ ColumnLayout {
     property var model: null
     property bool showButtons: true
     property int currentIndex: -1
-    property int count: list.count
+    property int count: listView.count
+    property alias listView: listView
 
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
@@ -23,16 +24,22 @@ ColumnLayout {
     }
 
     ListView {
-        id: list
+        id: listView
+        objectName: root.objectName + '_listView'
         clip: true
         model: root.model
         Layout.fillWidth: true
         Layout.fillHeight: true
+
+        property var delegates: []
         
         delegate: Rectangle {
 
             property bool selected: index == currentIndex
             property bool current: false
+            property int iTag: index
+            property var tagName: name
+            property alias checkBox: checkBox
 
             width: parent ? parent.width : 0
             height: util.QML_ITEM_HEIGHT // rowLayout.height
@@ -41,6 +48,14 @@ ColumnLayout {
             MouseArea {
                 anchors.fill: parent
                 onClicked: onRowClicked(mouse, index)
+            }
+
+            Component.onCompleted: {
+                listView.delegates.push(this)
+            }
+
+            Component.onDestruction: {
+                listView.delegates.splice(listView.delegates.indexOf(this), 1)
             }
             
             /* Rectangle { */
@@ -117,7 +132,7 @@ ColumnLayout {
         addButton: true
         addButtonEnabled: sceneModel ? !sceneModel.readOnly : false
         onAdd: model.addRow()
-        removeButtonEnabled: list.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
+        removeButtonEnabled: listView.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
         removeButton: true
         onRemove: model.removeRow(currentIndex)
     }    

@@ -1,25 +1,28 @@
 import logging
+import bisect
+import pickle
+import shutil
+
 import vedana
 from pkdiagram.pyqt import (
-    QObject,
-    QWidget,
     pyqtSignal,
-    QSizePolicy,
+    Qt,
+    QObject,
     QApplication,
-    QVariant,
-    QVariantAnimation,
-    QAbstractAnimation,
-    QTimer,
     QRect,
     QRectF,
-    QPoint,
-    QPointF,
     QActionGroup,
     QAction,
     QQuickWidget,
     QKeySequence,
-    QJSValue,
     QQuickItem,
+    QItemSelectionModel,
+    QMessageBox,
+    QImage,
+    QPrinter,
+    QPainter,
+    QColor,
+    QFileInfo,
 )
 from pkdiagram import (
     util,
@@ -27,13 +30,17 @@ from pkdiagram import (
     commands,
     Property,
     Person,
-    Marriage,
     Emotion,
     Event,
     LayerItem,
     Layer,
     ChildOf,
 )
+from .server_types import Diagram, HTTPError
+from _pkdiagram import FDDocument
+
+if not util.IS_IOS:
+    import xlsxwriter
 
 
 log = logging.getLogger(__name__)
@@ -45,23 +52,24 @@ class DocumentController(QObject):
     - Wrangling views goes in DocumentController.
     """
 
-    @property
-    def dv(self):
-        return self.parent()
+    uploadToServer = pyqtSignal()
 
-    @property
-    def view(self):
-        return self.dv.view
-
-    ui = None
-    scene = None
     _ignoreSelectionChanges = False
     _isUpdatingSearchTags = False
     _currentQmlFocusItem = None
 
+    def __init__(self, dv: "DocumentView"):
+        super().__init__(dv)
+        self.dv = dv
+        self.ui = None
+        self.scene = None
+        self.view = self.dv.view
+
     def init(self):
         assert self.ui is None
         self.ui = self.dv.ui
+
+        self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
         # Edit
         self.ui.actionUndo.triggered.connect(self.view.onUndo)
@@ -162,13 +170,32 @@ class DocumentController(QObject):
         self.ui.actionZoom_Fit.triggered.connect(self.onZoomFit)
         self.view.zoomFitDirty[bool].connect(self.onZoomFitDirty)
 
+        self.dv.caseProps.qml.rootObject().addEventProperty.connect(
+            self.addEventProperty
+        )
+        self.dv.caseProps.qml.rootObject().removeEventProperty[int].connect(
+            self.removeEventProperty
+        )
+        self.dv.caseProps.qml.rootObject().flashTimelineSelection.connect(
+            self.onFlashTimelineSelection
+        )
+        self.dv.caseProps.qml.rootObject().flashTimelineRow.connect(
+            self.onFlashTimelineRow
+        )
+        self.dv.caseProps.qml.rootObject().eventPropertiesTemplateIndexChanged[
+            int
+        ].connect(self.onEventPropertiesTemplateIndexChanged)
+
+        self.dv.searchModel.changed.connect(self.onSearchChanged)
+        self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
+
     def setScene(self, scene):
         if self.scene:
-            self.scene.searchModel.clear()
-            self.scene.searchModel.tagsChanged.disconnect(self.onSearchTagsChanged)
+            self.dv.searchModel.clear()
             self.scene.propertyChanged[Property].disconnect(self.onSceneProperty)
             self.scene.itemModeChanged.disconnect(self.onSceneItemMode)
             self.scene.itemDoubleClicked.disconnect(self.onItemDoubleClicked)
+            self.scene.emotionAdded[Emotion].disconnect(self.onEmotionAdded)
             self.scene.layerAdded[Layer].disconnect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].disconnect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].disconnect(self.onSceneLayersChanged)
@@ -177,14 +204,15 @@ class DocumentController(QObject):
         self.scene = scene
         if self.scene:
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
-            self.scene.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
             self.scene.itemModeChanged.connect(self.onSceneItemMode)
             self.scene.itemDoubleClicked.connect(self.onItemDoubleClicked)
+            self.scene.emotionAdded[Emotion].connect(self.onEmotionAdded)
             self.scene.layerAdded[Layer].connect(self.onSceneLayersChanged)
             self.scene.layerChanged[Property].connect(self.onLayerChanged)
             self.scene.layerRemoved[Layer].connect(self.onSceneLayersChanged)
             self.scene.activeLayersChanged.connect(self.onActiveLayers)
             self.scene.showNotes.connect(self.showNotesFor)
+            self.scene.setActiveTags(self.dv.searchModel.tags, skipUpdate=False)
         self.onSceneTagsChanged()
         self.onSceneLayersChanged()
 
@@ -209,6 +237,15 @@ class DocumentController(QObject):
                 self.dv.setShowGraphicalTimeline(False)
             self.dv.updateTimelineCallout()
 
+            # Flash timeline items for events when date changes.
+            firstRow = self.dv.timelineModel.firstRowForDateTime(prop.get())
+            lastRow = self.dv.timelineModel.lastRowForDateTime(prop.get())
+            if firstRow > -1 and lastRow > -1:
+                for row in range(firstRow, lastRow + 1):
+                    event = self.dv.timelineModel.eventForRow(row)
+                    if not self.dv.searchModel.shouldHide(event):
+                        self.onFlashTimelineRow(row)
+
         elif prop.name() == "hideDateSlider":
             if (
                 prop.get()
@@ -218,6 +255,10 @@ class DocumentController(QObject):
                 self.dv.setShowGraphicalTimeline(False)
             elif not prop.get():
                 self.dv.setShowGraphicalTimeline(True)
+
+        elif prop.name() == "hideEmotionalProcess":
+            if self.dv.searchModel.hideRelationships != prop.get():
+                self.dv.searchModel.hideRelationships = prop.get()
 
         elif prop.name() == "tags":
             self.onSceneTagsChanged()
@@ -234,7 +275,7 @@ class DocumentController(QObject):
             action.setText(tag)
             action.setData(tag)
             action.setCheckable(True)
-            if tag in self.scene.searchModel.tags:
+            if tag in self.dv.searchModel.tags:
                 action.setChecked(True)
             action.toggled[bool].connect(self.onTagToggled)
             self.ui.menuTags.addAction(action)
@@ -247,6 +288,7 @@ class DocumentController(QObject):
             on = action.data() in tags
             if on != action.isChecked:
                 action.setChecked(on)
+        self.scene.setActiveTags(tags)
         self._isUpdatingSearchTags = False
 
     def onTagToggled(self, on):
@@ -254,12 +296,12 @@ class DocumentController(QObject):
             return
         action = self.sender()
         tag = action.data()
-        tags = list(self.scene.searchModel.tags)
+        tags = list(self.dv.searchModel.tags)
         if on and not tag in tags:
             tags.append(tag)
         elif not on and tag in tags:
             tags.remove(tag)
-        self.scene.searchModel.tags = tags
+        self.dv.searchModel.tags = tags
 
     @util.blocked
     def onActiveLayers(self, activeLayers):
@@ -306,6 +348,78 @@ class DocumentController(QObject):
         self.ui.menuLayers.addSeparator()
         self.ui.menuLayers.addAction(self.ui.actionDeactivate_All_Layers)
         self.updateActions()
+
+    def onEmotionAdded(self, emotion: Emotion):
+        emotion.addTags(self.dv.searchModel.tags)
+
+    def addEventProperty(self):
+        name = util.newNameOf(
+            self.scene.eventProperties(),
+            tmpl=self.NEW_VAR_TMPL,
+            key=lambda x: x["name"],
+        )
+        commands.createEventProperty(self.scene, name)
+
+    def removeEventProperty(self, index):
+        entry = self.scene.eventProperties()[index]
+        commands.removeEventProperty(self.scene, entry["name"])
+
+    def onEventPropertiesTemplateIndexChanged(self, index: int):
+        """
+        Replace existing timeline variables with template variables.
+
+        TODO: Should move the underlying logic to Scene.setVariablesTemplate()
+        """
+        if index < 0 or not self.scene:
+            return
+        propAttrs = [entry["attr"] for entry in self.scene.eventProperties()]
+        if self.scene.eventProperties():
+            hasPropSet = 0
+            for event in self.scene.events():
+                for attr in propAttrs:
+                    prop = event.dynamicProperty(attr)
+                    if prop.get() is not None:
+                        hasPropSet += 1
+            if hasPropSet:
+                btn = QMessageBox.question(
+                    QApplication.activeWindow(),
+                    "Delete existing timeline variables?",
+                    "This will replace the existing timeline variables and their %i values with variables from the template. Are you sure you want to do this?"
+                    % hasPropSet,
+                )
+                if btn == QMessageBox.No:
+                    return
+        newProps = []
+        if index == 0:  # Havstad Model
+            newProps = ["Δ Symptom", "Δ Anxiety", "Δ Functioning", "Δ Relationship"]
+        elif index == 1:  # Papero Model
+            newProps = [
+                "Resourcefulness",
+                "Tension Management",
+                "Connectivity & Integration",
+                "Systems Thinking",
+                "Goal Structure",
+            ]
+        elif index == 2:  # Stinson Model
+            newProps = ["Toward/Away", "Δ Arousal", "Δ Symptom", "Mechanism"]
+        commands.replaceEventProperties(self.scene, newProps)
+        # for name in [e['name'] for e in self.scene.eventProperties()]:
+        #     commands.removeEventProperty(self.scene, name)
+        # for name in newProps:
+        #     commands.createEventProperty(self.scene, name)
+
+    def onFlashTimelineSelection(self, selectionModel: QItemSelectionModel):
+        """Called when case props timeline selection is changed."""
+        model = selectionModel.model()
+        for index in selectionModel.selectedRows():
+            id = model.idForRow(index.row())
+            item = self.scene.find(id=id)
+            item.flash()
+
+    def onFlashTimelineRow(self, row: int):
+        if self.scene:
+            item = self.dv.timelineModel.itemForRow(row)
+            item.flash()
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item
@@ -524,7 +638,7 @@ class DocumentController(QObject):
         # Event-dependent actions
 
         inView = bool(self.scene)
-        anyEvents = False if not self.scene else self.scene.timelineModel.rowCount() > 0
+        anyEvents = False if not self.scene else self.dv.timelineModel.rowCount() > 0
         self.ui.actionNext_Event.setEnabled(inView and anyEvents)
         self.ui.actionPrevious_Event.setEnabled(inView and anyEvents)
         self.ui.actionShow_Graphical_Timeline.setEnabled(inView and anyEvents)
@@ -549,23 +663,32 @@ class DocumentController(QObject):
     def onZoomFitDirty(self, on):
         self.ui.actionZoom_Fit.setEnabled(on)
 
-    def onPrevEvent(self):
-        """Set the current date to the next visible date."""
-        # w = QApplication.focusWidget()
-        # if isinstance(w, QQuickWidget):
-        #     w.parent().prevTab()
-        #     return
-        if self.scene:
-            self.scene.prevTaggedDateTime()
-
     def onNextEvent(self):
         """Set the current date to the next visible date."""
-        # w = QApplication.focusWidget()
-        # if isinstance(w, QQuickWidget):
-        #     w.parent().nextTab()
-        #     return
-        if self.scene:
-            self.scene.nextTaggedDateTime()
+        if not self.scene:
+            return
+        events = self.dv.timelineModel.events()
+        dummy = Event(dateTime=self.scene.currentDateTime())
+        nextRow = bisect.bisect_right(events, dummy)
+        if nextRow == len(events):  # end
+            nextDate = self.dv.timelineModel.lastEventDateTime()
+        else:
+            nextDate = events[nextRow].dateTime()
+        if nextDate:
+            self.scene.setCurrentDateTime(nextDate)
+
+    def onPrevEvent(self):
+        if not self.scene:
+            return
+        events = self.dv.timelineModel.events()
+        dummy = Event(dateTime=self.scene.currentDateTime())
+        prevRow = bisect.bisect_left(events, dummy) - 1
+        if prevRow <= 0:
+            prevDate = self.dv.timelineModel.firstEventDateTime()
+        else:
+            prevDate = events[prevRow].dateTime()
+        if prevDate:
+            self.scene.setCurrentDateTime(prevDate)
 
     def onDeselectAllTags(self):
         for action in self.ui.menuTags.actions():
@@ -573,7 +696,7 @@ class DocumentController(QObject):
                 action.blockSignals(True)
                 action.setChecked(False)
                 action.blockSignals(False)
-        self.scene.searchModel.reset("tags")
+        self.dv.searchModel.reset("tags")
 
     def onNextLayer(self):
         self.scene.nextActiveLayer()
@@ -696,7 +819,7 @@ class DocumentController(QObject):
         self.dv.inspectSelection(selection=[item])
 
     def onClearSearch(self):
-        self.scene.searchModel.clear()
+        self.dv.searchModel.clear()
         self.scene.clearActiveLayers()
 
     def showNotesFor(self, pathItem):
@@ -708,3 +831,223 @@ class DocumentController(QObject):
             pathItem.setSelected(True)
         self._ignoreSelectionChanges = False
         self.dv.inspectSelection(tab="notes")
+
+    def onSearchChanged(self):
+        if self.scene:
+            if self.dv.searchModel.hideRelationships != self.scene.hideEmotionalProcess:
+                self.scene.setHideEmotionalProcess(
+                    self.dv.searchModel.hideRelationships
+                )
+
+            firstDate = self.dv.timelineModel.dateTimeForRow(0)
+            if firstDate > self.scene.currentDateTime():
+                self.scene.setCurrentDateTime(firstDate)
+            elif not self.scene.areActiveLayersChanging():
+                self.scene._updateAllItemsForLayersAndTags()
+
+    def onUploadToServer(self):
+        self.uploadToServer.emit()
+
+    def __writePDF(self, filePath=None, printer=None):
+        rect = self.printRect()
+        sourceRect = rect.size()
+        if printer is None:
+            printer = QPrinter()
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        painter = QPainter()
+        painter.begin(printer)
+        printerRect = printer.pageRect(QPrinter.Point).toRect()
+        if filePath is not None:
+            printer.setOutputFileName(filePath)
+            # printer.setOrientation(QPrinter.Landscape)
+        # elif printer is not None:
+        #     # make it fit
+        #     sourceRect = image.rect()
+        #     if sourceRect.width() > sourceRect.height():
+        #         scale = printRect.width() / sourceRect.width()
+        #         targetRect = QRect(printRect.x(), printRect.y(),
+        #                            sourceRect.width() * scale,
+        #                            sourceRect.height() * scale)
+        #     else:
+        #         scale = printRect.height() / sourceRect.height()
+        #         targetRect = QRect(printRect.x(),
+        #                            printRect.y(),
+        #                            sourceRect.width() * scale,
+        #                            sourceRect.height() * scale)
+        #     p.drawImage(targetRect, image, sourceRect)
+        #     p.end()
+        self.render(painter, QRectF(printerRect), self.printRect())
+        painter.end()
+        painter = None  # control dtor order, before printer
+
+    def writeJPG(self, filePath=None, printer=None):
+        rect = self.scene.printRect()
+        size = rect.size().toSize() * util.PRINT_DEVICE_PIXEL_RATIO
+        image = QImage(size, QImage.Format_RGB32)
+        image.setDevicePixelRatio(
+            self.scene.view().devicePixelRatio() / util.PRINT_DEVICE_PIXEL_RATIO
+        )
+        image.fill(QColor("white"))
+        painter = QPainter()
+        painter.begin(image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        self.scene.render(painter, QRectF(0, 0, size.width(), size.height()), rect)
+        painter.end()
+        if filePath is not None:
+            image.save(filePath, "JPEG", 80)
+        elif printer is not None:
+            p = QPainter()
+            p.begin(printer)
+            # make it fit
+            printRect = printer.pageRect(QPrinter.Point).toRect()
+            sourceRect = image.rect()
+            if sourceRect.width() > sourceRect.height():
+                scale = printRect.width() / sourceRect.width()
+                targetRect = QRect(
+                    printRect.x(),
+                    printRect.y(),
+                    sourceRect.width() * scale,
+                    sourceRect.height() * scale,
+                )
+            else:
+                scale = printRect.height() / sourceRect.height()
+                targetRect = QRect(
+                    printRect.x(),
+                    printRect.y(),
+                    sourceRect.width() * scale,
+                    sourceRect.height() * scale,
+                )
+            p.drawImage(targetRect, image, sourceRect)
+            p.end()
+
+    def writePNG(self, filePath):
+        rect = self.scene.printRect()
+        size = rect.size().toSize() * util.PRINT_DEVICE_PIXEL_RATIO
+        image = QImage(size, QImage.Format_ARGB32)
+        image.setDevicePixelRatio(
+            self.scene.view().devicePixelRatio() / util.PRINT_DEVICE_PIXEL_RATIO
+        )
+        image.fill(Qt.transparent)
+        painter = QPainter()
+        painter.begin(image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        self.scene.render(painter, QRectF(0, 0, size.width(), size.height()), rect)
+        image.save(filePath, "PNG", 100)
+        painter.end()
+
+    def writeExcel(self, filePath):
+        book = xlsxwriter.Workbook(filePath)
+        wrap_format = book.add_format({"text_wrap": True})  # doesn't work
+        wrap_format.set_text_wrap()  # doesn't work
+        ## Events
+        sheet = book.add_worksheet("Timeline")
+        sheet.set_column(0, 0, 10)  # Date width
+        sheet.set_column(1, 1, 35)  # Description width
+        sheet.set_column(2, 2, 10)  # Location width
+        sheet.set_column(3, 3, 15)  # Person width
+        sheet.set_column(4, 4, 10)  # Logged width
+        sheet.set_column(5, 5, 100)  # Notes width
+        sheet.write(0, 0, "Date")
+        sheet.write(0, 1, "Description")
+        sheet.write(0, 2, "Location")
+        sheet.write(0, 3, "Person")
+        sheet.write(0, 4, "Logged")
+        sheet.write(0, 5, "Notes", wrap_format)
+        for i, entry in enumerate(self.scene.eventProperties()):
+            sheet.write(0, 6 + i, entry["name"])
+
+        model = self.dv.timelineModel
+        rowDisplay = lambda row, col: model.data(model.index(row, col))
+        for row in range(model.rowCount()):
+            index = row + 1
+            event = model.eventForRow(row)
+            sheet.write(index, 0, rowDisplay(row, 1))  # date
+            sheet.write(index, 1, rowDisplay(row, 3))  # description
+            sheet.write(index, 2, rowDisplay(row, 4))  # location
+            sheet.write(index, 3, rowDisplay(row, 5))  # parent
+            sheet.write(index, 4, rowDisplay(row, 6))  # logged
+            sheet.write(index, 5, event.notes())  # notes
+
+            # sheet.write(index, 1, event.description() and event.description() or '')
+            # sheet.write(index, 2, event.location() and event.location() or '')
+            # sheet.write(index, 3, event.parentName())
+            # sheet.write(index, 4, util.dateString(event.loggedDateTime()))
+            # sheet.write(index, 5, event.notes())
+            for i, entry in enumerate(self.scene.eventProperties()):
+                prop = event.dynamicProperty(entry["attr"])
+                if prop:
+                    sheet.write(index, 6 + i, prop.get())
+        ## People
+        sheet = book.add_worksheet("People")
+        sheet.write(0, 0, "Birth Date")
+        sheet.write(0, 1, "First Name")
+        sheet.write(0, 2, "Middle Name")
+        sheet.write(0, 3, "Last Name")
+        sheet.write(0, 4, "Nick Name")
+        sheet.write(0, 5, "Birth Name")
+        sheet.write(0, 6, "Sex")
+        sheet.write(0, 7, "Deceased")
+        sheet.write(0, 8, "Deceased Reason")
+        sheet.write(0, 9, "Date of Death")
+        sheet.write(0, 10, "Adopted")
+        sheet.write(0, 11, "Adoption Date")
+        sheet.write(0, 12, "Notes")
+        #
+        sheet.write(0, 13, "Show Middle Name")
+        sheet.write(0, 14, "Show Last Name")
+        sheet.write(0, 15, "Show Nick Name")
+        sheet.write(0, 16, "Primary")
+        sheet.write(0, 17, "Hide Details")
+        people = self.scene.find(
+            sort="birthDateTime", types=Person, tags=list(self.dv.searchModel.tags)
+        )
+        for index, person in enumerate(people):
+            sheet.write(index + 1, 0, person.birthDateTime(string=True))
+            sheet.write(
+                index + 1,
+                1,
+                self.scene.showAliases() and ("[%s]" % person.alias()) or person.name(),
+            )
+            sheet.write(
+                index + 1, 2, self.scene.showAliases() and " " or person.middleName()
+            )
+            sheet.write(
+                index + 1, 3, self.scene.showAliases() and " " or person.lastName()
+            )
+            sheet.write(
+                index + 1, 4, self.scene.showAliases() and " " or person.nickName()
+            )
+            sheet.write(
+                index + 1, 5, self.scene.showAliases() and " " or person.birthName()
+            )
+            sheet.write(index + 1, 6, person.gender())
+            sheet.write(index + 1, 7, person.deceased() and "YES" or "")
+            sheet.write(index + 1, 8, person.deceasedReason())
+            sheet.write(index + 1, 9, person.deceasedDateTime(string=True))
+            sheet.write(index + 1, 10, person.adopted() and "YES" or "")
+            sheet.write(index + 1, 11, person.adoptedDateTime(string=True))
+            sheet.write(
+                index + 1, 12, self.scene.showAliases() and " " or person.notes()
+            )
+            #
+            sheet.write(index + 1, 13, person.showMiddleName() and "YES" or "")
+            sheet.write(index + 1, 14, person.showLastName() and "YES" or "")
+            sheet.write(index + 1, 15, person.showNickName() and "YES" or "")
+            sheet.write(index + 1, 16, person.primary() and "YES" or "")
+            sheet.write(index + 1, 17, person.hideDetails() and "YES" or "")
+        book.close()
+
+    def writeJSON(self, filePath):
+        data = {}
+        self.write(data)
+
+        import pprint
+
+        p_sdata = pprint.pformat(data, indent=4)
+        log.info(p_sdata)
+        with open(filePath, "w") as f:
+            f.write(p_sdata)
+
+        # sdata = json.dumps(data, indent=4)
+        # with open(filePath, 'w') as f:
+        #     f.write(sdata)

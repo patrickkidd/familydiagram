@@ -120,6 +120,7 @@ class QObjectHelper:
         global CLASS_PROPERTIES
         __qualname__ = classAttrs["__qualname__"]
         CLASS_PROPERTIES[__qualname__] = attrEntries
+        return attrEntries
 
     @staticmethod
     def classProperties(kind):
@@ -211,6 +212,12 @@ class QObjectHelper:
                 self._defaultStorage[attr] = x
         self.refreshAllProperties()
 
+    def onQObjectHelperPropertyChanged(self, attr, value):
+        """
+        Virtual.
+        """
+        pass
+
     def _emitAttrChanged(self, attr, x):
         """Provides a way to capture signal emissions in a specific subclass
         when debugging, and also provide a way to force emission for certain
@@ -218,6 +225,7 @@ class QObjectHelper:
         if self.PRINT_EMITS:
             _log.info(f"{attr}Changed({x})")
         getattr(self, attr + "Changed").emit(x)
+        self.onQObjectHelperPropertyChanged(attr, x)
 
     def refreshingAttr(self):
         """Don't emit any changed signals for this prop name."""

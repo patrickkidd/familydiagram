@@ -1,7 +1,54 @@
 import os.path, sys, datetime, shutil, logging
 import pickle
+
+from PyQt5.QtCore import QT_VERSION_STR
+
 import vedana
-from .pyqt import *
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    tr,
+    Qt,
+    QAction,
+    QAbstractAnimation,
+    QAbstractButton,
+    QApplication,
+    QCheckBox,
+    QCoreApplication,
+    QDateTime,
+    QDesktopServices,
+    QDialog,
+    QDir,
+    QFile,
+    QFileDialog,
+    QFileInfo,
+    QHBoxLayout,
+    QIcon,
+    QInputDialog,
+    QIODevice,
+    QKeyEvent,
+    QLineEdit,
+    QMainWindow,
+    QMargins,
+    QMessageBox,
+    QNetworkAccessManager,
+    QPalette,
+    QPixmap,
+    QPoint,
+    QPrinter,
+    QPrintDialog,
+    QPropertyAnimation,
+    QStandardPaths,
+    QTimer,
+    QTextEdit,
+    QPushButton,
+    QUndoView,
+    QUrl,
+    QVBoxLayout,
+    QSize,
+    QEasingCurve,
+    QEvent,
+    QKeyEvent,
+)
 from . import version, util, scene, commands, filemanager
 from .objects import *
 from .util import CUtil
@@ -18,6 +65,10 @@ log = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
+    """
+    The main application window that manages the menus and any document-agnostic
+    dialogs, etc.
+    """
 
     S_DIAGRAM_UPDATED_FROM_SERVER = "This diagram has been updated from the newer version on the server. If this is unexpected, you may find it useful to plan updates with other users that share access to this diagram, as it will always auotmatically update to the newest version saved from any computer."
 
@@ -29,6 +80,9 @@ class MainWindow(QMainWindow):
 
     S_IMPORTING_TO_FREE_DIAGRAM = "Importing a diagram will overwrite all of the data in your one free diagram. You must purchase the full version of Family Diagram to edit more than one diagram.\n\nAre you sure want to continue?"
     S_CONFIRM_SAVE_CHANGES = "Do you want to save your changes?"
+
+    S_CONFIRM_UPLOAD_DIAGRAM = "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others."
+    S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM = "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?"
 
     OPEN_DIAGRAM_SYNC_MS = (
         1000 * 60 * 30
@@ -59,7 +113,7 @@ class MainWindow(QMainWindow):
             self.setUnifiedTitleAndToolBarOnMac(True)  # crash
 
         #
-        _translate = QtCore.QCoreApplication.translate
+        _translate = QCoreApplication.translate
         self.ui.actionMarriage.setShortcuts(
             [
                 _translate("MainWindow", "Ctrl+Shift+P"),
@@ -71,6 +125,8 @@ class MainWindow(QMainWindow):
         self.fileStatuses = {}
 
         if util.ENABLE_OPENGL:  # ios should already be OpenGL
+            from pkdiagram.pyqt import QOpenGLWidget, QSurfaceFormat
+
             self.ui.centralWidget = QOpenGLWidget(self)
             fmt = QSurfaceFormat.defaultFormat()
             fmt.setSamples(util.OPENGL_SAMPLES)
@@ -118,6 +174,7 @@ class MainWindow(QMainWindow):
         # Document View
 
         self.documentView = DocumentView(self, self.session)
+        self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
         self.view = self.documentView.view
         self.qmlWidgets = list(self.documentView.drawers)
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
@@ -132,12 +189,12 @@ class MainWindow(QMainWindow):
         self.documentView.qmlSelectionChanged.connect(self.onQmlSelectionChanged)
         self.documentView.move(self.width(), 0)
 
-        self.accountDialog = AccountDialog(self.session, self)
+        self.accountDialog = AccountDialog(self.documentView.qmlEngine(), self)
         self.accountDialog.init()
 
         ## File Manager
 
-        self.fileManager = filemanager.FileManager(self.session, self)
+        self.fileManager = filemanager.FileManager(self.documentView.qmlEngine(), self)
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -315,8 +372,6 @@ class MainWindow(QMainWindow):
         CUtil.instance().updateIsNotAvailable.connect(self.onAppUpdateIsNotAvailable)
         # self.documentView.sceneModel.selectionChanged.connect(self.onSceneModelSelectionChanged)
         self.documentView.sceneModel.trySetShowAliases[bool].connect(self.onShowAliases)
-        self.documentView.sceneModel.flashItems.connect(self.onFlashPathItems)
-        self.documentView.sceneModel.uploadToServer.connect(self.onUploadToServer)
         #
 
         if not util.ENABLE_COPY_PASTE:
@@ -388,6 +443,7 @@ class MainWindow(QMainWindow):
             self.onShowAliases
         )
         self.setDocument(None)
+        self.documentView.deinit()
         self.fileManager.deinit()
         self.accountDialog.deinit()
         self.welcomeDialog.deinit()
@@ -766,16 +822,18 @@ class MainWindow(QMainWindow):
                     self.document.saveAs(QUrl.fromLocalFile(filePath))
                     self.prefs.setValue("lastFileSavePath", filePath)
                     self.updateWindowTitle()
-                elif format == "PDF":
-                    self.scene.writePDF(filePath)
+                # elif format == "PDF":
+                #     self.documentView.controller.writePDF(filePath)
                 elif format == "JPG":
-                    self.scene.writeJPG(filePath)
+                    self.documentView.controller.writeJPG(filePath)
                 elif format == "PNG":
-                    self.scene.writePNG(filePath)
+                    self.documentView.controller.writePNG(filePath)
                 elif format == "XLSX":
-                    self.scene.writeExcel(filePath)
+                    self.documentView.controller.writeExcel(
+                        filePath, self.documentView.searchModel
+                    )
                 elif format == "JSON":
-                    self.scene.writeJSON(filePath)
+                    self.documentView.controller.writeJSON(filePath)
         for item in selectedItems:
             item.setSelected(True)
         return True
@@ -814,7 +872,7 @@ class MainWindow(QMainWindow):
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
-        self.documentView.sceneModel.setServerDiagram(diagram)
+        self.documentView.qmlEngine().setServerDiagram(diagram)
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():
@@ -1248,8 +1306,6 @@ class MainWindow(QMainWindow):
             return False
 
     def showAbout(self):
-        from PyQt5.QtCore import QT_VERSION_STR
-
         QMessageBox.about(
             self,
             tr("About Family Diagram"),
@@ -1527,7 +1583,7 @@ class MainWindow(QMainWindow):
         CUtil.instance().dev_crash()
 
     def onTriggerException(self):
-        here = there
+        here = there  # type: ignore
 
     def onFocusChanged(self, old, new):
         if not self.scene:
@@ -1561,27 +1617,17 @@ class MainWindow(QMainWindow):
             else:
                 self.ui.actionShow_Graphical_Timeline.setEnabled(False)
                 self.ui.actionExpand_Graphical_Timeline.setEnabled(False)
-            firstDate = self.scene.timelineModel.firstEventDateTime()
+            firstDate = self.documentView.timelineModel.firstEventDateTime()
             if firstDate and prop.get() == firstDate:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(False)
-            elif prop.get() == self.scene.timelineModel.lastEventDateTime():
+            elif prop.get() == self.documentView.timelineModel.lastEventDateTime():
                 self.ui.actionNext_Event.setEnabled(False)
                 self.ui.actionPrevious_Event.setEnabled(True)
             else:
                 self.ui.actionNext_Event.setEnabled(True)
                 self.ui.actionPrevious_Event.setEnabled(True)
             self.updateWindowTitle()
-            # Flash timeline items for events when date changes.
-            timelineModel = self.scene.timelineModel
-            firstRow = timelineModel.firstRowForDateTime(prop.get())
-            lastRow = timelineModel.lastRowForDateTime(prop.get())
-            if firstRow > -1 and lastRow > -1:
-                for row in range(firstRow, lastRow + 1):
-                    event = timelineModel.eventForRow(row)
-                    if not self.scene.searchModel.shouldHide(event):
-                        self.documentView.sceneModel.flashTimelineItem(row)
-
         elif prop.name() == "alias":
             self.updateWindowTitle()
         elif prop.name() == "showAliases":
@@ -1675,12 +1721,6 @@ class MainWindow(QMainWindow):
         if self.scene:
             self.scene.setShowAliases(on, undo=True)
 
-    def onFlashPathItems(self, ids):
-        """Called when case props timeline selection is changed."""
-        items = [self.scene.find(id=id) for id in ids]
-        for item in items:
-            item.flash()
-
     @util.blocked
     def onHideEmotionalProcess(self, on):
         if on != self.ui.actionHide_Emotional_Process.isChecked():
@@ -1750,9 +1790,6 @@ class MainWindow(QMainWindow):
     def onServerReload(self):
         self.serverFileModel.reload()
 
-    def onUploadedToServer(self):
-        self.serverFileModel.update()
-
     def onBetaWiki(self):
         QDesktopServices.openUrl(
             QUrl("http://vedanamedia.com/our-products/family-diagram/beta-program/")
@@ -1780,7 +1817,7 @@ class MainWindow(QMainWindow):
     def onResetAll(self):
         hadActiveLayers = bool(self.scene.activeLayers())
         self.scene.resetAll()  # should call zoomFit via activeLayersChanged
-        self.scene.searchModel.clear()
+        self.documentView.searchModel.clear()
         if not hadActiveLayers:
             self.view.zoomFit()
 
@@ -1858,6 +1895,10 @@ class MainWindow(QMainWindow):
     ## Server
 
     def onUploadToServer(self):
+        """
+        This goes here because it connects a button in the DocumentView to the
+        ServerFileModel, and then also opens the resulting file.
+        """
 
         def onFinished():
             reply = onFinished._reply
@@ -1871,7 +1912,10 @@ class MainWindow(QMainWindow):
                     "There was a problem uploading this file to the server. Please contact support at info@alaskafamilysystems.com.\n\nYour local copy of this file is unchanged.",
                 )
                 return
-            bdata = reply.readAll()
+            if hasattr(reply, "_pk_body"):
+                bdata = reply._pk_body
+            else:
+                bdata = reply.readAll()
             data = pickle.loads(bdata)
             data["status"] = CUtil.FileIsCurrent
             data["owner"] = data["user"]["username"]
@@ -1883,7 +1927,7 @@ class MainWindow(QMainWindow):
             deleteLocalCopy = QMessageBox.question(
                 None,
                 "Delete local copy?",
-                "This diagram was copied to the server.\n\nDo you want to delete the local copy of this file?",
+                self.S_CONFIRM_DELETE_LOCAL_COPY_OF_UPLOADED_DIAGRAM,
             )
             if deleteLocalCopy == QMessageBox.Yes:
                 shutil.rmtree(localFPath)
@@ -1891,7 +1935,7 @@ class MainWindow(QMainWindow):
         ok = QMessageBox.question(
             None,
             "Are you sure?",
-            "Are you sure you want to upload this diagram to the server? This is required to share the diagram with others.",
+            self.S_CONFIRM_UPLOAD_DIAGRAM,
         )
         if ok != QMessageBox.Yes:
             return

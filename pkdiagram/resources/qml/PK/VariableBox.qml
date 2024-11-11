@@ -46,10 +46,15 @@ RowLayout {
         width: 100
         model: boxModel
         focus: true
-        currentIndex: model.findIndex(function(item) { return item.value == value; })
+        currentIndex: {
+            var newCurrentIndex = model.findIndex(function(item) { return item.value == value; })
+            if(newCurrentIndex != currentIndex)
+                newCurrentIndex = -1
+            else
+                currentIndex
+        }
         KeyNavigation.tab: clearButton
         KeyNavigation.backtab: root.backTabItem
-
         onCurrentIndexChanged: {
             if(currentIndex != -1) {                
                 let newValue = root.model[currentIndex].value

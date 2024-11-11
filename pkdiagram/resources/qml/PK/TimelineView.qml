@@ -36,7 +36,7 @@ ColumnLayout {
     property bool canInspect: selectionModel.hasSelection
     property bool canRemove: selectionModel.hasSelection
 
-    property var model: sceneModel.timelineModel
+    property var model: timelineModel
     property var modelItems: model ? model.items : []
 
     property var selectedEvents: []    
@@ -463,8 +463,11 @@ ColumnLayout {
             }
             Component.onCompleted: updateRect()
             Connections {
+                target: searchModel
+                function onChanged() { currentDateTimeIndicator.updateRect() }
+            }
+            Connections {
                 target: sceneModel
-                function onSearchChanged() { currentDateTimeIndicator.updateRect() }
                 function onCurrentDateTimeChanged() { currentDateTimeIndicator.updateRect() }
             }
             Connections {
@@ -689,7 +692,7 @@ ColumnLayout {
                         objectName: 'parentBox'
                         visible: editMode && column == 5
                         anchors.verticalCenter: parent.verticalCenter
-                        model: sceneModel.peopleModel
+                        model: peopleModel
                         textRole: 'name'
                         currentIndex: {
                             model.resetter

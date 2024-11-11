@@ -5,14 +5,14 @@ from .qmldrawer import QmlDrawer
 
 class AddEventDialog(QmlDrawer):
 
-    def __init__(self, view=None, sceneModel=None):
+    def __init__(self, engine, view=None):
         super().__init__(
+            engine,
             "qml/EventPropertiesDrawer.qml",
             parent=view,
             resizable=False,
             propSheetModel="eventModel",
             objectName="addEventDialog",
-            sceneModel=sceneModel,
         )
         self.event = None
         self._returnTo = None

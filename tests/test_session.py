@@ -8,7 +8,13 @@ from pkdiagram.analytics import MixpanelEvent, MixpanelProfile
 
 from fdserver import util as fdserver_util
 
-from tests.test_analytics import analytics
+from .test_analytics import analytics
+
+
+pytestmark = [
+    pytest.mark.component("Session"),
+    pytest.mark.depends_on("Scene"),
+]
 
 
 @pytest.fixture
@@ -24,7 +30,7 @@ def create_session(request, analytics):
     yield _create_session
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def Analytics_send():
     with mock.patch("time.time", return_value=123):
         with mock.patch("pkdiagram.analytics.Analytics.send") as send:

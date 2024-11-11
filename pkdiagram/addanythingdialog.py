@@ -66,13 +66,14 @@ class AddAnythingDialog(QmlDrawer):
     S_ADD_MANY_SYMBOLS = "Are you sure you want to create {numSymbols} symbols, with a separate symbol between each mover and each receiver listed?"
     S_PICKER_NEW_PERSON_NOT_SUBMITTED = "You have entered a name for a new person in the '{pickerLabel}' field, but have not pressed enter yet."
 
-    def __init__(self, parent=None, sceneModel=None):
+    def __init__(self, engine, parent=None, **contextProperties):
         super().__init__(
+            engine,
             "qml/AddAnythingDialog.qml",
             parent=parent,
             resizable=False,
             objectName="addEverythingDialog",
-            sceneModel=sceneModel,
+            **contextProperties,
         )
         self._returnTo = None
         self._canceled = False
@@ -660,12 +661,10 @@ class AddAnythingDialog(QmlDrawer):
             for i, person in enumerate(newPeople):
                 person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
-        if (
-            self.scene.currentDateTime().isNull()
-            and self.scene.timelineModel.rowCount() > 0
-        ):
+        timelineModel = self.qmlEngine().rootContext().contextProperty("timelineModel")
+        if self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
             self.scene.setCurrentDateTime(
-                self.scene.timelineModel.lastEventDateTime(), undo=propertyUndoId
+                timelineModel.lastEventDateTime(), undo=propertyUndoId
             )
         commands.stack().endMacro()
         self.submitted.emit()  # for testing
