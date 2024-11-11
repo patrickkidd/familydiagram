@@ -38,20 +38,20 @@ It's not really clear why but the tab focus was getting stuck when some items
 were hidden, so this just walks the chain to force set focus on them.
 */
 function focusNextItemInFocusChain(nextItem, forward) {
-    print('focusNextItemInFocusChain: ' + nextItem.objectName + ', forward: ' + forward)
+    // print('focusNextItemInFocusChain: ' + nextItem.objectName + ', forward: ' + forward)
     for(var i=0; i < 100; i++) {
         if(nextItem.visible && nextItem.enabled)  {
-            print('    FOUND nextItemInFocusChain: ' + nextItem.objectName)
+            // print('    FOUND nextItemInFocusChain: ' + nextItem.objectName)
             break;
         }
         nextItem = nextItem.nextItemInFocusChain(forward)
-        print('    SKIP nextItemInFocusChain: ' + nextItem.objectName)
+        // print('    SKIP nextItemInFocusChain: ' + nextItem.objectName)
     }
     if(nextItem.visible && nextItem.enabled) {
-        print('focusNextItemInFocusChain: forceActiveFocus() on ' + nextItem.objectName)
+        // print('focusNextItemInFocusChain: forceActiveFocus() on ' + nextItem.objectName)
         nextItem.forceActiveFocus()
     } else {
-        print('focusNextItemInFocusChain: could not find next tab focus item')
+        // print('focusNextItemInFocusChain: could not find next tab focus item')
     }
 }
 

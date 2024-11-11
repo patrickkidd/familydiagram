@@ -2,6 +2,7 @@
 v2.0.0
 =============================================================================
 
+- Event properties layout is (still?) broken?
 - remove add event|emotion dialogs?
   - might speed up load time
 - Speed up mainwindow tests. Need account login and everything?

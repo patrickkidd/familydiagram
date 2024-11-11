@@ -224,12 +224,14 @@ class GraphicalTimeline(QScrollArea):
 
     def onCanvasMouseButtonClicked(self, pos):
         if self.scene:
-            firstEvent, lastEvent = self.canvas.firstAndLast(events=self.canvas._events)
+            firstDateTime, lastDateTime = self.canvas.dateTimeRange(
+                events=self.canvas._events
+            )
             dateTime = self.canvas._dateTimeForPoint(pos)
-            if dateTime > lastEvent.dateTime():
-                dateTime = lastEvent.dateTime()
-            elif dateTime < firstEvent.dateTime():
-                dateTime = firstEvent.dateTime()
+            if dateTime > lastDateTime:
+                dateTime = lastDateTime
+            elif dateTime < firstDateTime:
+                dateTime = firstDateTime
             self.scene.setCurrentDateTime(dateTime)
 
     def onPrint(self):

@@ -76,52 +76,42 @@ class GraphicalTimelineCanvas(QWidget):
             if self.paintSullivanianTime():
                 self._dayRange = 0  # take from tag with greatest day range
             elif self._events:
-                firstEvent, lastEvent = self.firstAndLast(events=self._events)
-                self._dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+                firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+                self._dayRange = firstDateTime.daysTo(lastDateTime)
             else:
                 self._dayRange = 0
             # init rows
             for tag in self._searchModel.tags:
                 thisTagEvents = [e for e in self._events if e.hasTags([tag])]
-                if not self.paintSullivanianTime():
-                    if thisTagEvents and thisTagEvents[0] != firstEvent:
-                        thisTagEvents = [firstEvent] + thisTagEvents
-                        hideFirstEvent = True
-                    else:
-                        hideFirstEvent = False
-                else:
-                    hideFirstEvent = False
-                self._rows.append((tag, thisTagEvents, hideFirstEvent))
+                self._rows.append((tag, thisTagEvents))
                 if self.paintSullivanianTime():
-                    firstEvent, lastEvent = self.firstAndLast(events=thisTagEvents)
-                    if firstEvent and lastEvent:  # empty events?
-                        _dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+                    firstDateTime, lastDateTime = self.dateTimeRange(
+                        events=thisTagEvents
+                    )
+                    if firstDateTime and lastDateTime:  # empty events?
+                        _dayRange = firstDateTime.daysTo(lastDateTime)
                         if _dayRange > self._dayRange:
                             self._dayRange = _dayRange
         self.update()
 
-    def firstAndLast(self, events=None):  # should be sorted
+    def dateTimeRange(self, events=None):  # should be sorted
         if self._searchModel.startDateTime:
-            firstE = objects.Event(
-                dateTime=self._searchModel.startDateTime, uniqueId="search_dummy"
-            )
+            first = self._searchModel.startDateTime
         else:
-            firstE = None
+            first = None
             for event in events:
                 if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    firstE = event
+                    first = event.dateTime()
                     break
         if self._searchModel.endDateTime:
-            lastE = objects.Event(
-                dateTime=self._searchModel.endDateTime, uniqueId="search_dummy"
-            )
+            last = self._searchModel.endDateTime
         else:
-            lastE = None
+            last = None
             for event in reversed(events):
                 if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    lastE = event
+                    last = event.dateTime()
                     break
-        return firstE, lastE
+        return first, last
 
     ## Qt Events
 
@@ -191,19 +181,18 @@ class GraphicalTimelineCanvas(QWidget):
                     painter.setFont(self.labelFont)
                     bottomY -= self.MARGIN
                     # tag labels
-                    for i, (tag, tagEvents, hideFirstEvent) in enumerate(self._rows):
+                    for i, (tag, tagEvents) in enumerate(self._rows):
                         y = bottomY - (i * rowHeight) - 10
                         painter.drawText(-self.x() + self.MARGIN, int(y), tag)
 
                 # event rows
-                for i, (tag, tagEvents, hideFirstEvent) in enumerate(self._rows):
+                for i, (tag, tagEvents) in enumerate(self._rows):
                     self._drawRow(
                         painter,
                         clipRect,
                         bottomY - (i * rowHeight) - 30,
                         tagEvents,
                         dayRange=self._dayRange,
-                        hideFirstEvent=hideFirstEvent,
                     )
             else:
                 if self.isSlider():
@@ -238,12 +227,12 @@ class GraphicalTimelineCanvas(QWidget):
 
     def _dateTimeForPoint(self, pos):
         """assuming is slider."""
-        firstEvent, lastEvent = self.firstAndLast(events=self._events)
-        if not firstEvent or not lastEvent:
+        firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+        if not firstDateTime or not lastDateTime:
             return QDateTime()
-        dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+        dayRange = firstDateTime.daysTo(lastDateTime)
         if dayRange == 0:
-            return firstEvent.dateTime()
+            return firstDateTime
         firstP = QPointF(self.MARGIN, 0)
         if self.isSlider():
             lastP = QPointF(self.width() - self.MARGIN, 0)
@@ -251,7 +240,7 @@ class GraphicalTimelineCanvas(QWidget):
             lastP = QPointF(self.width() - self.RIGHT_MARGIN, 0)
         dayPx = (lastP.x() - firstP.x()) / dayRange
         daysAfterFirst = round((pos.x() - firstP.x()) / dayPx)
-        newDateTime = QDateTime(firstEvent.dateTime()).addDays(daysAfterFirst)
+        newDateTime = QDateTime(firstDateTime).addDays(daysAfterFirst)
         return newDateTime
 
     def _drawCurrentDateTimeIndicator(self, painter, x, y):
@@ -267,8 +256,8 @@ class GraphicalTimelineCanvas(QWidget):
         if upperLeft:
             x, y = upperLeft.x(), upperLeft.y()
         if upperLeft is None and self.isSlider():
-            firstEvent, lastEvent = self.firstAndLast(events=self._events)
-            dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+            firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+            dayRange = firstDateTime.daysTo(lastDateTime)
             if dayRange == 0:
                 dayRange = 1
             y = self.height()
@@ -277,9 +266,7 @@ class GraphicalTimelineCanvas(QWidget):
             firstR = QRectF(0, 0, self.W, self.W)
             firstR.moveCenter(firstP)
             dayPx = (lastP.x() - firstP.x()) / dayRange
-            currentX = (
-                firstEvent.dateTime().daysTo(self.scene.currentDateTime()) * dayPx
-            )
+            currentX = firstDateTime.daysTo(self.scene.currentDateTime()) * dayPx
             x = firstR.x() + currentX
         return QRectF(
             x,
@@ -288,9 +275,7 @@ class GraphicalTimelineCanvas(QWidget):
             util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
         )
 
-    def _drawRow(
-        self, painter, clipRect, bottomY, events, dayRange=None, hideFirstEvent=False
-    ):
+    def _drawRow(self, painter, clipRect, bottomY, events, dayRange=None):
         """Draw a single row for a tag. `y` is bottom left."""
         if self.isSlider():
             y = bottomY
@@ -302,30 +287,24 @@ class GraphicalTimelineCanvas(QWidget):
         else:
             lastP = QPointF(self.width() - self.RIGHT_MARGIN, y)
         if events:  # empty events?
-            firstEvent, lastEvent = self.firstAndLast(events=events)
+            firstDateTime, lastDateTime = self.dateTimeRange(events=events)
             if dayRange is None:
-                dayRange = firstEvent.dateTime().daysTo(lastEvent.dateTime())
+                dayRange = firstDateTime.daysTo(lastDateTime)
             if dayRange == 0:
                 dayRange = 1
             firstR = QRectF(0, 0, self.W, self.W)
             firstR.moveCenter(firstP)
             dayPx = (lastP.x() - firstP.x()) / dayRange
-            if firstEvent not in events:
-                events.insert(0, firstEvent)
-            if lastEvent not in events:
-                events.append(lastEvent)
 
         isSullivanianTime = self.paintSullivanianTime()  # cache
 
         # current date marker
         if events and not self.paintSullivanianTime():
-            currentX = (
-                firstEvent.dateTime().daysTo(self.scene.currentDateTime()) * dayPx
-            )
+            currentX = firstDateTime.daysTo(self.scene.currentDateTime()) * dayPx
             self._drawCurrentDateTimeIndicator(painter, firstR.x() + currentX, y)
 
         def xForDateTime(d):
-            nDays = firstEvent.dateTime().daysTo(d)
+            nDays = firstDateTime.daysTo(d)
             return firstP.x() + (nDays * dayPx)
 
         # timeline
@@ -345,7 +324,7 @@ class GraphicalTimelineCanvas(QWidget):
                     dayOffset = 0
                 else:
                     minDay = QDateTime(QDate(1, 1, 1)).daysTo(
-                        firstEvent.dateTime()
+                        firstDateTime
                     )  # QDate(0, 0, 0) is invalid
                     maxDay = minDay + dayRange
                     minDate = QDateTime(QDate(1, 1, 1)).addDays(minDay)
@@ -382,11 +361,6 @@ class GraphicalTimelineCanvas(QWidget):
         if not events:
             return
 
-        if hideFirstEvent:
-            paintedEvents = events[1:]
-        else:
-            paintedEvents = events
-
         # ellipses
         with util.painter_state(painter):
             deemphAlpha = 100
@@ -408,9 +382,9 @@ class GraphicalTimelineCanvas(QWidget):
             nodalPen = QPen()
             nodalPen.setColor(deemphColor)
             # nodalPen.setWidthF(normalPen.widthF() * 2)
-            for event in paintedEvents:
+            for event in events:
                 if event.dateTime() and event.dateTime() != QDate(QDate(1, 1, 1)):
-                    days = firstEvent.dateTime().daysTo(event.dateTime())
+                    days = firstDateTime.daysTo(event.dateTime())
                     x = dayPx * days
                     if x > clipRect.x() + clipRect.width():
                         continue
@@ -421,10 +395,7 @@ class GraphicalTimelineCanvas(QWidget):
                         painter.setPen(nodalPen)
                         painter.setBrush(nodalBrush)
                         painter.drawEllipse(rect.marginsAdded(QMarginsF(w, w, w, w)))
-                    elif (
-                        event.uniqueId() == "search_dummy"
-                        or self.scene.itemShownOnDiagram(event)
-                    ):
+                    elif self.scene.itemShownOnDiagram(event):
                         # print('    NORMAL', event.dateTime().year(), normalPen.color().name(), normalPen.color().alpha())
                         painter.setPen(normalPen)
                         painter.setBrush(normalBrush)
@@ -444,9 +415,9 @@ class GraphicalTimelineCanvas(QWidget):
             prevDays = None
             prevX = None
             nDupes = 0
-            for event in paintedEvents:
+            for event in events:
                 if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    days = firstEvent.dateTime().daysTo(event.dateTime())
+                    days = firstDateTime.daysTo(event.dateTime())
                     if days == prevDays:
                         nDupes += 1
                     else:
@@ -477,9 +448,7 @@ class GraphicalTimelineCanvas(QWidget):
                         s = ""
                     else:
                         s = util.dateString(event.dateTime())
-                    if event.uniqueId() == "search_dummy":
-                        pass
-                    elif event.parent != self.scene:
+                    if event.parent != self.scene:
                         s += ": %s, %s" % (
                             event.description(),
                             event.parentName() is not None
