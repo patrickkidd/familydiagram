@@ -3,6 +3,7 @@ from . import util, commands, qmlutil, qmlvedana
 
 from pkdiagram.models import (
     SceneModel,
+    CategoriesModel,
     SearchModel,
     TimelineModel,
     PeopleModel,
@@ -52,6 +53,8 @@ class QmlEngine(QQmlEngine):
 
         self.peopleModel = PeopleModel(self)
 
+        self.categoriesModel = CategoriesModel(self)
+
         self.accessRightsModel = AccessRightsModel(self)
         self.accessRightsModel.setSession(self.session)
 
@@ -63,6 +66,7 @@ class QmlEngine(QQmlEngine):
         self.rootContext().setContextProperty("sceneModel", self.sceneModel)
         self.rootContext().setContextProperty("searchModel", self.searchModel)
         self.rootContext().setContextProperty("timelineModel", self.timelineModel)
+        self.rootContext().setContextProperty("categoriesModel", self.categoriesModel)
         self.rootContext().setContextProperty("peopleModel", self.peopleModel)
         self.rootContext().setContextProperty(
             "accessRightsModel", self.accessRightsModel
