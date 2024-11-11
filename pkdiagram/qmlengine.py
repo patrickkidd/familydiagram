@@ -85,6 +85,7 @@ class QmlEngine(QQmlEngine):
         self.peopleModel.scene = scene
         self.accessRightsModel.scene = scene
         self.searchModel.scene = scene
+        self.categoriesModel.scene = scene
 
     def setServerDiagram(self, diagram):
         self.sceneModel.setServerDiagram(diagram)

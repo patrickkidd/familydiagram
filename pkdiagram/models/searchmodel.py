@@ -12,8 +12,6 @@ _log = logging.getLogger(__name__)
 class SearchModel(QObject, QObjectHelper):
     """Just a Scene-global placeholder for a bunch of properties."""
 
-    # PRINT_EMITS = True
-
     changed = pyqtSignal()
 
     PROPERTIES = ModelHelper.registerQtProperties(
@@ -33,21 +31,17 @@ class SearchModel(QObject, QObjectHelper):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        if util.isInstance(parent, "Scene"):
-            self._scene = parent
-        else:
-            self._scene = None
-        self.initQObjectHelper(storage=True)
-        self.categoryChanged.connect(self.onChanged)
-        self.descriptionChanged.connect(self.onChanged)
-        self.endDateTimeChanged.connect(self.onChanged)
-        self.hideRelationshipsChanged.connect(self.onChanged)
-        self.loggedStartDateTimeChanged.connect(self.onChanged)
-        self.loggedEndDateTimeChanged.connect(self.onChanged)
-        self.startDateTimeChanged.connect(self.onChanged)
-        self.nodalChanged.connect(self.onChanged)
-        self.tagsChanged.connect(self.onChanged)
         self._initializing = True
+        self.initQObjectHelper(storage=True)
+        # self.categoryChanged.connect(self.onChanged)
+        # self.descriptionChanged.connect(self.onChanged)
+        # self.endDateTimeChanged.connect(self.onChanged)
+        # self.hideRelationshipsChanged.connect(self.onChanged)
+        # self.loggedStartDateTimeChanged.connect(self.onChanged)
+        # self.loggedEndDateTimeChanged.connect(self.onChanged)
+        # self.startDateTimeChanged.connect(self.onChanged)
+        # self.nodalChanged.connect(self.onChanged)
+        # self.tagsChanged.connect(self.onChanged)
         self.initQObjectHelper(storage=True)
         self._initializing = False
 
@@ -63,10 +57,6 @@ class SearchModel(QObject, QObjectHelper):
         self.reset("nodal")
         self.reset("tags")
         self.reset("hideRelationships")
-
-    @property
-    def scene(self):
-        return self._scene
 
     def get(self, attr):
         if attr == "isBlank":

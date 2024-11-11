@@ -66,14 +66,13 @@ class AddAnythingDialog(QmlDrawer):
     S_ADD_MANY_SYMBOLS = "Are you sure you want to create {numSymbols} symbols, with a separate symbol between each mover and each receiver listed?"
     S_PICKER_NEW_PERSON_NOT_SUBMITTED = "You have entered a name for a new person in the '{pickerLabel}' field, but have not pressed enter yet."
 
-    def __init__(self, engine, parent=None, **contextProperties):
+    def __init__(self, engine, parent=None):
         super().__init__(
             engine,
             "qml/AddAnythingDialog.qml",
             parent=parent,
             resizable=False,
             objectName="addEverythingDialog",
-            **contextProperties,
         )
         self._returnTo = None
         self._canceled = False

@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram import Scene
 from pkdiagram.objects import Layer, Person, Event, Callout
-from pkdiagram.models import CategoriesModel
+from pkdiagram.models import CategoriesModel, SearchModel
 from pkdiagram.pyqt import Qt
 
 
@@ -14,7 +14,9 @@ def _init(qApp):
 @pytest.fixture
 def model():
     scene = Scene()
-    yield scene.categoriesModel
+    categoriesModel = CategoriesModel()
+    categoriesModel.scene = scene
+    yield categoriesModel
 
 
 def test_add_category(model):
@@ -155,18 +157,25 @@ def test_delete_category_layer_from_scene(model):
 def test_set_category_active_when_tag_is_already_active(model):
     NAME = model.NEW_NAME_TMPL % 1
 
+    searchModel = SearchModel()
+    searchModel.scene = model.scene
+
     model.addRow()
-    model.scene.searchModel.setTags([NAME])
+    searchModel.setTags([NAME])
     model.setData(model.index(0), Qt.CheckState.Checked, model.ActiveRole)
     assert model.data(model.index(0), model.ActiveRole) == Qt.CheckState.Checked
-    assert model.scene.searchModel.tags == [NAME]
+    assert searchModel.tags == [NAME]
 
 
 def test_set_category_active_when_layer_is_already_active(model):
     NAME = model.NEW_NAME_TMPL % 1
 
+    searchModel = SearchModel()
+    searchModel.scene = model.scene
+
     model.addRow()
     model.scene.addItem(Layer(name=NAME))
     model.setData(model.index(0), Qt.CheckState.Checked, model.ActiveRole)
     assert model.data(model.index(0), model.ActiveRole) == Qt.CheckState.Checked
-    assert model.scene.searchModel.tags == [NAME]
+    assert model.scene.layers()[0].active() == True
+    assert searchModel.tags == [NAME]

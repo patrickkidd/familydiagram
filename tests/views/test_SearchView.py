@@ -71,8 +71,8 @@ def tst(qtbot, tst_stuff, qmlEngine):
     scene = Scene()
     scene.setTags([TAG_1, TAG_2, TAG_3])
     scene.addItems(*tst_stuff)
-    qmlEngine.categoriesModel.addRow()
     qmlEngine.setScene(scene)
+    qmlEngine.categoriesModel.addRow()
     w = SearchViewTest(qmlEngine)
     w.resize(600, 800)
     w.show()
@@ -196,7 +196,6 @@ def test_clear(tst, model):
 
 def test_description(tst, tst_stuff):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
     model = tst.rootProp("model")
     tst.keyClicks("descriptionEdit", "item1")
     assert model.shouldHide(event1) == False
@@ -207,7 +206,6 @@ def test_description(tst, tst_stuff):
 def test_loggedStartDateTime(tst, tst_stuff):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
     model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
     # before first date
     tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2000")
@@ -242,7 +240,6 @@ def test_loggedStartDateTime(tst, tst_stuff):
 def test_loggedEndDateTime(tst, tst_stuff):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
     model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
 
     # after last date
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/12/2000")
@@ -274,10 +271,9 @@ def test_loggedEndDateTime(tst, tst_stuff):
     assert model.shouldHide(event3) == False
 
 
-def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff):
+def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff, qmlEngine):
     inside, inside_2, outside, event1, event2, event3 = tst_stuff
-    model = tst.rootProp("model")
-    timelineModel = tst.rootProp("sceneModel").scene.timelineModel
+    model = qmlEngine.searchModel
 
     # same as first date
     tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/10/2000")

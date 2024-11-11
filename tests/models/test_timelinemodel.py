@@ -205,7 +205,8 @@ def test_init_multiple_people():
 
 def test_access_data_after_deinit():
     scene = Scene()
-    model = scene.timelineModel
+    model = TimelineModel()
+    model.scene = scene
     personA, personB = Person(name="A"), Person(name="B")
     pairBond = Marriage(personA=personA, personB=personB)
     Event(parent=pairBond, description="Married", dateTime=util.Date(2000, 1, 1))

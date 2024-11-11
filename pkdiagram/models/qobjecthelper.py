@@ -25,7 +25,6 @@ CLASS_PROPERTIES = {}
 class QObjectHelper:
     """Add QObject properties via python dict."""
 
-    PRINT_EMITS = False
     DEBUG = True
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
@@ -222,8 +221,6 @@ class QObjectHelper:
         """Provides a way to capture signal emissions in a specific subclass
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
-        if self.PRINT_EMITS:
-            _log.info(f"{attr}Changed({x})")
         getattr(self, attr + "Changed").emit(x)
         self.onQObjectHelperPropertyChanged(attr, x)
 

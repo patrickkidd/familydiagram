@@ -50,10 +50,6 @@ class QmlWidgetHelper(QObjectHelper):
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        #
-        for attr, value in self._contextProperties.items():
-            self.qml.rootContext().setContextProperty(attr, value)
-        #
         if self.layout() is None:
             raise RuntimeError(
                 "A layout must be added to a QmlWidgetHelper prior to calling initQml()"
@@ -63,25 +59,6 @@ class QmlWidgetHelper(QObjectHelper):
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
         self.qml.setSource(fpath)
-        for attr, value in self._contextProperties.items():
-            if attr == "session":
-                self.session = value
-            elif attr == "sceneModel":
-                self.sceneModel = value
-
-                # capture changes in sceneModel attrs, e.g. sceneModel.peopleModel
-                def makeOnPropChanged(attr):
-                    def _onPropChanged():
-                        value = getattr(self.sceneModel, attr)
-                        self.qml.rootObject().setProperty(attr, value)
-
-                    return _onPropChanged
-
-                for attr in ["timelineModel", "peopleModel", "searchModel"]:
-                    _set = makeOnPropChanged(attr)
-                    getattr(self.sceneModel, f"{attr}Changed").connect(_set)
-                    _set()
-
         if self.qml.status() == QQuickWidget.Error:
             if util.IS_TEST:
                 for error in self.qml.errors():

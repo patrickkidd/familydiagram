@@ -353,17 +353,17 @@ Page {
                             categoryBox.currentIndex = -1
                         }
 
-                        Connections {
-                            target: root.model
-                            function onCategoryChanged() {
-                                var row = categoriesModel.rowForCategory(root.category)
-                                if(categoryBox.currentIndex != row) {
-                                    print('>>> Connections.onCategoryChanged root.category: ' + root.category + ', row: ' + row)
-                                    categoryBox.currentIndex = row
-                                    print('<<< Connections.onCategoryChanged[root.model] categoryBox.currentIndex: ' + categoryBox.currentIndex)
-                                }
-                            }
-                        }
+                        // Connections {
+                        //     target: root.model
+                        //     function onCategoryChanged() {
+                        //         var row = categoriesModel.rowForCategory(root.category)
+                        //         if(categoryBox.currentIndex != row) {
+                        //             print('>>> Connections.onCategoryChanged root.category: ' + root.category + ', row: ' + row)
+                        //             categoryBox.currentIndex = row
+                        //             print('<<< Connections.onCategoryChanged[root.model] categoryBox.currentIndex: ' + categoryBox.currentIndex)
+                        //         }
+                        //     }
+                        // }
 
                     }
 

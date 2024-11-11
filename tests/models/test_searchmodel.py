@@ -4,7 +4,7 @@ import pytest
 
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, Scene, Person, Event, Layer, Emotion
-from pkdiagram.models import TimelineModel, SearchModel
+from pkdiagram.models import TimelineModel, SearchModel, CategoriesModel
 
 
 pytestmark = [
@@ -17,9 +17,23 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def model():
+def searchModel():
+    searchModel = SearchModel()
+    return searchModel
+
+
+@pytest.fixture
+def categoriesModel():
+    categoriesModel = CategoriesModel()
+    return categoriesModel
+
+
+@pytest.fixture
+def model(searchModel, categoriesModel):
     scene = Scene()
-    category = scene.categoriesModel.addRow()
+    categoriesModel.scene = scene
+    category = categoriesModel.addRow()
+    searchModel.scene = scene
     layer = scene.layers()[0]
     inside = Person(name="Inside")
     inside_2 = Person(name="Inside 2")
@@ -43,8 +57,8 @@ def model():
     scene.addItems(inside, inside_2, outside)
     inside.setLayers([layer.id])
     inside_2.setLayers([layer.id])
-    scene.searchModel.items = [inside]
-    return scene.searchModel, event1, event2, event3
+    searchModel.items = [inside]
+    return searchModel, event1, event2, event3
 
 
 def test_isBlank_separate(model):
@@ -303,24 +317,24 @@ def test_loggedEndDateTime_emotions(emotionModel):
     assert model.shouldHide(endEvent) == False
 
 
-def test_category(model):
+def test_category(model, searchModel, categoriesModel):
     model, event1, event2, event3 = model
     scene = model.scene
     inside = scene.query1(type=Person, name="Inside")
     inside_2 = scene.query1(type=Person, name="Inside 2")
     outside = scene.query1(type=Person, name="Outside")
-    category = scene.categoriesModel.data(scene.categoriesModel.index(0, 0))
-    assert scene.searchModel.shouldHide(event1) == False
-    assert scene.searchModel.shouldHide(event2) == False
-    assert scene.searchModel.shouldHide(event3) == False
+    category = categoriesModel.data(categoriesModel.index(0, 0))
+    assert searchModel.shouldHide(event1) == False
+    assert searchModel.shouldHide(event2) == False
+    assert searchModel.shouldHide(event3) == False
     assert inside.shouldShowRightNow() == True
     assert inside_2.shouldShowRightNow() == True
     assert outside.shouldShowRightNow() == True
 
-    scene.searchModel.category = category
-    assert scene.searchModel.shouldHide(event1) == False
-    assert scene.searchModel.shouldHide(event2) == True
-    assert scene.searchModel.shouldHide(event3) == True
+    searchModel.category = category
+    assert searchModel.shouldHide(event1) == False
+    assert searchModel.shouldHide(event2) == True
+    assert searchModel.shouldHide(event3) == True
     assert inside.shouldShowRightNow() == True
     assert inside_2.shouldShowRightNow() == True
     assert outside.shouldShowRightNow() == False
