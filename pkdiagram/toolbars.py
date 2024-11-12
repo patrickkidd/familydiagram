@@ -890,18 +890,4 @@ class RightToolBar(ToolBar):
                 action=self.ui.actionDelete,
                 helpPixmap="delete-item.png",
             ),
-            # ('addEventButton', {
-            #     'path': 'add-event-button.png',
-            #     'action': self.ui.actionAdd_Event,
-            #     'help-tip': {
-            #         'pixmap': 'add-event.png',
-            #     }
-            # }),
-            # ('addEmotionButton', {
-            #     'path': 'add-emotion-button.png',
-            #     'action': self.ui.actionAdd_Relationship,
-            #     'help-tip': {
-            #         'pixmap': 'add-relationship.png',
-            #     }
-            # }),
         )

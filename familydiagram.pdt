@@ -31,16 +31,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "addemotiondialog.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "addeventdialog.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
 name = "analytics.py"
 included = true
 is_directory = false
