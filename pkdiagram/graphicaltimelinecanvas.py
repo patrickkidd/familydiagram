@@ -52,6 +52,7 @@ class GraphicalTimelineCanvas(QWidget):
         self._searchModel = searchModel
         self._timelineModel = timelineModel
         self._selectionModel = selectionModel
+        self._isSelectingEvents = False
         self._events = SortedList()
         # A list for quick lookup, events can be listed more than once in
         # sullivanian time.
@@ -164,14 +165,20 @@ class GraphicalTimelineCanvas(QWidget):
             index = self._timelineModel.index(row, 0)
             selection.select(index, index)
             rows.append(row)
+        self._isSelectingEvents = True
         if len(selection) > 0:
             self._selectionModel.select(
                 selection,
-                QItemSelectionModel.SelectionFlag.Select
+                QItemSelectionModel.SelectionFlag.Clear
+                | QItemSelectionModel.SelectionFlag.Select
                 | QItemSelectionModel.SelectionFlag.Rows,
             )
         else:
             self._selectionModel.clearSelection()
+        self._isSelectingEvents = False
+
+    def isSelectingEvents(self) -> bool:
+        return self._isSelectingEvents
 
     ## Qt Events
 
@@ -466,10 +473,9 @@ class GraphicalTimelineCanvas(QWidget):
             nodalPen.setColor(deemphColor)
             #
             selectedColor = QColor(util.SELECTION_COLOR)
-            selectedColor.setAlpha(deemphAlpha)
-            selectedBrush = QBrush(selectedColor)
             selectedPen = QPen()
             selectedPen.setColor(selectedColor)
+            selectedBrush = QBrush(selectedColor)
             # nodalPen.setWidthF(normalPen.widthF() * 2)
             for event in events:
                 if event.dateTime() and event.dateTime() != QDate(QDate(1, 1, 1)):
@@ -483,13 +489,11 @@ class GraphicalTimelineCanvas(QWidget):
                         w = self.W * 0.75
                         rect = rect.marginsAdded(QMarginsF(w, w, w, w))
                     # Events can be shown in more than one place
-                    if (
-                        self._rubberBand.isVisible()
-                        and self._rubberBand.geometry().intersects(rect.toRect())
-                    ):
+                    row = self._timelineModel.rowForEvent(event)
+                    if self._selectionModel.isRowSelected(row):
                         painter.setPen(selectedPen)
                         painter.setBrush(selectedBrush)
-                    if event.nodal():
+                    elif event.nodal():
                         # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                         painter.setPen(nodalPen)
                         painter.setBrush(nodalBrush)

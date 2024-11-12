@@ -1,7 +1,5 @@
 import logging
 import bisect
-import pickle
-import shutil
 
 import vedana
 from pkdiagram.pyqt import (
@@ -22,7 +20,7 @@ from pkdiagram.pyqt import (
     QPrinter,
     QPainter,
     QColor,
-    QFileInfo,
+    QItemSelection,
 )
 from pkdiagram import (
     util,
@@ -36,8 +34,6 @@ from pkdiagram import (
     Layer,
     ChildOf,
 )
-from .server_types import Diagram, HTTPError
-from _pkdiagram import FDDocument
 
 if not util.IS_IOS:
     import xlsxwriter
@@ -68,6 +64,10 @@ class DocumentController(QObject):
     def init(self):
         assert self.ui is None
         self.ui = self.dv.ui
+
+        self.dv.timelineSelectionModel.selectionChanged[
+            QItemSelection, QItemSelection
+        ].connect(self.onTimelineSelectionChanged)
 
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
@@ -288,6 +288,23 @@ class DocumentController(QObject):
                 action.setChecked(on)
         self.scene.setActiveTags(tags)
         self._isUpdatingSearchTags = False
+
+    def onTimelineSelectionChanged(
+        self, selected: QItemSelection, deselected: QItemSelection
+    ):
+        if not self.dv.graphicalTimelineView.timeline.canvas.isSelectingEvents():
+            return
+        selectedRows = list(set([index.row() for index in selected.indexes()]))
+        deselectedRows = list(set([index.row() for index in deselected.indexes()]))
+        if selectedRows:
+            rows = selectedRows
+        elif deselectedRows:
+            rows = deselectedRows
+        else:
+            rows = None
+        if rows:
+            lastChangedDateTime = self.dv.timelineModel.dateTimeForRow(rows[-1])
+            self.dv.caseProps.scrollTimelineToDateTime(lastChangedDateTime)
 
     def onTagToggled(self, on):
         if self._isUpdatingSearchTags:

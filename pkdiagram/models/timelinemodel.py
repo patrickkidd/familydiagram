@@ -549,7 +549,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def flags(self, index):
         ret = 0
-        event = self._events[index.row()]
+        try:
+            event = self._events[index.row()]
+        except IndexError:
+            return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
             pass
         elif self.isColumn(index, label=self.BUDDIES):
