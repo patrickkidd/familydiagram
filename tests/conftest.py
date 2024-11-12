@@ -4,7 +4,7 @@ import contextlib
 import logging
 import enum
 import contextlib
-from typing import Callable
+from typing import Callable, Optional
 
 # third-party
 import pytest, mock
@@ -68,6 +68,12 @@ _currentTestItem = None
 
 def pytest_addoption(parser):
     parser.addoption(
+        "--disable-watchdog",
+        action="store_true",
+        default=False,
+        help="Disable Qt watchdog for kill hung tests.",
+    )
+    parser.addoption(
         "--disable-dependencies",
         action="store_true",
         default=False,
@@ -76,11 +82,12 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
 
 
-def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+# def pytest_generate_tests(metafunc):
+#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -288,7 +295,7 @@ def watchdog(request, qApp):
 
     NO_QT = "no_gui" in [m.name for m in request.node.iter_markers()]
 
-    if not NO_QT:
+    if not NO_QT and not util.IS_DEBUGGER and not request.config.watchdog_disabled:
 
         class Watchdog:
 
@@ -321,20 +328,18 @@ def watchdog(request, qApp):
 
         watchdog = Watchdog()
         watchdogTimer = QTimer(qApp)
-
-        if not util.IS_DEBUGGER:
-            # Only in debugger
-            watchdogTimer.setInterval(watchdog.TIMEOUT_MS)
-            watchdogTimer.timeout.connect(watchdog.kill)
-            watchdogTimer.start()
-            log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
+        watchdogTimer.setInterval(watchdog.TIMEOUT_MS)
+        watchdogTimer.timeout.connect(watchdog.kill)
+        watchdogTimer.start()
+        log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
 
     else:
+        log.warning("Qt hung test watchdog disabled.")
         watchdog = None
 
     yield watchdog
 
-    if not NO_QT:
+    if watchdog:
         watchdogTimer.stop()
         if watchdog.killed() and not watchdog.cancelled():
             pytest.fail(f"Watchdog triggered after {watchdog.TIMEOUT_MS}ms.")
@@ -502,6 +507,22 @@ class PKQtBot(QtBot):
         if self.DEBUG:
             log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
         return super().mouseDClick(*args, **kwargs)
+
+    @staticmethod
+    def mouseMove(
+        windowOrWidget: Optional[QWindow | QWidget], pos=None, modifiers=None, delay=-1
+    ):
+        pos = windowOrWidget.rect().center() if pos is None else pos
+        modifiers = Qt.NoModifier if modifiers is None else modifiers
+        event = QMouseEvent(
+            QEvent.Type.MouseMove,
+            pos,
+            Qt.NoButton,
+            Qt.NoButton,
+            modifiers,
+        )
+        QApplication.instance().sendEvent(windowOrWidget, event)
+        # QtBot.mouseMove(windowOrWidget, pos, delay)
 
     def qWait(self, ms):
         QTest.qWait(ms)

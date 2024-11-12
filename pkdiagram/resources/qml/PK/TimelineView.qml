@@ -49,6 +49,7 @@ ColumnLayout {
         onSelectionChanged: {
             var selectedEvents = []
             var selectedRows = selectionModel.selectedRows(1)
+            print(selectedRows)
             for(var i=0; i < selectedRows.length; i++) {
                 var row = selectedRows[i].row
                 var event = model.eventForRow(row)

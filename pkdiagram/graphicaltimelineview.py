@@ -6,6 +6,7 @@ from .pyqt import (
     Qt,
     QPoint,
     QVariantAnimation,
+    QItemSelectionModel,
     QFrame,
     pyqtSignal,
     QApplication,
@@ -13,6 +14,7 @@ from .pyqt import (
     QColor,
 )
 from . import util, widgets, objects
+from .objects import Event
 from .graphicaltimeline import GraphicalTimeline
 
 
@@ -46,12 +48,23 @@ class GraphicalTimelineView(QFrame):
     expandedChanged = pyqtSignal(bool)
     dateTimeClicked = pyqtSignal(QDateTime)
 
-    def __init__(self, searchModel, timelineModel, parent=None):
+    def __init__(
+        self,
+        searchModel,
+        timelineModel,
+        selectionModel: QItemSelectionModel,
+        parent=None,
+    ):
         super().__init__(parent)
         self.scene = None
         self.documentView = parent if util.isInstance(parent, "DocumentView") else None
+        self.searchModel = searchModel
+        self.timelineModel = timelineModel
+        self.selectionModel = selectionModel
 
-        self.timeline = GraphicalTimeline(searchModel, timelineModel, self)
+        self.timeline = GraphicalTimeline(
+            searchModel, timelineModel, selectionModel, self
+        )
         self.timeline.setStyleSheet("background-color: transparent")
         self.timeline.canvas.setStyleSheet("background-color: transparent")
         self.lastScaleFactor = self.timeline.scaleFactor

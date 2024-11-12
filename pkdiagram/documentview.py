@@ -87,39 +87,6 @@ class DocumentView(QWidget):
         self.view = View(self, parent.ui)
         self.view.escape.connect(self.onEscape)
 
-        # This one shows/hides it all together.
-        # The timeline itself manages expansion/contraction
-        self.graphicalTimelineShim = QWidget(
-            self
-        )  # allow hiding with blind effect without changing height of GTL'
-        self.graphicalTimelineShim.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Fixed
-        )
-        self.graphicalTimelineShim.setObjectName("graphicalTimelineShim")
-        self.graphicalTimelineShim.setFixedHeight(0)
-        # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
-        self.graphicalTimelineView = GraphicalTimelineView(
-            self.searchModel, self.timelineModel, self
-        )
-        self.graphicalTimelineView.expandedChanged.connect(
-            self.graphicalTimelineExpanded
-        )
-        self.graphicalTimelineView.searchButton.clicked.connect(
-            self.ui.actionShow_Search.trigger
-        )
-        self.graphicalTimelineAnimation = QVariantAnimation(self)
-        self.graphicalTimelineAnimation.setDuration(util.ANIM_DURATION_MS)
-        self.graphicalTimelineAnimation.setEasingCurve(util.ANIM_EASING)
-        self.graphicalTimelineAnimation.valueChanged.connect(
-            self.onShowGraphicalTimelineTick
-        )
-        self.graphicalTimelineAnimation.finished.connect(
-            self.onShowGraphicalTimelineFinished
-        )
-
-        self.graphicalTimelineCallout = TimelineCallout(self)
-        self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
-
         from pkdiagram.documentcontroller import DocumentController
 
         self.controller = DocumentController(self)
@@ -152,8 +119,10 @@ class DocumentView(QWidget):
             "qml/CaseProperties.qml",
             parent=self,
             objectName="caseProps",
-            # **contextProperties,
         )
+        self.timelineSelectionModel = self.caseProps.findItem(
+            "caseProps_timelineView"
+        ).property("selectionModel")
         self.caseProps.findItem("stack").currentIndexChanged.connect(
             self.onCasePropsTabChanged
         )
@@ -163,7 +132,6 @@ class DocumentView(QWidget):
             parent=self,
             propSheetModel="personModel",
             objectName="personProps",
-            # **contextProperties,
         )
         self.marriageProps = QmlDrawer(
             self._qmlEngine,
@@ -171,7 +139,6 @@ class DocumentView(QWidget):
             parent=self,
             propSheetModel="marriageModel",
             objectName="marriageProps",
-            # **contextProperties,
         )
         self.emotionProps = QmlDrawer(
             self._qmlEngine,
@@ -180,7 +147,6 @@ class DocumentView(QWidget):
             resizable=False,
             propSheetModel="emotionModel",
             objectName="emotionProps",
-            # **contextProperties,
         )
         self.layerItemProps = QmlDrawer(
             self._qmlEngine,
@@ -188,7 +154,6 @@ class DocumentView(QWidget):
             parent=self,
             propSheetModel="layerItemModel",
             objectName="layerItemProps",
-            # **contextProperties,
             resizable=False,
         )
         #
@@ -215,6 +180,41 @@ class DocumentView(QWidget):
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
             drawer.qmlFocusItemChanged.connect(self.controller.onQmlFocusItemChanged)
         self._forceSceneUpdate = False  # fix for scene update bug
+
+        # This one shows/hides it all together.
+        # The timeline itself manages expansion/contraction
+        self.graphicalTimelineShim = QWidget(
+            self
+        )  # allow hiding with blind effect without changing height of GTL'
+        self.graphicalTimelineShim.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        self.graphicalTimelineShim.setObjectName("graphicalTimelineShim")
+        self.graphicalTimelineShim.setFixedHeight(0)
+        # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
+        self.graphicalTimelineView = GraphicalTimelineView(
+            self.searchModel, self.timelineModel, self.timelineSelectionModel, self
+        )
+        self.graphicalTimelineView.expandedChanged.connect(
+            self.graphicalTimelineExpanded
+        )
+        self.graphicalTimelineView.searchButton.clicked.connect(
+            self.ui.actionShow_Search.trigger
+        )
+        self.graphicalTimelineAnimation = QVariantAnimation(self)
+        self.graphicalTimelineAnimation.setDuration(util.ANIM_DURATION_MS)
+        self.graphicalTimelineAnimation.setEasingCurve(util.ANIM_EASING)
+        self.graphicalTimelineAnimation.valueChanged.connect(
+            self.onShowGraphicalTimelineTick
+        )
+        self.graphicalTimelineAnimation.finished.connect(
+            self.onShowGraphicalTimelineFinished
+        )
+
+        self.graphicalTimelineCallout = TimelineCallout(self)
+        self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
+
+        # Init
 
         self.graphicalTimelineShim.lower()
         self.drawerShim.lower()
