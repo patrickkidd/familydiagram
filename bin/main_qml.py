@@ -315,15 +315,6 @@ def __test__SearchView(scene, parent):
     return w
 
 
-def __test__AddEventDialog(scene, parent):
-    dlg = pkdiagram.AddEventDialog(parent)
-    dlg.setScene(scene)
-    dlg.show(animate=False)
-    parent.show()
-    parent.resize(400, 600)
-    return dlg
-
-
 # from qml_tests import *
 
 

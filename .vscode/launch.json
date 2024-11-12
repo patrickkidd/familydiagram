@@ -276,18 +276,6 @@
             ]
         },
         {
-            "name": "sysroot-dev addemotiondialog (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--module",
-                "addemotiondialog"
-            ]
-        },
-        {
             "name": "sysroot-dev AccountDialog (macOS)",
             "type": "debugpy",
             "request": "launch",
@@ -365,7 +353,7 @@
                 "macos-64",
                 "--build-dir",
                 "build/osx",
-                "familydiagram.pdt"        
+                "familydiagram.pdt"
             ]
         },
         {
@@ -376,7 +364,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "cwd": "${workspaceFolder}/pkdiagram/_pkdiagram"
-        },        
+        },
         {
             "name": "Python: Remote Attach",
             "type": "debugpy",
@@ -410,7 +398,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-//            "--python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
+            //            "--python": "${workspaceFolder}/.direnv/python-3.7.8/bin/python",
             "justMyCode": false
         },
         {
@@ -464,7 +452,7 @@
                 // "QT_LOGGING_RULES": "qt.quick.*=true"
                 // "QT_LOGGING_RULES": "qt.qpa.*=true"
             }
-        },        
+        },
         {
             "name": "(gdb) Attach",
             "type": "cppdbg",
@@ -486,7 +474,12 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/.venv/bin/python",
-            "args": ["-m", "pytest", "-svv", "tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2"],
+            "args": [
+                "-m",
+                "pytest",
+                "-svv",
+                "tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
@@ -538,7 +531,7 @@
             "program": "${file}",
             "--commandLineArguments": "osx"
         },
-         // {
+        // {
         //     "name": "pytest-depends",
         //     "type": "debugpy",
         //     "request": "launch",

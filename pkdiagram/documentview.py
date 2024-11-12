@@ -21,7 +21,6 @@ from .pyqt import (
 )
 from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
-from . import addeventdialog, addemotiondialog
 from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
@@ -199,12 +198,6 @@ class DocumentView(QWidget):
             self.controller.onClearSearch
         )
         self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
-        self.addEventDialog = addeventdialog.AddEventDialog(self._qmlEngine, self)
-        self.addEventDialog.hide(animate=False)
-        self.addEmotionDialog = addemotiondialog.AddEmotionDialog(self._qmlEngine, self)
-        self.addEmotionDialog.hide(animate=False)
-        self.emotionProps.stackUnder(self.addEventDialog)
-        self.emotionProps.stackUnder(self.addEmotionDialog)
         self.personProps.hide(animate=False)
         self.marriageProps.hide(animate=False)
         self.emotionProps.hide(animate=False)
@@ -216,8 +209,6 @@ class DocumentView(QWidget):
             self.marriageProps,
             self.emotionProps,
             self.layerItemProps,
-            self.addEventDialog,
-            self.addEmotionDialog,
         ]
         for drawer in self.drawers:
             drawer.canInspectChanged.connect(self.qmlSelectionChanged.emit)
@@ -242,8 +233,6 @@ class DocumentView(QWidget):
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
         self.addAnythingDialog.deinit()
-        self.addEventDialog.deinit()
-        self.addEmotionDialog.deinit()
         self._qmlEngine.deinit()
 
     def qmlEngine(self):
@@ -273,9 +262,6 @@ class DocumentView(QWidget):
         self.controller.setScene(None)
         if self.scene:
             self.scene.selectionChanged.disconnect(self.onSceneSelectionChanged)
-            self.sceneModel.addEvent[QVariant, QVariant].disconnect(self.onAddEvent)
-            self.sceneModel.addEmotion.disconnect(self.onAddEmotion)
-            self.sceneModel.addEmotion[QVariant].disconnect(self.onAddEmotion)
             self.sceneModel.inspectItem[int].disconnect(
                 self.controller.onInspectItemById
             )
@@ -283,9 +269,6 @@ class DocumentView(QWidget):
         self._qmlEngine.setScene(scene)
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
-            self.sceneModel.addEvent[QVariant, QVariant].connect(self.onAddEvent)
-            self.sceneModel.addEmotion.connect(self.onAddEmotion)
-            self.sceneModel.addEmotion[QVariant].connect(self.onAddEmotion)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
             if self.scene.hideDateSlider() or len(self.scene.events()) == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
@@ -297,8 +280,6 @@ class DocumentView(QWidget):
         self.view.setScene(scene)
         self.addAnythingDialog.setScene(scene)
         self.caseProps.setScene(scene)
-        self.addEventDialog.setScene(scene)
-        self.addEmotionDialog.setScene(scene)
         self.personProps.setScene(scene)
         self.emotionProps.setScene(scene)
         self.layerItemProps.setScene(scene)
@@ -465,10 +446,7 @@ class DocumentView(QWidget):
         elif was is not drawer and was and drawer:  # new drawer
             self.ignoreDrawerAnim = True
             # was.hide(callback=lambda: drawer.show(**kwargs))
-            if not "tab" in kwargs and not drawer in (
-                self.addEventDialog,
-                self.addEmotionDialog,
-            ):
+            if not "tab" in kwargs:
                 kwargs["tab"] = drawer.currentTab()
             was.hide()
             drawer.show(**kwargs)
@@ -523,71 +501,6 @@ class DocumentView(QWidget):
             self.setCurrentDrawer(self.layerItemProps, items=layerItems, tab=tab)
             commands.trackView("Edit layer item")
 
-    def onAddEvent(self, parent=None, rootItem=None):
-        if isinstance(parent, QJSValue):
-            parent = parent.toVariant()[0]
-            if parent.isScene:
-                parent = None
-        if parent and self.currentDrawer:
-            if self.currentDrawer is self.caseProps:
-                returnTo = (self.currentDrawer, None)
-            elif self.currentDrawer.propSheetModel:
-                returnTo = (
-                    self.currentDrawer,
-                    self.currentDrawer.rootProp(
-                        self.currentDrawer.propSheetModel
-                    ).items,
-                )
-        elif not parent and rootItem:
-            returnTo = (self.currentDrawer, None)
-        else:
-            returnTo = None
-
-        if not parent:  # add to current [single] selection
-            selection = self.scene.selectedItems()
-            people = []
-            marriages = []
-            for item in selection:
-                if isinstance(item, Person):
-                    people.append(item)
-                elif isinstance(item, Marriage):
-                    marriages.append(item)
-            if len(people) == 1:
-                parent = people[0]
-            elif len(marriages) == 1:
-                parent = marriages[0]
-        self.setCurrentDrawer(self.addEventDialog, parent=parent, returnTo=returnTo)
-
-    def onAddEmotion(self, parent=None):
-        if parent and self.currentDrawer:
-            if self.currentDrawer is self.caseProps:
-                returnTo = (self.currentDrawer, None)
-            elif self.currentDrawer.propSheetModel:
-                returnTo = (
-                    self.currentDrawer,
-                    self.currentDrawer.rootProp(
-                        self.currentDrawer.propSheetModel
-                    ).items,
-                )
-        else:
-            returnTo = None
-        personA = None
-        personB = None
-        if not util.isInstance(
-            parent, "Scene"
-        ):  # don't init people when scene passed (from TLView)
-            people = self.scene.selectedPeople()
-            if personA is False:
-                personA = None
-            personB = None
-            if not personA and len(people) in [1, 2]:
-                personA = people[0]
-            if not personB and len(people) == 2:
-                personB = people[1]
-        self.setCurrentDrawer(
-            self.addEmotionDialog, personA=personA, personB=personB, returnTo=returnTo
-        )
-
     def onSceneSelectionChanged(self):
         if (
             self.currentDrawer is self.caseProps or self.view.dontInspect
@@ -599,8 +512,7 @@ class DocumentView(QWidget):
         if self.currentDrawer and selection:
             self.inspectSelection(selection)
         elif self.currentDrawer:
-            if not self.currentDrawer in [self.addEventDialog, self.addEmotionDialog]:
-                self.setCurrentDrawer(None)
+            self.setCurrentDrawer(None)
 
     def onCasePropsTabChanged(self):
         self.updateSceneStopOnAllEvents()

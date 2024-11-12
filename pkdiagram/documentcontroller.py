@@ -97,8 +97,6 @@ class DocumentController(QObject):
         self.ui.actionHard_Nudge_Left.setEnabled(False)
         self.ui.actionHard_Nudge_Right.setEnabled(False)
         # Insert
-        # self.ui.actionAdd_Event.triggered.connect(self.dv.onAddEvent)
-        # self.ui.actionAdd_Relationship.triggered.connect(self.dv.onAddEmotion)
         self.itemModeActionGroup = QActionGroup(self)
         self.itemModeActionGroup.addAction(self.ui.actionMale)
         self.itemModeActionGroup.addAction(self.ui.actionFemale)
@@ -500,12 +498,8 @@ class DocumentController(QObject):
         self.ui.actionJump_to_Now.setEnabled(on)
         self.ui.actionShow_Current_Date.setEnabled(on)
         self.ui.actionShow_Legend.setEnabled(on)
-        # self.ui.actionAdd_Event.setEnabled(on)
-        # self.ui.actionAdd_Relationship.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
 
-        self.ui.actionAdd_Event.setVisible(False)
-        self.ui.actionAdd_Relationship.setVisible(False)
         self.ui.actionUndo.setEnabled(on and commands.stack().canUndo())
         self.ui.actionRedo.setEnabled(on and commands.stack().canRedo())
         if self.scene:

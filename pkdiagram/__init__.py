@@ -25,8 +25,6 @@ from .graphicaltimelinecanvas import GraphicalTimelineCanvas
 from .graphicaltimelineview import GraphicalTimelineView
 from .filemanager import FileManager
 from .addanythingdialog import AddAnythingDialog
-from .addeventdialog import AddEventDialog
-from .addemotiondialog import AddEmotionDialog
 from .mainwindow import MainWindow
 from .appconfig import AppConfig
 from .application import Application

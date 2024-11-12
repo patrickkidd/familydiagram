@@ -363,10 +363,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self._refreshRows()
         super().set(attr, value)
         if attr == "scene":
-            if self._scene:
-                self._scene.searchModel.changed.connect(self.onSearchChanged)
-            else:
-                self._events = util.SortedList()
+            self._events = util.SortedList()
         elif attr == "items":
             self.refreshColumnHeaders()
             self._refreshRows()
