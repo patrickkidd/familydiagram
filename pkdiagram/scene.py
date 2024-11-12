@@ -262,6 +262,12 @@ class Scene(QGraphicsScene, Item):
         return "<%s[%s]%s>" % (self.__class__.__name__, id(self), s)
 
     def deinit(self, garbage=None):
+        from pkdiagram.objects.emotions import FannedBox
+
+        for item in self.items():
+            if isinstance(item, FannedBox):
+                item.deinit()
+
         if garbage is None:
             garbage = ItemGarbage(_async=False)
         self.isDeinitializing = True

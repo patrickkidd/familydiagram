@@ -167,8 +167,8 @@ class GraphicalTimelineCanvas(QWidget):
         if len(selection) > 0:
             self._selectionModel.select(
                 selection,
-                QItemSelectionModel.SelectionFlag.Clear
-                | QItemSelectionModel.SelectionFlag.Select,
+                QItemSelectionModel.SelectionFlag.Select
+                | QItemSelectionModel.SelectionFlag.Rows,
             )
         else:
             self._selectionModel.clearSelection()
@@ -475,14 +475,14 @@ class GraphicalTimelineCanvas(QWidget):
                 if event.dateTime() and event.dateTime() != QDate(QDate(1, 1, 1)):
                     days = firstDateTime.daysTo(event.dateTime())
                     x = dayPx * days
+                    rect = firstR.translated(x, 0)
+                    self._eventRectCache.append((event, rect))
                     if x > clipRect.x() + clipRect.width():
                         continue
-                    rect = firstR.translated(x, 0)
                     if event.nodal():
                         w = self.W * 0.75
                         rect = rect.marginsAdded(QMarginsF(w, w, w, w))
                     # Events can be shown in more than one place
-                    self._eventRectCache.append((event, rect))
                     if (
                         self._rubberBand.isVisible()
                         and self._rubberBand.geometry().intersects(rect.toRect())
