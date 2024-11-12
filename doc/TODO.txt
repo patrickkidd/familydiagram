@@ -2,6 +2,20 @@
 v2.0.0
 =============================================================================
 
+
+** Categories
+- AddAnythingDialog
+  - TagEdit
+    - qmlEngine.categoriesModel
+      - Scene.tags|layers
+      - self.activeTags
+- SearchView
+  - SearchModel.category
+  - ComboBox
+    - qmlEngine.categoriesModel
+
+
+
 - Event properties layout is (still?) broken?
 - remove add event|emotion dialogs?
   - might speed up load time

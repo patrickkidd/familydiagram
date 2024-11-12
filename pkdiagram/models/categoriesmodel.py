@@ -2,6 +2,7 @@ import contextlib
 
 from ..pyqt import (
     Qt,
+    QObject,
     QAbstractListModel,
     QModelIndex,
     pyqtSignal,
@@ -26,6 +27,10 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
     A "category" is an overlay on top of layers and tags in the simplified UI.
     """
 
+    ModelHelper.registerQtProperties(
+        [{"attr": "internalStorage", "type": bool, "default": False}]
+    )
+
     NEW_NAME_TMPL = "Category %i"
     S_CATEGORY_EXISTS_WITH_NAME = "A category with the name '{name}' already exists."
     S_LAYER_EXISTS_WITH_NAME = "A layer with the name '{name}' already exists."
@@ -47,6 +52,7 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         self._reorderingLayers = False
         self._updatingData = False
         self._activeCategories = []
+        self._internalStorage = False
         self.initModelHelper()
 
     @contextlib.contextmanager
@@ -203,13 +209,20 @@ class CategoriesModel(QAbstractListModel, ModelHelper):
         if role == Qt.ItemDataRole.DisplayRole:
             ret = category
         elif role == self.ActiveRole:
-            activeCategories = set(self.scene.tags()).union(
-                x for x in self.scene.layers() if x.active()
-            )
-            if category in activeCategories:
-                ret = Qt.Checked
+            if self._internalStorage:
+                return self._activeCategories
+            elif self._items:
+                itemTags = self._items[0].tags()
+                if category in itemTags:
+                    ret = Qt.Checked
             else:
-                ret = Qt.Unchecked
+                activeCategories = set(self.scene.tags()).union(
+                    x for x in self.scene.layers() if x.active()
+                )
+                if category in activeCategories:
+                    ret = Qt.Checked
+                else:
+                    ret = Qt.Unchecked
         elif role == self.FlagsRole:
             ret = self.flags(index)
         else:

@@ -20,6 +20,10 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
+    property var categoriesModel: CategoriesModel {
+        scene: sceneModel.scene
+        internalStorage: true
+    }
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
