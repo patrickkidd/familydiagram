@@ -27,7 +27,7 @@ python-dateutil = "*"
 stripe = "*"
 pyqt-builder = { index="riverbank" } # "==1.16.4"
 vedana = {git = 'https://git@github.com/patrickkidd/vedana.git', ref = 'release'}
-mixpanel = "4.10.1"
+mixpanel = "*"
 
 [dev-packages]
 black = "*"
