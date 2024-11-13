@@ -1,4 +1,5 @@
 import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
+import enum
 import json
 import pprint
 from functools import wraps
@@ -1774,6 +1775,13 @@ def qenum(base, value):
                 break
     if keyName:
         return "%s.%s" % (base.__name__, keyName)
+
+
+class RightDrawerView(enum.Enum):
+    AddAnything = "addanything"
+    Timeline = "timeline"
+    Search = "search"
+    Settings = "settings"
 
 
 import pickle

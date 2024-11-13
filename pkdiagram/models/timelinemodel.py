@@ -549,7 +549,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def flags(self, index):
         ret = 0
-        event = self._events[index.row()]
+        try:
+            event = self._events[index.row()]
+        except IndexError:
+            return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
             pass
         elif self.isColumn(index, label=self.BUDDIES):
@@ -633,6 +636,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return self._events[row]
         except IndexError:
             return
+
+    def indexForEvent(self, event) -> QModelIndex:
+        row = self.rowForEvent(event)
+        if row >= 0:
+            return self.index(row, 0)
 
     @pyqtSlot(int, result=str)
     def uniqueIdForRow(self, row: int) -> str:

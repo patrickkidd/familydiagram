@@ -17,6 +17,7 @@ from pkdiagram import (
 )
 from pkdiagram.objects import Emotion
 from pkdiagram.mainwindow_form import Ui_MainWindow
+from pkdiagram.documentview import RightDrawerView
 from pkdiagram.pyqt import (
     Qt,
     QWidget,
@@ -24,6 +25,8 @@ from pkdiagram.pyqt import (
     QPointF,
     QApplication,
     QDateTime,
+    QItemSelection,
+    QItemSelectionModel,
 )
 
 pytestmark = [
@@ -209,6 +212,32 @@ def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView, personProps):
     assert (
         dv.personProps.rootProp("personModel").items == []
     ), "test drawer did not hide"
+
+
+def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
+    person = Person(name="person")
+    event_2 = Event(person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    event_1 = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    dv.scene.addItem(person)
+    dv.timelineSelectionModel.select(
+        QItemSelection(
+            dv.timelineModel.indexForEvent(event_1),
+            dv.timelineModel.indexForEvent(event_2),
+        ),
+        QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
+    )
+    assert dv.graphicalTimelineView.inspectButton.isVisible()
+    dv.graphicalTimelineView.timeline.setFocus(True)
+    qtbot.mouseClick(dv.graphicalTimelineView.inspectButton, Qt.LeftButton)
+    # dv.ui.actionInspect.triggered.emit()
+    assert dv.currentDrawer == dv.caseProps
+    assert dv.caseProps.currentTab() == RightDrawerView.Timeline.value
+    assert set(
+        dv.caseProps.qml.rootObject()
+        .property("eventProperties")
+        .property("eventModel")
+        .items
+    ) == {event_1, event_2}
 
 
 def test_load_reload_clears_SearchModel(dv):

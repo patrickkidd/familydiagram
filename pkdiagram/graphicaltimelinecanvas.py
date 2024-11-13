@@ -1,10 +1,33 @@
 import logging
 from sortedcontainers import SortedList
-from .pyqt import *
+from .pyqt import (
+    pyqtSignal,
+    Qt,
+    QWheelEvent,
+    QDateTime,
+    QDate,
+    QPoint,
+    QRectF,
+    QFont,
+    QFontMetrics,
+    QPen,
+    QBrush,
+    QPainter,
+    QApplication,
+    QWidget,
+    QCursor,
+    QColor,
+    QRect,
+    QMarginsF,
+    QPointF,
+    QRubberBand,
+    QItemSelection,
+    QItemSelectionModel,
+)
 from . import util, objects
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class GraphicalTimelineCanvas(QWidget):
@@ -15,13 +38,25 @@ class GraphicalTimelineCanvas(QWidget):
     ANGLE = 55
 
     wheel = pyqtSignal(QWheelEvent)
-    mouseButtonClicked = pyqtSignal(QPoint)
+    dateTimeClicked = pyqtSignal(QDateTime)
+    eventsSelected = pyqtSignal(list)
 
-    def __init__(self, searchModel, timelineModel, parent=None):
+    def __init__(
+        self,
+        searchModel,
+        timelineModel,
+        selectionModel: QItemSelectionModel,
+        parent=None,
+    ):
         super().__init__(parent)
-        self._timelineModel = timelineModel
         self._searchModel = searchModel
+        self._timelineModel = timelineModel
+        self._selectionModel = selectionModel
+        self._isSelectingEvents = False
         self._events = SortedList()
+        # A list for quick lookup, events can be listed more than once in
+        # sullivanian time.
+        self._eventRectCache = []
         self._rows = []
         self._lastMousePos = None
         self._hoverTimer = None
@@ -33,12 +68,14 @@ class GraphicalTimelineCanvas(QWidget):
         self.labelFont = QFont(util.DETAILS_FONT)
         self.labelFont.setPixelSize(32)
         self.labelFont.setWeight(QFont.ExtraBold)
+        self._rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.setMouseTracking(True)
         # data
         self.scene = None
         # Slider
         self._isSlider = False
         self.mousePressed = False
+        self._mousePressPos = None
 
         QApplication.instance().paletteChanged.connect(self.onPaletteChanged)
         self.onPaletteChanged()
@@ -113,24 +150,77 @@ class GraphicalTimelineCanvas(QWidget):
                     break
         return first, last
 
+    def selectEventsInRect(self, selectionRect: QRectF):
+        selection = QItemSelection()
+        events = set(
+            [
+                event
+                for event, rectF in self._eventRectCache
+                if selectionRect.intersects(rectF.toRect())
+            ]
+        )
+        rows = []
+        for event in events:
+            row = self._timelineModel.rowForEvent(event)
+            index = self._timelineModel.index(row, 0)
+            selection.select(index, index)
+            rows.append(row)
+        self._isSelectingEvents = True
+        if len(selection) > 0:
+            self._selectionModel.select(
+                selection,
+                QItemSelectionModel.SelectionFlag.Clear
+                | QItemSelectionModel.SelectionFlag.Select
+                | QItemSelectionModel.SelectionFlag.Rows,
+            )
+        else:
+            self._selectionModel.clearSelection()
+        self._isSelectingEvents = False
+
+    def isSelectingEvents(self) -> bool:
+        return self._isSelectingEvents
+
     ## Qt Events
 
     def mousePressEvent(self, e):
+        self._mousePressPos = e.pos()
         self._lastMousePos = e.pos()
+        self.selectEventsInRect(QRect())
         e.accept()
         self.mousePressed = True
-        self.mouseButtonClicked.emit(e.pos())
+        if (
+            not self.isSlider()
+            and e.modifiers() & Qt.KeyboardModifier.ShiftModifier
+            == Qt.KeyboardModifier.ShiftModifier
+        ):
+            self._rubberBand.show()
+            self._rubberBand.setGeometry(
+                QRect(self._mousePressPos, self._mousePressPos).normalized()
+            )
+            self.selectEventsInRect(self._rubberBand.geometry())
+        else:
+            self._rubberBand.hide()
+            self.dateTimeClicked.emit(self._dateTimeForPoint(e.pos()))
 
     def mouseMoveEvent(self, e):
         e.accept()
-        if self.mousePressed:
-            self.mouseButtonClicked.emit(e.pos())
+        if self._rubberBand.isVisible():
+            self._rubberBand.setGeometry(
+                QRect(self._mousePressPos, e.pos()).normalized()
+            )
+            self.selectEventsInRect(self._rubberBand.geometry())
+        else:
+            if self._rubberBand.isVisible():
+                self._rubberBand.hide()
+            if self.mousePressed:
+                self.dateTimeClicked.emit(self._dateTimeForPoint(e.pos()))
         self._lastMousePos = e.pos()
         if not self.paintSullivanianTime():
-            self._lastMousePos = e.pos()
             self.update()
 
     def mouseReleaseEvent(self, e):
+        if self._rubberBand.isVisible():
+            self._rubberBand.hide()
         if self.isSlider() and len(self._events) > 1:
             e.accept()
         self.mousePressed = False
@@ -164,6 +254,7 @@ class GraphicalTimelineCanvas(QWidget):
             self._lastMousePos = None
 
     def paintEvent(self, e):
+        self._eventRectCache = []
         if not self.scene or (not self._events and not self._rows):
             e.ignore()
             return
@@ -365,7 +456,7 @@ class GraphicalTimelineCanvas(QWidget):
         with util.painter_state(painter):
             deemphAlpha = 100
             #
-            normalColor = util.TEXT_COLOR
+            normalColor = util.PEN.color()
             normalBrush = painter.brush()
             normalBrush.setColor(normalColor)
             normalPen = QPen(normalColor, self.W / 2)
@@ -381,30 +472,41 @@ class GraphicalTimelineCanvas(QWidget):
             nodalBrush = QBrush(nodalColor)
             nodalPen = QPen()
             nodalPen.setColor(deemphColor)
+            #
+            selectedColor = QColor(util.SELECTION_COLOR)
+            selectedPen = QPen()
+            selectedPen.setColor(selectedColor)
+            selectedBrush = QBrush(selectedColor)
             # nodalPen.setWidthF(normalPen.widthF() * 2)
             for event in events:
                 if event.dateTime() and event.dateTime() != QDate(QDate(1, 1, 1)):
                     days = firstDateTime.daysTo(event.dateTime())
                     x = dayPx * days
+                    rect = firstR.translated(x, 0)
+                    self._eventRectCache.append((event, rect))
                     if x > clipRect.x() + clipRect.width():
                         continue
-                    rect = firstR.translated(x, 0)
                     if event.nodal():
                         w = self.W * 0.75
+                        rect = rect.marginsAdded(QMarginsF(w, w, w, w))
+                    # Events can be shown in more than one place
+                    row = self._timelineModel.rowForEvent(event)
+                    if self._selectionModel.isRowSelected(row):
+                        painter.setPen(selectedPen)
+                        painter.setBrush(selectedBrush)
+                    elif event.nodal():
                         # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                         painter.setPen(nodalPen)
                         painter.setBrush(nodalBrush)
-                        painter.drawEllipse(rect.marginsAdded(QMarginsF(w, w, w, w)))
                     elif self.scene.itemShownOnDiagram(event):
                         # print('    NORMAL', event.dateTime().year(), normalPen.color().name(), normalPen.color().alpha())
                         painter.setPen(normalPen)
                         painter.setBrush(normalBrush)
-                        painter.drawEllipse(rect)
                     else:
                         # print('    DEEMPH', event.dateTime().year(), deemphPen.color().name(), deemphPen.color().alpha())
                         painter.setPen(deemphPen)
                         painter.setBrush(deemphBrush)
-                        painter.drawEllipse(rect)
+                    painter.drawEllipse(rect)
 
         if self.isSlider():
             return

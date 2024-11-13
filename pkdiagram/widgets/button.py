@@ -1,3 +1,5 @@
+import logging
+
 from ..pyqt import (
     Qt,
     QPen,
@@ -15,6 +17,8 @@ from ..pyqt import (
     QPalette,
 )
 from .. import util
+
+_log = logging.getLogger(__name__)
 
 
 class PixmapButtonHelper:
@@ -58,6 +62,8 @@ class PixmapButtonHelper:
             )
         else:
             self._uncheckedPixmap = QPixmap(self._uncheckedPixmapPath)
+        if self._uncheckedPixmap.isNull():
+            _log.warning(f"Pixmap not found: {self._uncheckedPixmapPath}")
         self._uncheckedIcon = QIcon(self._uncheckedPixmap)
 
     def setCheckedPixmapPath(self, path):

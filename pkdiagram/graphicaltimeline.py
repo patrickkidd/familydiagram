@@ -1,5 +1,29 @@
 import logging
-from .pyqt import *
+from .pyqt import (
+    Qt,
+    QScrollArea,
+    QFrame,
+    QSlider,
+    QHBoxLayout,
+    QLabel,
+    QWidget,
+    QCheckBox,
+    QWheelEvent,
+    QPoint,
+    QScroller,
+    QCursor,
+    QAbstractAnimation,
+    QStandardPaths,
+    QFileDialog,
+    QFileInfo,
+    QImage,
+    QPainter,
+    QColor,
+    QMessageBox,
+    QDialog,
+    QRect,
+    QDateTime,
+)
 from . import util
 from .graphicaltimelinecanvas import GraphicalTimelineCanvas
 
@@ -10,7 +34,7 @@ log = logging.getLogger(__name__)
 class GraphicalTimeline(QScrollArea):
     """Scroll area container for a GraphicalTimelineView that contains a GraphicalTimelineCanvas."""
 
-    def __init__(self, searchModel, timelineModel, parent=None):
+    def __init__(self, searchModel, timelineModel, selectionModel, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -45,10 +69,12 @@ class GraphicalTimeline(QScrollArea):
         self.sullivanianTimeBox = QCheckBox("Sullivanian Time", self.controls)
         ControlsLayout.addWidget(self.sullivanianTimeBox)
 
-        self.canvas = GraphicalTimelineCanvas(searchModel, timelineModel, self)
+        self.canvas = GraphicalTimelineCanvas(
+            searchModel, timelineModel, selectionModel, self
+        )
         self.setWidget(self.canvas)
         self.canvas.wheel[QWheelEvent].connect(self.wheelEvent)
-        self.canvas.mouseButtonClicked[QPoint].connect(self.onCanvasMouseButtonClicked)
+        self.canvas.dateTimeClicked[QDateTime].connect(self.onCanvasDateTimeClicked)
         self.sullivanianTimeBox.setChecked(self.canvas.sullivanianTime)
         self.sullivanianTimeBox.toggled[bool].connect(self.canvas.setSullivanianTime)
         self.heightSlider.setValue(self.heightSlider.minimum())
@@ -222,12 +248,11 @@ class GraphicalTimeline(QScrollArea):
             self.heightMultiplier = None
         self.adjust()
 
-    def onCanvasMouseButtonClicked(self, pos):
+    def onCanvasDateTimeClicked(self, dateTime: QDateTime):
         if self.scene:
             firstDateTime, lastDateTime = self.canvas.dateTimeRange(
                 events=self.canvas._events
             )
-            dateTime = self.canvas._dateTimeForPoint(pos)
             if dateTime > lastDateTime:
                 dateTime = lastDateTime
             elif dateTime < firstDateTime:

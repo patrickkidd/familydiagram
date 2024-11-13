@@ -1,6 +1,16 @@
 import pytest
 
-from pkdiagram.pyqt import Qt, QPoint, QDate, QDateTime
+from pkdiagram.pyqt import (
+    Qt,
+    QPoint,
+    QDate,
+    QDateTime,
+    QApplication,
+    QRect,
+    QItemSelection,
+    QItemSelectionModel,
+    QObject,
+)
 from pkdiagram import (
     util,
     GraphicalTimelineView,
@@ -26,7 +36,8 @@ def create_gtv(qtbot):
 
         scene = Scene()
         folks = (
-            Person(birthDateTime=QDateTime(QDate(2000 + i, 1, 1))) for i in range(5)
+            Person(name=f"person_{i}", birthDateTime=QDateTime(QDate(2000 + i, 1, 1)))
+            for i in range(5)
         )
         scene.addItems(*folks)
         searchModel = SearchModel()
@@ -34,7 +45,8 @@ def create_gtv(qtbot):
         timelineModel = TimelineModel()
         timelineModel.scene = scene
         timelineModel.items = [scene]
-        gtv = GraphicalTimelineView(searchModel, timelineModel)
+        selectionModel = QItemSelectionModel()
+        gtv = GraphicalTimelineView(searchModel, timelineModel, selectionModel)
         gtv.resize(800, 600)
         gtv.show()
         gtv.setScene(scene)
@@ -96,3 +108,94 @@ def test_scene_setCurrentDate_from_graphical_timeline_click(qtbot, create_gtv):
     ).date()  # lose time precision for easier equality
     qtbot.mouseClick(gtv.timeline.canvas, Qt.LeftButton, Qt.NoModifier, pos)
     assert gtv.scene.currentDateTime().date() == date
+
+
+# @pytest.mark.parametrize("sullivanianTime", [True, False])
+def test_rubber_band_select_events(qtbot, create_gtv):
+    TAG_1 = "Tag 1"
+    TAG_2 = "Tag 2"
+
+    gtv = create_gtv()
+    gtv.searchModel.tags = [TAG_1, TAG_2]
+    scene = gtv.timelineModel.scene
+    canvas = gtv.timeline.canvas
+    canvas.setIsSlider(False)
+    timelineModel = gtv.timelineModel
+    selectionModel = gtv.selectionModel
+    selectionModel.setModel(timelineModel)
+    selectionChanged = util.Condition(selectionModel.selectionChanged)
+
+    for i, person in enumerate(scene.people()):
+        if i % 2 == 0:
+            person.birthEvent.setTags([TAG_1])
+        else:
+            person.birthEvent.setTags([TAG_2])
+
+    person_2 = scene.query1(name="person_2")
+    person_3 = scene.query1(name="person_3")
+
+    # Contain the list of events in each selection to avoid segfault on deleted
+    # QItemSelection after signal emit()
+    events_for_selectionChanged = []
+
+    def _onSelectionChanged():
+        events = set(
+            timelineModel.eventForRow(index.row())
+            for index in selectionModel.selectedIndexes()
+        )
+        events_for_selectionChanged.append(events)
+
+    selectionModel.selectionChanged.connect(_onSelectionChanged)
+
+    upperLeft = QPoint(272, 220)
+    lowerRight = QPoint(498, 517)
+    delta = lowerRight - upperLeft
+    drag_1 = upperLeft + delta * 0.05
+    drag_2 = upperLeft + delta * 0.65
+    drag_naught = upperLeft + QPoint(-100, -100)
+    assert canvas._rubberBand.isVisible() == False
+
+    # QApplication.instance().exec_()
+
+    qtbot.mousePress(
+        canvas,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.ShiftModifier,
+        pos=upperLeft,
+    )
+    assert canvas._rubberBand.isVisible() == True
+    assert len(events_for_selectionChanged) == 0
+
+    qtbot.mouseMove(canvas, pos=drag_1, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    assert canvas._rubberBand.isVisible() == True
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_1)
+    assert len(events_for_selectionChanged) == 0
+
+    qtbot.mouseMove(canvas, pos=drag_2, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    assert canvas._rubberBand.isVisible() == True
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2)
+    assert len(events_for_selectionChanged) == 1
+    assert events_for_selectionChanged[0] == {person_2.birthEvent}
+
+    qtbot.mouseMove(canvas, pos=lowerRight, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    assert canvas._rubberBand.isVisible() == True
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight)
+    assert len(events_for_selectionChanged) == 2
+    assert events_for_selectionChanged[1] == {
+        person_3.birthEvent,
+        person_2.birthEvent,
+    }
+
+    qtbot.mouseMove(
+        canvas, pos=drag_naught, modifiers=Qt.KeyboardModifier.ShiftModifier
+    )
+    assert canvas._rubberBand.isVisible() == True
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_naught).normalized()
+    assert len(events_for_selectionChanged) == 3
+    assert events_for_selectionChanged[2] == set()
+
+    qtbot.mouseRelease(
+        canvas, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier
+    )
+    assert canvas._rubberBand.isVisible() == False
+    assert len(events_for_selectionChanged) == 3

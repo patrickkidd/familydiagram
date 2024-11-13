@@ -311,6 +311,10 @@ class FannedBox(QGraphicsObject):
         else:
             self.dirty = False  # When &.emotions changes
 
+    def deinit(self):
+        if self.animationGroup.state() == QAbstractAnimation.State.Running:
+            self.animationGroup.stop()
+
     def addEmotion(self, emotion):
         if not emotion in self.emotions:
             self.emotions.add(emotion)

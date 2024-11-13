@@ -1,7 +1,5 @@
 import logging
 import bisect
-import pickle
-import shutil
 
 import vedana
 from pkdiagram.pyqt import (
@@ -22,7 +20,7 @@ from pkdiagram.pyqt import (
     QPrinter,
     QPainter,
     QColor,
-    QFileInfo,
+    QItemSelection,
 )
 from pkdiagram import (
     util,
@@ -36,8 +34,7 @@ from pkdiagram import (
     Layer,
     ChildOf,
 )
-from .server_types import Diagram, HTTPError
-from _pkdiagram import FDDocument
+from pkdiagram.util import RightDrawerView
 
 if not util.IS_IOS:
     import xlsxwriter
@@ -68,6 +65,10 @@ class DocumentController(QObject):
     def init(self):
         assert self.ui is None
         self.ui = self.dv.ui
+
+        self.dv.timelineSelectionModel.selectionChanged[
+            QItemSelection, QItemSelection
+        ].connect(self.onTimelineSelectionChanged)
 
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
@@ -187,6 +188,9 @@ class DocumentController(QObject):
         self.dv.searchModel.changed.connect(self.onSearchChanged)
         self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
 
+    def deinit(self):
+        self._currentQmlFocusItem = None
+
     def setScene(self, scene):
         if self.scene:
             self.dv.searchModel.clear()
@@ -288,6 +292,23 @@ class DocumentController(QObject):
                 action.setChecked(on)
         self.scene.setActiveTags(tags)
         self._isUpdatingSearchTags = False
+
+    def onTimelineSelectionChanged(
+        self, selected: QItemSelection, deselected: QItemSelection
+    ):
+        if not self.dv.graphicalTimelineView.timeline.canvas.isSelectingEvents():
+            return
+        selectedRows = list(set([index.row() for index in selected.indexes()]))
+        deselectedRows = list(set([index.row() for index in deselected.indexes()]))
+        if selectedRows:
+            rows = selectedRows
+        elif deselectedRows:
+            rows = deselectedRows
+        else:
+            rows = None
+        if rows:
+            lastChangedDateTime = self.dv.timelineModel.dateTimeForRow(rows[-1])
+            self.dv.caseProps.scrollTimelineToDateTime(lastChangedDateTime)
 
     def onTagToggled(self, on):
         if self._isUpdatingSearchTags:
@@ -411,8 +432,12 @@ class DocumentController(QObject):
         model = selectionModel.model()
         for index in selectionModel.selectedRows():
             id = model.idForRow(index.row())
-            item = self.scene.find(id=id)
-            item.flash()
+            if id is None:
+                event = model.eventForRow(index.row())
+                log.warning(f"Event selected in timeline has no parent: {event}")
+            else:
+                item = self.scene.find(id=id)
+                item.flash()
 
     def onFlashTimelineRow(self, row: int):
         if self.scene:
@@ -790,6 +815,20 @@ class DocumentController(QObject):
         if isinstance(fw, QQuickWidget):
             if hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
+        elif fw is self.dv.graphicalTimelineView.timeline:
+            events = [
+                self.dv.timelineModel.eventForRow(x.row())
+                for x in self.dv.timelineSelectionModel.selectedRows()
+            ]
+            if (
+                self.dv.currentDrawer != self.dv.caseProps
+                or self.dv.caseProps.currentTab() != RightDrawerView.Timeline.value
+            ):
+                self.dv.showTimeline(
+                    callback=lambda: self.dv.caseProps.inspectEvents(events)
+                )
+            else:
+                self.dv.caseProps.inspectEvents(events)
         else:  # scene
             self.dv.inspectSelection(tab=tab)
 
