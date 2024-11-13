@@ -35,6 +35,7 @@ from pkdiagram import (
     ChildOf,
 )
 from pkdiagram.util import RightDrawerView
+from pkdiagram.models import selectedEvents
 
 if not util.IS_IOS:
     import xlsxwriter
@@ -796,6 +797,11 @@ class DocumentController(QObject):
             ret = fw.parent().rootProp("canInspect")
             if ret is None:
                 ret = False
+        if fw == self.dv.graphicalTimelineView.timeline:
+            events = selectedEvents(
+                self.dv.timelineModel, self.dv.timelineSelectionModel
+            )
+            ret = bool(events)
         else:  # scene
             people = self.scene.selectedPeople()
             marriages = self.scene.selectedMarriages()
@@ -816,10 +822,9 @@ class DocumentController(QObject):
             if hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
         elif fw is self.dv.graphicalTimelineView.timeline:
-            events = [
-                self.dv.timelineModel.eventForRow(x.row())
-                for x in self.dv.timelineSelectionModel.selectedRows()
-            ]
+            events = selectedEvents(
+                self.dv.timelineModel, self.dv.timelineSelectionModel
+            )
             if (
                 self.dv.currentDrawer != self.dv.caseProps
                 or self.dv.caseProps.currentTab() != RightDrawerView.Timeline.value

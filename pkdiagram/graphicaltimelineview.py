@@ -113,6 +113,8 @@ class GraphicalTimelineView(QFrame):
         self.inspectButton = widgets.PixmapToolButton(
             self, uncheckedPixmapPath="details-button.png"
         )
+        self.inspectButtonOpacityEffect = QGraphicsOpacityEffect(self)
+        self.inspectButton.setGraphicsEffect(self.inspectButtonOpacityEffect)
 
         self.animation = QPropertyAnimation(self, b"geometry")
         self.animation.setDuration(util.ANIM_DURATION_MS * 2)
@@ -132,6 +134,7 @@ class GraphicalTimelineView(QFrame):
         # Was previously in init()...not sure why
         self.searchButton.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.searchButtonOpacityEffect.setOpacity(0)
+        self.inspectButtonOpacityEffect.setOpacity(0)
         QApplication.instance().paletteChanged.connect(self.onApplicationPaletteChanged)
 
     def setScene(self, scene):
@@ -283,6 +286,7 @@ class GraphicalTimelineView(QFrame):
             self.searchButton.x() - self.inspectButton.width() - self.MARGIN_X,
             self.searchButton.y(),
         )
+        self.inspectButtonOpacityEffect.setOpacity(expanded)
 
         prevButtonIn = self.MARGIN_X
         prevButtonOut = -self.prevButton.width() - self.MARGIN_X

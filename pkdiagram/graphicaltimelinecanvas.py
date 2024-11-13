@@ -188,11 +188,7 @@ class GraphicalTimelineCanvas(QWidget):
         self.selectEventsInRect(QRect())
         e.accept()
         self.mousePressed = True
-        if (
-            not self.isSlider()
-            and e.modifiers() & Qt.KeyboardModifier.ShiftModifier
-            == Qt.KeyboardModifier.ShiftModifier
-        ):
+        if not self.isSlider():
             self._rubberBand.show()
             self._rubberBand.setGeometry(
                 QRect(self._mousePressPos, self._mousePressPos).normalized()

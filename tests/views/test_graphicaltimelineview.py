@@ -160,24 +160,23 @@ def test_rubber_band_select_events(qtbot, create_gtv):
     qtbot.mousePress(
         canvas,
         Qt.MouseButton.LeftButton,
-        Qt.KeyboardModifier.ShiftModifier,
         pos=upperLeft,
     )
     assert canvas._rubberBand.isVisible() == True
     assert len(events_for_selectionChanged) == 0
 
-    qtbot.mouseMove(canvas, pos=drag_1, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    qtbot.mouseMove(canvas, pos=drag_1)
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_1)
     assert len(events_for_selectionChanged) == 0
 
-    qtbot.mouseMove(canvas, pos=drag_2, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    qtbot.mouseMove(canvas, pos=drag_2)
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2)
     assert len(events_for_selectionChanged) == 1
     assert events_for_selectionChanged[0] == {person_2.birthEvent}
 
-    qtbot.mouseMove(canvas, pos=lowerRight, modifiers=Qt.KeyboardModifier.ShiftModifier)
+    qtbot.mouseMove(canvas, pos=lowerRight)
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight)
     assert len(events_for_selectionChanged) == 2
@@ -186,9 +185,7 @@ def test_rubber_band_select_events(qtbot, create_gtv):
         person_2.birthEvent,
     }
 
-    qtbot.mouseMove(
-        canvas, pos=drag_naught, modifiers=Qt.KeyboardModifier.ShiftModifier
-    )
+    qtbot.mouseMove(canvas, pos=drag_naught)
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_naught).normalized()
     assert len(events_for_selectionChanged) == 3

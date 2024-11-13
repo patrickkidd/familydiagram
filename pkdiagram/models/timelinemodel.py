@@ -6,7 +6,6 @@ from ..pyqt import (
     QAbstractTableModel,
     QItemSelectionModel,
     QMessageBox,
-    QDate,
     QDateTime,
     QModelIndex,
     QObject,
@@ -16,6 +15,10 @@ from ..pyqt import (
 )
 from .. import util, commands
 from .modelhelper import ModelHelper
+
+
+def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):
+    return [timelineModel.eventForRow(x.row()) for x in selectionModel.selectedRows()]
 
 
 class TableHeaderModel(QAbstractTableModel):

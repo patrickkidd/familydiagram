@@ -4,7 +4,7 @@ from .searchmodel import SearchModel
 from .scenelayermodel import SceneLayerModel
 from .peoplemodel import PeopleModel
 from .tagsmodel import TagsModel
-from .timelinemodel import TimelineModel
+from .timelinemodel import TimelineModel, selectedEvents
 from .scenevariablesmodel import SceneVariablesModel
 from .scenemodel import SceneModel
 from .eventvariablesmodel import EventVariablesModel
