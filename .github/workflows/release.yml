@@ -2,6 +2,9 @@ name: Release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
