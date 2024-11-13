@@ -77,7 +77,11 @@ ColumnLayout {
                     textColor: util.textColor(selected, current)
                     checkState: active
                     onClicked: onRowClicked(null, index)
-                    onCheckStateChanged: active = checkState
+                    onCheckStateChanged: {
+                        if(active != checkState) {
+                            active = checkState
+                        }
+                    }
                 }
                 PK.TextInput {
                     property bool editMode: false
