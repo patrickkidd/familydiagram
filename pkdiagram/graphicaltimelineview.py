@@ -1,3 +1,5 @@
+import logging
+
 from .pyqt import (
     QGraphicsOpacityEffect,
     QPropertyAnimation,
@@ -16,6 +18,9 @@ from .pyqt import (
 from . import util, widgets, objects
 from .objects import Event
 from .graphicaltimeline import GraphicalTimeline
+
+
+_log = logging.getLogger(__name__)
 
 
 class GraphicalTimelineView(QFrame):
@@ -61,6 +66,7 @@ class GraphicalTimelineView(QFrame):
         self.searchModel = searchModel
         self.timelineModel = timelineModel
         self.selectionModel = selectionModel
+        self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
 
         self.timeline = GraphicalTimeline(
             searchModel, timelineModel, selectionModel, self
@@ -103,6 +109,10 @@ class GraphicalTimelineView(QFrame):
         )
         self.searchButtonOpacityEffect = QGraphicsOpacityEffect(self)
         self.searchButton.setGraphicsEffect(self.searchButtonOpacityEffect)
+
+        self.inspectButton = widgets.PixmapToolButton(
+            self, uncheckedPixmapPath="details-button.png"
+        )
 
         self.animation = QPropertyAnimation(self, b"geometry")
         self.animation.setDuration(util.ANIM_DURATION_MS * 2)
@@ -153,6 +163,13 @@ class GraphicalTimelineView(QFrame):
             self.update()
         elif prop.name() == "showAliases":
             self.timeline.updatePersonNames()
+
+    def onSelectionChanged(self):
+        rows = set([x.row() for x in self.selectionModel.selectedRows()])
+        if rows:
+            self.inspectButton.show()
+        else:
+            self.inspectButton.hide()
 
     def contract(self):
         if not self.parent():
@@ -262,6 +279,10 @@ class GraphicalTimelineView(QFrame):
             self.expandButton.y(),
         )
         self.searchButtonOpacityEffect.setOpacity(expanded)
+        self.inspectButton.move(
+            self.searchButton.x() - self.inspectButton.width() - self.MARGIN_X,
+            self.searchButton.y(),
+        )
 
         prevButtonIn = self.MARGIN_X
         prevButtonOut = -self.prevButton.width() - self.MARGIN_X

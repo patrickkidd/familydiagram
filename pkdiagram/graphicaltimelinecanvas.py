@@ -185,6 +185,7 @@ class GraphicalTimelineCanvas(QWidget):
     def mousePressEvent(self, e):
         self._mousePressPos = e.pos()
         self._lastMousePos = e.pos()
+        self.selectEventsInRect(QRect())
         e.accept()
         self.mousePressed = True
         if (

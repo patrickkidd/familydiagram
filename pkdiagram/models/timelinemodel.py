@@ -637,6 +637,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         except IndexError:
             return
 
+    def indexForEvent(self, event) -> QModelIndex:
+        row = self.rowForEvent(event)
+        if row >= 0:
+            return self.index(row, 0)
+
     @pyqtSlot(int, result=str)
     def uniqueIdForRow(self, row: int) -> str:
         try:

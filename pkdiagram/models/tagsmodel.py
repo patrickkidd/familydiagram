@@ -218,7 +218,9 @@ class TagsModel(QAbstractListModel, ModelHelper):
             else:  # trigger a cancel
                 self.dataChanged.emit(index, index)
         elif role == self.ActiveRole:
-            if self._searchModel:
+            if value != self.data(index, role):
+                success = False
+            elif self._searchModel:
                 newTags = list(self._searchModel.tags)
                 if value:
                     if not tag in newTags:
@@ -231,7 +233,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
                     self._searchModel.tags = newTags
                     self._settingSearchTags = False
                     success = True
-            elif self._items and value != self.data(index, role):
+            elif self._items:
                 # Emotions and their events are bound to the same tags.
                 # Added here to include prop changes in undo
                 todo = set(self._items)

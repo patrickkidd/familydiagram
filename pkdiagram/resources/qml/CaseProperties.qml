@@ -30,6 +30,8 @@ PK.Drawer {
         )) : false
     }
 
+    property alias eventProperties: eventProperties
+
     signal clearSearch;
 
     Connections {
@@ -214,6 +216,11 @@ PK.Drawer {
             onSelectionChanged: {
                 sceneModel.selectionChanged()
                 root.flashTimelineSelection(timelineView.selectionModel)
+                // Added for when changing selection from graphical timeline,
+                // but I guess makes sense all the time anyway.
+                if(eventPropertiesDrawer.visible) {
+                    eventPropertiesDrawer.visible = false
+                }
             }
             onRowClicked: function(row) {
                 root.flashTimelineRow(row)

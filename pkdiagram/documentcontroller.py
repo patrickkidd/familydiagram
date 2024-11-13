@@ -34,6 +34,7 @@ from pkdiagram import (
     Layer,
     ChildOf,
 )
+from pkdiagram.util import RightDrawerView
 
 if not util.IS_IOS:
     import xlsxwriter
@@ -186,6 +187,9 @@ class DocumentController(QObject):
 
         self.dv.searchModel.changed.connect(self.onSearchChanged)
         self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
+
+    def deinit(self):
+        self._currentQmlFocusItem = None
 
     def setScene(self, scene):
         if self.scene:
@@ -428,8 +432,12 @@ class DocumentController(QObject):
         model = selectionModel.model()
         for index in selectionModel.selectedRows():
             id = model.idForRow(index.row())
-            item = self.scene.find(id=id)
-            item.flash()
+            if id is None:
+                event = model.eventForRow(index.row())
+                log.warning(f"Event selected in timeline has no parent: {event}")
+            else:
+                item = self.scene.find(id=id)
+                item.flash()
 
     def onFlashTimelineRow(self, row: int):
         if self.scene:
@@ -807,6 +815,20 @@ class DocumentController(QObject):
         if isinstance(fw, QQuickWidget):
             if hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
+        elif fw is self.dv.graphicalTimelineView.timeline:
+            events = [
+                self.dv.timelineModel.eventForRow(x.row())
+                for x in self.dv.timelineSelectionModel.selectedRows()
+            ]
+            if (
+                self.dv.currentDrawer != self.dv.caseProps
+                or self.dv.caseProps.currentTab() != RightDrawerView.Timeline.value
+            ):
+                self.dv.showTimeline(
+                    callback=lambda: self.dv.caseProps.inspectEvents(events)
+                )
+            else:
+                self.dv.caseProps.inspectEvents(events)
         else:  # scene
             self.dv.inspectSelection(tab=tab)
 

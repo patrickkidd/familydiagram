@@ -1274,7 +1274,7 @@ class Scene(QGraphicsScene, Item):
         else:
             return ret
 
-    def findById(self, id: int):
+    def findById(self, id: int) -> Item:
         if id is not None:
             return self.find(id=id)
 

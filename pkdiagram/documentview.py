@@ -1,4 +1,3 @@
-import enum
 import logging
 from .pyqt import (
     pyqtSignal,
@@ -21,6 +20,7 @@ from .pyqt import (
 )
 from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
+from .util import RightDrawerView
 from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
@@ -47,13 +47,6 @@ class CaseProperties(QmlDrawer):
             self.inspectEvents(items)
             items = []
         super().show(items, tab, **kwargs)
-
-
-class RightDrawerView(enum.Enum):
-    AddAnything = "addanything"
-    Timeline = "timeline"
-    Search = "search"
-    Settings = "settings"
 
 
 class DocumentView(QWidget):
@@ -201,6 +194,9 @@ class DocumentView(QWidget):
         self.graphicalTimelineView.searchButton.clicked.connect(
             self.ui.actionShow_Search.trigger
         )
+        self.graphicalTimelineView.inspectButton.clicked.connect(
+            self.ui.actionInspect.trigger
+        )
         self.graphicalTimelineAnimation = QVariantAnimation(self)
         self.graphicalTimelineAnimation.setDuration(util.ANIM_DURATION_MS)
         self.graphicalTimelineAnimation.setEasingCurve(util.ANIM_EASING)
@@ -227,6 +223,7 @@ class DocumentView(QWidget):
         self.controller.updateActions()
 
     def deinit(self):
+        self.controller.deinit()
         self.caseProps.deinit()
         self.personProps.deinit()
         self.marriageProps.deinit()
@@ -668,13 +665,15 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None)
 
-    def showTimeline(self, on=True, dateTime=None):
+    def showTimeline(self, on=True, dateTime=None, **kwargs):
         if on or dateTime is not None:
-            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Timeline.value)
+            self.setCurrentDrawer(
+                self.caseProps, tab=RightDrawerView.Timeline.value, **kwargs
+            )
             if dateTime is not None:
                 self.caseProps.scrollTimelineToDateTime(dateTime)
         else:
-            self.setCurrentDrawer(None)
+            self.setCurrentDrawer(None, **kwargs)
 
     def showSearch(self, on=True):
         if on:
