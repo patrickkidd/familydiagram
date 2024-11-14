@@ -463,3 +463,23 @@ def test_add_emotion_sets_scene_currentDate():
     )
     commands.addEmotion(scene, conflict)
     assert scene.currentDateTime() == START_DATETIME
+
+
+def test_mirror_notes_set_from_item():
+    NOTES = "bleh"
+
+    emotion = objects.Emotion()
+    scene = Scene()
+    scene.addItem(emotion)
+    emotion.setNotes(NOTES)
+    assert emotion.startEvent.notes() == NOTES
+
+
+def test_mirror_notes_set_from_startEvent():
+    NOTES = "bleh"
+
+    emotion = objects.Emotion()
+    scene = Scene()
+    scene.addItem(emotion)
+    emotion.startEvent.setNotes(NOTES)
+    assert emotion.notes() == NOTES

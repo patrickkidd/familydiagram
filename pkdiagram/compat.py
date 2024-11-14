@@ -1,5 +1,9 @@
-from .pyqt import *
-from . import version, objects, util
+import logging
+
+from .pyqt import QPointF, QDateTime, QDate
+from . import version, objects
+
+_log = logging.getLogger(__name__)
 
 
 def UP_TO(data, compatVer):
@@ -244,6 +248,30 @@ def update_data(data):
                 chunk["tags"] = list(itemTags)
                 chunk["startEvent"]["tags"] = list(itemTags)
                 chunk["endEvent"]["tags"] = list(itemTags)
+
+    if UP_TO(data, "2.0.0"):
+        for chunk in data.get("items", []):
+            if chunk["kind"] in objects.Emotion.kindSlugs():
+
+                # Maintain mirror between emotion.notes and emotion.startEvent.notes
+                if (
+                    chunk["notes"]
+                    and chunk["startEvent"]["dateTime"]
+                    and not chunk["startEvent"]["notes"]
+                ):
+                    _log.warning(
+                        f"Migrating emotion.notes to emotion.startEvent.notes for {chunk['id']}"
+                    )
+                    chunk["startEvent"]["notes"] = chunk["notes"]
+                elif (
+                    chunk["startEvent"]["dateTime"]
+                    and chunk["startEvent"]["notes"]
+                    and not chunk["notes"]
+                ):
+                    _log.warning(
+                        f"Migrating emotion.startEvent.notes to emotion.notes for {chunk['id']}"
+                    )
+                    chunk["notes"] = chunk["startEvent"]["notes"]
 
     ## Add more version fixes here
     # if ....

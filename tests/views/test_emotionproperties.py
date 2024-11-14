@@ -172,3 +172,18 @@ def test_show_init_multiple_different(qmlScene, ep, emotionProps):
     # then re-init with different kinds
     ep.show([emotion1, emotion2])
     assert ep.itemProp("emotionKindBox", "currentIndex") == -1
+
+
+@pytest.mark.parametrize("startDateTime", [util.Date(2000, 4, 21), QDateTime()])
+def test_notes_field_has_start_datetime(ep, startDateTime):
+    emotion = objects.Emotion(kind=util.ITEM_PROJECTION)
+    emotion.startEvent.setDateTime(startDateTime)
+    ep.show(emotion)
+    emotionNotesEdit = ep.rootProp("emotionNotesEdit")
+    notesHiddenHelpText = ep.rootProp("notesHiddenHelpText")
+    if startDateTime:
+        assert emotionNotesEdit.property("visible") == False
+        assert notesHiddenHelpText.property("visible") == True
+    else:
+        assert emotionNotesEdit.property("visible") == False
+        assert notesHiddenHelpText.property("visible") == False

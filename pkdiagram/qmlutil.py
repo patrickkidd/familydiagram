@@ -139,6 +139,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_NO_EVENTS_TEXT",
         "S_EMAIL_SENT_TO_CHANGE_PASSWORD",
         "S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL",
+        "S_EMOTION_SYMBOL_NOTES_HIDDEN",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
     ]
