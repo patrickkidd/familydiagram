@@ -1366,6 +1366,8 @@ class Emotion(PathItem):
                 self.endEvent.setDateTime(prop.get())
             self.startEvent.updateDescription()
             self.endEvent.updateDescription()
+        elif prop.name() == "notes":
+            prop.item.parent.setNotes(prop.get())
 
     def isDyadic(self):
         return self.kind() != util.ITEM_CUTOFF
@@ -1829,6 +1831,7 @@ class Emotion(PathItem):
                 self.personB().onEmotionProperty(prop)
         # send it out to the scene for the timelineview in case props
         if prop.name() == "notes":
+            self.startEvent.setNotes(prop.get())
             if not self._onShowAliases:
                 self.updateNotes()
         elif prop.name() == "isDateRange":

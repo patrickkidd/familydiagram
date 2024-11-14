@@ -1219,6 +1219,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "NoDataText.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "PeoplePicker.qml"
 included = true
 is_directory = false

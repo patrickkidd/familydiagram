@@ -2,9 +2,13 @@
 v2.0.0
 =============================================================================
 
-- Event properties layout is (still?) broken?
-- remove add event|emotion dialogs?
-  - might speed up load time
+
+FD-114: Clear up confusion on emotion notes
+-------------------------------------------
+- Open file w/o emotion event dates set still shows bottom timeline
+  - New Case Fri October 04 10-39am
+
+
 - Speed up mainwindow tests. Need account login and everything?
 
 BUGS

@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import "." 1.0 as PK
+import "../js/Global.js" as Global
 import PK.Models 1.0
 
 
@@ -12,6 +13,9 @@ Page {
 
     signal cancel
     signal done
+
+    property alias emotionNotesEdit: emotionNotesEdit
+    property alias notesHiddenHelpText: notesHiddenHelpText
 
     property int margin: util.QML_MARGINS
     property var focusResetter: emotionPage
@@ -413,18 +417,6 @@ Page {
                             KeyNavigation.backtab: intensityBox
                             onCurrentIndexChanged: emotionModel.color = model[currentIndex]
                         }
-
-
-                        PK.FormDivider { }
-
-                        PK.Text {
-                            text: util.EMOTION_PROPS_HELP_TEXT
-                            wrapMode: Text.WordWrap
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 2
-                        }                        
-
                     }
                 }
             }            
@@ -433,7 +425,13 @@ Page {
         Flickable {
             id: notesEditFlickable
             contentX: 0
-            contentHeight: Math.max(emotionNotesEdit.paintedHeight + 50, height) // allow scrolling
+            contentHeight: {
+                if(emotionNotesEdit.visible) {
+                    Math.max(emotionNotesEdit.paintedHeight + 50, height) // allow scrolling
+                } else {
+                    height
+                }
+            }
             Layout.fillHeight: true
             Layout.fillWidth: true
 
@@ -444,9 +442,22 @@ Page {
                 padding: margin
                 width: parent.width
                 wrapMode: TextEdit.Wrap
+                visible: ! Global.isValidDateTime(emotionModel.startDateTime)
                 readOnly: sceneModel.readOnly
                 anchors.fill: parent
                 onEditingFinished: emotionModel.notes = (text ? text : undefined)
+            }
+
+            PK.NoDataText {
+                id: notesHiddenHelpText
+                text: util.S_EMOTION_SYMBOL_NOTES_HIDDEN
+                visible: Global.isValidDateTime(emotionModel.startDateTime)
+                Connections {
+                    target: emotionModel
+                    function onStartDateTimeChanged() {
+                        notesHiddenHelpText.visible = Global.isValidDateTime(emotionModel.startDateTime)
+                    }
+                }
             }
         }
 

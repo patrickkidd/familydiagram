@@ -507,6 +507,10 @@ S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL = LONG_TEXT(
     "Please contact support at info@alaskafamilysystems.com."
 )
 
+S_EMOTION_SYMBOL_NOTES_HIDDEN = LONG_TEXT(
+    "The notes/details text is hidden for a relationship symbol when a start date/time is set for that symbol. Click the *i* button to the right of the start or end date/time to edit the notes for that event."
+)
+
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None
