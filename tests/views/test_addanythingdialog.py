@@ -282,6 +282,7 @@ def test_add_new_person_via_CustomIndividual(dlg, scene, qmlEngine):
     multi-line
 comment.
 """
+    TAG_1, TAG_2 = "tag1", "tag2"
 
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.CustomIndividual)
@@ -289,6 +290,9 @@ comment.
     dlg.set_description(DESCRIPTION)
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_notes(NOTES)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
@@ -376,11 +380,16 @@ Here are the
 notes
 for this event.
 """
+    TAG_1, TAG_2 = "tag1", "tag2"
+
     dlg.set_kind(kind)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_notes(NOTES)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
@@ -400,6 +409,7 @@ Here are the
 notes
 for this event.
 """
+
     dlg.set_kind(EventKind.Away)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
@@ -476,6 +486,7 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
 
 # @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
 def test_add_existing_pairbond(scene, dlg):
+    TAG_1, TAG_2 = "tag1", "tag2"
     KIND = EventKind.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
@@ -485,6 +496,9 @@ def test_add_existing_pairbond(scene, dlg):
     dlg.set_existing_person("personAPicker", personA)
     dlg.set_existing_person("personBPicker", personB)
     dlg.set_startDateTime(START_DATETIME)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
