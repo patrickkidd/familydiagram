@@ -12,8 +12,9 @@ ColumnLayout {
     property var model: null
     property bool showButtons: true
     property int currentIndex: -1
-    property int count: listView.count
-    property alias listView: listView
+    property int count: listViewItem.count
+    property var listView: listViewItem // doesn't work with `alias` for some reason
+    property alias crudButtons: crudButtons
 
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
@@ -24,7 +25,7 @@ ColumnLayout {
     }
 
     ListView {
-        id: listView
+        id: listViewItem
         objectName: root.objectName + '_listView'
         clip: true
         model: root.model
@@ -40,22 +41,18 @@ ColumnLayout {
             property int iTag: index
             property var tagName: name
             property alias checkBox: checkBox
+            property alias textEdit: textEdit
 
             width: parent ? parent.width : 0
             height: util.QML_ITEM_HEIGHT // rowLayout.height
             color: util.itemBgColor(selected, current, index % 2 == 1)
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: onRowClicked(mouse, index)
-            }
-
             Component.onCompleted: {
-                listView.delegates.push(this)
+                listViewItem.delegates.push(this)
             }
 
             Component.onDestruction: {
-                listView.delegates.splice(listView.delegates.indexOf(this), 1)
+                listViewItem.delegates.splice(listViewItem.delegates.indexOf(this), 1)
             }
             
             /* Rectangle { */
@@ -64,7 +61,7 @@ ColumnLayout {
             /*     height: 1 */
             /*     color: util.QML_ITEM_BORDER_COLOR */
             /*     visible: index > 0 */
-            /* } */
+            /* } */    
             
             RowLayout {
 
@@ -97,20 +94,8 @@ ColumnLayout {
                         name = text
                         editMode = false
                     }
-                    MouseArea {
-                        width: parent.contentWidth
-                        height: parent.contentHeight
-                        enabled: !textEdit.editMode
-                        onClicked: onRowClicked(mouse, index)
-                        onDoubleClicked: {
-                            if(flags & Qt.ItemIsEditable) {
-                                textEdit.editMode = true
-                                textEdit.forceActiveFocus()
-                                textEdit.selectAll()
-                            }
-                        }
-                    }
                 }
+
                 Rectangle { // spacer
                     height: 1
                     Layout.fillWidth: true
@@ -118,6 +103,21 @@ ColumnLayout {
                     color: 'transparent'
                 }
             }
+
+            MouseArea {
+                anchors.fill: parent
+                anchors.leftMargin: checkBox.y + checkBox.width
+                enabled: !textEdit.editMode
+                onClicked: onRowClicked(mouse, index)
+                onDoubleClicked: {
+                    if(flags & Qt.ItemIsEditable) {
+                        textEdit.editMode = true
+                        textEdit.forceActiveFocus()
+                        textEdit.selectAll()
+                    }
+                }
+            }        
+
         }
     }
 
@@ -128,7 +128,8 @@ ColumnLayout {
     }
 
     PK.CrudButtons {
-        id: buttons
+        id: crudButtons
+        objectName: "crudButtons"
         visible: showButtons
         Layout.fillWidth: true
         bottomBorder: false
@@ -136,7 +137,7 @@ ColumnLayout {
         addButton: true
         addButtonEnabled: sceneModel ? !sceneModel.readOnly : false
         onAdd: model.addTag()
-        removeButtonEnabled: listView.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
+        removeButtonEnabled: listViewItem.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
         removeButton: true
         onRemove: model.removeTag(currentIndex)
     }    

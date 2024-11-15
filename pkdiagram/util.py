@@ -415,6 +415,7 @@ QML_FIELD_HEIGHT = (
     40  # not sure where this comes from but TextField and ComboBox are 40
 )
 QML_ITEM_HEIGHT = IS_IOS and 44 or 30  # iOS portait: 44, iOS landscape: 32
+QML_LIST_VIEW_MINIMUM_HEIGHT = QML_ITEM_HEIGHT * 6
 QML_ITEM_LARGE_HEIGHT = 44
 QML_TITLE_FONT_SIZE = QML_ITEM_HEIGHT * 1.2 * 0.85  # iOS portait: 44, iOS landscape: 32
 QML_SMALL_TITLE_FONT_SIZE = (

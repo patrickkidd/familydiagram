@@ -95,6 +95,8 @@ def test_clear(dlg):
     dlg.set_anxiety(util.VAR_VALUE_UP)
     dlg.set_symptom(util.VAR_VALUE_DOWN)
     dlg.set_functioning(util.VAR_VALUE_SAME)
+    dlg.add_tag("tag1")
+    dlg.set_active_tags(["tag1"])
     dlg.mouseClick("clearFormButton")
     assert dlg.rootProp("startDateTime") == None
     assert dlg.rootProp("endDateTime") == None
@@ -103,6 +105,7 @@ def test_clear(dlg):
     assert dlg.rootProp("anxiety") == None
     assert dlg.rootProp("symptom") == None
     assert dlg.rootProp("functioning") == None
+    assert dlg.rootProp("dummyEvent").tags() == []
 
 
 def test_clear_birth(dlg):
@@ -160,10 +163,16 @@ def test_clear_dyadic(dlg):
 
 
 def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
+    TAG_1, TAG_2 = "tag1", "tag2"
+
     submitted = util.Condition(dlg.submitted)
+    dlg.initForSelection([])
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
     dlg.set_startDateTime(START_DATETIME)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
@@ -175,6 +184,7 @@ def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Birth.value
     assert event.description() == EventKind.Birth.name
+    assert event.tags() == [TAG_1, TAG_2]
 
 
 def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):

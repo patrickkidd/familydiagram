@@ -1,4 +1,6 @@
 import logging
+from typing import Union
+
 from .pyqt import (
     Qt,
     QObject,
@@ -13,6 +15,7 @@ from .pyqt import (
     Q_RETURN_ARG,
     QAbstractItemModel,
     QVariant,
+    QApplication,
 )
 from . import util
 from .models import QObjectHelper
@@ -153,7 +156,13 @@ class QmlWidgetHelper(QObjectHelper):
         item = self.findItem(objectName)
         item.setProperty(attr, value)
 
-    def focusItem(self, objectName):
+    def focusItem(self, objectNameOrItem: Union[str, QQuickItem]):
+        if isinstance(objectNameOrItem, str):
+            objectName = objectNameOrItem
+            item = self.findItem(objectNameOrItem)
+        else:
+            item = objectNameOrItem
+            objectName = item.objectName()
         if not self.isActiveWindow():
             # self.here('Setting active window to %s, currently %s' % (self, QApplication.activeWindow()))
             QApplication.setActiveWindow(self)
@@ -167,13 +176,12 @@ class QmlWidgetHelper(QObjectHelper):
                 )
             # else:
             #     Debug('Success setting active window to', self)
-        item = self.findItem(objectName)
         assert (
             item.property("enabled") == True
         ), f"The item {objectName} cannot be focused if it is not enabled."
         if self.DEBUG:
             log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
-        self.mouseClick(objectName)
+        self.mouseClickItem(item)
         if not item.hasActiveFocus():
             item.forceActiveFocus()  # in case mouse doesn't work if item out of view
             self.waitUntil(lambda: item.hasActiveFocus())
@@ -214,15 +222,18 @@ class QmlWidgetHelper(QObjectHelper):
                 raise RuntimeError(msg)
         return item
 
-    def resetFocus(self, objectName):
-        item = self.findItem(objectName)
+    def resetFocusItem(self, item: QQuickItem):
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.resetFocus("{objectName}")')
+            log.info(f'QmlWidgetHelper.resetFocus("{item}#{item.objectName()}")')
         item.setProperty("focus", False)
         if item.hasActiveFocus():
             self.qml.rootObject().forceActiveFocus()  # TextField?
             if item.hasActiveFocus():
                 raise RuntimeError("Could not re-set active focus.")
+
+    def resetFocus(self, objectName):
+        item = self.findItem(objectName)
+        self.resetFocusItem(item)
 
     def keyClick(self, objectName, key, resetFocus=True):
         self.focusItem(objectName)
@@ -233,8 +244,11 @@ class QmlWidgetHelper(QObjectHelper):
             self.resetFocus(objectName)
         QApplication.processEvents()
 
-    def keyClicks(self, objectName, s, resetFocus=True, returnToFinish=True):
-        self.focusItem(objectName)
+    def keyClicksItem(
+        self, item: QQuickItem, s: str, resetFocus=True, returnToFinish=True
+    ):
+        objectName = item.objectName()
+        self.focusItem(item)
         if self.DEBUG:
             log.info(
                 f'QmlWidgetHelper.keyClicks("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
@@ -247,8 +261,14 @@ class QmlWidgetHelper(QObjectHelper):
                 )
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
-            self.resetFocus(objectName)
+            self.resetFocusItem(item)
         QApplication.processEvents()
+
+    def keyClicks(self, objectName: str, s, resetFocus=True, returnToFinish=True):
+        item = self.findItem(objectName)
+        self.keyClicksItem(
+            item, s, resetFocus=resetFocus, returnToFinish=returnToFinish
+        )
 
     def keyClicksClear(self, objectName):
         item = self.findItem(objectName)
@@ -272,6 +292,12 @@ class QmlWidgetHelper(QObjectHelper):
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
     def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
+        assert item.property(
+            "visible"
+        ), f"Cannot double-click '{item.objectName()}' since it is is not visible"
+        assert item.property(
+            "enabled"
+        ), f"Cannot double-click '{item.objectName()}' since it is is not enabled"
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))
@@ -293,7 +319,13 @@ class QmlWidgetHelper(QObjectHelper):
         ), f"{self.rootProp('objectName')}.{objectName} is not enabled"
         self.mouseClickItem(item, button=button)
 
-    def mouseDClickItem(self, item, button=Qt.LeftButton, pos=None):
+    def mouseDClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
+        assert item.property(
+            "visible"
+        ), f"Cannot double-click '{item.objectName()}' since it is is not visible"
+        assert item.property(
+            "enabled"
+        ), f"Cannot double-click '{item.objectName()}' since it is is not enabled"
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))
@@ -471,36 +503,66 @@ class QmlWidgetHelper(QObjectHelper):
         #     for _child in child.childItems():
         #         self.here('    ', _child.metaObject().className())
 
+    def _tag_delegate(self, tagEdit: QQuickItem, tagName: str) -> QQuickItem:
+        """
+        Because they are frequently deleted and recreated. try not to re-use
+        the return value.
+        """
+        listView = tagEdit.property("listView")
+        delegates = listView.property("delegates").toVariant()
+        foundTags = [x.property("tagName") for x in delegates]
+        try:
+            delegate = next(x for x in delegates if x.property("tagName") == tagName)
+        except StopIteration:
+            raise RuntimeError(
+                f"Could not find tag '{tagName}' in TagEdit '{tagEdit.objectName()}', only found: {foundTags}"
+            )
+        return delegate
+
+    def _tag_textEdit(self, tagEdit: QQuickItem, tagName: str) -> QQuickItem:
+        return self._tag_delegate(tagEdit, tagName).property("textEdit")
+
+    def clickAddAndRenameTag(self, itemName: str, tagName: str):
+        tagEdit = self.findItem(itemName)
+        model = tagEdit.property("model")
+        addButton = tagEdit.property("crudButtons").property("addButtonItem")
+        wasTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
+        self.mouseClickItem(addButton)
+        nowTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
+        newTag = list(set(nowTags).difference(set(wasTags)))[0]
+        self.mouseDClickItem(self._tag_textEdit(tagEdit, newTag))
+        assert (
+            self._tag_textEdit(tagEdit, newTag).property("editMode") == True
+        ), f"Could not double-click to edit tag '{newTag}'"
+        self.keyClicksItem(
+            self._tag_textEdit(tagEdit, newTag), tagName, returnToFinish=True
+        )
+        assert (
+            self._tag_textEdit(tagEdit, tagName).property("text") == tagName
+        ), f"Could not rename tag '{newTag}' to {tagName}"
+
     def clickTagActivateBox(self, itemName: str, tagName: str):
         tagEdit = self.findItem(itemName)
         model = tagEdit.property("model")
         assert (
             model.rowCount() > 0
         ), "Can't click the tag activate checkbox if the TagsModel is empty"
-        tagEdit_objectName = tagEdit.objectName()
-        listView = self.findItem(f"{tagEdit_objectName}_listView")
         #
-        delegates = listView.property("delegates").toVariant()
-        found = False
-        foundTags = []
-        for delegate in delegates:
-            iTag = delegate.property("iTag")
-            itemTagName = delegate.property("tagName")
-            foundTags.append(itemTagName)
-            if tagName == itemTagName:
-                checkBox = delegate.property("checkBox")
-                was = model.data(model.index(iTag, 0), role=model.ActiveRole)
-                assert checkBox.isVisible() == True
-                self.mouseClickItem(checkBox)
-                assert (
-                    model.data(model.index(iTag), role=model.ActiveRole) != was
-                ), f"Checkbox for tag '{tagName}' did not change check state"
-                found = True
-        #
-        if not found:
-            raise RuntimeError(
-                f"Could not find tag '{tagName}' in TagEdit '{itemName}', only found: {foundTags}"
-            )
+        delegate = self._tag_delegate(tagEdit, tagName)
+        checkBox = delegate.property("checkBox")
+        iTag = delegate.property("iTag")
+        was = model.data(model.index(iTag, 0), role=model.ActiveRole)
+        assert (
+            checkBox.isVisible() == True
+        ), f"Cannot click tag checkbox for '{tagName}' if it isn't enabled"
+        assert (
+            checkBox.isEnabled() == True
+        ), f"Cannot click tag checkbox for '{tagName}' if it isn't enabled."
+        # QApplication.instance().exec_()
+        self.mouseClickItem(checkBox)
+        assert (
+            model.data(model.index(iTag), role=model.ActiveRole) != was
+        ), f"Checkbox for tag '{tagName}' did not change check state"
 
     # def clickComboBoxItem_actual(self, objectName, itemText, comboBox=None):
     #     if isinstance(objectName, str):

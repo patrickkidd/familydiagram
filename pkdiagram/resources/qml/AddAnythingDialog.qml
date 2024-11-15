@@ -20,6 +20,7 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
+    property var dummyEvent: null
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -856,17 +857,44 @@ PK.Drawer {
                             function clear() { checked = false }
                         }
 
-                        PK.Text { id: nodalLabel; text: "Nodal" }
+                        PK.FormDivider { Layout.columnSpan: 2 }
+                        
+                        PK.Text { id: tagsLabel; text: "Tags" }
 
-                        PK.TagEdit {
-                            id: tagsList
-                            objectName: "tagsList"
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            model: TagsModel {
-                                objectName: "EventProperties_tagsModel"
-                                scene: sceneModel ? sceneModel.scene : undefined
-                                items: root.
+                        PK.FormField {
+                            id: tagsField
+                            objectName: "tagsField"
+                            tabItem: kindBox
+                            backTabItem: symptomBox.lastTabItem
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
+                            Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
+                            border {
+                                width: 1
+                                color: util.QML_ITEM_BORDER_COLOR
+                            }
+                            PK.TagEdit {
+                                id: tagsList
+                                objectName: "tagsList"
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                property Item firstTabItem: this
+                                property Item lastTabItem: this
+                                model: TagsModel {
+                                    objectName: "EventProperties_tagsModel"
+                                    scene: sceneModel ? sceneModel.scene : undefined
+                                    items: root.dummyEvent ? [root.dummyEvent] : []
+                                }
+                                Timer {
+                                    running: true
+                                    repeat: true
+                                    interval: 1000
+                                    onTriggered: {
+                                        print(root.dummyEvent)
+                                    }
+                                }
+
                             }
                         }
 
