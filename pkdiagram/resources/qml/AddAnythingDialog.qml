@@ -866,7 +866,7 @@ PK.Drawer {
                             model: TagsModel {
                                 objectName: "EventProperties_tagsModel"
                                 scene: sceneModel ? sceneModel.scene : undefined
-                                items: eventModel.items
+                                items: root.
                             }
                         }
 
