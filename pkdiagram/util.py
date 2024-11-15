@@ -728,6 +728,34 @@ def fblocked(f):
     return go
 
 
+def iblocked(f):
+    """Ensure that an instance method is not called recursively."""
+
+    @wraps(f)
+    def go(self, *args, **kwargs):
+        if not hasattr(self, "__blocked_methods"):
+            self.__blocked_methods = {}
+        if self.__blocked_methods.get(f.__name__):
+            return
+        was = self.__blocked_methods.get(f.__name__)
+        self.__blocked_methods[f.__name__] = True
+        ret = None
+        if args and kwargs:
+            ret = f(self, *args, **kwargs)
+        elif args and not kwargs:
+            ret = f(self, *args)
+        elif not args and kwargs:
+            ret = f(self, **kwargs)
+        else:
+            ret = f(self)
+        self.__blocked_methods[f.__name__] = was
+        return ret
+
+    f._blocked = False
+    go.__name__ = f.__name__
+    return go
+
+
 @contextlib.contextmanager
 def monkeypatch(obj, attr, value):
     was = getattr(obj, attr)

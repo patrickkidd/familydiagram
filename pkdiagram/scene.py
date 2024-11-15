@@ -470,7 +470,10 @@ class Scene(QGraphicsScene, Item):
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
-            if not [x for x in self._events if x.dateTime()]:
+            if (
+                not [x for x in self._events if x.dateTime()]
+                and not self.isBatchAddingRemovingItems()
+            ):
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
             self._emotions.remove(item)
@@ -1301,11 +1304,14 @@ class Scene(QGraphicsScene, Item):
     def itemDetails(self):
         return list(self._itemDetails)
 
-    def events(self, tags=[]):
+    def events(self, tags=[], onlyDated=False) -> list[Event]:
         if not tags:
-            return list(self._events)
+            ret = list(self._events)
         else:
-            return [e for e in self._events if e.hasTags(tags)]
+            ret = [e for e in self._events if e.hasTags(tags)]
+        if onlyDated:
+            ret = [x for x in ret if x.dateTime()]
+        return ret
 
     def emotions(self):
         return list(self._emotions)
@@ -1466,6 +1472,12 @@ class Scene(QGraphicsScene, Item):
                 self.updateActiveLayers()
             self.layerChanged.emit(prop)
         elif item.isEvent:
+            if prop.name() == "dateTime" and not self.isBatchAddingRemovingItems():
+                datedEvents = self.events(onlyDated=True)
+                if not datedEvents and self.currentDateTime():
+                    self.setCurrentDateTime(QDateTime())
+                elif datedEvents and not self.currentDateTime():
+                    self.setCurrentDateTime(datedEvents[-1].dateTime())
             self.eventChanged.emit(prop)
             # # Vulnerable to aggregate QUndoCommand's, but not sure how to
             # # condense them when signals originate in C++ from QUndoStack.

@@ -239,6 +239,7 @@ class DocumentController(QObject):
             else:
                 self.dv.setShowGraphicalTimeline(False)
             self.dv.updateTimelineCallout()
+            self.updateActions()
 
             # Flash timeline items for events when date changes.
             firstRow = self.dv.timelineModel.firstRowForDateTime(prop.get())
