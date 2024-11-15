@@ -71,6 +71,10 @@ class DocumentController(QObject):
             QItemSelection, QItemSelection
         ].connect(self.onTimelineSelectionChanged)
 
+        self.dv.graphicalTimelineView.expandButton.clicked.connect(
+            self.onGraphicalTimelineViewExpandedOrContracted
+        )
+
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
         # Edit
@@ -748,6 +752,9 @@ class DocumentController(QObject):
         else:
             itemMode = util.ITEM_NONE
         self.scene.setItemMode(itemMode)
+
+    def onGraphicalTimelineViewExpandedOrContracted(self):
+        self.dv.graphicalTimelineCallout.hide()
 
     def onDelete(self):
         fw = QApplication.focusWidget()

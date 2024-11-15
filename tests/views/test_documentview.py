@@ -395,6 +395,19 @@ def test_retain_tab_between_selections(qtbot, mw, test_session):
     assert mw.documentView.personProps.currentTab() == "meta"
 
 
+def test_show_graphical_timeline(qtbot, dv: DocumentView):
+    assert dv.isGraphicalTimelineShown() == False
+    person = Person(name="person", birthDateTime=util.Date(2001, 1, 1))
+    dv.scene.addItem(person)
+    assert dv.scene.currentDateTime() != QDateTime()
+    assert dv.isGraphicalTimelineShown() == True
+    assert dv.graphicalTimelineCallout.isVisible() == True
+
+    qtbot.mouseClick(dv.graphicalTimelineView.expandButton)
+    assert dv.isGraphicalTimelineShown() == True
+    assert dv.graphicalTimelineCallout.isVisible() == False
+
+
 def test_show_search_view_from_graphical_timeline(qtbot, dv: DocumentView):
     qtbot.mouseClick(dv.graphicalTimelineView.searchButton, Qt.LeftButton)
     assert dv.currentDrawer == dv.caseProps
