@@ -856,6 +856,25 @@ PK.Drawer {
                             function clear() { checked = false }
                         }
 
+                        PK.Text { id: nodalLabel; text: "Nodal" }
+
+                        PK.TagEdit {
+                            id: tagsList
+                            objectName: "tagsList"
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            model: TagsModel {
+                                objectName: "EventProperties_tagsModel"
+                                scene: sceneModel ? sceneModel.scene : undefined
+                                items: eventModel.items
+                            }
+                        }
+
+                        PK.HelpText {
+                            text: "Tags are used to group events for easy searching, often for periods of high stress or anxiety. Examples are, 'Symptoms', 'Christmas \'23', 'Move 1989'"
+                            Layout.columnSpan: 2
+                        }
+
                         PK.FormDivider {
                             Layout.columnSpan: 2
                         }
