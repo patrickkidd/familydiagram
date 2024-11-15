@@ -178,12 +178,12 @@ def test_show_init_multiple_different(qmlScene, ep, emotionProps):
 def test_notes_field_has_start_datetime(ep, startDateTime):
     emotion = objects.Emotion(kind=util.ITEM_PROJECTION)
     emotion.startEvent.setDateTime(startDateTime)
-    ep.show(emotion)
+    ep.show(emotion, tab="notes")
     emotionNotesEdit = ep.rootProp("emotionNotesEdit")
     notesHiddenHelpText = ep.rootProp("notesHiddenHelpText")
     if startDateTime:
         assert emotionNotesEdit.property("visible") == False
         assert notesHiddenHelpText.property("visible") == True
     else:
-        assert emotionNotesEdit.property("visible") == False
+        assert emotionNotesEdit.property("visible") == True
         assert notesHiddenHelpText.property("visible") == False

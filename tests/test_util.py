@@ -98,6 +98,31 @@ def test_fblocked():
     assert a.count == 8
 
 
+def test_iblocked():
+
+    b = None
+
+    class A:
+        def __init__(self, name: str):
+            self.name = name
+            self.count = 0
+
+        @util.iblocked
+        def inc(self):
+            if self is not b:
+                b.inc()
+                b.inc()
+            self.count += 1
+            self.inc()
+
+    a = A("a")
+    b = A("b")
+
+    a.inc()
+    assert a.count == 1
+    assert b.count == 2
+
+
 def test_blocked_exception():
 
     inner = mock.MagicMock()

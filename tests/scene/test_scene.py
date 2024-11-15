@@ -2,12 +2,7 @@ import os, os.path, pickle
 
 import pytest
 
-from pkdiagram.pyqt import (
-    Qt,
-    QGraphicsView,
-    QPointF,
-    QRectF,
-)
+from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram.util import EventKind
 from pkdiagram import (
     util,
@@ -288,7 +283,7 @@ def test_rename_tag_retains_tag_on_items():
     assert item.tags() == ["bbb"]
 
 
-def test_add_events_sets_currentDateTime(qApp):
+def test_add_events_sets_currentDateTime():
     scene = Scene()
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
@@ -297,6 +292,28 @@ def test_add_events_sets_currentDateTime(qApp):
 
     event_2 = Event(person, dateTime=util.Date(2002, 1, 1))
     assert scene.currentDateTime() == event_2.dateTime()
+
+
+def test_remove_last_event_sets_currentDateTime():
+    person = Person(name="p1")
+    event = Event(person, dateTime=util.Date(2001, 1, 1))
+    scene = Scene()
+    scene.addItem(person)
+    assert scene.currentDateTime() == event.dateTime()
+
+    event.setDateTime(QDateTime())
+    assert scene.currentDateTime() == QDateTime()
+
+
+def test_reset_last_built_event_event_sets_currentDateTime():
+    person = Person(name="p1", birthDateTime=util.Date(2001, 1, 1))
+    scene = Scene()
+    scene.addItem(person)
+    scene.addItem(person)
+    assert scene.currentDateTime() == person.birthDateTime()
+
+    person.setBirthDateTime(QDateTime())
+    assert scene.currentDateTime() == QDateTime()
 
 
 def test_addParentsToSelection_doesnt_reset_currentDateTime(qApp):

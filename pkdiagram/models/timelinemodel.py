@@ -122,7 +122,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._headerModel.setHeaders(self._columnHeaders)
 
     def onSceneProperty(self, prop):
-        if prop.name() == "eventProperties":
+        if prop.name() == "currentDateTime":
+            self._refreshRows()
+        elif prop.name() == "eventProperties":
             prevColumns = list(self._columnHeaders)
             newColumns = self.getColumnHeaders()
             addedIndexes = [i for i, x in enumerate(newColumns) if not x in prevColumns]
@@ -159,6 +161,13 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             hidden = True
         elif not self._scene:  # SceneModel.nullTimelineModel
             hidden = False
+        elif (
+            event.parent
+            and event.parent.isEmotion
+            and event is event.parent.endEvent
+            and event.parent.isSingularDate()
+        ):
+            hidden = True
         elif self._searchModel and self._searchModel.shouldHide(event):
             hidden = True
         return hidden

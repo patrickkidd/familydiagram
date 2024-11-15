@@ -267,7 +267,7 @@ class DocumentView(QWidget):
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
-            if self.scene.hideDateSlider() or len(self.scene.events()) == 0:
+            if self.scene.hideDateSlider() or len(self.timelineModel.events()) == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:
                 self.graphicalTimelineShim.setFixedHeight(
@@ -635,9 +635,9 @@ class DocumentView(QWidget):
             commands.trackView("Hide Graphical Timeline")
 
     def onShowGraphicalTimelineTick(self, height):
-        if self.graphicalTimelineAnimation.state() == QAbstractAnimation.Running:
-            self.graphicalTimelineShim.setFixedHeight(height)
-            self.adjust()
+        # if self.graphicalTimelineAnimation.state() == QAbstractAnimation.Running:
+        self.graphicalTimelineShim.setFixedHeight(height)
+        self.adjust()
 
     def onShowGraphicalTimelineFinished(self):
         pass

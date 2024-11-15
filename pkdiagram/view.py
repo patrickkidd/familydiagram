@@ -19,6 +19,7 @@ from . import util, toolbars, objects, widgets, commands
 from . import panzoom, dragpan, wheelzoom
 from . import legend
 from .helpoverlay import HelpOverlay
+from pkdiagram.objects import Property
 
 _log = logging.getLogger(__name__)
 
@@ -708,11 +709,16 @@ class View(QGraphicsView):
     ## Events
 
     @util.blocked
-    def onSceneProperty(self, prop):
+    def onSceneProperty(self, prop: Property):
         if prop.name() == "currentDateTime":
-            s = util.dateString(prop.get())
-            self.currentDateTimeLabel.setText(s)
-            self.updateHiddenItemsLabel()
+            if prop.get():
+                s = util.dateString(prop.get())
+                self.currentDateTimeLabel.setText(s)
+                self.updateHiddenItemsLabel()
+            if self.scene().people():
+                self.noItemsCTALabel.hide()
+            else:
+                self.noItemsCTALabel.show()
         elif prop.name() == "hideToolBars":
             self.setSceneToolBarShown(not prop.get())
             self.setItemToolBarShown(not prop.get())

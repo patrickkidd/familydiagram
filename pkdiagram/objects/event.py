@@ -175,7 +175,7 @@ class Event(item.Item):
             if self.parentName() != wasParentName:
                 self.onProperty(self.prop("parentName"))
 
-    @util.blocked
+    @util.iblocked
     def onProperty(self, prop):
         if prop.name() == "description":
             if not self._onShowAliases:

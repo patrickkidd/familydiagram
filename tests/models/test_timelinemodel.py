@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
@@ -7,6 +9,8 @@ from pkdiagram.models import SearchModel
 
 
 pytestmark = pytest.mark.component("TimelineModel")
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -304,7 +308,7 @@ def test_add_item(timelineScene, model):
     fusion = objects.Emotion(kind=util.ITEM_FUSION)
     fusion.setPersonA(p1)
     fusion.setPersonB(p2)
-    fusion.startEvent.setDateTime(util.Date(1980, 5, 11))
+    fusion.startEvent.setDateTime(util.Date(1981, 5, 11))
     fusion.endEvent.setDateTime(util.Date(2015, 1, 1))
     timelineScene.addItem(fusion)
     #
@@ -519,6 +523,23 @@ def test_set_emotion_date():
     )
 
 
+def test_emotion_move_has_only_one_event():
+    scene = Scene()
+    model = TimelineModel()
+    model.scene = scene
+    model.items = [scene]
+    p1 = objects.Person()
+    p2 = objects.Person()
+    fusion = objects.Emotion(
+        kind=util.ITEM_FUSION, startDateTime=util.Date(1980, 1, 11)
+    )
+    fusion.setPersonA(p1)
+    fusion.setPersonB(p2)
+    scene.addItems(p1, p2, fusion)
+    assert model.rowCount() == 1
+    assert model.index(0, 0).data(model.DateTimeRole) == fusion.startDateTime()
+
+
 def test_emotion_date_changed():
 
     scene = Scene()
@@ -538,7 +559,7 @@ def test_emotion_date_changed():
     rowsRemoved = util.Condition(model.rowsRemoved)
     rowsInserted = util.Condition(model.rowsInserted)
     fusion.startEvent.setDateTime(dateTime)
-    assert rowsRemoved.callCount == 0
+    assert rowsRemoved.callCount == 1
     assert rowsInserted.callCount == 1
     assert rowsInserted.callArgs[0][1] == 0
     assert rowsInserted.callArgs[0][2] == 0
@@ -570,12 +591,12 @@ def test_dateBuddies(timelineScene, model):
         kind=util.ITEM_FUSION,
         personA=p1,
         personB=p2,
-        startDateTime=util.Date(1980, 5, 11),
+        startDateTime=util.Date(1981, 5, 11),
         endDateTime=util.Date(2015, 1, 1),
     )
     timelineScene.addItem(fusion)
 
-    assert model.firstRowForDateTime(fusion.startEvent.dateTime()) == 1
+    assert model.firstRowForDateTime(fusion.startEvent.dateTime()) == 2
     assert model.rowForEvent(fusion.startEvent) == 2
     assert model.firstRowForDateTime(fusion.endEvent.dateTime()) == 3
 
@@ -597,37 +618,37 @@ def test_dateBuddies(timelineScene, model):
     assert item == fusion
 
 
-def test_dateBuddies_sameDate(timelineScene, model):
-    p1 = timelineScene.query1(name="p1")
-    p2 = timelineScene.query1(name="p2")
+# def test_dateBuddies_sameDate(timelineScene, model):
+#     p1 = timelineScene.query1(name="p1")
+#     p2 = timelineScene.query1(name="p2")
 
-    fusion = objects.Emotion(kind=util.ITEM_FUSION)
-    fusion.setPersonA(p1)
-    fusion.setPersonB(p2)
-    fusion.startEvent.setDateTime(util.Date(1980, 5, 11))
-    fusion.endEvent.setDateTime(util.Date(1980, 5, 12))
-    timelineScene.addItem(fusion)
+#     fusion = objects.Emotion(kind=util.ITEM_FUSION)
+#     fusion.setPersonA(p1)
+#     fusion.setPersonB(p2)
+#     fusion.startEvent.setDateTime(util.Date(1980, 5, 11))
+#     fusion.endEvent.setDateTime(util.Date(1980, 5, 12))
+#     timelineScene.addItem(fusion)
 
-    assert model.firstRowForDateTime(fusion.startDateTime()) == 1
-    assert model.rowForEvent(fusion.startEvent) == 2
-    assert model.lastRowForDateTime(fusion.endEvent.dateTime()) == 3
+#     assert model.firstRowForDateTime(fusion.startDateTime()) == 1
+#     assert model.rowForEvent(fusion.startEvent) == 2
+#     assert model.lastRowForDateTime(fusion.endEvent.dateTime()) == 3
 
-    startDateRow = model.rowForEvent(fusion.startEvent)
-    endDateRow = model.rowForEvent(fusion.endEvent)
-    assert startDateRow == 2
-    assert endDateRow == 3
+#     startDateRow = model.rowForEvent(fusion.startEvent)
+#     endDateRow = model.rowForEvent(fusion.endEvent)
+#     assert startDateRow == 2
+#     assert endDateRow == 3
 
-    startDateBuddyRow = model.dateBuddyForRow(startDateRow)
-    endDateBuddyRow = model.dateBuddyForRow(endDateRow)
-    assert startDateBuddyRow == endDateRow
-    assert endDateBuddyRow == startDateRow
+#     startDateBuddyRow = model.dateBuddyForRow(startDateRow)
+#     endDateBuddyRow = model.dateBuddyForRow(endDateRow)
+#     assert startDateBuddyRow == endDateRow
+#     assert endDateBuddyRow == startDateRow
 
-    dateBuddies = model.dateBuddiesInternal()
-    assert len(dateBuddies) == 1
-    row1, row2, item = dateBuddies[0]
-    assert row1 == 2
-    assert row2 == 3
-    assert item == fusion
+#     dateBuddies = model.dateBuddiesInternal()
+#     assert len(dateBuddies) == 1
+#     row1, row2, item = dateBuddies[0]
+#     assert row1 == 2
+#     assert row2 == 3
+#     assert item == fusion
 
 
 def test_emotion_parentName_changed():

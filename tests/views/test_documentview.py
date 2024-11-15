@@ -142,17 +142,6 @@ def test_remove_person(qtbot, dv):
     assert dv.view.noItemsCTALabel.isVisible() == True
 
 
-def test_load_from_file_with_people_and_events(dv):
-    people = [Person(name="p1"), Person(name="p2")]
-    scene = Scene()
-    scene.addItems(*people)
-    people[0].setBirthDateTime(util.Date(2001, 1, 1))
-    dv.setScene(scene)
-    assert dv.view.noItemsCTALabel.isVisible() == False
-    assert dv.ui.actionNext_Event.isEnabled() == True
-    assert dv.ui.actionPrevious_Event.isEnabled() == True
-
-
 def test_load_from_file_empty(dv):
     scene = Scene()
     dv.setScene(scene)
@@ -160,6 +149,55 @@ def test_load_from_file_empty(dv):
     # no events yet, so...
     assert dv.ui.actionNext_Event.isEnabled() == False
     assert dv.ui.actionPrevious_Event.isEnabled() == False
+    assert dv.isGraphicalTimelineShown() == False
+
+
+def assert_UIHasAnyEvents(dv, hasEvents: bool):
+    assert bool(dv.timelineModel.events()) == hasEvents
+    assert dv.ui.actionNext_Event.isEnabled() == hasEvents
+    assert dv.ui.actionPrevious_Event.isEnabled() == hasEvents
+    assert dv.isGraphicalTimelineShown() == hasEvents
+
+
+def test_load_from_file_with_people_no_events(dv):
+    scene = Scene()
+    scene.addItems(Person(name="p1"))
+    dv.setScene(scene)
+    assert_UIHasAnyEvents(dv, False)
+
+
+def test_load_from_file_with_people_and_events(dv):
+    people = [Person(name="p1"), Person(name="p2")]
+    scene = Scene()
+    scene.addItems(*people)
+    people[0].setBirthDateTime(util.Date(2001, 1, 1))
+    dv.setScene(scene)
+    assert_UIHasAnyEvents(dv, True)
+    assert dv.view.noItemsCTALabel.isVisible() == False
+
+
+def test_add_first_event_shows_UI_elements(dv):
+    scene = Scene()
+    dv.setScene(scene)
+    assert_UIHasAnyEvents(dv, False)
+    assert dv.view.noItemsCTALabel.isVisible() == True
+
+    scene.addItem(Person(name="p1", birthDateTime=util.Date(2001, 1, 1)))
+    assert_UIHasAnyEvents(dv, True)
+    assert dv.view.noItemsCTALabel.isVisible() == False
+
+
+def test_remove_last_event_hides_UI_elements(dv):
+    person = Person(name="p1")
+    scene = Scene()
+    person.setBirthDateTime(util.Date(2001, 1, 1))
+    scene.addItem(person)
+    scene.setCurrentDateTime(person.birthDateTime())
+    dv.setScene(scene)
+    assert_UIHasAnyEvents(dv, True)
+
+    person.setBirthDateTime(QDateTime())
+    assert_UIHasAnyEvents(dv, False)
 
 
 def test_remove_last_event(qtbot, dv):
@@ -179,14 +217,11 @@ def test_remove_last_event(qtbot, dv):
         person = dv.scene.addItem(Person(name="person"))
         event = Event(person, dateTime=util.Date(2001, 1, 1))
         assert dv.timelineModel.events() == [event]
-        assert dv.graphicalTimelineCallout.isVisible() == True
-        assert dv.isGraphicalTimelineShown() == True
+        assert_UIHasAnyEvents(dv, True)
 
         dv.scene.setCurrentDateTime(event.dateTime())
         dv.scene.removeItem(event)
-        assert dv.timelineModel.events() == []
-        assert dv.graphicalTimelineCallout.isVisible() == False
-        assert dv.isGraphicalTimelineShown() == False
+        assert_UIHasAnyEvents(dv, False)
 
 
 def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView, personProps):
