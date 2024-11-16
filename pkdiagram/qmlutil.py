@@ -105,7 +105,6 @@ class QmlUtil(QObject, QObjectHelper):
         "QML_SELECTION_COLOR",
         "QML_SAME_DATE_HIGHLIGHT_COLOR",
         "QML_NODAL_COLOR",
-        "EVENT_PROPS_HELP_TEXT",
         "EMOTION_PROPS_HELP_TEXT",
         "CURRENT_DATE_INDICATOR_WIDTH",
         "ITEM_CUTOFF",
@@ -128,6 +127,7 @@ class QmlUtil(QObject, QObjectHelper):
         "VAR_FUNCTIONING_UP",
         "VAR_FUNCTIONING_DOWN",
         "VAR_FUNCTIONING_SAME",
+        "S_EVENT_PROPS_HELP_TEXT",
         "S_PERSON_NOT_FOUND",
         "S_PEOPLE_HELP_TEXT",
         "S_EVENT_KIND_HELP_TEXT",
@@ -141,6 +141,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_EMAIL_SENT_TO_CHANGE_PASSWORD",
         "S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL",
         "S_EMOTION_SYMBOL_NOTES_HIDDEN",
+        "S_TAGS_HELP_TEXT",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
     ]

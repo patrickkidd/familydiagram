@@ -425,20 +425,11 @@ QML_IMPORT_PATHS = [":/qml"]
 QML_SMALL_BUTTON_WIDTH = 50
 QML_MICRO_BUTTON_WIDTH = 21
 
-EVENT_PROPS_HELP_TEXT = LONG_TEXT(
-    """Events are occurrences in time.
-They are the core of a systems model. A systems model is at least one which
-defines how a change in one area of a system occurs in response to a change in another area of the system.
-<br>A systems model is based on systems thinking.
-At its simplest, systems thinking has to do with defining how processes unfold over time.
-Thinking in terms of a process through time automatically generates some degree of objectivity.
-<br>Events on the timeline should be factual. The description should be the shortest possible
-summary of what occurred. It should only contain a fact.
-<br>If the description of an event is a subjective opinion,
-it can be converted to a fact using the "functional fact" tool: It is a fact that a
-person dreams at a particular time. What the person dreams is not necessarily a fact.
-<br>Together with relationships, events are the backbone of the timeline.
-"""
+
+S_EVENT_PROPS_HELP_TEXT = (
+    "Events track anxiety, functioning, and symptoms, and how a person reacts to them over time. "
+    "Looking back at a timeline of simple, factual events can help you see where you can make low-cost improvements in your life.\n\n"
+    "Looking at the timeline and diagram together can help see how your own reactivity in relationships keeps you from your goals."
 )
 
 EMOTION_PROPS_HELP_TEXT = LONG_TEXT(
@@ -479,13 +470,12 @@ S_SYMPTOM_HELP_TEXT = LONG_TEXT(
 )
 
 S_FUNCTIONING_HELP_TEXT = LONG_TEXT(
-    "Shift up or down in ability to appropriately balance thinking and feeling/emotion, "
-    "where neither overpowers the other. Hypothesized to manage anxiety "
-    "and problems more efficiently."
+    "Shift up or down in managing anxiety / problems more efficiently toward your goals, AKA; "
+    "mindfulness, leadership, in contact with emotion but not dominated by it."
 )
 
 S_NOTES_HELP_TEXT = LONG_TEXT(
-    "Details of the event including opinions, "
+    "Free-form notes about the event including opinions, "
     "emotional content, justification for coding anxiety, "
     "symptom, functioning, or event type."
 )
@@ -508,7 +498,15 @@ S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL = LONG_TEXT(
 )
 
 S_EMOTION_SYMBOL_NOTES_HIDDEN = LONG_TEXT(
-    "The notes/details text is hidden for a relationship symbol when a start date/time is set for that symbol. Click the *i* button to the right of the start or end date/time to edit the notes for that event."
+    "The notes/details text is hidden for a relationship symbol when a start date/time is set for that symbol. "
+    "Click the *i* button to the right of the start or end date/time to edit the notes for that event."
+)
+
+S_TAGS_HELP_TEXT = (
+    "Add tags for periods of high anxiety, or high emotional or physical symptoms, or low thoughtfulness."
+    "Name it something memorable, like 'Move-In Stress', 'Christmas \"'23\", 'Johnny's broken leg'. "
+    "Then click the checkbox to activate it for this event.\n\n"
+    "Then you can search for it later in the search view."
 )
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
