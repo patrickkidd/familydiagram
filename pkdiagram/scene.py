@@ -333,9 +333,10 @@ class Scene(QGraphicsScene, Item):
         elif item.isMarriage:
             self._marriages.append(item)
             # Add an unnamed layer but don't register it or notify anything
-            layer = Layer()
-            item.setScene(self)
-            self._layers.append(layer)
+            layer = Layer(internal=True)
+            self.addItem(layer)
+            item.personA().setLayers(item.personA().layers() + [layer.id], notify=False)
+            item.personB().setLayers(item.personB().layers() + [layer.id], notify=False)
             self._emotionalUnits.append(EmotionalUnit(item, layer))
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
@@ -356,9 +357,10 @@ class Scene(QGraphicsScene, Item):
         elif item.isLayer:
             self._layers.append(item)
             item.setScene(self)
-            if not self.isBatchAddingRemovingItems():
-                self.tidyLayerOrder()
-            self.layerAdded.emit(item)
+            if not item.internal():
+                if not self.isBatchAddingRemovingItems():
+                    self.tidyLayerOrder()
+                self.layerAdded.emit(item)
             if not self.isBatchAddingRemovingItems():
                 if item.active():
                     self.updateActiveLayers()
@@ -474,10 +476,17 @@ class Scene(QGraphicsScene, Item):
             emotionalUnit = next(
                 x for x in self._emotionalUnits if x.marriage() == item
             )
-            emotionalUnit.layer.setScene(None)
-            self._layers.remove(emotionalUnit.layer())
-            self._marriages.remove(item)
+            item.personA().setLayers(
+                [x for x in item.personA().layers() if x != emotionalUnit.layer().id],
+                notify=False,
+            )
+            item.personB().setLayers(
+                [x for x in item.personB().layers() if x != emotionalUnit.layer().id],
+                notify=False,
+            )
+            self.removeItem(emotionalUnit.layer())
             self._emotionalUnits.remove(emotionalUnit)
+            self._marriages.remove(item)
             self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
@@ -494,8 +503,9 @@ class Scene(QGraphicsScene, Item):
             self.emotionRemoved.emit(item)
         elif item.isLayer:
             self._layers.remove(item)
-            self.tidyLayerOrder()
-            self.layerRemoved.emit(item)
+            if not item.internal():
+                self.tidyLayerOrder()
+                self.layerRemoved.emit(item)
         elif item.isLayerItem:
             self._layerItems.remove(item)
         elif item.isItemDetails:
@@ -737,6 +747,8 @@ class Scene(QGraphicsScene, Item):
                 chunk["kind"] = "PencilStroke"
             elif item.isLayer:
                 chunk["kind"] = "Layer"
+                if item.internal():
+                    continue
             elif item.isCallout:
                 chunk["kind"] = "Callout"
             elif item.isEmotion:

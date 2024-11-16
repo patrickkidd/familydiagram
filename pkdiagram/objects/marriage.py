@@ -14,8 +14,8 @@ from ..pyqt import (
     QQmlEngine,
 )
 from .. import util
-from pkdiagram import EventKind
-from pkdiagram.objects import ItemDetails, Event, PathItem, Property, Person
+from . import ItemDetails, Event, PathItem, Property
+from ..util import EventKind
 
 log = logging.getLogger(__name__)
 
@@ -271,21 +271,22 @@ class Marriage(PathItem):
     ## Attributes
 
     @staticmethod
-    def itemNameFor(self, personA: Person, personB: Person) -> str:
+    def itemNameFor(personA, personB) -> str:
         ret = "Pair Bond"
-        peopleNames = self.peopleNamesFor(personA, personB)
+        peopleNames = Marriage.peopleNamesFor(personA, personB)
         if peopleNames:
             ret = ret + "(%s)" % peopleNames
         return ret
 
     def itemName(self):
-        return Marriage.itemNameFor(*self.people)
+        return Marriage.itemNameFor(self.people[0], self.people[1])
 
-    def peopleNames(self):
+    @staticmethod
+    def peopleNamesFor(personA, personB):
         ret = ""
-        if not None in self.people:
-            name1 = self.people[0].name()
-            name2 = self.people[1].name()
+        if personA is not None and personB is not None:
+            name1 = personA.name()
+            name2 = personB.name()
             if name1 and name2:
                 ret += "%s & %s" % (name1, name2)
             elif name1:
@@ -293,6 +294,9 @@ class Marriage(PathItem):
             elif name2:
                 ret += "%s" % name2
         return ret
+
+    def peopleNames(self):
+        return self.peopleNamesFor(self.people[0], self.people[1])
 
     def onPersonNameChanged(self, person):
         for event in self.events():
@@ -672,9 +676,6 @@ class Marriage(PathItem):
         super().onUpdateAll()  # Optimize out redundant calls to updateDetails()
         self._Marriage_isUpdatingAll = False
         self.updateDetails()
-
-    def emotionalUnit(self) -> list[Person]:
-        return self.people + self.children
 
     ## Scene Events
 

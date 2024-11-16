@@ -11,6 +11,9 @@ class Layer(Item):
             {"attr": "order", "type": int, "default": -1},
             {"attr": "notes"},
             {"attr": "active", "type": bool, "default": False},
+            # For built-in layers that are not created by the user, e.g.
+            # emotional units and triangles.
+            {"attr": "internal", "type": bool, "default": False},
             {"attr": "itemProperties", "type": dict},
             {"attr": "storeGeometry", "type": bool, "default": False},
         )
