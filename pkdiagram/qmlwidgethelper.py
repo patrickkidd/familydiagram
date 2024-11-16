@@ -292,12 +292,10 @@ class QmlWidgetHelper(QObjectHelper):
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
     def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
-        assert item.property(
-            "visible"
-        ), f"Cannot click '{item.objectName()}' since it is is not visible"
-        assert item.property(
-            "enabled"
-        ), f"Cannot click '{item.objectName()}' since it is is not enabled"
+        if not item.property("visible"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
+        if not item.property("enabled"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))
@@ -320,12 +318,14 @@ class QmlWidgetHelper(QObjectHelper):
         self.mouseClickItem(item, button=button)
 
     def mouseDClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
-        assert item.property(
-            "visible"
-        ), f"Cannot double-click '{item.objectName()}' since it is is not visible"
-        assert item.property(
-            "enabled"
-        ), f"Cannot double-click '{item.objectName()}' since it is is not enabled"
+        if not item.property("visible"):
+            log.warning(
+                f"Cannot double-click '{item.objectName()}' since it is not visible"
+            )
+        if not item.property("enabled"):
+            log.warning(
+                f"Cannot double-click '{item.objectName()}' since it is not enabled"
+            )
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))

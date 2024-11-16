@@ -163,7 +163,7 @@ class AddAnythingDialog(QmlDrawer):
         functioning = self.rootProp("functioning")
         symptom = self.rootProp("symptom")
         notes = self.rootProp("notes")
-        tags = self.eventModel.tags
+        tags = self._eventModel.items[0].tags()
 
         personPicker = self.findItem("personPicker")
         peoplePicker = self.findItem("peoplePicker")
