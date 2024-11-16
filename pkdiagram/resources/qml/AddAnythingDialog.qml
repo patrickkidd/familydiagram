@@ -830,7 +830,7 @@ PK.Drawer {
                         }
 
                         PK.HelpText {
-                            text: util.S_SYMPTOM_HELP_TEXT
+                            text: util.S_FUNCTIONING_HELP_TEXT
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                         }
@@ -850,11 +850,15 @@ PK.Drawer {
                             Layout.fillWidth: true
                         }
 
-                        PK.Text { id: nodalLabel; text: "Nodal" }
+                        PK.Text {
+                            id: nodalLabel
+                            text: "Nodal"
+                            visible: false
+                        }
 
                         PK.CheckBox {
                             id: nodalBox
-                            objectName: "nodalBox"
+                            visible: false
                             KeyNavigation.tab: notesEdit
                             KeyNavigation.backtab: anxietyBox.lastTabItem
                             function clear() { checked = false }
@@ -896,7 +900,8 @@ PK.Drawer {
                         }
 
                         PK.HelpText {
-                            text: "Tags are used to group events for easy searching, often for periods of high stress or anxiety. Examples are, 'Symptoms', 'Christmas \'23', 'Move 1989'"
+                            text: util.S_TAGS_HELP_TEXT
+                            wrapMode: Text.Wrap
                             Layout.columnSpan: 2
                         }
 

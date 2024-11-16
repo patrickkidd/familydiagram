@@ -807,7 +807,7 @@ class DocumentController(QObject):
             ret = fw.parent().rootProp("canInspect")
             if ret is None:
                 ret = False
-        if fw == self.dv.graphicalTimelineView.timeline:
+        elif fw == self.dv.graphicalTimelineView.timeline:
             events = selectedEvents(
                 self.dv.timelineModel, self.dv.timelineSelectionModel
             )

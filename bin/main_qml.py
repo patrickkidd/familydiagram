@@ -352,12 +352,14 @@ def __test__MarriageProperties(scene, parent, sceneModel):
     return mp
 
 
-def __test__EventProperties(scene, parent, sceneModel):
+def __test__EventProperties(scene, parent, engine):
     scene.setTags(["here", "you", "are"])
     ep = QmlDrawer(
-        "tests/qml/EventPropertiesTest.qml", parent=parent, propSheetModel="eventModel"
+        engine,
+        "tests/qml/EventPropertiesTest.qml",
+        parent=parent,
+        propSheetModel="eventModel",
     )
-    ep.qml.rootObject().setProperty("sceneModel", sceneModel)
     ep.setScene(scene)
     for event in scene.events():
         if not event.uniqueId():

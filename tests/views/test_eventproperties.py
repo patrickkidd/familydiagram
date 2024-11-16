@@ -73,9 +73,11 @@ def runEventProperties(ep, props, personName=None, updates={}):
             ep.findItem("nameBox").close()
         assert ep.itemProp("nameBox", "currentText") == personName
 
-    # This fails if after dateButtons for some reason. Hard to debug
-    if props["nodal"] != ep.itemProp("nodalBox", "checkState"):
-        ep.mouseClick("nodalBox")
+    nodalBox = ep.rootProp("nodalBox")
+
+    # # This fails if after dateButtons for some reason. Hard to debug
+    # if props["nodal"] != nodalBox.property("checkState"):
+    #     ep.mouseClickItem(nodalBox)
 
     if props["includeOnDiagram"] != ep.itemProp("includeOnDiagramBox", "checkState"):
         ep.mouseClick("includeOnDiagramBox")
@@ -133,13 +135,14 @@ def assertEventProperties(event, props, updates={}, personName=None):
     assert event.dateTime() == props["dateTime"]
     # assert event.unsure() == (props['unsure'] == Qt.Checked)
     assert event.location() == props["location"]
-    assert event.nodal() == (props["nodal"] == Qt.Checked)
+    # assert event.nodal() == (props["nodal"] == Qt.Checked)
     if event.parent and event.parent.isMarriage:
         assert event.includeOnDiagram() == (props["includeOnDiagram"] == Qt.Checked)
     assert event.notes().strip() == props["notes"]
 
 
 def test_init_single(ep, eventProps):
+    nodalBox = ep.rootProp("nodalBox")
     scene = Scene()
     person = Person()
     event = Event(parent=person, **eventProps)
@@ -151,7 +154,7 @@ def test_init_single(ep, eventProps):
     # assert ep.itemProp('dateButtons', 'unsure') == props['unsure']
     assert ep.itemProp("descriptionEdit", "text") == props["description"]
     assert ep.itemProp("locationEdit", "text") == props["location"]
-    assert ep.itemProp("nodalBox", "checkState") == props["nodal"]
+    # assert nodalBox.property("checkState") == props["nodal"]
     assert ep.itemProp("eventNotesEdit", "text") == props["notes"]
 
 
@@ -175,6 +178,7 @@ def test_init_single_emotion(ep, eventProps):
 
 
 def test_init_multiple_same(ep, event, eventProps):
+    nodalBox = ep.rootProp("nodalBox")
     event1 = Event()
     event2 = Event()
     event1.setProperties(**eventProps)
@@ -186,12 +190,13 @@ def test_init_multiple_same(ep, event, eventProps):
     # assert ep.itemProp('dateButtons', 'unsure') == props['unsure']
     assert ep.itemProp("descriptionEdit", "text") == props["description"]
     assert ep.itemProp("locationEdit", "text") == props["location"]
-    assert ep.itemProp("nodalBox", "checkState") == props["nodal"]
+    # assert nodalBox.property("checkState") == props["nodal"]
     assert ep.itemProp("eventNotesEdit", "text") == props["notes"]
 
 
 def test_init_multiple_different(ep, event):
     """Test that fields with different values have proper defaults."""
+    nodalBox = ep.rootProp("nodalBox")
     event1 = Event(
         description="Some Event 1",
         unsure=True,
@@ -214,7 +219,7 @@ def test_init_multiple_different(ep, event):
     # assert ep.itemProp('dateButtons', 'unsure') == Qt.PartiallyChecked
     assert ep.itemProp("descriptionEdit", "text") == ""
     assert ep.itemProp("locationEdit", "text") == ""
-    assert ep.itemProp("nodalBox", "checkState") == Qt.PartiallyChecked
+    # assert nodalBox.property("checkState") == Qt.PartiallyChecked
     assert ep.itemProp("eventNotesEdit", "text") == ""
 
 

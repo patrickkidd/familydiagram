@@ -28,6 +28,8 @@ Page {
         }
     }
 
+    property alias nodalBox: nodalBox
+
     function setCurrentTab(tab) {
         var index = 0
         if(tab == 'item')
@@ -286,11 +288,14 @@ Page {
                             }
                         }
 
-                        PK.Text { text: "Nodal" }
+                        PK.Text {
+                            text: "Nodal"
+                            visible: false
+                        }
 
                         PK.CheckBox {
                             id: nodalBox
-                            objectName: "nodalBox"
+                            visible: false
                             checkState: eventModel.nodal
                             KeyNavigation.tab: uniqueIdBox
                             onCheckStateChanged: eventModel.nodal = checkState
@@ -358,11 +363,8 @@ Page {
 
                         PK.FormDivider { Layout.columnSpan: 2}
 
-                        PK.Text {
-                            text: util.EVENT_PROPS_HELP_TEXT
-                            wrapMode: Text.WordWrap
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            Layout.fillWidth: true
+                        PK.HelpText {
+                            text: util.S_EVENT_PROPS_HELP_TEXT
                             Layout.columnSpan: 2
                         }
                     }
