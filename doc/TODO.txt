@@ -3,11 +3,7 @@ v2.0.0
 =============================================================================
 
 
-FD-104: Show tags in simple view
--------------------------------------------
-- Open file w/o emotion event dates set still shows bottom timeline
-  - New Case Fri October 04 10-39am
-
+- Need add button for Person views tab
 
 - Speed up mainwindow tests. Need account login and everything?
 
