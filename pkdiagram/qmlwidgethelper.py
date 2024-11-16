@@ -294,10 +294,10 @@ class QmlWidgetHelper(QObjectHelper):
     def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
         assert item.property(
             "visible"
-        ), f"Cannot double-click '{item.objectName()}' since it is is not visible"
+        ), f"Cannot click '{item.objectName()}' since it is is not visible"
         assert item.property(
             "enabled"
-        ), f"Cannot double-click '{item.objectName()}' since it is is not enabled"
+        ), f"Cannot click '{item.objectName()}' since it is is not enabled"
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))

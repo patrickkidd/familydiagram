@@ -95,6 +95,7 @@ class AddAnythingDialog(QmlDrawer):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
         self.qml.rootObject().cancel.connect(self.onCancel)
+        self._eventModel = self.rootProp("eventModel")
 
     @staticmethod
     def nextItemInChain(self, item):
@@ -137,8 +138,8 @@ class AddAnythingDialog(QmlDrawer):
         elif any(x.isPerson for x in selection):
             ids = [x.id for x in selection if x.isPerson]
             self.initWithMultiplePeople(ids)
-        event = Event(addDummy=True)  # just for tags
-        self.setRootProp("dummyEvent", event)
+        # just for tags
+        self._eventModel.items = [Event(addDummy=True)]
 
     def onDone(self):
         _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
@@ -162,7 +163,7 @@ class AddAnythingDialog(QmlDrawer):
         functioning = self.rootProp("functioning")
         symptom = self.rootProp("symptom")
         notes = self.rootProp("notes")
-        tags = self.rootProp("dummyEvent").tags()
+        tags = self.eventModel.tags
 
         personPicker = self.findItem("personPicker")
         peoplePicker = self.findItem("peoplePicker")
@@ -903,11 +904,12 @@ class AddAnythingDialog(QmlDrawer):
         self.setVariable("symptom", x)
 
     def _scrollToTagsField(self):
-        y = self.itemProp("addPage.tagsField", "y")
-        addPage = self.findItem("addPage")
-        tagsList = self.findItem("tagsList")
-        contentY = tagsList.mapToItem(addPage, QPointF(0, y)).y()
-        self.setItemProp("addPage", "contentY", contentY + 10)
+        # y = self.itemProp("addPage.tagsField", "y")
+        # addPage = self.findItem("addPage")
+        # tagsList = self.findItem("tagsList")
+        # contentY = tagsList.mapToItem(addPage, QPointF(0, y)).y()
+        # _log.debug(f"Scrolling to tags field at contentY: {contentY}")
+        self.setItemProp("addPage", "contentY", 200)
 
     def add_tag(self, tag: str):
         self._scrollToTagsField()

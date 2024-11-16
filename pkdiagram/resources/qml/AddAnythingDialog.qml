@@ -20,7 +20,6 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
-    property var dummyEvent: null
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -43,6 +42,7 @@ PK.Drawer {
     property var functioning: functioningBox.value
     property var symptom: symptomBox.value
     property var notes: notesEdit.text
+    property var eventModel: EventPropertiesModel {}
 
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
@@ -168,6 +168,7 @@ PK.Drawer {
         nodalBox.clear()
         notesFrame.clear()
         addPage.scrollToTop()
+        eventModel.tags = []
 
         kindBox.forceActiveFocus()
         root.dirty = false;
@@ -884,17 +885,8 @@ PK.Drawer {
                                 model: TagsModel {
                                     objectName: "EventProperties_tagsModel"
                                     scene: sceneModel ? sceneModel.scene : undefined
-                                    items: root.dummyEvent ? [root.dummyEvent] : []
+                                    items: eventModel.items
                                 }
-                                Timer {
-                                    running: true
-                                    repeat: true
-                                    interval: 1000
-                                    onTriggered: {
-                                        print(root.dummyEvent)
-                                    }
-                                }
-
                             }
                         }
 

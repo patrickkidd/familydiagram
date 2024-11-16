@@ -3,7 +3,6 @@ import logging
 import pytest
 import mock
 
-from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marriage
 from pkdiagram.pyqt import (
     Qt,
     QQuickItem,
@@ -16,6 +15,8 @@ from pkdiagram.pyqt import (
     QTimer,
     QRectF,
 )
+from pkdiagram import util, EventKind, Scene
+from pkdiagram.objects import Person, Marriage, Event
 from pkdiagram.addanythingdialog import AddAnythingDialog
 
 _log = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ def dlg(qtbot, scene, qmlEngine):
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
     dlg.mouseClick("clearFormButton")
+    dlg._eventModel.items = [Event(addDummy=True)]
 
     yield dlg
 
@@ -86,10 +88,9 @@ def test_init(dlg):
     assert dlg.itemProp("kindBox", "currentIndex") == -1
 
 
-def test_clear(dlg):
-    dlg.set_kind(EventKind.Conflict)  # dyadic for end date
+def test_clear_CustomIndividual(dlg):
+    dlg.set_kind(EventKind.CustomIndividual)  # dyadic for end date
     dlg.set_startDateTime(START_DATETIME)
-    dlg.set_endDateTime(END_DATETIME)
     dlg.set_description("something")
     dlg.set_notes("here are some notes")
     dlg.set_anxiety(util.VAR_VALUE_UP)
@@ -105,7 +106,27 @@ def test_clear(dlg):
     assert dlg.rootProp("anxiety") == None
     assert dlg.rootProp("symptom") == None
     assert dlg.rootProp("functioning") == None
-    assert dlg.rootProp("dummyEvent").tags() == []
+    assert dlg.rootProp("eventModel").tags == []
+
+
+def test_clear_Dyadic(dlg):
+    dlg.set_kind(EventKind.Cutoff)  # dyadic for end date
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.set_endDateTime(END_DATETIME)
+    dlg.set_notes("here are some notes")
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_symptom(util.VAR_VALUE_DOWN)
+    dlg.set_functioning(util.VAR_VALUE_SAME)
+    dlg.add_tag("tag1")
+    dlg.set_active_tags(["tag1"])
+    dlg.mouseClick("clearFormButton")
+    assert dlg.rootProp("startDateTime") == None
+    assert dlg.rootProp("endDateTime") == None
+    assert dlg.rootProp("notes") == ""
+    assert dlg.rootProp("anxiety") == None
+    assert dlg.rootProp("symptom") == None
+    assert dlg.rootProp("functioning") == None
+    assert dlg.rootProp("eventModel").tags == []
 
 
 def test_clear_birth(dlg):
