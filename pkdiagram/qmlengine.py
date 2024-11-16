@@ -1,6 +1,7 @@
 from .pyqt import pyqtSlot, QQmlEngine, QQmlError, QObject, QApplication
 from . import util, commands, qmlutil, qmlvedana
 
+from pkdiagram import Session
 from pkdiagram.models import (
     SceneModel,
     SearchModel,
@@ -28,7 +29,7 @@ class QmlEngine(QQmlEngine):
     instance.
     """
 
-    def __init__(self, parent, session):
+    def __init__(self, session: Session, parent=None):
         super().__init__(parent)
         for path in util.QML_IMPORT_PATHS:
             self.addImportPath(path)

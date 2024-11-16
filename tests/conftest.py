@@ -2,7 +2,7 @@
 import os, sys
 import contextlib
 import logging
-import enum
+import tempfile
 import contextlib
 from typing import Callable, Optional
 
@@ -252,7 +252,13 @@ def qApp():
 
     log.debug(f"Create qApp for familydiagram/tests")
 
-    qApp = Application(sys.argv)
+    def _makeSettings():
+        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
+        prefs = util.Settings(dpath, "vedanamedia")
+        return prefs
+
+    with mock.patch("pkdiagram.Application.makeSettings", side_effect=_makeSettings):
+        app = Application(sys.argv)
 
     from pkdiagram import ServerFileManagerModel, Server
 
@@ -350,7 +356,7 @@ def qmlEngine(qApp):
     from pkdiagram import Session
 
     qmlErrors = []
-    _qmlEngine = QmlEngine(qApp, Session())
+    _qmlEngine = QmlEngine(Session(), qApp)
 
     def _onWarnings(errors: list[QQmlError]):
         qmlErrors.extend(errors)

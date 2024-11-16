@@ -286,15 +286,7 @@ PK.Drawer {
             id: addPage
             objectName: 'addPage'
             contentWidth: width
-
-            // contentHeight: addPageInner.childrenRect.height + root.margin / 4
-            // was causing a binding loop
-            Timer {
-                interval: 0
-                running: true
-                repeat: false
-                onTriggered: addPage.contentHeight = addPageInner.childrenRect.height + root.margin / 4
-            }
+            contentHeight: addPageInner.childrenRect.height
             function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
@@ -959,11 +951,6 @@ PK.Drawer {
                             text: util.S_NOTES_HELP_TEXT
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
-                        }
-
-                        Rectangle {
-                            Layout.columnSpan: 2
-                            Layout.bottomMargin: margin * 2
                         }
                     }
                 }
