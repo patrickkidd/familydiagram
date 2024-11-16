@@ -332,13 +332,35 @@ Page {
                         Layout.fillHeight: true
                         Layout.margins: 1
                         Layout.minimumHeight: 200
-                        KeyNavigation.tab: descriptionEdit
+                        KeyNavigation.tab: emotionalUnitsEdit
                         KeyNavigation.backtab: hideRelationshipsBox
                         model: TagsModel {
                             id: tagsModel
                             scene: sceneModel.scene
                             searchModel: searchViewSearchModel
                         }
+                    }
+
+                    PK.Text { 
+                        text: "Emotional Units"
+                    }
+
+                    PK.ActiveListEdit {
+                        id: emotionalUnitsEdit
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 200
+                        KeyNavigation.tab: editorMode_tagEdit
+                        KeyNavigation.backtab: tagEdit
+                        model: EmotionalUnitsModel {
+                            id: emotionalUnitsModel
+                            scene: sceneModel.scene
+                        }
+                    }
+
+                    PK.HelpText {
+
                     }
 
                     PK.GroupBox {

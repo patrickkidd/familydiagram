@@ -1,5 +1,6 @@
 import os, sys, re, logging
 import contextlib
+
 from pkdiagram.pyqt import (
     pyqtSignal,
     pyqtProperty,
@@ -34,6 +35,7 @@ from pkdiagram.pyqt import (
 )
 from . import version, util, commands, version, compat, slugify
 from .objects import *
+from pkdiagram.objects import EmotionalUnit
 from .itemgarbage import ItemGarbage
 
 
@@ -222,6 +224,7 @@ class Scene(QGraphicsScene, Item):
         self._layers = []
         self._activeLayers = []
         self._activeTags = []
+        self._emotionalUnits = []
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -329,6 +332,11 @@ class Scene(QGraphicsScene, Item):
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
             self._marriages.append(item)
+            # Add an unnamed layer but don't register it or notify anything
+            layer = Layer()
+            item.setScene(self)
+            self._layers.append(layer)
+            self._emotionalUnits.append(EmotionalUnit(item, layer))
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
             if not self.isBatchAddingRemovingItems():
@@ -463,7 +471,13 @@ class Scene(QGraphicsScene, Item):
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
         elif item.isMarriage:
+            emotionalUnit = next(
+                x for x in self._emotionalUnits if x.marriage() == item
+            )
+            emotionalUnit.layer.setScene(None)
+            self._layers.remove(emotionalUnit.layer())
             self._marriages.remove(item)
+            self._emotionalUnits.remove(emotionalUnit)
             self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
@@ -1617,6 +1631,9 @@ class Scene(QGraphicsScene, Item):
     def clearActiveLayers(self):
         for layer in self._layers:
             layer.setActive(False)
+
+    def emotionalUnits(self) -> list[EmotionalUnit]:
+        return list(self._emotionalUnits)
 
     # Tags
 

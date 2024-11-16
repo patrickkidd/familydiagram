@@ -13,3 +13,4 @@ from .pencilstroke import PencilStroke
 from .layer import Layer
 from .layeritem import LayerItem
 from .callout import Callout
+from .emotionalunit import EmotionalUnit

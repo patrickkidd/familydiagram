@@ -567,22 +567,6 @@ def test_emotion_date_changed():
     assert model.data(model.index(0, iDate), model.DateTimeRole) == dateTime
 
 
-def test_SortedList():
-    from sortedcontainers import SortedList
-
-    d1 = util.Date(1955, 12, 3)
-    d2 = util.Date(1980, 5, 11)
-    d3 = util.Date(1980, 5, 11)
-    d4 = util.Date(2015, 1, 1)
-    stuff = SortedList()
-    stuff.add(d1)
-    stuff.add(d2)
-    stuff.add(d3)
-    stuff.add(d4)
-    assert d2 in stuff
-    assert d3 in stuff
-
-
 def test_dateBuddies(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")

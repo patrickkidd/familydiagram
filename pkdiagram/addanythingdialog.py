@@ -923,7 +923,7 @@ class AddAnythingDialog(QmlDrawer):
     def set_active_tags(self, tags: list[str]):
         self._scrollToTagsField()
         for tag in tags:
-            self.clickTagActivateBox("tagsEdit", tag)
+            self.clickActiveListViewCheckBox("tagsEdit", tag)
 
     # scripts
 

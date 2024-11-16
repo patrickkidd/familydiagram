@@ -1,6 +1,7 @@
 import pytest
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene, SceneLayerModel, Layer, Person
+from pkdiagram import util, Scene, SceneLayerModel
+from pkdiagram.objects import Layer, Marriage, Person
 
 
 pytestmark = [
@@ -164,3 +165,22 @@ def test_moveLayer():
     assert _layer1.order() == 1
     assert _layer2.order() == 0
     assert scene2.layers() == [_layer2, _layer1, _layer0]
+
+
+def test_ignores_emotional_units():
+    scene = Scene()
+    model = SceneLayerModel()
+    model.scene = scene
+    layer1 = Layer(name="View 1")
+    layer2 = Layer(name="View 2")
+    scene.addItems(layer1, layer2)
+    marriage_1 = Marriage(Person(name="A"), Person(name="B"))
+    marriage_2 = Marriage(Person(name="C"), Person(name="D"))
+    scene.addItems(marriage_1, marriage_2)
+    model.items = [layer1, layer2]
+    units = scene.emotionalUnits()
+
+    assert model.rowCount() == 2
+    assert len(units) == 2
+    assert units[0].marriage() == marriage_1
+    assert units[1].marriage() == marriage_2

@@ -2,8 +2,9 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
-from pkdiagram import util, Scene, Person, Event, QmlWidgetHelper, SceneModel
+from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget
+from pkdiagram import util, Scene, QmlWidgetHelper
+from pkdiagram.objects import Person, Event, Marriage
 
 
 pytestmark = [
@@ -85,6 +86,10 @@ def test_init(tst, model):
 
 
 def test_properties(tst, model, qmlEngine):
+    scene = model.scene
+    marriage = Marriage(Person(name="A"), Person(name="B"))
+    emotionalUnitsEdit = tst.rootProp("emotionalUnitsEdit")
+    scene.addItem(marriage)
     qmlEngine.sceneModel.onEditorMode(True)
 
     tst.keyClicks("descriptionEdit", "item1")
@@ -102,8 +107,11 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    tst.clickTagActivateBox("SearchView_editorMode_tagEdit", TAG_1)
+    tst.clickActiveListViewCheckBox("SearchView_editorMode_tagEdit", TAG_1)
     assert model.tags == [TAG_1]
+
+    tst.clickActiveListViewCheckBox(emotionalUnitsEdit, marriage.itemName())
+    assert scene.activeLayers() == [scene.emotionalUnits()[0].layer()]
 
     # reset
 
@@ -122,8 +130,11 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
 
-    tst.clickTagActivateBox("SearchView_editorMode_tagEdit", TAG_1)
+    tst.clickActiveListViewCheckBox("SearchView_editorMode_tagEdit", TAG_1)
     assert model.tags == []
+
+    tst.clickActiveListViewCheckBox(emotionalUnitsEdit, marriage.itemName())
+    assert scene.activeLayers() == []
 
 
 def test_clear_0(tst, model):

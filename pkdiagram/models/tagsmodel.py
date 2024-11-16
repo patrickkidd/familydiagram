@@ -3,10 +3,8 @@ import logging
 from ..pyqt import (
     Qt,
     QAbstractListModel,
-    qmlRegisterUncreatableType,
     QObject,
     QModelIndex,
-    QVariant,
     pyqtSlot,
     QMessageBox,
     QApplication,

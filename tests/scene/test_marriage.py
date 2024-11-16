@@ -85,6 +85,14 @@ def simpleMarriage(qmlScene, request):
     return marriage
 
 
+def test_olderDT():
+    b = a
+
+
+def test_sort(self):
+    b = a
+
+
 def test_marriagesFor_one(noEvents):
     personA, personB = noEvents.people
     assert noEvents.marriagesFor(personA, personB) == [noEvents]

@@ -1,5 +1,6 @@
 module PK
 singleton Globals 1.0 Globals.qml
+ActiveListEdit 1.0 ActiveListEdit.qml
 Button 1.0 Button.qml
 ColorPicker 1.0 ColorPicker.qml
 CheckBox 1.0 CheckBox.qml

@@ -541,14 +541,15 @@ class QmlWidgetHelper(QObjectHelper):
             self._tag_textEdit(tagEdit, tagName).property("text") == tagName
         ), f"Could not rename tag '{newTag}' to {tagName}"
 
-    def clickTagActivateBox(self, itemName: str, tagName: str):
-        tagEdit = self.findItem(itemName)
-        model = tagEdit.property("model")
+    def clickActiveListViewCheckBox(self, item: Union[str, QQuickItem], tagName: str):
+        if isinstance(item, str):
+            item = self.findItem(item)
+        model = item.property("model")
         assert (
             model.rowCount() > 0
         ), "Can't click the tag activate checkbox if the TagsModel is empty"
         #
-        delegate = self._tag_delegate(tagEdit, tagName)
+        delegate = self._tag_delegate(item, tagName)
         checkBox = delegate.property("checkBox")
         iTag = delegate.property("iTag")
         was = model.data(model.index(iTag, 0), role=model.ActiveRole)
