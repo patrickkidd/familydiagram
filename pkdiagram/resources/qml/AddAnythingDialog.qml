@@ -863,31 +863,34 @@ PK.Drawer {
                         PK.Text { id: tagsLabel; text: "Tags" }
 
                         PK.FormField {
-                            id: tagsField
-                            objectName: "tagsField"
-                            tabItem: kindBox
-                            backTabItem: symptomBox.lastTabItem
+
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
                             Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
-                            border {
-                                width: 1
-                                color: util.QML_ITEM_BORDER_COLOR
-                            }
+                            tabItem: notesField.firstTabItem
+                            backTabItem: nodalBox
+
                             PK.TagEdit {
                                 id: tagsList
                                 objectName: "tagsList"
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                property Item firstTabItem: this
-                                property Item lastTabItem: this
                                 model: TagsModel {
-                                    objectName: "EventProperties_tagsModel"
                                     scene: sceneModel ? sceneModel.scene : undefined
                                     items: eventModel.items
+                                    onDataChanged: tagsList.isDirty = true
+                                    onModelReset: tagsList.isDirty = true
+                                }
+                                property var isDirty: false
+                                property var lastTabItem: this
+                                property var firstTabItem: this
+                                function clear() {
+                                    model.resetToSceneTags()
+                                    isDirty = false
                                 }
                             }
+
                         }
 
                         PK.HelpText {

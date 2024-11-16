@@ -322,34 +322,22 @@ Page {
 
                     PK.Text { 
                         text: "Tags"
-                        visible: sceneModel.isInEditorMode
+                        visible: ! sceneModel.isInEditorMode
                     }
 
-                    PK.FormField {
-                        id: tagsField
+                    PK.TagEdit {
+                        id: tagEdit
                         visible: ! sceneModel.isInEditorMode
-                        tabItem: descriptionEdit
-                        backTabItem: hideRelationshipsBox
                         Layout.fillWidth: true
-                        Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
-                        Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
-                        border {
-                            width: 1
-                            color: util.QML_ITEM_BORDER_COLOR
-                        }
-                        PK.TagEdit {
-                            id: tagEdit
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.margins: 1
-                            Layout.minimumHeight: 200
-                            property Item firstTabItem: this
-                            property Item lastTabItem: this
-                            model: TagsModel {
-                                id: tagsModel
-                                scene: sceneModel.scene
-                                searchModel: searchViewSearchModel
-                            }
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 200
+                        KeyNavigation.tab: descriptionEdit
+                        KeyNavigation.backtab: hideRelationshipsBox
+                        model: TagsModel {
+                            id: tagsModel
+                            scene: sceneModel.scene
+                            searchModel: searchViewSearchModel
                         }
                     }
 

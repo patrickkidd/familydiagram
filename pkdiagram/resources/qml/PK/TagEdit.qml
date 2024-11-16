@@ -4,11 +4,17 @@ import QtQuick.Layouts 1.12
 import "." 1.0 as PK
 
 
-ColumnLayout {
-    
+
+Rectangle {
+
     id: root
-    spacing: 0
-    
+
+    color: 'transparent'
+    border {
+        width: 1
+        color: util.QML_ITEM_BORDER_COLOR
+    }
+
     property var model: null
     property bool showButtons: true
     property int currentIndex: -1
@@ -23,6 +29,13 @@ ColumnLayout {
             currentIndex = row
         }
     }
+
+
+
+ColumnLayout {
+    
+    spacing: 0
+    anchors.fill: parent    
 
     ListView {
         id: listViewItem
@@ -141,5 +154,7 @@ ColumnLayout {
         removeButton: true
         onRemove: model.removeTag(currentIndex)
     }    
+
+}
 
 }

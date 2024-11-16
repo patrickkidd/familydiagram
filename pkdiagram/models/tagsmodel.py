@@ -152,6 +152,16 @@ class TagsModel(QAbstractListModel, ModelHelper):
             commands.deleteTag(self._scene, tag)
             self._blocked = False
 
+    @pyqtSlot()
+    def resetToSceneTags(self):
+        if self._items:
+            self._settingItemTags = True
+            for item in self._items:
+                if item.isEvent and item.addDummy:
+                    item.setTags([])
+            self._settingItemTags = False
+        self.modelReset.emit()
+
     def roleNames(self):
         return {
             self.NameRole: b"name",
