@@ -911,19 +911,19 @@ class AddAnythingDialog(QmlDrawer):
     def _scrollToTagsField(self):
         # y = self.itemProp("addPage.tagsField", "y")
         # addPage = self.findItem("addPage")
-        # tagsList = self.findItem("tagsList")
-        # contentY = tagsList.mapToItem(addPage, QPointF(0, y)).y()
+        # tagsEdit = self.findItem("tagsEdit")
+        # contentY = tagsEdit.mapToItem(addPage, QPointF(0, y)).y()
         # _log.debug(f"Scrolling to tags field at contentY: {contentY}")
         self.setItemProp("addPage", "contentY", 200)
 
     def add_tag(self, tag: str):
         self._scrollToTagsField()
-        self.clickAddAndRenameTag("tagsList", tag)
+        self.clickAddAndRenameTag("tagsEdit", tag)
 
     def set_active_tags(self, tags: list[str]):
         self._scrollToTagsField()
         for tag in tags:
-            self.clickTagActivateBox("tagsList", tag)
+            self.clickTagActivateBox("tagsEdit", tag)
 
     # scripts
 

@@ -73,9 +73,9 @@ def dlg(qtbot, scene, qmlEngine):
     qtbot.waitActive(dlg)
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
-    dlg.mouseClick("clearFormButton")
     dlg._eventModel.items = [Event(addDummy=True)]
-    dlg.adjustFlickableHack()
+    dlg.mouseClick("clearFormButton")
+    # dlg.adjustFlickableHack()
 
     yield dlg
 
@@ -87,6 +87,7 @@ def dlg(qtbot, scene, qmlEngine):
 def test_init(dlg):
     assert dlg.rootProp("kind") == None
     assert dlg.itemProp("kindBox", "currentIndex") == -1
+    assert dlg.rootProp("tagsEdit").property("isDirty") == False
 
 
 def test_clear_CustomIndividual(dlg):

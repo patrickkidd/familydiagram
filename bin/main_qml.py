@@ -210,6 +210,7 @@ def __test__AddAnythingDialog(scene, parent, engine: QmlEngine):
     pp = AddAnythingDialog(engine, parent)
     pp.setScene(scene)
     pp.show(animate=False)
+    pp.initForSelection([])
     pp.clear()
     parent.resize(400, 600)
     return pp

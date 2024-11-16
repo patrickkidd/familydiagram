@@ -20,6 +20,7 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
+    property alias tagsEdit: tagsEdit
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -168,7 +169,9 @@ PK.Drawer {
         nodalBox.clear()
         notesFrame.clear()
         addPage.scrollToTop()
+        tagsEdit.clear()
         eventModel.tags = []
+        adjustFlickableHack()
 
         kindBox.forceActiveFocus()
         root.dirty = false;
@@ -871,15 +874,15 @@ PK.Drawer {
                             backTabItem: nodalBox
 
                             PK.TagsEdit {
-                                id: tagsList
-                                objectName: "tagsList"
+                                id: tagsEdit
+                                objectName: "tagsEdit"
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 model: TagsModel {
                                     scene: sceneModel ? sceneModel.scene : undefined
                                     items: eventModel.items
-                                    onDataChanged: tagsList.isDirty = true
-                                    onModelReset: tagsList.isDirty = true
+                                    onDataChanged: tagsEdit.isDirty = true
+                                    onModelReset: tagsEdit.isDirty = true
                                 }
                                 property var isDirty: false
                                 property var lastTabItem: this
