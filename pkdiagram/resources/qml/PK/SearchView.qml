@@ -26,7 +26,7 @@ Page {
     property int margin: util.QML_MARGINS
     property bool canInspect: false
 
-    // Get around TagEdit.searchModel attr name
+    // Get around TagsEdit.searchModel attr name
     property var searchViewSearchModel: searchModel
 
     Keys.enabled: true
@@ -325,7 +325,7 @@ Page {
                         visible: ! sceneModel.isInEditorMode
                     }
 
-                    PK.TagEdit {
+                    PK.TagsEdit {
                         id: tagEdit
                         visible: ! sceneModel.isInEditorMode
                         Layout.fillWidth: true
@@ -393,7 +393,7 @@ Page {
                                         Layout.fillWidth: true
                                     }
 
-                                    PK.TagEdit {
+                                    PK.TagsEdit {
                                         id: editorMode_tagEdit
                                         objectName: 'SearchView_editorMode_tagEdit'
                                         Layout.fillWidth: true

@@ -34,7 +34,7 @@ DISTFILES += \
     ../resources/qml/PK/ListPicker.qml \
     ../resources/qml/PK/SearchBar.qml \
     ../resources/qml/PK/TabButton.qml \
-    ../resources/qml/PK/TagEdit.qml \
+    ../resources/qml/PK/TagsEdit.qml \
     ../resources/qml/PK/TextEdit.qml \
     ../resources/qml/PK/TextField.qml \
     ../resources/qml/PK/TextInput.qml \

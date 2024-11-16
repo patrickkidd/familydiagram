@@ -482,7 +482,7 @@ Page {
                         padding: 1
                         ColumnLayout {
                             anchors.fill: parent
-                            PK.TagEdit {
+                            PK.TagsEdit {
                                 id: tagsList
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true

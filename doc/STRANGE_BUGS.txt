@@ -41,7 +41,7 @@ Strange bugs
 - ../../include/QtCore/../../src/corelib/tools/qlist.h:720:None(): ASSERT failure in QList<T>::move: "index out of range", file ../../include/QtCore/../../src/corelib/tools/qlist.h, line 720
   - On deselect emotion with props open?
 
-- qrc:/qml/PK/TagEdit.qml:56:None(): qrc:/qml/PK/TagEdit.qml:56:17: QML CheckBox: Binding loop detected for property "checked"
+- qrc:/qml/PK/TagsEdit.qml:56:None(): qrc:/qml/PK/TagsEdit.qml:56:17: QML CheckBox: Binding loop detected for property "checked"
 
 
 

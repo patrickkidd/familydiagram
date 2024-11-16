@@ -273,6 +273,10 @@ PK.Drawer {
         }
     }
 
+    function adjustFlickableHack() {
+        addPage.contentHeight = addPageInner.childrenRect.height
+    }
+
     background: Rectangle { color: util.QML_WINDOW_BG; anchors.fill: parent }
 
     StackLayout {
@@ -286,7 +290,10 @@ PK.Drawer {
             id: addPage
             objectName: 'addPage'
             contentWidth: width
-            contentHeight: addPageInner.childrenRect.height
+            // QML Flickable: Binding loop detected for property "contentHeight"
+            // see adjustFlickableHack()
+            // contentHeight: addPageInner.childrenRect.height
+
             function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
@@ -863,7 +870,7 @@ PK.Drawer {
                             tabItem: notesField.firstTabItem
                             backTabItem: nodalBox
 
-                            PK.TagEdit {
+                            PK.TagsEdit {
                                 id: tagsList
                                 objectName: "tagsList"
                                 Layout.fillWidth: true

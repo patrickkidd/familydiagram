@@ -29,6 +29,7 @@ class AddAnythingDialog(QmlDrawer):
     QmlDrawer.registerQmlMethods(
         [
             {"name": "clear"},
+            {"name": "adjustFlickableHack"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
@@ -131,7 +132,11 @@ class AddAnythingDialog(QmlDrawer):
         return False
 
     def initForSelection(self, selection):
+        """
+        Canonical entry point when showing. Could have a better name
+        """
         self.clear()
+        self.adjustFlickableHack()
         pairBond = Marriage.marriageForSelection(selection)
         if pairBond:
             self.initWithPairBond(pairBond.id)

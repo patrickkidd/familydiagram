@@ -28,7 +28,7 @@ SearchBar 1.0 SearchBar.qml
 TabBar 1.0 TabBar.qml
 TabButton 1.0 TabButton.qml
 TableView 1.0 TableView.qml
-TagEdit 1.0 TagEdit.qml
+TagsEdit 1.0 TagsEdit.qml
 Text 1.0 Text.qml
 TextEdit 1.0 TextEdit.qml
 TextField 1.0 TextField.qml

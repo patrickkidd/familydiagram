@@ -291,9 +291,9 @@ def qApp():
             mock.patch("pkdiagram.Analytics.startTimer", return_value=123)
         )
         stack.enter_context(mock.patch("pkdiagram.Analytics.killTimer"))
-        yield qApp
+        yield app
 
-    qApp.deinit()
+    app.deinit()
 
 
 @pytest.fixture(autouse=True)

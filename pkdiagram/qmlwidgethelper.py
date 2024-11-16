@@ -515,7 +515,7 @@ class QmlWidgetHelper(QObjectHelper):
             delegate = next(x for x in delegates if x.property("tagName") == tagName)
         except StopIteration:
             raise RuntimeError(
-                f"Could not find tag '{tagName}' in TagEdit '{tagEdit.objectName()}', only found: {foundTags}"
+                f"Could not find tag '{tagName}' in TagsEdit '{tagEdit.objectName()}', only found: {foundTags}"
             )
         return delegate
 
