@@ -65,7 +65,7 @@ Rectangle {
             wrappedItem.Layout.fillWidth = true
             // validation debugging
             if(root.tabItem == undefined) {
-                print(root.objectName + '.root.tabItem is undefined')
+                print('ForField.tabItem is undefined')
             }
             if(wrappedItem.lastTabItem == undefined) {
                 print(root.objectName + '.wrappedItem.lastTabItem is undefined')

@@ -20,6 +20,8 @@ Page {
 
     property alias tagsModel: tagsModel
     property alias tagEdit: tagEdit
+    property alias editorMode_tagsModel: editorMode_tagsModel
+    property alias editorMode_tagEdit: editorMode_tagEdit
 
     property int margin: util.QML_MARGINS
     property bool canInspect: false
@@ -287,6 +289,8 @@ Page {
                         }
                     }
 
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
                     PK.Text { text: "Nodal" }
 
                     PK.CheckBox {
@@ -315,6 +319,39 @@ Page {
                     /*     /\* checked: sceneModel.hideDateBuddies *\/ */
                     /*     /\* onCheckedChanged: sceneModel.hideDateBuddies = checked *\/ */
                     /* } */
+
+                    PK.Text { 
+                        text: "Tags"
+                        visible: sceneModel.isInEditorMode
+                    }
+
+                    PK.FormField {
+                        id: tagsField
+                        visible: ! sceneModel.isInEditorMode
+                        tabItem: descriptionEdit
+                        backTabItem: hideRelationshipsBox
+                        Layout.fillWidth: true
+                        Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
+                        Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
+                        border {
+                            width: 1
+                            color: util.QML_ITEM_BORDER_COLOR
+                        }
+                        PK.TagEdit {
+                            id: tagEdit
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.margins: 1
+                            Layout.minimumHeight: 200
+                            property Item firstTabItem: this
+                            property Item lastTabItem: this
+                            model: TagsModel {
+                                id: tagsModel
+                                scene: sceneModel.scene
+                                searchModel: searchViewSearchModel
+                            }
+                        }
+                    }
 
                     PK.GroupBox {
 
@@ -369,15 +406,15 @@ Page {
                                     }
 
                                     PK.TagEdit {
-                                        id: tagEdit
-                                        objectName: 'SearchView_tagEdit'
+                                        id: editorMode_tagEdit
+                                        objectName: 'SearchView_editorMode_tagEdit'
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.margins: 1
                                         Layout.minimumHeight: 200
                                         model: TagsModel {
-                                            id: tagsModel
-                                            objectName: 'SearchView_tagsModel'
+                                            id: editorMode_tagsModel
+                                            objectName: 'SearchView_editorMode_tagsModel'
                                             scene: sceneModel.scene
                                             searchModel: searchViewSearchModel
                                         }

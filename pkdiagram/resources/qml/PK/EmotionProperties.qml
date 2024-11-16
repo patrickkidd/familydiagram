@@ -116,7 +116,7 @@ Page {
         currentIndex: stack.currentIndex
         PK.TabButton { text: "Relationship" }
         PK.TabButton { text: "Notes" }
-        PK.TabButton { text: "Event Tags" }
+        PK.TabButton { text: "Tags" }
     }
     
     background: Rectangle {

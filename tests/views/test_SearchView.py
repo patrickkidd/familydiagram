@@ -102,7 +102,7 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    tst.clickTagActivateBox("SearchView_tagEdit", TAG_1)
+    tst.clickTagActivateBox("SearchView_editorMode_tagEdit", TAG_1)
     assert model.tags == [TAG_1]
 
     # reset
@@ -122,7 +122,7 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
 
-    tst.clickTagActivateBox("SearchView_tagEdit", TAG_1)
+    tst.clickTagActivateBox("SearchView_editorMode_tagEdit", TAG_1)
     assert model.tags == []
 
 
