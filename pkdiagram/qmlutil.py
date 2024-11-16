@@ -87,6 +87,7 @@ class QmlUtil(QObject, QObjectHelper):
         "QML_ITEM_BG",
         "QML_ITEM_ALTERNATE_BG",
         "QML_ITEM_BORDER_COLOR",
+        "QML_LIST_VIEW_MINIMUM_HEIGHT",
         "QML_SMALL_BUTTON_WIDTH",
         "QML_MICRO_BUTTON_WIDTH",
         "QML_HEADER_HEIGHT",

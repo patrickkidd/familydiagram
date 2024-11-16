@@ -3,7 +3,6 @@ import logging
 import pytest
 import mock
 
-from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marriage
 from pkdiagram.pyqt import (
     Qt,
     QQuickItem,
@@ -16,6 +15,8 @@ from pkdiagram.pyqt import (
     QTimer,
     QRectF,
 )
+from pkdiagram import util, EventKind, Scene
+from pkdiagram.objects import Person, Marriage, Event
 from pkdiagram.addanythingdialog import AddAnythingDialog
 
 _log = logging.getLogger(__name__)
@@ -72,7 +73,9 @@ def dlg(qtbot, scene, qmlEngine):
     qtbot.waitActive(dlg)
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
+    dlg._eventModel.items = [Event(addDummy=True)]
     dlg.mouseClick("clearFormButton")
+    # dlg.adjustFlickableHack()
 
     yield dlg
 
@@ -84,17 +87,19 @@ def dlg(qtbot, scene, qmlEngine):
 def test_init(dlg):
     assert dlg.rootProp("kind") == None
     assert dlg.itemProp("kindBox", "currentIndex") == -1
+    assert dlg.rootProp("tagsEdit").property("isDirty") == False
 
 
-def test_clear(dlg):
-    dlg.set_kind(EventKind.Conflict)  # dyadic for end date
+def test_clear_CustomIndividual(dlg):
+    dlg.set_kind(EventKind.CustomIndividual)  # dyadic for end date
     dlg.set_startDateTime(START_DATETIME)
-    dlg.set_endDateTime(END_DATETIME)
     dlg.set_description("something")
     dlg.set_notes("here are some notes")
     dlg.set_anxiety(util.VAR_VALUE_UP)
     dlg.set_symptom(util.VAR_VALUE_DOWN)
     dlg.set_functioning(util.VAR_VALUE_SAME)
+    dlg.add_tag("tag1")
+    dlg.set_active_tags(["tag1"])
     dlg.mouseClick("clearFormButton")
     assert dlg.rootProp("startDateTime") == None
     assert dlg.rootProp("endDateTime") == None
@@ -103,6 +108,27 @@ def test_clear(dlg):
     assert dlg.rootProp("anxiety") == None
     assert dlg.rootProp("symptom") == None
     assert dlg.rootProp("functioning") == None
+    assert dlg.rootProp("eventModel").tags == []
+
+
+def test_clear_Dyadic(dlg):
+    dlg.set_kind(EventKind.Cutoff)  # dyadic for end date
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.set_endDateTime(END_DATETIME)
+    dlg.set_notes("here are some notes")
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_symptom(util.VAR_VALUE_DOWN)
+    dlg.set_functioning(util.VAR_VALUE_SAME)
+    dlg.add_tag("tag1")
+    dlg.set_active_tags(["tag1"])
+    dlg.mouseClick("clearFormButton")
+    assert dlg.rootProp("startDateTime") == None
+    assert dlg.rootProp("endDateTime") == None
+    assert dlg.rootProp("notes") == ""
+    assert dlg.rootProp("anxiety") == None
+    assert dlg.rootProp("symptom") == None
+    assert dlg.rootProp("functioning") == None
+    assert dlg.rootProp("eventModel").tags == []
 
 
 def test_clear_birth(dlg):
@@ -160,10 +186,16 @@ def test_clear_dyadic(dlg):
 
 
 def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
+    TAG_1, TAG_2 = "tag1", "tag2"
+
     submitted = util.Condition(dlg.submitted)
+    dlg.initForSelection([])
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
     dlg.set_startDateTime(START_DATETIME)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
@@ -175,6 +207,7 @@ def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Birth.value
     assert event.description() == EventKind.Birth.name
+    assert event.tags() == [TAG_1, TAG_2]
 
 
 def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):
@@ -272,6 +305,7 @@ def test_add_new_person_via_CustomIndividual(dlg, scene, qmlEngine):
     multi-line
 comment.
 """
+    TAG_1, TAG_2 = "tag1", "tag2"
 
     submitted = util.Condition(dlg.submitted)
     dlg.set_kind(EventKind.CustomIndividual)
@@ -279,6 +313,9 @@ comment.
     dlg.set_description(DESCRIPTION)
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_notes(NOTES)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
@@ -366,11 +403,16 @@ Here are the
 notes
 for this event.
 """
+    TAG_1, TAG_2 = "tag1", "tag2"
+
     dlg.set_kind(kind)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_notes(NOTES)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
@@ -390,6 +432,7 @@ Here are the
 notes
 for this event.
 """
+
     dlg.set_kind(EventKind.Away)
     dlg.add_new_person("moversPicker", "John Doe")
     dlg.add_new_person("receiversPicker", "Jane Doe")
@@ -466,6 +509,7 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
 
 # @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
 def test_add_existing_pairbond(scene, dlg):
+    TAG_1, TAG_2 = "tag1", "tag2"
     KIND = EventKind.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
@@ -475,6 +519,9 @@ def test_add_existing_pairbond(scene, dlg):
     dlg.set_existing_person("personAPicker", personA)
     dlg.set_existing_person("personBPicker", personB)
     dlg.set_startDateTime(START_DATETIME)
+    dlg.add_tag(TAG_1)
+    dlg.add_tag(TAG_2)
+    dlg.set_active_tags([TAG_1, TAG_2])
     dlg.mouseClick("AddEverything_submitButton")
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]

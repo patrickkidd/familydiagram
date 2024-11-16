@@ -39,7 +39,6 @@ IS_APPLE = bool(CUtil.operatingSystem() & CUtil.OS_Mac)
 IS_WINDOWS = bool(CUtil.operatingSystem() & CUtil.OS_Windows)
 IS_IPHONE = bool(CUtil.operatingSystem() & CUtil.OS_iPhone)
 IS_DEV = CUtil.isDev()
-IS_MOD_TEST = False
 IS_UI_DARK_MODE = False
 BUNDLE_ID = None
 if IS_BUNDLE:
@@ -415,6 +414,7 @@ QML_FIELD_HEIGHT = (
     40  # not sure where this comes from but TextField and ComboBox are 40
 )
 QML_ITEM_HEIGHT = IS_IOS and 44 or 30  # iOS portait: 44, iOS landscape: 32
+QML_LIST_VIEW_MINIMUM_HEIGHT = QML_ITEM_HEIGHT * 6
 QML_ITEM_LARGE_HEIGHT = 44
 QML_TITLE_FONT_SIZE = QML_ITEM_HEIGHT * 1.2 * 0.85  # iOS portait: 44, iOS landscape: 32
 QML_SMALL_TITLE_FONT_SIZE = (
@@ -1298,103 +1298,6 @@ def initPersonBox(scene, cb, selected=None, exclude=[]):
         cb.setCurrentIndex(index)
     else:
         cb.setCurrentIndex(-1)
-
-
-def modTest(__test__, loadfile=True, useMW=False):
-    """Run a test app with __test__(scene) as callback."""
-    global IS_MOD_TEST
-    IS_MOD_TEST = True
-    import sys, inspect, signal
-    from .util import CUtil
-    from .scene import Scene
-    from .pyqt import QTimer
-    from .application import Application
-    from .models import SceneModel
-
-    sys.path.append(os.path.realpath(os.path.join(__file__, "..", "..", "tests")))
-    import test_util
-
-    app = Application(sys.argv)
-
-    def _quit(x, y):
-        app.quit()
-
-    signal.signal(signal.SIGINT, _quit)
-
-    if useMW:
-        parent = QMainWindow()
-        modTest.Layout = None
-    else:
-        parent = QWidget()
-        Layout = modTest.Layout = QHBoxLayout(parent)
-        Layout.setContentsMargins(0, 0, 0, 0)
-        parent.setLayout(Layout)
-
-    class EventFilter(QObject):
-        def eventFilter(self, o, e):
-            print(e.type(), qenum(QEvent, e.type()))
-            if e.type() == QEvent.Close:
-                app.quit()
-            return False
-
-    sig = inspect.signature(__test__)
-    # app.installEventFilter(EventFilter(app))
-    parent.show()
-
-    def onFileOpened(document):
-        scene = modTest.scene = Scene(document=document)
-        bdata = document.diagramData()
-        data = pickle.loads(bdata)
-        ret = scene.read(data)
-        scene.setCurrentDateTime(QDateTime.currentDateTime())
-        if len(sig.parameters) == 2:
-            w = __test__(modTest.scene, parent)
-        elif len(sig.parameters) == 3:
-            sceneModel = SceneModel()
-            sceneModel.scene = modTest.scene
-            w = __test__(modTest.scene, parent, sceneModel)
-        if w is None:
-            log.error("modTest returned None")
-            Application.quit()
-            return
-        if useMW:
-            parent.setCentralWidget(w)
-        else:
-            modTest.Layout.addWidget(w)
-
-    def noFileOpened():
-        scene = modTest.scene = Scene()
-        if len(sig.parameters) == 2:
-            w = __test__(modTest.scene, parent)
-        elif len(sig.parameters) == 3:
-            sceneModel = SceneModel()
-            sceneModel.scene = modTest.scene
-            w = __test__(modTest.scene, parent, sceneModel)
-        modTest.Layout.addWidget(w)
-
-    def onInit():
-        ROOT = os.path.realpath(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
-        )
-
-        filePath = os.path.join(ROOT, "tests", "data", "mod_test.fd")
-        # filePath = os.path.join(ROOT, "tests", "data", "TIMELINE_TEST.fd")
-
-        CUtil.instance().openExistingFile(QUrl.fromLocalFile(filePath))
-
-    if loadfile:
-        QTimer.singleShot(0, onInit)
-    else:
-        noFileOpened()
-
-    CUtil.instance().init()
-    CUtil.instance().fileOpened[FDDocument].connect(onFileOpened)
-
-    app.exec()
-    app.deinit()
-
-
-modTest.scene = None
 
 
 def import_source(modname, filePath):

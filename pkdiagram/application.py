@@ -9,6 +9,7 @@ from .pyqt import (
     qInstallMessageHandler,
     QStandardPaths,
     QFontDatabase,
+    QSettings,
 )
 from pkdiagram import util, version, extensions
 from pkdiagram.qmlutil import QmlUtil
@@ -25,20 +26,9 @@ class Application(QApplication):
 
         import logging  # Won't pull in from module scope
 
-        # Prefs
-
         # TODO: Should not be global
-        if util.IS_MOD_TEST or util.IS_TEST:
-            import tempfile
+        util._prefs = self.makeSettings()
 
-            dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
-            util._prefs = util.Settings(dpath, "vedanamedia")
-        elif util.IS_IOS:
-            util._prefs = util.Settings("vedanamedia", "familydiagram")
-        elif util.IS_APPLE:
-            util._prefs = util.Settings("vedanamedia", "familydiagrammac")
-        elif util.IS_WINDOWS:
-            util._prefs = util.Settings("vedanamedia", "familydiagram")
         # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
         util.prefs().setAutoSave(True)
         util.prefs().setValue("lastVersion", version.VERSION)
@@ -205,6 +195,17 @@ class Application(QApplication):
 
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())
+
+    @staticmethod
+    def makeSettings() -> QSettings:
+        if util.IS_IOS:
+            prefs = util.Settings("vedanamedia", "familydiagram")
+        elif util.IS_APPLE:
+            prefs = util.Settings("vedanamedia", "familydiagrammac")
+        elif util.IS_WINDOWS:
+            prefs = util.Settings("vedanamedia", "familydiagram")
+
+        return prefs
 
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:

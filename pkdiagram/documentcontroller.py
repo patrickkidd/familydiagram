@@ -453,9 +453,11 @@ class DocumentController(QObject):
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item
         # if item:
-        #     log.info(f"{item.metaObject().className()}#{item.objectName()}")
+        #     log.info(
+        #         f"DocumentController.onQmlFocusItemChanged: {item.metaObject().className()}#{item.objectName()}"
+        #     )
         # else:
-        #     log.info("None")
+        #     log.info(f"DocumentController.onQmlFocusItemChanged: None")
         self.updateActions()
 
     def updateActions(self):

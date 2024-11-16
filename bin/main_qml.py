@@ -14,9 +14,129 @@ from pkdiagram import (
     GraphicalTimelineView,
     AddAnythingDialog,
     Person,
+    QmlEngine,
 )
 
 _log = logging.getLogger(__name__)
+
+
+def modTest(__test__, loadfile=True, useMW=False):
+    """Run a test app with __test__(scene) as callback."""
+
+    import os.path
+    import pickle
+    import sys, inspect, signal
+    import tempfile
+
+    import mock
+
+    from pkdiagram.pyqt import (
+        QObject,
+        QTimer,
+        QMainWindow,
+        QWidget,
+        QHBoxLayout,
+        QEvent,
+        QDateTime,
+        QUrl,
+    )
+    from pkdiagram.util import CUtil
+    from pkdiagram import util, Scene, Application, QmlEngine, Session
+
+    FDDocument = util.FDDocument
+
+    sys.path.append(os.path.realpath(os.path.join(__file__, "..", "..", "tests")))
+    import test_util
+
+    def _makeSettings():
+        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
+        prefs = util.Settings(dpath, "vedanamedia")
+        return prefs
+
+    with mock.patch("pkdiagram.Application.makeSettings", side_effect=_makeSettings):
+        app = Application(sys.argv)
+
+    def _quit(x, y):
+        app.quit()
+
+    signal.signal(signal.SIGINT, _quit)
+
+    if useMW:
+        parent = QMainWindow()
+        modTest.Layout = None
+    else:
+        parent = QWidget()
+        Layout = modTest.Layout = QHBoxLayout(parent)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        parent.setLayout(Layout)
+
+    class EventFilter(QObject):
+        def eventFilter(self, o, e):
+            print(e.type(), util.qenum(QEvent, e.type()))
+            if e.type() == QEvent.Close:
+                app.quit()
+            return False
+
+    sig = inspect.signature(__test__)
+    # app.installEventFilter(EventFilter(app))
+    parent.show()
+
+    def onFileOpened(document):
+        scene = modTest.scene = Scene(document=document)
+        bdata = document.diagramData()
+        data = pickle.loads(bdata)
+        ret = scene.read(data)
+        scene.setCurrentDateTime(QDateTime.currentDateTime())
+        if len(sig.parameters) == 2:
+            w = __test__(modTest.scene, parent)
+        elif len(sig.parameters) == 3:
+            engine = QmlEngine(Session())
+            engine.setScene(scene)
+            w = __test__(modTest.scene, parent, engine)
+            engine.deinit()
+        if w is None:
+            _log.error("modTest returned None")
+            Application.quit()
+            return
+        if useMW:
+            parent.setCentralWidget(w)
+        else:
+            modTest.Layout.addWidget(w)
+
+    def noFileOpened():
+        scene = modTest.scene = Scene()
+        if len(sig.parameters) == 2:
+            w = __test__(modTest.scene, parent)
+        elif len(sig.parameters) == 3:
+            engine = QmlEngine(Session())
+            engine.setScene(scene)
+            w = __test__(modTest.scene, parent, engine)
+            engine.deinit()
+        modTest.Layout.addWidget(w)
+
+    def onInit():
+        ROOT = os.path.realpath(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+        )
+
+        filePath = os.path.join(ROOT, "tests", "data", "mod_test.fd")
+        # filePath = os.path.join(ROOT, "tests", "data", "TIMELINE_TEST.fd")
+
+        CUtil.instance().openExistingFile(QUrl.fromLocalFile(filePath))
+
+    if loadfile:
+        QTimer.singleShot(0, onInit)
+    else:
+        noFileOpened()
+
+    CUtil.instance().init()
+    CUtil.instance().fileOpened[FDDocument].connect(onFileOpened)
+
+    app.exec()
+    app.deinit()
+
+
+modTest.scene = None
 
 
 def __test__FileManager(scene, parent):
@@ -85,11 +205,12 @@ def __test__TestDialog(scene, parent, sceneModel):
     return pp
 
 
-def __test__AddAnythingDialog(scene, parent, sceneModel):
+def __test__AddAnythingDialog(scene, parent, engine: QmlEngine):
     _init_scene_for_people_picker(scene)
-    pp = AddAnythingDialog(parent=parent, sceneModel=sceneModel)
+    pp = AddAnythingDialog(engine, parent)
     pp.setScene(scene)
     pp.show(animate=False)
+    pp.initForSelection([])
     pp.clear()
     parent.resize(400, 600)
     return pp
@@ -330,4 +451,4 @@ def __test__AccountDialog(scene, parent):
 
 def run(modname):
     __test__ = globals()["__test__" + modname]
-    pkdiagram.util.modTest(__test__, loadfile=(not hasattr(__test__, "TEST_NO_FILE")))
+    modTest(__test__, loadfile=(not hasattr(__test__, "TEST_NO_FILE")))

@@ -1269,7 +1269,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "TagEdit.qml"
+name = "TagsEdit.qml"
 included = true
 is_directory = false
 

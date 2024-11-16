@@ -20,6 +20,7 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {
         objectName: 'selectedPeopleModel'
     }
+    property alias tagsEdit: tagsEdit
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -42,6 +43,7 @@ PK.Drawer {
     property var functioning: functioningBox.value
     property var symptom: symptomBox.value
     property var notes: notesEdit.text
+    property var eventModel: EventPropertiesModel {}
 
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
@@ -167,6 +169,9 @@ PK.Drawer {
         nodalBox.clear()
         notesFrame.clear()
         addPage.scrollToTop()
+        tagsEdit.clear()
+        eventModel.tags = []
+        adjustFlickableHack()
 
         kindBox.forceActiveFocus()
         root.dirty = false;
@@ -271,6 +276,10 @@ PK.Drawer {
         }
     }
 
+    function adjustFlickableHack() {
+        addPage.contentHeight = addPageInner.childrenRect.height
+    }
+
     background: Rectangle { color: util.QML_WINDOW_BG; anchors.fill: parent }
 
     StackLayout {
@@ -284,15 +293,10 @@ PK.Drawer {
             id: addPage
             objectName: 'addPage'
             contentWidth: width
+            // QML Flickable: Binding loop detected for property "contentHeight"
+            // see adjustFlickableHack()
+            // contentHeight: addPageInner.childrenRect.height
 
-            // contentHeight: addPageInner.childrenRect.height + root.margin / 4
-            // was causing a binding loop
-            Timer {
-                interval: 0
-                running: true
-                repeat: false
-                onTriggered: addPage.contentHeight = addPageInner.childrenRect.height + root.margin / 4
-            }
             function scrollToTop() { contentY = 0 }
             Rectangle {
                 id: addPageInner
@@ -856,6 +860,46 @@ PK.Drawer {
                             function clear() { checked = false }
                         }
 
+                        PK.FormDivider { Layout.columnSpan: 2 }
+                        
+                        PK.Text { id: tagsLabel; text: "Tags" }
+
+                        PK.FormField {
+
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
+                            Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
+                            tabItem: notesField.firstTabItem
+                            backTabItem: nodalBox
+
+                            PK.TagsEdit {
+                                id: tagsEdit
+                                objectName: "tagsEdit"
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                model: TagsModel {
+                                    scene: sceneModel ? sceneModel.scene : undefined
+                                    items: eventModel.items
+                                    onDataChanged: tagsEdit.isDirty = true
+                                    onModelReset: tagsEdit.isDirty = true
+                                }
+                                property var isDirty: false
+                                property var lastTabItem: this
+                                property var firstTabItem: this
+                                function clear() {
+                                    model.resetToSceneTags()
+                                    isDirty = false
+                                }
+                            }
+
+                        }
+
+                        PK.HelpText {
+                            text: "Tags are used to group events for easy searching, often for periods of high stress or anxiety. Examples are, 'Symptoms', 'Christmas \'23', 'Move 1989'"
+                            Layout.columnSpan: 2
+                        }
+
                         PK.FormDivider {
                             Layout.columnSpan: 2
                         }
@@ -917,11 +961,6 @@ PK.Drawer {
                             text: util.S_NOTES_HELP_TEXT
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
-                        }
-
-                        Rectangle {
-                            Layout.columnSpan: 2
-                            Layout.bottomMargin: margin * 2
                         }
                     }
                 }

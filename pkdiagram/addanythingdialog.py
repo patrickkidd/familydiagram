@@ -29,6 +29,7 @@ class AddAnythingDialog(QmlDrawer):
     QmlDrawer.registerQmlMethods(
         [
             {"name": "clear"},
+            {"name": "adjustFlickableHack"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
@@ -95,6 +96,7 @@ class AddAnythingDialog(QmlDrawer):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
         self.qml.rootObject().cancel.connect(self.onCancel)
+        self._eventModel = self.rootProp("eventModel")
 
     @staticmethod
     def nextItemInChain(self, item):
@@ -105,19 +107,19 @@ class AddAnythingDialog(QmlDrawer):
 
     def onActiveFocusItemChanged(self):
         super().onActiveFocusItemChanged()
-        item = self.qml.rootObject().window().activeFocusItem()
-        if item:
-            nextItem = item.nextItemInFocusChain()
-            while not nextItem.isVisible() or not nextItem.isEnabled():
-                nextItem = item.nextItemInFocusChain()
-            nextItemParent = nextItem.parent()
-            while not nextItemParent.objectName():
-                nextItemParent = nextItemParent.parent()
-            itemName = nextItem.objectName()
-            parentName = nextItemParent.objectName()
-        else:
-            itemName = ""
-            parentName = ""
+        # item = self.qml.rootObject().window().activeFocusItem()
+        # if item:
+        #     nextItem = item.nextItemInFocusChain()
+        #     while not nextItem.isVisible() or not nextItem.isEnabled():
+        #         nextItem = item.nextItemInFocusChain()
+        #     nextItemParent = nextItem.parent()
+        #     while not nextItemParent.objectName():
+        #         nextItemParent = nextItemParent.parent()
+        #     itemName = nextItem.objectName()
+        #     parentName = nextItemParent.objectName()
+        # else:
+        #     itemName = ""
+        #     parentName = ""
         # _log.info(
         #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
@@ -130,13 +132,19 @@ class AddAnythingDialog(QmlDrawer):
         return False
 
     def initForSelection(self, selection):
+        """
+        Canonical entry point when showing. Could have a better name
+        """
         self.clear()
+        self.adjustFlickableHack()
         pairBond = Marriage.marriageForSelection(selection)
         if pairBond:
             self.initWithPairBond(pairBond.id)
         elif any(x.isPerson for x in selection):
             ids = [x.id for x in selection if x.isPerson]
             self.initWithMultiplePeople(ids)
+        # just for tags
+        self._eventModel.items = [Event(addDummy=True)]
 
     def onDone(self):
         _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
@@ -160,6 +168,7 @@ class AddAnythingDialog(QmlDrawer):
         functioning = self.rootProp("functioning")
         symptom = self.rootProp("symptom")
         notes = self.rootProp("notes")
+        tags = self._eventModel.items[0].tags()
 
         personPicker = self.findItem("personPicker")
         peoplePicker = self.findItem("peoplePicker")
@@ -442,6 +451,7 @@ class AddAnythingDialog(QmlDrawer):
                     event.setLocation(location, undo=propertyUndoId)
                 if notes:
                     event.setNotes(notes, undo=propertyUndoId)
+                event.setTags(tags)
 
                 # Optional: Add Parents
                 if (parentA or parentB) and kind in (
@@ -505,6 +515,7 @@ class AddAnythingDialog(QmlDrawer):
                         description=description,
                         dateTime=startDateTime,
                         notes=notes,
+                        tags=tags,
                         **kwargs,
                     ),
                 )
@@ -540,7 +551,7 @@ class AddAnythingDialog(QmlDrawer):
             )
             commands.addEvent(
                 marriage,
-                Event(dateTime=startDateTime, **kwargs),
+                Event(dateTime=startDateTime, tags=tags, **kwargs),
             )
 
         elif EventKind.isDyadic(kind):
@@ -553,16 +564,16 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs["notes"] = notes
             for personA in movers:
                 for personB in receivers:
-                    commands.addEmotion(
-                        self.scene,
-                        Emotion(
-                            kind=itemMode,
-                            personA=personA,
-                            personB=personB,
-                            startDateTime=startDateTime,
-                            **kwargs,
-                        ),
+                    emotion = Emotion(
+                        kind=itemMode,
+                        personA=personA,
+                        personB=personB,
+                        startDateTime=startDateTime,
+                        tags=tags,
+                        **kwargs,
                     )
+                    emotion.startEvent.setTags(tags)
+                    commands.addEmotion(self.scene, emotion)
         else:
             raise ValueError(f"Don't know how to handle EventKind {kind}")
 
@@ -896,6 +907,23 @@ class AddAnythingDialog(QmlDrawer):
 
     def set_symptom(self, x):
         self.setVariable("symptom", x)
+
+    def _scrollToTagsField(self):
+        # y = self.itemProp("addPage.tagsField", "y")
+        # addPage = self.findItem("addPage")
+        # tagsEdit = self.findItem("tagsEdit")
+        # contentY = tagsEdit.mapToItem(addPage, QPointF(0, y)).y()
+        # _log.debug(f"Scrolling to tags field at contentY: {contentY}")
+        self.setItemProp("addPage", "contentY", 200)
+
+    def add_tag(self, tag: str):
+        self._scrollToTagsField()
+        self.clickAddAndRenameTag("tagsEdit", tag)
+
+    def set_active_tags(self, tags: list[str]):
+        self._scrollToTagsField()
+        for tag in tags:
+            self.clickTagActivateBox("tagsEdit", tag)
 
     # scripts
 

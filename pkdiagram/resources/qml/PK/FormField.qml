@@ -13,7 +13,6 @@ Rectangle {
     id: root
     color: 'transparent'
 
-
     // The first item in this chain for KeyNavigation.tab on an external item
     readonly property var firstTabItem: wrappedItem.firstTabItem
     // The first item in this chain for KeyNavigation.backtab on an external item
@@ -49,7 +48,6 @@ Rectangle {
             opacity: wrappedItem.isDirty ? util.CLEAR_BUTTON_OPACITY : 0
             enabled: opacity > 0
             onClicked: {
-                print('clearButton.onClicked')
                 wrappedItem.clear()
             }
             Layout.leftMargin: 5
@@ -65,7 +63,7 @@ Rectangle {
             wrappedItem.Layout.fillWidth = true
             // validation debugging
             if(root.tabItem == undefined) {
-                print(root.objectName + '.root.tabItem is undefined')
+                print('ForField.tabItem is undefined')
             }
             if(wrappedItem.lastTabItem == undefined) {
                 print(root.objectName + '.wrappedItem.lastTabItem is undefined')
