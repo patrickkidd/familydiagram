@@ -29,12 +29,13 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     def refresh(self):
         self._emotionalUnits = SortedList()
         self._activeLayers = []
-        for emotionalUnit in self._scene.emotionalUnits():
-            itemName = emotionalUnit.marriage().itemName()
-            if itemName:
-                self._emotionalUnits.add(emotionalUnit)
-            if emotionalUnit.layer().active():
-                self._activeLayers.append(emotionalUnit.layer())
+        if self._scene:
+            for emotionalUnit in self._scene.emotionalUnits():
+                itemName = emotionalUnit.marriage().itemName()
+                if itemName:
+                    self._emotionalUnits.add(emotionalUnit)
+                if emotionalUnit.layer().active():
+                    self._activeLayers.append(emotionalUnit.layer())
         self.modelReset.emit()
 
     def set(self, attr, value):

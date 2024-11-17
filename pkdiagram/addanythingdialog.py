@@ -20,6 +20,7 @@ from .qmldrawer import QmlDrawer
 from .util import EventKind
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
+from pkdiagram.widgets import ActiveListEdit
 
 _log = logging.getLogger(__name__)
 
@@ -918,14 +919,14 @@ class AddAnythingDialog(QmlDrawer):
 
     def add_tag(self, tag: str):
         self._scrollToTagsField()
-        tagsEdit = self.property("tagsEdit")
-        self.activeListEdit_clickAddAndRenameRow(tagsEdit, tag)
+        tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
+        tagsEdit.clickAddAndRenameRow(tag)
 
     def set_active_tags(self, tags: list[str]):
         self._scrollToTagsField()
-        tagsEdit = self.property("tagsEdit")
+        tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
         for tag in tags:
-            self.activeListEdit_clickActiveBox(tagsEdit, tag)
+            tagsEdit.clickActiveBox(tag)
 
     # scripts
 
