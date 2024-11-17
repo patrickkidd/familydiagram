@@ -15,6 +15,7 @@ from ..pyqt import (
 )
 from .. import util, commands
 from .modelhelper import ModelHelper
+from pkdiagram.sortedlist import SortedList
 
 
 def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):
@@ -93,7 +94,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._events = util.SortedList()
+        self._events = SortedList()
         self._columnHeaders = []
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
@@ -212,7 +213,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 for emotion in item.emotions():
                     events.update(emotion.events())
         # sort and filter
-        self._events = util.SortedList()
+        self._events = SortedList()
         for event in events:
             if not self._shouldHide(event):
                 self._events.add(event)
@@ -375,7 +376,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self._refreshRows()
         super().set(attr, value)
         if attr == "scene":
-            self._events = util.SortedList()
+            self._events = SortedList()
         elif attr == "items":
             self.refreshColumnHeaders()
             self._refreshRows()

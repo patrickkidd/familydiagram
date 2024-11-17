@@ -1,4 +1,4 @@
-from pkdiagram.objects import Marriage, Person
+from pkdiagram.objects import Marriage, Person, Layer
 
 
 class EmotionalUnit:

@@ -167,7 +167,26 @@ def test_moveLayer():
     assert scene2.layers() == [_layer2, _layer1, _layer0]
 
 
-def test_ignores_emotional_units():
+def test_ignores_emotional_units_init():
+    scene = Scene()
+    layer1 = Layer(name="View 1")
+    layer2 = Layer(name="View 2")
+    scene.addItems(layer1, layer2)
+    marriage_1 = Marriage(Person(name="A"), Person(name="B"))
+    marriage_2 = Marriage(Person(name="C"), Person(name="D"))
+    scene.addItems(marriage_1, marriage_2)
+    model = SceneLayerModel()
+    model.scene = scene
+    model.items = [scene]
+    units = scene.emotionalUnits()
+
+    assert model.rowCount() == 2
+    assert len(units) == 2
+    assert units[0].marriage() == marriage_1
+    assert units[1].marriage() == marriage_2
+
+
+def test_ignores_emotional_units_layerAdded():
     scene = Scene()
     model = SceneLayerModel()
     model.scene = scene
@@ -177,7 +196,7 @@ def test_ignores_emotional_units():
     marriage_1 = Marriage(Person(name="A"), Person(name="B"))
     marriage_2 = Marriage(Person(name="C"), Person(name="D"))
     scene.addItems(marriage_1, marriage_2)
-    model.items = [layer1, layer2]
+    model.items = [scene]
     units = scene.emotionalUnits()
 
     assert model.rowCount() == 2

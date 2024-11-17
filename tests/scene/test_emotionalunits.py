@@ -12,7 +12,7 @@ def test_add_marriage():
     emotionalUnit = scene.emotionalUnits()[0]
     assert set(personA.layers() + personB.layers()) == {emotionalUnit.layer().id}
     assert emotionalUnit.marriage() is marriage
-    assert layerAdded.callCount == 0
+    assert layerAdded.callCount == 1
     assert len(scene.layers()) == 1
     assert scene.layers()[0].name() == None
 
@@ -25,7 +25,7 @@ def test_remove_marriage():
     scene.addItem(marriage)
     scene.removeItem(marriage)
     assert scene.emotionalUnits() == []
-    assert layerRemoved.callCount == 0
+    assert layerRemoved.callCount == 1
     assert scene.layers() == []
     assert set(personA.layers() + personB.layers()) == set()
 
@@ -41,6 +41,22 @@ def test_ignores_custom_layers():
 
     marriage = Marriage(personA=Person(name="A"), personB=Person(name="B"))
     scene.addItem(marriage)
-    assert layerAdded.callCount == 1
+    assert layerAdded.callCount == 2
     assert len(scene.layers()) == 2
     assert sum(1 for x in scene.layers() if not x.internal()) == 1
+
+
+def test_sort():
+    scene = Scene()
+    marriage_1 = Marriage(
+        personA=Person(name="A", birthDateTime=util.Date(2001, 1, 1)),
+        personB=Person(name="B"),
+    )
+    marriage_2 = Marriage(
+        personA=Person(name="B"),
+        personB=Person(name="C", birthDateTime=util.Date(2000, 1, 1)),
+    )
+    scene.addItems(marriage_1, marriage_2)
+    emotionalUnit_1 = scene.emotionalUnitFor(marriage_1)
+    emotionalUnit_2 = scene.emotionalUnitFor(marriage_2)
+    assert emotionalUnit_2 < emotionalUnit_1

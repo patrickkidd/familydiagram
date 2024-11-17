@@ -5,7 +5,7 @@ import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
-from typing import Optional
+from typing import Callable
 
 from . import appdirs, util
 
@@ -1318,6 +1318,10 @@ def waitALittle(ms=10):
     loop.exec()
 
 
+def waitUntil(condition: Callable, timeout=2000):
+    util.Condition(condition=condition).wait(maxMS=timeout)
+
+
 ### Geometry functions
 
 
@@ -2094,6 +2098,10 @@ def test_finish_group(group):
             test_finish_anim(child)
         else:
             log.error(f"TEST: Unknown animation type: {animation}")
+
+
+def exec_():
+    QApplication.instance().exec_()
 
 
 #####################################################

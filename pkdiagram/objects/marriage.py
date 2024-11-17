@@ -193,7 +193,7 @@ class Marriage(PathItem):
         else:
             return False
 
-    def olderDT(self) -> QDateTime:
+    def olderBirth(self) -> QDateTime:
         personADT = self.people[0].birthEvent.dateTime()
         personBDT = self.people[1].birthEvent.dateTime()
         if personADT and personBDT:
@@ -272,11 +272,11 @@ class Marriage(PathItem):
 
     @staticmethod
     def itemNameFor(personA, personB) -> str:
-        ret = "Pair Bond"
         peopleNames = Marriage.peopleNamesFor(personA, personB)
         if peopleNames:
-            ret = ret + "(%s)" % peopleNames
-        return ret
+            return peopleNames
+        else:
+            return "Pair Bond"
 
     def itemName(self):
         return Marriage.itemNameFor(self.people[0], self.people[1])

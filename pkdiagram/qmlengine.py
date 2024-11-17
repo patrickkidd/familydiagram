@@ -1,5 +1,5 @@
 from .pyqt import pyqtSlot, QQmlEngine, QQmlError, QObject, QApplication
-from . import util, commands, qmlutil, qmlvedana
+from . import util, commands, qmlvedana
 
 from pkdiagram import Session
 from pkdiagram.models import (

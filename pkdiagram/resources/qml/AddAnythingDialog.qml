@@ -877,7 +877,7 @@ PK.Drawer {
                             tabItem: notesField.firstTabItem
                             backTabItem: nodalBox
 
-                            PK.TagsEdit {
+                            PK.ActiveListEdit {
                                 id: tagsEdit
                                 objectName: "tagsEdit"
                                 Layout.fillWidth: true

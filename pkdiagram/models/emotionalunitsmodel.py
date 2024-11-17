@@ -17,39 +17,39 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     active list on the scene.
     """
 
-    NameRole = Qt.UserRole + 1
-    ActiveRole = Qt.UserRole + 2
+    NameRole = Qt.ItemDataRole.DisplayRole
+    ActiveRole = Qt.UserRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._emotionalUnits = SortedList()
         self._activeLayers = []
+        self.initModelHelper()
 
-    def _refresh(self):
-        self._emotionalUnits = {}
-        for emotionalUnit in self.scene.emotionalUnits():
-            itemName = emotionalUnit.itemName()
+    def refresh(self):
+        self._emotionalUnits = SortedList()
+        self._activeLayers = []
+        for emotionalUnit in self._scene.emotionalUnits():
+            itemName = emotionalUnit.marriage().itemName()
             if itemName:
-                self._emotionalUnits.append(emotionalUnit)
-        # stale marriages
-        for id in self._activeLayers:
-            if id not in self._emotionalUnits:
-                self._emotionalUnits.remove(id)
+                self._emotionalUnits.add(emotionalUnit)
+            if emotionalUnit.layer().active():
+                self._activeLayers.append(emotionalUnit.layer())
         self.modelReset.emit()
 
     def set(self, attr, value):
         if attr == "scene":
             if self._scene:
-                self._scene.marriageAdded.disconnect(self._refresh)
-                self._scene.marriageRemoved.disconnect(self._refresh)
-                self._scene.layerChanged.disconnect(self._refresh)
+                self._scene.marriageAdded.disconnect(self.refresh)
+                self._scene.marriageRemoved.disconnect(self.refresh)
+                self._scene.layerChanged.disconnect(self.refresh)
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
-                self._scene.marriageAdded.connect(self._refresh)
-                self._scene.marriageRemoved.connect(self._refresh)
-                self._scene.layerChanged.connect(self._refresh)
-            self._refresh()
+                self._scene.marriageAdded.connect(self.refresh)
+                self._scene.marriageRemoved.connect(self.refresh)
+                self._scene.layerChanged.connect(self.refresh)
+            self.refresh()
 
     ## Qt Virtuals
 
@@ -70,7 +70,10 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         if role == self.NameRole:
             ret = emotionalUnit.marriage().itemName()
         elif role == self.ActiveRole:
-            ret = emotionalUnit.layer() in self._activeLayers
+            if emotionalUnit.layer() in self._activeLayers:
+                ret = Qt.CheckState.Checked
+            else:
+                ret = Qt.CheckState.Unchecked
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):
@@ -79,9 +82,15 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         success = False
         emotionalUnit = self._emotionalUnits[index.row()]
         if role == self.ActiveRole:
-            self.layer.setActive(value)
-            if not emotionalUnit.layer() in self._activeLayers:
+            if value in (Qt.CheckState.Checked, Qt.CheckState.PartiallyChecked):
+                value = True
+            else:
+                value = False
+            emotionalUnit.layer().setActive(value)
+            if value and emotionalUnit.layer() not in self._activeLayers:
                 self._activeLayers.append(emotionalUnit.layer())
+            elif not value and emotionalUnit.layer() in self._activeLayers:
+                self._activeLayers.remove(emotionalUnit.layer())
         if success:
             self.dataChanged.emit(index, index, [role])
         return success

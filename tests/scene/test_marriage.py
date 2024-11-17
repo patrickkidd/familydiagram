@@ -85,12 +85,24 @@ def simpleMarriage(qmlScene, request):
     return marriage
 
 
-def test_olderDT():
-    b = a
+def test_olderBirth():
+    marriage_1 = Marriage(
+        Person(birthDateTime=util.Date(2001, 1, 1)),
+        Person(birthDateTime=util.Date(2002, 1, 1)),
+    )
+    assert marriage_1.olderBirth() == util.Date(2001, 1, 1)
 
 
-def test_sort(self):
-    b = a
+def test_sort():
+    marriage_1 = Marriage(
+        Person(birthDateTime=util.Date(2001, 1, 1)),
+        Person(birthDateTime=util.Date(2002, 1, 1)),
+    )
+    marriage_2 = Marriage(
+        Person(birthDateTime=util.Date(2001, 1, 1)),
+        Person(birthDateTime=util.Date(2000, 1, 1)),
+    )
+    assert marriage_2 < marriage_1
 
 
 def test_marriagesFor_one(noEvents):

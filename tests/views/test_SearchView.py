@@ -2,9 +2,10 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget
+from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
 from pkdiagram import util, Scene, QmlWidgetHelper
 from pkdiagram.objects import Person, Event, Marriage
+from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 
 
 pytestmark = [
@@ -88,9 +89,10 @@ def test_init(tst, model):
 def test_properties(tst, model, qmlEngine):
     scene = model.scene
     marriage = Marriage(Person(name="A"), Person(name="B"))
-    emotionalUnitsEdit = tst.rootProp("emotionalUnitsEdit")
     scene.addItem(marriage)
     qmlEngine.sceneModel.onEditorMode(True)
+    editorMode_tagsEdit = ActiveListEdit(tst, tst.rootProp("editorMode_tagsEdit"))
+    emotionUnitsEdit = ActiveListEdit(tst, tst.rootProp("emotionalUnitsEdit"))
 
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
@@ -107,10 +109,10 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    tst.clickActiveListViewCheckBox("SearchView_editorMode_tagEdit", TAG_1)
+    editorMode_tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
-    tst.clickActiveListViewCheckBox(emotionalUnitsEdit, marriage.itemName())
+    emotionUnitsEdit.clickActiveBox(marriage.itemName())
     assert scene.activeLayers() == [scene.emotionalUnits()[0].layer()]
 
     # reset
@@ -130,10 +132,10 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
 
-    tst.clickActiveListViewCheckBox("SearchView_editorMode_tagEdit", TAG_1)
+    editorMode_tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
-    tst.clickActiveListViewCheckBox(emotionalUnitsEdit, marriage.itemName())
+    emotionUnitsEdit.clickActiveBox(marriage.itemName())
     assert scene.activeLayers() == []
 
 

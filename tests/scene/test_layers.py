@@ -97,7 +97,7 @@ def test_scene_signals(simpleScene, undoStack):
         simpleScene.addItem(layer)
         assert onLayerAdded.callCount == i + 1
         assert onLayerAdded.lastCallArgs == (layer,)
-    assert len(simpleScene.layers()) == 3
+    assert len(simpleScene.layers()) == 4
     assert onLayerAdded.callCount == 3
     assert onLayerChanged.callCount == 0
     assert onLayerRemoved.callCount == 0
@@ -261,12 +261,12 @@ def test_layer_callout(simpleScene):
 
 
 def test_add_default_layer_with_first_LayerItem(simpleScene):
-    assert simpleScene.layers() == []
+    assert simpleScene.customLayers() == []
 
     callout = Callout()
     simpleScene.addItem(callout)
-    assert len(simpleScene.layers()) == 1
-    assert callout.layers() == [simpleScene.layers()[0].id]
+    assert len(simpleScene.customLayers()) == 1
+    assert callout.layers() == [simpleScene.customLayers()[0].id]
 
 
 def test_write_read_active_layer_items():

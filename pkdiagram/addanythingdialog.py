@@ -918,12 +918,14 @@ class AddAnythingDialog(QmlDrawer):
 
     def add_tag(self, tag: str):
         self._scrollToTagsField()
-        self.clickAddAndRenameTag("tagsEdit", tag)
+        tagsEdit = self.property("tagsEdit")
+        self.activeListEdit_clickAddAndRenameRow(tagsEdit, tag)
 
     def set_active_tags(self, tags: list[str]):
         self._scrollToTagsField()
+        tagsEdit = self.property("tagsEdit")
         for tag in tags:
-            self.clickActiveListViewCheckBox("tagsEdit", tag)
+            self.activeListEdit_clickActiveBox(tagsEdit, tag)
 
     # scripts
 

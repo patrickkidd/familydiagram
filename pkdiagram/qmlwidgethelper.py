@@ -96,9 +96,6 @@ class QmlWidgetHelper(QObjectHelper):
     ## Test utils
     ##
 
-    def waitUntil(self, condition, timeout=2000):
-        util.Condition(condition=condition).wait(maxMS=timeout)
-
     @classmethod
     def deepFind(cls, parent, objectName):
         """more in-depth recursive QObject search."""
@@ -184,10 +181,10 @@ class QmlWidgetHelper(QObjectHelper):
         self.mouseClickItem(item)
         if not item.hasActiveFocus():
             item.forceActiveFocus()  # in case mouse doesn't work if item out of view
-            self.waitUntil(lambda: item.hasActiveFocus())
+            util.waitUntil(lambda: item.hasActiveFocus())
         if not item.hasFocus():
             item.setFocus(True)
-            self.waitUntil(lambda: item.hasFocus())
+            util.waitUntil(lambda: item.hasFocus())
         if not item.hasActiveFocus():
             msg = "Could not set active focus on `%s`" % objectName
             if not self.isActiveWindow():
@@ -502,68 +499,6 @@ class QmlWidgetHelper(QObjectHelper):
         #     self.here(child.metaObject().className())
         #     for _child in child.childItems():
         #         self.here('    ', _child.metaObject().className())
-
-    def _tag_delegate(self, tagEdit: QQuickItem, tagName: str) -> QQuickItem:
-        """
-        Because they are frequently deleted and recreated. try not to re-use
-        the return value.
-        """
-        listView = tagEdit.property("listView")
-        delegates = listView.property("delegates").toVariant()
-        foundTags = [x.property("tagName") for x in delegates]
-        try:
-            delegate = next(x for x in delegates if x.property("tagName") == tagName)
-        except StopIteration:
-            raise RuntimeError(
-                f"Could not find tag '{tagName}' in TagsEdit '{tagEdit.objectName()}', only found: {foundTags}"
-            )
-        return delegate
-
-    def _tag_textEdit(self, tagEdit: QQuickItem, tagName: str) -> QQuickItem:
-        return self._tag_delegate(tagEdit, tagName).property("textEdit")
-
-    def clickAddAndRenameTag(self, itemName: str, tagName: str):
-        tagEdit = self.findItem(itemName)
-        model = tagEdit.property("model")
-        addButton = tagEdit.property("crudButtons").property("addButtonItem")
-        wasTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
-        self.mouseClickItem(addButton)
-        nowTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
-        newTag = list(set(nowTags).difference(set(wasTags)))[0]
-        self.mouseDClickItem(self._tag_textEdit(tagEdit, newTag))
-        assert (
-            self._tag_textEdit(tagEdit, newTag).property("editMode") == True
-        ), f"Could not double-click to edit tag '{newTag}'"
-        self.keyClicksItem(
-            self._tag_textEdit(tagEdit, newTag), tagName, returnToFinish=True
-        )
-        assert (
-            self._tag_textEdit(tagEdit, tagName).property("text") == tagName
-        ), f"Could not rename tag '{newTag}' to {tagName}"
-
-    def clickActiveListViewCheckBox(self, item: Union[str, QQuickItem], tagName: str):
-        if isinstance(item, str):
-            item = self.findItem(item)
-        model = item.property("model")
-        assert (
-            model.rowCount() > 0
-        ), "Can't click the tag activate checkbox if the TagsModel is empty"
-        #
-        delegate = self._tag_delegate(item, tagName)
-        checkBox = delegate.property("checkBox")
-        iTag = delegate.property("iTag")
-        was = model.data(model.index(iTag, 0), role=model.ActiveRole)
-        assert (
-            checkBox.isVisible() == True
-        ), f"Cannot click tag checkbox for '{tagName}' if it isn't enabled"
-        assert (
-            checkBox.isEnabled() == True
-        ), f"Cannot click tag checkbox for '{tagName}' if it isn't enabled."
-        # QApplication.instance().exec_()
-        self.mouseClickItem(checkBox)
-        assert (
-            model.data(model.index(iTag), role=model.ActiveRole) != was
-        ), f"Checkbox for tag '{tagName}' did not change check state"
 
     # def clickComboBoxItem_actual(self, objectName, itemText, comboBox=None):
     #     if isinstance(objectName, str):

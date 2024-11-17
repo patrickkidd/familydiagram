@@ -340,8 +340,7 @@ class Scene(QGraphicsScene, Item):
             self._emotionalUnits.append(EmotionalUnit(item, layer))
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
-            if not self.isBatchAddingRemovingItems():
-                self.marriageAdded[Marriage].emit(item)
+            self.marriageAdded[Marriage].emit(item)
         elif item.isEvent:
             self._events.append(item)
             for entry in self.eventProperties():
@@ -357,10 +356,9 @@ class Scene(QGraphicsScene, Item):
         elif item.isLayer:
             self._layers.append(item)
             item.setScene(self)
-            if not item.internal():
-                if not self.isBatchAddingRemovingItems():
-                    self.tidyLayerOrder()
-                self.layerAdded.emit(item)
+            if not self.isBatchAddingRemovingItems():
+                self.tidyLayerOrder()
+            self.layerAdded.emit(item)
             if not self.isBatchAddingRemovingItems():
                 if item.active():
                     self.updateActiveLayers()
@@ -368,7 +366,7 @@ class Scene(QGraphicsScene, Item):
             self._isAddingLayerItem = True
             self._layerItems.append(item)
             if not self.isInitializing:
-                if not self.layers():
+                if not self.customLayers():
                     layer = Layer(name="View 1", active=True)
                     self.addItem(layer)
                 if not item.layers():
@@ -490,6 +488,7 @@ class Scene(QGraphicsScene, Item):
             self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
+            self.marriageRemoved[Marriage].emit(item)
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
@@ -505,7 +504,7 @@ class Scene(QGraphicsScene, Item):
             self._layers.remove(item)
             if not item.internal():
                 self.tidyLayerOrder()
-                self.layerRemoved.emit(item)
+            self.layerRemoved.emit(item)
         elif item.isLayerItem:
             self._layerItems.remove(item)
         elif item.isItemDetails:
@@ -1646,6 +1645,17 @@ class Scene(QGraphicsScene, Item):
 
     def emotionalUnits(self) -> list[EmotionalUnit]:
         return list(self._emotionalUnits)
+
+    def emotionalUnitFor(self, marriage: Marriage) -> EmotionalUnit:
+        for unit in self.emotionalUnits():
+            if unit.marriage() == marriage:
+                return unit
+
+    def customLayers(self):
+        """
+        Custom means user-added. So visible in the UI list.
+        """
+        return [x for x in self.layers() if not x.internal()]
 
     # Tags
 
