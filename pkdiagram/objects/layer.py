@@ -22,6 +22,7 @@ class Layer(Item):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.isLayer = True
+        self._emotionalUnit = None
         self._scene = kwargs.get("scene")
         if not "itemProperties" in kwargs:  # avoid shared default value instance
             self.prop("itemProperties").set({}, notify=False)
@@ -37,6 +38,9 @@ class Layer(Item):
         elif self.name() is None and other.name() is None:
             return True
         return self.name() < other.name()
+
+    def setEmotionalUnit(self, emotionalUnit):
+        self._emotionalUnit = emotionalUnit
 
     ## Cloning
 
@@ -137,3 +141,8 @@ class Layer(Item):
             for propName in list(propValues.keys()):
                 item.prop(propName).reset(notify=notify, undo=undo)
         self.setItemProperties({})
+
+    # Custom
+
+    def emotionalUnit(self):
+        return self._emotionalUnit

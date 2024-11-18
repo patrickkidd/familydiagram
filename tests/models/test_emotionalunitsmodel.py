@@ -40,7 +40,7 @@ def test_set_active():
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.CheckState.Checked
     assert model.data(model.index(2, 0), model.ActiveRole) == Qt.CheckState.Unchecked
-    assert scene.activeLayers() == [scene.emotionalUnitFor(marriages[1]).layer()]
+    assert scene.activeLayers() == [marriages[1].emotionalUnit().layer()]
 
 
 def test_set_inactive():
@@ -75,7 +75,7 @@ def test_custom_layer_same_name():
     assert len(scene.layers()) == 4
     model.setData(model.index(1, 0), True, model.ActiveRole)
     assert layer.active() == False
-    assert scene.activeLayers() == [scene.emotionalUnitFor(marriages[1]).layer()]
+    assert scene.activeLayers() == [marriages[1].emotionalUnit().layer()]
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.CheckState.Checked
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked

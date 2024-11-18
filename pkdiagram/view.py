@@ -19,7 +19,7 @@ from . import util, toolbars, objects, widgets, commands
 from . import panzoom, dragpan, wheelzoom
 from . import legend
 from .helpoverlay import HelpOverlay
-from pkdiagram.objects import Property
+from pkdiagram.objects import Property, EmotionalUnit
 
 _log = logging.getLogger(__name__)
 
@@ -778,17 +778,26 @@ class View(QGraphicsView):
         self.updateHiddenItemsLabel()
 
     def updateHiddenItemsLabel(self):
-        nVisiblePeople = sum([1 for p in self.scene().people() if not p.isVisible()])
-        layerNames = ", ".join([layer.name() for layer in self.scene().activeLayers()])
-        if nVisiblePeople or layerNames:
-            s = "%s" % util.dateString(self.scene().currentDateTime())
-            if layerNames:
-                if len(self.scene().activeLayers()) > 1:
-                    s = s + " Views: %s" % layerNames
-                else:
-                    s = s + " View: %s" % layerNames
-            if nVisiblePeople:
-                s = s + "  (Hiding %i people)" % nVisiblePeople
+        nHiddenPeople = sum([1 for p in self.scene().people() if not p.isVisible()])
+        customLayers = self.scene().activeLayers(includeInternal=False)
+        internalLayers = self.scene().activeLayers(onlyInternal=True)
+        s = ""
+        if len(internalLayers) == 1:
+            s = f"Emotional Unit: {internalLayers[0].emotionalUnit().name()}"
+        elif len(internalLayers) > 1:
+            names = ", ".join(
+                [layer().emotionalUnit().name() for layer in internalLayers]
+            )
+            s = f"Emotional Units: {names}"
+        elif len(customLayers) == 1:
+            s = f"View: {customLayers[0].name()}"
+        elif len(customLayers) > 1:
+            names = ", ".join([layer.name() for layer in customLayers])
+            s = f"Views: {names}"
+        if nHiddenPeople:
+            # s = "%s" % util.dateString(self.scene().currentDateTime())
+            s += " (Hiding %i people)" % nHiddenPeople
+        if s:
             self.hiddenItemsLabel.setText(s)
             self.hiddenItemsLabel.adjustSize()
             self.hiddenItemsLabel.show()

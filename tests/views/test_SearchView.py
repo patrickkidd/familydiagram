@@ -112,8 +112,8 @@ def test_properties(tst, model, qmlEngine):
     editorMode_tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
-    emotionUnitsEdit.clickActiveBox(marriage.itemName())
-    assert scene.activeLayers() == [scene.emotionalUnits()[0].layer()]
+    emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
+    assert scene.activeLayers() == [marriage.emotionalUnit().layer()]
 
     # reset
 
@@ -135,7 +135,7 @@ def test_properties(tst, model, qmlEngine):
     editorMode_tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
-    emotionUnitsEdit.clickActiveBox(marriage.itemName())
+    emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == []
 
 

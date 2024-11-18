@@ -34,8 +34,24 @@ from pkdiagram.pyqt import (
     QFileInfo,
 )
 from . import version, util, commands, version, compat, slugify
-from .objects import *
-from pkdiagram.objects import EmotionalUnit
+from .objects import (
+    EmotionalUnit,
+    Property,
+    Event,
+    Item,
+    PathItem,
+    ItemDetails,
+    VariablesDatabase,
+    Person,
+    ChildOf,
+    MultipleBirth,
+    Marriage,
+    Emotion,
+    PencilStroke,
+    Layer,
+    LayerItem,
+    Callout,
+)
 from .itemgarbage import ItemGarbage
 
 
@@ -224,7 +240,6 @@ class Scene(QGraphicsScene, Item):
         self._layers = []
         self._activeLayers = []
         self._activeTags = []
-        self._emotionalUnits = []
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -335,12 +350,16 @@ class Scene(QGraphicsScene, Item):
             # Add an unnamed layer but don't register it or notify anything
             layer = Layer(internal=True)
             self.addItem(layer)
-            item.personA().setLayers(item.personA().layers() + [layer.id], notify=False)
-            item.personB().setLayers(item.personB().layers() + [layer.id], notify=False)
-            self._emotionalUnits.append(EmotionalUnit(item, layer))
+            layer.setEmotionalUnit(item.emotionalUnit())
+            item.emotionalUnit().setLayer(layer)
+            if not self.isBatchAddingRemovingItems():
+                item.emotionalUnit().update()
+            self.marriageAdded[Marriage].emit(item)
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
-            self.marriageAdded[Marriage].emit(item)
+        elif item.isChildOf:
+            if not self.isBatchAddingRemovingItems():
+                item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
             for entry in self.eventProperties():
@@ -438,6 +457,9 @@ class Scene(QGraphicsScene, Item):
                     > 0
                 ):
                     self.tidyLayerOrder()
+                for item in self._batchAddedItems + self._batchRemovedItems:
+                    if item.isMarriage:
+                        item.emotionalUnit().update()
                 self.updateAll()
                 self.checkPrintRectChanged()
                 # maybe move these into updateAll()
@@ -471,24 +493,24 @@ class Scene(QGraphicsScene, Item):
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
         elif item.isMarriage:
-            emotionalUnit = next(
-                x for x in self._emotionalUnits if x.marriage() == item
-            )
+            emotionalUnit = item.emotionalUnit()
             item.personA().setLayers(
-                [x for x in item.personA().layers() if x != emotionalUnit.layer().id],
-                notify=False,
+                [x for x in item.personA().layers() if x != emotionalUnit.layer().id]
             )
             item.personB().setLayers(
-                [x for x in item.personB().layers() if x != emotionalUnit.layer().id],
-                notify=False,
+                [x for x in item.personB().layers() if x != emotionalUnit.layer().id]
             )
-            self.removeItem(emotionalUnit.layer())
-            self._emotionalUnits.remove(emotionalUnit)
+            self.removeItem(item.emotionalUnit().layer())
+            item.emotionalUnit().update()
             self._marriages.remove(item)
             self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
             self.marriageRemoved[Marriage].emit(item)
+        elif item.isChildOf:
+            layer = item.parents().emotionalUnit().layer()
+            item.person.setLayers([x for x in item.person.layers() if x != layer.id])
+            item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
@@ -1565,7 +1587,9 @@ class Scene(QGraphicsScene, Item):
 
     def updateActiveLayers(self, force=False):
         """Can trigger animations while updateAll forces changes immediately."""
-        _activeLayers = [layer for layer in self.layers() if layer.active()]
+        _activeLayers = [
+            layer for layer in self.layers(includeInternal=True) if layer.active()
+        ]
         if set(_activeLayers) == set(self._activeLayers) and not force:
             return
         self._areActiveLayersChanging = True
@@ -1653,12 +1677,7 @@ class Scene(QGraphicsScene, Item):
             layer.setActive(False)
 
     def emotionalUnits(self) -> list[EmotionalUnit]:
-        return list(self._emotionalUnits)
-
-    def emotionalUnitFor(self, marriage: Marriage) -> EmotionalUnit:
-        for unit in self.emotionalUnits():
-            if unit.marriage() == marriage:
-                return unit
+        return list(x.emotionalUnit() for x in self.marriages())
 
     # Tags
 

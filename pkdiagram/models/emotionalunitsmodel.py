@@ -30,12 +30,12 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         self._emotionalUnits = SortedList()
         self._activeLayers = []
         if self._scene:
-            for emotionalUnit in self._scene.emotionalUnits():
-                itemName = emotionalUnit.marriage().itemName()
-                if itemName:
-                    self._emotionalUnits.add(emotionalUnit)
-                if emotionalUnit.layer().active():
-                    self._activeLayers.append(emotionalUnit.layer())
+            for marriage in self._scene.marriages():
+                name = marriage.emotionalUnit().name()
+                if name:
+                    self._emotionalUnits.add(marriage.emotionalUnit())
+                if marriage.emotionalUnit().layer().active():
+                    self._activeLayers.append(marriage.emotionalUnit().layer())
         self.modelReset.emit()
 
     def set(self, attr, value):
@@ -69,7 +69,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         ret = None
         emotionalUnit = self._emotionalUnits[index.row()]
         if role == self.NameRole:
-            ret = emotionalUnit.marriage().itemName()
+            ret = emotionalUnit.name()
         elif role == self.ActiveRole:
             if emotionalUnit.layer() in self._activeLayers:
                 ret = Qt.CheckState.Checked

@@ -14,7 +14,7 @@ from ..pyqt import (
     QQmlEngine,
 )
 from .. import util
-from . import ItemDetails, Event, PathItem, Property
+from . import ItemDetails, Event, PathItem, Property, EmotionalUnit
 from ..util import EventKind
 
 log = logging.getLogger(__name__)
@@ -157,6 +157,7 @@ class Marriage(PathItem):
         self.isInit = False
         self._Marriage_isUpdatingAll = False
         self.people = [personA, personB]
+        self._emotionalUnit = EmotionalUnit(self)
         self._events = []
         self._eventsCache = []  # used for add|remove signals
         self._aliasNotes = None
@@ -676,6 +677,9 @@ class Marriage(PathItem):
         super().onUpdateAll()  # Optimize out redundant calls to updateDetails()
         self._Marriage_isUpdatingAll = False
         self.updateDetails()
+
+    def emotionalUnit(self) -> EmotionalUnit:
+        return self._emotionalUnit
 
     ## Scene Events
 

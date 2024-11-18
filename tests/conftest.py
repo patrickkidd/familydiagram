@@ -340,7 +340,7 @@ def watchdog(request, qApp):
         log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
 
     else:
-        log.warning("Qt hung test watchdog disabled.")
+        # log.warning("Qt hung test watchdog disabled.")
         watchdog = None
 
     yield watchdog

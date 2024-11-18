@@ -1,3 +1,4 @@
+from .emotionalunit import EmotionalUnit
 from .property import Property
 from .event import Event
 from .item import Item
@@ -13,4 +14,3 @@ from .pencilstroke import PencilStroke
 from .layer import Layer
 from .layeritem import LayerItem
 from .callout import Callout
-from .emotionalunit import EmotionalUnit
