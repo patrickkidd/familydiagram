@@ -47,7 +47,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value.layerChanged[Property].connect(self.onLayerChanged)
                 value.layerRemoved[Layer].connect(self.onLayerRemoved)
                 value.diagramReset.connect(self.onDiagramReset)
-                self._layers = [x for x in value.customLayers()]
+                self._layers = [x for x in value.layers(includeInternal=False)]
             self.modelReset.emit()
         super().set(attr, value)
 
@@ -57,7 +57,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             return
         # expects it to already have `order` set
         self.beginInsertRows(QModelIndex(), layer.order(), layer.order())
-        self._layers = self.scene.customLayers()
+        self._layers = self.scene.layers(includeInternal=False)
         self.endInsertRows()
 
     @util.blocked
@@ -80,7 +80,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         elif prop.name() == "order":
             if self._reorderingLayers:
                 return
-            self._layers = self._scene.customLayers()
+            self._layers = self._scene.layers(includeInternal=False)
             self.modelReset.emit()
         if role is not None:
             row = self._layers.index(prop.item)

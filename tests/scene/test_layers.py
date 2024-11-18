@@ -261,12 +261,12 @@ def test_layer_callout(simpleScene):
 
 
 def test_add_default_layer_with_first_LayerItem(simpleScene):
-    assert simpleScene.customLayers() == []
+    assert simpleScene.layers(includeInternal=False) == []
 
     callout = Callout()
     simpleScene.addItem(callout)
-    assert len(simpleScene.customLayers()) == 1
-    assert callout.layers() == [simpleScene.customLayers()[0].id]
+    assert len(simpleScene.layers(includeInternal=False)) == 1
+    assert callout.layers() == [simpleScene.layers(includeInternal=False)[0].id]
 
 
 def test_write_read_active_layer_items():

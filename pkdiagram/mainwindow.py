@@ -569,7 +569,10 @@ class MainWindow(QMainWindow):
                 x = dateTime.toString(tmpl)
                 title += "Showing: " + x
             layerNames = ", ".join(
-                [layer.name() for layer in self.scene.activeLayers()]
+                [
+                    layer.name()
+                    for layer in self.scene.activeLayers(includeInternal=False)
+                ]
             )
             if layerNames:
                 title += " | " + layerNames

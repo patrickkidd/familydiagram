@@ -366,7 +366,7 @@ class Scene(QGraphicsScene, Item):
             self._isAddingLayerItem = True
             self._layerItems.append(item)
             if not self.isInitializing:
-                if not self.customLayers():
+                if not self.layers(includeInternal=False):
                     layer = Layer(name="View 1", active=True)
                     self.addItem(layer)
                 if not item.layers():
@@ -1341,7 +1341,7 @@ class Scene(QGraphicsScene, Item):
     def emotions(self):
         return list(self._emotions)
 
-    def layers(self, tags=[], name=None):
+    def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:
             layers = list(self._layers)
         if tags and name is not None:
@@ -1353,6 +1353,10 @@ class Scene(QGraphicsScene, Item):
         else:
             layers = list(self._layers)
         # ret = sorted(layers, key=lambda l: l.order() > -1 and l.order() or sys.maxsize)
+        if onlyInternal:
+            layers = [l for l in layers if l.internal()]
+        elif not includeInternal:
+            layers = [l for l in layers if not l.internal()]
         return layers
 
     def layerItems(self):
@@ -1593,8 +1597,13 @@ class Scene(QGraphicsScene, Item):
             animation = self.layerAnimationGroup.animationAt(0)
             self.layerAnimationGroup.removeAnimation(animation)
 
-    def activeLayers(self):
-        return self._activeLayers
+    def activeLayers(self, includeInternal=True, onlyInternal=False):
+        layers = list(self._activeLayers)
+        if onlyInternal:
+            layers = [l for l in layers if l.internal()]
+        elif not includeInternal:
+            layers = [l for l in layers if not l.internal()]
+        return layers
 
     @pyqtProperty(bool, notify=activeLayersChanged)
     def hasActiveLayers(self):
@@ -1650,12 +1659,6 @@ class Scene(QGraphicsScene, Item):
         for unit in self.emotionalUnits():
             if unit.marriage() == marriage:
                 return unit
-
-    def customLayers(self):
-        """
-        Custom means user-added. So visible in the UI list.
-        """
-        return [x for x in self.layers() if not x.internal()]
 
     # Tags
 
