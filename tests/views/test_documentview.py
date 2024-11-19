@@ -358,7 +358,15 @@ def test_toggle_search_layer_via_action(dv):
     assert dv.scene.activeLayers() == [layer]
 
 
-def test_show_emotional_unit(dv):
+def test_emotional_unit_no_menu_actions(dv):
+    personA, personB = Person(name="A"), Person(name="B")
+    marriage_1 = Marriage(personA, personB)
+    dv.scene.addItems(personA, personB, marriage_1)
+    assert [x.data() for x in dv.ui.menuLayers.actions() if x.data()] == []
+
+
+@pytest.mark.parametrize("bothUnits", [True, False])
+def test_show_emotional_unit(dv, bothUnits):
     personA, personB = Person(name="A"), Person(name="B")
     marriage_1 = Marriage(personA, personB)
     personC, personD = Person(name="C"), Person(name="D")
@@ -385,22 +393,33 @@ def test_show_emotional_unit(dv):
     )
     # was = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property("checkState")
     emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
+    if bothUnits:
+        emotionalUnitsEdit.clickActiveBox(marriage_2.itemName())
     # isChecked = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property(
     #     "checkState"
     # )
-    emotionalUnit = marriage_1.emotionalUnit()
-    assert (
-        dv.view.hiddenItemsLabel.text()
-        == f"Emotional Unit: {emotionalUnit.name()} (Hiding 4 people)"
-    )
+    # emotionalUnit = marriage_1.emotionalUnit()
+    if bothUnits:
+        assert (
+            dv.view.hiddenItemsLabel.text()
+            == f"Emotional Units: {marriage_1.emotionalUnit().name()}, {marriage_2.emotionalUnit().name()}"
+        )
+    else:
+        assert (
+            dv.view.hiddenItemsLabel.text()
+            == f"Emotional Unit: {marriage_1.emotionalUnit().name()} (Hiding 4 people)"
+        )
     assert personA.isVisible() == True
     assert personB.isVisible() == True
     assert child_1.isVisible() == True
     assert child_2.isVisible() == True
-    assert personC.isVisible() == False
-    assert personD.isVisible() == False
-    assert child_3.isVisible() == False
-    assert child_4.isVisible() == False
+    assert personC.isVisible() == bothUnits
+    assert personD.isVisible() == bothUnits
+    assert child_3.isVisible() == bothUnits
+    assert child_4.isVisible() == bothUnits
+    # TODO: verify QActions checked for layers
+    for action in dv.ui.menuLayers.actions():
+        assert action.isChecked() == False, f"{action.text()} should be unchecked"
 
 
 def test_deselect_all_layers(dv):

@@ -786,7 +786,7 @@ class View(QGraphicsView):
             s = f"Emotional Unit: {internalLayers[0].emotionalUnit().name()}"
         elif len(internalLayers) > 1:
             names = ", ".join(
-                [layer().emotionalUnit().name() for layer in internalLayers]
+                [layer.emotionalUnit().name() for layer in internalLayers]
             )
             s = f"Emotional Units: {names}"
         elif len(customLayers) == 1:

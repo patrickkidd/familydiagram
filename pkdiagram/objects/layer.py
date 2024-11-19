@@ -3,6 +3,14 @@ from .item import Item
 
 
 class Layer(Item):
+    """
+    When active=True:
+        - Shows all items that are added to it.
+        - Updates all "layered" item properties, for example person color and geometry.
+        - Contains LayerItems, which are only used for presentation.
+    - internal=True indicates that the layer is not created by the user
+        - Instead supports built-in features like e.g. emotional units and triangles.
+    """
 
     Item.registerProperties(
         (

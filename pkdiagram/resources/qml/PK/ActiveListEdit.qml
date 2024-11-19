@@ -21,6 +21,8 @@ Rectangle {
     property int count: listViewItem.count
     property var listView: listViewItem // doesn't work with `alias` for some reason
     property alias crudButtons: crudButtons
+    property var addButton: true
+    property var removeButton: true
 
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
@@ -146,11 +148,11 @@ Rectangle {
             Layout.fillWidth: true
             bottomBorder: false
             width: parent.width
-            addButton: true
+            addButton: root.addButton
             addButtonEnabled: sceneModel ? !sceneModel.readOnly : false
             onAdd: model.addTag()
             removeButtonEnabled: listViewItem.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
-            removeButton: true
+            removeButton: root.removeButton
             onRemove: model.removeTag(currentIndex)
         }    
 
