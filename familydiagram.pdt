@@ -160,6 +160,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "emotionalunitsmodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "emotionpropertiesmodel.py"
 included = true
 is_directory = false
@@ -271,6 +276,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "childof.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "emotionalunit.py"
 included = true
 is_directory = false
 
@@ -1552,6 +1562,11 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "activelistedit.py"
 included = true
 is_directory = false
 
