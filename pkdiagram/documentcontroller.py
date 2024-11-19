@@ -331,10 +331,10 @@ class DocumentController(QObject):
     @util.blocked
     def onActiveLayers(self, activeLayers):
         self.updateActions()
-        ids = [layer.id for layer in activeLayers]
+        ids = [x.id for x in activeLayers if not x.internal()]
         for action in self.ui.menuLayers.actions():
             on = action.data() in ids
-            if on != action.isChecked:
+            if on != action.isChecked():
                 action.setChecked(on)
 
     @util.blocked
@@ -359,14 +359,12 @@ class DocumentController(QObject):
     def onSceneLayersChanged(self):
         self.ui.menuLayers.clear()
         if self.scene:
-            sceneLayers = self.scene.layers()
-            activeLayers = [layer for layer in self.scene.layers() if layer.active()]
-            for layer in sceneLayers:
+            for layer in self.scene.layers(includeInternal=False):
                 action = QAction(self)
                 action.setText(layer.name())
                 action.setData(layer.id)
                 action.setCheckable(True)
-                if layer in activeLayers:
+                if layer.active():
                     action.setChecked(True)
                 action.toggled[bool].connect(self.onLayerActionToggled)
                 self.ui.menuLayers.addAction(action)
@@ -536,7 +534,7 @@ class DocumentController(QObject):
         self.ui.actionUndo.setEnabled(on and commands.stack().canUndo())
         self.ui.actionRedo.setEnabled(on and commands.stack().canRedo())
         if self.scene:
-            numLayers = len(self.scene.layers())
+            numLayers = len(self.scene.layers(includeInternal=False))
             iActiveLayer = self.scene.activeLayer()
         else:
             numLayers = 0

@@ -47,19 +47,23 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value.layerChanged[Property].connect(self.onLayerChanged)
                 value.layerRemoved[Layer].connect(self.onLayerRemoved)
                 value.diagramReset.connect(self.onDiagramReset)
-                self._layers = value.layers()
+                self._layers = [x for x in value.layers(includeInternal=False)]
             self.modelReset.emit()
         super().set(attr, value)
 
     @util.blocked
     def onLayerAdded(self, layer):
+        if layer.internal():
+            return
         # expects it to already have `order` set
         self.beginInsertRows(QModelIndex(), layer.order(), layer.order())
-        self._layers = self.scene.layers()
+        self._layers = self.scene.layers(includeInternal=False)
         self.endInsertRows()
 
     @util.blocked
     def onLayerChanged(self, prop):
+        if prop.item.internal():
+            return
         role = None
         if prop.name() == "id":
             role = self.IdRole
@@ -76,7 +80,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         elif prop.name() == "order":
             if self._reorderingLayers:
                 return
-            self._layers = self._scene.layers()
+            self._layers = self._scene.layers(includeInternal=False)
             self.modelReset.emit()
         if role is not None:
             row = self._layers.index(prop.item)
@@ -84,6 +88,8 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
 
     @util.blocked
     def onLayerRemoved(self, layer):
+        if layer.internal():
+            return
         row = self._layers.index(layer)
         self.beginRemoveRows(QModelIndex(), row, row)
         self._layers.remove(layer)

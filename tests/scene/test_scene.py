@@ -494,6 +494,33 @@ and [John] [John]
     )
 
 
+def test_layers():
+    scene = Scene()
+    layer1 = Layer(name="View 1", internal=True)
+    layer2 = Layer(name="View 2", internal=True)
+    layer3 = Layer(name="View 3")
+    scene.addItems(layer1, layer2, layer3)
+    assert scene.layers() == [layer1, layer2, layer3]
+
+
+def test_layers_onlyInternal():
+    scene = Scene()
+    layer1 = Layer(name="View 1", internal=True)
+    layer2 = Layer(name="View 2", internal=True)
+    layer3 = Layer(name="View 3")
+    scene.addItems(layer1, layer2, layer3)
+    assert set(scene.layers(onlyInternal=True)) == set([layer1, layer2])
+
+
+def test_layers_includeInternal():
+    scene = Scene()
+    layer1 = Layer(name="View 1", internal=True)
+    layer2 = Layer(name="View 2", internal=True)
+    layer3 = Layer(name="View 3")
+    scene.addItems(layer1, layer2, layer3)
+    assert set(scene.layers(includeInternal=False)) == set([layer3])
+
+
 def test_layered_properties():
     """Ensure correct layered prop updates for marriage+marriage-indicators."""
     scene = Scene()

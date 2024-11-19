@@ -3,6 +3,14 @@ from .item import Item
 
 
 class Layer(Item):
+    """
+    When active=True:
+        - Shows all items that are added to it.
+        - Updates all "layered" item properties, for example person color and geometry.
+        - Contains LayerItems, which are only used for presentation.
+    - internal=True indicates that the layer is not created by the user
+        - Instead supports built-in features like e.g. emotional units and triangles.
+    """
 
     Item.registerProperties(
         (
@@ -11,6 +19,9 @@ class Layer(Item):
             {"attr": "order", "type": int, "default": -1},
             {"attr": "notes"},
             {"attr": "active", "type": bool, "default": False},
+            # For built-in layers that are not created by the user, e.g.
+            # emotional units and triangles.
+            {"attr": "internal", "type": bool, "default": False},
             {"attr": "itemProperties", "type": dict},
             {"attr": "storeGeometry", "type": bool, "default": False},
         )
@@ -19,6 +30,7 @@ class Layer(Item):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.isLayer = True
+        self._emotionalUnit = None
         self._scene = kwargs.get("scene")
         if not "itemProperties" in kwargs:  # avoid shared default value instance
             self.prop("itemProperties").set({}, notify=False)
@@ -34,6 +46,9 @@ class Layer(Item):
         elif self.name() is None and other.name() is None:
             return True
         return self.name() < other.name()
+
+    def setEmotionalUnit(self, emotionalUnit):
+        self._emotionalUnit = emotionalUnit
 
     ## Cloning
 
@@ -134,3 +149,8 @@ class Layer(Item):
             for propName in list(propValues.keys()):
                 item.prop(propName).reset(notify=notify, undo=undo)
         self.setItemProperties({})
+
+    # Custom
+
+    def emotionalUnit(self):
+        return self._emotionalUnit

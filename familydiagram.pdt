@@ -1108,6 +1108,12 @@ is_directory = false
 name = "PK"
 included = true
 is_directory = true
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "ActiveListEdit.qml"
+included = true
+is_directory = false
+
 [[Application.Package.Content.Content.Content.Content]]
 name = "Button.qml"
 included = true
@@ -1265,11 +1271,6 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "TableView.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "TagsEdit.qml"
 included = true
 is_directory = false
 
@@ -1463,6 +1464,11 @@ is_directory = false
 
 [[Application.Package.Content]]
 name = "slugify.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "sortedlist.py"
 included = true
 is_directory = false
 

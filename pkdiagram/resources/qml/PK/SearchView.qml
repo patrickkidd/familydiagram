@@ -18,15 +18,14 @@ Page {
         Edit.forceActiveFocus()
     }
 
-    property alias tagsModel: tagsModel
-    property alias tagEdit: tagEdit
-    property alias editorMode_tagsModel: editorMode_tagsModel
-    property alias editorMode_tagEdit: editorMode_tagEdit
+    property alias tagsEdit: tagsEdit
+    property alias editorMode_tagsEdit: editorMode_tagsEdit
+    property alias emotionalUnitsEdit: emotionalUnitsEdit
 
     property int margin: util.QML_MARGINS
     property bool canInspect: false
 
-    // Get around TagsEdit.searchModel attr name
+    // Get around ActiveListEdit.searchModel attr name
     property var searchViewSearchModel: searchModel
 
     Keys.enabled: true
@@ -325,20 +324,40 @@ Page {
                         visible: ! sceneModel.isInEditorMode
                     }
 
-                    PK.TagsEdit {
-                        id: tagEdit
+                    PK.ActiveListEdit {
+                        id: tagsEdit
                         visible: ! sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 1
                         Layout.minimumHeight: 200
-                        KeyNavigation.tab: descriptionEdit
+                        KeyNavigation.tab: emotionalUnitsEdit
                         KeyNavigation.backtab: hideRelationshipsBox
                         model: TagsModel {
                             id: tagsModel
                             scene: sceneModel.scene
                             searchModel: searchViewSearchModel
                         }
+                    }
+
+                    PK.Text { text: "Emotional Units" }
+
+                    PK.ActiveListEdit {
+                        id: emotionalUnitsEdit
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 200
+                        KeyNavigation.tab: editorMode_tagsEdit
+                        KeyNavigation.backtab: tagsEdit
+                        model: EmotionalUnitsModel {
+                            id: emotionalUnitsModel
+                            scene: sceneModel.scene
+                        }
+                    }
+
+                    PK.HelpText {
+
                     }
 
                     PK.GroupBox {
@@ -393,16 +412,13 @@ Page {
                                         Layout.fillWidth: true
                                     }
 
-                                    PK.TagsEdit {
-                                        id: editorMode_tagEdit
-                                        objectName: 'SearchView_editorMode_tagEdit'
+                                    PK.ActiveListEdit {
+                                        id: editorMode_tagsEdit
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.margins: 1
                                         Layout.minimumHeight: 200
                                         model: TagsModel {
-                                            id: editorMode_tagsModel
-                                            objectName: 'SearchView_editorMode_tagsModel'
                                             scene: sceneModel.scene
                                             searchModel: searchViewSearchModel
                                         }

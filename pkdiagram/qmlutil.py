@@ -142,6 +142,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL",
         "S_EMOTION_SYMBOL_NOTES_HIDDEN",
         "S_TAGS_HELP_TEXT",
+        "S_EMOTIONAL_UNITS_HELP_TEXT",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
     ]

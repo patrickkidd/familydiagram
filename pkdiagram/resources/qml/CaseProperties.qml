@@ -29,6 +29,7 @@ PK.Drawer {
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
         )) : false
     }
+    property alias searchView: timelineSearch
 
     property alias eventProperties: eventProperties
 

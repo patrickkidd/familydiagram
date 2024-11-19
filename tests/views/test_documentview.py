@@ -15,7 +15,8 @@ from pkdiagram import (
     Event,
     DocumentView,
 )
-from pkdiagram.objects import Emotion
+from pkdiagram.objects import Emotion, Marriage
+from pkdiagram.widgets import ActiveListEdit
 from pkdiagram.mainwindow_form import Ui_MainWindow
 from pkdiagram.documentview import RightDrawerView
 from pkdiagram.pyqt import (
@@ -355,6 +356,70 @@ def test_toggle_search_layer_via_action(dv):
             action.setChecked(True)
             break
     assert dv.scene.activeLayers() == [layer]
+
+
+def test_emotional_unit_no_menu_actions(dv):
+    personA, personB = Person(name="A"), Person(name="B")
+    marriage_1 = Marriage(personA, personB)
+    dv.scene.addItems(personA, personB, marriage_1)
+    assert [x.data() for x in dv.ui.menuLayers.actions() if x.data()] == []
+
+
+@pytest.mark.parametrize("bothUnits", [True, False])
+def test_show_emotional_unit(dv, bothUnits):
+    personA, personB = Person(name="A"), Person(name="B")
+    marriage_1 = Marriage(personA, personB)
+    personC, personD = Person(name="C"), Person(name="D")
+    marriage_2 = Marriage(personC, personD)
+    dv.scene.addItems(personA, personB, personC, personD)
+    dv.scene.addItems(marriage_1, marriage_2)
+    child_1, child_2, child_3, child_4 = (
+        Person(name="E"),
+        Person(name="F"),
+        Person(name="G"),
+        Person(name="H"),
+    )
+    dv.scene.addItems(child_1, child_2, child_3, child_4)
+    child_1.setParents(marriage_1)
+    child_2.setParents(marriage_1)
+    child_3.setParents(marriage_2)
+    child_4.setParents(marriage_2)
+    dv.scene.addItems(child_1, child_2, child_3, child_4)
+
+    # emotionalUnit = marriage.emotionalUnit()
+    dv.setCurrentDrawer(dv.caseProps, tab=RightDrawerView.Search.value)
+    emotionalUnitsEdit = ActiveListEdit(
+        dv.caseProps, dv.caseProps.rootProp("searchView").property("emotionalUnitsEdit")
+    )
+    # was = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property("checkState")
+    emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
+    if bothUnits:
+        emotionalUnitsEdit.clickActiveBox(marriage_2.itemName())
+    # isChecked = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property(
+    #     "checkState"
+    # )
+    # emotionalUnit = marriage_1.emotionalUnit()
+    if bothUnits:
+        assert (
+            dv.view.hiddenItemsLabel.text()
+            == f"Emotional Units: {marriage_1.emotionalUnit().name()}, {marriage_2.emotionalUnit().name()}"
+        )
+    else:
+        assert (
+            dv.view.hiddenItemsLabel.text()
+            == f"Emotional Unit: {marriage_1.emotionalUnit().name()} (Hiding 4 people)"
+        )
+    assert personA.isVisible() == True
+    assert personB.isVisible() == True
+    assert child_1.isVisible() == True
+    assert child_2.isVisible() == True
+    assert personC.isVisible() == bothUnits
+    assert personD.isVisible() == bothUnits
+    assert child_3.isVisible() == bothUnits
+    assert child_4.isVisible() == bothUnits
+    # TODO: verify QActions checked for layers
+    for action in dv.ui.menuLayers.actions():
+        assert action.isChecked() == False, f"{action.text()} should be unchecked"
 
 
 def test_deselect_all_layers(dv):

@@ -14,7 +14,7 @@ from ..pyqt import (
     QQmlEngine,
 )
 from .. import util
-from . import ItemDetails, Event, PathItem, Property
+from . import ItemDetails, Event, PathItem, Property, EmotionalUnit
 from ..util import EventKind
 
 log = logging.getLogger(__name__)
@@ -157,6 +157,7 @@ class Marriage(PathItem):
         self.isInit = False
         self._Marriage_isUpdatingAll = False
         self.people = [personA, personB]
+        self._emotionalUnit = EmotionalUnit(self)
         self._events = []
         self._eventsCache = []  # used for add|remove signals
         self._aliasNotes = None
@@ -181,6 +182,30 @@ class Marriage(PathItem):
         if personB:
             personB._onAddMarriage(self)
         self.isInit = True
+
+    def __lt__(self, other) -> bool:
+        """Sort by the older person's birthdate."""
+        if self.olderBirth() and other.olderBirth():
+            return self.olderBirth() < other.olderBirth()
+        elif self.olderBirth():
+            return False
+        elif other.olderBirth():
+            return True
+        else:
+            return False
+
+    def olderBirth(self) -> QDateTime:
+        personADT = self.people[0].birthEvent.dateTime()
+        personBDT = self.people[1].birthEvent.dateTime()
+        if personADT and personBDT:
+            if personADT < personBDT:
+                return personADT
+            else:
+                return personBDT
+        elif personADT:
+            return personADT
+        elif personBDT:
+            return personBDT
 
     ## Data
 
@@ -246,18 +271,23 @@ class Marriage(PathItem):
 
     ## Attributes
 
-    def itemName(self):
-        ret = "Pair Bond"
-        peopleNames = self.peopleNames()
+    @staticmethod
+    def itemNameFor(personA, personB) -> str:
+        peopleNames = Marriage.peopleNamesFor(personA, personB)
         if peopleNames:
-            ret = ret + "(%s)" % peopleNames
-        return ret
+            return peopleNames
+        else:
+            return "Pair Bond"
 
-    def peopleNames(self):
+    def itemName(self):
+        return Marriage.itemNameFor(self.people[0], self.people[1])
+
+    @staticmethod
+    def peopleNamesFor(personA, personB):
         ret = ""
-        if not None in self.people:
-            name1 = self.people[0].name()
-            name2 = self.people[1].name()
+        if personA is not None and personB is not None:
+            name1 = personA.name()
+            name2 = personB.name()
             if name1 and name2:
                 ret += "%s & %s" % (name1, name2)
             elif name1:
@@ -265,6 +295,9 @@ class Marriage(PathItem):
             elif name2:
                 ret += "%s" % name2
         return ret
+
+    def peopleNames(self):
+        return self.peopleNamesFor(self.people[0], self.people[1])
 
     def onPersonNameChanged(self, person):
         for event in self.events():
@@ -373,6 +406,33 @@ class Marriage(PathItem):
         ret = self.people[1]
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
+
+    def itemChange(self, change, variant):
+        if change == QGraphicsItem.ItemSceneChange:
+            if self.scene():
+                self.scene().removeItem(self.detailsText)
+                self.scene().removeItem(self.separationIndicator)
+                for event in self._events:
+                    self.scene().removeItem(event)
+        elif change == QGraphicsItem.ItemSceneHasChanged:
+            if self.scene():
+                self.detailsText.setParentItem(self)
+                self.separationIndicator.setParentItem(self)
+                self.scene().addItem(self.detailsText)
+                self.scene().addItem(self.separationIndicator)
+                for event in self._events:
+                    self.scene().addItem(event)
+                if not self.scene().readOnly():
+                    self.detailsText.setFlag(QGraphicsItem.ItemIsMovable, True)
+                    self.separationIndicator.setFlag(QGraphicsItem.ItemIsMovable, True)
+                else:
+                    self.detailsText.setFlag(QGraphicsItem.ItemIsMovable, False)
+                    self.separationIndicator.setFlag(QGraphicsItem.ItemIsMovable, False)
+                self.detailsText.setParentRequestsToShow(not self.detailsText.isEmpty())
+        elif change == QGraphicsItem.ItemSelectedChange:
+            if variant is False:
+                self.updateAll()  # update after override in shouldShowFor
+        return super().itemChange(change, variant)
 
     ## Events
 
@@ -618,6 +678,9 @@ class Marriage(PathItem):
         self._Marriage_isUpdatingAll = False
         self.updateDetails()
 
+    def emotionalUnit(self) -> EmotionalUnit:
+        return self._emotionalUnit
+
     ## Scene Events
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
@@ -670,33 +733,6 @@ class Marriage(PathItem):
                     opacity = o
             self.setPathItemVisible(True, opacity=opacity)
             self.updateDetails()
-
-    def itemChange(self, change, variant):
-        if change == QGraphicsItem.ItemSceneChange:
-            if self.scene():
-                self.scene().removeItem(self.detailsText)
-                self.scene().removeItem(self.separationIndicator)
-                for event in self._events:
-                    self.scene().removeItem(event)
-        elif change == QGraphicsItem.ItemSceneHasChanged:
-            if self.scene():
-                self.detailsText.setParentItem(self)
-                self.separationIndicator.setParentItem(self)
-                self.scene().addItem(self.detailsText)
-                self.scene().addItem(self.separationIndicator)
-                for event in self._events:
-                    self.scene().addItem(event)
-                if not self.scene().readOnly():
-                    self.detailsText.setFlag(QGraphicsItem.ItemIsMovable, True)
-                    self.separationIndicator.setFlag(QGraphicsItem.ItemIsMovable, True)
-                else:
-                    self.detailsText.setFlag(QGraphicsItem.ItemIsMovable, False)
-                    self.separationIndicator.setFlag(QGraphicsItem.ItemIsMovable, False)
-                self.detailsText.setParentRequestsToShow(not self.detailsText.isEmpty())
-        elif change == QGraphicsItem.ItemSelectedChange:
-            if variant is False:
-                self.updateAll()  # update after override in shouldShowFor
-        return super().itemChange(change, variant)
 
 
 from PyQt5.QtQml import qmlRegisterType

@@ -1,5 +1,6 @@
 import os, sys, re, logging
 import contextlib
+
 from pkdiagram.pyqt import (
     pyqtSignal,
     pyqtProperty,
@@ -33,7 +34,24 @@ from pkdiagram.pyqt import (
     QFileInfo,
 )
 from . import version, util, commands, version, compat, slugify
-from .objects import *
+from .objects import (
+    EmotionalUnit,
+    Property,
+    Event,
+    Item,
+    PathItem,
+    ItemDetails,
+    VariablesDatabase,
+    Person,
+    ChildOf,
+    MultipleBirth,
+    Marriage,
+    Emotion,
+    PencilStroke,
+    Layer,
+    LayerItem,
+    Callout,
+)
 from .itemgarbage import ItemGarbage
 
 
@@ -329,10 +347,19 @@ class Scene(QGraphicsScene, Item):
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
             self._marriages.append(item)
+            # Add an unnamed layer but don't register it or notify anything
+            layer = Layer(internal=True)
+            self.addItem(layer)
+            layer.setEmotionalUnit(item.emotionalUnit())
+            item.emotionalUnit().setLayer(layer)
+            if not self.isBatchAddingRemovingItems():
+                item.emotionalUnit().update()
+            self.marriageAdded[Marriage].emit(item)
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
+        elif item.isChildOf:
             if not self.isBatchAddingRemovingItems():
-                self.marriageAdded[Marriage].emit(item)
+                item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
             for entry in self.eventProperties():
@@ -358,7 +385,7 @@ class Scene(QGraphicsScene, Item):
             self._isAddingLayerItem = True
             self._layerItems.append(item)
             if not self.isInitializing:
-                if not self.layers():
+                if not self.layers(includeInternal=False):
                     layer = Layer(name="View 1", active=True)
                     self.addItem(layer)
                 if not item.layers():
@@ -430,6 +457,9 @@ class Scene(QGraphicsScene, Item):
                     > 0
                 ):
                     self.tidyLayerOrder()
+                for item in self._batchAddedItems + self._batchRemovedItems:
+                    if item.isMarriage:
+                        item.emotionalUnit().update()
                 self.updateAll()
                 self.checkPrintRectChanged()
                 # maybe move these into updateAll()
@@ -463,10 +493,24 @@ class Scene(QGraphicsScene, Item):
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
         elif item.isMarriage:
+            emotionalUnit = item.emotionalUnit()
+            item.personA().setLayers(
+                [x for x in item.personA().layers() if x != emotionalUnit.layer().id]
+            )
+            item.personB().setLayers(
+                [x for x in item.personB().layers() if x != emotionalUnit.layer().id]
+            )
+            self.removeItem(item.emotionalUnit().layer())
+            item.emotionalUnit().update()
             self._marriages.remove(item)
             self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
+            self.marriageRemoved[Marriage].emit(item)
+        elif item.isChildOf:
+            layer = item.parents().emotionalUnit().layer()
+            item.person.setLayers([x for x in item.person.layers() if x != layer.id])
+            item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)
@@ -480,7 +524,8 @@ class Scene(QGraphicsScene, Item):
             self.emotionRemoved.emit(item)
         elif item.isLayer:
             self._layers.remove(item)
-            self.tidyLayerOrder()
+            if not item.internal():
+                self.tidyLayerOrder()
             self.layerRemoved.emit(item)
         elif item.isLayerItem:
             self._layerItems.remove(item)
@@ -723,6 +768,8 @@ class Scene(QGraphicsScene, Item):
                 chunk["kind"] = "PencilStroke"
             elif item.isLayer:
                 chunk["kind"] = "Layer"
+                if item.internal():
+                    continue
             elif item.isCallout:
                 chunk["kind"] = "Callout"
             elif item.isEmotion:
@@ -1316,7 +1363,7 @@ class Scene(QGraphicsScene, Item):
     def emotions(self):
         return list(self._emotions)
 
-    def layers(self, tags=[], name=None):
+    def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:
             layers = list(self._layers)
         if tags and name is not None:
@@ -1328,6 +1375,10 @@ class Scene(QGraphicsScene, Item):
         else:
             layers = list(self._layers)
         # ret = sorted(layers, key=lambda l: l.order() > -1 and l.order() or sys.maxsize)
+        if onlyInternal:
+            layers = [l for l in layers if l.internal()]
+        elif not includeInternal:
+            layers = [l for l in layers if not l.internal()]
         return layers
 
     def layerItems(self):
@@ -1536,7 +1587,9 @@ class Scene(QGraphicsScene, Item):
 
     def updateActiveLayers(self, force=False):
         """Can trigger animations while updateAll forces changes immediately."""
-        _activeLayers = [layer for layer in self.layers() if layer.active()]
+        _activeLayers = [
+            layer for layer in self.layers(includeInternal=True) if layer.active()
+        ]
         if set(_activeLayers) == set(self._activeLayers) and not force:
             return
         self._areActiveLayersChanging = True
@@ -1568,8 +1621,13 @@ class Scene(QGraphicsScene, Item):
             animation = self.layerAnimationGroup.animationAt(0)
             self.layerAnimationGroup.removeAnimation(animation)
 
-    def activeLayers(self):
-        return self._activeLayers
+    def activeLayers(self, includeInternal=True, onlyInternal=False):
+        layers = list(self._activeLayers)
+        if onlyInternal:
+            layers = [l for l in layers if l.internal()]
+        elif not includeInternal:
+            layers = [l for l in layers if not l.internal()]
+        return layers
 
     @pyqtProperty(bool, notify=activeLayersChanged)
     def hasActiveLayers(self):
@@ -1617,6 +1675,9 @@ class Scene(QGraphicsScene, Item):
     def clearActiveLayers(self):
         for layer in self._layers:
             layer.setActive(False)
+
+    def emotionalUnits(self) -> list[EmotionalUnit]:
+        return list(x.emotionalUnit() for x in self.marriages())
 
     # Tags
 

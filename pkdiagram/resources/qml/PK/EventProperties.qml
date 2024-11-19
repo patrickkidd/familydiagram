@@ -518,7 +518,7 @@ Page {
                         padding: 1
                         ColumnLayout {
                             anchors.fill: parent
-                            PK.TagsEdit {
+                            PK.ActiveListEdit {
                                 id: tagsList
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true

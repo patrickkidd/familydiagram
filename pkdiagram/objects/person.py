@@ -344,6 +344,10 @@ class Person(PathItem):
 
     def write(self, chunk):
         super().write(chunk)
+        # Don't write internal layers
+        assert set(self.layers()) == set(x.id for x in self._layers)
+        chunk["layers"] = [l.id for l in self._layers if not l.internal()]
+        #
         chunk["marriages"] = [m.id for m in self.marriages]
         chunk["events"] = []
         chunk["birthEvent"] = {}

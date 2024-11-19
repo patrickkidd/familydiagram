@@ -1,3 +1,4 @@
+from .emotionalunit import EmotionalUnit
 from .property import Property
 from .event import Event
 from .item import Item

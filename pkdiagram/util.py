@@ -5,7 +5,7 @@ import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
-from typing import Optional
+from typing import Callable
 
 from . import appdirs, util
 
@@ -508,6 +508,8 @@ S_TAGS_HELP_TEXT = (
     "Then click the checkbox to activate it for this event.\n\n"
     "Then you can search for it later in the search view."
 )
+
+S_EMOTIONAL_UNITS_HELP_TEXT = "Select which nuclear familes to show so it is easier to view periods of lower functioning in the context of the nuclear family and two families of origin."
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 
@@ -1316,6 +1318,10 @@ def waitALittle(ms=10):
     loop.exec()
 
 
+def waitUntil(condition: Callable, timeout=2000):
+    util.Condition(condition=condition).wait(maxMS=timeout)
+
+
 ### Geometry functions
 
 
@@ -1382,37 +1388,6 @@ def ____perpendicular(pointA, pointB, reverse=False, width=None):
 def appResourcesPath():
     if IS_APPLE:
         return QApplication.applicationDirPath() + "/../Resources"
-
-
-class SortedList:
-    """sortedcontainers.SortedList was throwing ValueError for items in the list."""
-
-    def __init__(self):
-        self._list = []
-
-    def __repr__(self):
-        return self._list.__repr__()
-
-    def __len__(self):
-        return len(self._list)
-
-    def __getitem__(self, i):
-        return self._list[i]
-
-    def bisect_right(self, x):
-        return bisect.bisect_right(self._list, x)
-
-    def add(self, x):
-        bisect.insort_right(self._list, x)
-
-    def remove(self, x):
-        self._list.remove(x)
-
-    def index(self, x):
-        return self._list.index(x)
-
-    def to_list(self):
-        return list(self._list)
 
 
 class Center(QGraphicsItem):
@@ -2123,6 +2098,10 @@ def test_finish_group(group):
             test_finish_anim(child)
         else:
             log.error(f"TEST: Unknown animation type: {animation}")
+
+
+def exec_():
+    QApplication.instance().exec_()
 
 
 #####################################################
