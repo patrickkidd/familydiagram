@@ -365,10 +365,15 @@ def test_show_emotional_unit(dv):
     marriage_2 = Marriage(personC, personD)
     dv.scene.addItems(personA, personB, personC, personD)
     dv.scene.addItems(marriage_1, marriage_2)
-    child_1, child_2 = Person(name="E"), Person(name="F")
+    child_1, child_2, child_3, child_4 = (
+        Person(name="E"),
+        Person(name="F"),
+        Person(name="G"),
+        Person(name="H"),
+    )
+    dv.scene.addItems(child_1, child_2, child_3, child_4)
     child_1.setParents(marriage_1)
     child_2.setParents(marriage_1)
-    child_3, child_4 = Person(name="G"), Person(name="H")
     child_3.setParents(marriage_2)
     child_4.setParents(marriage_2)
     dv.scene.addItems(child_1, child_2, child_3, child_4)
