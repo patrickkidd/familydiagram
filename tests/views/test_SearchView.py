@@ -120,7 +120,6 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    QApplication.instance().exec_()
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
