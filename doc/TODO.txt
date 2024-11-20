@@ -2,7 +2,6 @@
 v2.0.0
 =============================================================================
 
-- Can't click active custom layer when emotional unit layer active
 - Double-click to rename person, double-click second person -> PersonProperties didn't load properties
 - Borders around tags and emotional units edits
 - Have to start drag downwards to drag-select events on GTC. Require <command> to drag-pan timeline.

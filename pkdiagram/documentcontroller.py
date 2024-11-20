@@ -62,6 +62,7 @@ class DocumentController(QObject):
         self.ui = None
         self.scene = None
         self.view = self.dv.view
+        self._isUpdatingLayerActions = False
 
     def init(self):
         assert self.ui is None
@@ -331,15 +332,19 @@ class DocumentController(QObject):
     @util.blocked
     def onActiveLayers(self, activeLayers):
         self.updateActions()
+        self._isUpdatingLayerActions = True
         ids = [x.id for x in activeLayers if not x.internal()]
         for action in self.ui.menuLayers.actions():
             on = action.data() in ids
             if on != action.isChecked():
                 action.setChecked(on)
+        self._isUpdatingLayerActions = False
 
     @util.blocked
     def onLayerActionToggled(self, on):
         """Exclusive selection."""
+        if self._isUpdatingLayerActions:
+            return
         action = self.sender()
         id = action.data()
         for layer in self.scene.layers():
