@@ -368,6 +368,7 @@ Page {
 
                     PK.ActiveListEdit {
                         id: emotionalUnitsEdit
+                        removeButton: false
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 1
