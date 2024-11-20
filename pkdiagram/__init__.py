@@ -1,16 +1,15 @@
-from . import app, util, pepper
+from . import app, util
 
-PEPPER = pepper.PEPPER
+from .pepper import PEPPER
 
 util.init_logging()
 
-import os
+from _pkdiagram import CUtil, PathItemBase
 
 from . import version, util, pepper
 from .util import CUtil, EventKind
 
 
-PathItemBase = util.PathItemBase
 from .analytics import Analytics
 from .qmlhelpers import *
 from .qmlwidgethelper import QmlWidgetHelper

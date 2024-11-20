@@ -91,3 +91,6 @@ def main(attach=False, prefsName=None):
 
 # def main(*args, **kwargs):
 #     import _pkdiagram
+
+
+main

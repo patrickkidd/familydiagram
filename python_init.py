@@ -1,6 +1,3 @@
-import sys, os.path
-
-
 def init_dev():
 
     try:
