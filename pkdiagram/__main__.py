@@ -6,16 +6,13 @@ else:
     IS_BUNDLE = True
 
 
-def main(attach=False, prefsName=None):
+def main():
 
+    import sysconfig
     import sys, os.path, logging
     from optparse import OptionParser
 
-    from . import util, MainWindow, Application, AppController
-
     log = logging.getLogger(__name__)
-
-    import sysconfig
 
     # Python-3.8+ patch sysconfig._init_non_posix() to support _imp.extension_suffixes() == [] for pyqtdeploy
     def _init_non_posix_pyqtdeploy(vars):
@@ -35,10 +32,6 @@ def main(attach=False, prefsName=None):
     if sys.version_info[1] > 7:
         sysconfig._init_non_posix = _init_non_posix_pyqtdeploy
 
-    # log.info(_imp.extension_suffixes())
-
-    # log.info(sysconfig.get_path('purelib'))
-
     parser = OptionParser()
     parser.add_option(
         "-v",
@@ -48,49 +41,38 @@ def main(attach=False, prefsName=None):
         help="Print the version",
         default=False,
     )
+    parser.add_option(
+        "-n",
+        "--prefs-name",
+        dest="prefs_name",
+        help="What alias to load preferences from, useful for debugging multiple instances.",
+    )
     options, args = parser.parse_args(sys.argv)
     if options.version:
 
-        # import os.path, importlib
-
-        from . import version
+        from pkdiagram import version
 
         print(version.VERSION)
-
-        # PKDIAGRAM = os.path.realpath(os.path.dirname(__file__))
-        # spec = importlib.util.spec_from_file_location(
-        #     "version", os.path.join(PKDIAGRAM, "version.py")
-        # )
-        # version = importlib.util.module_from_spec(spec)
-        # spec.loader.exec_module(version)
-        # print(version.VERSION)
         return
-
-    if attach:
-        util.wait_for_attach()
-
-    app = Application(sys.argv)
-    if prefsName:
-        prefs = util.Settings("vedanamedia", prefsName)
     else:
-        prefs = util.prefs()
-    controller = AppController(app, prefs, prefsName=prefsName)
-    controller.init()
+        from pkdiagram import util, Application, AppController, MainWindow
 
-    mainWindow = MainWindow(
-        appConfig=controller.appConfig, session=controller.session, prefs=prefs
-    )
-    mainWindow.init()
+        app = Application(sys.argv, prefsName=options.prefs_name)
+        controller = AppController(app, util.prefs(), prefsName=options.prefs_name)
+        controller.init()
 
-    controller.exec(mainWindow)
+        mainWindow = MainWindow(
+            appConfig=controller.appConfig,
+            session=controller.session,
+            prefs=util.prefs(),
+        )
+        mainWindow.init()
 
-    mainWindow.deinit()
-    controller.deinit()
-    app.deinit()
+        controller.exec(mainWindow)
+
+        mainWindow.deinit()
+        controller.deinit()
+        app.deinit()
 
 
-# def main(*args, **kwargs):
-#     import _pkdiagram
-
-
-main
+main()

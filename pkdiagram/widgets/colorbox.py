@@ -1,5 +1,5 @@
-from ..pyqt import pyqtSignal, QColor, Qt, QPalette, QPainter, QPen, QComboBox
-from .. import util
+from pkdiagram.pyqt import pyqtSignal, QColor, Qt, QPalette, QPainter, QPen, QComboBox
+from pkdiagram import util
 
 
 class ColorBox(QComboBox):

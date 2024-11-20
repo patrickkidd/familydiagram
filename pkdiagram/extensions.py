@@ -3,8 +3,9 @@ import os.path
 import logging
 import logging
 
+from pkdiagram.app import appdirs
 from pkdiagram.pyqt import QApplication
-from pkdiagram import util, version, pepper, appdirs
+from pkdiagram import util, version, pepper
 
 
 log = logging.getLogger(__name__)

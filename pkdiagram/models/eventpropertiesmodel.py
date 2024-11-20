@@ -1,22 +1,17 @@
-from ..pyqt import (
+from pkdiagram.scene import commands
+from pkdiagram.pyqt import (
     Qt,
     QObject,
-    pyqtSlot,
-    QAbstractItemModel,
-    QAbstractTableModel,
-    QDateTime,
-    QModelIndex,
     qmlRegisterType,
 )
-from .. import util, objects, commands
-from ..scene import Scene
-from .modelhelper import ModelHelper
+from pkdiagram.scene import Item, Event, Emotion
+from pkdiagram.models import ModelHelper
 
 
 class EventPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.Event,
+    PROPERTIES = Item.adjustedClassProperties(
+        Event,
         [
             {"attr": "editText"},
             {"attr": "nodal", "convertTo": Qt.CheckState},
@@ -93,7 +88,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     else:
                         ret = f"{itemLabel}: {item.description()} Event"
                 elif item.parent.isEmotion:
-                    itemLabel = objects.Emotion.kindLabelForKind(item.parent.kind())
+                    itemLabel = Emotion.kindLabelForKind(item.parent.kind())
                     if item.uniqueId() == "emotionStartEvent":
                         ret = f"{itemLabel}: Start Event"
                     elif item.uniqueId() == "emotionEndEvent":

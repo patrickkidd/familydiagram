@@ -1,7 +1,8 @@
-from ..pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegisterType
-from .. import util, objects, commands
-from ..scene import Scene
-from .modelhelper import ModelHelper
+from pkdiagram.pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegisterType
+from pkdiagram import util
+from pkdiagram.scene import Item, LayerItem
+from pkdiagram.models import ModelHelper
+from pkdiagram.scene import commands
 
 
 class LayerItemLayersModel(QAbstractListModel, ModelHelper):
@@ -163,8 +164,8 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
 
 class LayerItemPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.LayerItem,
+    PROPERTIES = Item.adjustedClassProperties(
+        LayerItem,
         [
             {"attr": "active", "type": Qt.CheckState},
             {"attr": "parentId", "type": int, "default": -1},

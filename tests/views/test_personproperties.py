@@ -1,8 +1,8 @@
 import pytest
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import Qt, QDateTime, QPointF
 from pkdiagram import (
     util,
-    commands,
     Person,
     Event,
     Layer,

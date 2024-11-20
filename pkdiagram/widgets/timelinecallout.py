@@ -1,6 +1,3 @@
-import logging
-
-from pkdiagram import util
 from pkdiagram.pyqt import (
     pyqtSignal,
     QWidget,
@@ -13,14 +10,12 @@ from pkdiagram.pyqt import (
     QRectF,
     QPen,
     QFont,
-    QFontMetrics,
     QLinearGradient,
     QPalette,
     QApplication,
 )
-from pkdiagram.objects import Event
-
-_log = logging.getLogger(__name__)
+from pkdiagram import util
+from pkdiagram.scene import Event
 
 
 PAD = 20

@@ -1,6 +1,7 @@
 import pytest
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import QPointF
-from pkdiagram import util, commands, Scene, Layer, PathItem, Person, Property, Callout
+from pkdiagram import util, Scene, Layer, PathItem, Person, Property, Callout
 
 
 pytestmark = [pytest.mark.component("Layer")]

@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import QQuickItem, QApplication
-from pkdiagram import util, QmlWidgetHelper
+from pkdiagram.widgets.qml import QmlWidgetHelper
 
 
 class ActiveListEdit:

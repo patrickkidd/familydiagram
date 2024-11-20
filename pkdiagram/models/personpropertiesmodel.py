@@ -1,21 +1,20 @@
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QObject,
-    pyqtSlot,
     QDate,
-    QAbstractItemModel,
     QDateTime,
     qmlRegisterType,
 )
-from .. import util, objects, commands
-from ..util import EventKind
-from .modelhelper import ModelHelper
+from pkdiagram import util
+from pkdiagram.scene import EventKind, Item, Person
+from pkdiagram.scene import commands
+from pkdiagram.models import ModelHelper
 
 
 class PersonPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.Person,
+    PROPERTIES = Item.adjustedClassProperties(
+        Person,
         [
             {"attr": "fullNameOrAlias"},
             {"attr": "showMiddleName", "convertTo": Qt.CheckState},

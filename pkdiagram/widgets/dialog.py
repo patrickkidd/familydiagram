@@ -1,4 +1,4 @@
-from ..pyqt import (
+from pkdiagram.pyqt import (
     QWidget,
     QFrame,
     QPropertyAnimation,
@@ -10,7 +10,7 @@ from ..pyqt import (
     QPainter,
     pyqtSignal,
 )
-from .. import util
+from pkdiagram import util
 
 
 class Backdrop(QWidget):

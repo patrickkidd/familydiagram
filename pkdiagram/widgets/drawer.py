@@ -1,7 +1,27 @@
-from ..pyqt import *
-from .. import util, commands
-from ..util import CUtil
-from . import Stylesheeter
+from pkdiagram.pyqt import (
+    Qt,
+    pyqtSlot,
+    QWidget,
+    QFrame,
+    QVBoxLayout,
+    pyqtSignal,
+    QVariantAnimation,
+    QAbstractAnimation,
+    QEvent,
+    QMargins,
+    QPen,
+    QStyleOption,
+    QStyle,
+    QApplication,
+    QPalette,
+    QColor,
+    QPainter,
+    QRect,
+    QObject,
+    QCursor,
+)
+from pkdiagram import util, CUtil
+from pkdiagram.scene import commands
 
 
 class Drawer(QFrame):

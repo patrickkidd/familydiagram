@@ -1,5 +1,5 @@
 # from sortedcontainers import SortedList
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QApplication,
     QVariant,
@@ -13,9 +13,10 @@ from ..pyqt import (
     pyqtSlot,
     qmlRegisterType,
 )
-from .. import util, commands
-from .modelhelper import ModelHelper
+from pkdiagram import util
+from pkdiagram.models import ModelHelper
 from pkdiagram.sortedlist import SortedList
+from pkdiagram.scene import commands
 
 
 def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):

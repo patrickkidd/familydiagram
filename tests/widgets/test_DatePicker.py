@@ -1,5 +1,6 @@
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import *
-from pkdiagram import util, commands, ModelHelper, QmlWidgetHelper
+from pkdiagram import util, ModelHelper, QmlWidgetHelper
 from pkdiagram.objects import Item
 import pytest
 

@@ -724,7 +724,7 @@ def test_compat_marriage_events(data_root):
     with open(os.path.join(data_root, "v114a7_simplefamily.pickle"), "rb") as f:
         v1147_simplefamily = pickle.loads(f.read())
 
-        from pkdiagram import compat
+        from pkdiagram.app import compat
     data = copy.deepcopy(v1147_simplefamily)
 
     scene = Scene()

@@ -1,7 +1,28 @@
-import os, time
-
-from ..pyqt import *
-from .. import util
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    Qt,
+    QTabBar,
+    QTabWidget,
+    QStatusBar,
+    QPlainTextEdit,
+    QUndoView,
+    QListView,
+    QTableView,
+    QListWidget,
+    QTableWidget,
+    QWidget,
+    QStyleOption,
+    QPainter,
+    QStyle,
+    QMimeData,
+    QUrl,
+    QColor,
+    QPen,
+    QRect,
+    QSize,
+    QMimeData,
+)
+from pkdiagram import util
 
 
 class StatusBar(QStatusBar):
@@ -113,14 +134,6 @@ class PlainTextEdit(QPlainTextEdit):
         if self.dirty:
             self.editingFinished.emit()
             self.dirty = False
-
-
-class Stylesheeter(QWidget):
-    def paintEvent(self, event):
-        opt = QStyleOption()
-        opt.initFrom(self)
-        painter = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
 
 class UndoView(QUndoView):

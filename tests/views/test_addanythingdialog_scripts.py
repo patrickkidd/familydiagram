@@ -6,8 +6,9 @@ import pytest
 import mock
 import datetime
 
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox, QEventLoop
-from pkdiagram import util, EventKind, MainWindow, commands
+from pkdiagram import util, EventKind, MainWindow
 from pkdiagram import Person, Marriage, Event
 from .test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 

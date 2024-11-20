@@ -1463,7 +1463,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "server_types.py"
+name = "server.py"
 included = true
 is_directory = false
 

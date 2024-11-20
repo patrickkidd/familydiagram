@@ -1,6 +1,7 @@
-from .. import util, objects, commands
-from .qobjecthelper import QObjectHelper
-from ..scene import Scene
+from pkdiagram import util, objects
+from pkdiagram.scene import Scene
+from pkdiagram.models import QObjectHelper
+from pkdiagram.scene import commands
 
 
 class ModelHelper(QObjectHelper):

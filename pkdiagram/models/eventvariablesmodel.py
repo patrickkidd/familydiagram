@@ -1,6 +1,7 @@
-from ..pyqt import Qt, QAbstractTableModel, QModelIndex, qmlRegisterType
-from .. import util, commands
-from .modelhelper import ModelHelper
+from pkdiagram.pyqt import Qt, QAbstractTableModel, QModelIndex, qmlRegisterType
+from pkdiagram import util
+from pkdiagram.scene import commands
+from pkdiagram.models import ModelHelper
 
 
 class EventVariablesModel(QAbstractTableModel, ModelHelper):

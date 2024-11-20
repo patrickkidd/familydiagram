@@ -6,7 +6,7 @@ import mock
 from pkdiagram.pyqt import QSize, QMainWindow
 from pkdiagram import MainWindow
 from pkdiagram.mainwindow_form import Ui_MainWindow
-from pkdiagram.toolbars import SceneToolBar, RightToolBar, ItemToolBar
+from pkdiagram.views.toolbars import SceneToolBar, RightToolBar, ItemToolBar
 
 _log = logging.getLogger(__name__)
 

@@ -1,12 +1,13 @@
 import logging
 
-from pkdiagram import util
 from pkdiagram.pyqt import (
     QQuickItem,
     QEventLoop,
     QTimer,
 )
-from pkdiagram import Person, QmlWidgetHelper
+from pkdiagram import util
+from pkdiagram.scene import Person
+from pkdiagram.widgets.qml import QmlWidgetHelper
 
 
 _log = logging.getLogger(__name__)

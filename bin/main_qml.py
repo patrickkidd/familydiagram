@@ -1,11 +1,11 @@
 import datetime
 import logging
 import vedana
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import *
 import pkdiagram
 from pkdiagram import (
     util,
-    commands,
     QmlDrawer,
     QmlWidgetHelper,
     Layer,

@@ -1,7 +1,5 @@
-from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
-from .qobjecthelper import QObjectHelper
-from .modelhelper import ModelHelper
-from ..objects import Item, Property
+from pkdiagram.pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
+from pkdiagram.models import QObjectHelper
 
 
 class SearchModel(QObject, QObjectHelper):
@@ -9,7 +7,7 @@ class SearchModel(QObject, QObjectHelper):
 
     changed = pyqtSignal()
 
-    PROPERTIES = ModelHelper.registerQtProperties(
+    PROPERTIES = QObjectHelper.registerQtProperties(
         [
             {"attr": "description", "type": str},
             {"attr": "startDateTime", "type": QDateTime, "default": QDateTime()},
@@ -26,26 +24,7 @@ class SearchModel(QObject, QObjectHelper):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._initializing = True
-
-        # # Item-like hack
-        # self._propertyListeners = []
-        # self._properties = {}
-        # for entry in self.PROPERTIES:
-        #     _type = entry["type"] if "type" in entry else str
-        #     _default = entry["default"] if "default" in entry else _type()
-        #     prop = Property(self, attr=entry["attr"], type=_type, default=_default)
-        #     prop.set(_default, notify=False)
-        #     self._properties[entry["attr"]] = prop
-
         self.initQObjectHelper(storage=True)
-        # self.startDateTimeChanged.connect(self.onChanged)
-        # self.endDateTimeChanged.connect(self.onChanged)
-        # self.loggedStartDateTimeChanged.connect(self.onChanged)
-        # self.loggedEndDateTimeChanged.connect(self.onChanged)
-        # self.descriptionChanged.connect(self.onChanged)
-        # self.nodalChanged.connect(self.onChanged)
-        # self.tagsChanged.connect(self.onChanged)
-        # self.hideRelationshipsChanged.connect(self.onChanged)
         self._initializing = False
 
     @pyqtSlot()
@@ -79,19 +58,6 @@ class SearchModel(QObject, QObjectHelper):
             ret = super().get(attr)
         return ret
 
-    # Item-like hacks for TagsModel
-
-    # def prop(self, attr):
-    #     return self._properties[attr]
-
-    # def addPropertyListener(self, x):
-    #     if not x in self._propertyListeners:
-    #         self._propertyListeners.append(x)
-
-    # def removePropertyListener(self, x):
-    #     if x in self._propertyListeners:
-    #         self._propertyListeners.remove(x)
-
     def onQObjectHelperPropertyChanged(self, attr, value):
         if self._initializing:
             return
@@ -106,12 +72,6 @@ class SearchModel(QObject, QObjectHelper):
         ):
             self.changed.emit()
             self.refreshProperty("isBlank")
-
-        # # Item-like hack
-        # prop = self._properties[attr]
-        # prop.set(value, notify=False)
-        # for item in self.__propertyListeners:
-        #     item.onProperty(prop)
 
     # Verbs
 

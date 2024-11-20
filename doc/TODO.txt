@@ -42,7 +42,7 @@ BUGS
   multiple people to the recipient field which I hadn’t done before. I tried to
   delete the copies and it seemed like they kept coming.  
 - 2024-11-01 09:17:35,489 DEBUG analytics.pyo:217          Attempting to send 1 profiles to Mixpanel...
-  2024-11-01 09:17:35,927 DEBUG server_types.pyo:208       https://api.mixpanel.com/engage#profile-batch-update: status_code: None, SSL handshake with server failed.
+  2024-11-01 09:17:35,927 DEBUG server.pyo:208       https://api.mixpanel.com/engage#profile-batch-update: status_code: None, SSL handshake with server failed.
 - 2024-11-01 09:17:33,548 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
   2024-11-01 09:17:33,657 ERROR application.pyo:82         TypeError: Server.nonBlockingRequest.<locals>.onSSLErrors() missing 1 required positional argument: 'errors'
 - 024-10-31 15:51:08,076 DEBUG qmlutil.pyo:563             <---- Returning PersonPicker: PersonPicker_QMLTYPE_192_QML_202(0x6000088f1600, "dRoot"), personName: Lillian Anne Havstad, person: Person(0x600000b765d0), gender: female

@@ -1,7 +1,7 @@
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import (
     util,
-    commands,
     Scene,
     PathItem,
     Event,

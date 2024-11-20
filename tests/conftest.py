@@ -397,7 +397,7 @@ def flask_qnam(tmp_path, request):
         )
         stack.enter_context(
             mock.patch.object(
-                util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
+                QApplication.instance().qnam(), "sendCustomRequest", sendCustomRequest
             )
         )
 
@@ -422,7 +422,7 @@ def server_down(flask_app):
                 )
 
         with mock.patch.object(
-            util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
+            QApplication.instance().qnam(), "sendCustomRequest", sendCustomRequest
         ):
             yield
 

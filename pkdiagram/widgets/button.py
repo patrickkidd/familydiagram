@@ -1,22 +1,17 @@
 import logging
 
-from ..pyqt import (
-    Qt,
+from pkdiagram.pyqt import (
     QPen,
     QFileInfo,
     QPushButton,
     QToolButton,
-    pyqtSignal,
     QIcon,
     QPixmap,
-    QSize,
     QPainter,
     QColor,
     QRect,
-    QMargins,
-    QPalette,
 )
-from .. import util
+from pkdiagram import util
 
 _log = logging.getLogger(__name__)
 

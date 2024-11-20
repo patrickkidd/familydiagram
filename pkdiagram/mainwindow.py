@@ -4,6 +4,9 @@ import pickle
 from PyQt5.QtCore import QT_VERSION_STR
 
 import vedana
+
+from .views.qml import filemanager
+from .scene import commands
 from pkdiagram.pyqt import (
     pyqtSignal,
     tr,
@@ -49,16 +52,16 @@ from pkdiagram.pyqt import (
     QEvent,
     QKeyEvent,
 )
-from . import version, util, scene, commands, filemanager
+from . import version, util, scene
 from .objects import *
 from .util import CUtil
 from .mainwindow_form import Ui_MainWindow
 from .preferences import Preferences
 from .accountdialog import AccountDialog
 from .welcome import Welcome
-from .itemgarbage import ItemGarbage
+from .app.itemgarbage import ItemGarbage
 from .documentview import DocumentView
-from .server_types import Diagram, HTTPError
+from .server import Diagram, HTTPError
 
 
 log = logging.getLogger(__name__)
@@ -154,7 +157,6 @@ class MainWindow(QMainWindow):
         self.updateReply = None
         self.diagramShown = False
         self.savePending = False
-        self.qnam = QNetworkAccessManager(self)
         self._isOpeningServerDiagram = None
         # self.manualView = None
         self.itemGarbage = ItemGarbage(self)

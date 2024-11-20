@@ -1,8 +1,8 @@
 import pytest
+from pkdiagram.scene import commands
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram import (
     util,
-    commands,
     EventKind,
     Person,
     Marriage,
@@ -11,7 +11,7 @@ from pkdiagram import (
     SceneModel,
     Emotion,
 )
-from pkdiagram.qmldrawer import QmlDrawer
+from pkdiagram.widgets.qml.qmldrawer import QmlDrawer
 
 
 ## TODO: test personBox works for adding event to person

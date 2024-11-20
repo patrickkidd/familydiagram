@@ -47,9 +47,9 @@ if IS_BUNDLE:
 
 import os, os.path, time, math, operator, collections.abc, subprocess, random
 from datetime import datetime
-from .pyqt import *
+from pkdiagram.pyqt import *
 from . import version
-from .eventkind import EventKind
+from .scene.eventkind import EventKind
 
 try:
     from .build_uuid import *  # not sure if this is even needed any more
@@ -1435,17 +1435,6 @@ class ClickFilter(QObject):
         self.clicked.emit()
 
 
-class QNAM(QNetworkAccessManager):
-
-    _instance = None
-
-    @staticmethod
-    def instance():
-        if not QNAM._instance:
-            QNAM._instance = QNAM()
-        return QNAM._instance
-
-
 # class WebEnginePage(QWebEnginePage):
 
 #     # https://stackoverflow.com/questions/40170180/link-clicked-signal-qwebengineview
@@ -1495,7 +1484,7 @@ def ____iCloudInitialized():
                 "util.init(): creating dir for QStandardPaths.DataLocation:", DATA_PATH
             )
             dir.mkpath(DATA_PATH)
-    from .. import util
+    from pkdiagram import util
 
     DATA_PATH = DATA_PATH
     DATA_PATH_LOCAL = DATA_PATH_LOCAL
