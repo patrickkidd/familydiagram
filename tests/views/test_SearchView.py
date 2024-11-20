@@ -82,8 +82,19 @@ def tst(qtbot, tst_stuff, qmlEngine):
     w.deinit()
 
 
-def test_init(tst, model):
-    pass
+def test_init(tst, qmlEngine):
+    model = qmlEngine.searchModel
+    assert model.description == ""
+    assert model.startDateTime == QDateTime()
+    assert model.endDateTime == QDateTime()
+    assert model.loggedStartDateTime == QDateTime()
+    assert model.loggedEndDateTime == QDateTime()
+
+    assert model.description == ""
+    assert model.startDateTime == QDateTime()
+    assert model.endDateTime == QDateTime()
+    assert model.loggedStartDateTime == QDateTime()
+    assert model.loggedEndDateTime == QDateTime()
 
 
 def test_properties(tst, model, qmlEngine):

@@ -127,14 +127,14 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             btn = QMessageBox.question(
                 QApplication.activeWindow(),
                 "Are you sure?",
-                "Are you sure you want to delete this layer and the %i items within it?"
+                "Are you sure you want to delete this view and the %i items within it?"
                 % nItems,
             )
         else:
             btn = QMessageBox.question(
                 QApplication.activeWindow(),
                 "Are you sure?",
-                "Are you sure you want to delete this layer?",
+                "Are you sure you want to delete this view?",
             )
         if btn == QMessageBox.No:
             return

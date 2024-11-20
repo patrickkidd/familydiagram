@@ -2,6 +2,7 @@
 v2.0.0
 =============================================================================
 
+- Add one person by birth, currentDateTime set to that date, add another by birth -> currentDateTime doesn't change so you can't see the new person.
 - Double-click to rename person, double-click second person -> PersonProperties didn't load properties
 - In console:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/ItemLayerList.qml:29:17: Unable to assign [undefined] to int

@@ -52,7 +52,6 @@ def create_dlg(qtbot, flask_qnam, request, qmlEngine):
 
     yield _create_dlg
 
-    qmlEngine.session.deinit()
     QApplication.processEvents()
     for dlg in created:
         dlg.deinit()

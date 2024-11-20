@@ -313,11 +313,9 @@ class Person(PathItem):
             ]:
                 event.updateParentName()
         if "layers" in kwargs:
-            layers = kwargs["layers"]
-            if not isinstance(layers, list):
-                layers = [layers]
-            layerIds = [x.id for x in layers]
-            self.setLayers(layerIds)
+            raise KeyError(
+                'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
+            )
         self.isInit = True
 
     def initialDetailsPos(self):

@@ -375,13 +375,17 @@ def qmlEngine(qApp):
 
 
 @pytest.fixture(autouse=True)
-def flask_qnam(flask_app, tmp_path):
+def flask_qnam(tmp_path, request):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 
     # Tie Qt HTTP requests to flask server
-    def sendCustomRequest(request, verb, data=b""):
+    def sendCustomRequest(qt_request, verb, data=b""):
+
+        # on demand, not every test
+        flask_app = request.getfixturevalue("flask_app")
+
         with flask_app.test_client() as client:
-            ret = _sendCustomRequest(request, verb, data=data, client=client)
+            ret = _sendCustomRequest(qt_request, verb, data=data, client=client)
             return ret
 
     with contextlib.ExitStack() as stack:
@@ -503,7 +507,9 @@ class PKQtBot(QtBot):
         if len(args) == 1:
             args = (args[0], Qt.LeftButton)
         if args[0] is None:
-            QApplication.instance().exec_()
+            raise ValueError(
+                "Cannot click on None, will cause assertion in QtTest.framework/Headers/qtestmouse.h, line 185"
+            )
         assert (
             args[0] is not None
         ), f"qtbot.mouseClick will crash if passing `None` as the widget."
@@ -689,6 +695,10 @@ class PKQtBot(QtBot):
             if isinstance(widget, QMessageBox):
                 self.assert_QMessageBox_hasText(widget, **hasTextArgs)
                 buttonWidget = widget.button(button)
+                if not buttonWidget:
+                    raise ValueError(
+                        f"Button {button} not found in {widget} with text '{widget.text()}'"
+                    )
                 self.mouseClick(buttonWidget, Qt.LeftButton)
                 return True
             else:
