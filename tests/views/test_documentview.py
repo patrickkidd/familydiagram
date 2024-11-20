@@ -80,6 +80,12 @@ def dv(test_session, test_activation, qtbot):
     w.deinit()
 
 
+@pytest.mark.parametrize("readOnly", [True, False])
+def test_readOnly(qtbot, dv, readOnly):
+    dv.setScene(Scene(readOnly=readOnly))
+    assert dv.view.rightToolBar.addAnythingButton.isVisible() == bool(not readOnly)
+
+
 @pytest.mark.parametrize("editorMode", [True, False])
 def test_editorMode_enabled(qtbot, dv, editorMode):
     dv.controller.onEditorMode(editorMode)
