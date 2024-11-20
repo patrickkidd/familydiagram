@@ -454,6 +454,13 @@ class AddAnythingDialog(QmlDrawer):
                     event.setNotes(notes, undo=propertyUndoId)
                 event.setTags(tags)
 
+                # Prevent the new person being invisible.
+                if (
+                    kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death)
+                    and self.scene.currentDateTime() < startDateTime
+                ):
+                    self.scene.setCurrentDateTime(startDateTime, undo=propertyUndoId)
+
                 # Optional: Add Parents
                 if (parentA or parentB) and kind in (
                     EventKind.Birth,
