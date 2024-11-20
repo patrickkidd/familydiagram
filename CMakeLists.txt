@@ -50,21 +50,21 @@ add_custom_command(
 )
 
 add_custom_command(
-    OUTPUT pkdiagram/preferences_form.py
-    DEPENDS pkdiagram/preferences.ui
-    COMMAND pyuic5 pkdiagram/preferences.ui -o pkdiagram/preferences_form.py
+    OUTPUT pkdiagram/views/preferences_form.py
+    DEPENDS pkdiagram/views/preferences.ui
+    COMMAND pyuic5 pkdiagram/views/preferences.ui -o pkdiagram/views/preferences_form.py
 )
 
 add_custom_command(
-    OUTPUT pkdiagram/welcome_form.py
-    DEPENDS pkdiagram/welcome.ui
-    COMMAND pyuic5 pkdiagram/welcome.ui -o pkdiagram/welcome_form.py
+    OUTPUT pkdiagram/views/welcome_form.py
+    DEPENDS pkdiagram/views/welcome.ui
+    COMMAND pyuic5 pkdiagram/views/welcome.ui -o pkdiagram/views/welcome_form.py
 )
 
 add_custom_target(
     pkdiagram
     ALL
-    DEPENDS pkdiagram/mainwindow_form.py pkdiagram/preferences_form.py pkdiagram/welcome_form.py
+    DEPENDS pkdiagram/mainwindow_form.py pkdiagram/views/preferences_form.py pkdiagram/views/welcome_form.py
 )
 
 

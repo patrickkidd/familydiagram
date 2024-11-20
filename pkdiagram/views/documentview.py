@@ -16,10 +16,10 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
-from pkdiagram.views import View, GraphicalTimelineView
-from pkdiagram.views.qml import AddAnythingDialog
 from pkdiagram.widgets import TimelineCallout
 from pkdiagram.widgets.qml import QmlDrawer
+from pkdiagram.views import View, GraphicalTimelineView
+from pkdiagram.views.qml import AddAnythingDialog
 from pkdiagram.app import QmlEngine, commands
 
 
@@ -73,7 +73,7 @@ class DocumentView(QWidget):
         self.view = View(self, parent.ui)
         self.view.escape.connect(self.onEscape)
 
-        from pkdiagram.documentcontroller import DocumentController
+        from pkdiagram.views.documentcontroller import DocumentController
 
         self.controller = DocumentController(self)
 

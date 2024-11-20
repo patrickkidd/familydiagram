@@ -1,6 +1,5 @@
 import os
 
-from pkdiagram.app import commands
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Item
@@ -145,36 +144,33 @@ class Event(Item):
         else:
             return False
 
-    def setParent(self, parent, notify=None, undo=False):
+    def setParent(self, parent, notify=None):
         """The proper way to assign a parent, also called from Event(parent)."""
         if notify is None:
             notify = not self.addDummy
-        if undo:
-            commands.setEventParent(self, parent)
+        if not self.addDummy:
+            was = self.parent
+            self.parent = parent
+            if was and not was.isEmotion and not was.isScene:
+                was._onRemoveEvent(self)
+            if parent and not parent.isEmotion and not parent.isScene:
+                parent._onAddEvent(self)
         else:
-            if not self.addDummy:
-                was = self.parent
-                self.parent = parent
-                if was and not was.isEmotion and not was.isScene:
-                    was._onRemoveEvent(self)
-                if parent and not parent.isEmotion and not parent.isScene:
-                    parent._onAddEvent(self)
-            else:
-                self.parent = parent
-            wasDescription = self.description()
-            wasNotes = self.notes()
-            wasParentName = self.parentName()
-            # >>> still needed ???
-            self.updateDescription()
-            self.updateNotes()
-            self.updateParentName()
-            # <<< still needed ???
-            if self.description() != wasDescription:
-                self.onProperty(self.prop("description"))
-            if self.notes() != wasNotes:
-                self.onProperty(self.prop("notes"))
-            if self.parentName() != wasParentName:
-                self.onProperty(self.prop("parentName"))
+            self.parent = parent
+        wasDescription = self.description()
+        wasNotes = self.notes()
+        wasParentName = self.parentName()
+        # >>> still needed ???
+        self.updateDescription()
+        self.updateNotes()
+        self.updateParentName()
+        # <<< still needed ???
+        if self.description() != wasDescription:
+            self.onProperty(self.prop("description"))
+        if self.notes() != wasNotes:
+            self.onProperty(self.prop("notes"))
+        if self.parentName() != wasParentName:
+            self.onProperty(self.prop("parentName"))
 
     @util.iblocked
     def onProperty(self, prop):

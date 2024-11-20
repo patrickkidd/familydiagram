@@ -1315,10 +1315,6 @@ class SetEventParent(UndoCommand):
         return True
 
 
-def setEventParent(event, parent, undo=-1):
-    stack().push(SetEventParent(event, parent, id=undo))
-
-
 class AddLayer(UndoCommand):
 
     ANALYTICS = "Add layer"
