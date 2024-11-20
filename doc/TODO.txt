@@ -2,8 +2,10 @@
 v2.0.0
 =============================================================================
 
-- Add one person by birth, currentDateTime set to that date, add another by birth -> currentDateTime doesn't change so you can't see the new person.
+- Can't click active custom layer when emotional unit layer active
 - Double-click to rename person, double-click second person -> PersonProperties didn't load properties
+- Borders around tags and emotional units edits
+- Have to start drag downwards to drag-select events on GTC. Require <command> to drag-pan timeline.
 - In console:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/ItemLayerList.qml:29:17: Unable to assign [undefined] to int
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/ItemLayerList.qml:33:17: Unable to assign [undefined] to QString

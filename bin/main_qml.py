@@ -268,8 +268,8 @@ def __test__PersonPicker(scene, parent, sceneModel):
     return pp
 
 
-def __test__CaseProperties(scene, parent, sceneModel):
-    w = QmlDrawer("qml/CaseProperties.qml", parent=parent, sceneModel=sceneModel)
+def __test__CaseProperties(scene, parent, engine):
+    w = QmlDrawer(engine, "qml/CaseProperties.qml", parent=parent)
     scene.setTags(scene.tags() + ["here", "you", "are"])
     w.show(animate=False, tab="settings")
     w.setItemProp("settingsView", "contentY", 643)
@@ -294,11 +294,13 @@ def __test__CaseProperties(scene, parent, sceneModel):
                     "code": vedana.LICENSE_PROFESSIONAL_ANNUAL,
                 },
                 "activations": [{"machine": {"code": util.HARDWARE_UUID}}],
+                "created_at": datetime.datetime.now(),
+                "created_at_readable": "2020-01-01",
             }
         ],
         "secret": "1232345",
     }
-    sceneModel.setServerDiagram(
+    engine.sceneModel.setServerDiagram(
         Diagram(
             id=1,
             user_id=1,
@@ -308,7 +310,7 @@ def __test__CaseProperties(scene, parent, sceneModel):
         )
     )
     # session = Session()
-    sceneModel.session.init(
+    engine.session.init(
         sessionData={
             "session": {"token": "1234", "user": _user},
             "users": [_user],
@@ -318,6 +320,7 @@ def __test__CaseProperties(scene, parent, sceneModel):
     # sceneModel.setSession(session)
     # sceneModel.setActiveFeatures([vedana.LICENSE_PROFESSIONAL])
     parent.resize(510, 600)
+    parent.show()
     return w
 
 

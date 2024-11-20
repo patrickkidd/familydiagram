@@ -19,7 +19,6 @@ Page {
     }
 
     property alias tagsEdit: tagsEdit
-    property alias editorMode_tagsEdit: editorMode_tagsEdit
     property alias emotionalUnitsEdit: emotionalUnitsEdit
 
     property int margin: util.QML_MARGINS
@@ -71,6 +70,15 @@ Page {
                 width: parent.width - margin * 2
 
                 GridLayout {
+
+                    PK.Label {
+                        text: "Events"
+                        font.family: util.FONT_FAMILY_TITLE
+                        font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.FormDivider { Layout.columnSpan: 2 }
 
                     id: grid
                     columns: 2
@@ -253,7 +261,7 @@ Page {
                         visible: sceneModel.isInEditorMode
                         onDateTimeChanged: if(searchModel.loggedEndDateTime != dateTime) searchModel.loggedEndDateTime = dateTime
                         backTabItem: loggedStartDateTimeButtons.lastTabItem
-                        tabItem: nodalBox
+                        tabItem: tagsEdit
                         Connections {
                             target: searchModel
                             function onLoggedEndDateTimeChanged() { loggedEndDateTimeButtons.dateTime = searchModel.loggedEndDateTime }
@@ -288,27 +296,25 @@ Page {
                         }
                     }
 
-                    PK.FormDivider { Layout.columnSpan: 2 }
+                    // PK.Text { text: "Nodal" }
 
-                    PK.Text { text: "Nodal" }
+                    // PK.CheckBox {
+                    //     id: nodalBox
+                    //     objectName: 'nodalBox'
+                    //     checked: searchModel.nodal
+                    //     KeyNavigation.tab: hideRelationshipsBox
+                    //     KeyNavigation.backtab: loggedEndDateTimeButtons.lastTabItem
+                    //     onCheckedChanged: if(searchModel.nodal != checked) searchModel.nodal = checked
+                    // }
 
-                    PK.CheckBox {
-                        id: nodalBox
-                        objectName: 'nodalBox'
-                        checked: searchModel.nodal
-                        KeyNavigation.tab: hideRelationshipsBox
-                        KeyNavigation.backtab: loggedEndDateTimeButtons.lastTabItem
-                        onCheckedChanged: if(searchModel.nodal != checked) searchModel.nodal = checked
-                    }
+                    // PK.Text { text: "Hide Relationships" }
 
-                    PK.Text { text: "Hide Relationships" }
-
-                    PK.CheckBox {
-                        id: hideRelationshipsBox
-                        objectName: 'hideRelationshipsBox'
-                        checked: searchModel.hideRelationships
-                        onCheckedChanged: if(searchModel.hideRelationships != checked) searchModel.hideRelationships = checked
-                    }
+                    // PK.CheckBox {
+                    //     id: hideRelationshipsBox
+                    //     objectName: 'hideRelationshipsBox'
+                    //     checked: searchModel.hideRelationships
+                    //     onCheckedChanged: if(searchModel.hideRelationships != checked) searchModel.hideRelationships = checked
+                    // }
 
                     /* PK.Text { text: "Hide Brackets" } */
 
@@ -321,24 +327,42 @@ Page {
 
                     PK.Text { 
                         text: "Tags"
-                        visible: ! sceneModel.isInEditorMode
                     }
 
                     PK.ActiveListEdit {
                         id: tagsEdit
-                        visible: ! sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 1
                         Layout.minimumHeight: 200
                         KeyNavigation.tab: emotionalUnitsEdit
-                        KeyNavigation.backtab: hideRelationshipsBox
+                        KeyNavigation.backtab: loggedEndDateTimeButtons
                         model: TagsModel {
                             id: tagsModel
                             scene: sceneModel.scene
                             searchModel: searchViewSearchModel
                         }
                     }
+                    
+                    PK.HelpText {
+                        text: "The timeline will only show events that have the tags selected in this list. If no tags are selected, then all events are shown on the timeline.\nNOTE: The graphical timeline will show tag rows from bottom up in the order they are clicked."
+                        Layout.columnSpan: 2
+                    }
+
+                    Rectangle {
+                        height: util.QML_ITEM_HEIGHT / 2
+                        color: 'transparent'
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.Label {
+                        text: "Views"
+                        font.family: util.FONT_FAMILY_TITLE
+                        font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.FormDivider { Layout.columnSpan: 2 }
 
                     PK.Text { text: "Emotional Units" }
 
@@ -348,7 +372,7 @@ Page {
                         Layout.fillHeight: true
                         Layout.margins: 1
                         Layout.minimumHeight: 200
-                        KeyNavigation.tab: editorMode_tagsEdit
+                        KeyNavigation.tab: sceneLayerView
                         KeyNavigation.backtab: tagsEdit
                         model: EmotionalUnitsModel {
                             id: emotionalUnitsModel
@@ -357,115 +381,35 @@ Page {
                     }
 
                     PK.HelpText {
-
+                        text: util.S_EMOTIONAL_UNITS_HELP_TEXT
+                        Layout.columnSpan: 2
                     }
 
-                    PK.GroupBox {
-
-                        id: tagsAndLayersBox
-                        objectName: 'tagsAndLayersBox'
-
-                        padding: 0
-                        Layout.fillWidth: true
-                        Layout.topMargin: util.QML_MARGINS / 2
-                        Layout.columnSpan: 2
+                    PK.Text {
+                        text: "Views"
                         visible: sceneModel.isInEditorMode
+                    }
 
-                        ColumnLayout {
-                            id: tagsAndLayersCL
-
-                            spacing: 0
-                            anchors.fill: parent                            
-
-                            PK.TabBar {
-                                id: tagsAndLayersTabs
-                                currentIndex: tagsAndLayersStack.currentIndex
-                                Layout.fillWidth: true
-                                Layout.margins: 1
-
-                                PK.TabButton { text: "Event Tags" }
-                                PK.TabButton { text: "Diagram Views" }
-                            }
-
-                            StackLayout {
-
-                                id: tagsAndLayersStack
-
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                currentIndex: tagsAndLayersTabs.currentIndex
-
-                                ColumnLayout {
-
-                                    PK.Text {
-                                        text: "The timeline will only show events that have the tags selected in this list. If no tags are selected, then all events are shown on the timeline.\nNOTE: The graphical timeline will show tag rows from bottom up in the order they are clicked.";
-                                        wrapMode: Text.WordWrap
-                                        font.pixelSize: util.HELP_FONT_SIZE
-                                        Layout.fillWidth: true
-                                        Layout.margins: util.QML_MARGINS / 3
-                                        Layout.columnSpan: 2 
-                                    }
-
-                                    Rectangle { // border-top
-                                        height: 1
-                                        color: util.QML_ITEM_BORDER_COLOR
-                                        Layout.fillWidth: true
-                                    }
-
-                                    PK.ActiveListEdit {
-                                        id: editorMode_tagsEdit
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        Layout.margins: 1
-                                        Layout.minimumHeight: 200
-                                        model: TagsModel {
-                                            scene: sceneModel.scene
-                                            searchModel: searchViewSearchModel
-                                        }
-                                    }
-                                }
-
-                                ColumnLayout {
-
-                                    PK.Text {
-                                        text: "Diagram Views are like powerpoint slides that focus on a sub-set of family members, with alterations like position, color, deemphasize. Diagram views can also be annotated with text callouts, pencil strokes. They are for small tweaks to get a point across that do not affect the data of the family. Expand the left edge of this drawer further to the left to show the 'Store Geometry' column." + (sceneLayerView.responsive1 ? "\n\n'Store Goemetry' will store the positions for items in that view, and rearrange the diagram to reflect those positions when you activate the view." : '');
-                                        wrapMode: Text.WordWrap
-                                        font.pixelSize: util.HELP_FONT_SIZE
-                                        Layout.fillWidth: true
-                                        Layout.margins: util.QML_MARGINS / 3
-                                        Layout.columnSpan: 2 
-                                    }
-
-                                    Rectangle { // border-top
-                                        height: 1
-                                        color: util.QML_ITEM_BORDER_COLOR
-                                        Layout.fillWidth: true
-                                    }
-
-                                    PK.SceneLayerView {
-                                        id: sceneLayerView
-                                        objectName: root.objectName + '_sceneLayerView'
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        Layout.margins: 1
-                                        Layout.minimumHeight: 200
-                                        model: SceneLayerModel {
-                                            id: layerModel
-                                            objectName: root.objectName + 'timelineSearch_layerModel'
-                                            scene: sceneModel.scene
-                                            items: sceneModel.scene ? [sceneModel.scene] : []
-                                        }
-                                    }
-                                }
-                            }
+                    PK.SceneLayerView {
+                        id: sceneLayerView
+                        visible: sceneModel.isInEditorMode
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 200
+                        model: SceneLayerModel {
+                            id: layerModel
+                            scene: sceneModel.scene
+                            items: sceneModel.scene ? [sceneModel.scene] : []
                         }
                     }
 
-                    // Rectangle {
-                    //     width: 1
-                    //     Layout.columnSpan: 2
-                    //     Layout.fillHeight: true
-                    // }
+                    PK.HelpText {
+                        visible: sceneModel.isInEditorMode
+                        text: "Custom views are like powerpoint slides that focus on a sub-set of family members, with alterations like position, color, deemphasize. Diagram views can also be annotated with text callouts, pencil strokes. They are for small tweaks to get a point across that do not affect the data of the family. Expand the left edge of this drawer further to the left to show the 'Store Geometry' column." + (sceneLayerView.responsive1 ? "\n\n'Store Goemetry' will store the positions for items in that view, and rearrange the diagram to reflect those positions when you activate the view." : '');
+                        Layout.columnSpan: 2
+                    }
+
                 }
                 Rectangle {
                     height: util.QML_ITEM_HEIGHT

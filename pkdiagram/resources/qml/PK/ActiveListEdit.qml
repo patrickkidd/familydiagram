@@ -37,7 +37,8 @@ Rectangle {
     ColumnLayout {
         
         spacing: 0
-        anchors.fill: parent    
+        anchors.fill: parent
+        anchors.margins: 1
 
         ListView {
             id: listViewItem
