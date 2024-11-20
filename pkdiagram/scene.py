@@ -1520,6 +1520,16 @@ class Scene(QGraphicsScene, Item):
             if prop.name() == "active":
                 if self.itemMode() in [util.ITEM_CALLOUT, util.ITEM_PENCIL]:
                     self.setItemMode(util.ITEM_NONE)
+                # TODO: Notify=False is needed but then the layer models to reflect the changes
+                # # Internal and custom layers should be mutually exclusive.
+                # if prop.item.internal():
+                #     for customLayer in self.layers(includeInternal=False):
+                #         if customLayer.active():
+                #             customLayer.setActive(False, notify=False)
+                # else:
+                #     for internalLayer in self.layers(onlyInternal=True):
+                #         if internalLayer.active():
+                #             internalLayer.setActive(False, notify=False)
                 self.updateActiveLayers()
             self.layerChanged.emit(prop)
         elif item.isEvent:

@@ -599,3 +599,36 @@ def tests_duplicate():
 
     layer2 = layer1.clone(scene)
     assert layer2.id in callout.layers()
+
+
+# def test_internal_and_custom_mutually_exclusive():
+#     scene = Scene()
+#     customLayer_1, customLayer_2 = Layer(), Layer()
+#     internalLayer_1, internalLayer_2 = Layer(internal=True), Layer(internal=True)
+#     scene.addItems(customLayer_1, customLayer_2, internalLayer_1, internalLayer_2)
+
+#     # first exclusive selection
+#     internalLayer_1.setActive(True)
+#     customLayer_1.setActive(True)
+#     assert internalLayer_1.active() == False
+#     assert internalLayer_2.active() == False
+#     assert customLayer_1.active() == True
+#     assert customLayer_2.active() == False
+
+#     internalLayer_1.setActive(True)
+#     assert internalLayer_1.active() == True
+#     assert internalLayer_2.active() == False
+#     assert customLayer_1.active() == False
+#     assert customLayer_2.active() == False
+
+#     customLayer_2.setActive(True)
+#     assert internalLayer_1.active() == False
+#     assert internalLayer_2.active() == False
+#     assert customLayer_1.active() == False
+#     assert customLayer_2.active() == True
+
+#     internalLayer_2.setActive(True)
+#     assert internalLayer_1.active() == False
+#     assert internalLayer_2.active() == True
+#     assert customLayer_1.active() == False
+#     assert customLayer_2.active() == False

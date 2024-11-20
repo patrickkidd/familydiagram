@@ -509,7 +509,11 @@ S_TAGS_HELP_TEXT = (
     "Then you can search for it later in the search view."
 )
 
-S_EMOTIONAL_UNITS_HELP_TEXT = "Select which nuclear familes to show so it is easier to view periods of lower functioning in the context of the nuclear family and two families of origin."
+S_EMOTIONAL_UNITS_HELP_TEXT = (
+    "Click to view shifts in anxiety, functioning, symptom, and reactivity within the context of "
+    "A) a person's nuclear family, and B) each parent's nuclear family of origin. Shifts tend to "
+    "correlate to events in this three-generation extended family system."
+)
 
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 

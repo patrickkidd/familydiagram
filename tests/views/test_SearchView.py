@@ -102,7 +102,7 @@ def test_properties(tst, model, qmlEngine):
     marriage = Marriage(Person(name="A"), Person(name="B"))
     scene.addItem(marriage)
     qmlEngine.sceneModel.onEditorMode(True)
-    editorMode_tagsEdit = ActiveListEdit(tst, tst.rootProp("editorMode_tagsEdit"))
+    tagsEdit = ActiveListEdit(tst, tst.rootProp("tagsEdit"))
     emotionUnitsEdit = ActiveListEdit(tst, tst.rootProp("emotionalUnitsEdit"))
 
     tst.keyClicks("descriptionEdit", "item1")
@@ -120,7 +120,7 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    editorMode_tagsEdit.clickActiveBox(TAG_1)
+    tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
@@ -143,7 +143,7 @@ def test_properties(tst, model, qmlEngine):
     tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
 
-    editorMode_tagsEdit.clickActiveBox(TAG_1)
+    tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
