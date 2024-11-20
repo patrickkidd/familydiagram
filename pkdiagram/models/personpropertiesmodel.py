@@ -7,7 +7,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Item, Person
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.models import ModelHelper
 
 

@@ -1,4 +1,4 @@
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.pyqt import *
 from pkdiagram import util, ModelHelper, QmlWidgetHelper
 from pkdiagram.objects import Item

@@ -21,7 +21,7 @@ from pkdiagram.pyqt import (
     QCursor,
 )
 from pkdiagram import util, CUtil
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class Drawer(QFrame):

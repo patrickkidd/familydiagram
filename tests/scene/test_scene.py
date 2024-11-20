@@ -2,7 +2,7 @@ import os, os.path, pickle
 
 import pytest
 
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram.util import EventKind
 from pkdiagram import (

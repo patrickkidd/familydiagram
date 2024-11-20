@@ -2,7 +2,7 @@ from pkdiagram.pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
 from pkdiagram import util
 from pkdiagram.scene import Item, Emotion
 from pkdiagram.models import ModelHelper
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class EmotionPropertiesModel(QObject, ModelHelper):

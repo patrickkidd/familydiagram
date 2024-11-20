@@ -15,12 +15,12 @@ from pkdiagram.pyqt import (
     Qt,
 )
 from pkdiagram import util
-from pkdiagram.scene import commands, Person, Marriage, Emotion, Event, LayerItem
+from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
 from pkdiagram.views import View, GraphicalTimelineView
 from pkdiagram.views.qml import AddAnythingDialog
 from pkdiagram.widgets import TimelineCallout
 from pkdiagram.widgets.qml import QmlDrawer
-from pkdiagram.app import QmlEngine
+from pkdiagram.app import QmlEngine, commands
 
 
 log = logging.getLogger(__name__)

@@ -1,4 +1,3 @@
-from pkdiagram.scene import commands
 from pkdiagram.pyqt import (
     QGraphicsEllipseItem,
     QGraphicsItem,
@@ -19,8 +18,8 @@ from pkdiagram.pyqt import (
     QMarginsF,
     QSizeF,
 )
-from pkdiagram.scene import LayerItem, Property
-from pkdiagram import util, CUtil
+from pkdiagram import util
+from pkdiagram.scene import LayerItem
 
 
 class PointHandle(QGraphicsEllipseItem):

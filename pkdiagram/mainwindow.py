@@ -6,7 +6,7 @@ from PyQt5.QtCore import QT_VERSION_STR
 import vedana
 
 from .views.qml import filemanager
-from .scene import commands
+from .app import commands
 from pkdiagram.pyqt import (
     pyqtSignal,
     tr,

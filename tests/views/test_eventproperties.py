@@ -1,5 +1,5 @@
 import pytest
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram import (
     util,

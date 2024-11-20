@@ -2,7 +2,7 @@ from pkdiagram.pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegi
 from pkdiagram import util
 from pkdiagram.scene import Item, LayerItem
 from pkdiagram.models import ModelHelper
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class LayerItemLayersModel(QAbstractListModel, ModelHelper):

@@ -2,7 +2,7 @@ import logging
 import bisect
 
 import vedana
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.pyqt import (
     pyqtSignal,
     Qt,

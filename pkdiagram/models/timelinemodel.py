@@ -16,7 +16,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util
 from pkdiagram.models import ModelHelper
 from pkdiagram.sortedlist import SortedList
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):

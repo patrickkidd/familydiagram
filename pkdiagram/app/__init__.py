@@ -1,4 +1,3 @@
-from ..scene import commands
 from . import appdirs, compat
 from .analytics import MixpanelItem, MixpanelEvent, MixpanelProfile, Analytics
 from .appconfig import AppConfig

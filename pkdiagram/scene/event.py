@@ -1,8 +1,9 @@
 import os
 
+from pkdiagram.app import commands
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Item, commands
+from pkdiagram.scene import EventKind, Item
 
 
 class Event(Item):

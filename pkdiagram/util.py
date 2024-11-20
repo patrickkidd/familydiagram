@@ -49,7 +49,6 @@ import os, os.path, time, math, operator, collections.abc, subprocess, random
 from datetime import datetime
 from pkdiagram.pyqt import *
 from . import version
-from .scene.eventkind import EventKind
 
 try:
     from .build_uuid import *  # not sure if this is even needed any more
@@ -128,13 +127,6 @@ def summarizeReplyShort(reply: QNetworkReply):
     verb = reply.attribute(QNetworkRequest.CustomVerbAttribute)
     status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
     return f"{verb} {url} {status_code}"
-
-
-# TODO: Deprecate
-try:
-    from .sales_tax_rates import zips as SALES_TAX_RATES
-except:
-    SALES_TAX_RATES = []
 
 
 def pretty(x, exclude=[], noNone=True):
@@ -466,7 +458,6 @@ S_TAGS_HELP_TEXT = (
 
 S_EMOTIONAL_UNITS_HELP_TEXT = "Select which nuclear familes to show so it is easier to view periods of lower functioning in the context of the nuclear family and two families of origin."
 
-EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None

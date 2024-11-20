@@ -1,7 +1,5 @@
 import copy
 
-from pkdiagram.scene import commands
-
 
 class Property:
     """Track changes and automatically write to file."""

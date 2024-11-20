@@ -10,7 +10,7 @@ from pkdiagram.models import (
     PeopleModel,
     AccessRightsModel,
 )
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class CommandsWrapper(QObject):

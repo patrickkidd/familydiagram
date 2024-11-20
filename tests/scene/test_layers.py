@@ -1,5 +1,5 @@
 import pytest
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.pyqt import QPointF
 from pkdiagram import util, Scene, Layer, PathItem, Person, Property, Callout
 

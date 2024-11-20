@@ -1,6 +1,6 @@
 from pkdiagram.pyqt import QApplication, QDialog, QFileDialog
 from pkdiagram import version, util, CUtil
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from .preferences_form import Ui_Preferences
 
 

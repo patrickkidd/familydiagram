@@ -1,7 +1,7 @@
 from pkdiagram.pyqt import Qt, QStringListModel, qmlRegisterType, pyqtSlot
 from pkdiagram import util
 from pkdiagram.models import ModelHelper
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class SceneVariablesModel(QStringListModel, ModelHelper):

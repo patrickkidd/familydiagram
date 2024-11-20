@@ -1,6 +1,6 @@
 from pkdiagram.pyqt import Qt, QAbstractTableModel, QModelIndex, qmlRegisterType
 from pkdiagram import util
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram.models import ModelHelper
 
 

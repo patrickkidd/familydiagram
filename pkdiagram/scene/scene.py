@@ -34,7 +34,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QFileInfo,
 )
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 from pkdiagram import version, util, slugify
 from pkdiagram.scene import (
     EmotionalUnit,

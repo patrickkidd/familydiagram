@@ -1,7 +1,7 @@
 from pkdiagram import util, objects
 from pkdiagram.scene import Scene
 from pkdiagram.models import QObjectHelper
-from pkdiagram.scene import commands
+from pkdiagram.app import commands
 
 
 class ModelHelper(QObjectHelper):

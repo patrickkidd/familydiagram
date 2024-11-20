@@ -1,9 +1,10 @@
-import sys, signal, os.path, logging
+import signal, os.path, logging
 
-from pkdiagram.scene import commands
-from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox
 import vedana
-from pkdiagram import util, AppConfig, Session, pepper, Analytics
+from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox
+from pkdiagram import util, pepper
+from pkdiagram.app import AppConfig, Session, Analytics
+from pkdiagram.app import commands
 
 
 CUtil = util.CUtil
