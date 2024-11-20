@@ -350,6 +350,7 @@ class ToolBar(QScrollArea):
 
     def setScene(self, scene):
         self.scene = scene
+        self.onItemsVisibilityChanged()
 
     def addItems(self, *items: list[ItemMixin]):
         for item in items:
@@ -510,12 +511,16 @@ class ToolBar(QScrollArea):
         """
         self._isInEditorMode = self.ui.actionEditor_Mode.isChecked()
         self._isAppUpdateAvailable = self.ui.actionInstall_Update.isEnabled()
+        self._isReadOnly = self.scene.readOnly() if self.scene else False
         for item in self.items:
             item.updateVisible()
         self.adjust()
 
     def isInEditorMode(self) -> bool:
         return self._isInEditorMode
+
+    def isNotReadOnly(self) -> bool:
+        return not self._isReadOnly
 
     def isAppUpdateAvailable(self) -> bool:
         return self._isAppUpdateAvailable
@@ -853,6 +858,7 @@ class RightToolBar(ToolBar):
                 pixmap="plus-button-green.png",
                 action=self.ui.actionAdd_Anything,
                 autoInvertColor=False,
+                visible=self.isNotReadOnly,
                 # "help-tip": {
                 #     "pixmap": "family-timeline.png",
                 # },
