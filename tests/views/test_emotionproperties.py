@@ -2,7 +2,7 @@ import pytest
 from pkdiagram.pyqt import *
 from pkdiagram import util, objects
 from pkdiagram.objects import Emotion
-from pkdiagram.qmldrawer import QmlDrawer
+from pkdiagram.widgets.qml.qmldrawer import QmlDrawer
 
 
 @pytest.fixture

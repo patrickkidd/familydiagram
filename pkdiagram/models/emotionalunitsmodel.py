@@ -1,12 +1,11 @@
 from sortedcontainers import SortedList
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     qmlRegisterType,
     QAbstractListModel,
     QModelIndex,
 )
-from .. import util
 from pkdiagram.models import ModelHelper
 
 

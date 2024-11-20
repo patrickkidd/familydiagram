@@ -1,9 +1,7 @@
-import os, os.path, pickle, shutil, datetime, email.utils, logging
-import urllib.parse
-from ..pyqt import (
+import os, os.path, pickle, shutil, datetime, logging
+from pkdiagram.pyqt import (
     Qt,
     QTimer,
-    QModelIndex,
     pyqtSignal,
     pyqtSlot,
     qmlRegisterType,
@@ -11,12 +9,10 @@ from ..pyqt import (
     QApplication,
     QDateTime,
     QMessageBox,
-    QCheckBox,
 )
-from ..util import CUtil
-from .. import util
-from .filemanagermodel import FileManagerModel
-from ..server_types import Diagram, HTTPError
+from pkdiagram import CUtil, util
+from pkdiagram.models import FileManagerModel
+from pkdiagram.app import Diagram, HTTPError
 
 
 log = logging.getLogger(__name__)

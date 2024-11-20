@@ -11,7 +11,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QModelIndex,
 )
-from .modelhelper import ModelHelper
+from pkdiagram.models import ModelHelper
 
 
 _log = logging.getLogger(__name__)

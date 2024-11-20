@@ -1,20 +1,13 @@
-import logging
-
-
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     pyqtSlot,
     QAbstractListModel,
     QModelIndex,
-    QVariant,
     QObject,
     qmlRegisterType,
     QQmlEngine,
 )
-from .. import objects, scene, util
-from .modelhelper import ModelHelper
-
-_log = logging.getLogger(__name__)
+from pkdiagram.models import ModelHelper
 
 
 class PeopleModel(QAbstractListModel, ModelHelper):

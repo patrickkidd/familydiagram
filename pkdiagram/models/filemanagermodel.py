@@ -1,16 +1,11 @@
-import os
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QModelIndex,
-    QVariant,
     pyqtSlot,
     pyqtSignal,
-    QMessageBox,
-    QApplication,
     QAbstractListModel,
 )
-from .. import util
-from .qobjecthelper import QObjectHelper
+from pkdiagram.models import QObjectHelper
 
 
 class FileManagerModel(QAbstractListModel, QObjectHelper):

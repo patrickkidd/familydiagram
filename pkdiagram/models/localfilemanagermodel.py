@@ -1,8 +1,7 @@
 import os, shutil
-from ..pyqt import *
-from ..util import CUtil
-from .. import util
-from .filemanagermodel import FileManagerModel
+from pkdiagram.pyqt import *
+from pkdiagram import CUtil, util
+from pkdiagram.models import FileManagerModel
 
 
 class LocalFileManagerModel(FileManagerModel):

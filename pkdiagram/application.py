@@ -1,6 +1,6 @@
 import os, os.path, sys, traceback, logging
 
-from .pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QApplication,
     QIcon,
@@ -10,9 +10,11 @@ from .pyqt import (
     QStandardPaths,
     QFontDatabase,
     QSettings,
+    QNetworkAccessManager,
+    QNetworkReply,
 )
 from pkdiagram import util, version, extensions
-from pkdiagram.qmlutil import QmlUtil
+from pkdiagram.app.qmlutil import QmlUtil
 
 CUtil = util.CUtil
 
@@ -22,12 +24,12 @@ log = logging.getLogger(__name__)
 
 class Application(QApplication):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, prefsName=None, **kwargs):
 
         import logging  # Won't pull in from module scope
 
         # TODO: Should not be global
-        util._prefs = self.makeSettings()
+        util._prefs = self.makeSettings(prefsName=prefsName)
 
         # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
         util.prefs().setAutoSave(True)
@@ -103,6 +105,8 @@ class Application(QApplication):
         #     "-qmljsdebugger=port:1234,block",
         # )
         super().__init__(*args, **kwargs)
+
+        self._qnam = QNetworkAccessManager(self)
 
         # TODO: Should not be global
         self._qmlUtil = QmlUtil(self)
@@ -197,15 +201,17 @@ class Application(QApplication):
     #     self.here(CUtil.isUIDarkMode())
 
     @staticmethod
-    def makeSettings() -> QSettings:
-        if util.IS_IOS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
-        elif util.IS_APPLE:
-            prefs = util.Settings("vedanamedia", "familydiagrammac")
+    def makeSettings(prefsName=None) -> QSettings:
+        if prefsName is not None:
+            pass
         elif util.IS_WINDOWS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
+            prefsName = "familydiagram"
+        elif util.IS_IOS:
+            prefsName = "familydiagram"
+        elif util.IS_APPLE:
+            prefsName = "familydiagrammac"
 
-        return prefs
+        return util.Settings("vedanamedia", prefsName)
 
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:
@@ -226,3 +232,6 @@ class Application(QApplication):
 
     def qmlUtil(self):
         return self._qmlUtil
+
+    def qnam(self) -> QNetworkAccessManager:
+        return self._qnam

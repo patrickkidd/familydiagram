@@ -1,25 +1,19 @@
-import os.path
 import pickle
 import contextlib
 import base64
-import logging
 
 import pytest
 import mock
 
 from pkdiagram.pyqt import (
+    QApplication,
     QByteArray,
     QNetworkReply,
     QNetworkRequest,
     QTimer,
 )
 from pkdiagram import util
-from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
-
-QNAM = util.QNAM
-
-
-_log = logging.getLogger(__name__)
+from pkdiagram.app.analytics import Analytics, MixpanelEvent, MixpanelProfile
 
 
 class NetworkReply(QNetworkReply):
@@ -53,7 +47,9 @@ def mockRequest(status_code: int):
         return reply
 
     with mock.patch.object(
-        QNAM.instance(), "sendCustomRequest", side_effect=_sendCustomRequest
+        QApplication.instance().qnam(),
+        "sendCustomRequest",
+        side_effect=_sendCustomRequest,
     ) as sendCustomRequest:
         yield sendCustomRequest
 

@@ -1,7 +1,7 @@
 import pickle
 from typing import List
 import vedana
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     pyqtSlot,
     pyqtProperty,
@@ -11,8 +11,8 @@ from ..pyqt import (
     QVariant,
     QMessageBox,
 )
-from .. import util
-from ..server_types import AccessRight
+from pkdiagram import util
+from pkdiagram.app import AccessRight
 
 
 class AccessRightsModel(QAbstractListModel):

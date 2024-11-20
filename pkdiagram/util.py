@@ -1,13 +1,12 @@
 import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
 import enum
 import json
-import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
 from typing import Callable
 
-from . import appdirs, util
+from . import util
 
 
 log = logging.getLogger(__name__)
@@ -16,13 +15,12 @@ log = logging.getLogger(__name__)
 # to import vendor packages like xlsxwriter
 try:
     import pdytools
-
-    IS_BUNDLE = True
 except:
     IS_BUNDLE = False
+else:
+    IS_BUNDLE = True
 
 import vedana
-from _pkdiagram import *
 from _pkdiagram import CUtil
 
 
@@ -49,10 +47,8 @@ if IS_BUNDLE:
 
 import os, os.path, time, math, operator, collections.abc, subprocess, random
 from datetime import datetime
-from .pyqt import *
+from pkdiagram.pyqt import *
 from . import version
-from .pepper import PEPPER
-from .eventkind import EventKind
 
 try:
     from .build_uuid import *  # not sure if this is even needed any more
@@ -133,13 +129,6 @@ def summarizeReplyShort(reply: QNetworkReply):
     return f"{verb} {url} {status_code}"
 
 
-# TODO: Deprecate
-try:
-    from .sales_tax_rates import zips as SALES_TAX_RATES
-except:
-    SALES_TAX_RATES = []
-
-
 def pretty(x, exclude=[], noNone=True):
     if not isinstance(exclude, list):
         exclude = [exclude]
@@ -156,48 +145,6 @@ def pretty(x, exclude=[], noNone=True):
 def LONG_TEXT(s):
     """filter multi-line text as one long string for qml help text."""
     return s.replace("\n", " ").replace("<br>", "\n\n")
-
-
-def logging_allFilter(record: logging.LogRecord):
-    """Add filenames for non-Qt records."""
-    if not hasattr(record, "pk_fileloc"):
-        record.pk_fileloc = f"{record.filename}:{record.lineno}"
-    return True
-
-
-LOG_FORMAT = "%(asctime)s %(levelname)s %(pk_fileloc)-26s %(message)s"
-
-
-def init_logging():
-
-    FD_LOG_LEVEL = os.getenv("FD_LOG_LEVEL", "INFO").upper()
-    if FD_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-        sys.stderr.write(
-            f"Invalid FD_LOG_LEVEL: '{FD_LOG_LEVEL}', must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL\n"
-        )
-        sys.exit(1)
-
-    consoleHandler = logging.StreamHandler(sys.stdout)
-    consoleHandler.addFilter(logging_allFilter)
-    consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-    consoleHandler.setLevel(getattr(logging, FD_LOG_LEVEL))
-
-    appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
-    if not os.path.isdir(appDataDir):
-        Path(appDataDir).mkdir()
-    fileName = "log.txt" if util.IS_BUNDLE else "log_dev.txt"
-    filePath = os.path.join(appDataDir, fileName)
-    if not os.path.isfile(filePath):
-        Path(filePath).touch()
-    fileHandler = logging.FileHandler(filePath, mode="a+")
-    fileHandler.addFilter(logging_allFilter)
-    fileHandler.setLevel(logging.DEBUG)
-    fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=[consoleHandler, fileHandler],
-    )
 
 
 ##
@@ -511,7 +458,6 @@ S_TAGS_HELP_TEXT = (
 
 S_EMOTIONAL_UNITS_HELP_TEXT = "Select which nuclear familes to show so it is easier to view periods of lower functioning in the context of the nuclear family and two families of origin."
 
-EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None
@@ -1480,17 +1426,6 @@ class ClickFilter(QObject):
         self.clicked.emit()
 
 
-class QNAM(QNetworkAccessManager):
-
-    _instance = None
-
-    @staticmethod
-    def instance():
-        if not QNAM._instance:
-            QNAM._instance = QNAM()
-        return QNAM._instance
-
-
 # class WebEnginePage(QWebEnginePage):
 
 #     # https://stackoverflow.com/questions/40170180/link-clicked-signal-qwebengineview
@@ -1540,7 +1475,7 @@ def ____iCloudInitialized():
                 "util.init(): creating dir for QStandardPaths.DataLocation:", DATA_PATH
             )
             dir.mkpath(DATA_PATH)
-    from .. import util
+    from pkdiagram import util
 
     DATA_PATH = DATA_PATH
     DATA_PATH_LOCAL = DATA_PATH_LOCAL

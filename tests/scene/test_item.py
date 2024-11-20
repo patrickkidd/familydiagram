@@ -1,6 +1,7 @@
 import pytest
 
-from pkdiagram import Scene, Item, PathItem, Person, Marriage, ChildOf, Layer, commands
+from pkdiagram import Scene, Item, PathItem, Person, Marriage, ChildOf, Layer
+from pkdiagram.app import commands
 
 pytestmark = [pytest.mark.component("Item")]
 
