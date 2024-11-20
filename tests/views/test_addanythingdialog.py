@@ -238,6 +238,31 @@ def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):
     assert personB.gender() == util.PERSON_KIND_FEMALE
 
 
+@pytest.mark.parametrize("before", [True, False])
+def test_add_second_Birth_sets_currentDateTime(dlg, before):
+    dlg.initForSelection([])
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Doe")
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    assert dlg.scene.currentDateTime() == START_DATETIME
+
+    if before:
+        second_dateTime = START_DATETIME.addDays(-10)
+    else:
+        second_dateTime = START_DATETIME.addDays(10)
+
+    dlg.initForSelection([])
+    dlg.set_kind(EventKind.Birth)
+    dlg.set_new_person("personPicker", "John Doe")
+    dlg.set_startDateTime(second_dateTime)
+    dlg.mouseClick("AddEverything_submitButton")
+    if before:
+        assert dlg.scene.currentDateTime() == START_DATETIME
+    else:
+        assert dlg.scene.currentDateTime() == second_dateTime
+
+
 def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
     scene, dlg, qmlEngine
 ):
