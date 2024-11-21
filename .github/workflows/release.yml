@@ -394,7 +394,8 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: familydiagram-macos/Family Diagram.dmg
-        asset_name: Family Diagram ${{ needs.setup.outputs.version }}.dmg
+        # asset_name: Family Diagram ${{ needs.setup.outputs.version }}.dmg
+        asset_name: Family Diagram.dmg
         asset_content_type: application/x-apple-diskimage
 
     - name: Upload Windows Build
@@ -404,7 +405,8 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: familydiagram-windows/Family Diagram.zip
-        asset_name: Family Diagram ${{ needs.setup.outputs.version }}.zip
+        # asset_name: Family Diagram ${{ needs.setup.outputs.version }}.zip
+        asset_name: Family Diagram.zip
         asset_content_type: application/zip
 
   update-appcast:
