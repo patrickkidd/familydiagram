@@ -4,8 +4,13 @@
 name: Test
 
 on:
+  # push:
+  #   branches:
+  #     - "*"  # Trigger on all branches (adjust as needed)
+  pull_request:
+    branches:
+      - master  # Trigger when PR targets the master branch (adjust if needed)
   workflow_dispatch:
-
 
 jobs:
   test:
