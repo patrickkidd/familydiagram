@@ -1265,6 +1265,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "SectionLabel.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "SearchView.qml"
 included = true
 is_directory = false

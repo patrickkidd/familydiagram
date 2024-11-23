@@ -24,6 +24,7 @@ ListPicker 1.0 ListPicker.qml
 NoDataText 1.0 NoDataText.qml
 PeoplePicker 1.0 PeoplePicker.qml
 SearchView 1.0 SearchView.qml
+SectionLabel 1.0 SectionLabel.qml
 SceneLayerView 1.0 SceneLayerView.qml
 SearchBar 1.0 SearchBar.qml
 TabBar 1.0 TabBar.qml
