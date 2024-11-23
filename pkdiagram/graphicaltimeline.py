@@ -92,7 +92,8 @@ class GraphicalTimeline(QScrollArea):
         self.scene = scene
         self.canvas.setScene(self.scene)
         self.canvas.resize(self.size())
-        self.zoomAbsolute(self.scaleFactor)
+        self.zoomAbsolute(1.0)
+        self.lastScaleFactor = 1.0
         self.tags = []
 
     def onSearchTagsChanged(self, tags):

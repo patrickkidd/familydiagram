@@ -282,7 +282,7 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     ) == {event_1, event_2}
 
 
-def test_load_reload_clears_SearchModel(dv):
+def test_load_reload(dv):
     dv.caseProps.checkInitQml()
 
     dv.searchModel.tags = ["blah"]
@@ -293,10 +293,14 @@ def test_load_reload_clears_SearchModel(dv):
         dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text")
         == "Some description"
     )
+    dv.graphicalTimelineView.timeline.zoomAbsolute(1.5)
+    assert dv.graphicalTimelineView.timeline.scaleFactor == 1.5
 
     dv.setScene(Scene(items=[]))
     assert dv.searchModel.tags == []
     assert dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text") == ""
+    assert dv.graphicalTimelineView.timeline.scaleFactor == 1.0
+    assert dv.graphicalTimelineView.lastScaleFactor == 1.0
 
 
 def test_prevTaggedDateTime(dv):
