@@ -2,12 +2,29 @@
 v2.0.0
 =============================================================================
 
+- Need to hide those logged columns
+- Rename "Notes" to "Details" in event properties.
+- Show timeline / timeline button checked, close file + open file -> timeline button still checked but timeline not shown
+  - Requires clicking button twice to show timeline
+- Scroll search view to top on open file
+- Add delta symbol to three built-in variables
+- Custom Individual: Can't scroll to bottom of Add form
+- Exception deleting file:
+    Traceback (most recent call last):
+    File "/Users/patrick/dev/familydiagram/pkdiagram/models/localfilemanagermodel.py", line 64, in onFileRemoved
+          self.removeFileEntry(path=url.toLocalFile())
+    File "/Users/patrick/dev/familydiagram/pkdiagram/models/filemanagermodel.py", line 175, in removeFileEntry
+          row = self._entries.index(entry)
+    ValueError: {257: '/Users/patrick/Library/Mobile Documents/iCloud~com~vedanamedia~familydiagram/Documents/Test Diagrams/New Case - Tue November 19 08-47am.fd', 258: 'New Case - Tue November 19 08-47am', 259: 1732038474.574294, 260: None, 261: '', 262: 1, 263: True, 264: None} is not in list
 - Double-click to rename person, double-click second person -> PersonProperties didn't load properties
 - Borders around tags and emotional units edits
 - Have to start drag downwards to drag-select events on GTC. Require <command> to drag-pan timeline.
 - In console:
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/ItemLayerList.qml:29:17: Unable to assign [undefined] to int
   file:///Users/patrick/dev/familydiagram/pkdiagram/resources/qml/PK/ItemLayerList.qml:33:17: Unable to assign [undefined] to QString
+- Move search view to hovering overlay over entire document with click screen?
+  - So you can see the diagram and timeline change while entering values
+  - Add search button to top or bottom of timeline
 
 - Flash new items added to the diagram from AddAnythingFOrm
 - Need add button for Person views tab

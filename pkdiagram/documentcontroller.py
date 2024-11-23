@@ -228,7 +228,7 @@ class DocumentController(QObject):
 
     def onEditorMode(self, on):
         self.dv.adjust()
-        self.dv.view.adjust()
+        self.dv.view.onEditorMode(on)
         self.dv.sceneModel.onEditorMode(on)
 
     def onSceneProperty(self, prop):

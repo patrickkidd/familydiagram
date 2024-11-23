@@ -485,7 +485,7 @@ S_NO_ITEMS_LABEL = LONG_TEXT(
 )
 
 S_NO_EVENTS_TEXT = LONG_TEXT(
-    "No events to show. Either widen your search criteria or click the green (+) button to add some data points to the timeline."
+    "Widen your search criteria or click the green (+) button to add some data points to the timeline."
 )
 
 S_EMAIL_SENT_TO_CHANGE_PASSWORD = LONG_TEXT(

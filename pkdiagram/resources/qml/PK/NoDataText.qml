@@ -13,4 +13,6 @@ Text {
     font.family: util.NO_ITEMS_FONT_FAMILY
     font.pixelSize: util.NO_ITEMS_FONT_PIXEL_SIZE
     font.bold: true
+    // font.letterSpacing: .01
+    lineHeight: 1.1
 }

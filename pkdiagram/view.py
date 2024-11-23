@@ -114,6 +114,7 @@ class View(QGraphicsView):
     def __init__(self, parent, ui):
         super().__init__(parent)
         self.ui = ui
+        self._editorMode = False
         self.mousePress = None
         self.touches = []
         self.lastZoomData = {
@@ -179,6 +180,7 @@ class View(QGraphicsView):
         self.noItemsCTALabel.setText(util.S_NO_ITEMS_LABEL)
         font = QFont(util.NO_ITEMS_FONT_FAMILY, util.NO_ITEMS_FONT_PIXEL_SIZE * 2)
         font.setBold(True)
+        font.setLetterSpacing(QFont.AbsoluteSpacing, 1.2)
         self.noItemsCTALabel.setFont(font)
         self.noItemsCTALabel.setStyleSheet(f"color: {util.INACTIVE_TEXT_COLOR.name()}")
         self.noItemsCTALabel.setWordWrap(True)
@@ -460,19 +462,26 @@ class View(QGraphicsView):
             self.viewport().width() - size, self.viewport().height() - size, size, size
         )
         #
-        if not hasattr(self, "showTBButton_y"):
-            self.showTBButton_y = self.sceneToolBar.hideButton.mapTo(
-                self, QPoint(0, 0)
-            ).y()
-        p = self.sceneToolBar.hideButton.mapTo(self, QPoint(0, 0))
-        p.setY(self.showTBButton_y)
-        self.showToolBarButton.move(p)
+        if self._editorMode:
+            if not hasattr(self, "showTBButton_y"):
+                self.showTBButton_y = self.sceneToolBar.hideButton.mapTo(
+                    self, QPoint(0, 0)
+                ).y()
+            p = self.sceneToolBar.hideButton.mapTo(self, QPoint(0, 0))
+            p.setY(self.showTBButton_y)
+            self.showToolBarButton.move(p)
+        else:
+            self.showToolBarButton.hide()
         if self.scene() and self.legend and self.legend.isVisible():
             anchor = self.scene().legendData()["anchor"]
             pos = self.legendPosForAnchor(anchor)
             self.legend.move(pos, animate=False)
         # #
         # self.purchaseButton.move(self.width() - self.purchaseButton.width(), 0)
+
+    def onEditorMode(self, on):
+        self._editorMode = on
+        self.adjust()
 
     ## Virtuals
 
