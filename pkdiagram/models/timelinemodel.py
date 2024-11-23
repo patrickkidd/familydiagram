@@ -446,7 +446,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif role == self.ParentIdRole:
             return event.parent.id
         elif role == self.HasNotesRole:
-            ret = event.prop("notes").isset()
+            ret = bool(event.notes())
         elif self.isColumn(index, self.BUDDIES):
             ret = ""
         elif self.isColumn(index, self.NODAL):
