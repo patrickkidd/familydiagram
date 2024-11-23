@@ -319,6 +319,13 @@ PK.Drawer {
                         columns: 2
                         columnSpacing: util.QML_MARGINS / 2
 
+                        PK.SectionLabel {
+                            text: "Event"
+                            Layout.columnSpan: 2
+                        }
+
+                        PK.FormDivider { Layout.columnSpan: 2 }
+                        
                         PK.Text {
                             id: kindLabel
                             objectName: "kindLabel"
@@ -376,12 +383,6 @@ PK.Drawer {
                             objectName: "kindHelpText"
                             text: util.S_EVENT_KIND_HELP_TEXT
                             visible: text != ''
-                            Layout.columnSpan: 2
-                        }
-
-                        // ////////////////////////////////////////////////
-
-                        PK.FormDivider {
                             Layout.columnSpan: 2
                         }
 
@@ -573,13 +574,6 @@ PK.Drawer {
                             Layout.columnSpan: 2
                         }
 
-                        // ////////////////////////////////////////////////
-
-                        PK.FormDivider {
-                            Layout.columnSpan: 2
-                            visible: kindBox.currentIndex != -1
-                        }
-
 
                         PK.Text {
                             id: descriptionLabel
@@ -614,11 +608,6 @@ PK.Drawer {
                             visible: descriptionField.visible
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
-                        }
-
-                        PK.FormDivider {
-                            Layout.columnSpan: 2
-                            visible: descriptionEdit.visible
                         }
 
                         PK.Text {
@@ -799,9 +788,12 @@ PK.Drawer {
                             }
                         }
 
-                        PK.FormDivider {
+                        PK.SectionLabel {
+                            text: "Variables"
                             Layout.columnSpan: 2
                         }
+
+                        PK.FormDivider { Layout.columnSpan: 2 }
                         
                         PK.Text { text: "Anxiety" }
 

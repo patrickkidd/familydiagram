@@ -71,10 +71,8 @@ Page {
 
                 GridLayout {
 
-                    PK.Label {
+                    PK.SectionLabel {
                         text: "Events"
-                        font.family: util.FONT_FAMILY_TITLE
-                        font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                         Layout.columnSpan: 2
                     }
 
@@ -355,10 +353,8 @@ Page {
                         Layout.columnSpan: 2
                     }
 
-                    PK.Label {
+                    PK.SectionLabel {
                         text: "Views"
-                        font.family: util.FONT_FAMILY_TITLE
-                        font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                         Layout.columnSpan: 2
                     }
 
