@@ -2,6 +2,8 @@
 v2.0.0
 =============================================================================
 
+- Skipping cutoffs
+- Can't upload to server
 - Need to hide those logged columns
 - Rename "Notes" to "Details" in event properties.
 - Show timeline / timeline button checked, close file + open file -> timeline button still checked but timeline not shown
