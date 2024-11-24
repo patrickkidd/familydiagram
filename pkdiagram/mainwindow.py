@@ -287,6 +287,7 @@ class MainWindow(QMainWindow):
         self.ui.actionUser_Manual_Latest_Version.triggered.connect(
             self.onShowManualLatest
         )
+        self.ui.actionDiscussion_Forum.triggered.connect(self.onShowDiscussionForom)
         self.ui.actionCrash.triggered.connect(self.onTriggerCrash)
         self.ui.actionRaise_Python_Exception.triggered.connect(self.onTriggerException)
         self.ui.actionExport_Scene_dict.triggered.connect(self.onExportSceneDict)
@@ -1816,6 +1817,9 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(
             QUrl("https://alaskafamilysystems.com/products/family-diagram/user-manual/")
         )
+
+    def onShowDiscussionForom(self):
+        QDesktopServices.openUrl(QUrl("https://discussions.familydiagram.com/"))
 
     def onResetAll(self):
         hadActiveLayers = bool(self.scene.activeLayers())

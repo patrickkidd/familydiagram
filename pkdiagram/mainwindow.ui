@@ -204,10 +204,12 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionShow_Tips"/>
     <addaction name="actionUser_Manual"/>
     <addaction name="actionUser_Manual_Latest_Version"/>
+    <addaction name="actionDiscussion_Forum"/>
     <addaction name="actionSupport"/>
+    <addaction name="separator"/>
+    <addaction name="actionShow_Tips"/>
     <addaction name="separator"/>
     <addaction name="actionCheck_for_Updates"/>
     <addaction name="actionInstall_Update"/>
@@ -598,7 +600,7 @@
   </action>
   <action name="actionSupport">
    <property name="text">
-    <string>Support</string>
+    <string>Get Support</string>
    </property>
   </action>
   <action name="actionRaise_Python_Exception">
@@ -1324,6 +1326,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+A</string>
+   </property>
+  </action>
+  <action name="actionDiscussion_Forum">
+   <property name="text">
+    <string>Discussion Forum</string>
    </property>
   </action>
  </widget>
