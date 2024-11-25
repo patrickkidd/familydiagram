@@ -23,6 +23,13 @@ class NotesIcon(QGraphicsPixmapItem):
         e.accept()
         self.scene().onNotesIconClicked(self.parentItem())
 
+    def setVisible(self, on):
+        super().setVisible(on)
+        if on:
+            self.setPixmap(QPixmap(util.QRC + "notes-indicator.png"))
+        else:
+            self.setPixmap(QPixmap())
+
 
 class PathItem(util.PathItemBase, Item, ItemAnimationHelper):
 
