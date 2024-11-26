@@ -31,6 +31,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         self._activeLayers = []
         if self._scene:
             for marriage in self._scene.marriages():
+                if not marriage.peopleNames():
+                    continue
                 name = marriage.emotionalUnit().name()
                 if name:
                     self._emotionalUnits.add(marriage.emotionalUnit())
