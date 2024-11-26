@@ -842,6 +842,7 @@ def create_ac_mw(request, qtbot, tmp_path):
         savedYet=True,
         session=True,
         editorMode=True,
+        prefsName=None,
         init=True,
     ):
         if prefs is None:
@@ -854,7 +855,7 @@ def create_ac_mw(request, qtbot, tmp_path):
         if editorMode is not None:
             prefs.setValue("editorMode", editorMode)
 
-        ac = AppController(QApplication.instance(), prefs)
+        ac = AppController(QApplication.instance(), prefs, prefsName=prefsName)
         if savedYet is not None:
             ac.appConfig.savedYet = lambda: savedYet
 

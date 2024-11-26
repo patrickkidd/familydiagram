@@ -1,17 +1,14 @@
 import time, os, os.path, datetime
+import shutil
 import pickle
 
-from sqlalchemy import inspect
 import pytest
+import mock
 
 import vedana
-from pkdiagram.pyqt import *
 from pkdiagram import util
-from pkdiagram import (
-    Person,
-    Scene,
-    MainWindow,
-)
+from pkdiagram import Person, Scene, MainWindow, AppController
+
 
 pytestmark = [
     pytest.mark.component("MainWindow"),
@@ -55,3 +52,19 @@ def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):
         contains=MainWindow.S_IMPORTING_TO_FREE_DIAGRAM,
     )
     assert len(mw.scene.people()) == len(scene.people())
+
+
+def test_appconfig_upgraded(qApp, tmp_path, data_root, create_ac_mw):
+
+    PREFS_NAME = "bleh"
+
+    shutil.copyfile(
+        os.path.join(data_root, "cherries_1x"), tmp_path / f"cherries-{PREFS_NAME}"
+    )
+
+    with mock.patch("pkdiagram.pyqt.QMessageBox.warning") as warning:
+        ac, mw = create_ac_mw(prefsName=PREFS_NAME)
+    assert ac.appConfig.wasV1 == True
+    warning.assert_called_once_with(
+        None, "Login required", AppController.S_APPCONFIG_UPGRADED_LOGIN_REQUIRED
+    )

@@ -20,6 +20,7 @@ class AppConfig(QObject):
         self.hardwareUUID = None
         self.filePath = filePath
         self.wasTamperedWith = False
+        self.wasV1 = False
         self.prefsName = prefsName
 
     def init(self):
@@ -44,11 +45,16 @@ class AppConfig(QObject):
         """Read the cache file."""
         if not os.path.isfile(self.filePath):
             return
+
+        if not os.path.isfile(self.filePath + ".protect"):
+            self.wasV1 = True
+            self.data = {}
+            return
+
         try:
             bdata = util.readWithHash(self.filePath)
         except util.FileTamperedWithError:
             self.wasTamperedWith = True
-            log.debug("appconfig not encrypted; resetting...")
             self.data = {}
             return
         self.data = pickle.loads(bdata)
