@@ -1,4 +1,6 @@
 import pytest
+import mock
+
 from pkdiagram.pyqt import Qt
 from pkdiagram import util, Scene
 from pkdiagram.objects import Person, Marriage, Layer
@@ -36,7 +38,11 @@ def test_set_active():
         for i in range(3)
     ]
     scene.addItems(*marriages)
-    model.setData(model.index(1, 0), True, model.ActiveRole)
+
+    _orig_refresh = model.refresh
+    with mock.patch.object(model, "refresh", side_effect=_orig_refresh) as refresh:
+        model.setData(model.index(1, 0), True, model.ActiveRole)
+    assert refresh.called == False
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.CheckState.Checked
     assert model.data(model.index(2, 0), model.ActiveRole) == Qt.CheckState.Unchecked
