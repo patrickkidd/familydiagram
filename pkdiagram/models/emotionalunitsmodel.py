@@ -31,6 +31,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         self._activeLayers = []
         if self._scene:
             for marriage in self._scene.marriages():
+                if not marriage.peopleNames():
+                    continue
                 name = marriage.emotionalUnit().name()
                 if name:
                     self._emotionalUnits.add(marriage.emotionalUnit())
@@ -41,15 +43,22 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     def set(self, attr, value):
         if attr == "scene":
             if self._scene:
-                self._scene.marriageAdded.disconnect(self.refresh)
-                self._scene.marriageRemoved.disconnect(self.refresh)
-                self._scene.layerChanged.disconnect(self.refresh)
+                self._scene.marriageAdded.disconnect(self.onMarriageAddedOrRemoved)
+                self._scene.marriageRemoved.disconnect(self.onMarriageAddedOrRemoved)
+                self._scene.layerChanged.disconnect(self.onLayerChanged)
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
-                self._scene.marriageAdded.connect(self.refresh)
-                self._scene.marriageRemoved.connect(self.refresh)
-                self._scene.layerChanged.connect(self.refresh)
+                self._scene.marriageAdded.connect(self.onMarriageAddedOrRemoved)
+                self._scene.marriageRemoved.connect(self.onMarriageAddedOrRemoved)
+                self._scene.layerChanged.connect(self.onLayerChanged)
+            self.refresh()
+
+    def onMarriageAddedOrRemoved(self):
+        self.refresh()
+
+    def onLayerChanged(self, prop):
+        if prop.name() != "active":
             self.refresh()
 
     ## Qt Virtuals
