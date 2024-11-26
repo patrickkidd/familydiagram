@@ -92,7 +92,7 @@ Page {
         objectName: "tabBar"
         currentIndex: stack.currentIndex
         PK.TabButton { text: "Event" }
-        PK.TabButton { text: "Notes" }
+        PK.TabButton { text: "Details" }
         PK.TabButton { text: "Variables" }
         PK.TabButton { text: "Tags" }
     }
