@@ -634,6 +634,7 @@ class MainWindow(QMainWindow):
     def onQuit(self):
         if not self.atHome() and not self.confirmSave():
             return
+        self.hide()
         QApplication.quit()
 
     def closeEvent(self, e):
