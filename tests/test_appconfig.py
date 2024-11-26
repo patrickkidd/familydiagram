@@ -1,8 +1,9 @@
 import os.path, tempfile
+import shutil
 
 import pytest
 
-from pkdiagram import appconfig
+from pkdiagram import AppConfig, util
 
 
 pytestmark = [pytest.mark.component("AppConfig")]
@@ -19,7 +20,7 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "data")
 @pytest.fixture
 def ac():
     ifile = tempfile.NamedTemporaryFile()
-    ac = appconfig.AppConfig(filePath=ifile.name)
+    ac = AppConfig(filePath=ifile.name)
     ac.init()
 
     yield ac
@@ -27,23 +28,33 @@ def ac():
     ifile.close()
 
 
-def test_load_tampered():
+def test_load_all_good(tmp_path):
+    ac = AppConfig()
+    ac.init()
+    assert ac.wasTamperedWith == False
+    assert ac.wasV1 == False
+    assert ac.get("something") == None
+
+
+def test_load_tampered(data_root):
     # load file from high sierra test box
-    fpath = os.path.join(TEST_DATA, "cherries_high_sierra")
-    ac = appconfig.AppConfig(filePath=fpath)
+    fpath = os.path.join(data_root, "cherries_high_sierra")
+    with open(os.path.join(data_root, "cherries_high_sierra.protect"), "wb") as f:
+        f.write(b"")
+    ac = AppConfig(filePath=fpath)
     ac.init()
     assert ac.wasTamperedWith
 
 
 def test_write_new():
     ifile = tempfile.NamedTemporaryFile()
-    ac = appconfig.AppConfig(filePath=ifile.name)
+    ac = AppConfig(filePath=ifile.name)
     ac.init()
     ac.set("something", "bleh")
     ac.write()
     ac.deinit()
 
-    ac2 = appconfig.AppConfig(None, filePath=ifile.name)
+    ac2 = AppConfig(None, filePath=ifile.name)
     ac2.init()
     ac2.read()
     assert ac2.wasTamperedWith == False
@@ -51,3 +62,17 @@ def test_write_new():
 
     ac2.deinit()
     ifile.close()
+
+
+def test_backward_compat_with_1x(tmp_path, data_root):
+    shutil.copyfile(os.path.join(data_root, "cherries_1x"), tmp_path / "cherries_1x")
+    data_fpath = os.path.join(os.path.join(data_root, "cherries_1x"))
+    new_fpath = os.path.join(tmp_path / "cherries_1x")
+    with open(data_fpath, "rb") as rf:
+        bdata = rf.read()
+        with open(new_fpath, "wb") as wf:
+            wf.write(bdata)
+
+    ac = AppConfig(filePath=new_fpath)
+    ac.init()
+    assert ac.wasV1 == True

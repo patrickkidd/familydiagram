@@ -30,6 +30,10 @@ class AppController(QObject):
 
     S_USING_FREE_LICENSE = 'You are now using the free license. You will only have access to a single diagram which cannot be saved or transfered from this computer. This makes it possible for anyone to research their own family.\n\nYou can import a diagram from another person, though this will overwrite any previous contents of your free diagram. This allows you to import your diagram from a coach, for example. You cannot send or use your free diagram outside of this computer.\n\nIf you want to create more diagrams or access the research server, you will need to purchase the full version of this app by clicking "Family Diagram" -> "Show Account" in the menu bar. An option to export to a coach or to make a backup is to purchase a monthly subscription and immediately cancel it, giving you one month to export as many copies as you like.'
 
+    S_APPCONFIG_UPGRADED_LOGIN_REQUIRED = (
+        "The app configuration has been upgraded. Please log in again."
+    )
+
     def __init__(self, app, prefs, prefsName=None):
         super().__init__(app)
         self.isInitialized = False
@@ -89,7 +93,11 @@ class AppController(QObject):
 
         # AppConfig Protection
 
-        if self.appConfig.wasTamperedWith:
+        if self.appConfig.wasV1:
+            QMessageBox.warning(
+                None, "Login required", self.S_APPCONFIG_UPGRADED_LOGIN_REQUIRED
+            )
+        elif self.appConfig.wasTamperedWith:
             QMessageBox.warning(
                 None, "App configuration tampered with.", self.S_APPCONFIG_TAMPERED_WITH
             )
