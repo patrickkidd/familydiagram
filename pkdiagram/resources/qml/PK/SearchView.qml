@@ -18,6 +18,13 @@ Page {
         Edit.forceActiveFocus()
     }
 
+    Connections {
+        target: sceneModel
+        function onSceneChanged() {
+            propsPage.contentY = 0
+        }
+    }
+
     property alias tagsEdit: tagsEdit
     property alias emotionalUnitsEdit: emotionalUnitsEdit
 
