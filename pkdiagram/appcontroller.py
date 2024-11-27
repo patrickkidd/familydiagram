@@ -1,7 +1,7 @@
 import sys, signal, os.path, logging
 from .pyqt import QObject, QTimer, QSize, QMessageBox
 import vedana
-from pkdiagram import util, AppConfig, Session, commands, pepper, Analytics
+from pkdiagram import util, version, AppConfig, Session, commands, pepper, Analytics
 
 
 CUtil = util.CUtil
@@ -120,9 +120,12 @@ class AppController(QObject):
 
         # Read Preferences
 
-        checkForUpdatesAutomatically = self.prefs.value(
-            "checkForUpdatesAutomatically", defaultValue=True
-        )
+        if version.IS_ALPHA_BETA:
+            checkForUpdatesAutomatically = True
+        else:
+            checkForUpdatesAutomatically = self.prefs.value(
+                "checkForUpdatesAutomatically", defaultValue=True
+            )
         if checkForUpdatesAutomatically:
             CUtil.instance().checkForUpdates()
 
