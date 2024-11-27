@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>776</width>
-    <height>531</height>
+    <width>783</width>
+    <height>538</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -37,7 +37,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>776</width>
+     <width>783</width>
      <height>21</height>
     </rect>
    </property>
@@ -190,7 +190,6 @@
     <addaction name="actionHide_Names"/>
     <addaction name="actionHide_Emotional_Process"/>
     <addaction name="actionHide_Emotion_Colors"/>
-    <addaction name="actionHide_Layers"/>
     <addaction name="actionHide_ToolBars"/>
     <addaction name="actionHide_Variables_on_Diagram"/>
     <addaction name="actionHide_Variable_Steady_States"/>
@@ -889,17 +888,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Left</string>
-   </property>
-  </action>
-  <action name="actionHide_Layers">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Hide Diagram Views</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+L</string>
    </property>
   </action>
   <action name="actionPencilStroke">

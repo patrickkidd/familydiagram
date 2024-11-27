@@ -16,6 +16,21 @@ Data-dependent displays
         * DocumentView.setShowGraphicalTimeline(...)
 
 
+Active Layers (Exclusive)
+--------------------------
+- Exclusive
+    - SceneLayerModel.setActiveExclusively
+        * Layer.onProperty[active]
+        * Scene.onItemProperty
+        * Scene.updateActiveLayers
+        * Scene._updateAllItemsForLayersAndTags  <-- Need to map different uses
+        * PathItem.onActiveLayersChanged
+        * Item.onActiveLayersChanged
+        * [n]-> Property.onActiveLayersChanged
+        * Item.onProperty[itemPos]
+
+
+
 Search-Dependent displays
 --------------------------
 - Hidden items display
@@ -29,3 +44,5 @@ Select-Dependent flows
 - Scene.setCurrentDateTime
     - PathItem.onCurrentDateTime
         * self.setSelected(False) # commented out for now
+
+

@@ -476,17 +476,6 @@ PK.Drawer {
                             Layout.fillWidth: true
                         }
 
-                        // PK.CheckBox {
-                        //     text: "Hide Diagram Views"
-                        //     checked: sceneModel.hideLayers
-                        //     Layout.fillWidth: true
-                        //     onCheckedChanged: sceneModel.hideLayers = checked
-                        // }
-                        // PK.HelpText {
-                        //     text: "Hide all layers and just show the plain diagram."
-                        //     Layout.fillWidth: true
-                        // }
-                        
                         PK.CheckBox {
                             text: "Hide tool bars"
                             checked: sceneModel.hideToolBars

@@ -8,8 +8,10 @@ CLASS_PROPERTIES = {}
 
 
 class Item:
-    """Anything that is stored in the diagram. Has a unique id, write()
-    and save() API, and property system."""
+    """
+    The core data unit of the diagram. Has a unique id, write() and save() API,
+    and property system, has knowledge of layers.
+    """
 
     @staticmethod
     def registerProperties(propAttrs):

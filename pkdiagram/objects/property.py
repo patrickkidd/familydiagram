@@ -88,10 +88,7 @@ class Property:
         if self.layered:
             # update caches
             self._activeLayers = self.scene().activeLayers()
-            if self.scene().hideLayers():
-                self._currentLayerValue = None
-                self._usingLayer = False
-            elif self._activeLayers:
+            if self._activeLayers:
                 ok = False
                 # last active layer takes precidence
                 value, ok = self._activeLayers[-1].getItemProperty(

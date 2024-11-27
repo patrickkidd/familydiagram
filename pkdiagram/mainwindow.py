@@ -276,7 +276,6 @@ class MainWindow(QMainWindow):
             self.onHideEmotionalProcess
         )
         self.ui.actionHide_Emotion_Colors.toggled.connect(self.onHideEmotionColors)
-        self.ui.actionHide_Layers.toggled[bool].connect(self.onHideLayers)
         self.ui.actionHide_ToolBars.toggled.connect(self.onHideToolBars)
         self.ui.actionImport_Diagram.triggered.connect(self.onImportDiagram)
         self.ui.actionSave_Selection_As.triggered.connect(self.saveSelectionAs)
@@ -1170,7 +1169,6 @@ class MainWindow(QMainWindow):
             self.ui.actionExpand_Graphical_Timeline.setChecked(
                 self.documentView.graphicalTimelineView.isExpanded()
             )
-            self.ui.actionHide_Layers.setChecked(self.scene.hideLayers())
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
@@ -1659,10 +1657,6 @@ class MainWindow(QMainWindow):
             on = prop.get()
             if on != self.ui.actionHide_Emotion_Colors.isChecked():
                 self.ui.actionHide_Emotion_Colors.setChecked(on)
-        elif prop.name() == "hideLayers":
-            on = prop.get()
-            if on != self.ui.actionHide_Layers.isChecked():
-                self.ui.actionHide_Layers.setChecked(on)
         elif prop.name() == "hideVariablesOnDiagram":
             on = prop.get()
             if on != self.ui.actionHide_Variables_on_Diagram.isChecked():
@@ -1737,13 +1731,6 @@ class MainWindow(QMainWindow):
         if on != self.ui.actionHide_Emotion_Colors.isChecked():
             self.ui.actionHide_Emotion_Colors.setChecked(on)
         self.scene.setHideEmotionColors(on, undo=True)
-
-    def onHideLayers(self, on):
-        if on != self.ui.actionHide_Layers.isChecked():
-            self._blocked = True
-            self.ui.actionHide_Layers.setChecked(on)
-            self._blocked = False
-        self.scene.setHideLayers(on, undo=True)
 
     @util.blocked
     def onHideNames(self, on):

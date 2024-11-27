@@ -158,7 +158,6 @@ class Scene(QGraphicsScene, Item):
             {"attr": "hideToolBars", "default": False},
             {"attr": "hideEmotionalProcess", "default": False},
             {"attr": "hideEmotionColors", "default": False},
-            {"attr": "hideLayers", "default": False},
             {"attr": "hideDateSlider", "type": bool, "default": False},
             {
                 "attr": "hideVariablesOnDiagram",
@@ -1499,11 +1498,6 @@ class Scene(QGraphicsScene, Item):
         elif prop.name() == "hideVariableSteadyStates":
             for person in self.people():
                 person.onHideVariableSteadyStates()
-        elif prop.name() == "hideLayers":
-            if prop.get():
-                activeLayers = []
-            else:
-                activeLayers = self.activeLayers()
         if prop.name() not in ["lastItemId"]:
             self.propertyChanged.emit(prop)
         super().onProperty(prop)  # update listeners after searchModel.tags updates data

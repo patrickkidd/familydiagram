@@ -935,7 +935,6 @@ def _scene_data(*items):
 #     'hideToolBars': False,
 #     'hideEmotionalProcess': False,
 #     'hideEmotionColors': False,
-#     'hideLayers': False,
 #     'hideDateSlider': False,
 #     'hideVariablesOnDiagram': False,
 #     'hideVariableSteadyStates': False,

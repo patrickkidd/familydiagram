@@ -125,9 +125,6 @@ class LayerItem(PathItem):
 
     def onActiveLayersChanged(self):
         super().onActiveLayersChanged()
-        if self.scene().hideLayers():
-            self.fadeToOpacity(0.0)
-            return
         visible = self.shouldShowForLayers(self.scene().activeLayers())
         if visible:
             opacity = 1.0
