@@ -34,11 +34,10 @@ black = "*"
 pytest = "*"
 pytest-qt = "*"
 pytest-mock = "*"
-pytest-dependency = "*"
 pytest-xdist = "*"
+pytest-dependency = "*"
 snapshottest = "*"
 mock = "*"
-pytest-xdist = "*"
 pyqtdeploy = { index="riverbank" }
 fdserver = { index="familydiagram" }
 

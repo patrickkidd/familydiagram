@@ -204,7 +204,7 @@ Page {
                     }
 
                     PK.Text {
-                        text: "Logged Start Date"
+                        text: "Logged Start"
                         visible: sceneModel.isInEditorMode
                     }
 
@@ -254,7 +254,7 @@ Page {
                     }                    
 
                     PK.Text {
-                        text: "Logged End Date"
+                        text: "Logged End"
                         visible: sceneModel.isInEditorMode
                     }
 
