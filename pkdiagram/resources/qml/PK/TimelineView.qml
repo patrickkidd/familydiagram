@@ -202,9 +202,9 @@ ColumnLayout {
     }
 
     property bool expanded: width >= responsiveBreakWidth
-    property int responsiveBreakWidth: 700
-    property var normalHideColumns: [0, 2, 4, 7, 8, 9]
-    property var expandedHideColumns: util.ENABLE_DATE_BUDDIES ? [2, 7, 8] : [0, 2, 7, 8]
+    property int responsiveBreakWidth: 770
+    property var normalHideColumns: [0, 2, 4, 6, 7, 8, 9]
+    property var expandedHideColumns: util.ENABLE_DATE_BUDDIES ? [2, 6, 7, 8] : [0, 2, 6, 7, 8]
     property var normalStretchColumns: [3]
     property var expandedStretchColumns: [3]
     property var hideColumns: []
