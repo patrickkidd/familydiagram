@@ -171,12 +171,13 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
                 entry = _entry
         if not entry:
             return
-        row = self._unfilteredEntries.remove(entry)
-        row = self._entries.index(entry)
-        if row > -1:
-            self.beginRemoveRows(QModelIndex(), row, row)
-            del self._entries[row]
-            self.endRemoveRows()
+        self._unfilteredEntries.remove(entry)
+        if entry in self._entries:
+            row = self._entries.index(entry)
+            if row > -1:
+                self.beginRemoveRows(QModelIndex(), row, row)
+                del self._entries[row]
+                self.endRemoveRows()
 
     def updateFileEntry(self, path, **kwargs):
         entry = None
