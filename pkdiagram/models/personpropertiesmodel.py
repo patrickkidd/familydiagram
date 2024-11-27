@@ -25,6 +25,8 @@ class PersonPropertiesModel(QObject, ModelHelper):
             {"attr": "deceased", "convertTo": Qt.CheckState},
             {"attr": "primary", "convertTo": Qt.CheckState},
             {"attr": "hideDetails", "convertTo": Qt.CheckState},
+            {"attr": "hideDates", "convertTo": Qt.CheckState},
+            {"attr": "hideVariables", "convertTo": Qt.CheckState},
             {"attr": "bigFont", "convertTo": Qt.CheckState},
             {"attr": "age", "type": int, "default": -1},
             {"attr": "birthDateTime", "type": QDateTime, "default": QDateTime()},
@@ -58,8 +60,6 @@ class PersonPropertiesModel(QObject, ModelHelper):
     def onItemProperty(self, prop):
         super().onItemProperty(prop)
         if prop.name() == "size":
-            self.refreshProperty("sizeIndex")
-        elif prop.name() == "size":
             self.refreshProperty("sizeIndex")
         elif prop.name() == "gender":
             self.refreshProperty("genderIndex")

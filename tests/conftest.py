@@ -806,28 +806,6 @@ def qmlScene(simpleScene):
 
 
 @pytest.fixture
-def personProps():
-    return {
-        "name": "Patrick",
-        "middleName": "Kidd",
-        "lastName": "Stinson",
-        "nickName": "Patricio",
-        "birthName": "Stinsonion",
-        "size": util.personSizeFromName("Small"),
-        "gender": util.personKindFromIndex(1),
-        "adopted": Qt.Checked,
-        "adoptedDateTime": QDateTime(util.Date(1982, 6, 16)),
-        "primary": Qt.Checked,
-        "birthDateTime": QDateTime(util.Date(1980, 5, 11)),
-        "deceased": Qt.Checked,
-        "deceasedDateTime": QDateTime(util.Date(2001, 1, 1)),
-        "deceasedReason": "heart attack",
-        "notes": "who knows anyway",
-        "hideDetails": Qt.Checked,
-    }
-
-
-@pytest.fixture
 def create_ac_mw(request, qtbot, tmp_path):
     """
     Create an AppController and MainWindow.

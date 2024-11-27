@@ -145,6 +145,7 @@ class Marriage(PathItem):
             {"attr": "diagramNotes", "onset": "updateDetails"},
             {"attr": "notes"},
             {"attr": "hideDetails", "default": False, "layered": True},
+            {"attr": "hideDates", "default": False, "layered": True},
             {"attr": "bigFont", "type": bool, "default": False, "layered": True},
         )
     )
@@ -508,7 +509,7 @@ class Marriage(PathItem):
         if prop.name() == "notes":
             if not self._onShowAliases:
                 self.updateNotes()
-        elif prop.name() == "hideDetails":
+        elif prop.name() in ("hideDetails", "hideDates"):
             self.updateDetails()
         elif prop.name() == "bigFont":
             if prop.get():

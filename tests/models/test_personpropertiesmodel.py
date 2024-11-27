@@ -10,7 +10,7 @@ pytestmark = [
 ]
 
 
-def test_checkStates(simpleScene):
+def test_read_checkStates(simpleScene):
 
     personA = Person(showMiddleName=False)
     personB = Person(showMiddleName=True)
@@ -21,8 +21,30 @@ def test_checkStates(simpleScene):
     model.items = [personA, personB]
     assert model.showMiddleName == Qt.PartiallyChecked
 
+    #
+
     personA.setShowMiddleName(True)
     assert model.showMiddleName == Qt.Checked
+
+    personA.setHideDetails(True)
+    assert model.hideDetails == Qt.PartiallyChecked
+
+    personA.setHideDates(True)
+    assert model.hideDates == Qt.PartiallyChecked
+
+    personA.setHideVariables(True)
+    assert model.hideDates == Qt.PartiallyChecked
+
+    #
+
+    personB.setHideDetails(True)
+    assert model.hideDetails == Qt.Checked
+
+    personB.setHideDates(True)
+    assert model.hideDates == Qt.Checked
+
+    personB.setHideVariables(True)
+    assert model.hideVariables == Qt.Checked
 
 
 def _test_prop_returns():

@@ -46,3 +46,8 @@ Select-Dependent flows
         * self.setSelected(False) # commented out for now
 
 
+
+
+PROBLEMS
+===================================
+- Person.updateDetails is called too many times just for ctor, add to scene, etc

@@ -737,6 +737,26 @@ PK.Drawer {
                                 onCheckStateChanged: personModel.hideDetails = checkState
                             }
 
+                            PK.CheckBox {
+                                id: hideDatesBox
+                                objectName: 'hideDatesBox'
+                                text: "Hide Dates"
+                                enabled: !root.isReadOnly
+                                checkState: personModel.hideDates
+                                KeyNavigation.tab: firstNameEdit
+                                onCheckStateChanged: personModel.hideDates = checkState
+                            }
+
+                            PK.CheckBox {
+                                id: hideVariablesBox
+                                objectName: 'hideVariablesBox'
+                                text: "Hide Variables"
+                                enabled: !root.isReadOnly
+                                checkState: personModel.hideVariables
+                                KeyNavigation.tab: firstNameEdit
+                                onCheckStateChanged: personModel.hideVariables = checkState
+                            }
+
                         }
                     }
 

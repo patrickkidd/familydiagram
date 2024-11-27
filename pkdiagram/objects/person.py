@@ -99,6 +99,8 @@ class Person(PathItem):
                 "onset": "updateGeometry",
             },
             {"attr": "hideDetails", "default": False, "layered": True},
+            {"attr": "hideDates", "default": False, "layered": True},
+            {"attr": "hideVariables", "default": False, "layered": True},
             {"attr": "color", "layered": True, "onset": "updatePenAndGeometry"},
             {"attr": "itemOpacity", "type": float, "layered": True},
             {
@@ -816,7 +818,7 @@ class Person(PathItem):
                 self.sizeAnimation.setEndValue(endScale)
                 self.sizeAnimation.blockSignals(False)
                 self.startLayerAnimation(self.sizeAnimation)
-        elif prop.name() == "hideDetails":
+        elif prop.name() in ("hideDetails", "hideDates", "hideVariables"):
             self.updateDetails()
         elif prop.name() == "bigFont":
             if prop.get():
@@ -1190,25 +1192,31 @@ class Person(PathItem):
 
     def updateDetails(self):
         super().updateDetails()
+        hideDetails = self.hideDetails()
+        hideDates = self.hideDates()
+        hideVariables = self.hideVariables()
         self.updateAgeText()
-        # details text
+
+        # Compile Built-in Details
         lines = []
         if self.scene():
-            showAliases = self.scene().shouldShowAliases()
             currentDateTime = self.scene().currentDateTime()
         else:
-            showAliases = False
             currentDateTime = QDateTime.currentDateTime()
-        name = self.fullNameOrAlias()
-        if name:
-            lines.append(name)
-        if self.birthDateTime():
+
+        if not hideDetails:
+            name = self.fullNameOrAlias()
+            if name:
+                lines.append(name)
+
+        # Compile Dates
+        if not hideDates and self.birthDateTime():
             lines.append("b. " + util.dateString(self.birthDateTime()))
         if self.gender() == "abortion":
             lines.append("(abortion)")
         elif self.gender() == "miscarriage":
             lines.append("(miscarriage)")
-        if self.deceased():
+        if not hideDates and self.deceased():
             ignoreDeath = (
                 self.deceasedDateTime() and self.deceasedDateTime() > currentDateTime
             )
@@ -1216,19 +1224,27 @@ class Person(PathItem):
                 lines.append("d. " + util.dateString(self.deceasedDateTime()))
             if self.deceasedReason() and not ignoreDeath:
                 lines.append(self.deceasedReason())
-        if self.adopted():
+        if not hideDates and self.adopted():
             ignoreAdoption = (
                 self.adoptedDateTime() and self.adoptedDateTime() > currentDateTime
             )
             if self.adoptedDateTime() and not ignoreAdoption:
                 lines.append("a. " + util.dateString(self.adoptedDateTime()))
-        if self.diagramNotes():
+
+        # Compile Custom Details
+        if not hideDetails and self.diagramNotes():
             for line in self.diagramNotes().split("\n"):
                 lines.append(line)
         mainText = "\n".join(lines)
+
+        # Compile Variables
         variableLines = []
         variableColors = []
-        if self.scene():
+        if (
+            not hideVariables
+            and self.scene()
+            and not self.scene().hideVariablesOnDiagram()
+        ):
             if util.IS_UI_DARK_MODE:
                 vBaseColor = QColor(self.VARIABLE_BASE_COLOR_DARK_MODE)
             else:
@@ -1260,10 +1276,10 @@ class Person(PathItem):
                 color = QColor(vBaseColor)
                 color.setAlphaF(alpha)
                 variableColors.append(color)
-            if self.scene().hideVariablesOnDiagram():
-                self.detailsText.setText(mainText)
-            else:
-                self.detailsText.setText(mainText, variableLines)
+
+        # Do Update
+        if mainText and variableLines:
+            self.detailsText.setText(mainText, variableLines)
             for i, color in enumerate(variableColors):
                 self.detailsText.setExtraLineColor(i, color)
             # flash lines that have changed
@@ -1276,9 +1292,13 @@ class Person(PathItem):
                             lastLine = None
                         if lastLine != variableLines[i]:
                             self.detailsText.flashExtraLine(i)
-            self._lastVariableLines = variableLines
-        hideDetails = bool(self.hideDetails() or self.detailsText.isEmpty())
-        self.detailsText.setParentRequestsToShow(not hideDetails)
+        else:
+            self.detailsText.setText(mainText)
+        self._lastVariableLines = variableLines
+        requestToHide = self.detailsText.isEmpty() or (
+            hideDetails and hideDates and hideVariables
+        )
+        self.detailsText.setParentRequestsToShow(not requestToHide)
 
     def updatePenAndGeometry(self):
         self.updatePen()
