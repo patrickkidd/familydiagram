@@ -36,6 +36,7 @@ class Event(item.Item):
         self._aliasNotes = None
         self._aliasParentName = None
         self._onShowAliases = False
+        self._updatingDescription = False
         self.parent = None
         # avoid adding to the parent in various cases
         if parent:  # for tidyness in ctors
@@ -175,9 +176,10 @@ class Event(item.Item):
             if self.parentName() != wasParentName:
                 self.onProperty(self.prop("parentName"))
 
-    @util.iblocked
     def onProperty(self, prop):
-        if prop.name() == "description":
+        if prop.name() == "description" or (
+            prop.name() == "location" and self.uniqueId() == EventKind.Moved.value
+        ):
             if not self._onShowAliases:
                 self.updateDescription()
         elif prop.name() == "notes":
@@ -225,9 +227,11 @@ class Event(item.Item):
         else:
             self._aliasParentName = None
 
-    @util.fblocked
     def updateDescription(self):
         """Force re-write of aliases."""
+        if self._updatingDescription:
+            return
+        self._updatingDescription = True
         # Was preventing editing of description and don't know what it is for any more.
         # if self.addDummy:
         #     return
@@ -249,8 +253,8 @@ class Event(item.Item):
             self._aliasDescription = scene.anonymize(prop.get())
         else:
             self._aliasDescription = None
+        self._updatingDescription = False
 
-    @util.fblocked
     def updateNotes(self):
         """Force re-write of aliases."""
         if self.addDummy:
