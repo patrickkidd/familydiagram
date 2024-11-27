@@ -20,6 +20,30 @@ pytestmark = [
 ]
 
 
+@pytest.fixture
+def personProps():
+    return {
+        "name": "Patrick",
+        "middleName": "Kidd",
+        "lastName": "Stinson",
+        "nickName": "Patricio",
+        "birthName": "Stinsonion",
+        "size": util.personSizeFromName("Small"),
+        "gender": util.personKindFromIndex(1),
+        "adopted": Qt.Checked,
+        "adoptedDateTime": QDateTime(util.Date(1982, 6, 16)),
+        "primary": Qt.Checked,
+        "birthDateTime": QDateTime(util.Date(1980, 5, 11)),
+        "deceased": Qt.Checked,
+        "deceasedDateTime": QDateTime(util.Date(2001, 1, 1)),
+        "deceasedReason": "heart attack",
+        "notes": "who knows anyway",
+        "hideDetails": Qt.Checked,
+        "hideDates": Qt.Unchecked,
+        "hideVariables": Qt.Unchecked,
+    }
+
+
 def setPersonProperties(pp, props):
     pp.setItemProp("personPage", "contentY", 0)
     pp.keyClicks("firstNameEdit", props["name"])
@@ -150,6 +174,8 @@ def test_show_init(pp, personProps):
         )
     assert pp.itemProp("notesEdit", "text") == personProps["notes"]
     assert pp.itemProp("hideDetailsBox", "checkState") == personProps["hideDetails"]
+    assert pp.itemProp("hideDatesBox", "checkState") == personProps["hideDates"]
+    assert pp.itemProp("hideVariablesBox", "checkState") == personProps["hideVariables"]
     # pp.clickTimelineViewItem('personProps_timelineView', 'Birth', column=3)
     # if personProps['adopted']:
     #     pp.clickTableViewItem('personProps_timelineView', 'Adopted', column=3)
@@ -301,6 +327,8 @@ def test_scene_readOnlyFields(pp, qmlEngine):
     assert not pp.itemProp("deceasedDateButtons", "enabled")
     assert not pp.itemProp("notesEdit", "enabled")
     assert not pp.itemProp("hideDetailsBox", "enabled")
+    assert not pp.itemProp("hideDatesBox", "enabled")
+    assert not pp.itemProp("hideVariablesBox", "enabled")
     assert not pp.itemProp("colorBox", "enabled")
     assert not pp.itemProp("resetColorButton", "enabled")
     assert not pp.itemProp("deemphasizeBox", "enabled")

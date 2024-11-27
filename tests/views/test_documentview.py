@@ -231,7 +231,7 @@ def test_remove_last_event(qtbot, dv):
         assert_UIHasAnyEvents(dv, False)
 
 
-def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView, personProps):
+def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView):
     dv.scene.addItems(Person(name="p1", pos=QPointF(-200, -200)))
 
     # Single-click select first person

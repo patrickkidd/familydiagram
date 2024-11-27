@@ -10,6 +10,7 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         objects.Marriage,
         [
             {"attr": "hideDetails", "convertTo": Qt.CheckState},
+            {"attr": "hideDates", "convertTo": Qt.CheckState},
             {"attr": "bigFont", "convertTo": Qt.CheckState},
             {"attr": "personAName"},
             {"attr": "personBName"},

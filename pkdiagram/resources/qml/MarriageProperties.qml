@@ -363,6 +363,13 @@ PK.Drawer {
                                 checkState: marriageModel.bigFont
                                 onCheckStateChanged: marriageModel.bigFont = checkState
                             }
+
+                        }
+
+                        Row {
+
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 2                            
                             
                             PK.CheckBox {
                                 id: hideDetailsBox
@@ -373,7 +380,17 @@ PK.Drawer {
                                 checkState: marriageModel.hideDetails
                                 onCheckStateChanged: marriageModel.hideDetails = checkState
                             }
-                            
+
+                            PK.CheckBox {
+                                id: hideDatesBox
+                                objectName: 'hideDatesBox'
+                                text: "Hide Dates"
+                                KeyNavigation.tab: marriedBox
+                                KeyNavigation.backtab: bigFontBox
+                                checkState: marriageModel.hideDates
+                                onCheckStateChanged: marriageModel.hideDates = checkState
+                            }
+
                         }
                     }
                 }

@@ -89,7 +89,7 @@ def test_multiple_births(simpleScene):
     assert childC.childOf.multipleBirth.children() == [childA, childB, childC]
 
 
-def test_detailsText_pos():
+def test_detailsText_visible_at_pos():
     scene = Scene()
     person = Person()
     # test that ItemDetails is initialized to initial pos
@@ -102,6 +102,69 @@ def test_detailsText_pos():
     person.setDiagramNotes("here are some notes")
     assert person.detailsText.isVisible() == True
     assert person.detailsText.pos() == person.initialDetailsPos()
+
+
+@pytest.fixture
+def detailsText_person():
+    scene = Scene()
+    scene.addEventProperty("varX")
+    scene.setCurrentDateTime(util.Date(2001, 1, 1))
+    person = Person(name="Roger")
+    scene.addItem(person)
+    person.setDiagramNotes("here are some notes")
+    person.setBirthDateTime(util.Date(2001, 1, 1))
+    event = Event(person, dateTime=scene.currentDateTime())
+    event.dynamicProperty("varx").set("123")
+    person.updateDetails()
+    return person
+
+
+def test_detailsText_all(detailsText_person):
+    person = detailsText_person
+    assert person.detailsText.isVisible() == True
+    assert person.name() in person.detailsText.text()
+    assert util.dateString(person.birthDateTime()) in person.detailsText.text()
+    assert person.diagramNotes() in person.detailsText.text()
+    assert "varX" in person.detailsText.text()
+
+
+def test_detailsText_none(detailsText_person):
+    person = detailsText_person
+    person.setHideDetails(True)
+    person.setHideDates(True)
+    person.setHideVariables(True)
+    assert person.detailsText.isVisible() == False
+    assert person.detailsText.isEmpty() == True
+
+
+def test_detailsText_hideDetails(detailsText_person):
+    person = detailsText_person
+    person.setHideDetails(True)
+    assert person.detailsText.isVisible() == True
+    assert person.name() not in person.detailsText.text()
+    assert util.dateString(person.birthDateTime()) in person.detailsText.text()
+    assert person.diagramNotes() not in person.detailsText.text()
+    assert "varX" in person.detailsText.text()
+
+
+def test_detailsText_hideDates(detailsText_person):
+    person = detailsText_person
+    person.setHideDates(True)
+    assert person.detailsText.isVisible() == True
+    assert person.name() in person.detailsText.text()
+    assert util.dateString(person.birthDateTime()) not in person.detailsText.text()
+    assert person.diagramNotes() in person.detailsText.text()
+    assert "varX" in person.detailsText.text()
+
+
+def test_detailsText_hideVariables(detailsText_person):
+    person = detailsText_person
+    person.setHideVariables(True)
+    assert person.detailsText.isVisible() == True
+    assert person.name() in person.detailsText.text()
+    assert util.dateString(person.birthDateTime()) in person.detailsText.text()
+    assert person.diagramNotes() in person.detailsText.text()
+    assert "varX" not in person.detailsText.text()
 
 
 def test_hide_age_when_no_deceased_date():

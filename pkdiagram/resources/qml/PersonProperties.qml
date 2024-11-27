@@ -726,7 +726,13 @@ PK.Drawer {
                                 KeyNavigation.tab: hideDetailsBox
                                 onCheckStateChanged: personModel.bigFont = checkState
                             }
+                        }
 
+                        Row {
+
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 3                            
+                        
                             PK.CheckBox {
                                 id: hideDetailsBox
                                 objectName: 'hideDetailsBox'
@@ -735,6 +741,26 @@ PK.Drawer {
                                 checkState: personModel.hideDetails
                                 KeyNavigation.tab: firstNameEdit
                                 onCheckStateChanged: personModel.hideDetails = checkState
+                            }
+
+                            PK.CheckBox {
+                                id: hideDatesBox
+                                objectName: 'hideDatesBox'
+                                text: "Hide Dates"
+                                enabled: !root.isReadOnly
+                                checkState: personModel.hideDates
+                                KeyNavigation.tab: firstNameEdit
+                                onCheckStateChanged: personModel.hideDates = checkState
+                            }
+
+                            PK.CheckBox {
+                                id: hideVariablesBox
+                                objectName: 'hideVariablesBox'
+                                text: "Hide Variables"
+                                enabled: !root.isReadOnly
+                                checkState: personModel.hideVariables
+                                KeyNavigation.tab: firstNameEdit
+                                onCheckStateChanged: personModel.hideVariables = checkState
                             }
 
                         }
