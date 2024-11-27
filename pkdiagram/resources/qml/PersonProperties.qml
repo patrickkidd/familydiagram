@@ -726,7 +726,13 @@ PK.Drawer {
                                 KeyNavigation.tab: hideDetailsBox
                                 onCheckStateChanged: personModel.bigFont = checkState
                             }
+                        }
 
+                        Row {
+
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 3                            
+                        
                             PK.CheckBox {
                                 id: hideDetailsBox
                                 objectName: 'hideDetailsBox'

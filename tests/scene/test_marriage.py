@@ -670,7 +670,7 @@ def test_separationStatusFor_one_moved_event_sep_and_div_events(noEvents):
 ## Miscellaneous
 
 
-def test_lines(simpleMarriage):
+def test_detailsText_lines(simpleMarriage):
     somethingHappened = Event(
         parent=simpleMarriage,
         description="Something happened",
@@ -716,6 +716,52 @@ def test_lines(simpleMarriage):
         simpleMarriage.detailsText.text()
         == "b. 01/01/1900\nm. 01/01/1910\ns. 01/01/1920\n01/01/1922 Something happened\n01/01/1925 Moved to Washington, DC\nm. 01/01/1930\ns. 01/01/1940\nd. 01/01/1950"
     )
+
+
+@pytest.fixture
+def detailsText_marriage():
+    scene = Scene()
+    scene.setCurrentDateTime(util.Date(2001, 1, 1))
+    personA, personB = Person(name="Roger"), Person(name="Sally")
+    marriage = Marriage(personA, personB, diagramNotes="here are some notes")
+    scene.addItems(personA, personB, marriage)
+    married = Event(
+        marriage, uniqueId=EventKind.Married.value, dateTime=scene.currentDateTime()
+    )
+    custom = Event(marriage, dateTime=scene.currentDateTime())
+    marriage.updateDetails()
+    return marriage
+
+
+def test_detailsText_all(detailsText_marriage):
+    marriage = detailsText_marriage
+    assert marriage.detailsText.isVisible() == True
+    assert "m. " in marriage.detailsText.text()
+    assert marriage.diagramNotes() in marriage.detailsText.text()
+
+
+def test_detailsText_none(detailsText_marriage):
+    marriage = detailsText_marriage
+    marriage.setHideDetails(True)
+    marriage.setHideDates(True)
+    assert marriage.detailsText.isVisible() == False
+    assert marriage.detailsText.isEmpty() == True
+
+
+def test_detailsText_hideDetails(detailsText_marriage):
+    marriage = detailsText_marriage
+    marriage.setHideDetails(True)
+    assert marriage.detailsText.isVisible() == True
+    assert "m. " in marriage.detailsText.text()
+    assert marriage.diagramNotes() not in marriage.detailsText.text()
+
+
+def test_detailsText_hideDates(detailsText_marriage):
+    marriage = detailsText_marriage
+    marriage.setHideDates(True)
+    assert marriage.detailsText.isVisible() == True
+    assert "m. " not in marriage.detailsText.text()
+    assert marriage.diagramNotes() in marriage.detailsText.text()
 
 
 def test_compat_marriage_events(data_root):

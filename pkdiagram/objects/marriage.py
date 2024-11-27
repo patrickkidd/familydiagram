@@ -626,43 +626,50 @@ class Marriage(PathItem):
         super().updateDetails()
         currentDateTime = self.scene() and self.scene().currentDateTime() or QDateTime()
         lines = []
-        events = self.events()
-        for event in events:
-            uniqueId = event.uniqueId()
-            if (
-                not event.dateTime()
-                or not currentDateTime
-                or event.dateTime() > currentDateTime
-            ):
-                continue
-            if uniqueId == EventKind.Bonded.value and event.dateTime():
-                lines.append("b. " + util.dateString(event.dateTime()))
-            elif uniqueId == EventKind.Married.value and event.dateTime():
-                lines.append("m. " + util.dateString(event.dateTime()))
-            elif uniqueId == EventKind.Separated.value and event.dateTime():
-                lines.append("s. " + util.dateString(event.dateTime()))
-            elif uniqueId == EventKind.Divorced.value and event.dateTime():
-                lines.append("d. " + util.dateString(event.dateTime()))
-            elif uniqueId == "moved" and event.dateTime():
-                lines.append(
-                    "%s %s" % (util.dateString(event.dateTime()), event.description())
-                )
-            elif event.includeOnDiagram():
-                lines.append(
-                    "%s %s" % (util.dateString(event.dateTime()), event.description())
-                )
-        if self.diagramNotes():
+
+        # Compile Dates
+        if not self.hideDates():
+            for event in self.events():
+                uniqueId = event.uniqueId()
+                if (
+                    not event.dateTime()
+                    or not currentDateTime
+                    or event.dateTime() > currentDateTime
+                ):
+                    continue
+                if uniqueId == EventKind.Bonded.value and event.dateTime():
+                    lines.append("b. " + util.dateString(event.dateTime()))
+                elif uniqueId == EventKind.Married.value and event.dateTime():
+                    lines.append("m. " + util.dateString(event.dateTime()))
+                elif uniqueId == EventKind.Separated.value and event.dateTime():
+                    lines.append("s. " + util.dateString(event.dateTime()))
+                elif uniqueId == EventKind.Divorced.value and event.dateTime():
+                    lines.append("d. " + util.dateString(event.dateTime()))
+                elif uniqueId == "moved" and event.dateTime():
+                    lines.append(
+                        "%s %s"
+                        % (util.dateString(event.dateTime()), event.description())
+                    )
+                elif event.includeOnDiagram():
+                    lines.append(
+                        "%s %s"
+                        % (util.dateString(event.dateTime()), event.description())
+                    )
+
+        # Compile Details
+        if not self.hideDetails() and self.diagramNotes():
             for line in self.diagramNotes().split("\n"):
                 lines.append(line)
+
         if lines:
             text = "\n".join(lines)
         else:
             text = None
         self.detailsText.setText(text)
-        if self.hideDetails() or self.detailsText.isEmpty():
-            self.detailsText.setParentRequestsToShow(False)
-        else:
-            self.detailsText.setParentRequestsToShow(True)
+        requestToHide = self.detailsText.isEmpty() or (
+            self.hideDetails() and self.hideDates()
+        )
+        self.detailsText.setParentRequestsToShow(not requestToHide)
         self.separationIndicator.updateGeometry()
         if self.separationIndicator.isEmpty():
             self.separationIndicator.hide()

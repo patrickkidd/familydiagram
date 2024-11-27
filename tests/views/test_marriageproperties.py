@@ -34,20 +34,6 @@ def mp(qtbot, qmlScene, qmlEngine):
     mp.deinit()
 
 
-@pytest.fixture
-def marriageProps(qmlScene):
-    return {"personAName": "", "personBName": ""}
-
-
-def runMarriageProperties(mp, props):
-    props = dict(props)
-    props.update(updates)
-
-
-def assertMarriageProperties(event, props, updates):
-    assert mp.itemProp("titleLabel", "text") == props
-
-
 def test_show_init(mp, qmlScene):
     m = qmlScene.marriages()[0]
     mp.marriageModel.items = [m]
@@ -90,6 +76,19 @@ def test_divorcedBox(noEvents, mp):
     assert marriage.married() == True
     assert marriage.separated() == True
     assert marriage.divorced() == True
+
+
+@pytest.mark.parametrize("propName", ["hideDetails", "hideDates"])
+def test_divorcedBox(noEvents, mp, propName):
+    marriage = noEvents
+    mp.rootProp("marriageModel").items = [marriage]
+    assert marriage.prop(propName).get() == False
+
+    mp.mouseClick(f"{propName}Box")
+    assert marriage.prop(propName).get() == True
+
+    mp.mouseClick(f"{propName}Box")
+    assert marriage.prop(propName).get() == False
 
 
 def test_married_disabled_when_divorced(noEvents, mp):
