@@ -46,12 +46,14 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 self._scene.marriageAdded.disconnect(self.onMarriageAddedOrRemoved)
                 self._scene.marriageRemoved.disconnect(self.onMarriageAddedOrRemoved)
                 self._scene.layerChanged.disconnect(self.onLayerChanged)
+                self._scene.propertyChanged.disconnect(self.onSceneProperty)
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
                 self._scene.marriageAdded.connect(self.onMarriageAddedOrRemoved)
                 self._scene.marriageRemoved.connect(self.onMarriageAddedOrRemoved)
                 self._scene.layerChanged.connect(self.onLayerChanged)
+                self._scene.propertyChanged.connect(self.onSceneProperty)
             self.refresh()
 
     def onMarriageAddedOrRemoved(self):
@@ -59,6 +61,10 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
 
     def onLayerChanged(self, prop):
         if prop.name() != "active":
+            self.refresh()
+
+    def onSceneProperty(self, prop):
+        if prop.name() in ("hideNames", "showAliases"):
             self.refresh()
 
     ## Qt Virtuals

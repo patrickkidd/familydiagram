@@ -287,8 +287,8 @@ class Marriage(PathItem):
     def peopleNamesFor(personA, personB):
         ret = ""
         if personA is not None and personB is not None:
-            name1 = personA.name()
-            name2 = personB.name()
+            name1 = personA.firstNameOrAlias()
+            name2 = personB.firstNameOrAlias()
             if name1 and name2:
                 ret += "%s & %s" % (name1, name2)
             elif name1:

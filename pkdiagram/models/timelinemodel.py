@@ -123,9 +123,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._headerModel.setHeaders(self._columnHeaders)
 
     def onSceneProperty(self, prop):
-        if prop.name() == "currentDateTime":
-            self._refreshRows()
-        elif prop.name() == "eventProperties":
+        # if prop.name() == "currentDateTime":
+        #     self._refreshRows()
+        if prop.name() == "eventProperties":
             prevColumns = list(self._columnHeaders)
             newColumns = self.getColumnHeaders()
             addedIndexes = [i for i, x in enumerate(newColumns) if not x in prevColumns]

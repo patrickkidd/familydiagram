@@ -85,3 +85,22 @@ def test_custom_layer_same_name():
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.CheckState.Checked
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.CheckState.Unchecked
+
+
+def test_honors_aliases():
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    marriages = [
+        Marriage(personA=Person(name=f"A-{i}"), personB=Person(name=f"B-{i}"))
+        for i in range(3)
+    ]
+    for marriage in marriages:
+        scene.addItems(marriage, marriage.personA(), marriage.personB())
+    scene.setShowAliases(True)
+    assert marriages[0].personA().alias() in model.data(
+        model.index(0, 0), model.NameRole
+    )
+    assert marriages[0].personB().alias() in model.data(
+        model.index(0, 0), model.NameRole
+    )
