@@ -375,11 +375,11 @@ Page {
 
                     PK.ActiveListEdit {
                         id: emotionalUnitsEdit
-                        removeButton: false
+                        showButtons: false
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 1
-                        Layout.minimumHeight: 200
+                        Layout.minimumHeight: 180
                         KeyNavigation.tab: sceneLayerView
                         KeyNavigation.backtab: tagsEdit
                         model: EmotionalUnitsModel {
