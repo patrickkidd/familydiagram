@@ -559,7 +559,7 @@ def test_emotion_date_changed():
     rowsRemoved = util.Condition(model.rowsRemoved)
     rowsInserted = util.Condition(model.rowsInserted)
     fusion.startEvent.setDateTime(dateTime)
-    assert rowsRemoved.callCount == 1
+    assert rowsRemoved.callCount == 0
     assert rowsInserted.callCount == 1
     assert rowsInserted.callArgs[0][1] == 0
     assert rowsInserted.callArgs[0][2] == 0
@@ -837,7 +837,7 @@ def test_showAliases_signals():
 
     util.runModel(model, silent=True)
     scene.setShowAliases(True)
-    assert dataChanged.callCount == 12
+    assert dataChanged.callCount == 13
 
     assert e1.description() == "[John] came home"
     assert newValues[0][3] == "[John] came home"

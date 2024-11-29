@@ -693,6 +693,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         """Return the row that the date falls right after if not right on.
         Return -1 if an exact match is found to optimize the TimelineView algorithm.
         """
+        if not date:
+            return -1
         ret = -1
         rowDates = [event.dateTime() for i, event in enumerate(self._events)]
         if not date in rowDates:

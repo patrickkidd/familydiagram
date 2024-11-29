@@ -191,6 +191,9 @@ class DocumentController(QObject):
             int
         ].connect(self.onEventPropertiesTemplateIndexChanged)
 
+        self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
+        self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
+
         self.dv.searchModel.changed.connect(self.onSearchChanged)
         self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
 
@@ -230,6 +233,10 @@ class DocumentController(QObject):
         self.dv.adjust()
         self.dv.view.onEditorMode(on)
         self.dv.sceneModel.onEditorMode(on)
+
+    def onTimelineRowsChanged(self):
+        self.dv.updateTimelineCallout()
+        self.updateActions()
 
     def onSceneProperty(self, prop):
         if prop.name() == "currentDateTime":

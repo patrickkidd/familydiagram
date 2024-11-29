@@ -15,6 +15,13 @@ Data-dependent displays
         * DocumentView.updateTimelineCallout()
         * DocumentView.setShowGraphicalTimeline(...)
 
+    - Scene.onItemProperty(item.isEvent, "dateTime")
+        * Scene.eventChanged[Property]
+        * -> TimelineModel.onEventChanged
+        * -> Person.onEventProperty
+            * Person.updateEvents
+            * Person.eventRemoved[Evet]
+
 
 Active Layers (Exclusive)
 --------------------------
@@ -28,7 +35,6 @@ Active Layers (Exclusive)
         * Item.onActiveLayersChanged
         * [n]-> Property.onActiveLayersChanged
         * Item.onProperty[itemPos]
-
 
 
 Search-Dependent displays

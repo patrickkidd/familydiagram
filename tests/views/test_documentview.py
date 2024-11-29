@@ -195,6 +195,9 @@ def test_add_first_event_shows_UI_elements(dv):
 
 
 def test_remove_last_event_hides_UI_elements(dv):
+    """
+    TimelineModel needs to respond to changes in events, not currentDateTime.
+    """
     person = Person(name="p1")
     scene = Scene()
     person.setBirthDateTime(util.Date(2001, 1, 1))
