@@ -59,6 +59,11 @@ class SceneModel(QObject, ModelHelper):
         self.refreshProperty("isOnServer")
         self.refreshProperty("isMyDiagram")
 
+    def onSceneProperty(self, prop):
+        """Virtual"""
+        super().onSceneProperty(prop)
+        self.refreshProperty(prop.name())
+
     def get(self, attr):
         ret = None
         if attr == "hasActiveLayers":

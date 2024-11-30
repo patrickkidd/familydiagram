@@ -7,6 +7,7 @@ from ..pyqt import (
     QModelIndex,
 )
 from .. import util
+from pkdiagram.objects import Item
 from pkdiagram.models import ModelHelper
 
 
@@ -16,6 +17,15 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     Represents everyone attached to the reproductive-pair. Can set transient
     active list on the scene.
     """
+
+    PROPERTIES = Item.adjustedClassProperties(
+        Item,
+        [
+            {"attr": "noPairBondsWithNames", "type": bool},
+        ],
+    )
+
+    ModelHelper.registerQtProperties(PROPERTIES)
 
     NameRole = Qt.ItemDataRole.DisplayRole
     ActiveRole = Qt.UserRole + 1
@@ -39,6 +49,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 if marriage.emotionalUnit().layer().active():
                     self._activeLayers.append(marriage.emotionalUnit().layer())
         self.modelReset.emit()
+        self.refreshProperty("noPairBondsWithNames")
 
     def set(self, attr, value):
         if attr == "scene":
@@ -55,6 +66,15 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 self._scene.layerChanged.connect(self.onLayerChanged)
                 self._scene.propertyChanged.connect(self.onSceneProperty)
             self.refresh()
+
+    def get(self, attr):
+        if attr == "noPairBondsWithNames":
+            if self._scene:
+                return not self._scene.marriages() or not self._emotionalUnits
+            else:
+                return True
+        else:
+            return super().get(attr)
 
     def onMarriageAddedOrRemoved(self):
         self.refresh()

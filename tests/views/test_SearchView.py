@@ -6,6 +6,7 @@ from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
 from pkdiagram import util, Scene, QmlWidgetHelper
 from pkdiagram.objects import Person, Event, Marriage
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
+from pkdiagram.models import EmotionalUnitsModel
 
 
 pytestmark = [
@@ -282,3 +283,80 @@ def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff, model):
     assert model.shouldHide(event1) == True
     assert model.shouldHide(event2) == False
     assert model.shouldHide(event3) == True
+
+
+def test_emotional_units_not_empty(tst, model):
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    personA, personB = Person(name="A"), Person(name="B")
+    scene.addItems(personA, personB)
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        == False
+    )
+
+
+def test_emotional_units_empty_no_pairbonds_with_names(tst, model):
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    personA, personB = Person(), Person()
+    scene.addItems(personA, personB)
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        == True
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
+    )
+
+
+def test_emotional_units_empty_no_pairbonds_with_names__unnamed(tst, model):
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    personA, personB = Person(), Person()
+    scene.addItems(personA, personB)
+    marriage = Marriage(personA=personA, personB=personB)
+    scene.addItem(marriage)
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        == True
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
+    )
+
+
+def test_emotional_units_names_hidden(qmlEngine, tst, model):
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    personA, personB = Person(name="A"), Person(name="B")
+    scene.addItems(personA, personB)
+    marriage = Marriage(personA=personA, personB=personB)
+    scene.addItem(marriage)
+    qmlEngine.sceneModel.hideNames = True
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        == True
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
+    )
+    assert (
+        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        == util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
+    )
