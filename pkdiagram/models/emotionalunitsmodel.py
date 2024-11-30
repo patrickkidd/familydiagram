@@ -32,7 +32,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     ModelHelper.registerQtProperties(PROPERTIES)
 
     NameRole = Qt.ItemDataRole.DisplayRole
-    ActiveRole = Qt.UserRole + 1
+    ActiveRole = NameRole + 1
+    FlagsRole = ActiveRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -94,7 +95,11 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     ## Qt Virtuals
 
     def roleNames(self):
-        return {self.NameRole: b"name", self.ActiveRole: b"active"}
+        return {
+            self.NameRole: b"name",
+            self.ActiveRole: b"active",
+            self.FlagsRole: b"flags",
+        }
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._emotionalUnits)
@@ -114,6 +119,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 ret = Qt.CheckState.Checked
             else:
                 ret = Qt.CheckState.Unchecked
+        elif role == self.FlagsRole:
+            ret = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):
