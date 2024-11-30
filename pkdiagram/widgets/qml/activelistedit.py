@@ -77,8 +77,8 @@ class ActiveListEdit:
         assert (
             checkBox.isEnabled() == True
         ), f"Cannot click tag checkbox for '{itemName}' if it isn't enabled."
-        # QApplication.instance().exec_()
         self._view.mouseClickItem(checkBox)
+        QApplication.processEvents()
         # assert (
         #     model.data(model.index(iTag), role=model.ActiveRole) != was
         # ), f"Checkbox for tag '{itemName}' did not change check state"

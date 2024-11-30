@@ -324,13 +324,27 @@ def test_nextTaggedDateTime(dv):
     assert dv.scene.currentDateTime() == util.Date(2000, 1, 1)
 
 
-def test_toggle_search_tag_via_model(dv):
+def test_toggle_search_tag_via_model(qtbot, dv):
     """Was bombing on setCurrentDate."""
+    person = Person()
+    person.birthEvent.setDateTime(util.Date(2001, 1, 1))
+    dv.scene.addItem(person)
+    event_1 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
+    event_2 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
+    event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     dv.scene.setTags(["here", "you", "are"])
-    searchView = dv.caseProps.findItem("timelineSearch")
-    for tagsModel in searchView.findChildren(TagsModel):
-        if tagsModel.items == [dv.scene]:
-            tagsModel.setData(tagsModel.index(0, 0), True, role=tagsModel.ActiveRole)
+    tagsEdit = ActiveListEdit(
+        dv.caseProps, dv.caseProps.rootProp("searchView").property("tagsEdit")
+    )
+    qtbot.mouseClick(dv.view.rightToolBar.searchButton, Qt.LeftButton)
+    assert dv.currentDrawer == dv.caseProps
+    tagsEdit.clickActiveBox("you")
+    assert dv.scene.currentDateTime() == event_1.dateTime()
+    # for tagsModel in searchView.findChildren(TagsModel):
+    #     if tagsModel.items == [dv.scene]:
+    #         tagsModel.setData(tagsModel.index(0, 0), True, role=tagsModel.ActiveRole)
+    # Ensure callout updates
+    assert dv.graphicalTimelineCallout.events[0].dateTime() == event_1.dateTime()
 
 
 def test_toggle_search_tag_via_action(dv):

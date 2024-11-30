@@ -901,6 +901,7 @@ class DocumentController(QObject):
                 self.scene.setCurrentDateTime(firstDate)
             elif not self.scene.areActiveLayersChanging():
                 self.scene._updateAllItemsForLayersAndTags()
+        self.dv.updateTimelineCallout()
 
     def onUploadToServer(self):
         self.uploadToServer.emit()

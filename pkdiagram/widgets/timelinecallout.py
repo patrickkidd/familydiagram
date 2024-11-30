@@ -34,6 +34,7 @@ class TimelineCallout(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.events = []
         self.text = ""
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFixedSize(WIDTH, HEIGHT)
@@ -107,6 +108,7 @@ class TimelineCallout(QWidget):
         return super().mouseReleaseEvent(e)
 
     def setEvents(self, events: list[Event]):
+        self.events = events  # for testing
         text = "\n".join(
             [f"{util.dateString(x.dateTime())} - {x.description()}" for x in events]
         )
