@@ -1,3 +1,5 @@
+import logging
+
 from sortedcontainers import SortedList
 
 from ..pyqt import (
@@ -9,6 +11,8 @@ from ..pyqt import (
 from .. import util
 from pkdiagram.objects import Item
 from pkdiagram.models import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class EmotionalUnitsModel(QAbstractListModel, ModelHelper):

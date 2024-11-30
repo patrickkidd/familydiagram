@@ -49,7 +49,6 @@ Rectangle {
         color: "transparent"
         visible: noItemsShown
         anchors.fill: parent
-
         PK.NoDataText {
             id: noItemsText
             text: root.emptyText
@@ -61,7 +60,6 @@ Rectangle {
         spacing: 0
         anchors.fill: parent
         anchors.margins: 1
-        visible: ! noItemsShown
 
         ListView {
             id: listViewItem

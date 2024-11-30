@@ -285,12 +285,11 @@ def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff, model):
     assert model.shouldHide(event3) == True
 
 
-def test_emotional_units_not_empty(tst, model):
-    scene = Scene()
-    model = EmotionalUnitsModel()
-    model.scene = scene
+def test_emotional_units_populated(tst, model):
     personA, personB = Person(name="A"), Person(name="B")
-    scene.addItems(personA, personB)
+    model.scene.addItems(personA, personB)
+    marriage = Marriage(personA=personA, personB=personB)
+    model.scene.addItem(marriage)
     assert (
         tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == False
@@ -298,11 +297,8 @@ def test_emotional_units_not_empty(tst, model):
 
 
 def test_emotional_units_empty_no_pairbonds_with_names(tst, model):
-    scene = Scene()
-    model = EmotionalUnitsModel()
-    model.scene = scene
     personA, personB = Person(), Person()
-    scene.addItems(personA, personB)
+    model.scene.addItems(personA, personB)
     assert (
         tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == True
@@ -318,13 +314,10 @@ def test_emotional_units_empty_no_pairbonds_with_names(tst, model):
 
 
 def test_emotional_units_empty_no_pairbonds_with_names__unnamed(tst, model):
-    scene = Scene()
-    model = EmotionalUnitsModel()
-    model.scene = scene
     personA, personB = Person(), Person()
-    scene.addItems(personA, personB)
+    model.scene.addItems(personA, personB)
     marriage = Marriage(personA=personA, personB=personB)
-    scene.addItem(marriage)
+    model.scene.addItem(marriage)
     assert (
         tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == True
@@ -340,13 +333,10 @@ def test_emotional_units_empty_no_pairbonds_with_names__unnamed(tst, model):
 
 
 def test_emotional_units_names_hidden(qmlEngine, tst, model):
-    scene = Scene()
-    model = EmotionalUnitsModel()
-    model.scene = scene
     personA, personB = Person(name="A"), Person(name="B")
-    scene.addItems(personA, personB)
+    model.scene.addItems(personA, personB)
     marriage = Marriage(personA=personA, personB=personB)
-    scene.addItem(marriage)
+    model.scene.addItem(marriage)
     qmlEngine.sceneModel.hideNames = True
     assert (
         tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
