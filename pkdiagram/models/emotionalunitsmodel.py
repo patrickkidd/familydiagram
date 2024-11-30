@@ -1,3 +1,5 @@
+import logging
+
 from sortedcontainers import SortedList
 
 from ..pyqt import (
@@ -7,7 +9,10 @@ from ..pyqt import (
     QModelIndex,
 )
 from .. import util
+from pkdiagram.objects import Item
 from pkdiagram.models import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
@@ -17,8 +22,18 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     active list on the scene.
     """
 
+    PROPERTIES = Item.adjustedClassProperties(
+        Item,
+        [
+            {"attr": "noPairBondsWithNames", "type": bool},
+        ],
+    )
+
+    ModelHelper.registerQtProperties(PROPERTIES)
+
     NameRole = Qt.ItemDataRole.DisplayRole
-    ActiveRole = Qt.UserRole + 1
+    ActiveRole = NameRole + 1
+    FlagsRole = ActiveRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -39,6 +54,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 if marriage.emotionalUnit().layer().active():
                     self._activeLayers.append(marriage.emotionalUnit().layer())
         self.modelReset.emit()
+        self.refreshProperty("noPairBondsWithNames")
 
     def set(self, attr, value):
         if attr == "scene":
@@ -56,6 +72,15 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 self._scene.propertyChanged.connect(self.onSceneProperty)
             self.refresh()
 
+    def get(self, attr):
+        if attr == "noPairBondsWithNames":
+            if self._scene:
+                return not self._scene.marriages() or not self._emotionalUnits
+            else:
+                return True
+        else:
+            return super().get(attr)
+
     def onMarriageAddedOrRemoved(self):
         self.refresh()
 
@@ -70,7 +95,11 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
     ## Qt Virtuals
 
     def roleNames(self):
-        return {self.NameRole: b"name", self.ActiveRole: b"active"}
+        return {
+            self.NameRole: b"name",
+            self.ActiveRole: b"active",
+            self.FlagsRole: b"flags",
+        }
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._emotionalUnits)
@@ -90,6 +119,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 ret = Qt.CheckState.Checked
             else:
                 ret = Qt.CheckState.Unchecked
+        elif role == self.FlagsRole:
+            ret = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):

@@ -515,6 +515,12 @@ S_EMOTIONAL_UNITS_HELP_TEXT = (
     "correlate to events in this three-generation extended family system."
 )
 
+S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN = "Emotional units are not shown because the 'Hide Names' option is checked in the 'View' menu."
+
+S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
+    "Emotional units will show here when you add pair-bonds between people with names."
+)
+
 EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None

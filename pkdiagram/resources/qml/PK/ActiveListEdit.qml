@@ -24,6 +24,9 @@ Rectangle {
     property var addButton: true
     property var removeButton: true
 
+    property var emptyText: ''
+    property var noItemsText: noItemsText
+
     function onRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
             currentIndex = -1
@@ -32,7 +35,25 @@ Rectangle {
         }
     }
 
+    property bool noItemsShown: {
+        if(model == null) {
+            return true
+        } else if(listViewItem.count == 0) {
+            return true
+        } else {
+            return false
+        }
+    }
 
+    Rectangle {
+        color: "transparent"
+        visible: noItemsShown
+        anchors.fill: parent
+        PK.NoDataText {
+            id: noItemsText
+            text: root.emptyText
+        }
+    }
 
     ColumnLayout {
         
@@ -155,7 +176,7 @@ Rectangle {
             removeButtonEnabled: listViewItem.count > 0 && currentIndex >= 0 && !sceneModel.readOnly
             removeButton: root.removeButton
             onRemove: model.removeTag(currentIndex)
-        }    
+        }
 
     }
 

@@ -104,3 +104,19 @@ def test_honors_aliases():
     assert marriages[0].personB().alias() in model.data(
         model.index(0, 0), model.NameRole
     )
+
+
+def test_noPairBondsWithNames():
+    scene = Scene()
+    model = EmotionalUnitsModel()
+    model.scene = scene
+    personA, personB = Person(name="A"), Person(name="B")
+    scene.addItems(personA, personB)
+    assert model.noPairBondsWithNames == True
+
+    marriage = Marriage(personA=personA, personB=personB)
+    scene.addItem(marriage)
+    assert model.noPairBondsWithNames == False
+
+    scene.removeItem(marriage)
+    assert model.noPairBondsWithNames == True

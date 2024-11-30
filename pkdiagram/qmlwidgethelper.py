@@ -134,6 +134,11 @@ class QmlWidgetHelper(QObjectHelper):
         return self.findItem(objectName, noerror=True) is not None
 
     def rootProp(self, attr):
+        """
+        This goes away an in ideal design where this is just a QQuickWidget and
+        there is no self.qml. Then you just do
+        widget.property('myItem').property('visible'), etc.
+        """
         return self.qml.rootObject().property(attr)
 
     def setRootProp(self, attr, value):

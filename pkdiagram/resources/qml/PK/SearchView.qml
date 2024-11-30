@@ -376,6 +376,15 @@ Page {
                     PK.ActiveListEdit {
                         id: emotionalUnitsEdit
                         showButtons: false
+                        emptyText: {
+                            if(sceneModel.hideNames) {
+                                util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
+                            } else if(model.noPairBondsWithNames) {
+                                util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
+                            } else {
+                                ''
+                            }
+                        }                        
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 1
