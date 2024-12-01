@@ -2,6 +2,9 @@
 v2.0.0
 =============================================================================
 
+- View tag, add R symbol, lots of things are hidden
+  - Guiterrez, `Out of Jail, Housing Incident`
+
 IDEAS
 - Need to hide those logged columns
 - Move search view to hovering overlay over entire document with click screen?
