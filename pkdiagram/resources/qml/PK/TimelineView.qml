@@ -594,8 +594,8 @@ ColumnLayout {
                 else {
                     if(dRoot.sameDateAsSelected)
                         c = util.QML_SAME_DATE_HIGHLIGHT_COLOR
-                    else if(dRoot.thisNodal)
-                        c = util.QML_NODAL_COLOR
+                    // else if(dRoot.thisNodal)
+                    //     c = util.QML_NODAL_COLOR
                     else if(dRoot.alternate)
                         c = util.QML_ITEM_ALTERNATE_BG
                     else
@@ -644,8 +644,8 @@ ColumnLayout {
                 color: {
                     if(dRoot.selected || dRoot.current) {
                         return util.textColor(dRoot.selected, dRoot.current)
-                    } else if(dRoot.thisNodal) {
-                        return util.contrastTo(util.QML_NODAL_COLOR)
+                    // } else if(dRoot.thisNodal) {
+                    //     return util.contrastTo(util.QML_NODAL_COLOR)
                     } else {
                         return util.contrastTo(dRoot.color)
                     }

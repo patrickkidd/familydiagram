@@ -9,7 +9,7 @@ from ..pyqt import (
     QModelIndex,
 )
 from .. import util
-from pkdiagram.objects import Item
+from pkdiagram.objects import Item, Layer
 from pkdiagram.models import ModelHelper
 
 _log = logging.getLogger(__name__)
@@ -81,11 +81,36 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         else:
             return super().get(attr)
 
+    def layers(self) -> list[Layer]:
+        return [x.layer() for x in self._emotionalUnits]
+
     def onMarriageAddedOrRemoved(self):
         self.refresh()
 
+    @util.iblocked
     def onLayerChanged(self, prop):
-        if prop.name() != "active":
+        """
+        Make internal and external layers mutually exclusive.
+        """
+        if prop.name() == "active":
+            if prop.get():
+                ourLayers = self.layers()
+                if prop.item in ourLayers and self._scene:
+                    for layer in self._scene.layers(includeInternal=False):
+                        if layer.active():
+                            layer.setActive(False)
+                else:
+                    for layer in ourLayers:
+                        if layer.active():
+                            layer.setActive(False)
+                            self._activeLayers.remove(layer)
+                            row = ourLayers.index(layer)
+                            self.dataChanged.emit(
+                                self.index(row, 0),
+                                self.index(row, 0),
+                                [self.ActiveRole],
+                            )
+        else:
             self.refresh()
 
     def onSceneProperty(self, prop):

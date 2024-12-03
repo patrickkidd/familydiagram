@@ -79,7 +79,7 @@ Page {
                 GridLayout {
 
                     PK.Label {
-                        text: "Events"
+                        text: "Timeline"
                         font.family: util.FONT_FAMILY_TITLE
                         font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                         Layout.columnSpan: 2
@@ -363,7 +363,7 @@ Page {
                     }
 
                     PK.Label {
-                        text: "Views"
+                        text: "Diagram"
                         font.family: util.FONT_FAMILY_TITLE
                         font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                         Layout.columnSpan: 2
@@ -403,7 +403,7 @@ Page {
                     }
 
                     PK.Text {
-                        text: "Views"
+                        text: "Custom Views"
                         visible: sceneModel.isInEditorMode
                     }
 

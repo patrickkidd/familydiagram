@@ -1,5 +1,3 @@
-import logging
-
 import pytest
 
 from pkdiagram.pyqt import (
@@ -151,3 +149,15 @@ def tests_rename_and_set_active(view, model):
     assert model.data(model.index(0, 0), role=ActiveRole) == Qt.CheckState.Unchecked
     assert model.data(model.index(1, 0), role=ActiveRole) == Qt.CheckState.Checked
     assert model.data(model.index(2, 0), role=ActiveRole) == Qt.CheckState.Unchecked
+
+
+def test_dataChanged(view, model):
+    for i in range(3):
+        model.appendRow(QStandardItem(f"Item {i}"))
+        model.setData(model.index(i, 0), Qt.CheckState.Unchecked, role=ActiveRole)
+        model.item(i).setFlags(model.item(i).flags() | Qt.ItemFlag.ItemIsEditable)
+    util.waitUntil(lambda: view.delegate("Item 1", throw=False))
+    assert view.checkBox("Item 1").property("checkState") == Qt.CheckState.Unchecked
+
+    model.setData(model.index(1, 0), Qt.CheckState.Checked, role=ActiveRole)
+    assert view.checkBox("Item 1").property("checkState") == Qt.CheckState.Checked

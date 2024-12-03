@@ -1,8 +1,9 @@
 import pytest
 
-from pkdiagram.pyqt import QDateTime
-from pkdiagram import util, Scene, Person, Event, Layer, Emotion
-from pkdiagram.models import TimelineModel, SearchModel
+from pkdiagram.pyqt import Qt, QDateTime
+from pkdiagram import util, Scene
+from pkdiagram.objects import Person, Event, Layer, Emotion, Marriage
+from pkdiagram.models import TimelineModel, SearchModel, EmotionalUnitsModel
 
 
 pytestmark = [
@@ -257,3 +258,63 @@ def test_loggedEndDateTime_emotions(emotionModel):
     model.resetLoggedEndDateTime()
     assert model.shouldHide(startEvent) == False
     assert model.shouldHide(endEvent) == False
+
+
+def test_layers_mutually_exclusive_emotionalUnits():
+    scene = Scene()
+    person = Person()
+    scene.addItem(person)
+    searchModel = SearchModel()
+    searchModel.scene = scene
+    searchModel.items = [person]
+    unitsModel = EmotionalUnitsModel()
+    unitsModel.scene = scene
+    marriages = [
+        Marriage(personA=Person(name=f"A-{i}"), personB=Person(name=f"B-{i}"))
+        for i in range(3)
+    ]
+    for marriage in marriages:
+        scene.addItems(marriage, marriage.personA(), marriage.personB())
+    layer = Layer(name="Some Layer")
+    scene.addItems(layer, *marriages)
+    assert set(scene.activeLayers(includeInternal=True)) == set()
+
+    unitsModel.setData(
+        unitsModel.index(1, 0), Qt.CheckState.Checked, unitsModel.ActiveRole
+    )
+    assert set(scene.activeLayers(includeInternal=True)) == {
+        marriages[1].emotionalUnit().layer()
+    }
+
+    layer.setActive(True)
+    assert set(scene.activeLayers(includeInternal=True)) == {layer}
+
+
+def test_emotionalUnits_mutually_exclusive_layers():
+    scene = Scene()
+    person = Person()
+    scene.addItem(person)
+    searchModel = SearchModel()
+    searchModel.scene = scene
+    searchModel.items = [person]
+    unitsModel = EmotionalUnitsModel()
+    unitsModel.scene = scene
+    marriages = [
+        Marriage(personA=Person(name=f"A-{i}"), personB=Person(name=f"B-{i}"))
+        for i in range(3)
+    ]
+    for marriage in marriages:
+        scene.addItems(marriage, marriage.personA(), marriage.personB())
+    layer = Layer(name="Some Layer")
+    scene.addItems(layer, *marriages)
+    assert set(scene.activeLayers(includeInternal=True)) == set()
+
+    layer.setActive(True)
+    assert set(scene.activeLayers(includeInternal=True)) == {layer}
+
+    unitsModel.setData(
+        unitsModel.index(1, 0), Qt.CheckState.Checked, unitsModel.ActiveRole
+    )
+    assert set(scene.activeLayers(includeInternal=True)) == {
+        marriages[1].emotionalUnit().layer()
+    }

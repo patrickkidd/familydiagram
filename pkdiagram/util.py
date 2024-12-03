@@ -7,7 +7,7 @@ import sys, os.path
 from pathlib import Path
 from typing import Callable
 
-from . import appdirs, util
+from . import appdirs
 
 
 log = logging.getLogger(__name__)
@@ -185,7 +185,7 @@ def init_logging():
     appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
     if not os.path.isdir(appDataDir):
         Path(appDataDir).mkdir()
-    fileName = "log.txt" if util.IS_BUNDLE else "log_dev.txt"
+    fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
     filePath = os.path.join(appDataDir, fileName)
     if not os.path.isfile(filePath):
         Path(filePath).touch()
@@ -1329,7 +1329,7 @@ def waitALittle(ms=10):
 
 
 def waitUntil(condition: Callable, timeout=2000):
-    util.Condition(condition=condition).wait(maxMS=timeout)
+    Condition(condition=condition).wait(maxMS=timeout)
 
 
 ### Geometry functions

@@ -1235,7 +1235,7 @@ class Person(PathItem):
         if not hideDetails and self.diagramNotes():
             for line in self.diagramNotes().split("\n"):
                 lines.append(line)
-        mainText = "\n".join(lines)
+        mainText = "\n".join(lines).strip()
 
         # Compile Variables
         variableLines = []
