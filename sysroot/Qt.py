@@ -1,4 +1,6 @@
 import os.path
+import shutil
+
 from pyqtdeploy.sysroot.plugins import Qt
 
 
@@ -26,6 +28,10 @@ class QtComponent(Qt.QtComponent):
                 "qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.h",
                 self._patch_qiosurfacegraphicsbuffer,
             )
+            # shutil.copyfile(
+            #     "../../../toolchain-macos-13.prf",
+            #     "qtbase/mkspecs/features/toolchain.prf",
+            # )
 
         return archive_root
 
@@ -37,5 +43,31 @@ class QtComponent(Qt.QtComponent):
             line.replace(
                 "#include <qpa/qplatformgraphicsbuffer.h>",
                 "#include <CoreGraphics/CoreGraphics.h>\n#include <qpa/qplatformgraphicsbuffer.h>",
+            )
+        )
+
+    @staticmethod
+    def _patch_toolchain_prf(line, patch_file):
+        """Qt-5.15 does not build on GitHub Runner macos-13"""
+
+        # if "isEmpty(QMAKE_DEFAULT_LIBDIRS)|isEmpty(QMAKE_DEFAULT_INCDIRS):" in line:
+        patch_file.write(
+            line.replace(
+                "isEmpty(QMAKE_DEFAULT_LIBDIRS)|isEmpty(QMAKE_DEFAULT_INCDIRS):",
+                "isEmpty(QMAKE_DEFAULT_INCDIRS):",
+            )
+            .replace(
+                'error("failed to parse default search paths from compiler output")',
+                """error("failed to parse default include paths from compiler output")
+294
+        isEmpty(QMAKE_DEFAULT_LIBDIRS): \
+295
+            !integrity:!darwin: \
+296
+                error("failed to parse default library paths from compiler output")""",
+            )
+            .replace(
+                "unix:if(!cross_compile|host_build) {",
+                "unix:!darwin:if(!cross_compile|host_build) {",
             )
         )

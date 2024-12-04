@@ -171,8 +171,8 @@
     <addaction name="separator"/>
     <addaction name="actionNext_Layer"/>
     <addaction name="actionPrevious_Layer"/>
-    <addaction name="menuLayers"/>
     <addaction name="menuTags"/>
+    <addaction name="menuLayers"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>

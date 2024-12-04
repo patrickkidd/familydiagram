@@ -34,7 +34,7 @@ env:
 jobs:
 
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
@@ -49,7 +49,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-12
+    runs-on: macos-13
     needs: [setup]
 
     steps:
@@ -65,11 +65,12 @@ jobs:
       with:
         python-version: 3.10.4
 
-    - run: |
+    - name: Set up virtual env
+      run: |
         pip install pipenv
         mkdir .venv
         pipenv --clear
-        pipenv install --dev --verbose
+        pipenv install --dev
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -105,20 +106,30 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS
+        key: sysroot-macos-64-5.15.16
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
+
+
+    # # Will provide an SSH command in the logs that you can use to access the runner.
+    # - name: Setup tmate session
+    #   uses: mxschmitt/action-tmate@v3
 
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        # mkdir -p ~/.pyqtdeploy/cache
+        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
+        wget https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
+        # https://bugreports.qt.io/browse/QTBUG-117225
+        # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macOS
+        key: sysroot-macos-64-5.15.16
 
     - name: Write build config
       run: |
@@ -132,7 +143,7 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
+        qmake -d -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
 
     - name: Setup provisioning profile
       run: |
@@ -370,7 +381,7 @@ jobs:
           path: build\win32\Release\Family Diagram.zip
   
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [setup, build-osx, build-windows]
     steps:
 
@@ -410,7 +421,7 @@ jobs:
         asset_content_type: application/zip
 
   update-appcast:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: publish
     steps:
 

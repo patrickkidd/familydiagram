@@ -2,8 +2,17 @@
 v2.0.0
 =============================================================================
 
+- Aliases can be frustrating in timeline (Guittierez)
+  - Switch back, at least [Jett] doesn't always chnge back.
+  - Sometimes alias applied within alias
+  - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
+- Variables don't get added to timeline
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
+- Notes in add data point field doesn't store / show icon
+- Add event colors
+  - Show on both timelines
+  - Show with variable text on diagram
 
 IDEAS
 - Need to hide those logged columns
@@ -19,6 +28,10 @@ IDEAS
   - New people picker PersonPicker text edit doesn't get focus in new row
 
 BUGS
+2024-12-06 07:09:45,848 ERROR application.py:78          Traceback (most recent call last):
+2024-12-06 07:09:45,848 ERROR application.py:78            File "/Users/patrick/dev/familydiagram/pkdiagram/analytics.py", line 170, in onFinished
+    finished()
+2024-12-06 07:09:45,849 ERROR application.py:78          TypeError: Analytics._postNextEvents.<locals>.onFinished() missing 1 required positional argument: 'reply'
 - Skipping cutoffs warning in terminal?
 - Can drag divorce separation bar beyond pair bond bounds?
 - Can't set parents for existing person and existing parents from add anything form

@@ -39,7 +39,7 @@ abi_major_version = 12
 # Qt ########################################################################
 
 [Qt]
-version = "5.15.2"
+version = "5.15.16"
 edition = "opensource"
 skip = [
     "qt3d",
@@ -83,6 +83,7 @@ skip = [
 install_from_source = true # required for static build
 ssl = "openssl-linked"
 configure_options = [
+    "--verbose",
     "-debug-and-release",
     "-nomake", "examples",
     "-nomake", "tests",
@@ -111,7 +112,7 @@ ssl = "securetransport"
 # PyQt ########################################################################
 
 [PyQt]
-version = "5.15.7"
+version = "5.15.11"
 installed_modules = [ ]
 
 [PyQt.macos]

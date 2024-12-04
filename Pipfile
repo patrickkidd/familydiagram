@@ -17,10 +17,10 @@ verify_ssl = true
 name = "familydiagram"
 
 [packages]
-sip = "==6.8.6"
-pyqt5 = "==5.15.9"
-pyqt5-sip = "==12.15.0"
-pyqt5-qt5 = "==5.15.2"
+sip = "6.8.6"
+pyqt5 = "5.15.11"
+pyqt5-sip = "12.15.0"
+pyqt5-qt5 = "5.15.2"
 bugsnag = "*"
 bcrypt = "*"
 python-dateutil = "*"
