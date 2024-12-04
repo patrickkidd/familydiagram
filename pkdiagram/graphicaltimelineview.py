@@ -24,7 +24,9 @@ _log = logging.getLogger(__name__)
 
 
 class GraphicalTimelineView(QFrame):
-    """Contracts into a dateslider, expands into full-blown graphical timeline."""
+    """
+    Contracts into a dateslider, expands into full-blown graphical timeline.
+    """
 
     MARGIN_X = util.MARGIN_X
     MARGIN_Y = util.MARGIN_Y

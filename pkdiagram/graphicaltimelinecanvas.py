@@ -80,6 +80,8 @@ class GraphicalTimelineCanvas(QWidget):
         QApplication.instance().paletteChanged.connect(self.onPaletteChanged)
         self.onPaletteChanged()
 
+        self._selectionModel.selectionChanged.connect(self.onSelectionChanged)
+
         self._timelineModel.modelReset.connect(self.refresh)
         self._timelineModel.rowsInserted.connect(self.refresh)
         self._timelineModel.rowsMoved.connect(self.refresh)
@@ -89,6 +91,10 @@ class GraphicalTimelineCanvas(QWidget):
 
     def onPaletteChanged(self):
         self.setFont(QFont(util.FONT_FAMILY, util.TEXT_FONT_SIZE))
+
+    def onSelectionChanged(self):
+        # Currently just to update the selection colors
+        self.update()
 
     def documentView(self):
         return self.parent().parent().parent().documentView()

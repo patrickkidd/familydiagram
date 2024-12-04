@@ -248,8 +248,6 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
 
 @pytest.fixture(scope="session", autouse=True)
 def qApp():
-    global _currentTestItem
-
     log.debug(f"Create qApp for familydiagram/tests")
 
     def _makeSettings():
