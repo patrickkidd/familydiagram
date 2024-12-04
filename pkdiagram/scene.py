@@ -1982,9 +1982,9 @@ class Scene(QGraphicsScene, Item):
         self.setCurrentDateTime(QDateTime.currentDateTime(), undo=True)
 
     def resetAll(self):
-        id = commands.nextId()
-        for layer in self.activeLayers():
-            layer.setActive(False, undo=id, notify=False)
+        for layer in self.activeLayers(includeInternal=True):
+            if layer.active():
+                layer.setActive(False)
         self.updateActiveLayers()
         self.jumpToNow()
         self.diagramReset.emit()
