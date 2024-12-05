@@ -20,8 +20,6 @@ name = "familydiagram"
 sip = "6.8.6"
 pyqt5 = "5.15.11"
 pyqt5-sip = "12.15.0"
-pyqt5-qt5 = { version = "5.15.15", markers = "sys_platform == 'darwin'" }
-pyqt5-qt5 = { version = "*", markers = "sys_platform == 'win32'" }
 bugsnag = "*"
 bcrypt = "*"
 python-dateutil = "*"
