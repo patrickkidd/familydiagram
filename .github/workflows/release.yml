@@ -49,7 +49,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-14
+    runs-on: macos-13
     needs: [setup]
 
     steps:
@@ -65,7 +65,8 @@ jobs:
       with:
         python-version: 3.10.4
 
-    - run: |
+    - name: Set up virtual env
+      run: |
         pip install pipenv
         mkdir .venv
         pipenv --clear
