@@ -1,54 +1,32 @@
-WINDOWS CD
+Qt Version
 ==============================================================
-scp bin/setup_windows.ps1 windows11:C:\\Users\\patrick\\ && ssh windows11 "powershell -ExecutionPolicy Bypass -File C:\\Users\\patrick\\setup_windows.ps1"
+- We are pinned to Qt-5.15.2 since it is the last version with an installer, which allows avoiding building from source on windows in CD.
+    - Upgrading past 5.15.2 is going to require building from source for windows on CD
+- Local Dev: A Qt installation with the same version is required to build _pkdiagram because the sysroot ./host/bin/qmake will build static libraries instead of a dll
 
 MACOS DEV
 ==============================================================
-- Install Qt from qt.io installer
-- brew install python3 direnv pyenv
-    - https://blog.adam-uhlir.me/python-virtual-environments-made-super-easy-with-direnv-307611c3a49a
-- pyenv install $PYTHON_VERSION
+- pyenv install Python-3.10.6
     - Possibly have to use this command line (use patch for any version):
     - CFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix bzip2)/include -I$(brew --prefix readline)/include -I$(xcrun --show-sdk-path)/usr/include" LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib -L$(brew --prefix zlib)/lib -L$(brew --prefix bzip2)/lib" \
-pyenv install --patch 3.7.8 < <(curl -sSL https://github.com/python/cpython/commit/8ea6353.patch\?full_index\=1)
-- familydiagram/.envrc:
-    export PATH="$HOME/dev/familydiagram/vendor/lib/Qt/5.15.1/clang_64/bin:$PATH"
-    layout_python3
-    use python 3.7.8
-- ~/.direnvrc:
-  local python_root=$(pyenv root)/versions/$1
-    load_prefix "$python_root"
-    if [[ -x "$python_root/bin/python" ]]; then
-        layout python "$python_root/bin/python"
-    else
-        echo "Error: $python_root/bin/python can't be executed."
-        exit
-    fi
-  }
-- cd familydiagram # loads direnv + pyenv
-- env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
-- Install `act` for testing github workflows locally.
-    - brew install act
-    - https://github.com/nektos/act
+- Install Qt-5.15.* from source (no more installers for opensource)
+    - ./configure -prefix /Users/patrick/dev/familydiagram/lib/Qt-5.15.15 -opensource -confirm-license -nomake examples -nomake tests -skip qtactiveqt -skip qtcanvas3d -skip qtgamepad -skip qtremoteobjects -skip qtscript -skip qtspeech -skip qtvirtualkeyboard -skip qtwayland -skip qtwebview -skip qtwebengine -skip qtwebchannel -skip qtwebglplugin -skip qtwebsockets -skip qtserialbus -skip qtserialport
 - brew install create-dmg
-
-- Optional: Build from git
-  - perl init-repository -f --module-subset=default,-qt3d,-qtactiveqt,-qtcanvas3d,-qtgamepad,-qtlocation,-qtremoteobjects,-qtserialbus,-qtserialport,-qtspeech,-qtwayland,-qtwebchannel,-qtwebengine,-qtwebglplugin,-qtwebsockets,-qtwebview,-qtlottie,-qtdatavis3d,-qtconnectivity,-qtcharts,-qtandroidextras,-qtdoc,-qtnetworkauth,-qtqa,-qtrepotools,-qtscxml,-qtsensors,-qttools,-qttranslations,-qtwinextras,-qtx11extras,-qtxmlpatterns,-qtmultimedia,-qtpurchasing
+- Install _pkdiagram
+    - cmake . && make 
 
 
 WINDOWS DEV
 ==============================================================
 - Install git from git-scm.org
     - Includes shell tools like find, which, grep, ls, etc
-- git clone git@github.com:patrickkidd/familydiagram.git
+- git clone git@github.com:patrickkidd/familydiagram.git C:\familydiagram
 - git submodule update --init
     - Pulls in all code for all submodules
 - Install appropriate Python 3 version in default location using web installer from python.org
     - Add .\bin to PATH (if not already in bin\dev-console.bat)
-- Install appropriate Qt version from qt.io web installer
-    - No MinGW, CMakeUtils, etc
-    - Add .\bin to PATH
-    - Required to get qmake, headers, libs, etc for _pkdiagram, _vedana extensions
+- Build + install qt from source to C:\Qt-5.15.x
+    - configure -prefix /Users/patrick/dev/familydiagram/lib/Qt-5.15.15 -opensource -confirm-license -nomake examples -nomake tests -skip qtcanvas3d -skip qtgamepad -skip qtremoteobjects -skip qtscript -skip qtspeech -skip qtvirtualkeyboard -skip qtwayland -skip qtwebview -skip qtwebengine -skip qtwebchannel -skip qtwebglplugin -skip qtwebsockets -skip qtserialbus -skip qtserialport
 - Install VS Community MSBuild Tools from Visual Studio 2019 Installer (latest v142 + v140, C++ CMake Tools)
 - SET Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled
     - https://github.com/dotnet/msbuild/issues/53

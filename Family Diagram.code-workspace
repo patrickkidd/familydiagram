@@ -15,9 +15,6 @@
 		"debug.terminal.clearBeforeReusing": true,
 		"explorer.autoReveal": false,
 		"terminal.integrated.scrollback": 100000,
-		"python.analysis.exclude": [
-			"**/sysroot"
-		],
 		"python.testing.pytestEnabled": false,
 		"[python]": {
 			"editor.formatOnSave": true,

@@ -106,15 +106,15 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.15
+        key: sysroot-macOS
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        mkdir -p ~/.pyqtdeploy/cache
-        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.15/single/qt-everywhere-opensource-src-5.15.15.tar.xz" -O ~/.pyqtdeploy/cache/qt-everywhere-src-5.15.15.tar.xz
+        # mkdir -p ~/.pyqtdeploy/cache
+        # wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.15/single/qt-everywhere-opensource-src-5.15.15.tar.xz" -O ~/.pyqtdeploy/cache/qt-everywhere-src-5.15.15.tar.xz
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
@@ -262,7 +262,7 @@ jobs:
       - name: Install Qt
         run: |
           pipenv install aqtinstall
-          pipenv run aqt install-qt windows desktop 5.15.15 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+          pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
@@ -276,7 +276,7 @@ jobs:
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          set PATH=C:\Qt\5.15.15\msvc2019_64\bin;%PATH%
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd pkdiagram\_pkdiagram
           pipenv run sip-build --no-compile
@@ -289,7 +289,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64-5.15.15
+          key: sysroot-win-64
           # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
   
       # The moc files are required by the sysroot plugin as well as the build plugin
@@ -297,7 +297,7 @@ jobs:
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          set PATH=C:\Qt\5.15.15\msvc2019_64\bin;%PATH%
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cd pkdiagram\_pkdiagram
           dir build\_pkdiagram\release
           mkdir build\_pkdiagram\release
@@ -324,7 +324,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd pkdiagram\_pkdiagram
-          set PATH=C:\Qt\5.15.15\msvc2019_64\bin;%PATH%
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           if not exist build\_pkdiagram\release\moc_unsafearea.cpp (
             mkdir build\_pkdiagram\release
           )

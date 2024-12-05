@@ -28,7 +28,7 @@ Makefile*
 *.vcxproj
 *.filters
 *.sln
-.venv
+.venv*
 .direnv
 .envrc
 lib/qt*
@@ -58,7 +58,7 @@ pkdiagram/_pkdiagram/libpkdiagram/_pkdiagram.a
 pkdiagram/_pkdiagram/build
 Pipfile.lock
 
-sysroot-*
+sysroot/sysroot-*
 
 ## Build
 
