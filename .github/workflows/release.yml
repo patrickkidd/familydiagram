@@ -113,6 +113,8 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        mkdir -p ~/.pyqtdeploy/cache
+        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.15/single/qt-everywhere-opensource-src-5.15.15.tar.xz" -O ~/.pyqtdeploy/cache/qt-everywhere-src-5.15.15.tar.xz
         pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
