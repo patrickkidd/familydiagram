@@ -15,22 +15,6 @@ class QtComponent(Qt.QtComponent):
                 _args += ("-j16",)
         return super().run(*_args, capture=capture)
 
-    def get_archive_name(self):
-        """Return the filename of the source archive."""
-
-        return "qt-everywhere-opensource-src-{}.tar.xz".format(self.version)
-
-    def get_archive_urls(self):
-        """Return the list of URLs where the source archive might be
-        downloaded from.
-        """
-
-        return [
-            "https://download.qt.io/official_releases/qt/{}.{}/{}/single/".format(
-                self.version.major, self.version.minor, self.version
-            )
-        ]
-
     def unpack_archive(self, archive, chdir=True):
         """Override to patch 5.15+ on macos"""
         archive_root = super().unpack_archive(archive, chdir)
