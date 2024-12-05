@@ -39,7 +39,7 @@ abi_major_version = 12
 # Qt ########################################################################
 
 [Qt]
-version = "5.15.2"
+version = "5.15.15"
 edition = "opensource"
 skip = [
     "qt3d",
@@ -111,7 +111,7 @@ ssl = "securetransport"
 # PyQt ########################################################################
 
 [PyQt]
-version = "5.15.7"
+version = "5.15.11"
 installed_modules = [ ]
 
 [PyQt.macos]
