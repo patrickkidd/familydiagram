@@ -49,7 +49,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-15-large
+    runs-on: macos-14-large
     needs: [setup]
 
     steps:
