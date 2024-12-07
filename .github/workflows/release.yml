@@ -109,6 +109,13 @@ jobs:
         key: sysroot-macOS
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
+
+    # Will provide an SSH command in the logs that you can use to access the runner.
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
+
+
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
