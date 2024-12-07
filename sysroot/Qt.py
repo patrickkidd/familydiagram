@@ -1,4 +1,6 @@
 import os.path
+import shutil
+
 from pyqtdeploy.sysroot.plugins import Qt
 
 
@@ -26,9 +28,11 @@ class QtComponent(Qt.QtComponent):
                 "qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.h",
                 self._patch_qiosurfacegraphicsbuffer,
             )
-            self.patch_file(
+            os.command("pwd")
+            os.command("ls -la")
+            shutil.copyfile(
+                "../../../qtbase/mkspecs/features/toolchain.prf",
                 "qtbase/mkspecs/features/toolchain.prf",
-                self._patch_toolchain_prf,
             )
 
         return archive_root
