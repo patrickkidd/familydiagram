@@ -83,6 +83,7 @@ skip = [
 install_from_source = true # required for static build
 ssl = "openssl-linked"
 configure_options = [
+    "--verbose",
     "-debug-and-release",
     "-nomake", "examples",
     "-nomake", "tests",
