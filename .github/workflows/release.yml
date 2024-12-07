@@ -124,7 +124,7 @@ jobs:
         # wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.15/single/qt-everywhere-opensource-src-5.15.15.tar.xz" -O ~/.pyqtdeploy/cache/qt-everywhere-src-5.15.15.tar.xz
         # https://bugreports.qt.io/browse/QTBUG-117225
         cp toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
-        pipenv run pyqtdeploy-sysroot --target macos-64 --component Qt sysroot/sysroot.toml
+        pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
