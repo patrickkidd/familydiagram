@@ -28,8 +28,8 @@ class QtComponent(Qt.QtComponent):
                 "qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.h",
                 self._patch_qiosurfacegraphicsbuffer,
             )
-            os.command("pwd")
-            os.command("ls -la")
+            os.system("pwd")
+            os.system("ls -la")
             shutil.copyfile(
                 "../../../qtbase/mkspecs/features/toolchain.prf",
                 "qtbase/mkspecs/features/toolchain.prf",
