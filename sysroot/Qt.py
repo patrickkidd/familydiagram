@@ -31,7 +31,7 @@ class QtComponent(Qt.QtComponent):
             os.system("pwd")
             os.system("ls -la")
             shutil.copyfile(
-                "../../../qtbase/mkspecs/features/toolchain.prf",
+                "../../../toolchain-macos-13.prf",
                 "qtbase/mkspecs/features/toolchain.prf",
             )
 
