@@ -167,7 +167,7 @@ class Analytics(QObject):
                 or reply.error() == QNetworkReply.HostNotFoundError
             ):
                 log.debug(f"Mixpanel request failed with HTTP code: {status_code}")
-                finished()
+                finished(reply)
             else:
                 log.debug("Mixpanel request failed: no internet connection")
             self.completedOneRequest.emit(reply)
@@ -189,7 +189,7 @@ class Analytics(QObject):
             log.debug(f"Sent {len(reply._chunk)} events to Mixpanel")
             self._numEventsSent += len(reply._chunk)
 
-        def onFinished(reply):
+        def onFinished(reply, *args):
             for event in reply._chunk:
                 self._eventQueue.remove(event)
             # in case there is a dangling reference somewhere
