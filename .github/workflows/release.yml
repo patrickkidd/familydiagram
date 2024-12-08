@@ -70,7 +70,7 @@ jobs:
         pip install pipenv
         mkdir .venv
         pipenv --clear
-        pipenv install --dev --verbose
+        pipenv install --dev
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -79,23 +79,23 @@ jobs:
 
     ## App
     
-    - name: Setup _pkdiagram caching
-      id: cache-_pkdiagram
-      uses: actions/cache@v4
-      with:
-        path: |
-          pkdiagram/_pkdiagram/build
-        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+    # - name: Setup _pkdiagram caching
+    #   id: cache-_pkdiagram
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: |
+    #       pkdiagram/_pkdiagram/build
+    #     key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
     
-    - name: sip-build for _pkdiagram
-      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
-      run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        which qmake
-        cd pkdiagram/_pkdiagram
-        pipenv run sip-build --no-compile
-        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+    # - name: sip-build for _pkdiagram
+    #   if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
+    #   run: |
+    #     export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+    #     which qmake
+    #     cd pkdiagram/_pkdiagram
+    #     pipenv run sip-build --no-compile
+    #     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+    #     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 
     - name: Download zlib source
       run: |
@@ -119,12 +119,11 @@ jobs:
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         # mkdir -p ~/.pyqtdeploy/cache
-        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
-        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
+        # wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
         wget https://pypi.org/project/PyQt5/5.15.11/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
-        pipenv run pyqtdeploy-sysroot --target macos-64 --component PyQt5 --verbose sysroot/sysroot.toml
+        pipenv run pyqtdeploy-sysroot --target macos-64 --component PyQt --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
