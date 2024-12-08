@@ -76,7 +76,8 @@ skip = [
     "qtxmlpatterns",
     "qtmultimedia",
     "qtpurchasing",
-    "qtimageformats"
+    "qtimageformats",
+    "qtquick3d"
 ]
 
 [Qt.macos]
