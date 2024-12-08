@@ -79,23 +79,23 @@ jobs:
 
     ## App
     
-    # - name: Setup _pkdiagram caching
-    #   id: cache-_pkdiagram
-    #   uses: actions/cache@v4
-    #   with:
-    #     path: |
-    #       pkdiagram/_pkdiagram/build
-    #     key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+    - name: Setup _pkdiagram caching
+      id: cache-_pkdiagram
+      uses: actions/cache@v4
+      with:
+        path: |
+          pkdiagram/_pkdiagram/build
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
     
-    # - name: sip-build for _pkdiagram
-    #   if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
-    #   run: |
-    #     export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-    #     which qmake
-    #     cd pkdiagram/_pkdiagram
-    #     pipenv run sip-build --no-compile
-    #     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-    #     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+    - name: sip-build for _pkdiagram
+      if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
+      run: |
+        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
+        which qmake
+        cd pkdiagram/_pkdiagram
+        pipenv run sip-build --no-compile
+        moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+        moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 
     - name: Download zlib source
       run: |
