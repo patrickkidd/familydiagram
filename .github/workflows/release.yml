@@ -123,7 +123,7 @@ jobs:
         wget https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
-        pipenv run pyqtdeploy-sysroot --target macos-64 --component PyQt --verbose sysroot/sysroot.toml
+        pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
