@@ -118,7 +118,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        # mkdir -p ~/.pyqtdeploy/cache
+        mkdir -p ~/.pyqtdeploy/cache
         wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O ~/.pyqtdeploy/cache/qt-everywhere-src-5.15.16.tar.xz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
