@@ -2,10 +2,6 @@
 v2.0.0
 =============================================================================
 
-- Aliases can be frustrating in timeline (Guittierez)
-  - Switch back, at least [Jett] doesn't always chnge back.
-  - Sometimes alias applied within alias
-  - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 - Variables don't get added to timeline
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
@@ -13,6 +9,10 @@ v2.0.0
 - Add event colors
   - Show on both timelines
   - Show with variable text on diagram
+- Aliases can be frustrating in timeline (Guittierez)
+  - Switch back, at least [Jett] doesn't always chnge back.
+  - Sometimes alias applied within alias
+  - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
 - Need to hide those logged columns

@@ -420,7 +420,7 @@ class AddAnythingDialog(QmlDrawer):
         if newPeople:
             commands.addPeople(self.scene, newPeople)
 
-        # Add variables
+        # Ensure variables in scene
 
         if anxiety is not None or functioning is not None or symptom is not None:
             existingEventProperties = [
