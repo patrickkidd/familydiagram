@@ -28,12 +28,10 @@ class QtComponent(Qt.QtComponent):
                 "qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.h",
                 self._patch_qiosurfacegraphicsbuffer,
             )
-            os.system("pwd")
-            os.system("ls -la")
-            shutil.copyfile(
-                "../../../toolchain-macos-13.prf",
-                "qtbase/mkspecs/features/toolchain.prf",
-            )
+            # shutil.copyfile(
+            #     "../../../toolchain-macos-13.prf",
+            #     "qtbase/mkspecs/features/toolchain.prf",
+            # )
 
         return archive_root
 

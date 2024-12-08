@@ -39,7 +39,7 @@ abi_major_version = 12
 # Qt ########################################################################
 
 [Qt]
-version = "5.15.2"
+version = "5.15.16"
 edition = "opensource"
 skip = [
     "qt3d",
