@@ -380,6 +380,7 @@ jobs:
   
       - name: Zip build
         run: |
+          cd build\win32\Release
           7z a -tzip "build\win32\Release\Family Diagram.zip" "build\win32\Release\Family Diagram.exe"
         shell: cmd
           
