@@ -1,7 +1,7 @@
-
 v2.0.0
 =============================================================================
 
+- Elide names under gender box
 - Variables don't get added to timeline
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
@@ -15,6 +15,9 @@ v2.0.0
   - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
+- Help/prompt: "Does a shift in R preceed or proceed this?"
+- Add ribbon to Add form?: Prompt for "next event in sequence?"
+  - Laura: "What happens next and for whom?"
 - Need to hide those logged columns
 - Move search view to hovering overlay over entire document with click screen?
   - So you can see the diagram and timeline change while entering values
