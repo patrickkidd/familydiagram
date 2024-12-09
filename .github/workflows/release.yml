@@ -236,6 +236,7 @@ jobs:
           --hide-extension "Family Diagram.app" \
           --app-drop-link 600 350 \
           --no-internet-enable \
+          --hdiutil-verbose \
           "Release/Family Diagram.dmg" \
           "Release/"
 
