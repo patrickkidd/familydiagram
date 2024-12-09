@@ -85,7 +85,7 @@ jobs:
       with:
         path: |
           pkdiagram/_pkdiagram/build
-        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+        key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}-3.11.6
     
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
@@ -286,7 +286,7 @@ jobs:
         with:
           path: |
             pkdiagram/_pkdiagram/build
-          key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}
+          key: _pkdiagram-${{ runner.os }}-${{ hashFiles('./pkdiagram/_pkdiagram/sip/*.sip', './pkdiagram/_pkdiagram/*.h', './pkdiagram/_pkdiagram/*.cpp') }}-3.11.6
       
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'

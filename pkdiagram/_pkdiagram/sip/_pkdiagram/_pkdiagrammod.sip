@@ -233,4 +233,3 @@ public:
 
     void paint(QPainter *, const QStyleOptionGraphicsItem *, QWidget * = nullptr);
 };
-
