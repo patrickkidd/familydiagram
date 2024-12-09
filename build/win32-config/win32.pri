@@ -10,7 +10,7 @@ RESOURCES += windows.qrc
 
 QMAKE_CXXFLAGS += -DPK_USE_SPARKLE=1
 
-INCLUDEPATH += $$[QT_INSTALL_PREFIX]/include/QtCore/5.15.2 $$[QT_INSTALL_PREFIX]/include/QtGui/5.15.2
+INCLUDEPATH += $$[QT_INSTALL_PREFIX]/include/QtCore/5.15.16 $$[QT_INSTALL_PREFIX]/include/QtGui/5.15.16
 
 # this is only here because sometimes you need to debug C++ and there is no debug qt to link to
 release {

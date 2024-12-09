@@ -1,5 +1,10 @@
 Qt Version
 ==============================================================
+- Using Qt-5.15.16 in the sysroot to avoid some PITA build bugs on macos-13
+- Using Qt-5.15.2 for qmake and moc to generate _pkdiagram sources
+    - That's the last available installer
+    - Avoid having to build two qt's from source
+    - Using the sysroot "host" qmake exe will only build static libs
 - We are pinned to Qt-5.15.2 since it is the last version with an installer, which allows avoiding building from source on windows in CD.
     - Upgrading past 5.15.2 is going to require building from source for windows on CD
 - Local Dev: A Qt installation with the same version is required to build _pkdiagram because the sysroot ./host/bin/qmake will build static libraries instead of a dll
