@@ -378,10 +378,10 @@ jobs:
           msbuild /p:Configuration=Release "Family Diagram.vcxproj"
         shell: cmd
   
-      - name: Zip build
+      - name: Compress build
         run: |
           cd build\win32\Release
-          7z a -tzip "build\win32\Release\Family Diagram.zip" "build\win32\Release\Family Diagram.exe"
+          7z a -tzip "Family Diagram.zip" "Family Diagram.exe"
         shell: cmd
           
       - name: Upload Artifact
