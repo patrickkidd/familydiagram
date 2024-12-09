@@ -227,6 +227,9 @@ jobs:
         cd build/osx
         ls -la ./Release
         hdiutil info
+        # copy to a tmp folder to avoid "hdiutil: Resource busy"
+        mkdir -p /tmp/Family-Diagram/
+        cp ./Release /tmp/Family-Diagram/
         create-dmg \
           --volname "Family Diagram" \
           --volicon "PKDiagram-Filled.icns" \
@@ -239,8 +242,8 @@ jobs:
           --app-drop-link 600 350 \
           --no-internet-enable \
           --hdiutil-verbose \
-          "Release/Family Diagram.dmg" \
-          "Release/"
+          "/tmp/Family-Diagram/Family Diagram.dmg" \
+          "/tmp/Family-Diagram/"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
