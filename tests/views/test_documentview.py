@@ -364,6 +364,25 @@ def test_toggle_search_tag_via_action(dv):
     assert dv.searchModel.tags == [tag]
 
 
+def test_dbl_click_inspect_second_person(qtbot, dv):
+    personA, personB = Person(name="John Doe"), Person(name="Jane Doe")
+    dv.scene.addItems(personA, personB)
+    personA.setPos(-100, -100)
+    personB.setPos(100, 100)
+
+    personA_pos = dv.view.mapFromScene(personA.scenePos())
+    qtbot.mouseClick(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personA_pos)
+    qtbot.mouseClick(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personA_pos)
+    assert dv.currentDrawer == dv.personProps
+    assert dv.personProps.rootProp("personModel").items == [personA]
+
+    personB_pos = dv.view.mapFromScene(personB.scenePos())
+    qtbot.mouseClick(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personB_pos)
+    qtbot.mouseClick(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personB_pos)
+    assert dv.currentDrawer == dv.personProps
+    assert dv.personProps.rootProp("personModel").items == [personB]
+
+
 def test_deselect_all_tags(dv):
     dv.scene.setTags(["here", "you", "are"])
     dv.searchModel.tags = ["you"]
