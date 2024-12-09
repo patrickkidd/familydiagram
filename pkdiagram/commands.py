@@ -819,6 +819,7 @@ class AddEmotion(UndoCommand):
 def addEmotion(scene, emotion, id=-1):
     cmd = AddEmotion(scene, emotion, id=id)
     stack().push(cmd)
+    return emotion
 
 
 class AddPencilStroke(UndoCommand):

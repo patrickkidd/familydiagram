@@ -30,8 +30,8 @@ from .emotions import Emotion
 from .marriage import Marriage
 from .childof import ChildOf
 from .multiplebirth import MultipleBirth
-from .layer import Layer
 from .variablesdatabase import VariablesDatabase
+from pkdiagram.slugify import slugify
 
 
 _log = logging.getLogger(__name__)
@@ -609,7 +609,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
-                util.ATTR_ANXIETY.lower(), self.scene().currentDateTime()
+                util.ATTR_ANXIETY, self.scene().currentDateTime()
             )
             if ok:
                 return anxiety
@@ -620,7 +620,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
-                util.ATTR_FUNCTIONING.lower(), self.scene().currentDateTime()
+                util.ATTR_FUNCTIONING, self.scene().currentDateTime()
             )
             if ok:
                 return functioning
@@ -631,7 +631,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
-                util.ATTR_SYMPTOM.lower(), self.scene().currentDateTime()
+                util.ATTR_SYMPTOM, self.scene().currentDateTime()
             )
             if ok:
                 return symptom
@@ -1256,13 +1256,13 @@ class Person(PathItem):
                 )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                if entry["attr"] in (util.ATTR_ANXIETY.lower(),) and value in (
+                if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
                     util.VAR_ANXIETY_DOWN,
                     util.VAR_ANXIETY_SAME,
                     util.VAR_ANXIETY_UP,
                 ):
                     continue
-                if entry["attr"] in (util.ATTR_FUNCTIONING.lower(),) and value in (
+                if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
                     util.VAR_FUNCTIONING_DOWN,
                     util.VAR_FUNCTIONING_SAME,
                     util.VAR_FUNCTIONING_UP,

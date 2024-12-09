@@ -3,18 +3,16 @@ import logging
 from .pyqt import (
     pyqtSignal,
     QMessageBox,
-    QObject,
     QEvent,
     Qt,
     pyqtSignal,
     QPointF,
     QMetaObject,
     QVariant,
-    QDateTime,
     Q_RETURN_ARG,
     Q_ARG,
 )
-from . import objects, util, commands
+from . import util, commands, slugify
 from .objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
 from .util import EventKind
@@ -420,7 +418,7 @@ class AddAnythingDialog(QmlDrawer):
         if newPeople:
             commands.addPeople(self.scene, newPeople)
 
-        # Add variables
+        # Ensure variables in scene
 
         if anxiety is not None or functioning is not None or symptom is not None:
             existingEventProperties = [
@@ -433,8 +431,9 @@ class AddAnythingDialog(QmlDrawer):
             if symptom and util.ATTR_SYMPTOM not in existingEventProperties:
                 self.scene.addEventProperty(util.ATTR_SYMPTOM)
 
-        # Kind-specific event logic
+        # Add Events
 
+        newEvents = []
         propertyUndoId = commands.nextId()
 
         if EventKind.isMonadic(kind):
@@ -453,6 +452,7 @@ class AddAnythingDialog(QmlDrawer):
                 if notes:
                     event.setNotes(notes, undo=propertyUndoId)
                 event.setTags(tags)
+                newEvents.append(event)
 
                 # Prevent the new person being invisible.
                 if (
@@ -504,7 +504,7 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
                 if notes:
                     kwargs["notes"] = notes
-                commands.addEmotion(
+                emotion = commands.addEmotion(
                     self.scene,
                     Emotion(
                         kind=util.ITEM_CUTOFF,
@@ -513,6 +513,9 @@ class AddAnythingDialog(QmlDrawer):
                         **kwargs,
                     ),
                 )
+                newEvents.add(emotion.startEvent)
+                if emotion.endEvent.dateTime():
+                    newEvents.add(emotion.endEvent)
 
         elif kind == EventKind.CustomIndividual:
             kwargs = {"location": location} if location else {}
@@ -527,14 +530,7 @@ class AddAnythingDialog(QmlDrawer):
                         **kwargs,
                     ),
                 )
-                if anxiety is not None:
-                    event.dynamicProperty(util.ATTR_ANXIETY.lower()).set(anxiety)
-                if functioning is not None:
-                    event.dynamicProperty(util.ATTR_FUNCTIONING.lower()).set(
-                        functioning
-                    )
-                if symptom is not None:
-                    event.dynamicProperty(util.ATTR_SYMPTOM.lower()).set(symptom)
+                newEvents.append(event)
 
         elif EventKind.isPairBond(kind):
             marriage = Marriage.marriageForSelection([personA, personB])
@@ -557,10 +553,11 @@ class AddAnythingDialog(QmlDrawer):
             _log.debug(
                 f"Adding {kind} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
             )
-            commands.addEvent(
+            event = commands.addEvent(
                 marriage,
                 Event(dateTime=startDateTime, tags=tags, **kwargs),
             )
+            newEvents.append(event)
 
         elif EventKind.isDyadic(kind):
             itemMode = EventKind.itemModeFor(kind)
@@ -582,8 +579,19 @@ class AddAnythingDialog(QmlDrawer):
                     )
                     emotion.startEvent.setTags(tags)
                     commands.addEmotion(self.scene, emotion)
+                newEvents.append(emotion.startEvent)
+                if emotion.endEvent.dateTime():
+                    newEvents.append(emotion.endEvent)
         else:
             raise ValueError(f"Don't know how to handle EventKind {kind}")
+
+        for event in newEvents:
+            if anxiety is not None:
+                event.dynamicProperty(util.ATTR_ANXIETY).set(anxiety)
+            if functioning is not None:
+                event.dynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
+            if symptom is not None:
+                event.dynamicProperty(util.ATTR_SYMPTOM).set(symptom)
 
         # Arrange people
         spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else None

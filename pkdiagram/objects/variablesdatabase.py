@@ -1,5 +1,6 @@
 import copy, bisect
 from sortedcontainers import SortedDict
+from pkdiagram.slugify import slugify
 
 
 class VariablesDatabase:
@@ -30,6 +31,7 @@ class VariablesDatabase:
 
     def get(self, attr, date):
         """Returns: (value, changed)"""
+        attr = slugify(attr)
         ret = (None, False)
         attrEntry = self._data.get(attr)
         if attrEntry:
