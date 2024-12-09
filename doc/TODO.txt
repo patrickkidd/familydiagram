@@ -2,7 +2,6 @@
 v2.0.0
 =============================================================================
 
-- Variables don't get added to timeline
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
 - Notes in add data point field doesn't store / show icon
@@ -15,6 +14,11 @@ v2.0.0
   - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
+- Add pregnancy
+  - Change miscarraige to have X through it like death
+- Prompt for variable shifts for additional people when entering data point
+  - Under the hood, add separate events for each person
+  - Collapse events with the same timestamp into the same row
 - Need to hide those logged columns
 - Move search view to hovering overlay over entire document with click screen?
   - So you can see the diagram and timeline change while entering values

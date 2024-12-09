@@ -28,6 +28,7 @@ Page {
         }
     }
 
+    property alias colorBox: colorBox
     property alias nodalBox: nodalBox
 
     function setCurrentTab(tab) {
@@ -352,7 +353,7 @@ Page {
                                 objectName: 'resetUniqueIdButton'
                                 opacity: uniqueIdBox.currentIndex > -1 ? 1 : 0
                                 enabled: opacity > 0
-                                KeyNavigation.tab: includeOnDiagramBox
+                                KeyNavigation.tab: colorBox
                                 onClicked: eventModel.uniqueId = undefined
                                 Behavior on opacity {
                                     NumberAnimation { duration: util.ANIM_DURATION_MS; easing.type: Easing.InOutQuad }
@@ -360,6 +361,15 @@ Page {
                             }
                         }
 
+                        PK.Text { text: "Color" }
+
+                        PK.ColorPicker {
+                            id: colorBox
+                            color: eventModel.color
+                            KeyNavigation.tab: nameBox
+                            KeyNavigation.backtab: uniqueIdBox
+                            onCurrentIndexChanged: eventModel.color = model[currentIndex]
+                        }
 
                         PK.FormDivider { Layout.columnSpan: 2}
 

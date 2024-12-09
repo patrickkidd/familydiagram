@@ -496,10 +496,15 @@ class GraphicalTimelineCanvas(QWidget):
                     if self._selectionModel.isRowSelected(row):
                         painter.setPen(selectedPen)
                         painter.setBrush(selectedBrush)
-                    elif event.nodal():
+                    elif event.color():
+                        eventColor = event.color()
                         # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
-                        painter.setPen(nodalPen)
-                        painter.setBrush(nodalBrush)
+                        painter.setPen(eventColor)
+                        painter.setBrush(eventColor)
+                    # elif event.nodal():
+                    #     # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
+                    #     painter.setPen(nodalPen)
+                    #     painter.setBrush(nodalBrush)
                     elif self.scene.itemShownOnDiagram(event):
                         # print('    NORMAL', event.dateTime().year(), normalPen.color().name(), normalPen.color().alpha())
                         painter.setPen(normalPen)

@@ -254,8 +254,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             if row > -1:
                 index = self.index(row, col)
                 self.dataChanged.emit(index, index)
-        elif prop.name() == "color":
-            self.refreshProperty("dateBuddies")
+        # elif prop.name() == "color":
+        #     self.refreshProperty("dateBuddies")
         elif prop.name() == "itemPos":
             pass  # performance hit when dragging items with emotions
         else:
@@ -429,8 +429,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif role == self.NodalRole:
             ret = ", ".join(event.tags())
         elif role == self.ColorRole:
-            if event.parent.isEmotion:
-                ret = event.parent.color()
+            return event.color()
         elif role == self.FirstBuddyRole:
             buddyRow = self.dateBuddyForRow(index.row())
             if buddyRow is not None and buddyRow > index.row():

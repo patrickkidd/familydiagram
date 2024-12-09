@@ -553,7 +553,8 @@ ColumnLayout {
             id: dRoot
             property int thisRow: row
             property int thisColumn: column
-            property bool thisNodal: !model.nodal ? false : true
+            // property bool thisNodal: !model.nodal ? false : true
+            property var thisColor: model.color ? model.color.replace(/#/g, '') : model.color
             property bool shouldEdit: false
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
@@ -627,6 +628,15 @@ ColumnLayout {
                 height: parent.height
                 visible: thisColumn > 0
                 color: root.expanded ? util.QML_ITEM_BORDER_COLOR : 'transparent'
+            }
+
+            Rectangle { // event color overlay
+                x: 0
+                y: 0
+                width: parent.width
+                height: parent.height
+                color: thisColor ? '#' + '44' + thisColor : 'transparent'
+                visible: thisColor ? true : false
             }
 
             // Editors

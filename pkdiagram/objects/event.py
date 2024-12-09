@@ -15,6 +15,7 @@ class Event(item.Item):
             {"attr": "description"},
             {"attr": "nodal", "default": False},
             {"attr": "notes"},
+            {"attr": "color"},
             {"attr": "parentName"},
             {"attr": "location"},
             {"attr": "uniqueId"},  # TODO: Rename to `kind`, one of EventKind
