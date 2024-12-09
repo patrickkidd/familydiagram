@@ -609,7 +609,7 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
     assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_1)
 
 
-def test_add_new_variables(scene, dlg):
+def test_add_new_variables_CustomIndividual(scene, dlg):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     dlg.set_kind(EventKind.CustomIndividual)
     dlg.add_existing_person("peoplePicker", personA)
@@ -634,3 +634,53 @@ def test_add_new_variables(scene, dlg):
         == util.VAR_FUNCTIONING_DOWN
     )
     assert personA.events()[0].dynamicProperty("symptom").get() == util.VAR_SYMPTOM_SAME
+
+
+def test_add_new_variables_PairBond(scene, dlg):
+    dlg.set_kind(EventKind.Bonded)
+    dlg.set_new_person("personAPicker", "John Doe")
+    dlg.set_new_person("personBPicker", "Jane Doe")
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    event = scene.events(onlyDated=True)[0]
+    dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
+    assert dynamicPropertyNames == [
+        util.ATTR_ANXIETY,
+        util.ATTR_FUNCTIONING,
+        util.ATTR_SYMPTOM,
+    ]
+    assert event.dynamicProperty(util.ATTR_ANXIETY).get() == util.VAR_VALUE_UP
+    assert (
+        event.dynamicProperty(util.ATTR_FUNCTIONING).get() == util.VAR_FUNCTIONING_DOWN
+    )
+    assert event.dynamicProperty(util.ATTR_SYMPTOM).get() == util.VAR_SYMPTOM_SAME
+
+
+def test_add_new_variables_Dyadic(scene, dlg):
+    dlg.set_kind(EventKind.Conflict)
+    dlg.add_new_person("moversPicker", "John Doe")
+    dlg.add_new_person("receiversPicker", "Jane Doe")
+    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
+    dlg.set_description("Something happened")
+    dlg.set_startDateTime(START_DATETIME)
+    dlg.mouseClick("AddEverything_submitButton")
+    symbol = scene.emotions()[0]
+    startEvent = symbol.startEvent
+    assert symbol.kind() == EventKind.itemModeFor(EventKind.Conflict)
+    dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
+    assert dynamicPropertyNames == [
+        util.ATTR_ANXIETY,
+        util.ATTR_FUNCTIONING,
+        util.ATTR_SYMPTOM,
+    ]
+    assert startEvent.dynamicProperty(util.ATTR_ANXIETY).get() == util.VAR_VALUE_UP
+    assert (
+        startEvent.dynamicProperty(util.ATTR_FUNCTIONING).get()
+        == util.VAR_FUNCTIONING_DOWN
+    )
+    assert startEvent.dynamicProperty(util.ATTR_SYMPTOM).get() == util.VAR_SYMPTOM_SAME
