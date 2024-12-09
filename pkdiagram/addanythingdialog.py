@@ -3,18 +3,16 @@ import logging
 from .pyqt import (
     pyqtSignal,
     QMessageBox,
-    QObject,
     QEvent,
     Qt,
     pyqtSignal,
     QPointF,
     QMetaObject,
     QVariant,
-    QDateTime,
     Q_RETURN_ARG,
     Q_ARG,
 )
-from . import objects, util, commands
+from . import util, commands, slugify
 from .objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
 from .util import EventKind
@@ -528,13 +526,11 @@ class AddAnythingDialog(QmlDrawer):
                     ),
                 )
                 if anxiety is not None:
-                    event.dynamicProperty(util.ATTR_ANXIETY.lower()).set(anxiety)
+                    event.dynamicProperty(util.ATTR_ANXIETY).set(anxiety)
                 if functioning is not None:
-                    event.dynamicProperty(util.ATTR_FUNCTIONING.lower()).set(
-                        functioning
-                    )
+                    event.dynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
                 if symptom is not None:
-                    event.dynamicProperty(util.ATTR_SYMPTOM.lower()).set(symptom)
+                    event.dynamicProperty(util.ATTR_SYMPTOM).set(symptom)
 
         elif EventKind.isPairBond(kind):
             marriage = Marriage.marriageForSelection([personA, personB])

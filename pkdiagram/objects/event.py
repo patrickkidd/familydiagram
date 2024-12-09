@@ -3,6 +3,7 @@ from ..pyqt import QDateTime
 from .. import util, commands
 from . import item, property
 from ..util import EventKind
+from pkdiagram.slugify import slugify
 
 
 class Event(item.Item):
@@ -369,12 +370,14 @@ class Event(item.Item):
         return False
 
     def dynamicProperty(self, attr):
+        attr = slugify(attr)
         for prop in self.dynamicProperties:
             if prop.name() == attr:
                 return prop
 
     def addDynamicProperty(self, attr):
         """Doesn't add dynamic getters/setters."""
+        attr = slugify(attr)
         prop = self.dynamicProperty(attr)
         if prop is None:
             prop = property.Property(self, attr=attr, dynamic=True)
@@ -385,6 +388,7 @@ class Event(item.Item):
         self.dynamicProperty(oldAttr).setAttr(newAttr)
 
     def removeDynamicProperty(self, attr):
+        attr = slugify(attr)
         for prop in list(self.dynamicProperties):
             if prop.name() == attr:
                 self.dynamicProperties.remove(prop)

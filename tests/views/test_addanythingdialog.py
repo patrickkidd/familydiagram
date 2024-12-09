@@ -625,7 +625,10 @@ def test_add_new_variables(scene, dlg):
         util.ATTR_FUNCTIONING,
         util.ATTR_SYMPTOM,
     ]
-    assert personA.events()[0].dynamicProperty("anxiety").get() == util.VAR_VALUE_UP
+    assert (
+        personA.events()[0].dynamicProperty(util.ATTR_ANXIETY).get()
+        == util.VAR_VALUE_UP
+    )
     assert (
         personA.events()[0].dynamicProperty("functioning").get()
         == util.VAR_FUNCTIONING_DOWN
