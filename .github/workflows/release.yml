@@ -229,7 +229,7 @@ jobs:
         hdiutil info
         # copy to a tmp folder to avoid "hdiutil: Resource busy"
         mkdir -p /tmp/Family-Diagram/
-        cp ./Release /tmp/Family-Diagram/
+        cp -R ./Release/* /tmp/Family-Diagram/
         create-dmg \
           --volname "Family Diagram" \
           --volicon "PKDiagram-Filled.icns" \
