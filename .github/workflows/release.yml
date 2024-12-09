@@ -225,6 +225,8 @@ jobs:
     - name: Create DMG
       run: |
         cd build/osx
+        ls -la ./Release
+        hdiutil info
         create-dmg \
           --volname "Family Diagram" \
           --volicon "PKDiagram-Filled.icns" \
