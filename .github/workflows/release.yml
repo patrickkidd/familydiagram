@@ -236,6 +236,7 @@ jobs:
           --hide-extension "Family Diagram.app" \
           --app-drop-link 600 350 \
           --no-internet-enable \
+          --hdiutil-verbose \
           "Release/Family Diagram.dmg" \
           "Release/"
 
@@ -265,7 +266,7 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          pipenv install --dev --verbose
+          pipenv install --dev
   
       - name: Install Qt
         run: |
@@ -297,7 +298,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64
+          key: sysroot-win-64-5.15.16
           # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
   
       # The moc files are required by the sysroot plugin as well as the build plugin
@@ -306,6 +307,14 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
+          curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
+
+          echo "Downloading https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz"
+          curl -L "https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz" -o "sysroot/PyQt5-5.15.11.tar.gz"
+
+          # powershell -Command "Invoke-WebRequest 'https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
+          # powershell -Command "Invoke-WebRequest 'https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz' -OutFile 'sysroot/PyQt5-5.15.11.tar.gz'"
           cd pkdiagram\_pkdiagram
           dir build\_pkdiagram\release
           mkdir build\_pkdiagram\release
@@ -319,7 +328,7 @@ jobs:
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64
+          key: sysroot-win-64-5.15.16
   
       - name: Write build config
         run: |
@@ -371,6 +380,7 @@ jobs:
   
       - name: Zip build
         run: |
+          cd build\win32\Release
           7z a -tzip "build\win32\Release\Family Diagram.zip" "build\win32\Release\Family Diagram.exe"
         shell: cmd
           
