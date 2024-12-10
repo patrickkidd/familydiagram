@@ -17,7 +17,7 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 if(APPLE)
 #    set(PKDIAGRAM_MOD_FILENAME "pkdiagram/_pkdiagram/build/_pkdiagram/_pkdiagram.cpython-39-darwin.so")
-    set(PKDIAGRAM_MOD_FILENAME ".venv/lib/python3.10/site-packages/_pkdiagram.cpython-310-darwin.so")
+    set(PKDIAGRAM_MOD_FILENAME ".venv/lib/python3.11/site-packages/_pkdiagram.cpython-311-darwin.so")
 elseif(WIN32)
     set(PKDIAGRAM_MOD_FILENAME "pkdiagram/_pkdiagram/build/_pkdiagram/_pkdiagram.pyd")
 else()

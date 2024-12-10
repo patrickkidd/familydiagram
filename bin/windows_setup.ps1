@@ -68,7 +68,7 @@ Write-Host "Installing git..."
 choco install git -y
 
 Write-Host "Installing Python..."
-choco install python --version=3.10.4 -y
+choco install python --version=3.11.6 -y
 
 Write-Host "Installing pipenv, aqtinstall..."
 python -m pip install pipenv aqtinstall -y

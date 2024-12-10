@@ -40,15 +40,23 @@ void print_python_stack_trace() {
 
     // Get the current thread state
     PyThreadState *tstate = PyThreadState_Get();
+    PyFrameObject *frame = NULL;
+    if(frame) {
+#if PY_VERSION_HEX < 0x03090000
+        frame = tstate->frame;
+#else
+        frame = PyThreadState_GetFrame(tstate);
+#endif
+    }
 
-    if (tstate && tstate->frame) {
+    if (frame) {
         // Get the traceback module and format_stack function
         PyObject *traceback_module = PyImport_ImportModule("traceback");
         if (traceback_module) {
             PyObject *format_stack = PyObject_GetAttrString(traceback_module, "format_stack");
             if (format_stack) {
                 // Call format_stack with the current frame
-                PyObject *stack_list = PyObject_CallFunctionObjArgs(format_stack, tstate->frame, NULL);
+                PyObject *stack_list = PyObject_CallFunctionObjArgs(format_stack, frame, NULL);
                 if (stack_list) {
                     PyObject *stack_str = PyUnicode_Join(PyUnicode_FromString(""), stack_list);
                     if (stack_str) {

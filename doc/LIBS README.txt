@@ -11,7 +11,7 @@ Qt Version
 
 MACOS DEV
 ==============================================================
-- pyenv install Python-3.10.6
+- pyenv install Python-3.11.6
     - Possibly have to use this command line (use patch for any version):
     - CFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix bzip2)/include -I$(brew --prefix readline)/include -I$(xcrun --show-sdk-path)/usr/include" LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib -L$(brew --prefix zlib)/lib -L$(brew --prefix bzip2)/lib" \
 - Install Qt-5.15.* from source (no more installers for opensource)
