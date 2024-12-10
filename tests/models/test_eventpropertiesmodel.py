@@ -49,3 +49,26 @@ def test_parentId():
     model.parentId = personB.id
     assert model.parentId == personB.id
     assert event.parent == personB
+
+
+def test_reset_color_multiple():
+    scene = Scene()
+    person = Person(name="A")
+    scene.addItem(person)
+    event_1 = Event(person, description="Something happened")
+    event_2 = Event(person, description="Something happened again")
+    model = EventPropertiesModel()
+    model.scene = scene
+    model.items = [event_1, event_2]
+    assert model.color == None
+    assert model.anyColor == False
+
+    event_1.setColor("#FF0000")
+    assert model.color == None
+    assert model.anyColor == True
+
+    model.reset("color")
+    assert model.color == None
+    assert model.anyColor == False
+    assert event_1.color() == None
+    assert event_2.color() == None

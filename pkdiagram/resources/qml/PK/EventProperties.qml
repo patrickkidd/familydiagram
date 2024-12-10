@@ -378,9 +378,9 @@ Page {
                                 Layout.minimumWidth: util.QML_FIELD_WIDTH
                                 property var firstTabItem: this
                                 property var lastTabItem: this
-                                property bool isDirty: currentIndex > -1
+                                property bool isDirty: eventModel.anyColor
                                 onCurrentIndexChanged: eventModel.color = model[currentIndex]
-                                function clear() { currentIndex = -1 }
+                                function clear() { eventModel.reset('color') }
                                 Connections {
                                     target: eventModel
                                     function onColorChanged() {

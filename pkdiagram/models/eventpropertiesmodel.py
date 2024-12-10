@@ -1,16 +1,17 @@
+import logging
+
 from ..pyqt import (
     Qt,
     QObject,
     pyqtSlot,
-    QAbstractItemModel,
-    QAbstractTableModel,
-    QDateTime,
-    QModelIndex,
     qmlRegisterType,
 )
-from .. import util, objects, commands
-from ..scene import Scene
+from .. import objects, commands
 from .modelhelper import ModelHelper
+from pkdiagram.pyqt import pyqtSlot
+
+
+_log = logging.getLogger(__name__)
 
 
 class EventPropertiesModel(QObject, ModelHelper):
@@ -28,6 +29,7 @@ class EventPropertiesModel(QObject, ModelHelper):
             {"attr": "parentIsMarriage", "type": bool},
             {"attr": "parentIsEmotion", "type": bool},
             {"attr": "includeOnDiagram", "convertTo": Qt.CheckState},
+            {"attr": "anyColor", "type": bool, "default": False},
         ],
     )
 
@@ -39,6 +41,8 @@ class EventPropertiesModel(QObject, ModelHelper):
 
     def onItemProperty(self, prop):
         """Filter out dynamic event properties."""
+        if prop.name() == "color":
+            self.refreshProperty("anyColor")
         if self.propAttrsFor(prop.name()):
             super().onItemProperty(prop)
 
@@ -107,6 +111,8 @@ class EventPropertiesModel(QObject, ModelHelper):
                     ret = "Event"
             else:
                 ret = f"{len(self._items)} Events"
+        elif attr == "anyColor":
+            ret = self.any("color")
         else:
             ret = super().get(attr)
         return ret
@@ -154,6 +160,7 @@ class EventPropertiesModel(QObject, ModelHelper):
         elif attr == "location" and self._scene:
             self.refreshProperty("description")
 
+    @pyqtSlot(str)
     def reset(self, attr):
         if attr == "uniqueId":
             # Aggregate uniqueId and description props into single undo command

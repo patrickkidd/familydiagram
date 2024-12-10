@@ -12,11 +12,13 @@ PK.ComboBox {
     id: root
     model: util.ABLETON_COLORS
     delegate: ItemDelegate {
-        rightPadding: 15
+        // rightPadding: 15
+            width: root.width
+            height: root.height
         Rectangle {
             color: modelData
-            width: root.implicitWidth
-            height: root.implicitHeight
+            width: root.width
+            height: root.height
         }
     }
 
