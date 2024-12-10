@@ -28,7 +28,6 @@ class AddAnythingDialog(QmlDrawer):
     QmlDrawer.registerQmlMethods(
         [
             {"name": "clear"},
-            {"name": "adjustFlickableHack"},
             {"name": "test_peopleListItem", "return": True},
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
@@ -135,7 +134,6 @@ class AddAnythingDialog(QmlDrawer):
         Canonical entry point when showing. Could have a better name
         """
         self.clear()
-        self.adjustFlickableHack()
         pairBond = Marriage.marriageForSelection(selection)
         if pairBond:
             self.initWithPairBond(pairBond.id)
@@ -925,12 +923,7 @@ class AddAnythingDialog(QmlDrawer):
         self.setVariable("symptom", x)
 
     def _scrollToTagsField(self):
-        # y = self.itemProp("addPage.tagsField", "y")
-        # addPage = self.findItem("addPage")
-        # tagsEdit = self.findItem("tagsEdit")
-        # contentY = tagsEdit.mapToItem(addPage, QPointF(0, y)).y()
-        # _log.debug(f"Scrolling to tags field at contentY: {contentY}")
-        self.setItemProp("addPage", "contentY", 200)
+        self.rootProp("addPage").setProperty("contentY", 200)
 
     def add_tag(self, tag: str):
         self._scrollToTagsField()
