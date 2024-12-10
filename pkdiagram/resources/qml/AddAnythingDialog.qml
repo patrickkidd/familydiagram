@@ -21,7 +21,7 @@ PK.Drawer {
         objectName: 'selectedPeopleModel'
     }
     property var tagsEdit: tagsEditItem
-    property alias addPage: addPage
+    property var addPage: addPage
 
     Keys.onPressed: {
         // TODO: Not clear when focus makes this happen. Need to nail down field
