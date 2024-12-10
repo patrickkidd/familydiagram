@@ -497,7 +497,7 @@ class GraphicalTimelineCanvas(QWidget):
                         painter.setPen(selectedPen)
                         painter.setBrush(selectedBrush)
                     elif event.color():
-                        eventColor = event.color()
+                        eventColor = QColor(event.color())
                         # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                         painter.setPen(eventColor)
                         painter.setBrush(eventColor)

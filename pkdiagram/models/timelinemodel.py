@@ -1,3 +1,5 @@
+import logging
+
 # from sortedcontainers import SortedList
 from ..pyqt import (
     Qt,
@@ -16,6 +18,8 @@ from ..pyqt import (
 from .. import util, commands
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
+
+_log = logging.getLogger(__name__)
 
 
 def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):
@@ -243,6 +247,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             col = self.COLUMNS.index(self.DESCRIPTION)
             if row > -1:
                 self.dataChanged.emit(self.index(row, col), self.index(row, col))
+        elif prop.name() == "color":
+            col = self.COLUMNS.index(self.COLOR)
+            if row > -1:
+                self.dataChanged.emit(
+                    self.index(row, 0),
+                    self.index(row, self.columnCount() - 1),
+                    [self.ColorRole],
+                )
         elif prop.name() == "location":
             col = self.COLUMNS.index(self.LOCATION)
             if row > -1:

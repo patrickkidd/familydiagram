@@ -363,12 +363,31 @@ Page {
 
                         PK.Text { text: "Color" }
 
-                        PK.ColorPicker {
-                            id: colorBox
-                            color: eventModel.color
-                            KeyNavigation.tab: nameBox
-                            KeyNavigation.backtab: uniqueIdBox
-                            onCurrentIndexChanged: eventModel.color = model[currentIndex]
+                        PK.FormField {
+                            id: colorField
+                            backTabItem: uniqueIdBox
+                            tabItem: nameBox
+                            Layout.minimumHeight: util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT
+                            PK.ColorPicker {
+                                id: colorBox
+                                color: eventModel.color
+                                KeyNavigation.tab: nameBox
+                                KeyNavigation.backtab: uniqueIdBox
+                                Layout.maximumWidth: util.QML_FIELD_WIDTH
+                                Layout.minimumWidth: util.QML_FIELD_WIDTH
+                                property var firstTabItem: this
+                                property var lastTabItem: this
+                                property bool isDirty: currentIndex > -1
+                                onCurrentIndexChanged: eventModel.color = model[currentIndex]
+                                function clear() { currentIndex = -1 }
+                                Connections {
+                                    target: eventModel
+                                    function onColorChanged() {
+                                        colorBox.currentIndex = colorBox.model.indexOf(eventModel.color)
+                                    }
+                                }
+                            }
                         }
 
                         PK.FormDivider { Layout.columnSpan: 2}

@@ -554,7 +554,7 @@ ColumnLayout {
             property int thisRow: row
             property int thisColumn: column
             // property bool thisNodal: !model.nodal ? false : true
-            property var thisColor: model.color ? model.color.replace(/#/g, '') : model.color
+            property var thisColor: model.color ? '#44' + model.color.replace(/#/g, '') : 'transparent'
             property bool shouldEdit: false
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
@@ -635,7 +635,7 @@ ColumnLayout {
                 y: 0
                 width: parent.width
                 height: parent.height
-                color: thisColor ? '#' + '44' + thisColor : 'transparent'
+                color: thisColor
                 visible: thisColor ? true : false
             }
 
