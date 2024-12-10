@@ -15,6 +15,8 @@ v2.0.0
   - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
+- Hide or disable variables for R symbols
+- Allow "Is Date Range" without entering an end date to allow it to persist
 - Help/prompt: "Does a shift in R preceed or proceed this?"
 - Add ribbon to Add form?: Prompt for "next event in sequence?"
   - Laura: "What happens next and for whom?"
