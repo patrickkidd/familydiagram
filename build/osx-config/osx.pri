@@ -21,6 +21,8 @@ alpha|beta|release {
     QMAKE_LFLAGS += -rpath @executable_path/../Frameworks -F$$PWD
 }
 
+DEFINES += NEEDS_PY_IDENTIFIER
+
 ## Bundle Resources
 QMAKE_INFO_PLIST = Info.plist
 ICON = PKDiagram-Filled.icns

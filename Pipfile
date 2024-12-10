@@ -42,4 +42,4 @@ pyqtdeploy = { index="riverbank" }
 fdserver = { index="familydiagram" }
 
 [requires]
-python_version = "3.10"
+python_version = "3.11.6"
