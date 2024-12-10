@@ -1,3 +1,4 @@
+import os
 import logging
 from .pyqt import (
     Qt,
@@ -37,7 +38,8 @@ class GraphicalTimeline(QScrollArea):
     def __init__(self, searchModel, timelineModel, selectionModel, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        if os.name != "nt":
+            self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.scene = None
         self.nominalWidth = 0
@@ -81,7 +83,7 @@ class GraphicalTimeline(QScrollArea):
         self.heightSlider.valueChanged[int].connect(self.setRowHeight)
         self.scaleFactor = 1.0
         self.nominalWidth = self.canvas.width()
-        QScroller.grabGesture(self.viewport(), QScroller.LeftMouseButtonGesture)
+        # QScroller.grabGesture(self.viewport(), QScroller.LeftMouseButtonGesture)
 
         self._searchModel.tagsChanged.connect(self.onSearchTagsChanged)
         self._searchModel.changed.connect(self.onSearchChanged)
