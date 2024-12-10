@@ -138,8 +138,10 @@ Rectangle {
         PK.Text {
             id: personNameText
             text: root.personName
+            elide: Text.ElideRight
             visible: isSubmitted
             Layout.leftMargin: util.QML_ITEM_MARGINS
+            Layout.maximumWidth: 105
         }
         PK.TextInput {
             id: pickerTextEdit
