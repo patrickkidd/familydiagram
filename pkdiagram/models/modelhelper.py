@@ -1,6 +1,7 @@
 from .. import util, objects, commands
 from .qobjecthelper import QObjectHelper
 from ..scene import Scene
+from pkdiagram.pyqt import pyqtSlot
 
 
 class ModelHelper(QObjectHelper):
@@ -85,6 +86,7 @@ class ModelHelper(QObjectHelper):
         if self._items and self._items[0].prop(attr):
             return self.sameOf(attr, lambda item: getattr(item, attr)())
 
+    @pyqtSlot(str, result=bool)
     def any(self, attr):
         """Return True if the property is set for any of the items, otherwise False."""
         if not self._items:

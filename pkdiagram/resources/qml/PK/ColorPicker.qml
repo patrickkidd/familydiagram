@@ -51,7 +51,7 @@ PK.ComboBox {
     }
 
     background: Rectangle {
-        implicitWidth: root.width
+        implicitWidth: 140
         implicitHeight: 40
 
         // color: root.down ? root.palette.mid : root.palette.button

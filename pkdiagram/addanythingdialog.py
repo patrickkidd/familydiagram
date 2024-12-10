@@ -513,9 +513,9 @@ class AddAnythingDialog(QmlDrawer):
                         **kwargs,
                     ),
                 )
-                newEvents.add(emotion.startEvent)
+                newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():
-                    newEvents.add(emotion.endEvent)
+                    newEvents.append(emotion.endEvent)
 
         elif kind == EventKind.CustomIndividual:
             kwargs = {"location": location} if location else {}
