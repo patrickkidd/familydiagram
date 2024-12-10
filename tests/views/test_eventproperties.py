@@ -28,6 +28,7 @@ def eventProps():
         "notes": "It was really intense but came and went",
         "location": "Anchorage, AK",
         "includeOnDiagram": Qt.Checked,
+        "color": "#3c3c3c",
     }
 
 
@@ -122,6 +123,8 @@ def runEventProperties(ep, props, personName=None, updates={}):
         resetFocus=resetFocus,
         returnToFinish=returnToFinish,
     )
+    colorBox = ep.rootProp("colorBox")
+    ep.clickComboBoxItem(colorBox, props["color"])
     ep.mouseClick("event_doneButton", Qt.LeftButton)
 
 
@@ -139,6 +142,7 @@ def assertEventProperties(event, props, updates={}, personName=None):
     if event.parent and event.parent.isMarriage:
         assert event.includeOnDiagram() == (props["includeOnDiagram"] == Qt.Checked)
     assert event.notes().strip() == props["notes"]
+    assert event.color() == props["color"]
 
 
 def test_init_single(ep, eventProps):

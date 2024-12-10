@@ -28,6 +28,7 @@ Page {
         }
     }
 
+    property alias colorBox: colorBox
     property alias nodalBox: nodalBox
 
     function setCurrentTab(tab) {
@@ -352,7 +353,7 @@ Page {
                                 objectName: 'resetUniqueIdButton'
                                 opacity: uniqueIdBox.currentIndex > -1 ? 1 : 0
                                 enabled: opacity > 0
-                                KeyNavigation.tab: includeOnDiagramBox
+                                KeyNavigation.tab: colorBox
                                 onClicked: eventModel.uniqueId = undefined
                                 Behavior on opacity {
                                     NumberAnimation { duration: util.ANIM_DURATION_MS; easing.type: Easing.InOutQuad }
@@ -360,6 +361,34 @@ Page {
                             }
                         }
 
+                        PK.Text { text: "Color" }
+
+                        PK.FormField {
+                            id: colorField
+                            backTabItem: uniqueIdBox
+                            tabItem: nameBox
+                            Layout.minimumHeight: util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: util.QML_ITEM_HEIGHT
+                            PK.ColorPicker {
+                                id: colorBox
+                                color: eventModel.color
+                                KeyNavigation.tab: nameBox
+                                KeyNavigation.backtab: uniqueIdBox
+                                Layout.maximumWidth: util.QML_FIELD_WIDTH
+                                Layout.minimumWidth: util.QML_FIELD_WIDTH
+                                property var firstTabItem: this
+                                property var lastTabItem: this
+                                property bool isDirty: eventModel.anyColor
+                                onCurrentIndexChanged: eventModel.color = model[currentIndex]
+                                function clear() { eventModel.reset('color') }
+                                Connections {
+                                    target: eventModel
+                                    function onColorChanged() {
+                                        colorBox.currentIndex = colorBox.model.indexOf(eventModel.color)
+                                    }
+                                }
+                            }
+                        }
 
                         PK.FormDivider { Layout.columnSpan: 2}
 

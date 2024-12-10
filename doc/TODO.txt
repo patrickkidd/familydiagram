@@ -15,6 +15,11 @@ v2.0.0
   - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
+- Add pregnancy
+  - Change miscarraige to have X through it like death
+- Prompt for variable shifts for additional people when entering data point
+  - Under the hood, add separate events for each person
+  - Collapse events with the same timestamp into the same row
 - Hide or disable variables for R symbols
 - Allow "Is Date Range" without entering an end date to allow it to persist
 - Help/prompt: "Does a shift in R preceed or proceed this?"
