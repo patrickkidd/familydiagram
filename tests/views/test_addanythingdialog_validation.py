@@ -61,7 +61,8 @@ def test_required_field_CustomIndividual(dlg):
     assert submitted.wait() == True
 
 
-def test_required_field_Dyadic(dlg):
+@pytest.mark.parametrize("endDateTime", [None, END_DATETIME])
+def test_required_field_Dyadic(dlg, endDateTime):
 
     submitted = util.Condition(dlg.submitted)
 
@@ -78,8 +79,8 @@ def test_required_field_Dyadic(dlg):
 
     dlg.set_isDateRange(True)
 
-    dlg.expectedFieldLabel("endDateTimeLabel")
-    dlg.set_endDateTime(END_DATETIME)
+    if endDateTime:
+        dlg.set_endDateTime(endDateTime)
 
     dlg.mouseClick("AddEverything_submitButton")
     assert submitted.wait() == True
