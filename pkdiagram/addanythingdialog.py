@@ -285,8 +285,9 @@ class AddAnythingDialog(QmlDrawer):
             labelObjectName = "descriptionLabel"
         elif not self.rootProp("startDateTime"):
             labelObjectName = "startDateTimeLabel"
-        elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
-            labelObjectName = "endDateTimeLabel"
+        # Allowing open-ended dyadic date ranges for now.
+        # elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
+        #     labelObjectName = "endDateTimeLabel"
         else:
             labelObjectName = None
         if labelObjectName:
