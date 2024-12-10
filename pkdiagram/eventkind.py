@@ -1,4 +1,7 @@
+import logging
 import enum
+
+_log = logging.getLogger(__name__)
 
 
 class EventKind(enum.Enum):
@@ -80,10 +83,11 @@ class EventKind(enum.Enum):
 
     @classmethod
     def isCustom(cls, x) -> bool:
-        """
-        Requires a mover and receiver
-        """
         return x in [cls.CustomIndividual, cls.CustomPairBond]
+
+    @classmethod
+    def isRSymbol(cls, x) -> bool:
+        return cls.isDyadic(x) or x == cls.Cutoff
 
     @classmethod
     def eventLabelFor(cls, x) -> str:

@@ -120,6 +120,10 @@ def test_fields_for_kind(dlg, kind):
     assert dlg.itemProp("descriptionLabel", "visible") == EventKind.isCustom(kind)
     assert dlg.itemProp("descriptionEdit", "visible") == EventKind.isCustom(kind)
 
+    assert dlg.itemProp("anxietyBox", "visible") == EventKind.isRSymbol(kind)
+    assert dlg.itemProp("functioningBox", "visible") == EventKind.isRSymbol(kind)
+    assert dlg.itemProp("symptomBox", "visible") == EventKind.isRSymbol(kind)
+
 
 def test_startDateTime_pickers(qtbot, dlg):
     dlg.mouseClick("clearFormButton")

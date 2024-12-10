@@ -791,13 +791,18 @@ PK.Drawer {
 
                     PK.FormDivider {
                         Layout.columnSpan: 2
+                        visible: ! util.isRSymbolEventKind(root.kind)
                     }
                     
-                    PK.Text { text: "Anxiety" }
+                    PK.Text {
+                        text: "Anxiety"
+                        visible: ! util.isRSymbolEventKind(root.kind)
+                    }
 
                     PK.VariableBox {
                         id: anxietyBox
                         objectName: "anxietyBox"
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         tabItem: functioningBox.firstTabItem
                         backTabItem: locationField.lastTabItem
@@ -805,15 +810,20 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_ANXIETY_HELP_TEXT
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
 
-                    PK.Text { text: "Functioning" }
+                    PK.Text {
+                        text: "Functioning"
+                        visible: ! util.isRSymbolEventKind(root.kind)
+                    }
 
                     PK.VariableBox {
                         id: functioningBox
                         objectName: "functioningBox"
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         backTabItem: anxietyBox.lastTabItem
                         tabItem: symptomBox.firstTabItem
@@ -821,14 +831,19 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_FUNCTIONING_HELP_TEXT
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
-                    PK.Text { text: "Symptom" }
+                    PK.Text {
+                        text: "Symptom"
+                        visible: ! util.isRSymbolEventKind(root.kind)
+                    }
 
                     PK.VariableBox {
                         id: symptomBox
                         objectName: "symptomBox"
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         backTabItem: functioningBox.lastTabItem
                         tabItem: nodalBox
@@ -836,6 +851,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_SYMPTOM_HELP_TEXT
+                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }

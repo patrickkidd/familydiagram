@@ -516,6 +516,12 @@ class QmlUtil(QObject, QObjectHelper):
             return False
         return EventKind.isCustom(EventKind(x))
 
+    @pyqtSlot(str, result=bool)
+    def isRSymbolEventKind(self, x):
+        if x == "":
+            return False
+        return EventKind.isRSymbol(EventKind(x))
+
     @pyqtSlot(str, result=str)
     def eventKindEventLabelFor(self, x: str):
         if x:
