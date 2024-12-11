@@ -3,15 +3,9 @@ import logging
 from pkdiagram.pyqt import (
     pyqtSignal,
     Qt,
-    QDialog,
     QVBoxLayout,
-    QApplication,
-    QSizePolicy,
-    QLineEdit,
-    QQuickWidget,
     QSize,
 )
-from pkdiagram import util
 from pkdiagram.widgets import Dialog
 from pkdiagram.qmlwidgethelper import QmlWidgetHelper
 
@@ -38,17 +32,8 @@ class SearchDialog(Dialog, QmlWidgetHelper):
         self.setMaximumSize(self.sizeHint())
         self.resize(self.sizeHint())
 
-        # QApplication.instance().paletteChanged.connect(self.onApplicationPaletteChanged)
-        # self.onApplicationPaletteChanged()
-        # self._button = QLineEdit(self)
-        # self._button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
     def sizeHint(self):
         return self._sizeHint
-
-    # def onApplicationPaletteChanged(self):
-    #     self.setStyleSheet(f"background-color: {util.QML_WINDOW_BG};")
-    #     # self.setStyleSheet(f"background-color: #ff0000;")
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Q and (e.modifiers() & Qt.ControlModifier):

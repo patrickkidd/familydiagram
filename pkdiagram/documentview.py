@@ -532,7 +532,18 @@ class DocumentView(QWidget):
                 self.drawers
             ):  # cycle through them as a stack to catch secondary-drawers
                 if drawer.isVisible() and drawer.canClose():
-                    drawer.onDone()
+
+                    if drawer is self.addAnythingDialog:
+                        if self.view.rightToolBar.addAnythingButton.isChecked():
+                            self.view.rightToolBar.addAnythingButton.setChecked(False)
+                    elif drawer is self.caseProps:
+                        if self.view.rightToolBar.timelineButton.isChecked():
+                            self.view.rightToolBar.timelineButton.setChecked(False)
+                        elif self.view.rightToolBar.settingsButton.isChecked():
+                            self.view.rightToolBar.settingsButton.setChecked(False)
+                        elif self.view.rightToolBar.timelineButton.isChecked():
+                            self.view.rightToolBar.timelineButton.setChecked(False)
+                    # drawer.onDone()
                     return True
         elif self.graphicalTimelineView.isExpanded():
             self.graphicalTimelineView.setExpanded(False)

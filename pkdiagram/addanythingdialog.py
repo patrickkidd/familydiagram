@@ -122,13 +122,6 @@ class AddAnythingDialog(QmlDrawer):
         #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
 
-    # def eventFilter(self, o, e):
-    #     if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
-    #         e.accept()
-    #         self.onCancel()
-    #         return True
-    #     return False
-
     def initForSelection(self, selection):
         """
         Canonical entry point when showing. Could have a better name

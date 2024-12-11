@@ -104,7 +104,6 @@ class Dialog(QFrame):
     def onPosAnimationFinished(self):
         if self._shown:
             self.shown.emit()
-            _log.info(f"{self.__class__.__name__}.onPosAnimationFinished")
         else:
             super().hide()
             self.hidden.emit()
