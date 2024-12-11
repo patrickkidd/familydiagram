@@ -82,12 +82,12 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    config.watchdog_disabled = True  # config.getoption("--disable-watchdog")
+    config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
 
 
-# def pytest_generate_tests(metafunc):
-#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
+def pytest_generate_tests(metafunc):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
