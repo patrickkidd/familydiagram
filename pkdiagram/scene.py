@@ -2,6 +2,7 @@ import os, sys, re, logging
 import contextlib
 
 from pkdiagram.pyqt import (
+    pyqtSlot,
     pyqtSignal,
     pyqtProperty,
     Qt,
@@ -1676,9 +1677,11 @@ class Scene(QGraphicsScene, Item):
             self.layerChanged.emit(layer.prop("active"))
         self.updateActiveLayers()
 
+    @pyqtSlot()
     def clearActiveLayers(self):
-        for layer in self._layers:
-            layer.setActive(False)
+        for layer in self.layers():
+            if layer.active():
+                layer.setActive(False)
 
     def emotionalUnits(self) -> list[EmotionalUnit]:
         return list(x.emotionalUnit() for x in self.marriages())

@@ -192,7 +192,6 @@ class DocumentController(QObject):
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
 
-        self.dv.searchDialog.qml.rootObject().clearSearch.connect(self.onClearSearch)
         self.dv.searchDialog.quit.connect(self.onSearchQuitShortcut)
         self.dv.searchModel.changed.connect(self.onSearchChanged)
         self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
@@ -903,10 +902,6 @@ class DocumentController(QObject):
             elif not self.scene.areActiveLayersChanging():
                 self.scene._updateAllItemsForLayersAndTags()
         self.dv.updateTimelineCallout()
-
-    def onClearSearch(self):
-        self.dv.searchModel.clear()
-        self.scene.clearActiveLayers()
 
     def onUploadToServer(self):
         self.uploadToServer.emit()

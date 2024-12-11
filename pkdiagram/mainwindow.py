@@ -1607,7 +1607,7 @@ class MainWindow(QMainWindow):
             _objectName = new.objectName()
         else:
             _objectName = None
-        log.info(f"onFocusChanged: {new}[{_objectName}]")
+        # log.info(f"onFocusChanged: {new}[{_objectName}]")
         if not self.scene:
             return
         if not isinstance(new, QAbstractButton):

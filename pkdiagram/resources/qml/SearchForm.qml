@@ -11,10 +11,9 @@ Page {
     id: root
 
     signal done
-    signal clearSearch
 
     width: 450
-    height: 600
+    height: 800
 
     property string headerLabel: 'Timeline Search';
 
@@ -45,15 +44,38 @@ Page {
         }
     }
 
+    header: PK.ToolBar {
+        PK.ToolButton {
+            id: resetButton
+            text: 'Reset'
+            visible: ! searchModel.isBlank
+            anchors.left: parent.left
+            anchors.leftMargin: margin
+            onClicked: {
+                searchModel.clear()
+                sceneModel.scene.clearActiveLayers()
+            }
+        }
+        PK.Label {
+            text: "Find"
+            elide: Text.ElideRight
+            anchors.centerIn: parent
+            font.family: util.FONT_FAMILY_TITLE
+            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+            dropShadow: true
+        }
+        PK.ToolButton {
+            id: doneButton
+            text: 'Done'
+            anchors.right: parent.right
+            anchors.rightMargin: margin
+            onClicked: done()
+        }
+    }
+
     Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
-    }
-
-    PK.Button {
-        text: "Reset"
-        visible: ! searchModel.isBlank
-        onClicked: searchModel.clear()
     }
 
     StackLayout {

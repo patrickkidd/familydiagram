@@ -109,10 +109,12 @@ class Dialog(QFrame):
             super().hide()
             self.hidden.emit()
 
-    # def keyPressEvent(self, e):
-    #     if e.key() == Qt.Key_Escape:
-    #         _log.info(f"{self.__class__.__name__}.keyPressEvent: Key_Escape")
-    #         self.reject()
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            _log.info(f"{self.__class__.__name__}.keyPressEvent: Key_Escape")
+            self.reject()
+            e.accept()
+        super().keyPressEvent(e)
 
     def isShown(self):
         return self._shown
@@ -149,4 +151,7 @@ class Dialog(QFrame):
         self.hide()
 
     def reject(self):
+        self.hide()
+
+    def onDone(self):
         self.hide()

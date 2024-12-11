@@ -11,7 +11,7 @@ from .pyqt import (
     QQuickItem,
     QQmlEngine,
 )
-from . import util, widgets
+from . import util
 from .widgets import Drawer
 from .qmlwidgethelper import QmlWidgetHelper
 
@@ -19,7 +19,7 @@ from .qmlwidgethelper import QmlWidgetHelper
 _log = logging.getLogger(__name__)
 
 
-class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
+class QmlDrawer(Drawer, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods(
         [
@@ -74,6 +74,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         )
 
     def deinit(self):
+        self.qml.rootObject().done.disconnect(self.onDone)
         self.qml.rootObject().window().activeFocusItemChanged.disconnect(
             self.onActiveFocusItemChanged
         )
@@ -83,7 +84,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
                 model.resetItems()
             if model and model.scene:
                 model.resetScene()
-        super().deinit()
+        Drawer.deinit(self)
         QmlWidgetHelper.deinit(self)
 
     def rootModel(self):
@@ -134,6 +135,9 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         _kwargs = dict(kwargs)
         _kwargs["callback"] = onHidden
         super().hide(**_kwargs)
+
+    def onDone(self):
+        self.hide()
 
     def onExpandAnimationFinished(self):
         super().onExpandAnimationFinished()

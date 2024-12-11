@@ -93,8 +93,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         Make internal and external layers mutually exclusive.
         """
         if prop.name() == "active":
+            ourLayers = self.layers()
             if prop.get():
-                ourLayers = self.layers()
                 if prop.item in ourLayers and self._scene:
                     for layer in self._scene.layers(includeInternal=False):
                         if layer.active():
@@ -110,6 +110,18 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                                 self.index(row, 0),
                                 [self.ActiveRole],
                             )
+            if prop.item in ourLayers:
+                row = ourLayers.index(prop.item)
+                if prop.get() and prop.item not in self._activeLayers:
+                    self._activeLayers.append(prop.item)
+                elif not prop.get() and prop.item in self._activeLayers:
+                    self._activeLayers.remove(prop.item)
+                self.dataChanged.emit(
+                    self.index(row, 0),
+                    self.index(row, 0),
+                    [self.ActiveRole],
+                )
+
         else:
             self.refresh()
 

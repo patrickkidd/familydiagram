@@ -30,7 +30,6 @@ log = logging.getLogger(__name__)
 class CaseProperties(QmlDrawer):
     QmlDrawer.registerQmlMethods(
         [
-            {"name": "clearSearch"},
             {"name": "inspectEvents"},
             {"name": "scrollSettingsToBottom"},
             {"name": "scrollTimelineToDateTime"},

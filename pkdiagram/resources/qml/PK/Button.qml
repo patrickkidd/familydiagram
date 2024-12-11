@@ -31,7 +31,7 @@ Control {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        onClicked: parent.clicked()
+        onClicked: root.clicked()
     }
     
     Keys.onPressed: {
