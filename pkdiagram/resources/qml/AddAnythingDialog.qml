@@ -12,6 +12,7 @@ PK.Drawer {
     id: root
     objectName: 'AddAnythingDialog'
 
+    signal add
     signal cancel
 
     property int margin: util.QML_MARGINS
@@ -23,13 +24,13 @@ PK.Drawer {
     property var tagsEdit: tagsEditItem
     property var addPage: addPage
 
-    Keys.onPressed: {
-        // TODO: Not clear when focus makes this happen. Need to nail down field
-        // focus auras.
-        if((event.key == Qt.Key_Return || event.key == Qt.Key_Enter) && event.modifiers & Qt.ControlModifier) {
-            done()
-        }
-    }
+    // Keys.onPressed: {
+    //     // TODO: Not clear when focus makes this happen. Need to nail down field
+    //     // focus auras.
+    //     if((event.key == Qt.Key_Return || event.key == Qt.Key_Enter) && event.modifiers & Qt.ControlModifier) {
+    //         done()
+    //     }
+    // }
 
     property var kind: null
     property var description: descriptionEdit.text
@@ -271,7 +272,7 @@ PK.Drawer {
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
-                done()
+                add()
             }
         }
     }

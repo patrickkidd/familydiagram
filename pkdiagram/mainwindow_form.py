@@ -228,7 +228,6 @@ class Ui_MainWindow(object):
         self.actionPathItem_Shapes.setCheckable(True)
         self.actionPathItem_Shapes.setObjectName("actionPathItem_Shapes")
         self.actionFind = QtWidgets.QAction(MainWindow)
-        self.actionFind.setCheckable(True)
         self.actionFind.setObjectName("actionFind")
         self.actionCallout = QtWidgets.QAction(MainWindow)
         self.actionCallout.setCheckable(True)

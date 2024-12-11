@@ -675,14 +675,14 @@ class View(QGraphicsView):
     def keyPressEvent(self, e):
         if QApplication.focusWidget() != self:  # how would this be possible
             return
-        if e.key() == Qt.Key.Key_Escape:
-            _log.info(f"View.keyPressEvent: Key_Escape")
-            # self.escape.emit()
-            # if self.scene():
-            #     self.scene().clearSelection()
-            #     self.scene().setItemMode(util.ITEM_NONE)
-            super().keyPressEvent(e)
-        elif e.key() in (
+        # if e.key() == Qt.Key.Key_Escape:
+        #     _log.info(f"View.keyPressEvent: Key_Escape")
+        #     # self.escape.emit()
+        #     # if self.scene():
+        #     #     self.scene().clearSelection()
+        #     #     self.scene().setItemMode(util.ITEM_NONE)
+        #     super().keyPressEvent(e)
+        if e.key() in (
             Qt.Key_Up,
             Qt.Key_Down,
             Qt.Key_Left,

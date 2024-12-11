@@ -13,7 +13,7 @@ Page {
     signal done
 
     width: 450
-    height: 800
+    height: 600
 
     property string headerLabel: 'Timeline Search';
 
@@ -48,7 +48,7 @@ Page {
         PK.ToolButton {
             id: resetButton
             text: 'Reset'
-            visible: ! searchModel.isBlank
+            visible: ! searchModel.isBlank || emotionalUnitsEdit.model.anyActive
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: {

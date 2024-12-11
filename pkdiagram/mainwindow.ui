@@ -851,9 +851,6 @@
    </property>
   </action>
   <action name="actionFind">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="text">
     <string>Find...</string>
    </property>

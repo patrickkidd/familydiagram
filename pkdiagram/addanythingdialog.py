@@ -122,12 +122,12 @@ class AddAnythingDialog(QmlDrawer):
         #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
 
-    def eventFilter(self, o, e):
-        if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
-            e.accept()
-            self.onCancel()
-            return True
-        return False
+    # def eventFilter(self, o, e):
+    #     if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
+    #         e.accept()
+    #         self.onCancel()
+    #         return True
+    #     return False
 
     def initForSelection(self, selection):
         """
@@ -143,8 +143,8 @@ class AddAnythingDialog(QmlDrawer):
         # just for tags
         self._eventModel.items = [Event(addDummy=True)]
 
-    def onDone(self):
-        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+    def onAdd(self):
+        _log.debug(f"AddAnythingDialog.onAdd: {self.rootProp('kind')}")
 
         if self.rootProp("kind") is None:
             kind = None
@@ -712,8 +712,11 @@ class AddAnythingDialog(QmlDrawer):
         """Cancel button; supports returnTo"""
         if not self.canClose():
             return
-        super().onDone()
+        super().hide()
         # self.hide(callback=self.clear)
+
+    def onDone(self):
+        self.onCancel()
 
     ## Testing
 

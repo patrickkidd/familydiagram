@@ -546,7 +546,13 @@ class SceneToolBar(ToolBar):
             #     'path': 'share-button.png',
             #     'action': self.ui.actionSave_As
             # }),
-            Separator(objectName="sep1", visible=self.isInEditorMode),
+            Separator(objectName="sep1"),
+            PushButton(
+                objectName="searchButton",
+                pixmap="search-button.png",
+                action=self.ui.actionFind,
+                helpPixmap="search.png",
+            ),
             PushButton(
                 objectName="zoomFitButton",
                 pixmap="zoom-fit-button.png",

@@ -86,17 +86,19 @@ AppFilter::AppFilter(QObject *parent)
 // Done in C++ instead of Python to keep all other events fast
 bool AppFilter::eventFilter(QObject *o, QEvent *e) {
 
-    if(o == QGuiApplication::instance()) {
+    if (e->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(e);
+        if(keyEvent->key() == Qt::Key_Escape) {
+            emit escapeKey(keyEvent);
+            return true;
+        }
+    }
+    else if(o == QGuiApplication::instance()) {
         if(e->type() == QEvent::FileOpen) {
             // Qt only supports on MacOS
             QString file = static_cast<QFileOpenEvent *>(e)->file();
             emit fileOpen(file);
             return true;
-        } else if (e->type() == QEvent::KeyPress) {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(e);
-            if(keyEvent->key() == Qt::Key_Escape) {
-                emit escapeKey();
-            }
         } else if (e->type() == QEvent::Quit) {
            QApplication::quit();
            return true;

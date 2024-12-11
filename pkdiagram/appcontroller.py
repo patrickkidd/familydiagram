@@ -1,5 +1,5 @@
 import sys, signal, os.path, logging
-from .pyqt import QObject, QTimer, QSize, QMessageBox
+from .pyqt import QObject, QTimer, QSize, QMessageBox, QKeyEvent
 import vedana
 from pkdiagram import util, version, AppConfig, Session, commands, pepper, Analytics
 
@@ -221,9 +221,10 @@ class AppController(QObject):
         else:
             self._pendingOpenFilePath = fpath
 
-    def onEscapeKey(self):
+    def onEscapeKey(self, e):
         if self.mw:
             self.mw.documentView.closeTopLevelView()
+            e.accept()
 
     def onSessionChanged(self, oldFeatures, newFeatures):
         """Called on login, logout, invalidated token."""
