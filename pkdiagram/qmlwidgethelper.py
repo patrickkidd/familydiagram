@@ -53,19 +53,14 @@ class QmlWidgetHelper(QObjectHelper):
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        if self.layout() is None:
-            raise RuntimeError(
-                "A layout must be added to a QmlWidgetHelper prior to calling initQml()"
-            )
         if self._qmlSource.startswith("qrc:"):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
-            if util.IS_TEST:
-                for error in self.qml.errors():
-                    log.error(error.toString(), exc_info=True)
+            for error in self.qml.errors():
+                log.error(error.toString(), exc_info=True)
             raise RuntimeError(
                 "Could not load qml component from: %s" % self._qmlSource
             )
@@ -73,10 +68,6 @@ class QmlWidgetHelper(QObjectHelper):
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        self.layout().addWidget(self.qml)
-        self.qml.setParent(self)
-        self.qml.resize(800, 600)
-        self.qml.show()
         for child in self.qml.rootObject().findChildren(QQuickItem):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child

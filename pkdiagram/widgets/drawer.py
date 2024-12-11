@@ -462,13 +462,6 @@ class Drawer(QFrame):
         if self.documentView():
             self.documentView().scene.update()  # fixes bug where scene wouldn't update when hiding drawer.
 
-    def keyPressEvent(self, e):
-        if e.key() in (Qt.Key_Escape,):
-            e.accept()
-            self.documentView().onEscape()
-        else:
-            super().keyPressEvent(e)
-
     def setLockResizeHandle(self, on):
         self._lockResizeHandle = on
         self.update()

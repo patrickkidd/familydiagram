@@ -22,9 +22,11 @@ class PersonPickerTest(QWidget, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)
-        QVBoxLayout(self)
         self.initQmlWidgetHelper(engine, "tests/qml/PersonPickerTest.qml")
         self.checkInitQml()
+        Layout = QVBoxLayout(self)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        Layout.addWidget(self.qml)
 
 
 @pytest.fixture

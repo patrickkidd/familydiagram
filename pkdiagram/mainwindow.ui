@@ -126,6 +126,8 @@
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
     <addaction name="separator"/>
+    <addaction name="actionFind"/>
+    <addaction name="separator"/>
     <addaction name="actionSelect_All"/>
     <addaction name="actionDeselect"/>
     <addaction name="actionDelete"/>
@@ -162,7 +164,6 @@
     </widget>
     <addaction name="actionView_Diagram"/>
     <addaction name="actionReset_All"/>
-    <addaction name="actionShow_Search"/>
     <addaction name="separator"/>
     <addaction name="actionEditor_Mode"/>
     <addaction name="separator"/>
@@ -849,12 +850,12 @@
     <string>Show PathItem Shapes</string>
    </property>
   </action>
-  <action name="actionShow_Search">
+  <action name="actionFind">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show Search</string>
+    <string>Find...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>

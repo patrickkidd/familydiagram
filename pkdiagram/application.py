@@ -107,9 +107,8 @@ class Application(QApplication):
         # TODO: Should not be global
         self._qmlUtil = QmlUtil(self)
 
-        self.appFilter = util.AppFilter(
-            self
-        )  # Move global app filtering to C++ for speed
+        # Move global app filtering to C++ for speed
+        self.appFilter = util.AppFilter(self)
         self.installEventFilter(self.appFilter)
 
         CUtil.startup()  # after QApplication() for QFileSystemWatcher

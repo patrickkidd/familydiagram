@@ -28,7 +28,7 @@ from fdserver.models import User, Diagram
 pytestmark = [
     pytest.mark.component("CaseProperties"),
     pytest.mark.depends_on(
-        "Scene", "Session", "SearchView", "TagsModel", "AccessRightsModel"
+        "Scene", "Session", "SearchDialog", "TagsModel", "AccessRightsModel"
     ),
 ]
 

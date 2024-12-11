@@ -15,6 +15,9 @@ class TimelineViewTest(QWidget, QmlWidgetHelper):
         QVBoxLayout(self)
         self.initQmlWidgetHelper(engine, "tests/qml/TimelineViewTest.qml")
         self.checkInitQml()
+        Layout = QVBoxLayout(self)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        Layout.addWidget(self.qml)
         self.resize(600, 800)
 
 

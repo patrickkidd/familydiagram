@@ -28,8 +28,6 @@ class FileManager(QWidget, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         QWidget.__init__(self, parent)
-        Layout = QVBoxLayout(self)
-        Layout.setContentsMargins(0, 0, 0, 0)
         self.initQmlWidgetHelper(engine, "qml/FileManager.qml")
         self.checkInitQml()
         self.qml.rootObject().localFileClicked.connect(self.localFileClicked)
@@ -41,6 +39,9 @@ class FileManager(QWidget, QmlWidgetHelper):
         self.clearSelection()
         self.serverFileModel = self.rootProp("serverFileModel")
         self.localFileModel = self.rootProp("localFileModel")
+        Layout = QVBoxLayout(self)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        Layout.addWidget(self.qml)
 
     def init(self):
         self.serverFileModel.init()

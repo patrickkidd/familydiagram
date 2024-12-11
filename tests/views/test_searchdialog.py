@@ -6,11 +6,11 @@ from pkdiagram.pyqt import QDateTime, QApplication
 from pkdiagram import util, Scene
 from pkdiagram.objects import Person, Event, Marriage
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
-from pkdiagram.searchview import SearchView
+from pkdiagram.views import SearchDialog
 
 
 pytestmark = [
-    pytest.mark.component("SearchView"),
+    pytest.mark.component("SearchDialog"),
     pytest.mark.depends_on("Scene", "SearchModel", "TagsModel"),
 ]
 
@@ -60,8 +60,8 @@ def tst(qtbot, tst_stuff, qmlEngine):
     scene.setTags([TAG_1, TAG_2, TAG_3])
     scene.addItems(*tst_stuff)
     qmlEngine.setScene(scene)
-    w = SearchView(qmlEngine)
-    w.resize(600, 800)
+    w = SearchDialog(qmlEngine)
+    # w.resize(600, 800)
     w.show()
     qtbot.addWidget(w)
     qtbot.waitActive(w)

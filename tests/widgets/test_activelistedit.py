@@ -81,9 +81,11 @@ def view(qtbot, qmlEngine, model):
 
         def __init__(self, parent=None):
             super().__init__(parent)
-            QVBoxLayout(self)
             self.initQmlWidgetHelper(qmlEngine, "qml/PK/ActiveListEdit.qml")
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.setContentsMargins(0, 0, 0, 0)
+            Layout.addWidget(self.qml)
 
     _view = ActiveListViewTest()
     _view.setRootProp("model", model)

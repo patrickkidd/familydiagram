@@ -37,7 +37,7 @@ DISTFILES += \
     ../resources/qml/PK/TextEdit.qml \
     ../resources/qml/PK/TextField.qml \
     ../resources/qml/PK/TextInput.qml \
-    ../resources/qml/PK/SearchView.qml \
+    ../resources/qml/PK/SearchForm.qml \
     ../resources/qml/PK/TimelineView.qml \
     ../resources/qml/PK/Tumbler.qml \
     ../resources/qml/PK/qmldir \

@@ -12,7 +12,6 @@ from pkdiagram.pyqt import (
     QActionGroup,
     QAction,
     QQuickWidget,
-    QKeySequence,
     QQuickItem,
     QItemSelectionModel,
     QMessageBox,
@@ -164,13 +163,15 @@ class DocumentController(QObject):
         self.ui.actionShow_Items_with_Notes.toggled.connect(
             self.dv.view.showItemsWithNotes
         )
-        self.ui.actionShow_Search.toggled[bool].connect(self.dv.showSearch)
+        self.ui.actionFind.triggered.connect(self.dv.showSearch)
         self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
         self.ui.actionZoom_Out.triggered.connect(self.view.zoomOut)
         self.ui.actionZoom_Fit.triggered.connect(self.onZoomFit)
         self.view.zoomFitDirty[bool].connect(self.onZoomFitDirty)
+
+        ## Views
 
         self.dv.caseProps.qml.rootObject().addEventProperty.connect(
             self.addEventProperty
@@ -191,6 +192,8 @@ class DocumentController(QObject):
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
 
+        self.dv.searchDialog.qml.rootObject().clearSearch.connect(self.onClearSearch)
+        self.dv.searchDialog.quit.connect(self.onSearchQuitShortcut)
         self.dv.searchModel.changed.connect(self.onSearchChanged)
         self.dv.searchModel.tagsChanged.connect(self.onSearchTagsChanged)
 
@@ -532,7 +535,7 @@ class DocumentController(QObject):
         self.ui.actionShow_Timeline_Search.setEnabled(on)
         self.ui.actionShow_Relationships.setEnabled(on)
         self.ui.actionShow_Items_with_Notes.setEnabled(on)
-        self.ui.actionShow_Search.setEnabled(on)
+        self.ui.actionFind.setEnabled(on)
         self.ui.actionShow_Settings.setEnabled(on)
         self.ui.actionJump_to_Now.setEnabled(on)
         self.ui.actionShow_Current_Date.setEnabled(on)
@@ -872,10 +875,6 @@ class DocumentController(QObject):
         item = self.scene.find(itemId)
         self.dv.inspectSelection(selection=[item])
 
-    def onClearSearch(self):
-        self.dv.searchModel.clear()
-        self.scene.clearActiveLayers()
-
     def showNotesFor(self, pathItem):
         self._ignoreSelectionChanges = True
         for item in self.scene.selectedItems():
@@ -885,6 +884,11 @@ class DocumentController(QObject):
             pathItem.setSelected(True)
         self._ignoreSelectionChanges = False
         self.dv.inspectSelection(tab="notes")
+
+    def onSearchQuitShortcut(self):
+        if self.dv.searchDialog.isShown():
+            self.dv.searchDialog.hide()
+            self.dv.ui.actionQuit.trigger()
 
     def onSearchChanged(self):
         if self.scene:
@@ -899,6 +903,10 @@ class DocumentController(QObject):
             elif not self.scene.areActiveLayersChanging():
                 self.scene._updateAllItemsForLayersAndTags()
         self.dv.updateTimelineCallout()
+
+    def onClearSearch(self):
+        self.dv.searchModel.clear()
+        self.scene.clearActiveLayers()
 
     def onUploadToServer(self):
         self.uploadToServer.emit()

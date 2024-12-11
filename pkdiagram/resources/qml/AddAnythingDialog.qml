@@ -287,14 +287,16 @@ PK.Drawer {
 
         Flickable {
             id: addPage
+            clip: true
+            flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: addPageInner.height
+            contentHeight: pageInner.height
 
             function scrollToTop() { contentY = 0 }
 
             ColumnLayout { // necessary to expand anything vertically
 
-                id: addPageInner
+                id: pageInner
                 width: parent.width
 
                 MouseArea {

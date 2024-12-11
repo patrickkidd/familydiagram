@@ -223,7 +223,7 @@ class AppController(QObject):
 
     def onEscapeKey(self):
         if self.mw:
-            self.mw.onEscapeKey()
+            self.mw.documentView.closeTopLevelView()
 
     def onSessionChanged(self, oldFeatures, newFeatures):
         """Called on login, logout, invalidated token."""

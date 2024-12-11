@@ -1,6 +1,7 @@
 import logging
 from .pyqt import (
     pyqtSignal,
+    Qt,
     QWidget,
     QSizePolicy,
     QApplication,
@@ -11,7 +12,6 @@ from .pyqt import (
     QPoint,
     QPointF,
     QMainWindow,
-    Qt,
 )
 from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
@@ -19,9 +19,9 @@ from .util import RightDrawerView
 from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
-from .searchview import SearchView
 from .widgets import TimelineCallout
 from .qmldrawer import QmlDrawer
+from pkdiagram.views import SearchDialog
 
 
 log = logging.getLogger(__name__)
@@ -72,7 +72,6 @@ class DocumentView(QWidget):
         self.accessRightsModel = self._qmlEngine.accessRightsModel
 
         self.view = View(self, parent.ui)
-        self.view.escape.connect(self.onEscape)
 
         from pkdiagram.documentcontroller import DocumentController
 
@@ -183,7 +182,7 @@ class DocumentView(QWidget):
             self.graphicalTimelineExpanded
         )
         self.graphicalTimelineView.searchButton.clicked.connect(
-            self.ui.actionShow_Search.trigger
+            self.ui.actionFind.trigger
         )
         self.graphicalTimelineView.inspectButton.clicked.connect(
             self.ui.actionInspect.trigger
@@ -201,11 +200,8 @@ class DocumentView(QWidget):
         self.graphicalTimelineCallout = TimelineCallout(self)
         self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
 
-        self.searchView = SearchView(self._qmlEngine, self)
-        self.searchView.setVisible(False, animate=False)
-        self.searchView.qml.rootObject().clearSearch.connect(
-            self.controller.onClearSearch
-        )
+        self.searchDialog = SearchDialog(self._qmlEngine, self.dialogParent())
+        self.searchDialog.setObjectName("searchDialog")
 
         # Init
 
@@ -231,6 +227,12 @@ class DocumentView(QWidget):
 
     def qmlEngine(self):
         return self._qmlEngine
+
+    def dialogParent(self) -> QWidget:
+        w = self
+        while w.parent():
+            w = w.parent()
+        return w
 
     def onApplicationPaletteChanged(self):
         self.drawerShim.setStyleSheet("background-color: %s " % util.QML_CONTROL_BG)
@@ -300,7 +302,6 @@ class DocumentView(QWidget):
             self.drawerShim.width(),
             self.height(),
         )
-        self.searchView.setGeometry(0, 0, self.width(), self.height())
         self.graphicalTimelineShim.setGeometry(
             0,
             self.graphicalTimelineShim.height(),
@@ -518,20 +519,32 @@ class DocumentView(QWidget):
             self.scene.setStopOnAllEvents(isTimelineShown)
             self.graphicalTimelineView.update()
 
-    def onEscape(self):
-        if self.searchView.isVisible():
-            self.ui.actionShow_Search.setChecked(False)
+    def closeTopLevelView(self) -> bool:
+        """
+        Return True if something was closed, define the priority of closure.
+        """
+        if self.searchDialog.isShown():
+            self.searchDialog.hide()
+            return True
         elif self.currentDrawer:
             for (
                 drawer
             ) in (
                 self.drawers
             ):  # cycle through them as a stack to catch secondary-drawers
-                if drawer.isVisible():
-                    self.setCurrentDrawer(None)
+                if drawer.isVisible() and drawer.canClose():
+                    drawer.onDone()
                     return True
         elif self.graphicalTimelineView.isExpanded():
             self.graphicalTimelineView.setExpanded(False)
+            return True
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            log.info(f"DocumentView.keyPressEvent: Key_Escape")
+            if self.closeTopLevelView():
+                e.accept()
+        super().keyPressEvent(e)
 
     def adjustDrawerShim(self, drawer, progress):
         if not self.ignoreDrawerAnim:
@@ -647,7 +660,7 @@ class DocumentView(QWidget):
 
     def showDiagram(self):
         count = 0
-        while self.onEscape() and count < 4:
+        while self.closeTopLevelView() and count < 4:
             count += 1
         if self.scene:
             self.scene.update()
@@ -675,8 +688,9 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None)
 
-    def showSearch(self, on=True):
-        self.searchView.setVisible(on)
+    def showSearch(self):
+        if not self.searchDialog.isShown():
+            self.searchDialog.show()
 
     def showUndoHistory(self):
         pass

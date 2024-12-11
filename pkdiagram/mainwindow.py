@@ -48,6 +48,7 @@ from pkdiagram.pyqt import (
     QEasingCurve,
     QEvent,
     QKeyEvent,
+    QQuickWidget,
 )
 from . import version, util, scene, commands, filemanager
 from .objects import *
@@ -631,6 +632,9 @@ class MainWindow(QMainWindow):
         return True
 
     def onQuit(self):
+        # dialog = QApplication.activeModalWidget()
+        # if dialog is self.documentView.searchDialog:
+        #     dialog.reject()
         if not self.atHome() and not self.confirmSave():
             return
         self.hide()
@@ -1353,12 +1357,13 @@ class MainWindow(QMainWindow):
     def onCheckForUpdates(self):
         CUtil.instance().checkForUpdates()
 
-    def onEscapeKey(self):
-        self.documentView.onEscapeKey()
+    # def onEscapeKey(self):
+    #     """Called from either the AppFilter."""
+    #     self.documentView.onEscapeKey()
 
-    def keyPressEvent(self, e):
-        if e.key() == Qt.Key.Key_Escape:
-            self.onEscapeKey()
+    # def keyPressEvent(self, e):
+    #     if e.key() == Qt.Key.Key_Escape:
+    #         self.onEscapeKey()
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -1596,6 +1601,13 @@ class MainWindow(QMainWindow):
         here = there  # type: ignore
 
     def onFocusChanged(self, old, new):
+        if isinstance(new, QQuickWidget):
+            _objectName = new.parent().objectName()
+        elif new:
+            _objectName = new.objectName()
+        else:
+            _objectName = None
+        log.info(f"onFocusChanged: {new}[{_objectName}]")
         if not self.scene:
             return
         if not isinstance(new, QAbstractButton):

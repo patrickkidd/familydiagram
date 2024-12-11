@@ -289,7 +289,7 @@ def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 
     dv.searchModel.tags = ["blah"]
-    dv.searchView.setItemProp("descriptionEdit", "text", "Some description")
+    dv.searchDialog.setItemProp("descriptionEdit", "text", "Some description")
     assert dv.caseProps.itemProp("descriptionEdit", "text") == "Some description"
     dv.graphicalTimelineView.timeline.zoomAbsolute(1.5)
     assert dv.graphicalTimelineView.timeline.scaleFactor == 1.5
@@ -333,13 +333,13 @@ def test_toggle_search_tag_via_model(qtbot, dv):
     event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     dv.scene.setTags(["here", "you", "are"])
     tagsEdit = ActiveListEdit(
-        dv.caseProps, dv.searchView.qml.rootObject().property("tagsEdit")
+        dv.caseProps, dv.searchDialog.qml.rootObject().property("tagsEdit")
     )
-    dv.ui.actionShow_Search.trigger()
+    dv.ui.actionFind.trigger()
     assert dv.currentDrawer == dv.caseProps
     tagsEdit.clickActiveBox("you")
     assert dv.scene.currentDateTime() == event_1.dateTime()
-    # for tagsModel in searchView.findChildren(TagsModel):
+    # for tagsModel in searchDialog.findChildren(TagsModel):
     #     if tagsModel.items == [dv.scene]:
     #         tagsModel.setData(tagsModel.index(0, 0), True, role=tagsModel.ActiveRole)
     # Ensure callout updates
@@ -390,13 +390,15 @@ def test_emotional_unit_no_menu_actions(dv):
     assert [x.data() for x in dv.ui.menuLayers.actions() if x.data()] == []
 
 
-def test_show_search(dv):
-    dv.ui.actionShow_Search.trigger()
-    assert dv.searchView.isVisible()
+def test_search_show(dv):
+    dv.ui.actionFind.trigger()
+    assert dv.searchDialog.isShown() == True
+    assert dv.searchDialog.isVisible() == True
+    QApplication.instance().exec()
 
 
 @pytest.mark.parametrize("bothUnits", [True, False])
-def test_show_emotional_unit(dv, bothUnits):
+def test_search_show_emotional_unit(dv, bothUnits):
     personA, personB = Person(name="A"), Person(name="B")
     marriage_1 = Marriage(personA, personB)
     personC, personD = Person(name="C"), Person(name="D")
@@ -417,9 +419,9 @@ def test_show_emotional_unit(dv, bothUnits):
     dv.scene.addItems(child_1, child_2, child_3, child_4)
 
     # emotionalUnit = marriage.emotionalUnit()
-    dv.ui.actionShow_Search.trigger()
+    dv.ui.actionFind.trigger()
     emotionalUnitsEdit = ActiveListEdit(
-        dv.caseProps, dv.searchView.qml.rootObject().property("emotionalUnitsEdit")
+        dv.caseProps, dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
     )
     # was = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property("checkState")
     emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
@@ -507,7 +509,7 @@ def test_show_search_view_from_graphical_timeline(qtbot, dv: DocumentView):
     was_currentDrawer = dv.currentDrawer
     qtbot.mouseClick(dv.graphicalTimelineView.searchButton, Qt.LeftButton)
     assert dv.currentDrawer == was_currentDrawer
-    assert dv.searchView.isVisible() == True
+    assert dv.searchDialog.isVisible() == True
 
 
 def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):

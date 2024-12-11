@@ -13,6 +13,9 @@ Page {
     signal done
     signal clearSearch
 
+    width: 450
+    height: 600
+
     property string headerLabel: 'Timeline Search';
 
     function onShown() {
@@ -52,7 +55,7 @@ Page {
         visible: ! searchModel.isBlank
         onClicked: searchModel.clear()
     }
-    
+
     StackLayout {
 
         id: stack
@@ -60,30 +63,28 @@ Page {
 
         Flickable {
             id: propsPage
+            clip: true
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: contentArea.childrenRect.height
-            clip: true
+            contentHeight: pageInner.height
 
-            Rectangle {
-                color: util.QML_WINDOW_BG
-                anchors.fill: parent
-            }
-
-            MouseArea {
-                width: propsPage.width
-                height: propsPage.height
-                onClicked: parent.forceActiveFocus()
-            }
-            
             ColumnLayout {
 
-                id: contentArea
-                x: margin
-                y: margin
-                width: parent.width - margin * 2
+                id: pageInner
+                anchors.centerIn: parent
+
+                MouseArea {
+                    width: propsPage.width
+                    height: propsPage.height
+                    onClicked: parent.forceActiveFocus()
+                }
 
                 GridLayout {
+
+                    id: grid
+                    columns: 2
+                    columnSpacing: util.QML_MARGINS / 2
+                    Layout.margins: util.QML_MARGINS
 
                     PK.Label {
                         text: "Timeline"
@@ -93,11 +94,6 @@ Page {
                     }
 
                     PK.FormDivider { Layout.columnSpan: 2 }
-
-                    id: grid
-                    columns: 2
-                    Layout.fillWidth: true
-                    width: contentArea.width
 
                     PK.Text { text: "Description" }
 
@@ -363,17 +359,12 @@ Page {
                         Layout.columnSpan: 2
                     }
 
-                    Rectangle {
-                        height: util.QML_ITEM_HEIGHT / 2
-                        color: 'transparent'
-                        Layout.columnSpan: 2
-                    }
-
                     PK.Label {
                         text: "Diagram"
                         font.family: util.FONT_FAMILY_TITLE
                         font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                         Layout.columnSpan: 2
+                        Layout.topMargin: util.QML_ITEM_HEIGHT / 2
                     }
 
                     PK.FormDivider { Layout.columnSpan: 2 }

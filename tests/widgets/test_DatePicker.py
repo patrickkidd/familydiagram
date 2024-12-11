@@ -44,7 +44,6 @@ class DatePickerTest(QWidget, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)
-        QVBoxLayout(self)
         self.model = DateModel()
         self.initQmlWidgetHelper(engine, "tests/qml/DatePickerTest.qml")
         self.checkInitQml()
@@ -52,6 +51,9 @@ class DatePickerTest(QWidget, QmlWidgetHelper):
         item = DatedItem()
         self.model.items = [item]
         self.resize(800, 600)
+        Layout = QVBoxLayout(self)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        Layout.addWidget(self.qml)
 
 
 @pytest.fixture

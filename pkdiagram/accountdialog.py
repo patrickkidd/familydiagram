@@ -9,19 +9,17 @@ class AccountDialog(Dialog, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         super().__init__(parent)
         self._sizeHint = QSize()
+        self.initQmlWidgetHelper(engine, "qml/AccountDialog.qml")
+        self.checkInitQml()
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
-        self.initQmlWidgetHelper(engine, "qml/AccountDialog.qml")
-
-    def init(self):
-        self.checkInitQml()
+        Layout.addWidget(self.qml)
         self.qml.rootObject().done.connect(self.onDone)
         width = int(self.qml.rootObject().property("width"))
         height = int(self.qml.rootObject().property("height"))
         self._sizeHint = QSize(width, height)
         self.setMaximumSize(self.sizeHint())
         self.resize(self.sizeHint())
-        super().init()
 
     def sizeHint(self):
         return self._sizeHint

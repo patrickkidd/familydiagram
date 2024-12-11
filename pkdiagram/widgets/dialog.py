@@ -1,3 +1,4 @@
+import logging
 from ..pyqt import (
     QWidget,
     QFrame,
@@ -12,17 +13,17 @@ from ..pyqt import (
 )
 from .. import util
 
+_log = logging.getLogger(__name__)
+
 
 class Backdrop(QWidget):
-
-    OPACITY = 0.5
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._opacity = 0.0
 
     def setOpacity(self, x):
-        self._opacity = x * self.OPACITY
+        self._opacity = x * util.OVERLAY_OPACITY
         self.update()
 
     def paintEvent(self, e):
@@ -103,13 +104,15 @@ class Dialog(QFrame):
     def onPosAnimationFinished(self):
         if self._shown:
             self.shown.emit()
+            _log.info(f"{self.__class__.__name__}.onPosAnimationFinished")
         else:
             super().hide()
             self.hidden.emit()
 
-    def keyPressEvent(self, e):
-        if e.key() == Qt.Key_Escape:
-            self.reject()
+    # def keyPressEvent(self, e):
+    #     if e.key() == Qt.Key_Escape:
+    #         _log.info(f"{self.__class__.__name__}.keyPressEvent: Key_Escape")
+    #         self.reject()
 
     def isShown(self):
         return self._shown
@@ -118,6 +121,7 @@ class Dialog(QFrame):
     def show(self):
         if self._shown:
             return
+        self.raise_()
         super().show()
         self._shown = True
         if self.parent():

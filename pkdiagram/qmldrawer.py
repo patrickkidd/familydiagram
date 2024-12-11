@@ -52,7 +52,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         self.propSheetModel = propSheetModel
         self.initQmlWidgetHelper(engine, source)
         self.checkInitQml()
-        self.installEventFilter(self)
+        self.layout().addWidget(self.qml)
 
     def documentView(self):
         return self._documentView
@@ -88,14 +88,6 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
 
     def rootModel(self):
         return self.rootProp(self.propSheetModel)
-
-    def eventFilter(self, o, e):
-        if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
-            e.accept()
-            if self.canClose():
-                self.onDone()
-            return True
-        return False
 
     def onActiveFocusItemChanged(self):
         """Allow to avoid prev/next layer shortcut for cmd-left|right"""
@@ -170,14 +162,3 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
     def onIsDrawerOpenChanged(self):
         x = self.qml.rootObject().property("isDrawerOpen")
         self.setLockResizeHandle(x)
-
-
-def __test__(scene, parent):
-    from pkdiagram import ModelHelper
-
-    model = ModelHelper()
-    w = QmlDrawer("tests/qml/PeoplePickerTest.qml", parent, propSheetModel=model)
-    # util.printQObject(w)
-    parent.resize(800, 600)
-    parent.show()
-    return w
