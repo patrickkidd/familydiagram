@@ -1353,6 +1353,13 @@ class MainWindow(QMainWindow):
     def onCheckForUpdates(self):
         CUtil.instance().checkForUpdates()
 
+    def onEscapeKey(self):
+        self.documentView.onEscapeKey()
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key.Key_Escape:
+            self.onEscapeKey()
+
     def resizeEvent(self, e):
         super().resizeEvent(e)
         if not self.isInitialized:

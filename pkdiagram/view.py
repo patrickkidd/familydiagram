@@ -346,7 +346,6 @@ class View(QGraphicsView):
         self.itemToolBar.setScene(scene)
         self.rightToolBar.setScene(scene)
         self.rightToolBar.timelineButton.setChecked(False)
-        self.rightToolBar.searchButton.setChecked(False)
         self.rightToolBar.settingsButton.setChecked(False)
         if scene:
             if self.legend:

@@ -52,6 +52,7 @@ class AppController(QObject):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
+        self.app.appFilter.escapeKey.connect(self.onEscapeKey)
         self.session.changed.connect(self.onSessionChanged)
 
         # Allow ctrl-c to quit the app
@@ -219,6 +220,10 @@ class AppController(QObject):
             self.mw.open(filePath=fpath)
         else:
             self._pendingOpenFilePath = fpath
+
+    def onEscapeKey(self):
+        if self.mw:
+            self.mw.onEscapeKey()
 
     def onSessionChanged(self, oldFeatures, newFeatures):
         """Called on login, logout, invalidated token."""

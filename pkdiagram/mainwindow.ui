@@ -162,6 +162,7 @@
     </widget>
     <addaction name="actionView_Diagram"/>
     <addaction name="actionReset_All"/>
+    <addaction name="actionShow_Search"/>
     <addaction name="separator"/>
     <addaction name="actionEditor_Mode"/>
     <addaction name="separator"/>
@@ -176,7 +177,6 @@
     <addaction name="separator"/>
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>
-    <addaction name="actionShow_Search"/>
     <addaction name="actionShow_Settings"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
@@ -303,9 +303,6 @@
    </property>
    <property name="text">
     <string>Female</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+F</string>
    </property>
   </action>
   <action name="actionMarriage">
@@ -860,7 +857,7 @@
     <string>Show Search</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+3</string>
+    <string>Ctrl+F</string>
    </property>
   </action>
   <action name="actionCallout">
@@ -1078,7 +1075,7 @@
     <string>Show Settings</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+4</string>
+    <string>Ctrl+3</string>
    </property>
   </action>
   <action name="actionShow_View_Scene_Rect">

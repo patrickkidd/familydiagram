@@ -78,7 +78,6 @@ def test_model_set_active(model):
 @pytest.fixture
 def view(qtbot, qmlEngine, model):
     class ActiveListViewTest(QWidget, QmlWidgetHelper):
-        # QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
 
         def __init__(self, parent=None):
             super().__init__(parent)

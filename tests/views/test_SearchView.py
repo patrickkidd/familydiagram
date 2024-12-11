@@ -2,11 +2,11 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
-from pkdiagram import util, Scene, QmlWidgetHelper
+from pkdiagram.pyqt import QDateTime, QApplication
+from pkdiagram import util, Scene
 from pkdiagram.objects import Person, Event, Marriage
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
-from pkdiagram.models import EmotionalUnitsModel
+from pkdiagram.searchview import SearchView
 
 
 pytestmark = [
@@ -15,17 +15,6 @@ pytestmark = [
 ]
 
 _log = logging.getLogger(__name__)
-
-
-class SearchViewTest(QWidget, QmlWidgetHelper):
-
-    QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
-
-    def __init__(self, engine, parent=None):
-        super().__init__(parent)
-        QVBoxLayout(self)
-        self.initQmlWidgetHelper(engine, "tests/qml/SearchViewTest.qml")
-        self.checkInitQml()
 
 
 @pytest.fixture
@@ -71,7 +60,7 @@ def tst(qtbot, tst_stuff, qmlEngine):
     scene.setTags([TAG_1, TAG_2, TAG_3])
     scene.addItems(*tst_stuff)
     qmlEngine.setScene(scene)
-    w = SearchViewTest(qmlEngine)
+    w = SearchView(qmlEngine)
     w.resize(600, 800)
     w.show()
     qtbot.addWidget(w)
@@ -84,6 +73,7 @@ def tst(qtbot, tst_stuff, qmlEngine):
 
 
 def test_init(tst, qmlEngine):
+    qmlEngine.sceneModel.onEditorMode(True)
     model = qmlEngine.searchModel
     assert model.description == ""
     assert model.startDateTime == QDateTime()

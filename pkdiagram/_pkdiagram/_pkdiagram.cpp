@@ -92,6 +92,11 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
             QString file = static_cast<QFileOpenEvent *>(e)->file();
             emit fileOpen(file);
             return true;
+        } else if (e->type() == QEvent::KeyPress) {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(e);
+            if(keyEvent->key() == Qt::Key_Escape) {
+                emit escapeKey();
+            }
         } else if (e->type() == QEvent::Quit) {
            QApplication::quit();
            return true;

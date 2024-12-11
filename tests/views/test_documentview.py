@@ -289,24 +289,19 @@ def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 
     dv.searchModel.tags = ["blah"]
-    dv.caseProps.setItemProp(
-        "timelineSearch.descriptionEdit", "text", "Some description"
-    )
-    assert (
-        dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text")
-        == "Some description"
-    )
+    dv.searchView.setItemProp("descriptionEdit", "text", "Some description")
+    assert dv.caseProps.itemProp("descriptionEdit", "text") == "Some description"
     dv.graphicalTimelineView.timeline.zoomAbsolute(1.5)
     assert dv.graphicalTimelineView.timeline.scaleFactor == 1.5
-    qtbot.mouseClick(dv.view.rightToolBar.searchButton, Qt.LeftButton)
+    qtbot.mouseClick(dv.view.rightToolBar.timelineButton, Qt.LeftButton)
     assert dv.currentDrawer == dv.caseProps
 
     dv.setScene(Scene(items=[]))
     assert dv.searchModel.tags == []
-    assert dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text") == ""
+    assert dv.caseProps.itemProp("descriptionEdit", "text") == ""
     assert dv.graphicalTimelineView.timeline.scaleFactor == 1.0
     assert dv.graphicalTimelineView.lastScaleFactor == 1.0
-    assert dv.view.rightToolBar.searchButton.isChecked() == False
+    assert dv.view.rightToolBar.timelineButton.isChecked() == False
     assert dv.currentDrawer == None
 
 
@@ -338,9 +333,9 @@ def test_toggle_search_tag_via_model(qtbot, dv):
     event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     dv.scene.setTags(["here", "you", "are"])
     tagsEdit = ActiveListEdit(
-        dv.caseProps, dv.caseProps.rootProp("searchView").property("tagsEdit")
+        dv.caseProps, dv.searchView.qml.rootObject().property("tagsEdit")
     )
-    qtbot.mouseClick(dv.view.rightToolBar.searchButton, Qt.LeftButton)
+    dv.ui.actionShow_Search.trigger()
     assert dv.currentDrawer == dv.caseProps
     tagsEdit.clickActiveBox("you")
     assert dv.scene.currentDateTime() == event_1.dateTime()
@@ -377,7 +372,6 @@ def test_deselect_all_tags(dv):
 def test_toggle_search_layer_via_action(dv):
     layer = Layer(name="View 1")
     dv.scene.addItem(layer)
-    searchView = dv.caseProps.findItem("timelineSearch")
     assert dv.scene.activeLayers() == []
 
     tag = None
@@ -394,6 +388,11 @@ def test_emotional_unit_no_menu_actions(dv):
     marriage_1 = Marriage(personA, personB)
     dv.scene.addItems(personA, personB, marriage_1)
     assert [x.data() for x in dv.ui.menuLayers.actions() if x.data()] == []
+
+
+def test_show_search(dv):
+    dv.ui.actionShow_Search.trigger()
+    assert dv.searchView.isVisible()
 
 
 @pytest.mark.parametrize("bothUnits", [True, False])
@@ -418,9 +417,9 @@ def test_show_emotional_unit(dv, bothUnits):
     dv.scene.addItems(child_1, child_2, child_3, child_4)
 
     # emotionalUnit = marriage.emotionalUnit()
-    dv.setCurrentDrawer(dv.caseProps, tab=RightDrawerView.Search.value)
+    dv.ui.actionShow_Search.trigger()
     emotionalUnitsEdit = ActiveListEdit(
-        dv.caseProps, dv.caseProps.rootProp("searchView").property("emotionalUnitsEdit")
+        dv.caseProps, dv.searchView.qml.rootObject().property("emotionalUnitsEdit")
     )
     # was = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property("checkState")
     emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
@@ -505,9 +504,10 @@ def test_show_graphical_timeline(qtbot, dv: DocumentView):
 
 
 def test_show_search_view_from_graphical_timeline(qtbot, dv: DocumentView):
+    was_currentDrawer = dv.currentDrawer
     qtbot.mouseClick(dv.graphicalTimelineView.searchButton, Qt.LeftButton)
-    assert dv.currentDrawer == dv.caseProps
-    assert dv.caseProps.currentTab() == "search"
+    assert dv.currentDrawer == was_currentDrawer
+    assert dv.searchView.isVisible() == True
 
 
 def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):

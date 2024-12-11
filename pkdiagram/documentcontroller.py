@@ -165,9 +165,6 @@ class DocumentController(QObject):
             self.dv.view.showItemsWithNotes
         )
         self.ui.actionShow_Search.toggled[bool].connect(self.dv.showSearch)
-        self.ui.actionShow_Search.setShortcuts(
-            [self.ui.actionShow_Search.shortcuts()[0], QKeySequence("Shift+Ctrl+f")]
-        )
         self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)

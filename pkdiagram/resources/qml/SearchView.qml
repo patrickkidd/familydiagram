@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Controls 2.12
-import "." 1.0 as PK
+import "./PK" 1.0 as PK
 import PK.Models 1.0
 
 
@@ -11,6 +11,7 @@ Page {
     id: root
 
     signal done
+    signal clearSearch
 
     property string headerLabel: 'Timeline Search';
 
@@ -46,6 +47,12 @@ Page {
         anchors.fill: parent
     }
 
+    PK.Button {
+        text: "Reset"
+        visible: ! searchModel.isBlank
+        onClicked: searchModel.clear()
+    }
+    
     StackLayout {
 
         id: stack

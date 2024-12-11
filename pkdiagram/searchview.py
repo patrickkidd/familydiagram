@@ -1,25 +1,33 @@
-from .pyqt import (
+from pkdiagram.pyqt import (
+    Qt,
     QWidget,
-    QColor,
-    QPainter,
+    QQmlEngine,
+    QVBoxLayout,
     QAbstractAnimation,
     QVariantAnimation,
+    QPainter,
+    QColor,
 )
-from . import util
+from pkdiagram import util
+from pkdiagram.qmlwidgethelper import QmlWidgetHelper
 
 
-class HelpOverlay(QWidget):
-    """A semi-opaque screen which is parent to tip pixmaps,
-    under which view toolbars are shown."""
+class SearchView(QWidget, QmlWidgetHelper):
 
-    def __init__(self, view):
-        super().__init__(view)
-        self._view = view
+    def __init__(self, engine: QQmlEngine, parent=None):
+        super(SearchView, self).__init__(parent)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+        self.initQmlWidgetHelper(engine, "qml/SearchView.qml")
+        self.checkInitQml()
         self._opacity = 0
         self.showAnimation = QVariantAnimation()
         self.showAnimation.setDuration(util.ANIM_DURATION_MS)
         self.showAnimation.valueChanged.connect(self.onShowAnimationTick)
         self.showAnimation.finished.connect(self.onShowAnimationFinished)
+        self.qml.setMaximumSize(600, 600)
+        self.qml.setStyleSheet("QQuickWidget { border-radius: 10px; } ")
 
     def paintEvent(self, e):
         painter = QPainter(self)
@@ -28,10 +36,6 @@ class HelpOverlay(QWidget):
         painter.fillRect(self.rect(), color)
         painter = None
         super().paintEvent(e)
-
-    def adjust(self):
-        self.move(0, 0)
-        self.resize(self.parent().size())
 
     def _animateTo(self, opacity):
         if self.showAnimation.state() == QAbstractAnimation.Running:

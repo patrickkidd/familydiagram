@@ -1,20 +1,15 @@
 import logging
 from .pyqt import (
     pyqtSignal,
-    pyqtSlot,
     QWidget,
-    QObject,
     QSizePolicy,
     QApplication,
-    QVariant,
     QVariantAnimation,
-    QAbstractAnimation,
     QTimer,
     QRect,
     QRectF,
     QPoint,
     QPointF,
-    QJSValue,
     QMainWindow,
     Qt,
 )
@@ -24,9 +19,9 @@ from .util import RightDrawerView
 from .qmlengine import QmlEngine
 from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
+from .searchview import SearchView
 from .widgets import TimelineCallout
 from .qmldrawer import QmlDrawer
-from _pkdiagram import FDDocument
 
 
 log = logging.getLogger(__name__)
@@ -151,9 +146,6 @@ class DocumentView(QWidget):
         #
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
-        self.caseProps.qml.rootObject().clearSearch.connect(
-            self.controller.onClearSearch
-        )
         self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
         self.personProps.hide(animate=False)
         self.marriageProps.hide(animate=False)
@@ -208,6 +200,12 @@ class DocumentView(QWidget):
 
         self.graphicalTimelineCallout = TimelineCallout(self)
         self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
+
+        self.searchView = SearchView(self._qmlEngine, self)
+        self.searchView.setVisible(False, animate=False)
+        self.searchView.qml.rootObject().clearSearch.connect(
+            self.controller.onClearSearch
+        )
 
         # Init
 
@@ -302,6 +300,7 @@ class DocumentView(QWidget):
             self.drawerShim.width(),
             self.height(),
         )
+        self.searchView.setGeometry(0, 0, self.width(), self.height())
         self.graphicalTimelineShim.setGeometry(
             0,
             self.graphicalTimelineShim.height(),
@@ -406,12 +405,6 @@ class DocumentView(QWidget):
             or kwargs.get("tab") != RightDrawerView.Timeline.value
         ):
             self.view.ui.actionShow_Timeline.setChecked(False)
-
-        if self.view.ui.actionShow_Search.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Search.value
-        ):
-            self.view.ui.actionShow_Search.setChecked(False)
 
         if self.view.ui.actionShow_Settings.isChecked() and (
             drawer != self.caseProps
@@ -526,7 +519,9 @@ class DocumentView(QWidget):
             self.graphicalTimelineView.update()
 
     def onEscape(self):
-        if self.currentDrawer:
+        if self.searchView.isVisible():
+            self.ui.actionShow_Search.setChecked(False)
+        elif self.currentDrawer:
             for (
                 drawer
             ) in (
@@ -674,21 +669,14 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None, **kwargs)
 
-    def showSearch(self, on=True):
-        if on:
-            was_tab = self.caseProps.currentTab()
-            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Search.value)
-            if was_tab != RightDrawerView.Search:
-                self.caseProps.setFocus(Qt.MouseFocusReason)
-                self.caseProps.findItem("descriptionEdit").forceActiveFocus()
-        else:
-            self.setCurrentDrawer(None)
-
     def showSettings(self, on=True):
         if on:
             self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Settings.value)
         else:
             self.setCurrentDrawer(None)
+
+    def showSearch(self, on=True):
+        self.searchView.setVisible(on)
 
     def showUndoHistory(self):
         pass

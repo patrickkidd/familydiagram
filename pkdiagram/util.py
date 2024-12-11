@@ -1,7 +1,6 @@
 import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
 import enum
 import json
-import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
@@ -261,6 +260,7 @@ NO_ITEMS_FONT_FAMILY = "Helvetica"
 NO_ITEMS_FONT_PIXEL_SIZE = 20
 DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
+OVERLAY_OPACITY = 0.7
 
 # Variables
 
@@ -1698,7 +1698,6 @@ def qenum(base, value):
 class RightDrawerView(enum.Enum):
     AddAnything = "addanything"
     Timeline = "timeline"
-    Search = "search"
     Settings = "settings"
 
 

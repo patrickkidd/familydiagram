@@ -5,6 +5,7 @@ from pkdiagram import util, QmlWidgetHelper
 class ActiveListEdit:
 
     def __init__(self, view: QmlWidgetHelper, item: QQuickItem):
+        assert item is not None, "ActiveListEdit item is None"
         self._view = view
         self._item = item
 

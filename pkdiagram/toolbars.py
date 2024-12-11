@@ -871,12 +871,6 @@ class RightToolBar(ToolBar):
                 helpPixmap="family-timeline.png",
             ),
             PushButton(
-                objectName="searchButton",
-                pixmap="search-button.png",
-                action=self.ui.actionShow_Search,
-                helpPixmap="search.png",
-            ),
-            PushButton(
                 objectName="settingsButton",
                 pixmap="settings-button.png",
                 action=self.ui.actionShow_Settings,
