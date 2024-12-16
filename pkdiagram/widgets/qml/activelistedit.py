@@ -74,17 +74,15 @@ class ActiveListEdit:
         #
         delegate = self.delegate(itemName)
         checkBox = delegate.property("checkBox")
-        iTag = delegate.property("iTag")
-
-        centerPos = delegate.mapToItem(
-            delegate.parentItem(), QPointF(delegate.width() / 2, delegate.height() / 2)
-        )
-
-        self._view.mouseClickItem(delegate)
+        className = checkBox.metaObject().className()
+        if not className.startswith("CheckBox"):
+            raise ValueError(f"Expected a CheckBox, got {className}")
+        # self._view.mouseClickItem(checkBox)
 
         # _log.info(
         #     f"ActiveListEdit[{self._item.objectName()}].clickActiveBox: {itemName}"
         # )
+        iTag = delegate.property("iTag")
         was = model.data(model.index(iTag, 0), role=model.ActiveRole)
         assert (
             checkBox.isVisible() == True

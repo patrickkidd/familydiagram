@@ -16,6 +16,7 @@ from .pyqt import (
     QAbstractItemModel,
     QVariant,
     QApplication,
+    QPointF,
 )
 from . import util
 from .models import QObjectHelper
@@ -307,8 +308,12 @@ class QmlWidgetHelper(QObjectHelper):
             ).toRect()
             pos = rect.center()
         if self.DEBUG:
+            if item.objectName():
+                itemString = item.objectName()
+            else:
+                itemString = item.metaObject().className()
             log.info(
-                f"QmlWidgetHelper.mouseClickItem('{item.objectName()}'), {button}, {pos}) (rect: {rect})"
+                f"QmlWidgetHelper.mouseClickItem('{itemString}', {button}, {pos}) (rect: {rect})"
             )
         # itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         # if itemAtPos:
@@ -579,3 +584,17 @@ class QmlWidgetHelper(QObjectHelper):
     def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
         y = self.itemProp(visibleObjectName, "y")
         self.setItemProp(flickableObjectName, "contentY", -1 * y)
+
+    def scrollChildToVisible(self, flickable: QQuickItem, item: QQuickItem):
+        positionInContent = item.mapToItem(
+            flickable.property("contentItem"), QPointF(0, 0)
+        )
+        targetY = positionInContent.y()
+
+        # Calculate the new contentY value
+        contentHeight = flickable.property("contentItem").height()
+        maxContentY = contentHeight - flickable.height()
+        contentY = min(max(targetY, 0), maxContentY)
+
+        # Set the contentY property to scroll
+        flickable.setProperty("contentY", contentY)

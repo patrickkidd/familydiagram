@@ -83,6 +83,21 @@ Page {
             contentWidth: width
             contentHeight: pageInner.height
 
+            function scrollToItem(item) {
+                if (item) {
+                    var itemY = item.y;
+                    var itemHeight = item.height;
+                    var flickableHeight = propsPage.height;
+                    var contentY = propsPage.contentY;
+
+                    if (itemY < contentY) {
+                        propsPage.contentY = itemY;
+                    } else if (itemY + itemHeight > contentY + flickableHeight) {
+                        propsPage.contentY = itemY + itemHeight - flickableHeight;
+                    }
+                }
+            }
+
             ColumnLayout {
 
                 id: pageInner

@@ -426,21 +426,16 @@ def test_search_show_emotional_unit(dv, bothUnits):
     dv.scene.addItems(child_1, child_2, child_3, child_4)
 
     dv.ui.actionFind.trigger()
-    EMOTIONAL_UNITS_Y = (
-        dv.searchDialog.rootProp("emotionalUnitsEdit")
-        .mapToItem(dv.searchDialog.qml.rootObject(), QPointF(0, -50))
-        .y()
-    )
-    dv.searchDialog.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
-    util.waitALittle()
 
-    emotionalUnitsEdit = ActiveListEdit(
-        dv.searchDialog, dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
-    )
-    emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
+    propsPage = dv.searchDialog.rootProp("propsPage")
+    emotionalUnitsEdit = dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
+    dv.searchDialog.scrollChildToVisible(propsPage, emotionalUnitsEdit)
+
+    emotionalUnitsEdit_list = ActiveListEdit(dv.searchDialog, emotionalUnitsEdit)
+    emotionalUnitsEdit_list.clickActiveBox(marriage_1.itemName())
     if bothUnits:
-        emotionalUnitsEdit.clickActiveBox(marriage_2.itemName())
-        util.waitALittle()
+        emotionalUnitsEdit_list.clickActiveBox(marriage_2.itemName())
+        QApplication.processEvents()
     if bothUnits:
         assert (
             dv.view.hiddenItemsLabel.text()
