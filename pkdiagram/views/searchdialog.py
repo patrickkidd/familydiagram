@@ -40,3 +40,26 @@ class SearchDialog(Dialog, QmlWidgetHelper):
             self.quit.emit()
             e.ignore()
         super().keyPressEvent(e)
+
+    def onActiveFocusItemChanged(self):
+        super().onActiveFocusItemChanged()
+        # item = self.qml.rootObject().window().activeFocusItem()
+        # if item:
+        #     nextItem = item.nextItemInFocusChain()
+        #     while not nextItem.isVisible() or not nextItem.isEnabled():
+        #         nextItem = item.nextItemInFocusChain()
+        #     nextItemParent = nextItem.parent()
+        #     while not nextItemParent.objectName():
+        #         nextItemParent = nextItemParent.parent()
+        #     itemName = nextItem.objectName()
+        #     parentName = nextItemParent.objectName()
+        # else:
+        #     itemName = ""
+        #     parentName = ""
+        # _log.info(
+        #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
+        # )
+        # className = item.metaObject().className() if item else ""
+        # _log.info(
+        #     f"AddAnythingDialog.onActiveFocusItemChanged: {className}[{item.objectName() if item else ''}]"
+        # )

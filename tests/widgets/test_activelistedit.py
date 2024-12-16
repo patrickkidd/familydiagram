@@ -25,6 +25,8 @@ FlagsRole = Qt.ItemDataRole.UserRole - 1  # from qstandarditemmodel.cpp
 @pytest.fixture
 def model():
     model = QStandardItemModel()
+    model.ActiveRole = ActiveRole
+    model.FlagsRole = FlagsRole
     model.setItemRoleNames(
         {
             Qt.ItemDataRole.DisplayRole: b"name",

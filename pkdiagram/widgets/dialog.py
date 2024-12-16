@@ -77,7 +77,7 @@ class Dialog(QFrame):
         return QPoint(self._x(), -self.height())
 
     def adjust(self):
-        """ " Keep centered."""
+        """Keep centered."""
         if self.parent():
             if self._shown:
                 pos = self._shownPos()
@@ -90,15 +90,22 @@ class Dialog(QFrame):
     def resizeEvent(self, e):
         self.adjust()
 
-    @util.blocked
-    def onPosAnimationTick(self, x):
-        if self.parent() and self.posAnimation.state() != self.posAnimation.Stopped:
+    def onPosAnimationTick(self, pos):
+        if self.parent():
             if self._shown:
-                opacity = self.posAnimation.currentTime() / self.posAnimation.duration()
+                if self.posAnimation.duration():
+                    opacity = (
+                        self.posAnimation.currentTime() / self.posAnimation.duration()
+                    )
+                else:
+                    opacity = 1
             else:
-                opacity = 1 - (
-                    self.posAnimation.currentTime() / self.posAnimation.duration()
-                )
+                if self.posAnimation.duration():
+                    opacity = 1 - (
+                        self.posAnimation.currentTime() / self.posAnimation.duration()
+                    )
+                else:
+                    opacity = 0
             self.backdrop.setOpacity(opacity)
 
     def onPosAnimationFinished(self):
@@ -107,13 +114,6 @@ class Dialog(QFrame):
         else:
             super().hide()
             self.hidden.emit()
-
-    # def keyPressEvent(self, e):
-    #     if e.key() == Qt.Key_Escape:
-    #         _log.info(f"{self.__class__.__name__}.keyPressEvent: Key_Escape")
-    #         self.reject()
-    #         e.accept()
-    #     super().keyPressEvent(e)
 
     def isShown(self):
         return self._shown

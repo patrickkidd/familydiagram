@@ -1223,7 +1223,17 @@ def dumpWidget(widget):
 
     ROOT = os.path.join(os.path.dirname(__file__), "..")
     pixmap = QPixmap(widget.size())
-    widget.render(pixmap)
+    painter = QPainter(pixmap)
+    widget.render(painter)
+
+    quickWidgets = widget.findChildren(QQuickWidget)
+    for quickWidget in quickWidgets:
+        pos = quickWidget.mapTo(widget, quickWidget.rect().topLeft())
+        image = quickWidget.grabFramebuffer()
+        painter.drawImage(pos, image)
+
+    painter.end()
+
     fileDir = os.path.realpath(os.path.join(ROOT, "dumps"))
     pngPath = os.path.join(fileDir, "dump_%s.png" % time.time())
     os.makedirs(fileDir, exist_ok=True)

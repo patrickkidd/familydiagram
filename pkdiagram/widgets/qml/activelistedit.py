@@ -1,5 +1,9 @@
-from pkdiagram.pyqt import QQuickItem, QApplication
+import logging
+
+from pkdiagram.pyqt import QQuickItem, QApplication, QPointF
 from pkdiagram import util, QmlWidgetHelper
+
+_log = logging.getLogger(__name__)
 
 
 class ActiveListEdit:
@@ -71,7 +75,17 @@ class ActiveListEdit:
         delegate = self.delegate(itemName)
         checkBox = delegate.property("checkBox")
         iTag = delegate.property("iTag")
-        # was = model.data(model.index(iTag, 0), role=model.ActiveRole)
+
+        centerPos = delegate.mapToItem(
+            delegate.parentItem(), QPointF(delegate.width() / 2, delegate.height() / 2)
+        )
+
+        self._view.mouseClickItem(delegate)
+
+        # _log.info(
+        #     f"ActiveListEdit[{self._item.objectName()}].clickActiveBox: {itemName}"
+        # )
+        was = model.data(model.index(iTag, 0), role=model.ActiveRole)
         assert (
             checkBox.isVisible() == True
         ), f"Cannot click tag checkbox for '{itemName}' if it isn't enabled"
@@ -80,6 +94,6 @@ class ActiveListEdit:
         ), f"Cannot click tag checkbox for '{itemName}' if it isn't enabled."
         self._view.mouseClickItem(checkBox)
         QApplication.processEvents()
-        # assert (
-        #     model.data(model.index(iTag), role=model.ActiveRole) != was
-        # ), f"Checkbox for tag '{itemName}' did not change check state"
+        assert (
+            model.data(model.index(iTag, 0), role=model.ActiveRole) != was
+        ), f"Checkbox for list item '{itemName}' did not change check state"

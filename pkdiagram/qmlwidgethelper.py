@@ -2,17 +2,17 @@ import logging
 from typing import Union
 
 from .pyqt import (
+    pyqtSignal,
+    Q_ARG,
+    Q_RETURN_ARG,
     Qt,
     QObject,
     QApplication,
     QQuickWidget,
     QQuickItem,
     QUrl,
-    pyqtSignal,
     QRectF,
     QMetaObject,
-    Q_ARG,
-    Q_RETURN_ARG,
     QAbstractItemModel,
     QVariant,
     QApplication,
@@ -27,6 +27,8 @@ log = logging.getLogger(__name__)
 class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
+
+    qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
     def initQmlWidgetHelper(self, engine, source):
         self._engine = engine
@@ -76,12 +78,22 @@ class QmlWidgetHelper(QObjectHelper):
         return True
 
     def onInitQml(self):
-        """Virtual"""
+        self.qml.rootObject().window().activeFocusItemChanged.connect(
+            self.onActiveFocusItemChanged
+        )
 
     def deinit(self):
         # Prevent qml exceptions when context props are set to null
+        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
+            self.onActiveFocusItemChanged
+        )
         self.qml.setSource(QUrl(""))
         self.qml = None
+
+    def onActiveFocusItemChanged(self):
+        """Allow to avoid prev/next layer shortcut for cmd-left|right"""
+        item = self.qml.rootObject().window().activeFocusItem()
+        self.qmlFocusItemChanged.emit(item)
 
     ##
     ## Test utils
@@ -296,8 +308,15 @@ class QmlWidgetHelper(QObjectHelper):
             pos = rect.center()
         if self.DEBUG:
             log.info(
-                f"QmlWidgetHelper.mouseClickItem('{item.objectName()}')"  # , {button}, {pos}) (rect: {rect})'
+                f"QmlWidgetHelper.mouseClickItem('{item.objectName()}'), {button}, {pos}) (rect: {rect})"
             )
+        # itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
+        # if itemAtPos:
+        #     log.info(
+        #         f"Item at position {pos}: {itemAtPos.metaObject().className()}[{itemAtPos.objectName()}]"
+        #     )
+        # else:
+        #     log.warning(f"No item found at position {pos}")
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
     def mouseClick(self, objectName, button=Qt.LeftButton, pos=None):

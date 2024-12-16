@@ -15,8 +15,6 @@ Page {
     width: 450
     height: 600
 
-    property string headerLabel: 'Timeline Search';
-
     function onShown() {
         Edit.forceActiveFocus()
     }
@@ -28,21 +26,16 @@ Page {
         }
     }
 
+    property alias descriptionEdit: descriptionEdit
     property alias tagsEdit: tagsEdit
     property alias emotionalUnitsEdit: emotionalUnitsEdit
+    property var propsPage: propsPage
 
     property int margin: util.QML_MARGINS
     property bool canInspect: false
 
     // Get around ActiveListEdit.searchModel attr name
     property var searchViewSearchModel: searchModel
-
-    Keys.enabled: true
-    Keys.onPressed: {
-        if(event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
-            root.done()
-        }
-    }
 
     header: PK.ToolBar {
         PK.ToolButton {

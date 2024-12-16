@@ -144,7 +144,9 @@ Rectangle {
                     anchors.fill: parent
                     anchors.leftMargin: checkBox.y + checkBox.width
                     enabled: !textEdit.editMode
-                    onClicked: onRowClicked(mouse, index)
+                    onClicked: {
+                        onRowClicked(mouse, index)
+                    }
                     onDoubleClicked: {
                         if(flags & Qt.ItemIsEditable) {
                             textEdit.editMode = true

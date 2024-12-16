@@ -1,6 +1,12 @@
 v2.0.0
 =============================================================================
 
+- On hide search dialog:
+  - AttributeError: 'builtin_function_or_method' object has no attribute 'duration'
+  - Traceback (most recent call last):
+      File "/Users/patrick/dev/familydiagram/pkdiagram/widgets/dialog.py", line 105, in onPosAnimationTick
+        if self.pos.duration():
+           ^^^^^^^^^^^^^^^^^        
 - Escape on Add Form raises endless validation errors
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`

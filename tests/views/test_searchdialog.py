@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QApplication
+from pkdiagram.pyqt import QDateTime, QApplication, QPointF
 from pkdiagram import util, Scene
 from pkdiagram.objects import Person, Event, Marriage
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
@@ -61,7 +61,7 @@ def tst(qtbot, tst_stuff, qmlEngine):
     scene.addItems(*tst_stuff)
     qmlEngine.setScene(scene)
     w = SearchDialog(qmlEngine)
-    # w.resize(600, 800)
+    w.resize(600, 800)
     w.show()
     qtbot.addWidget(w)
     qtbot.waitActive(w)
@@ -114,11 +114,19 @@ def test_properties(tst, model, qmlEngine):
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
+    EMOTIONAL_UNITS_Y = (
+        tst.rootProp("emotionalUnitsEdit")
+        .mapToItem(tst.qml.rootObject(), QPointF(0, -50))
+        .y()
+    )
+    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
+
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == [marriage.emotionalUnit().layer()]
 
     # reset
 
+    tst.rootProp("propsPage").setProperty("contentY", 0)
     tst.keyClicksClear("descriptionEdit")
     assert model.description == ""
 
@@ -137,6 +145,7 @@ def test_properties(tst, model, qmlEngine):
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
+    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == []
 

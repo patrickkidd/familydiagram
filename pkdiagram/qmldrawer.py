@@ -31,7 +31,6 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
     )
 
     canInspectChanged = pyqtSignal()
-    qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
     def __init__(
         self,
@@ -69,15 +68,9 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
                 self.onIsDrawerOpenChanged
             )
         self.qml.rootObject().setProperty("expanded", self.expanded)
-        self.qml.rootObject().window().activeFocusItemChanged.connect(
-            self.onActiveFocusItemChanged
-        )
 
     def deinit(self):
         self.qml.rootObject().done.disconnect(self.onDone)
-        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
-            self.onActiveFocusItemChanged
-        )
         if hasattr(self, "qml"):
             model = self.rootModel()
             if model and model.items:
@@ -89,11 +82,6 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
 
     def rootModel(self):
         return self.rootProp(self.propSheetModel)
-
-    def onActiveFocusItemChanged(self):
-        """Allow to avoid prev/next layer shortcut for cmd-left|right"""
-        item = self.qml.rootObject().window().activeFocusItem()
-        self.qmlFocusItemChanged.emit(item)
 
     def canClose(self):
         """Virtual"""
