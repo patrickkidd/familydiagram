@@ -11,5 +11,6 @@ Text {
     rightPadding: util.HELP_FONT_SIZE
     font.pixelSize: util.HELP_FONT_SIZE
     Layout.fillWidth: true
+    Layout.maximumWidth: 400
     Layout.bottomMargin: util.HELP_FONT_SIZE
 }

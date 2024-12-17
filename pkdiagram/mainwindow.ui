@@ -126,6 +126,8 @@
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
     <addaction name="separator"/>
+    <addaction name="actionFind"/>
+    <addaction name="separator"/>
     <addaction name="actionSelect_All"/>
     <addaction name="actionDeselect"/>
     <addaction name="actionDelete"/>
@@ -176,7 +178,6 @@
     <addaction name="separator"/>
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>
-    <addaction name="actionShow_Search"/>
     <addaction name="actionShow_Settings"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
@@ -303,9 +304,6 @@
    </property>
    <property name="text">
     <string>Female</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+F</string>
    </property>
   </action>
   <action name="actionMarriage">
@@ -852,15 +850,12 @@
     <string>Show PathItem Shapes</string>
    </property>
   </action>
-  <action name="actionShow_Search">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actionFind">
    <property name="text">
-    <string>Show Search</string>
+    <string>Find...</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+3</string>
+    <string>Ctrl+F</string>
    </property>
   </action>
   <action name="actionCallout">
@@ -1078,7 +1073,7 @@
     <string>Show Settings</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+4</string>
+    <string>Ctrl+3</string>
    </property>
   </action>
   <action name="actionShow_View_Scene_Rect">

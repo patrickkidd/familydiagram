@@ -2,20 +2,21 @@ import logging
 from typing import Union
 
 from .pyqt import (
+    pyqtSignal,
+    Q_ARG,
+    Q_RETURN_ARG,
     Qt,
     QObject,
     QApplication,
     QQuickWidget,
     QQuickItem,
     QUrl,
-    pyqtSignal,
     QRectF,
     QMetaObject,
-    Q_ARG,
-    Q_RETURN_ARG,
     QAbstractItemModel,
     QVariant,
     QApplication,
+    QPointF,
 )
 from . import util
 from .models import QObjectHelper
@@ -27,6 +28,8 @@ log = logging.getLogger(__name__)
 class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
+
+    qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
     def initQmlWidgetHelper(self, engine, source):
         self._engine = engine
@@ -53,19 +56,14 @@ class QmlWidgetHelper(QObjectHelper):
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        if self.layout() is None:
-            raise RuntimeError(
-                "A layout must be added to a QmlWidgetHelper prior to calling initQml()"
-            )
         if self._qmlSource.startswith("qrc:"):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
-            if util.IS_TEST:
-                for error in self.qml.errors():
-                    log.error(error.toString(), exc_info=True)
+            for error in self.qml.errors():
+                log.error(error.toString(), exc_info=True)
             raise RuntimeError(
                 "Could not load qml component from: %s" % self._qmlSource
             )
@@ -73,10 +71,6 @@ class QmlWidgetHelper(QObjectHelper):
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        self.layout().addWidget(self.qml)
-        self.qml.setParent(self)
-        self.qml.resize(800, 600)
-        self.qml.show()
         for child in self.qml.rootObject().findChildren(QQuickItem):
             if child.objectName():
                 self._qmlItemCache[child.objectName()] = child
@@ -85,12 +79,22 @@ class QmlWidgetHelper(QObjectHelper):
         return True
 
     def onInitQml(self):
-        """Virtual"""
+        self.qml.rootObject().window().activeFocusItemChanged.connect(
+            self.onActiveFocusItemChanged
+        )
 
     def deinit(self):
         # Prevent qml exceptions when context props are set to null
+        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
+            self.onActiveFocusItemChanged
+        )
         self.qml.setSource(QUrl(""))
         self.qml = None
+
+    def onActiveFocusItemChanged(self):
+        """Allow to avoid prev/next layer shortcut for cmd-left|right"""
+        item = self.qml.rootObject().window().activeFocusItem()
+        self.qmlFocusItemChanged.emit(item)
 
     ##
     ## Test utils
@@ -293,19 +297,33 @@ class QmlWidgetHelper(QObjectHelper):
             util.BLANK_TIME_TEXT,
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
+    def _itemString(self, item: QQuickItem) -> str:
+        if item:
+            return f"{item.metaObject().className()}['{item.objectName()}', parent: {item.parent().metaObject().className()}]"
+        else:
+            return "None"
+
     def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
-        if not item.property("visible"):
-            log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
-        if not item.property("enabled"):
-            log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))
             ).toRect()
             pos = rect.center()
+
+        # validation checks
+        if not item.property("visible"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
+        if not item.property("enabled"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
+        itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         if self.DEBUG:
+            if itemAtPos is not item:
+                log.warning(
+                    f"Item at position {pos}: {self._itemString(itemAtPos)} != {self._itemString(item)}"
+                )
+
             log.info(
-                f"QmlWidgetHelper.mouseClickItem('{item.objectName()}')"  # , {button}, {pos}) (rect: {rect})'
+                f"QmlWidgetHelper.mouseClickItem('{self._itemString(item)}', {button}, {pos}) (rect: {rect})"
             )
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
@@ -569,3 +587,17 @@ class QmlWidgetHelper(QObjectHelper):
     def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
         y = self.itemProp(visibleObjectName, "y")
         self.setItemProp(flickableObjectName, "contentY", -1 * y)
+
+    def scrollChildToVisible(self, flickable: QQuickItem, item: QQuickItem):
+        positionInContent = item.mapToItem(
+            flickable.property("contentItem"), QPointF(0, 0)
+        )
+        targetY = positionInContent.y()
+
+        # Calculate the new contentY value
+        contentHeight = flickable.property("contentItem").height()
+        maxContentY = contentHeight - flickable.height()
+        contentY = min(max(targetY, 0), maxContentY)
+
+        # Set the contentY property to scroll
+        flickable.setProperty("contentY", contentY)

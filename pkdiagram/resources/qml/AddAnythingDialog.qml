@@ -12,6 +12,7 @@ PK.Drawer {
     id: root
     objectName: 'AddAnythingDialog'
 
+    signal add
     signal cancel
 
     property int margin: util.QML_MARGINS
@@ -22,14 +23,15 @@ PK.Drawer {
     }
     property var tagsEdit: tagsEditItem
     property var addPage: addPage
+    property var addButton: submitButton
 
-    Keys.onPressed: {
-        // TODO: Not clear when focus makes this happen. Need to nail down field
-        // focus auras.
-        if((event.key == Qt.Key_Return || event.key == Qt.Key_Enter) && event.modifiers & Qt.ControlModifier) {
-            done()
-        }
-    }
+    // Keys.onPressed: {
+    //     // TODO: Not clear when focus makes this happen. Need to nail down field
+    //     // focus auras.
+    //     if((event.key == Qt.Key_Return || event.key == Qt.Key_Enter) && event.modifiers & Qt.ControlModifier) {
+    //         done()
+    //     }
+    // }
 
     property var kind: null
     property var description: descriptionEdit.text
@@ -271,12 +273,15 @@ PK.Drawer {
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
-                done()
+                add()
             }
         }
     }
 
-    background: Rectangle { color: util.QML_WINDOW_BG; anchors.fill: parent }
+    background: Rectangle {
+        color: util.QML_WINDOW_BG
+        anchors.fill: parent
+    }
 
     StackLayout {
 
@@ -287,14 +292,16 @@ PK.Drawer {
 
         Flickable {
             id: addPage
+            clip: true
+            flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: addPageInner.height
+            contentHeight: pageInner.height
 
             function scrollToTop() { contentY = 0 }
 
             ColumnLayout { // necessary to expand anything vertically
 
-                id: addPageInner
+                id: pageInner
                 width: parent.width
 
                 MouseArea {

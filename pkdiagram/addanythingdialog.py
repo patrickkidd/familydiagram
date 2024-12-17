@@ -93,6 +93,7 @@ class AddAnythingDialog(QmlDrawer):
     def onInitQml(self):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
+        self.qml.rootObject().add.connect(self.onAdd)
         self.qml.rootObject().cancel.connect(self.onCancel)
         self._eventModel = self.rootProp("eventModel")
 
@@ -122,13 +123,6 @@ class AddAnythingDialog(QmlDrawer):
         #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
 
-    def eventFilter(self, o, e):
-        if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
-            e.accept()
-            self.onCancel()
-            return True
-        return False
-
     def initForSelection(self, selection):
         """
         Canonical entry point when showing. Could have a better name
@@ -143,8 +137,8 @@ class AddAnythingDialog(QmlDrawer):
         # just for tags
         self._eventModel.items = [Event(addDummy=True)]
 
-    def onDone(self):
-        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+    def onAdd(self):
+        _log.debug(f"AddAnythingDialog.onAdd: {self.rootProp('kind')}")
 
         if self.rootProp("kind") is None:
             kind = None
@@ -712,8 +706,11 @@ class AddAnythingDialog(QmlDrawer):
         """Cancel button; supports returnTo"""
         if not self.canClose():
             return
-        super().onDone()
+        super().hide()
         # self.hide(callback=self.clear)
+
+    def onDone(self):
+        self.onCancel()
 
     ## Testing
 
@@ -923,19 +920,19 @@ class AddAnythingDialog(QmlDrawer):
     def set_symptom(self, x):
         self.setVariable("symptom", x)
 
-    def _scrollToTagsField(self):
-        self.rootProp("addPage").setProperty("contentY", 200)
-
     def add_tag(self, tag: str):
-        self._scrollToTagsField()
+        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
         tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
         tagsEdit.clickAddAndRenameRow(tag)
 
     def set_active_tags(self, tags: list[str]):
-        self._scrollToTagsField()
+        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
         tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
         for tag in tags:
             tagsEdit.clickActiveBox(tag)
+
+    def submit(self):
+        self.mouseClickItem(self.rootProp("addButton"))
 
     # scripts
 

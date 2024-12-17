@@ -2,30 +2,19 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QDateTime, QVBoxLayout, QWidget, QApplication
-from pkdiagram import util, Scene, QmlWidgetHelper
+from pkdiagram.pyqt import QDateTime, QApplication, QPointF
+from pkdiagram import util, Scene
 from pkdiagram.objects import Person, Event, Marriage
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
-from pkdiagram.models import EmotionalUnitsModel
+from pkdiagram.views import SearchDialog
 
 
 pytestmark = [
-    pytest.mark.component("SearchView"),
+    pytest.mark.component("SearchDialog"),
     pytest.mark.depends_on("Scene", "SearchModel", "TagsModel"),
 ]
 
 _log = logging.getLogger(__name__)
-
-
-class SearchViewTest(QWidget, QmlWidgetHelper):
-
-    QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
-
-    def __init__(self, engine, parent=None):
-        super().__init__(parent)
-        QVBoxLayout(self)
-        self.initQmlWidgetHelper(engine, "tests/qml/SearchViewTest.qml")
-        self.checkInitQml()
 
 
 @pytest.fixture
@@ -71,7 +60,7 @@ def tst(qtbot, tst_stuff, qmlEngine):
     scene.setTags([TAG_1, TAG_2, TAG_3])
     scene.addItems(*tst_stuff)
     qmlEngine.setScene(scene)
-    w = SearchViewTest(qmlEngine)
+    w = SearchDialog(qmlEngine)
     w.resize(600, 800)
     w.show()
     qtbot.addWidget(w)
@@ -84,6 +73,7 @@ def tst(qtbot, tst_stuff, qmlEngine):
 
 
 def test_init(tst, qmlEngine):
+    qmlEngine.sceneModel.onEditorMode(True)
     model = qmlEngine.searchModel
     assert model.description == ""
     assert model.startDateTime == QDateTime()
@@ -124,11 +114,19 @@ def test_properties(tst, model, qmlEngine):
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
+    EMOTIONAL_UNITS_Y = (
+        tst.rootProp("emotionalUnitsEdit")
+        .mapToItem(tst.qml.rootObject(), QPointF(0, -50))
+        .y()
+    )
+    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
+
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == [marriage.emotionalUnit().layer()]
 
     # reset
 
+    tst.rootProp("propsPage").setProperty("contentY", 0)
     tst.keyClicksClear("descriptionEdit")
     assert model.description == ""
 
@@ -147,6 +145,7 @@ def test_properties(tst, model, qmlEngine):
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
+    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == []
 

@@ -1,5 +1,5 @@
 import pytest
-from pkdiagram.pyqt import Qt, QDateTime
+from pkdiagram.pyqt import Qt, QDateTime, QApplication
 from pkdiagram import (
     util,
     commands,
@@ -48,6 +48,7 @@ def ep(qtbot, qmlEngine):
         qmlEngine, "qml/EventPropertiesDrawer.qml", propSheetModel="eventModel"
     )
     ep.checkInitQml()
+    ep.resize(600, 800)
     ep.show()
     ep.eventModel = ep.rootProp("eventModel")
     qtbot.addWidget(ep)

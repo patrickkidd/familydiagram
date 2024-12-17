@@ -26,6 +26,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         Item,
         [
             {"attr": "noPairBondsWithNames", "type": bool},
+            {"attr": "anyActive", "type": bool},
         ],
     )
 
@@ -55,6 +56,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                     self._activeLayers.append(marriage.emotionalUnit().layer())
         self.modelReset.emit()
         self.refreshProperty("noPairBondsWithNames")
+        self.refreshProperty("anyActive")
 
     def set(self, attr, value):
         if attr == "scene":
@@ -78,6 +80,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 return not self._scene.marriages() or not self._emotionalUnits
             else:
                 return True
+        elif attr == "anyActive":
+            return bool(self._activeLayers)
         else:
             return super().get(attr)
 
@@ -93,8 +97,8 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
         Make internal and external layers mutually exclusive.
         """
         if prop.name() == "active":
+            ourLayers = self.layers()
             if prop.get():
-                ourLayers = self.layers()
                 if prop.item in ourLayers and self._scene:
                     for layer in self._scene.layers(includeInternal=False):
                         if layer.active():
@@ -110,6 +114,18 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                                 self.index(row, 0),
                                 [self.ActiveRole],
                             )
+            if prop.item in ourLayers:
+                row = ourLayers.index(prop.item)
+                if prop.get() and prop.item not in self._activeLayers:
+                    self._activeLayers.append(prop.item)
+                elif not prop.get() and prop.item in self._activeLayers:
+                    self._activeLayers.remove(prop.item)
+                self.dataChanged.emit(
+                    self.index(row, 0),
+                    self.index(row, 0),
+                    [self.ActiveRole],
+                )
+                self.refreshProperty("anyActive")
         else:
             self.refresh()
 
@@ -163,6 +179,7 @@ class EmotionalUnitsModel(QAbstractListModel, ModelHelper):
                 self._activeLayers.append(emotionalUnit.layer())
             elif not value and emotionalUnit.layer() in self._activeLayers:
                 self._activeLayers.remove(emotionalUnit.layer())
+            self.refreshProperty("anyActive")
         if success:
             self.dataChanged.emit(index, index, [role])
         return success

@@ -206,6 +206,7 @@ public:
 signals:
     
     void fileOpen(const QString &);
+    void escapeKey(QKeyEvent *);
 };
 
 

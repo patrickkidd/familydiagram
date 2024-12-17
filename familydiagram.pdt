@@ -1,7 +1,7 @@
 version = 0
 sysroot = "sysroot/sysroot.toml"
 sysroots_dir = ""
-parts = [ "Python:time", "Python:pickle", "Python:queue", "Python:datetime", "Python:inspect", "Python:pprint", "Python:zipfile", "Python:decimal", "Python:tempfile", "Python:logging", "Python:smtplib", "Python:_socket", "Python:encodings.idna", "Python:platform", "Python:posix", "Python:zlib", "Python:wsgiref", "Python:wsgiref.handlers", "Python:wsgiref.headers", "Python:wsgiref.simple_server", "Python:wsgiref.util", "Python:wsgiref.validate", "Python:optparse", "Python:xml.parsers.expat", "Python:math", "Python:profile", "Python:cProfile", "Python:json", "Python:pkgutil", "PyQt:PyQt5.Qt", "PyQt:PyQt5.QtGui", "PyQt:PyQt5.QtWidgets", "PyQt:PyQt5.QtNetwork", "PyQt:PyQt5.QtQuick", "PyQt:PyQt5.QtQuickWidgets", "PyQt:PyQt5.QtPrintSupport", "six:six", "dateutil:dateutil", "sortedcontainers:sortedcontainers", "xlsxwriter:xlsxwriter", "Python:uuid", "bugsnag:bugsnag", "mixpanel:mixpanel","Python:sysconfig", "Python:typing", "Python:urllib.request", "pydantic:pydantic", "Python:pathlib", "typing_extensions:typing_extensions", "Python:ipaddress", "Python:colorsys", "Python:dataclasses", "Python:urllib.parse", "vedana:vedana", "Python:__future__", "_pkdiagram:_pkdiagram",]
+parts = [ "Python:time", "Python:pickle", "Python:queue", "Python:datetime", "Python:inspect", "Python:pprint", "Python:zipfile", "Python:decimal", "Python:tempfile", "Python:logging", "Python:smtplib", "Python:_socket", "Python:encodings.idna", "Python:platform", "Python:posix", "Python:zlib", "Python:wsgiref", "Python:wsgiref.handlers", "Python:wsgiref.headers", "Python:wsgiref.simple_server", "Python:wsgiref.util", "Python:wsgiref.validate", "Python:optparse", "Python:xml.parsers.expat", "Python:math", "Python:profile", "Python:cProfile", "Python:json", "Python:pkgutil", "PyQt:PyQt5.Qt", "PyQt:PyQt5.QtGui", "PyQt:PyQt5.QtWidgets", "PyQt:PyQt5.QtNetwork", "PyQt:PyQt5.QtQuick", "PyQt:PyQt5.QtQuickWidgets", "PyQt:PyQt5.QtPrintSupport", "six:six", "dateutil:dateutil", "sortedcontainers:sortedcontainers", "xlsxwriter:xlsxwriter", "Python:uuid", "bugsnag:bugsnag", "mixpanel:mixpanel", "Python:sysconfig", "Python:typing", "Python:urllib.request", "pydantic:pydantic", "Python:pathlib", "typing_extensions:typing_extensions", "Python:ipaddress", "Python:colorsys", "Python:dataclasses", "Python:urllib.parse", "vedana:vedana", "Python:__future__", "_pkdiagram:_pkdiagram",]
 
 [Application]
 entry_point = "pkdiagram.app:main"
@@ -97,6 +97,11 @@ is_directory = false
 
 [[Application.Package.Content]]
 name = "extensions.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
+name = "extras.py"
 included = true
 is_directory = false
 
@@ -1115,10 +1120,14 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "SearchDialog.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "PK"
 included = true
 is_directory = true
-
 [[Application.Package.Content.Content.Content.Content]]
 name = "ActiveListEdit.qml"
 included = true
@@ -1265,11 +1274,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "SearchView.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "TabBar.qml"
 included = true
 is_directory = false
@@ -1405,11 +1409,6 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "SearchViewTest.qml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "TimelineViewTest.qml"
 included = false
 is_directory = false
@@ -1501,6 +1500,21 @@ is_directory = false
 name = "view.py"
 included = true
 is_directory = false
+
+[[Application.Package.Content]]
+name = "views"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "searchdialog.py"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content]]
 name = "welcome.py"

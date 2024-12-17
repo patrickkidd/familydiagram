@@ -1,22 +1,17 @@
 import logging
 from .pyqt import (
     pyqtSignal,
-    pyqtSlot,
+    Qt,
     QWidget,
-    QObject,
     QSizePolicy,
     QApplication,
-    QVariant,
     QVariantAnimation,
-    QAbstractAnimation,
     QTimer,
     QRect,
     QRectF,
     QPoint,
     QPointF,
-    QJSValue,
     QMainWindow,
-    Qt,
 )
 from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
@@ -26,7 +21,7 @@ from .addanythingdialog import AddAnythingDialog
 from .graphicaltimelineview import GraphicalTimelineView
 from .widgets import TimelineCallout
 from .qmldrawer import QmlDrawer
-from _pkdiagram import FDDocument
+from pkdiagram.views import SearchDialog
 
 
 log = logging.getLogger(__name__)
@@ -35,7 +30,6 @@ log = logging.getLogger(__name__)
 class CaseProperties(QmlDrawer):
     QmlDrawer.registerQmlMethods(
         [
-            {"name": "clearSearch"},
             {"name": "inspectEvents"},
             {"name": "scrollSettingsToBottom"},
             {"name": "scrollTimelineToDateTime"},
@@ -77,7 +71,6 @@ class DocumentView(QWidget):
         self.accessRightsModel = self._qmlEngine.accessRightsModel
 
         self.view = View(self, parent.ui)
-        self.view.escape.connect(self.onEscape)
 
         from pkdiagram.documentcontroller import DocumentController
 
@@ -151,9 +144,6 @@ class DocumentView(QWidget):
         #
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
-        self.caseProps.qml.rootObject().clearSearch.connect(
-            self.controller.onClearSearch
-        )
         self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
         self.personProps.hide(animate=False)
         self.marriageProps.hide(animate=False)
@@ -191,7 +181,7 @@ class DocumentView(QWidget):
             self.graphicalTimelineExpanded
         )
         self.graphicalTimelineView.searchButton.clicked.connect(
-            self.ui.actionShow_Search.trigger
+            self.ui.actionFind.trigger
         )
         self.graphicalTimelineView.inspectButton.clicked.connect(
             self.ui.actionInspect.trigger
@@ -208,6 +198,9 @@ class DocumentView(QWidget):
 
         self.graphicalTimelineCallout = TimelineCallout(self)
         self.graphicalTimelineCallout.clicked.connect(self.onShowDateTimeOnTimeline)
+
+        self.searchDialog = SearchDialog(self._qmlEngine, self.dialogParent())
+        self.searchDialog.setObjectName("searchDialog")
 
         # Init
 
@@ -229,10 +222,17 @@ class DocumentView(QWidget):
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
         self.addAnythingDialog.deinit()
+        self.searchDialog.deinit()
         self._qmlEngine.deinit()
 
     def qmlEngine(self):
         return self._qmlEngine
+
+    def dialogParent(self) -> QWidget:
+        w = self
+        while w.parent():
+            w = w.parent()
+        return w
 
     def onApplicationPaletteChanged(self):
         self.drawerShim.setStyleSheet("background-color: %s " % util.QML_CONTROL_BG)
@@ -407,12 +407,6 @@ class DocumentView(QWidget):
         ):
             self.view.ui.actionShow_Timeline.setChecked(False)
 
-        if self.view.ui.actionShow_Search.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Search.value
-        ):
-            self.view.ui.actionShow_Search.setChecked(False)
-
         if self.view.ui.actionShow_Settings.isChecked() and (
             drawer != self.caseProps
             or kwargs.get("tab") != RightDrawerView.Settings.value
@@ -525,18 +519,36 @@ class DocumentView(QWidget):
             self.scene.setStopOnAllEvents(isTimelineShown)
             self.graphicalTimelineView.update()
 
-    def onEscape(self):
-        if self.currentDrawer:
+    def closeTopLevelView(self) -> bool:
+        """
+        Return True if something was closed, define the priority of closure.
+        """
+        if self.searchDialog.isShown():
+            self.searchDialog.hide()
+            return True
+        elif self.currentDrawer:
             for (
                 drawer
             ) in (
                 self.drawers
             ):  # cycle through them as a stack to catch secondary-drawers
-                if drawer.isVisible():
-                    self.setCurrentDrawer(None)
+                if drawer.isVisible() and drawer.canClose():
+
+                    if drawer is self.addAnythingDialog:
+                        if self.view.rightToolBar.addAnythingButton.isChecked():
+                            self.view.rightToolBar.addAnythingButton.setChecked(False)
+                    elif drawer is self.caseProps:
+                        if self.view.rightToolBar.timelineButton.isChecked():
+                            self.view.rightToolBar.timelineButton.setChecked(False)
+                        elif self.view.rightToolBar.settingsButton.isChecked():
+                            self.view.rightToolBar.settingsButton.setChecked(False)
+                        elif self.view.rightToolBar.timelineButton.isChecked():
+                            self.view.rightToolBar.timelineButton.setChecked(False)
+                    # drawer.onDone()
                     return True
         elif self.graphicalTimelineView.isExpanded():
             self.graphicalTimelineView.setExpanded(False)
+            return True
 
     def adjustDrawerShim(self, drawer, progress):
         if not self.ignoreDrawerAnim:
@@ -652,7 +664,7 @@ class DocumentView(QWidget):
 
     def showDiagram(self):
         count = 0
-        while self.onEscape() and count < 4:
+        while self.closeTopLevelView() and count < 4:
             count += 1
         if self.scene:
             self.scene.update()
@@ -674,21 +686,15 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None, **kwargs)
 
-    def showSearch(self, on=True):
-        if on:
-            was_tab = self.caseProps.currentTab()
-            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Search.value)
-            if was_tab != RightDrawerView.Search:
-                self.caseProps.setFocus(Qt.MouseFocusReason)
-                self.caseProps.findItem("descriptionEdit").forceActiveFocus()
-        else:
-            self.setCurrentDrawer(None)
-
     def showSettings(self, on=True):
         if on:
             self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Settings.value)
         else:
             self.setCurrentDrawer(None)
+
+    def showSearch(self):
+        if not self.searchDialog.isShown():
+            self.searchDialog.show()
 
     def showUndoHistory(self):
         pass

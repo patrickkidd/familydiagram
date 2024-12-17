@@ -11,7 +11,7 @@ from .pyqt import (
     QQuickItem,
     QQmlEngine,
 )
-from . import util, widgets
+from . import util
 from .widgets import Drawer
 from .qmlwidgethelper import QmlWidgetHelper
 
@@ -19,7 +19,7 @@ from .qmlwidgethelper import QmlWidgetHelper
 _log = logging.getLogger(__name__)
 
 
-class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
+class QmlDrawer(Drawer, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods(
         [
@@ -31,7 +31,6 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
     )
 
     canInspectChanged = pyqtSignal()
-    qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
     def __init__(
         self,
@@ -52,7 +51,7 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         self.propSheetModel = propSheetModel
         self.initQmlWidgetHelper(engine, source)
         self.checkInitQml()
-        self.installEventFilter(self)
+        self.layout().addWidget(self.qml)
 
     def documentView(self):
         return self._documentView
@@ -69,38 +68,20 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
                 self.onIsDrawerOpenChanged
             )
         self.qml.rootObject().setProperty("expanded", self.expanded)
-        self.qml.rootObject().window().activeFocusItemChanged.connect(
-            self.onActiveFocusItemChanged
-        )
 
     def deinit(self):
-        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
-            self.onActiveFocusItemChanged
-        )
+        self.qml.rootObject().done.disconnect(self.onDone)
         if hasattr(self, "qml"):
             model = self.rootModel()
             if model and model.items:
                 model.resetItems()
             if model and model.scene:
                 model.resetScene()
-        super().deinit()
+        Drawer.deinit(self)
         QmlWidgetHelper.deinit(self)
 
     def rootModel(self):
         return self.rootProp(self.propSheetModel)
-
-    def eventFilter(self, o, e):
-        if e.type() == QEvent.KeyPress and e.key() == Qt.Key_Escape:
-            e.accept()
-            if self.canClose():
-                self.onDone()
-            return True
-        return False
-
-    def onActiveFocusItemChanged(self):
-        """Allow to avoid prev/next layer shortcut for cmd-left|right"""
-        item = self.qml.rootObject().window().activeFocusItem()
-        self.qmlFocusItemChanged.emit(item)
 
     def canClose(self):
         """Virtual"""
@@ -143,6 +124,9 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
         _kwargs["callback"] = onHidden
         super().hide(**_kwargs)
 
+    def onDone(self):
+        self.hide()
+
     def onExpandAnimationFinished(self):
         super().onExpandAnimationFinished()
         if hasattr(self, "qml"):
@@ -170,14 +154,3 @@ class QmlDrawer(widgets.Drawer, QmlWidgetHelper):
     def onIsDrawerOpenChanged(self):
         x = self.qml.rootObject().property("isDrawerOpen")
         self.setLockResizeHandle(x)
-
-
-def __test__(scene, parent):
-    from pkdiagram import ModelHelper
-
-    model = ModelHelper()
-    w = QmlDrawer("tests/qml/PeoplePickerTest.qml", parent, propSheetModel=model)
-    # util.printQObject(w)
-    parent.resize(800, 600)
-    parent.show()
-    return w

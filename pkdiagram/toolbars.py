@@ -546,7 +546,13 @@ class SceneToolBar(ToolBar):
             #     'path': 'share-button.png',
             #     'action': self.ui.actionSave_As
             # }),
-            Separator(objectName="sep1", visible=self.isInEditorMode),
+            Separator(objectName="sep1"),
+            PushButton(
+                objectName="searchButton",
+                pixmap="search-button.png",
+                action=self.ui.actionFind,
+                helpPixmap="search.png",
+            ),
             PushButton(
                 objectName="zoomFitButton",
                 pixmap="zoom-fit-button.png",
@@ -871,12 +877,6 @@ class RightToolBar(ToolBar):
                 helpPixmap="family-timeline.png",
             ),
             PushButton(
-                objectName="searchButton",
-                pixmap="search-button.png",
-                action=self.ui.actionShow_Search,
-                helpPixmap="search.png",
-            ),
-            PushButton(
                 objectName="settingsButton",
                 pixmap="settings-button.png",
                 action=self.ui.actionShow_Settings,
@@ -888,7 +888,6 @@ class RightToolBar(ToolBar):
                 pixmap="details-button.png",
                 action=self.ui.actionInspect,
                 helpPixmap="inspect-selection.png",
-                visible=self.isInEditorMode,
             ),
             PushButton(
                 objectName="deleteButton",

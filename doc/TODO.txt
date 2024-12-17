@@ -1,14 +1,9 @@
 v2.0.0
 =============================================================================
 
-- Elide names under gender box
-- Variables don't get added to timeline
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
 - Notes in add data point field doesn't store / show icon
-- Add event colors
-  - Show on both timelines
-  - Show with variable text on diagram
 - Aliases can be frustrating in timeline (Guittierez)
   - Switch back, at least [Jett] doesn't always chnge back.
   - Sometimes alias applied within alias

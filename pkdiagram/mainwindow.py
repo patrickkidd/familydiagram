@@ -48,6 +48,7 @@ from pkdiagram.pyqt import (
     QEasingCurve,
     QEvent,
     QKeyEvent,
+    QQuickWidget,
 )
 from . import version, util, scene, commands, filemanager
 from .objects import *
@@ -1589,6 +1590,13 @@ class MainWindow(QMainWindow):
         here = there  # type: ignore
 
     def onFocusChanged(self, old, new):
+        if isinstance(new, QQuickWidget):
+            _objectName = new.parent().objectName()
+        elif new:
+            _objectName = new.objectName()
+        else:
+            _objectName = None
+        # log.info(f"onFocusChanged: {new}[{_objectName}]")
         if not self.scene:
             return
         if not isinstance(new, QAbstractButton):

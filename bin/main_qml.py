@@ -150,9 +150,10 @@ def __test__LayerView(scene, parent, sceneModel):
     class LayerViewTest(QWidget, QmlWidgetHelper):
         def __init__(self, parent=None):
             super().__init__(parent)
-            Layout = QVBoxLayout(self)
             self.initQmlWidgetHelper("qml/PK/LayerView.qml", sceneModel=sceneModel)
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.addWidget(self.qml)
             self.model = pkdiagram.SceneLayerModel(self)
             self.model.scene = scene
             self.setRootProp("model", self.model)
@@ -168,9 +169,10 @@ def __test__TimelineView(scene, parent, sceneModel):
     class TimelineViewTest(QWidget, QmlWidgetHelper):
         def __init__(self, parent=None):
             super().__init__(parent)
-            Layout = QVBoxLayout(self)
             self.initQmlWidgetHelper("qml/PK/TimelineView.qml", sceneModel=sceneModel)
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.addWidget(self.qml)
 
     w = TimelineViewTest(parent)
     w.rootProp("model").items = [p for p in scene.people() if p.id in (201, 605)]
@@ -195,9 +197,10 @@ def __test__TestDialog(scene, parent, sceneModel):
 
         def __init__(self, sceneModel, parent=None):
             super().__init__(parent)
-            QVBoxLayout(self)
             self.initQmlWidgetHelper("qml/TestDialog.qml", sceneModel=sceneModel)
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.addWidget(self.qml)
 
     pp = TestDialog(parent=parent, sceneModel=sceneModel)
     pp.show()
@@ -230,11 +233,12 @@ def __test__PeoplePicker(scene, parent, sceneModel):
 
         def __init__(self, sceneModel, parent=None):
             super().__init__(parent)
-            QVBoxLayout(self)
             self.initQmlWidgetHelper(
                 "tests/qml/PeoplePickerTest.qml", sceneModel=sceneModel
             )
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.addWidget(self.qml)
 
         def test_setExistingPeople(self, people):
             peoplePickerItem = self.findItem("peoplePicker")
@@ -425,19 +429,6 @@ def __test__GraphicalTimelineView(scene, parent):
     parent.layout().addWidget(w)
     parent.resize(800, 400)
     w.adjust()
-    return w
-
-
-def __test__SearchView(scene, parent):
-    def noop(x):
-        pass
-
-    w = pkdiagram.SearchView(parent, noop)
-    w.WIDTH = util.DRAWER_WIDTH
-    w.checkInitQml()
-    w.show(scene.layerItems(), animate=False)
-    w.adjust()
-    parent.resize(200, 600)
     return w
 
 

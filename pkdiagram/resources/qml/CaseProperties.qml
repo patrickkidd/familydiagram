@@ -29,11 +29,8 @@ PK.Drawer {
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
         )) : false
     }
-    property alias searchView: timelineSearch
 
     property alias eventProperties: eventProperties
-
-    signal clearSearch;
 
     Connections {
         target: sceneModel
@@ -56,18 +53,15 @@ PK.Drawer {
         var index = 0
         if(tab == 'timeline')
             index = 0
-        else if(tab == 'search')
-            index = 1
         else if(tab == 'settings')
-            index = 2
+            index = 1
         tabBar.setCurrentIndex(index)
     }
 
     function currentTab() {
         return {
             0: 'timeline',
-            1: 'search',
-            2: 'settings'
+            1: 'settings'
         }[tabBar.currentIndex]
     }
     
@@ -138,19 +132,10 @@ PK.Drawer {
         Layout.fillWidth: true
         PK.ToolButton {
             id: resizeButton
-            objectName: 'resizeButton'
             text: root.expanded ? "Contract" : "Expand"
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: resize()
-        }
-        PK.ToolButton {
-            id: resetSearchButton
-            objectName: 'resetSearchButton'
-            text: "Reset"
-            visible: ! searchModel.isBlank
-            x: resizeButton.x + width + margin
-            onClicked: searchModel.clear()
         }
 
         PK.Label {
@@ -158,8 +143,6 @@ PK.Drawer {
                 if(tabBar.currentIndex == 0) {
                     return "Timeline"
                 } else if(tabBar.currentIndex == 1) {
-                    return "Search"
-                } else if(tabBar.currentIndex == 2) {
                     return "Settings"
                 }
             }
@@ -185,7 +168,6 @@ PK.Drawer {
         currentIndex: stack.currentIndex
         Layout.fillWidth: true
         PK.TabButton { text: "Timeline" }
-        PK.TabButton { text: "Search" }
         PK.TabButton { text: "Settings" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
@@ -236,18 +218,6 @@ PK.Drawer {
             }
             onInspect: root.onInspect()
             onInspectNotes: root.onInspectNotes(row)
-        }
-
-        Rectangle {            
-            id: searchPage
-            color: util.QML_WINDOW_BG
-            
-            PK.SearchView {
-                id: timelineSearch
-                objectName: 'timelineSearch'
-                headerLabel: 'Search'
-                anchors.fill: parent
-            }
         }
         
         Flickable {

@@ -60,7 +60,7 @@ def assert_rightToolBar_InEditorMode(rightToolBar: RightToolBar, on: bool):
     assert rightToolBar.isVisible() == True
     # assert rightToolBar.timelineButton.requestedVisible() == on
     assert rightToolBar.settingsButton.requestedVisible() == True
-    assert rightToolBar.detailsButton.requestedVisible() == on
+    assert rightToolBar.detailsButton.requestedVisible() == True
 
 
 def assert_mw_editorMode(mw: MainWindow, on: bool):

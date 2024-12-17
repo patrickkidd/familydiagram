@@ -25,6 +25,8 @@ FlagsRole = Qt.ItemDataRole.UserRole - 1  # from qstandarditemmodel.cpp
 @pytest.fixture
 def model():
     model = QStandardItemModel()
+    model.ActiveRole = ActiveRole
+    model.FlagsRole = FlagsRole
     model.setItemRoleNames(
         {
             Qt.ItemDataRole.DisplayRole: b"name",
@@ -78,13 +80,14 @@ def test_model_set_active(model):
 @pytest.fixture
 def view(qtbot, qmlEngine, model):
     class ActiveListViewTest(QWidget, QmlWidgetHelper):
-        # QmlWidgetHelper.registerQmlMethods([{"name": "clearSearch"}])
 
         def __init__(self, parent=None):
             super().__init__(parent)
-            QVBoxLayout(self)
             self.initQmlWidgetHelper(qmlEngine, "qml/PK/ActiveListEdit.qml")
             self.checkInitQml()
+            Layout = QVBoxLayout(self)
+            Layout.setContentsMargins(0, 0, 0, 0)
+            Layout.addWidget(self.qml)
 
     _view = ActiveListViewTest()
     _view.setRootProp("model", model)

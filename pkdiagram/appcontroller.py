@@ -1,5 +1,5 @@
 import sys, signal, os.path, logging
-from .pyqt import QObject, QTimer, QSize, QMessageBox
+from .pyqt import QObject, QTimer, QSize, QMessageBox, QKeyEvent
 import vedana
 from pkdiagram import util, version, AppConfig, Session, commands, pepper, Analytics
 
@@ -52,6 +52,7 @@ class AppController(QObject):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
+        self.app.appFilter.escapeKey.connect(self.onEscapeKey)
         self.session.changed.connect(self.onSessionChanged)
 
         # Allow ctrl-c to quit the app
@@ -219,6 +220,11 @@ class AppController(QObject):
             self.mw.open(filePath=fpath)
         else:
             self._pendingOpenFilePath = fpath
+
+    def onEscapeKey(self, e):
+        if self.mw:
+            self.mw.documentView.closeTopLevelView()
+            e.accept()
 
     def onSessionChanged(self, oldFeatures, newFeatures):
         """Called on login, logout, invalidated token."""

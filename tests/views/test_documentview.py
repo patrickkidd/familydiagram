@@ -62,6 +62,7 @@ def dv(test_session, test_activation, qtbot):
     session = Session()
     w = DocumentView(mw, session)
     w.init()
+    w.__mw = mw
     mw.setCentralWidget(w)
     # dv.view.itemToolBar.setFocus(Qt.MouseFocusReason)
 
@@ -76,8 +77,9 @@ def dv(test_session, test_activation, qtbot):
     yield w
 
     w.setScene(None)
-    w.hide()
+    mw.hide()
     w.deinit()
+    mw = None
 
 
 @pytest.mark.parametrize("readOnly", [True, False])
@@ -289,24 +291,19 @@ def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 
     dv.searchModel.tags = ["blah"]
-    dv.caseProps.setItemProp(
-        "timelineSearch.descriptionEdit", "text", "Some description"
-    )
-    assert (
-        dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text")
-        == "Some description"
-    )
+    dv.searchModel.description = "Some description"
+    assert dv.searchDialog.itemProp("descriptionEdit", "text") == "Some description"
     dv.graphicalTimelineView.timeline.zoomAbsolute(1.5)
     assert dv.graphicalTimelineView.timeline.scaleFactor == 1.5
-    qtbot.mouseClick(dv.view.rightToolBar.searchButton, Qt.LeftButton)
+    qtbot.mouseClick(dv.view.rightToolBar.timelineButton, Qt.LeftButton)
     assert dv.currentDrawer == dv.caseProps
 
     dv.setScene(Scene(items=[]))
     assert dv.searchModel.tags == []
-    assert dv.caseProps.itemProp("timelineSearch.descriptionEdit", "text") == ""
+    assert dv.searchDialog.itemProp("descriptionEdit", "text") == ""
     assert dv.graphicalTimelineView.timeline.scaleFactor == 1.0
     assert dv.graphicalTimelineView.lastScaleFactor == 1.0
-    assert dv.view.rightToolBar.searchButton.isChecked() == False
+    assert dv.view.rightToolBar.timelineButton.isChecked() == False
     assert dv.currentDrawer == None
 
 
@@ -337,16 +334,17 @@ def test_toggle_search_tag_via_model(qtbot, dv):
     event_2 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
     event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     dv.scene.setTags(["here", "you", "are"])
-    tagsEdit = ActiveListEdit(
-        dv.caseProps, dv.caseProps.rootProp("searchView").property("tagsEdit")
+
+    dv.ui.actionFind.trigger()
+    tagsEdit = dv.searchDialog.rootProp("tagsEdit")
+    propsPage = dv.searchDialog.rootProp("propsPage")
+    dv.searchDialog.scrollChildToVisible(propsPage, tagsEdit)
+    tagsEdit_list = ActiveListEdit(
+        dv.searchDialog, dv.searchDialog.qml.rootObject().property("tagsEdit")
     )
-    qtbot.mouseClick(dv.view.rightToolBar.searchButton, Qt.LeftButton)
-    assert dv.currentDrawer == dv.caseProps
-    tagsEdit.clickActiveBox("you")
+    tagsEdit_list.clickActiveBox("you")
+
     assert dv.scene.currentDateTime() == event_1.dateTime()
-    # for tagsModel in searchView.findChildren(TagsModel):
-    #     if tagsModel.items == [dv.scene]:
-    #         tagsModel.setData(tagsModel.index(0, 0), True, role=tagsModel.ActiveRole)
     # Ensure callout updates
     assert dv.graphicalTimelineCallout.events[0].dateTime() == event_1.dateTime()
 
@@ -377,7 +375,6 @@ def test_deselect_all_tags(dv):
 def test_toggle_search_layer_via_action(dv):
     layer = Layer(name="View 1")
     dv.scene.addItem(layer)
-    searchView = dv.caseProps.findItem("timelineSearch")
     assert dv.scene.activeLayers() == []
 
     tag = None
@@ -396,8 +393,14 @@ def test_emotional_unit_no_menu_actions(dv):
     assert [x.data() for x in dv.ui.menuLayers.actions() if x.data()] == []
 
 
+def test_search_show(dv):
+    dv.ui.actionFind.trigger()
+    assert dv.searchDialog.isShown() == True
+    assert dv.searchDialog.isVisible() == True
+
+
 @pytest.mark.parametrize("bothUnits", [True, False])
-def test_show_emotional_unit(dv, bothUnits):
+def test_search_show_emotional_unit(dv, bothUnits):
     personA, personB = Person(name="A"), Person(name="B")
     marriage_1 = Marriage(personA, personB)
     personC, personD = Person(name="C"), Person(name="D")
@@ -417,19 +420,17 @@ def test_show_emotional_unit(dv, bothUnits):
     child_4.setParents(marriage_2)
     dv.scene.addItems(child_1, child_2, child_3, child_4)
 
-    # emotionalUnit = marriage.emotionalUnit()
-    dv.setCurrentDrawer(dv.caseProps, tab=RightDrawerView.Search.value)
-    emotionalUnitsEdit = ActiveListEdit(
-        dv.caseProps, dv.caseProps.rootProp("searchView").property("emotionalUnitsEdit")
-    )
-    # was = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property("checkState")
-    emotionalUnitsEdit.clickActiveBox(marriage_1.itemName())
+    dv.ui.actionFind.trigger()
+
+    propsPage = dv.searchDialog.rootProp("propsPage")
+    emotionalUnitsEdit = dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
+    dv.searchDialog.scrollChildToVisible(propsPage, emotionalUnitsEdit)
+
+    emotionalUnitsEdit_list = ActiveListEdit(dv.searchDialog, emotionalUnitsEdit)
+    emotionalUnitsEdit_list.clickActiveBox(marriage_1.itemName())
     if bothUnits:
-        emotionalUnitsEdit.clickActiveBox(marriage_2.itemName())
-    # isChecked = emotionalUnitsEdit.checkBox(marriage_1.itemName()).property(
-    #     "checkState"
-    # )
-    # emotionalUnit = marriage_1.emotionalUnit()
+        emotionalUnitsEdit_list.clickActiveBox(marriage_2.itemName())
+        QApplication.processEvents()
     if bothUnits:
         assert (
             dv.view.hiddenItemsLabel.text()
@@ -505,9 +506,10 @@ def test_show_graphical_timeline(qtbot, dv: DocumentView):
 
 
 def test_show_search_view_from_graphical_timeline(qtbot, dv: DocumentView):
+    was_currentDrawer = dv.currentDrawer
     qtbot.mouseClick(dv.graphicalTimelineView.searchButton, Qt.LeftButton)
-    assert dv.currentDrawer == dv.caseProps
-    assert dv.caseProps.currentTab() == "search"
+    assert dv.currentDrawer == was_currentDrawer
+    assert dv.searchDialog.isVisible() == True
 
 
 def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):
@@ -771,8 +773,6 @@ def test_add_emotion_adds_tags(dv: DocumentView):
 def test_uploadButton(qtbot, dv: DocumentView):
     uploadToServer = util.Condition(dv.controller.uploadToServer)
     qtbot.mouseClick(dv.view.rightToolBar.settingsButton, Qt.LeftButton)
-    dv.caseProps.scrollSettingsToBottom()
-    QApplication.processEvents()  # for scroll to complete
     dv.caseProps.mouseClick("uploadButton")
     assert uploadToServer.wait() == True
     assert uploadToServer.callCount == 1

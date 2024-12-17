@@ -346,7 +346,6 @@ class View(QGraphicsView):
         self.itemToolBar.setScene(scene)
         self.rightToolBar.setScene(scene)
         self.rightToolBar.timelineButton.setChecked(False)
-        self.rightToolBar.searchButton.setChecked(False)
         self.rightToolBar.settingsButton.setChecked(False)
         if scene:
             if self.legend:
@@ -673,19 +672,17 @@ class View(QGraphicsView):
                 if self.ui.actionRedo.isEnabled():
                     self.ui.actionRedo.trigger()
 
-    def onEscape(self):
-        self.escape.emit()
-        if self.scene():
-            self.scene().clearSelection()
-            self.scene().setItemMode(util.ITEM_NONE)
-        return False
-
     def keyPressEvent(self, e):
         if QApplication.focusWidget() != self:  # how would this be possible
             return
-        if e.key() in (Qt.Key_Escape,):
-            self.onEscape()
-        elif e.key() in (
+        # if e.key() == Qt.Key.Key_Escape:
+        #     _log.info(f"View.keyPressEvent: Key_Escape")
+        #     # self.escape.emit()
+        #     # if self.scene():
+        #     #     self.scene().clearSelection()
+        #     #     self.scene().setItemMode(util.ITEM_NONE)
+        #     super().keyPressEvent(e)
+        if e.key() in (
             Qt.Key_Up,
             Qt.Key_Down,
             Qt.Key_Left,

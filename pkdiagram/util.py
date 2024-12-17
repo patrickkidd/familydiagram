@@ -1,7 +1,6 @@
 import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
 import enum
 import json
-import pprint
 from functools import wraps
 import sys, os.path
 from pathlib import Path
@@ -261,6 +260,7 @@ NO_ITEMS_FONT_FAMILY = "Helvetica"
 NO_ITEMS_FONT_PIXEL_SIZE = 20
 DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
+OVERLAY_OPACITY = 0.5
 
 # Variables
 
@@ -1223,7 +1223,17 @@ def dumpWidget(widget):
 
     ROOT = os.path.join(os.path.dirname(__file__), "..")
     pixmap = QPixmap(widget.size())
-    widget.render(pixmap)
+    painter = QPainter(pixmap)
+    widget.render(painter)
+
+    quickWidgets = widget.findChildren(QQuickWidget)
+    for quickWidget in quickWidgets:
+        pos = quickWidget.mapTo(widget, quickWidget.rect().topLeft())
+        image = quickWidget.grabFramebuffer()
+        painter.drawImage(pos, image)
+
+    painter.end()
+
     fileDir = os.path.realpath(os.path.join(ROOT, "dumps"))
     pngPath = os.path.join(fileDir, "dump_%s.png" % time.time())
     os.makedirs(fileDir, exist_ok=True)
@@ -1698,7 +1708,6 @@ def qenum(base, value):
 class RightDrawerView(enum.Enum):
     AddAnything = "addanything"
     Timeline = "timeline"
-    Search = "search"
     Settings = "settings"
 
 
