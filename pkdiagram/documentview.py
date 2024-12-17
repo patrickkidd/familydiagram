@@ -17,11 +17,9 @@ from .view import View
 from . import util, commands, Person, Marriage, Emotion, Event, LayerItem
 from .util import RightDrawerView
 from .qmlengine import QmlEngine
-from .addanythingdialog import AddAnythingDialog
+from pkdiagram.views import AddAnythingDialog, SearchDialog, QmlDrawer
 from .graphicaltimelineview import GraphicalTimelineView
 from .widgets import TimelineCallout
-from .qmldrawer import QmlDrawer
-from pkdiagram.views import SearchDialog
 
 
 log = logging.getLogger(__name__)

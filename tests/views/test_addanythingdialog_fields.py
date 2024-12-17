@@ -5,7 +5,7 @@ import mock
 
 from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marriage
 from pkdiagram.pyqt import Qt, QQuickItem, QApplication
-from pkdiagram.addanythingdialog import AddAnythingDialog
+from pkdiagram.views import AddAnythingDialog
 
 from .test_addanythingdialog import scene, dlg
 

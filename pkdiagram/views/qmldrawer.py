@@ -1,5 +1,5 @@
 import logging
-from .pyqt import (
+from pkdiagram.pyqt import (
     pyqtSignal,
     pyqtProperty,
     QObject,
@@ -11,9 +11,9 @@ from .pyqt import (
     QQuickItem,
     QQmlEngine,
 )
-from . import util
-from .widgets import Drawer
-from .qmlwidgethelper import QmlWidgetHelper
+from pkdiagram import util
+from pkdiagram.widgets import Drawer
+from pkdiagram.qmlwidgethelper import QmlWidgetHelper
 
 
 _log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
-from .pyqt import Qt, QVBoxLayout, QSize
-from .widgets import Dialog
-from .qmlwidgethelper import QmlWidgetHelper
+from pkdiagram.pyqt import Qt, QVBoxLayout, QSize
+from pkdiagram.widgets import Dialog
+from pkdiagram.qmlwidgethelper import QmlWidgetHelper
 
 
 class AccountDialog(Dialog, QmlWidgetHelper):

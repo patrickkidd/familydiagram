@@ -55,11 +55,11 @@ from .objects import *
 from .util import CUtil
 from .mainwindow_form import Ui_MainWindow
 from .preferences import Preferences
-from .accountdialog import AccountDialog
 from .welcome import Welcome
 from .itemgarbage import ItemGarbage
 from .documentview import DocumentView
 from .server_types import Diagram, HTTPError
+from pkdiagram.views import AccountDialog
 
 
 log = logging.getLogger(__name__)

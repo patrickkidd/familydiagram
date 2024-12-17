@@ -11,7 +11,7 @@ from pkdiagram import (
     SceneModel,
     Emotion,
 )
-from pkdiagram.qmldrawer import QmlDrawer
+from pkdiagram.views import QmlDrawer
 
 
 ## TODO: test personBox works for adding event to person

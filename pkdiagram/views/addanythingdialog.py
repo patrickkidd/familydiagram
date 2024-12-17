@@ -1,6 +1,6 @@
 import logging
 
-from .pyqt import (
+from pkdiagram.pyqt import (
     pyqtSignal,
     QMessageBox,
     QEvent,
@@ -12,10 +12,10 @@ from .pyqt import (
     Q_RETURN_ARG,
     Q_ARG,
 )
-from . import util, commands, slugify
-from .objects import Person, Emotion, Event, Marriage
+from pkdiagram import util, commands, slugify
+from pkdiagram.eventkind import EventKind
+from pkdiagram.objects import Person, Emotion, Event, Marriage
 from .qmldrawer import QmlDrawer
-from .util import EventKind
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 from pkdiagram.widgets import ActiveListEdit

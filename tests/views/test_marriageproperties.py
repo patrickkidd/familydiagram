@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util, EventKind, Person, Marriage, Event
-from pkdiagram.qmldrawer import QmlDrawer
+from pkdiagram.views import QmlDrawer
 
 
 pytestmark = [pytest.mark.component("MarriageProperties")]

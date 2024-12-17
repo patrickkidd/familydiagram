@@ -17,7 +17,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, EventKind, Scene
 from pkdiagram.objects import Person, Marriage, Event
-from pkdiagram.addanythingdialog import AddAnythingDialog
+from pkdiagram.views import AddAnythingDialog
 
 _log = logging.getLogger(__name__)
 
