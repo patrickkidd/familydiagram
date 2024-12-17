@@ -1120,6 +1120,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "SearchDialog.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "PK"
 included = true
 is_directory = true
@@ -1333,11 +1338,6 @@ name = "VariableBox.qml"
 included = true
 is_directory = false
 
-
-[[Application.Package.Content.Content.Content]]
-name = "SearchForm.qml"
-included = true
-is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"

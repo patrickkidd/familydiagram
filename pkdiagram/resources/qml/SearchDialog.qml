@@ -35,7 +35,7 @@ Page {
     property bool canInspect: false
 
     // Get around ActiveListEdit.searchModel attr name
-    property var searchViewSearchModel: searchModel
+    property var searchDialogSearchModel: searchModel
 
     header: PK.ToolBar {
         PK.ToolButton {
@@ -380,7 +380,7 @@ Page {
                         model: TagsModel {
                             id: tagsModel
                             scene: sceneModel.scene
-                            searchModel: searchViewSearchModel
+                            searchModel: searchDialogSearchModel
                         }
                     }
                     

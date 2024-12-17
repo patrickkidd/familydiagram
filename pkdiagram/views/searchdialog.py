@@ -19,7 +19,7 @@ class SearchDialog(Dialog, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         super().__init__(parent)
         self._sizeHint = QSize()
-        self.initQmlWidgetHelper(engine, "qml/SearchForm.qml")
+        self.initQmlWidgetHelper(engine, "qml/SearchDialog.qml")
         self.checkInitQml()
         self.qml.rootObject().done.connect(self.onDone)
         Layout = QVBoxLayout(self)
