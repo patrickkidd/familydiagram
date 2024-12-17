@@ -1,3 +1,6 @@
+import sys, os.path, logging
+from optparse import OptionParser
+
 from .qmlutil import QmlUtil
 from .analytics import Analytics, MixpanelEvent, MixpanelProfile
 from .appconfig import AppConfig
@@ -16,10 +19,8 @@ else:
 
 def main(attach=False, prefsName=None):
 
-    import sys, os.path, logging
-    from optparse import OptionParser
-
-    from . import util, MainWindow, Application, AppController
+    from pkdiagram import util
+    from pkdiagram.mainwindow import MainWindow
 
     log = logging.getLogger(__name__)
 
