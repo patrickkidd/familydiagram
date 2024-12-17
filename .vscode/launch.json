@@ -8,8 +8,7 @@
             "name": "App",
             "type": "debugpy",
             "request": "launch",
-            "--preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "module": "pkdiagram",
             "console": "integratedTerminal",
             "justMyCode": false,
             "variablePresentation": {
@@ -24,8 +23,7 @@
             "name": "App (prefs: 'free')",
             "type": "debugpy",
             "request": "launch",
-            "--preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "module": "pkdiagram",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -37,82 +35,19 @@
             }
         },
         {
-            "name": "App (prefs: 'client')",
-            "type": "debugpy",
-            "request": "launch",
-            "--preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--prefs-name=client"
-            ],
-            "variablePresentation": {
-                "all": "hide",
-                "protected": "inline",
-            }
-        },
-        {
             "name": "App (Windows)",
             "type": "debugpy",
             "request": "launch",
-            "preLaunchTask": "nmake",
-            "program": "${workspaceFolder}\\main.py",
+            "module": "pkdiagram",
             "console": "integratedTerminal",
-            "python": "C:\\Users\\patrick\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
             "justMyCode": false,
             "envFile": "/.vscode/.windows-env"
         },
         {
-            "name": "App --version",
+            "name": "sysroot-dev TestDialog",
             "type": "debugpy",
             "request": "launch",
-            "--preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--version"
-            ],
-            "variablePresentation": {
-                "all": "hide",
-                "protected": "inline",
-            }
-        },
-        {
-            "name": "Server",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "flask",
-            "env": {
-                "FLASK_APP": "server/fdserver",
-                "FLASK_CONFIG": "development",
-                "FLASK_DEBUG": "0"
-            },
-            "args": [
-                "run",
-                "--no-debugger",
-                "--no-reload",
-                "--without-threads",
-                "-p",
-                "8888"
-            ],
-            "justMyCode": false,
-            "jinja": true
-        },
-        {
-            "name": "sysroot-dev attach (macOS)",
-            "type": "debugpy",
-            "request": "attach",
-            "port": 3001,
-            "host": "127.0.0.1",
-            "redirectOutput": true
-        },
-        {
-            "name": "sysroot-dev TestDialog (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
+            "module": "pkdiagram",
             "console": "integratedTerminal",
             "args": [
                 "--qml-module",
@@ -123,191 +58,7 @@
             }
         },
         {
-            "name": "sysroot-dev AddAnythingDialog (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "AddAnythingDialog"
-            ],
-            "env": {
-                "--QT_LOGGING_RULES": "qt.quick.*=true"
-            }
-        },
-        {
-            "name": "sysroot-dev PersonPicker (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "PersonPicker"
-            ]
-        },
-        {
-            "name": "sysroot-dev PeoplePicker (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "PeoplePicker"
-            ]
-        },
-        {
-            "name": "sysroot-dev CaseProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "CaseProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev PersonProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "PersonProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev MarriageProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "MarriageProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev EventProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "EventProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev EmotionProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "EmotionProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev LayerItemProperties (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "LayerItemProperties"
-            ]
-        },
-        {
-            "name": "sysroot-dev TimelineView (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "TimelineView"
-            ]
-        },
-        {
-            "name": "sysroot-dev GraphicalTimelineView (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "GraphicalTimelineView"
-            ]
-        },
-        {
-            "name": "sysroot-dev test.py (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/test.py",
-            "console": "integratedTerminal",
-            "envFile": "/Users/patrick/dev/familydiagram/.env"
-        },
-        {
-            "name": "sysroot-dev scenemodel (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--module",
-                "scenemodel"
-            ]
-        },
-        {
-            "name": "sysroot-dev AccountDialog (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "AccountDialog"
-            ]
-        },
-        {
-            "name": "sysroot-dev LayerView (macOS)",
-            "type": "debugpy",
-            "request": "launch",
-            // "preLaunchTask": "make",
-            "program": "/Users/patrick/dev/familydiagram/main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--qml-module",
-                "LayerView"
-            ]
-        },
-        {
-            "name": "sysroot-dev (Windows)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "C:\\familydiagram\\main.py",
-            "console": "integratedTerminal",
-        },
-        {
-            "name": "sysroot-dev: Current File (Integrated Terminal)",
+            "name": "python: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -364,80 +115,6 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "cwd": "${workspaceFolder}/_pkdiagram"
-        },
-        {
-            "name": "Python: Remote Attach",
-            "type": "debugpy",
-            "request": "attach",
-            "port": 3001,
-            "host": "localhost",
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "."
-                }
-            ]
-        },
-        {
-            "name": "Python: Module",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "enter-your-module-name-here",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Terminal (integrated)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "Z:\\dev\\familydiagram\\main.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Current File (Integrated Terminal)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "Python: Current File (win32)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "python": "C:\\Users\\patrick\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
-            "justMyCode": false,
-            "envFile": "${workspaceFolder}/.vscode/.windows-env"
-        },
-        {
-            "name": "Python: sip-build (PyQt5)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "cwd": "C:\\familydiagram\\vendor\\sysroot-dev\\PyQt5-5.15.1",
-            "args": [
-                "--qmake",
-                "C:\\familydiagram\\vendor\\sysroot-dev\\qt-everywhere-src-5.15.1\\qtbase\\bin\\qmake.exe",
-                "--verbose",
-                "--no-dbus-python",
-                "--no-designer-plugin",
-                "--no-qml-plugin",
-                "--confirm-license"
-            ],
-            "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/.vscode/.windows-env"
-        },
-        {
-            "name": "TEST: test_add_new_person",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "pytest",
-            "args": [
-                "-svvx",
-                "tests/test_addanythingform.py::test_add_new_person_born"
-            ],
-            "console": "integratedTerminal",
         },
         {
             "name": "Debug Unit Test",
@@ -523,28 +200,5 @@
                 "engineLogging": true
             },
         },
-        {
-            "name": "Bash-Debug (current file)",
-            "type": "bashdb",
-            "request": "launch",
-            "program": "${file}",
-            "--commandLineArguments": "osx"
-        },
-        // {
-        //     "name": "pytest-depends",
-        //     "type": "debugpy",
-        //     "request": "launch",
-        //     "module": "pytest",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": false,
-        //     "variablePresentation": {
-        //         "all": "hide",
-        //         "protected": "inline",
-        //     },
-        //     "args": [
-        //         "-svv",
-        //         "tests/test_graphicaltimelineview.py"
-        //     ]
-        // },
     ]
 }
