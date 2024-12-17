@@ -888,7 +888,6 @@ class RightToolBar(ToolBar):
                 pixmap="details-button.png",
                 action=self.ui.actionInspect,
                 helpPixmap="inspect-selection.png",
-                visible=self.isInEditorMode,
             ),
             PushButton(
                 objectName="deleteButton",

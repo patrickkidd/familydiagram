@@ -219,7 +219,7 @@ PK.Drawer {
             onInspect: root.onInspect()
             onInspectNotes: root.onInspectNotes(row)
         }
-
+        
         Flickable {
 
             id: settingsView

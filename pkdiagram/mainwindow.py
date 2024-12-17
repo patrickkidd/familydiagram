@@ -632,9 +632,6 @@ class MainWindow(QMainWindow):
         return True
 
     def onQuit(self):
-        # dialog = QApplication.activeModalWidget()
-        # if dialog is self.documentView.searchDialog:
-        #     dialog.reject()
         if not self.atHome() and not self.confirmSave():
             return
         self.hide()
@@ -1356,14 +1353,6 @@ class MainWindow(QMainWindow):
 
     def onCheckForUpdates(self):
         CUtil.instance().checkForUpdates()
-
-    # def onEscapeKey(self):
-    #     """Called from either the AppFilter."""
-    #     self.documentView.onEscapeKey()
-
-    # def keyPressEvent(self, e):
-    #     if e.key() == Qt.Key.Key_Escape:
-    #         self.onEscapeKey()
 
     def resizeEvent(self, e):
         super().resizeEvent(e)

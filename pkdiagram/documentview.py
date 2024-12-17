@@ -550,13 +550,6 @@ class DocumentView(QWidget):
             self.graphicalTimelineView.setExpanded(False)
             return True
 
-    # def keyPressEvent(self, e):
-    #     if e.key() == Qt.Key_Escape:
-    #         log.info(f"DocumentView.keyPressEvent: Key_Escape")
-    #         if self.closeTopLevelView():
-    #             e.accept()
-    #     super().keyPressEvent(e)
-
     def adjustDrawerShim(self, drawer, progress):
         if not self.ignoreDrawerAnim:
             if drawer.showing:

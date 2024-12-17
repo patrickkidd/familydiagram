@@ -281,7 +281,6 @@ PK.Drawer {
     background: Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
-        objectName: 'background'
     }
 
     StackLayout {

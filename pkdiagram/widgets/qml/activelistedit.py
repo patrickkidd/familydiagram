@@ -77,11 +77,6 @@ class ActiveListEdit:
         className = checkBox.metaObject().className()
         if not className.startswith("CheckBox"):
             raise ValueError(f"Expected a CheckBox, got {className}")
-        # self._view.mouseClickItem(checkBox)
-
-        # _log.info(
-        #     f"ActiveListEdit[{self._item.objectName()}].clickActiveBox: {itemName}"
-        # )
         iTag = delegate.property("iTag")
         was = model.data(model.index(iTag, 0), role=model.ActiveRole)
         assert (

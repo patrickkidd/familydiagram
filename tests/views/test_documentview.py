@@ -334,23 +334,17 @@ def test_toggle_search_tag_via_model(qtbot, dv):
     event_2 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
     event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     dv.scene.setTags(["here", "you", "are"])
-    tagsEdit = ActiveListEdit(
-        dv.searchDialog, dv.searchDialog.qml.rootObject().property("tagsEdit")
-    )
 
     dv.ui.actionFind.trigger()
-    TAGS_EDIT_Y = (
-        dv.searchDialog.rootProp("tagsEdit")
-        .mapToItem(dv.searchDialog.qml.rootObject(), QPointF(0, -50))
-        .y()
+    tagsEdit = dv.searchDialog.rootProp("tagsEdit")
+    propsPage = dv.searchDialog.rootProp("propsPage")
+    dv.searchDialog.scrollChildToVisible(propsPage, tagsEdit)
+    tagsEdit_list = ActiveListEdit(
+        dv.searchDialog, dv.searchDialog.qml.rootObject().property("tagsEdit")
     )
-    dv.searchDialog.rootProp("propsPage").setProperty("contentY", TAGS_EDIT_Y)
-    tagsEdit.clickActiveBox("you")
+    tagsEdit_list.clickActiveBox("you")
 
     assert dv.scene.currentDateTime() == event_1.dateTime()
-    # for tagsModel in searchDialog.findChildren(TagsModel):
-    #     if tagsModel.items == [dv.scene]:
-    #         tagsModel.setData(tagsModel.index(0, 0), True, role=tagsModel.ActiveRole)
     # Ensure callout updates
     assert dv.graphicalTimelineCallout.events[0].dateTime() == event_1.dateTime()
 

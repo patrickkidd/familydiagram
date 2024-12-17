@@ -325,13 +325,6 @@ class QmlWidgetHelper(QObjectHelper):
             log.info(
                 f"QmlWidgetHelper.mouseClickItem('{self._itemString(item)}', {button}, {pos}) (rect: {rect})"
             )
-        # itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
-        # if itemAtPos:
-        #     log.info(
-        #         f"Item at position {pos}: {itemAtPos.metaObject().className()}[{itemAtPos.objectName()}]"
-        #     )
-        # else:
-        #     log.warning(f"No item found at position {pos}")
         util.qtbot.mouseClick(self.qml, button, Qt.NoModifier, pos)
 
     def mouseClick(self, objectName, button=Qt.LeftButton, pos=None):
