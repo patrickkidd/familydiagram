@@ -2,15 +2,13 @@ import pytest
 
 from pkdiagram.pyqt import (
     Qt,
-    QApplication,
-    QDateTime,
     QVBoxLayout,
     QWidget,
     QStandardItemModel,
     QStandardItem,
 )
-from pkdiagram import util, Scene, QmlWidgetHelper
-from pkdiagram.objects import Person, Event, Marriage
+from pkdiagram import util
+from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 
 pytestmark = [

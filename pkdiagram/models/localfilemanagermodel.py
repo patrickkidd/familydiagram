@@ -1,7 +1,7 @@
 import os, shutil
-from ..pyqt import *
-from ..util import CUtil
-from .. import util
+from pkdiagram.pyqt import *
+from pkdiagram.util import CUtil
+from pkdiagram import util
 from .filemanagermodel import FileManagerModel
 
 

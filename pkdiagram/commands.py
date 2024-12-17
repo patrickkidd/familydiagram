@@ -1,8 +1,12 @@
+"""
+No dependencies allowed except pkdiagram.util.
+"""
+
 import os, shutil, logging
 import pprint
 
 from pkdiagram.pyqt import QUndoStack, QUndoCommand, QPointF, QApplication
-from pkdiagram import util, objects, extensions
+from pkdiagram import util
 
 
 # Custom compression ids
@@ -128,8 +132,10 @@ class UndoCommand(QUndoCommand):
 class AddPerson(UndoCommand):
     def __init__(self, scene, gender, pos, size, id=-1):
         super().__init__("Add person", id)
+        from pkdiagram.scene import Person
+
         self.scene = scene
-        self.person = objects.Person(gender=gender, size=size)
+        self.person = Person(gender=gender, size=size)
         self.person.setItemPos(pos, notify=False)
         self.debug(gender=gender, pos=pos, size=size, id=id)
 
@@ -487,7 +493,8 @@ class MoveItems(UndoCommand):
 
     def __init__(self, item, pos, id):
         super().__init__("Move items", id)
-        if isinstance(item, objects.Callout):
+
+        if item.isCallout:
             calloutPoints = item.mouseMovePoints
             calloutPoints_was = item.mousePressPoints
         else:
@@ -512,7 +519,7 @@ class MoveItems(UndoCommand):
         else:
             for item, entry in self.data.items():
                 item.setPos(entry["pos"])
-                if isinstance(item, objects.Callout) and entry["calloutPoints"]:
+                if item.isCallout and entry["calloutPoints"]:
                     item.setPoints(entry["calloutPoints"])
             # after set pos
             for item, entry in self.data.items():
@@ -522,7 +529,7 @@ class MoveItems(UndoCommand):
     def undo(self):
         for item, entry in self.data.items():
             item.setPos(entry["pos_was"])
-            if isinstance(item, objects.Callout) and entry["calloutPoints_was"]:
+            if item.isCallout and entry["calloutPoints_was"]:
                 item.setPoints(entry["calloutPoints_was"])
         # after
         for item, entry in self.data.items():
@@ -552,10 +559,13 @@ def moveItem(item, pos, id):
 class AddMarriage(UndoCommand):
     def __init__(self, scene, item1, item2, id=-1):
         super().__init__("Add marriage", id)
+
+        from pkdiagram.scene import Marriage
+
         self.scene = scene
         self.item1 = item1
         self.item2 = item2
-        self.marriage = objects.Marriage(self.item1, self.item2)
+        self.marriage = Marriage(self.item1, self.item2)
         self.debug(item1=item1, item2=item2, id=id)
 
     def redo(self):
@@ -888,7 +898,7 @@ class Clipboard:
             clone = item.clone(scene)
             self.map[item.id] = clone
             clones.append(clone)
-            if isinstance(clone, objects.Person) and not item.childOf in self.items:
+            if clone.isPerson and not item.childOf in self.items:
                 # Ensure childItem is added to the map even if not selected
                 childClone = item.childOf.clone(scene)
                 self.map[clone._cloned_childOf_id] = childClone
@@ -897,9 +907,9 @@ class Clipboard:
         others = []
         people = []
         for clone in clones:
-            if isinstance(clone, objects.Person):
+            if clone.isPerson:
                 people.append(clone)
-            elif isinstance(clone, objects.ChildOf):
+            elif clone.isChildOf:
                 childOfs.append(clone)
             else:
                 others.append(clone)
@@ -945,7 +955,7 @@ class PasteItems(UndoCommand):
             if item.scene() != self.scene:  # scene set on copy()
                 item.setParentItem(None)
                 self.scene.addItem(item)
-            if isinstance(item, objects.LayerItem):
+            if item.isLayerItem:
                 item.setLayers([layer.id for layer in self.scene.activeLayers()])
             pos = info["pos_was"]
             item.setPos(pos.x() + util.PASTE_OFFSET, pos.y() + util.PASTE_OFFSET)
@@ -1370,8 +1380,10 @@ def setLayerOrder(scene, layers):
 class AddCallout(UndoCommand):
     def __init__(self, scene, mouseScenePos, parentPerson=None):
         super().__init__("Add callout")
+        from pkdiagram.scene import Callout
+
         self.scene = scene
-        self.callout = objects.Callout()
+        self.callout = Callout()
         self.parentPerson = parentPerson
         self.mouseScenePos = mouseScenePos
 

@@ -16,20 +16,20 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 ##
 
 if(APPLE)
-#    set(PKDIAGRAM_MOD_FILENAME "pkdiagram/_pkdiagram/build/_pkdiagram/_pkdiagram.cpython-39-darwin.so")
+#    set(PKDIAGRAM_MOD_FILENAME "_pkdiagram/build/_pkdiagram/_pkdiagram.cpython-39-darwin.so")
     set(PKDIAGRAM_MOD_FILENAME ".venv/lib/python3.11/site-packages/_pkdiagram.cpython-311-darwin.so")
 elseif(WIN32)
-    set(PKDIAGRAM_MOD_FILENAME "pkdiagram/_pkdiagram/build/_pkdiagram/_pkdiagram.pyd")
+    set(PKDIAGRAM_MOD_FILENAME "_pkdiagram/build/_pkdiagram/_pkdiagram.pyd")
 else()
-    set(PKDIAGRAM_MOD_FILENAME "pkdiagram/_pkdiagram/build/_pkdiagram/lib_pkdiagram.so")
+    set(PKDIAGRAM_MOD_FILENAME "_pkdiagram/build/_pkdiagram/lib_pkdiagram.so")
 endif (APPLE)
 
 add_custom_command(
     OUTPUT ${PKDIAGRAM_MOD_FILENAME}
     COMMAND sip-install --jobs 8 --build-dir build
-    DEPENDS pkdiagram/_pkdiagram/pyproject.toml pkdiagram/_pkdiagram/sip/_pkdiagram/_pkdiagrammod.sip pkdiagram/_pkdiagram/*.cpp pkdiagram/_pkdiagram/*.h pkdiagram/_pkdiagram/*.mm
-    BYPRODUCTS pkdiagram/_pkdiagram/build # pkdiagram/_pkdiagram/build/_pkdiagram/moc__pkdiagram.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramFDDocument.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramQMap0100QString0100QString.cpp pkdiagram/_pkdiagram/build/_pkdiagram/moc_unsafearea.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramPathItemBase.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramcmodule.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramAppFilter.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramPathItemDelegate.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramCUtil.cpp pkdiagram/_pkdiagram/build/_pkdiagram/sip_pkdiagramPersonDelegate.cpp
-    WORKING_DIRECTORY pkdiagram/_pkdiagram
+    DEPENDS _pkdiagram/pyproject.toml _pkdiagram/sip/_pkdiagram/_pkdiagrammod.sip _pkdiagram/*.cpp _pkdiagram/*.h _pkdiagram/*.mm
+    BYPRODUCTS _pkdiagram/build # _pkdiagram/build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramFDDocument.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramQMap0100QString0100QString.cpp _pkdiagram/build/_pkdiagram/moc_unsafearea.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramPathItemBase.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramcmodule.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramAppFilter.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramPathItemDelegate.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramCUtil.cpp _pkdiagram/build/_pkdiagram/sip_pkdiagramPersonDelegate.cpp
+    WORKING_DIRECTORY _pkdiagram
 )
 
 add_custom_target(

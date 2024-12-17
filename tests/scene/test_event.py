@@ -1,7 +1,7 @@
 import pytest
-from pkdiagram import util, Event, Person
-from pkdiagram.pyqt import QDateTime
-from pkdiagram.util import EventKind
+
+from pkdiagram import util
+from pkdiagram.scene import EventKind, Event, Person
 
 
 def test_init():

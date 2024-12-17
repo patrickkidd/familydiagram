@@ -1,9 +1,7 @@
-import pytest
 import mock
 
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene
-from pkdiagram.objects import Person, Marriage, Layer
+from pkdiagram.scene import Scene, Person, Marriage, Layer
 from pkdiagram.models import EmotionalUnitsModel
 
 

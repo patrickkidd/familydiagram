@@ -1,6 +1,6 @@
 import os, os.path, pickle, shutil, datetime, email.utils, logging
 import urllib.parse
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QTimer,
     QModelIndex,
@@ -13,10 +13,10 @@ from ..pyqt import (
     QMessageBox,
     QCheckBox,
 )
-from ..util import CUtil
-from .. import util
-from .filemanagermodel import FileManagerModel
-from ..server_types import Diagram, HTTPError
+from pkdiagram.util import CUtil
+from pkdiagram import util
+from pkdiagram.server_types import Diagram, HTTPError
+from pkdiagram.models import FileManagerModel
 
 
 log = logging.getLogger(__name__)
@@ -477,6 +477,8 @@ class ServerFileManagerModel(FileManagerModel):
         return False
 
     def sendShownOnServer(self, id, on, callback):
+        raise NotImplementedError(f"Need to re-work")
+
         # TODO: Make syncronous
         def onFinished(reply):
             try:

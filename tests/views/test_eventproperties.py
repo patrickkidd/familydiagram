@@ -1,16 +1,8 @@
 import pytest
-from pkdiagram.pyqt import Qt, QDateTime, QApplication
-from pkdiagram import (
-    util,
-    commands,
-    EventKind,
-    Person,
-    Marriage,
-    Event,
-    Scene,
-    SceneModel,
-    Emotion,
-)
+
+from pkdiagram.pyqt import Qt, QDateTime
+from pkdiagram import util, commands
+from pkdiagram.scene import EventKind, Person, Marriage, Event, Scene, Emotion
 from pkdiagram.views import QmlDrawer
 
 

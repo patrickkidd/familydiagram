@@ -1,7 +1,9 @@
 import pytest
+
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene, SceneLayerModel
-from pkdiagram.objects import Layer, Marriage, Person
+from pkdiagram import util
+from pkdiagram.scene import Scene, Layer, Marriage, Person
+from pkdiagram.models import SceneLayerModel
 
 
 pytestmark = [

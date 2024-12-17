@@ -363,7 +363,7 @@
             "program": "${workspaceFolder}/bin/sip-build-debuggable.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "cwd": "${workspaceFolder}/pkdiagram/_pkdiagram"
+            "cwd": "${workspaceFolder}/_pkdiagram"
         },
         {
             "name": "Python: Remote Attach",

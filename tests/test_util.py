@@ -1,8 +1,9 @@
 import os.path, tempfile
 import mock
 import pytest
-from pkdiagram.pyqt import QDate, QDateTime, QComboBox, QRect, QMessageBox, QTimer
+
 from pkdiagram import util
+from pkdiagram.pyqt import QDate, QDateTime, QComboBox, QRect, QMessageBox, QTimer
 
 
 pytestmark = pytest.mark.no_gui

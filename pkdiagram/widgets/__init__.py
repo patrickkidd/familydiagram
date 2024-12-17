@@ -1,7 +1,5 @@
-import os, time
-
-from ..pyqt import *
-from .. import util
+from pkdiagram.pyqt import *
+from pkdiagram import util
 
 
 class StatusBar(QStatusBar):
@@ -177,4 +175,5 @@ from .drawer import Drawer
 from .dialog import Dialog
 from .popup import PopUp
 from .timelinecallout import TimelineCallout
+from .qmlwidgethelper import QmlWidgetHelper
 from .qml.activelistedit import ActiveListEdit

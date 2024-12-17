@@ -1,5 +1,5 @@
-from ..pyqt import QObject, QSignalMapper, pyqtSignal
-from .. import util
+from pkdiagram.pyqt import QObject, QSignalMapper, pyqtSignal
+from pkdiagram import util
 
 
 class ButtonGroup(QObject):

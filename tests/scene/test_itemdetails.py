@@ -1,4 +1,4 @@
-from pkdiagram import ItemDetails
+from pkdiagram.scene import ItemDetails
 
 
 def test_no_mainText_and_extraLines_still_shown():

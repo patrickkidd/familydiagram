@@ -1,5 +1,5 @@
 """
-Client-side representations of server-side objects.
+Client-side representations of server-side scene.
 
 Just implementation of server-side structs and protocols to CRUD them on the server.
 """
@@ -13,7 +13,7 @@ import wsgiref.handlers
 import pydantic
 
 import vedana
-from .pyqt import (
+from pkdiagram.pyqt import (
     QObject,
     QNetworkRequest,
     QNetworkReply,
@@ -23,7 +23,8 @@ from .pyqt import (
     QTimer,
     pyqtSignal,
 )
-from . import version, util
+from pkdiagram import version, util
+from pkdiagram.qnam import QNAM
 
 
 log = logging.getLogger(__name__)
@@ -87,8 +88,6 @@ class Diagram(pydantic.BaseModel):
 
     @classmethod
     def get(cls, diagram_id, session):
-        from .session import Session
-
         response = session.server().blockingRequest("GET", f"/diagrams/{diagram_id}")
         data = pickle.loads(response.body)
         return cls.create(data)
@@ -197,8 +196,6 @@ class Server(QObject):
         elif error == QNetworkReply.AuthenticationRequiredError:
             pass
         elif error == QNetworkReply.ContentNotFoundError:
-            # if not IS_TEST:
-            #     Debug('404 Not Found: ' + reply.url().toString())
             failMessage = f"404 Not Found: {reply.url().toString()}"
             status_code = 404
         elif error == QNetworkReply.OperationCanceledError:  # reply.abort() called
@@ -262,7 +259,7 @@ class Server(QObject):
         # for name in request.rawHeaderList():
         #     Debug('    %s: %s' % (name.data().decode('utf-8'),
         #                                 request.rawHeader(name).data().decode('utf-8')))
-        reply = util.QNAM.instance().sendCustomRequest(request, verb.encode(), bdata)
+        reply = QNAM.instance().sendCustomRequest(request, verb.encode(), bdata)
 
         def onFinished():
             reply = QApplication.instance().sender()

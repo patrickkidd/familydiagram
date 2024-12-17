@@ -4,10 +4,12 @@ import datetime
 import pytest
 
 import vedana
+from pkdiagram.pyqt import Qt
+from pkdiagram.server_types import Diagram as fe_Diagram
+from pkdiagram.scene import Scene
+from pkdiagram.models import AccessRightsModel
+from pkdiagram.app import Session
 from fdserver.extensions import db
-from pkdiagram import util, Scene, AccessRightsModel, Session, HTTPResponse
-import pkdiagram
-
 from fdserver.models import Diagram, AccessRight
 
 pytestmark = pytest.mark.component("AccessRightsModel")
@@ -38,7 +40,7 @@ def test_read_rows(model, test_session, test_user, test_user_2):
     db.session.add(first_diagram)
     db.session.merge(first_diagram)
     db.session.commit()
-    diagram = pkdiagram.Diagram.get(first_diagram.id, session)
+    diagram = fe_Diagram.get(first_diagram.id, session)
     model.setServerDiagram(diagram)
     assert model.rowCount() == 0
 
@@ -47,7 +49,7 @@ def test_read_rows(model, test_session, test_user, test_user_2):
     first_diagram.grant_access(test_user, vedana.ACCESS_READ_ONLY)
     db.session.commit()
 
-    diagram = pkdiagram.Diagram.get(first_diagram.id, session)
+    diagram = fe_Diagram.get(first_diagram.id, session)
     model.setServerDiagram(diagram)
     db.session.add_all([test_user, test_user_2, first_diagram])
 
@@ -85,7 +87,7 @@ def test_set_right(model, test_user):
 
 
 def test_add_right(test_user_2, model):
-    diagram = pkdiagram.Diagram(
+    diagram = fe_Diagram(
         id=1, user_id=123, created_at=datetime.datetime.now(), access_rights=[]
     )
     model.setServerDiagram(diagram)
@@ -108,7 +110,7 @@ def test_add_right_not_exist(qtbot, model, test_session, test_user_2):
 def test_add_right_already_exists(qtbot, model, test_session, test_user, test_user_2):
     test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
     diagram_json = Diagram.query.get(test_user.free_diagram.id).as_dict()
-    diagram = pkdiagram.Diagram.create(diagram_json)
+    diagram = fe_Diagram.create(diagram_json)
     model.setServerDiagram(diagram)
     qtbot.clickOkAfter(
         lambda: model.addRight(test_user_2.username), text="already exists"
@@ -120,7 +122,7 @@ def test_add_right_already_exists(qtbot, model, test_session, test_user, test_us
 def test_delete_right(model, test_user, test_user_2):
     test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
     free_diagram = Diagram.query.get(test_user.free_diagram_id)
-    diagram = pkdiagram.Diagram.create(free_diagram.as_dict())
+    diagram = fe_Diagram.create(free_diagram.as_dict())
     model.setServerDiagram(diagram)
     model.deleteRight(0)
     assert model.rowCount() == 0

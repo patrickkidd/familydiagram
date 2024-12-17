@@ -1,10 +1,12 @@
 from pkdiagram.pyqt import Qt, QObject
-from pkdiagram import util, objects, ModelHelper
+from pkdiagram import util
+from pkdiagram.scene import Item
+from pkdiagram.models import ModelHelper
 
 
-class MyItem(objects.Item):
+class MyItem(Item):
 
-    objects.Item.registerProperties(
+    Item.registerProperties(
         [
             {"attr": "myint", "type": int, "default": -1},
             {"attr": "noDefaultNoType"},
@@ -21,7 +23,7 @@ class MyItem(objects.Item):
 
 class Model(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
+    PROPERTIES = Item.adjustedClassProperties(
         MyItem,
         [{"attr": "newEntry", "type": int, "default": 678}, {"attr": "newEntryNoType"}],
     )

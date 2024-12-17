@@ -1,6 +1,6 @@
 import logging
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QAbstractListModel,
     QObject,
@@ -11,8 +11,8 @@ from ..pyqt import (
     qmlRegisterType,
     QMessageBox,
 )
-from .. import util, objects, commands
-from ..objects import Item, Property, Layer
+from pkdiagram import util, scene, commands
+from ..scene import Item, Property, Layer
 from ..scene import Scene
 from .modelhelper import ModelHelper
 from pkdiagram.models import SearchModel

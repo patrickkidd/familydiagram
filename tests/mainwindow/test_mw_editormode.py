@@ -4,9 +4,9 @@ import pytest
 import mock
 
 from pkdiagram.pyqt import QSize, QMainWindow
-from pkdiagram import MainWindow
-from pkdiagram.mainwindow_form import Ui_MainWindow
-from pkdiagram.toolbars import SceneToolBar, RightToolBar, ItemToolBar
+from pkdiagram.mainwindow import MainWindow
+from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
+from pkdiagram.documentview.toolbars import SceneToolBar, RightToolBar, ItemToolBar
 
 _log = logging.getLogger(__name__)
 

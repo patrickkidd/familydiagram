@@ -1,7 +1,7 @@
 import logging
 
-from pkdiagram.pyqt import QQuickItem, QApplication, QPointF
-from pkdiagram import util, QmlWidgetHelper
+from pkdiagram.pyqt import QQuickItem, QApplication
+from pkdiagram.widgets import QmlWidgetHelper
 
 _log = logging.getLogger(__name__)
 

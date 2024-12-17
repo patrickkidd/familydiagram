@@ -4,7 +4,7 @@ import contextlib
 import logging
 import tempfile
 import contextlib
-from typing import Callable, Optional
+from typing import Optional
 
 # third-party
 import pytest, mock
@@ -22,25 +22,38 @@ spec.loader.exec_module(python_init)
 python_init.init_dev()
 
 # pkdiagram
-for part in ("../pkdiagram/_pkdiagram", ".."):
+for part in ("../_pkdiagram", ".."):
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), part))
-from pkdiagram import (
-    version,
-    util,
-    Scene,
-    objects,
-    Application,
-    MainWindow,
-    SceneModel,
-    Session,
-    HTTPResponse,
-    Server,
-    AppController,
-    Person,
-    Analytics,
-    QmlEngine,
+
+from pkdiagram.pyqt import (
+    Qt,
+    QNetworkReply,
+    QByteArray,
+    QNetworkRequest,
+    QNetworkAccessManager,
+    QTimer,
+    QApplication,
+    QIODevice,
+    QQmlError,
+    QTest,
+    QPlainTextEdit,
+    QWindow,
+    QWidget,
+    QMouseEvent,
+    QEvent,
+    QVariant,
+    QMessageBox,
+    QEventLoop,
 )
-from pkdiagram.pyqt import *
+from pkdiagram import version, util
+from pkdiagram.qnam import QNAM
+from pkdiagram.server_types import HTTPResponse, Server
+from pkdiagram.scene import Scene, Person, Marriage
+from pkdiagram.models import SceneModel, ServerFileManagerModel
+from pkdiagram.mainwindow import MainWindow
+from pkdiagram.documentview import QmlEngine
+from pkdiagram.app import Application, AppController, Session as fe_Session
+
 from fdserver.tests.conftest import *
 
 import appdirs
@@ -255,10 +268,10 @@ def qApp():
         prefs = util.Settings(dpath, "vedanamedia")
         return prefs
 
-    with mock.patch("pkdiagram.Application.makeSettings", side_effect=_makeSettings):
+    with mock.patch(
+        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
+    ):
         app = Application(sys.argv)
-
-    from pkdiagram import ServerFileManagerModel, Server
 
     _orig_Server_deinit = Server.deinit
 
@@ -286,9 +299,9 @@ def qApp():
             )
         )
         stack.enter_context(
-            mock.patch("pkdiagram.Analytics.startTimer", return_value=123)
+            mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )
-        stack.enter_context(mock.patch("pkdiagram.Analytics.killTimer"))
+        stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
         yield app
 
     app.deinit()
@@ -351,10 +364,9 @@ def watchdog(request, qApp):
 
 @pytest.fixture
 def qmlEngine(qApp):
-    from pkdiagram import Session
 
     qmlErrors = []
-    _qmlEngine = QmlEngine(Session(), qApp)
+    _qmlEngine = QmlEngine(fe_Session(), qApp)
 
     def _onWarnings(errors: list[QQmlError]):
         qmlErrors.extend(errors)
@@ -394,9 +406,7 @@ def flask_qnam(tmp_path, request):
             mock.patch.object(util, "appDataDir", return_value=str(tmp_path))
         )
         stack.enter_context(
-            mock.patch.object(
-                util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
-            )
+            mock.patch.object(QNAM.instance(), "sendCustomRequest", sendCustomRequest)
         )
 
         yield QApplication.instance()
@@ -419,9 +429,7 @@ def server_down(flask_app):
                     request, verb, data=data, client=client, noconnect=down
                 )
 
-        with mock.patch.object(
-            util.QNAM.instance(), "sendCustomRequest", sendCustomRequest
-        ):
+        with mock.patch.object(QNAM.instance(), "sendCustomRequest", sendCustomRequest):
             yield
 
     return _server_down
@@ -759,7 +767,7 @@ def dataFile(fpath):
 
 # def openSceneFile(filePath):
 #     onFileOpened = util.Condition()
-#     util.CUtil.instance().fileOpened[util.FDDocument].connect(onFileOpened)
+#     util.CUtil.instance().fileOpened[FDDocument].connect(onFileOpened)
 #     util.CUtil.instance().openExistingFile(QUrl.fromLocalFile(filePath))
 #     onFileOpened.wait()
 #     assert onFileOpened.callCount == 1
@@ -774,10 +782,10 @@ def dataFile(fpath):
 @pytest.fixture
 def simpleScene(request):
     s = Scene()
-    p1 = objects.Person(name="p1")
-    p2 = objects.Person(name="p2")
-    m = objects.Marriage(p1, p2)
-    p = objects.Person(name="p")
+    p1 = Person(name="p1")
+    p2 = Person(name="p2")
+    m = Marriage(p1, p2)
+    p = Person(name="p")
     p.setParents(m)
     s.addItem(p1)
     s.addItem(p2)

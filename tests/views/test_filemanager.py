@@ -2,8 +2,10 @@ import os.path
 import pytest
 
 import vedana
-from pkdiagram import util, CUtil, FileManager
+from _pkdiagram import CUtil
 from pkdiagram.pyqt import QApplication, QTest
+from pkdiagram import util
+from pkdiagram.mainwindow import FileManager
 
 from fdserver.extensions import db
 

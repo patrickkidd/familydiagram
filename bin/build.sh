@@ -156,7 +156,7 @@ if [[ $TARGET = osx* ]]; then
     echo "PKS Generating _pkdiagram sources"
     (
         set -e
-        cd pkdiagram/_pkdiagram
+        cd _pkdiagram
         sip-build --no-compile
         moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
         moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h

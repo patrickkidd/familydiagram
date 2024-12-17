@@ -7,7 +7,9 @@ import mock
 
 import vedana
 from pkdiagram import util
-from pkdiagram import Person, Scene, MainWindow, AppController
+from pkdiagram.scene import Person, Scene
+from pkdiagram.mainwindow import MainWindow
+from pkdiagram.app import AppController
 
 
 pytestmark = [

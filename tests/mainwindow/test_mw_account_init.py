@@ -1,6 +1,7 @@
 import pytest
 import vedana
-from pkdiagram import util, MainWindow
+from pkdiagram import util
+from pkdiagram.mainwindow import MainWindow
 
 from fdserver.extensions import db
 

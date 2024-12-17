@@ -1,7 +1,7 @@
 import logging
 
 # from sortedcontainers import SortedList
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QApplication,
     QVariant,
@@ -15,7 +15,7 @@ from ..pyqt import (
     pyqtSlot,
     qmlRegisterType,
 )
-from .. import util, commands
+from pkdiagram import util, commands
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 

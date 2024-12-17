@@ -1,13 +1,12 @@
-from ..pyqt import QObject, Qt, QDate, QDateTime, qmlRegisterType
-from .. import util, objects
-from ..util import EventKind
-from .modelhelper import ModelHelper
+from pkdiagram.pyqt import QObject, Qt, qmlRegisterType
+from pkdiagram.scene import EventKind, Item, Marriage
+from pkdiagram.models import ModelHelper
 
 
 class MarriagePropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.Marriage,
+    PROPERTIES = Item.adjustedClassProperties(
+        Marriage,
         [
             {"attr": "hideDetails", "convertTo": Qt.CheckState},
             {"attr": "hideDates", "convertTo": Qt.CheckState},

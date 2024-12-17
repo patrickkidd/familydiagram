@@ -1,7 +1,8 @@
 import logging
 
-from .pyqt import QPointF, QDateTime, QDate
-from . import version, objects
+from pkdiagram.pyqt import QPointF, QDateTime, QDate
+from pkdiagram import version
+from pkdiagram.scene import ItemDetails, Emotion
 
 _log = logging.getLogger(__name__)
 
@@ -9,7 +10,6 @@ _log = logging.getLogger(__name__)
 def UP_TO(data, compatVer):
     ver = data.get("version")
     if ver is None or version.lessThanOrEqual(ver, compatVer):
-        # util.Debug('Updating scene from version %s to %s' % (ver, sceneVer))
         return True
     else:
         return False
@@ -216,7 +216,7 @@ def update_data(data):
                             chunk.setdefault("layers", []).append(layerChunk["id"])
 
             # Migrate Emotion.startDate|endDate to startEvent|endEvent
-            if chunk["kind"] in objects.Emotion.kindSlugs():
+            if chunk["kind"] in Emotion.kindSlugs():
                 startDate = chunk.pop("startDate", None)
                 chunk["startEvent"] = {
                     "dateTime": QDateTime(startDate if startDate else QDateTime()),
@@ -235,7 +235,7 @@ def update_data(data):
 
         # Coalesce all emotion events on each other.
         for chunk in data.get("items", []):
-            if chunk["kind"] in objects.Emotion.kindSlugs():
+            if chunk["kind"] in Emotion.kindSlugs():
                 itemTags = sorted(
                     list(
                         set(
@@ -251,7 +251,7 @@ def update_data(data):
 
     if UP_TO(data, "2.0.0"):
         for chunk in data.get("items", []):
-            if chunk["kind"] in objects.Emotion.kindSlugs():
+            if chunk["kind"] in Emotion.kindSlugs():
 
                 # Maintain mirror between emotion.notes and emotion.startEvent.notes
                 if (
@@ -282,7 +282,7 @@ def update_scene(scene, data):
     if UP_TO(data, "1.0.0b6"):
         # fix people details texts
         for item in scene.items():
-            if isinstance(item, objects.ItemDetails):
+            if isinstance(item, ItemDetails):
                 item.setPos(item.pos() + QPointF(60, 0))
 
     ## Add more version fixes here

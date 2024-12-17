@@ -1,4 +1,6 @@
-from pkdiagram import util, Person, Event, Scene, EventPropertiesModel
+from pkdiagram import util
+from pkdiagram.models import EventPropertiesModel
+from pkdiagram.scene import Scene, Person, Event
 
 
 def test_numWritable():

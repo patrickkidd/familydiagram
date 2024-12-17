@@ -8,7 +8,8 @@ import flask_mail
 
 import vedana
 from pkdiagram.pyqt import QApplication
-from pkdiagram import util, AccountDialog
+from pkdiagram import util
+from pkdiagram.views import AccountDialog
 
 import fdserver.extensions
 from fdserver.extensions import db
@@ -345,17 +346,17 @@ def test_purchase(test_session, qtbot, create_dlg, qmlEngine):
     assert dlg.itemProp("ccCVCField", "text") == ""
 
 
-@pytest.mark.skip("Must refactor")
-def test_cancel(qtbot, dlg, test_session, test_license):
-    _login(dlg, test_session)
-    #
-    cancelButton = None
-    for item in dlg.rootProp("purchaseButtons").toVariant():
-        if "Cancel" in item.property("text"):
-            cancelButton = item
-    qtbot.clickYesAfter(lambda: dlg.mouseClickItem(cancelButton))
-    db.session.merge(test_license)
-    assert test_license.active == False
+# @pytest.mark.skip("Must refactor")
+# def test_cancel(qtbot, dlg, test_session, test_license):
+#     _login(dlg, test_session)
+#     #
+#     cancelButton = None
+#     for item in dlg.rootProp("purchaseButtons").toVariant():
+#         if "Cancel" in item.property("text"):
+#             cancelButton = item
+#     qtbot.clickYesAfter(lambda: dlg.mouseClickItem(cancelButton))
+#     db.session.merge(test_license)
+#     assert test_license.active == False
 
 
 def test_freeVersionCTA_visible_free_license(create_dlg, qmlEngine):

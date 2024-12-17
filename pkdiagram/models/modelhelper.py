@@ -1,4 +1,4 @@
-from .. import util, objects, commands
+from pkdiagram import util, scene, commands
 from .qobjecthelper import QObjectHelper
 from ..scene import Scene
 from pkdiagram.pyqt import pyqtSlot
@@ -154,12 +154,12 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "scene":
             if self._scene:
-                self._scene.propertyChanged[objects.Property].disconnect(
+                self._scene.propertyChanged[scene.Property].disconnect(
                     self.onSceneProperty
                 )
             self._scene = value
             if self._scene:
-                self._scene.propertyChanged[objects.Property].connect(
+                self._scene.propertyChanged[scene.Property].connect(
                     self.onSceneProperty
                 )
             self.refreshProperty("scene")

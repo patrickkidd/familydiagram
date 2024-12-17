@@ -6,26 +6,23 @@ import sys, os.path
 from pathlib import Path
 from typing import Callable
 
-from . import appdirs
-
 
 log = logging.getLogger(__name__)
 
 
 # to import vendor packages like xlsxwriter
 try:
-    import pdytools
+    import pdytools  # type: ignore
 
     IS_BUNDLE = True
 except:
     IS_BUNDLE = False
 
 import vedana
-from _pkdiagram import *
 from _pkdiagram import CUtil
 
-
 from PyQt5.QtCore import QSysInfo
+from pkdiagram.pyqt import pyqtProperty
 
 if not hasattr(QSysInfo, "macVersion") or not QSysInfo.macVersion() & QSysInfo.MV_IOS:
     IS_IOS = False
@@ -48,10 +45,9 @@ if IS_BUNDLE:
 
 import os, os.path, time, math, operator, collections.abc, subprocess, random
 from datetime import datetime
-from .pyqt import *
+from pkdiagram.pyqt import *
 from . import version
 from .pepper import PEPPER
-from .eventkind import EventKind
 
 try:
     from .build_uuid import *  # not sure if this is even needed any more
@@ -132,13 +128,6 @@ def summarizeReplyShort(reply: QNetworkReply):
     return f"{verb} {url} {status_code}"
 
 
-# TODO: Deprecate
-try:
-    from .sales_tax_rates import zips as SALES_TAX_RATES
-except:
-    SALES_TAX_RATES = []
-
-
 def pretty(x, exclude=[], noNone=True):
     if not isinstance(exclude, list):
         exclude = [exclude]
@@ -168,6 +157,8 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(pk_fileloc)-26s %(message)s"
 
 
 def init_logging():
+
+    from pkdiagram import appdirs
 
     FD_LOG_LEVEL = os.getenv("FD_LOG_LEVEL", "INFO").upper()
     if FD_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
@@ -521,7 +512,6 @@ S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
     "Emotional units will show here when you add pair-bonds between people with names."
 )
 
-EVENT_KIND_NAMES = [x.name for x in EventKind]
 
 ___DATA_PATH = None
 ___DATA_PATH_LOCAL = None
@@ -873,9 +863,9 @@ def validatedDateTimeText(dateText, timeText=None):
         except ValueError:
             x = None
         if x is not None:
-            mm = int(s[:2])
-            dd = int(s[2:4])
-            yyyy = int(s[4:8])
+            mm = int(dateText[:2])
+            dd = int(dateText[2:4])
+            yyyy = int(dateText[4:8])
             ret = QDateTime(QDate(yyyy, mm, dd))
     if ret is None and dateText not in (None, "", BLANK_DATE_TEXT):
         # normal route
@@ -1066,21 +1056,6 @@ def invertPixmap(p):
     return QPixmap.fromImage(img)
 
 
-def rindex(lst, val, start=None):
-    if start is None:
-        start = len(lst) - 1
-    for i in xrange(start, -1, -1):
-        if lst[i] == val:
-            return i
-
-
-def rindex(li, x):
-    for i in reversed(range(len(li))):
-        if li[i] == x:
-            return i
-    raise ValueError("{} is not in list".format(x))
-
-
 def qtHTTPReply2String(reply: QNetworkReply) -> str:
     if reply.operation() == QNetworkAccessManager.HeadOperation:
         verb = "HEAD"
@@ -1258,7 +1233,7 @@ def ljust(data, length):
 def runModel(model, silent=True, columns=None):
     WIDTH = 25
     if not silent:
-        Debug(
+        log.info(
             "MODEL:", model.__class__.__name__, 'objectName: "%s"' % model.objectName()
         )
         sys.stdout.write(" %s|" % ljust("Column", 10))
@@ -1385,7 +1360,7 @@ def ____perpendicular(pointA, pointB, reverse=False, width=None):
     if width is None:
         return QPointF(x3, y3)
     else:
-        return QPointF(pointOnRay(pointB, QPointF(x3, y3), width))
+        return QPointF(CUtil.pointOnRay(pointB, QPointF(x3, y3), width))
 
 
 # def drawTextAroundPoint(painter, x, y, flags, text, boundingRect=None):
@@ -1500,17 +1475,6 @@ class ClickFilter(QObject):
         self.clicked.emit()
 
 
-class QNAM(QNetworkAccessManager):
-
-    _instance = None
-
-    @staticmethod
-    def instance():
-        if not QNAM._instance:
-            QNAM._instance = QNAM()
-        return QNAM._instance
-
-
 # class WebEnginePage(QWebEnginePage):
 
 #     # https://stackoverflow.com/questions/40170180/link-clicked-signal-qwebengineview
@@ -1546,21 +1510,21 @@ def ____iCloudInitialized():
     useiCloud = prefs.value("useiCloudDrive", type=bool, defaultValue=False)
     if not IS_BUNDLE and not IS_IOS and prefs.value("iCloudDataPath"):  # dev only
         DATA_PATH = DATA_PATH_ICLOUD = prefs.value("iCloudDataPath")
-        Debug("iCloud disabled, using last iCloud Documents path:", DATA_PATH)
+        log.info("iCloud disabled, using last iCloud Documents path:", DATA_PATH)
     elif instance.iCloudAvailable() and useiCloud:
         prefs.setValue("iCloudDataPath", DATA_PATH_ICLOUD)
         DATA_PATH = DATA_PATH_ICLOUD
-        Debug("Using iCloud folder:", DATA_PATH_ICLOUD)
+        log.info("Using iCloud folder:", DATA_PATH_ICLOUD)
     else:
-        Debug("Using local Documents folder")
+        log.info("Using local Documents folder")
         DATA_PATH = DATA_PATH_LOCAL
         dir = QDir(DATA_PATH)
         if not dir.exists():
-            Debug(
+            log.info(
                 "util.init(): creating dir for QStandardPaths.DataLocation:", DATA_PATH
             )
             dir.mkpath(DATA_PATH)
-    from .. import util
+    from pkdiagram import util
 
     DATA_PATH = DATA_PATH
     DATA_PATH_LOCAL = DATA_PATH_LOCAL
@@ -1703,12 +1667,6 @@ def qenum(base, value):
                 break
     if keyName:
         return "%s.%s" % (base.__name__, keyName)
-
-
-class RightDrawerView(enum.Enum):
-    AddAnything = "addanything"
-    Timeline = "timeline"
-    Settings = "settings"
 
 
 import pickle
@@ -2116,7 +2074,7 @@ def test_finish_group(group):
         elif isinstance(child, QVariantAnimation):
             test_finish_anim(child)
         else:
-            log.error(f"TEST: Unknown animation type: {animation}")
+            log.error(f"TEST: Unknown animation type: {child}")
 
 
 def exec_():

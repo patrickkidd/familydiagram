@@ -5,20 +5,13 @@ from pkdiagram.pyqt import (
     QPoint,
     QDate,
     QDateTime,
-    QApplication,
     QRect,
-    QItemSelection,
     QItemSelectionModel,
-    QObject,
 )
-from pkdiagram import (
-    util,
-    GraphicalTimelineView,
-    Scene,
-    Event,
-    Person,
-)
+from pkdiagram import util
+from pkdiagram.scene import Scene, Event, Person
 from pkdiagram.models import SearchModel, TimelineModel
+from pkdiagram.documentview import GraphicalTimelineView
 
 pytestmark = [
     pytest.mark.component("GraphicalTimelineView"),

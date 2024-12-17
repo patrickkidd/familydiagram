@@ -53,9 +53,8 @@ pkdiagram/qrc_pkdiagram.py
 pkdiagram/qrc_qml.py
 tests/qml.py
 tests/dump_*.png
-pkdiagram/_pkdiagram/Makefile*
-pkdiagram/_pkdiagram/libpkdiagram/_pkdiagram.a
-pkdiagram/_pkdiagram/build
+_pkdiagram/Makefile*
+_pkdiagram/build
 Pipfile.lock
 
 sysroot/sysroot-*

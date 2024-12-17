@@ -1,7 +1,10 @@
-from pkdiagram.pyqt import *
-from pkdiagram import util, commands, ModelHelper, QmlWidgetHelper
-from pkdiagram.objects import Item
 import pytest
+
+from pkdiagram.pyqt import QObject, QWidget, QVBoxLayout, QDateTime
+from pkdiagram import util, commands
+from pkdiagram.scene import Item
+from pkdiagram.models import ModelHelper
+from pkdiagram.widgets import QmlWidgetHelper
 
 
 pytestmark = [pytest.mark.component("DatePicker")]

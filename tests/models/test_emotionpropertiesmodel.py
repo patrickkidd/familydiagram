@@ -1,5 +1,6 @@
-from pkdiagram.pyqt import QPointF
-from pkdiagram import util, Scene, Person, Emotion, EmotionPropertiesModel
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person, Emotion
+from pkdiagram.models import EmotionPropertiesModel
 
 
 def test_init(simpleScene):

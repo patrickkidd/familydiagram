@@ -1,4 +1,5 @@
-from pkdiagram import Scene, EventVariablesModel, Person, Event
+from pkdiagram.scene import Scene, Person, Event
+from pkdiagram.models import EventVariablesModel
 
 
 def test_init_deinit():

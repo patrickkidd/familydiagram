@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from pkdiagram import AppConfig, util
+from pkdiagram.app import AppConfig
 
 
 pytestmark = [pytest.mark.component("AppConfig")]

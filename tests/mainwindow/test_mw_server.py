@@ -1,24 +1,17 @@
-import os.path, datetime, pickle, logging
-from contextlib import ExitStack
+import os.path, pickle, logging
 
 import pytest
 import mock
 from sqlalchemy import inspect
 
 import vedana
-from pkdiagram import (
-    util,
-    mainwindow,
-    Scene,
-    Person,
-    AppConfig,
-    Session,
-    AppController,
-    MainWindow,
-    FileManager,
-    DocumentController,
-)
-from pkdiagram.pyqt import Qt, QFileInfo, QMessageBox, QApplication, QTimer
+from pkdiagram.pyqt import QFileInfo, QMessageBox
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person
+from pkdiagram.documentview import DocumentController
+from pkdiagram.mainwindow import MainWindow
+from pkdiagram.app import AppController
+
 
 from fdserver.extensions import db
 from fdserver.models import Diagram

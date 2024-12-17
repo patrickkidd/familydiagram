@@ -4,11 +4,11 @@ import logging
 
 import pytest
 import mock
-import datetime
 
-from pkdiagram.pyqt import QApplication, Qt, QDateTime, QTimer, QMessageBox, QEventLoop
-from pkdiagram import util, EventKind, MainWindow, commands
-from pkdiagram import Person, Marriage, Event
+from pkdiagram.pyqt import QApplication, QDateTime, QTimer, QEventLoop
+from pkdiagram import util
+from pkdiagram.scene import Person, Marriage, EventKind
+
 from .test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
 
 
@@ -279,7 +279,7 @@ def test_no_Marriage_DeferredDelete(qtbot, data_root, create_ac_mw):
     QTimer.singleShot(2000, loop.quit)
 
     with mock.patch(
-        "pkdiagram.objects.pathitem.PathItem.onDeferredDelete"
+        "pkdiagram.scene.pathitem.PathItem.onDeferredDelete"
     ) as onDeferredDelete:
         loop.exec()
     assert onDeferredDelete.call_count == 0

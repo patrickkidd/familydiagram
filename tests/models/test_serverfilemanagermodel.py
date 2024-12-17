@@ -2,9 +2,13 @@ import os, os.path
 import pickle
 import pytest
 from sqlalchemy import inspect
+
 import vedana
-import pkdiagram
-from pkdiagram import util, Scene, ServerFileManagerModel, Person
+from pkdiagram import util
+from pkdiagram.server_types import Diagram as fe_Diagram
+from pkdiagram.models import ServerFileManagerModel
+from pkdiagram.scene import Scene, Person
+from pkdiagram.app import Session as fe_Session
 
 from fdserver.extensions import db
 from fdserver.models import Diagram
@@ -17,7 +21,7 @@ def create_model(request):
 
     def _create_model(session=True):
         model = ServerFileManagerModel()
-        _session = pkdiagram.Session()
+        _session = fe_Session()
         if session:
             if session is True:
                 test_session = request.getfixturevalue("test_session")
@@ -172,7 +176,7 @@ def test_add_diagram_file(test_user, create_model):
 
     model = create_model()
     db.session.add(diagram)
-    _diagram = pkdiagram.Diagram.create(diagram.as_dict())
+    _diagram = fe_Diagram.create(diagram.as_dict())
     model._addOrUpdateDiagram(_diagram)
     fpath = model.localPathForID(diagram.id)
     assert os.path.isdir(fpath) == True
@@ -235,7 +239,7 @@ def test_dont_clear_cache_on_restart(
     )
 
     model.deinit()
-    session = pkdiagram.Session()
+    session = fe_Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
     model2 = ServerFileManagerModel()
     model2.init()
@@ -250,7 +254,7 @@ def test_dont_clear_cache_on_restart(
 def test_save_free_diagram_persists(test_session):
     # Read free diagram 1
     model = ServerFileManagerModel()
-    session = pkdiagram.Session()
+    session = fe_Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
     assert session.hasFeature(vedana.LICENSE_FREE) == True
     model.init()

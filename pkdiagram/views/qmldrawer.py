@@ -12,8 +12,7 @@ from pkdiagram.pyqt import (
     QQmlEngine,
 )
 from pkdiagram import util
-from pkdiagram.widgets import Drawer
-from pkdiagram.qmlwidgethelper import QmlWidgetHelper
+from pkdiagram.widgets import Drawer, QmlWidgetHelper
 
 
 _log = logging.getLogger(__name__)

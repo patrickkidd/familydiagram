@@ -1,9 +1,13 @@
-try:
-    import pdytools
+"""
+No dependencies allowed except PyQt5.
+"""
 
-    BUNDLE = True
+try:
+    import pdytools  # type: ignore
+
+    IS_BUNDLE = True
 except:
-    BUNDLE = False
+    IS_BUNDLE = False
 
 
 from PyQt5.QtCore import *
@@ -29,7 +33,7 @@ try:
 except:
     pass
 
-if not BUNDLE:
+if not IS_BUNDLE:
     try:
         from PyQt5.QtTest import *
     except:
@@ -43,7 +47,7 @@ def tr(s):
 
 
 try:
-    x = QApplePencilEvent
+    x = QApplePencilEvent  # type: ignore
 except:
 
     class QApplePencilEvent(QEvent):

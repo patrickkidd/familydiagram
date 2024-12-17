@@ -1,7 +1,8 @@
 import pytest
+
 from pkdiagram.pyqt import *
-from pkdiagram import util, objects
-from pkdiagram.objects import Emotion
+from pkdiagram import util, scene
+from pkdiagram.scene import Emotion
 from pkdiagram.views import QmlDrawer
 
 
@@ -22,7 +23,7 @@ def emotionProps():
 
 # @pytest.fixture
 # def emotion(emotionProps):
-#     emotion = objects.Emotion()
+#     emotion = scene.Emotion()
 #     for key, value in emotionProps.items():
 #         emotion.prop(key).set(value)
 #     return emotion
@@ -112,7 +113,7 @@ def test_show_init(qmlScene, ep, emotionProps):
     personAName = qmlScene.people()[0].name()
     personBName = qmlScene.people()[1].name()
     initProps = {"kind": util.ITEM_PROJECTION, "intensity": 2}
-    emotion = objects.Emotion(**initProps)
+    emotion = scene.Emotion(**initProps)
     qmlScene.addItem(emotion)
     ep.show(emotion)
     assertEmotionPropertiesInit(initProps, ep)
@@ -127,16 +128,16 @@ def test_show_init(qmlScene, ep, emotionProps):
 
 def test_fields_disabled(qmlScene, ep):
 
-    personA = objects.Person(name="Harold")
+    personA = scene.Person(name="Harold")
     qmlScene.addItem(personA)
 
-    personB = objects.Person(name="Maude")
+    personB = scene.Person(name="Maude")
     qmlScene.addItem(personB)
 
-    cutoff = objects.Emotion(kind=util.ITEM_CUTOFF, personA=personA)
+    cutoff = scene.Emotion(kind=util.ITEM_CUTOFF, personA=personA)
     qmlScene.addItem(cutoff)
 
-    projection = objects.Emotion(
+    projection = scene.Emotion(
         kind=util.ITEM_PROJECTION, personA=personA, personB=personB
     )
     qmlScene.addItem(projection)
@@ -161,9 +162,9 @@ def test_show_init_multiple_different(qmlScene, ep, emotionProps):
     personAName = qmlScene.people()[0].name()
     personBName = qmlScene.people()[1].name()
     initProps1 = {"kind": util.ITEM_PROJECTION}
-    emotion1 = objects.Emotion(**initProps1)
+    emotion1 = scene.Emotion(**initProps1)
     initProps2 = {"kind": util.ITEM_CONFLICT}
-    emotion2 = objects.Emotion(**initProps2)
+    emotion2 = scene.Emotion(**initProps2)
 
     # first init with single kind
     ep.show(emotion1)
@@ -176,7 +177,7 @@ def test_show_init_multiple_different(qmlScene, ep, emotionProps):
 
 @pytest.mark.parametrize("startDateTime", [util.Date(2000, 4, 21), QDateTime()])
 def test_notes_field_has_start_datetime(ep, startDateTime):
-    emotion = objects.Emotion(kind=util.ITEM_PROJECTION)
+    emotion = scene.Emotion(kind=util.ITEM_PROJECTION)
     emotion.startEvent.setDateTime(startDateTime)
     ep.show(emotion, tab="notes")
     emotionNotesEdit = ep.rootProp("emotionNotesEdit")

@@ -1,4 +1,12 @@
+"""
+Aggregates of scene, models, widgets that can be unit-tested separately from
+DocumentView or MainWindow.
+"""
+
+from .qmlvedana import QmlVedana
+from .qmldrawer import QmlDrawer
+from .qmlhelpers import LineEditBackEnd, TextEditBackEnd
 from .searchdialog import SearchDialog
 from .addanythingdialog import AddAnythingDialog
 from .accountdialog import AccountDialog
-from .qmldrawer import QmlDrawer
+from .caseproperties import CaseProperties

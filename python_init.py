@@ -1,10 +1,7 @@
-import sys, os.path
-
-
 def init_dev():
 
     try:
-        import pdytools  # only exists for app bundle
+        import pdytools  # type: ignore
 
         IS_BUNDLE = True
     except:

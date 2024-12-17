@@ -1,7 +1,8 @@
 import pytest
 
-from pkdiagram import util, Person, Marriage, Emotion
 from pkdiagram.pyqt import Qt
+from pkdiagram import util
+from pkdiagram.scene import Person, Marriage, Emotion
 
 pytestmark = [
     pytest.mark.component("MainWindow"),

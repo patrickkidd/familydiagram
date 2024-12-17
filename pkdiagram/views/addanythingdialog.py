@@ -2,23 +2,21 @@ import logging
 
 from pkdiagram.pyqt import (
     pyqtSignal,
-    QMessageBox,
-    QEvent,
-    Qt,
     pyqtSignal,
+    Q_RETURN_ARG,
+    Q_ARG,
+    Qt,
     QPointF,
     QMetaObject,
     QVariant,
-    Q_RETURN_ARG,
-    Q_ARG,
+    QMessageBox,
 )
-from pkdiagram import util, commands, slugify
-from pkdiagram.eventkind import EventKind
-from pkdiagram.objects import Person, Emotion, Event, Marriage
-from .qmldrawer import QmlDrawer
+from pkdiagram import util, commands
+from pkdiagram.scene import EventKind, Person, Emotion, Event, Marriage
+from pkdiagram.views import QmlDrawer
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
-from pkdiagram.widgets import ActiveListEdit
+from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 
 _log = logging.getLogger(__name__)
 
