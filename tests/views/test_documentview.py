@@ -77,8 +77,9 @@ def dv(test_session, test_activation, qtbot):
     yield w
 
     w.setScene(None)
-    w.hide()
+    mw.hide()
     w.deinit()
+    mw = None
 
 
 @pytest.mark.parametrize("readOnly", [True, False])

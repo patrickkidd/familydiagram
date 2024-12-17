@@ -222,6 +222,7 @@ class DocumentView(QWidget):
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
         self.addAnythingDialog.deinit()
+        self.searchDialog.deinit()
         self._qmlEngine.deinit()
 
     def qmlEngine(self):

@@ -196,7 +196,7 @@ def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
     dlg.add_tag(TAG_1)
     dlg.add_tag(TAG_2)
     dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.mouseClick("AddEverything_submitButton")
+    dlg.submit()
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
     scene = qmlEngine.sceneModel.scene
@@ -438,7 +438,7 @@ for this event.
     dlg.add_tag(TAG_1)
     dlg.add_tag(TAG_2)
     dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.mouseClick("AddEverything_submitButton")
+    dlg.submit()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     assert len(scene.people()) == 2

@@ -93,6 +93,7 @@ class AddAnythingDialog(QmlDrawer):
     def onInitQml(self):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
+        self.qml.rootObject().add.connect(self.onAdd)
         self.qml.rootObject().cancel.connect(self.onCancel)
         self._eventModel = self.rootProp("eventModel")
 
@@ -919,19 +920,19 @@ class AddAnythingDialog(QmlDrawer):
     def set_symptom(self, x):
         self.setVariable("symptom", x)
 
-    def _scrollToTagsField(self):
-        self.rootProp("addPage").setProperty("contentY", 200)
-
     def add_tag(self, tag: str):
-        self._scrollToTagsField()
+        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
         tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
         tagsEdit.clickAddAndRenameRow(tag)
 
     def set_active_tags(self, tags: list[str]):
-        self._scrollToTagsField()
+        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
         tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
         for tag in tags:
             tagsEdit.clickActiveBox(tag)
+
+    def submit(self):
+        self.mouseClickItem(self.rootProp("addButton"))
 
     # scripts
 

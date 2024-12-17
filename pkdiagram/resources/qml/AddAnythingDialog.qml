@@ -23,6 +23,7 @@ PK.Drawer {
     }
     property var tagsEdit: tagsEditItem
     property var addPage: addPage
+    property var addButton: submitButton
 
     // Keys.onPressed: {
     //     // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -277,7 +278,11 @@ PK.Drawer {
         }
     }
 
-    background: Rectangle { color: util.QML_WINDOW_BG; anchors.fill: parent }
+    background: Rectangle {
+        color: util.QML_WINDOW_BG
+        anchors.fill: parent
+        objectName: 'background'
+    }
 
     StackLayout {
 

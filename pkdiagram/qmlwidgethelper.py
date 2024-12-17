@@ -297,23 +297,33 @@ class QmlWidgetHelper(QObjectHelper):
             util.BLANK_TIME_TEXT,
         ), f"Could not clear text for {objectName} (text = '{itemText}')"
 
+    def _itemString(self, item: QQuickItem) -> str:
+        if item:
+            return f"{item.metaObject().className()}['{item.objectName()}', parent: {item.parent().metaObject().className()}]"
+        else:
+            return "None"
+
     def mouseClickItem(self, item: QQuickItem, button=Qt.LeftButton, pos=None):
-        if not item.property("visible"):
-            log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
-        if not item.property("enabled"):
-            log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
         if pos is None:
             rect = item.mapRectToScene(
                 QRectF(0, 0, item.property("width"), item.property("height"))
             ).toRect()
             pos = rect.center()
+
+        # validation checks
+        if not item.property("visible"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
+        if not item.property("enabled"):
+            log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
+        itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         if self.DEBUG:
-            if item.objectName():
-                itemString = item.objectName()
-            else:
-                itemString = item.metaObject().className()
+            if itemAtPos is not item:
+                log.warning(
+                    f"Item at position {pos}: {self._itemString(itemAtPos)} != {self._itemString(item)}"
+                )
+
             log.info(
-                f"QmlWidgetHelper.mouseClickItem('{itemString}', {button}, {pos}) (rect: {rect})"
+                f"QmlWidgetHelper.mouseClickItem('{self._itemString(item)}', {button}, {pos}) (rect: {rect})"
             )
         # itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         # if itemAtPos:
