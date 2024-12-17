@@ -44,27 +44,27 @@ add_custom_target(
 ##
 
 add_custom_command(
-    OUTPUT pkdiagram/mainwindow_form.py
-    DEPENDS pkdiagram/mainwindow.ui
-    COMMAND pyuic5 pkdiagram/mainwindow.ui -o pkdiagram/mainwindow_form.py
+    OUTPUT pkdiagram/mainwindow/mainwindow_form.py
+    DEPENDS pkdiagram/mainwindow/mainwindow.ui
+    COMMAND pyuic5 pkdiagram/mainwindow/mainwindow.ui -o pkdiagram/mainwindow/mainwindow_form.py
 )
 
 add_custom_command(
-    OUTPUT pkdiagram/preferences_form.py
-    DEPENDS pkdiagram/preferences.ui
-    COMMAND pyuic5 pkdiagram/preferences.ui -o pkdiagram/preferences_form.py
+    OUTPUT pkdiagram/mainwindow/preferences_form.py
+    DEPENDS pkdiagram/mainwindow/preferences.ui
+    COMMAND pyuic5 pkdiagram/mainwindow/preferences.ui -o pkdiagram/mainwindow/preferences_form.py
 )
 
 add_custom_command(
-    OUTPUT pkdiagram/welcome_form.py
-    DEPENDS pkdiagram/welcome.ui
-    COMMAND pyuic5 pkdiagram/welcome.ui -o pkdiagram/welcome_form.py
+    OUTPUT pkdiagram/mainwindow/welcome_form.py
+    DEPENDS pkdiagram/mainwindow/welcome.ui
+    COMMAND pyuic5 pkdiagram/mainwindow/welcome.ui -o pkdiagram/mainwindow/welcome_form.py
 )
 
 add_custom_target(
     pkdiagram
     ALL
-    DEPENDS pkdiagram/mainwindow_form.py pkdiagram/preferences_form.py pkdiagram/welcome_form.py
+    DEPENDS pkdiagram/mainwindow/mainwindow_form.py pkdiagram/mainwindow/preferences_form.py pkdiagram/mainwindow/welcome_form.py
 )
 
 
