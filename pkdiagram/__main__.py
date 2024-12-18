@@ -33,55 +33,57 @@ if sys.version_info[1] > 7:
 
 # log.info(sysconfig.get_path('purelib'))
 
-parser = OptionParser()
-parser.add_option(
-    "-v",
-    "--version",
-    dest="version",
-    action="store_true",
-    help="Print the version",
-    default=False,
-)
-parser.add_option(
-    "-p",
-    "--prefs-name",
-    dest="prefsName",
-    help="The preferences scope to use when testing",
-)
-options, args = parser.parse_args(sys.argv)
-if options.version:
 
-    # import os.path, importlib
-
-    from . import version
-
-    print(version.VERSION)
-
-    # PKDIAGRAM = os.path.realpath(os.path.dirname(__file__))
-    # spec = importlib.util.spec_from_file_location(
-    #     "version", os.path.join(PKDIAGRAM, "version.py")
-    # )
-    # version = importlib.util.module_from_spec(spec)
-    # spec.loader.exec_module(version)
-    # print(version.VERSION)
-
-else:
-
-    app = Application(sys.argv)
-    if options.prefsName:
-        prefs = util.Settings("vedanamedia", options.prefsName)
-    else:
-        prefs = util.prefs()
-    controller = AppController(app, prefs, prefsName=options.prefsName)
-    controller.init()
-
-    mainWindow = MainWindow(
-        appConfig=controller.appConfig, session=controller.session, prefs=prefs
+def main():
+    parser = OptionParser()
+    parser.add_option(
+        "-v",
+        "--version",
+        dest="version",
+        action="store_true",
+        help="Print the version",
+        default=False,
     )
-    mainWindow.init()
+    parser.add_option(
+        "-p",
+        "--prefs-name",
+        dest="prefsName",
+        help="The preferences scope to use when testing",
+    )
+    options, args = parser.parse_args(sys.argv)
+    if options.version:
 
-    controller.exec(mainWindow)
+        # import os.path, importlib
 
-    mainWindow.deinit()
-    controller.deinit()
-    app.deinit()
+        from . import version
+
+        print(version.VERSION)
+
+        # PKDIAGRAM = os.path.realpath(os.path.dirname(__file__))
+        # spec = importlib.util.spec_from_file_location(
+        #     "version", os.path.join(PKDIAGRAM, "version.py")
+        # )
+        # version = importlib.util.module_from_spec(spec)
+        # spec.loader.exec_module(version)
+        # print(version.VERSION)
+
+    else:
+
+        app = Application(sys.argv)
+        if options.prefsName:
+            prefs = util.Settings("vedanamedia", options.prefsName)
+        else:
+            prefs = util.prefs()
+        controller = AppController(app, prefs, prefsName=options.prefsName)
+        controller.init()
+
+        mainWindow = MainWindow(
+            appConfig=controller.appConfig, session=controller.session, prefs=prefs
+        )
+        mainWindow.init()
+
+        controller.exec(mainWindow)
+
+        mainWindow.deinit()
+        controller.deinit()
+        app.deinit()
