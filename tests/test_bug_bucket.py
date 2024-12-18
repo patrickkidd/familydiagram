@@ -1,6 +1,5 @@
-import pytest
-
-from pkdiagram import util, EventKind, Scene
+from pkdiagram import util
+from pkdiagram.scene import Scene, EventKind
 from pkdiagram.models import TimelineModel
 
 

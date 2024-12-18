@@ -1,6 +1,6 @@
 import logging
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     QObject,
     QVariant,
     pyqtSlot,
@@ -8,7 +8,7 @@ from ..pyqt import (
     qmlRegisterType,
     QQmlEngine,
 )
-from .. import objects, util
+from pkdiagram import scene, util
 from ..scene import Scene
 from .modelhelper import ModelHelper
 
@@ -32,7 +32,7 @@ class SceneModel(QObject, ModelHelper):
     flashItems = pyqtSignal(list)
     uploadToServer = pyqtSignal()
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
+    PROPERTIES = scene.Item.adjustedClassProperties(
         Scene,
         [
             {"attr": "hasActiveLayers", "type": bool},

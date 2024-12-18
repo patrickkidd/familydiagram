@@ -1,11 +1,13 @@
 import pytest
-from pkdiagram import util, Scene, Person, VariablesDatabase, Event, slugify
+
+from pkdiagram import util, slugify
+from pkdiagram.scene import Scene, Person, VariablesDatabase, Event
 
 
 VAR_1 = "Var 1"
 VAR_2 = "Var 2"
-ATTR_0 = slugify.slugify(VAR_1)
-ATTR_1 = slugify.slugify(VAR_2)
+ATTR_0 = slugify(VAR_1)
+ATTR_1 = slugify(VAR_2)
 
 
 @pytest.fixture

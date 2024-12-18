@@ -1,12 +1,13 @@
-from ..pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
-from .. import util, objects, commands
+from pkdiagram.pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
+from pkdiagram import util, commands
+from pkdiagram.scene import Item, Emotion
 from .modelhelper import ModelHelper
 
 
 class EmotionPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.Emotion,
+    PROPERTIES = Item.adjustedClassProperties(
+        Emotion,
         [
             {"attr": "kindIndex", "type": int, "default": -1},
             {"attr": "intensityIndex", "type": int, "default": -1},
@@ -141,7 +142,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
     def kindsMap(self):
         ret = [
             {"kind": kind, "label": entry["label"], "slug": entry["slug"]}
-            for kind, entry in objects.Emotion.ITEM_MAP.items()
+            for kind, entry in Emotion.ITEM_MAP.items()
         ]
         return ret
 

@@ -1,6 +1,8 @@
 import pytest
+
 from pkdiagram.pyqt import QObject, QVariant
-from pkdiagram import util, QObjectHelper
+from pkdiagram import util
+from pkdiagram.models import QObjectHelper
 
 
 class SomeQObject(QObject):

@@ -1,7 +1,8 @@
 import pytest
 
-from pkdiagram.pyqt import *
-from pkdiagram import Person, Scene, PersonPropertiesModel
+from pkdiagram.pyqt import Qt
+from pkdiagram.models import PersonPropertiesModel
+from pkdiagram.scene import Scene, Person
 
 
 pytestmark = [
@@ -56,7 +57,7 @@ def _test_prop_returns():
         for kwargs in attrs:
             x = model._cachedPropGetter(kwargs)
             if x is None:
-                Debug(kwargs)
+                log.info(kwargs)
                 assert x == model.defaultFor(kwargs["attr"])
 
     assertNoneAreNone()

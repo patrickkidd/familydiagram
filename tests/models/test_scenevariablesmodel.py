@@ -1,6 +1,7 @@
-import pytest
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene, SceneVariablesModel
+from pkdiagram import util
+from pkdiagram.scene import Scene
+from pkdiagram.models import SceneVariablesModel
 
 
 def test_init_deinit():

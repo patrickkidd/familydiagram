@@ -1,7 +1,7 @@
 import logging
 
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     pyqtSlot,
     QAbstractListModel,
@@ -11,7 +11,7 @@ from ..pyqt import (
     qmlRegisterType,
     QQmlEngine,
 )
-from .. import objects, scene, util
+from pkdiagram import scene, scene, util
 from .modelhelper import ModelHelper
 
 _log = logging.getLogger(__name__)

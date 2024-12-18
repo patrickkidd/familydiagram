@@ -1,4 +1,3 @@
-import os.path
 import pickle
 import contextlib
 import base64
@@ -14,9 +13,8 @@ from pkdiagram.pyqt import (
     QTimer,
 )
 from pkdiagram import util
-from pkdiagram.analytics import Analytics, MixpanelEvent, MixpanelProfile
-
-QNAM = util.QNAM
+from pkdiagram.qnam import QNAM
+from pkdiagram.app import Analytics, MixpanelEvent, MixpanelProfile
 
 
 _log = logging.getLogger(__name__)
@@ -60,7 +58,7 @@ def mockRequest(status_code: int):
 
 @pytest.fixture(autouse=True)
 def _init():
-    with mock.patch("pkdiagram.analytics.Analytics.killTimer"):
+    with mock.patch("pkdiagram.app.Analytics.killTimer"):
         yield
 
 
@@ -376,7 +374,7 @@ def test_send_profiles_before_events(analytics):
         return orig_sendJSONRequest(url, data, verb, success, finished)
 
     with mock.patch(
-        "pkdiagram.analytics.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
+        "pkdiagram.app.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
     ) as sendJSONRequest:
         with mockRequest(200):
             analytics.tick()

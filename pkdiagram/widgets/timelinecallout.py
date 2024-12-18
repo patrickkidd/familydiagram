@@ -18,7 +18,7 @@ from pkdiagram.pyqt import (
     QPalette,
     QApplication,
 )
-from pkdiagram.objects import Event
+from pkdiagram.scene import Event
 
 _log = logging.getLogger(__name__)
 

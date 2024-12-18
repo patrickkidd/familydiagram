@@ -31,7 +31,7 @@ else:
 INCLUDES = [".", "build"]
 
 MODULE_DIR = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), "..", "pkdiagram", "_pkdiagram")
+    os.path.join(os.path.dirname(__file__), "..", "_pkdiagram")
 )
 
 
@@ -67,9 +67,7 @@ class PKDiagramComponent(Component):
         orig_cwd = os.getcwd()
         try:
             _path = os.path.realpath(
-                os.path.join(
-                    self._sysroot.sysroot_dir, "..", "..", "pkdiagram", "_pkdiagram"
-                )
+                os.path.join(self._sysroot.sysroot_dir, "..", "..", "_pkdiagram")
             )
             os.chdir(_path)
             self.run("sip-build")

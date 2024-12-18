@@ -3,9 +3,9 @@ import logging
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
-from pkdiagram import util, objects, EventKind
-from pkdiagram import Scene, Person, Marriage, Event, Emotion, TimelineModel
-from pkdiagram.models import SearchModel
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person, Marriage, Event, Emotion, EventKind, Marriage
+from pkdiagram.models import SearchModel, TimelineModel
 
 
 pytestmark = pytest.mark.component("TimelineModel")
@@ -263,7 +263,7 @@ def test_flags(qtbot, timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = objects.Emotion(kind=util.ITEM_FUSION)
+    fusion = Emotion(kind=util.ITEM_FUSION)
     fusion.setPersonA(p1)
     fusion.setPersonB(p2)
     fusion.startEvent.setDateTime(util.Date(1980, 5, 11))
@@ -305,7 +305,7 @@ def test_add_item(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = objects.Emotion(kind=util.ITEM_FUSION)
+    fusion = Emotion(kind=util.ITEM_FUSION)
     fusion.setPersonA(p1)
     fusion.setPersonB(p2)
     fusion.startEvent.setDateTime(util.Date(1981, 5, 11))
@@ -337,7 +337,7 @@ def test_add_person_marriage():
     model.scene = scene
     model.items = [personA]
 
-    marriage = objects.Marriage(personA=personA, personB=personB)
+    marriage = Marriage(personA=personA, personB=personB)
     married = Event(
         parent=marriage, date=util.Date(2001, 1, 1), uniqueId=EventKind.Married.value
     )
@@ -487,10 +487,10 @@ def test_set_emotion_date():
     model.scene = scene
     model.items = [scene]
 
-    p1 = objects.Person()
-    p2 = objects.Person()
+    p1 = Person()
+    p2 = Person()
     scene.addItems(p1, p2)
-    fusion = objects.Emotion(
+    fusion = Emotion(
         kind=util.ITEM_FUSION,
         personA=p1,
         personB=p2,
@@ -528,11 +528,9 @@ def test_emotion_move_has_only_one_event():
     model = TimelineModel()
     model.scene = scene
     model.items = [scene]
-    p1 = objects.Person()
-    p2 = objects.Person()
-    fusion = objects.Emotion(
-        kind=util.ITEM_FUSION, startDateTime=util.Date(1980, 1, 11)
-    )
+    p1 = Person()
+    p2 = Person()
+    fusion = Emotion(kind=util.ITEM_FUSION, startDateTime=util.Date(1980, 1, 11))
     fusion.setPersonA(p1)
     fusion.setPersonB(p2)
     scene.addItems(p1, p2, fusion)
@@ -546,9 +544,9 @@ def test_emotion_date_changed():
     model = TimelineModel()
     model.scene = scene
     model.items = [scene]
-    p1 = objects.Person()
-    p2 = objects.Person()
-    fusion = objects.Emotion(kind=util.ITEM_FUSION)
+    p1 = Person()
+    p2 = Person()
+    fusion = Emotion(kind=util.ITEM_FUSION)
     fusion.setPersonA(p1)
     fusion.setPersonB(p2)
     scene.addItems(p1, p2, fusion)
@@ -571,7 +569,7 @@ def test_dateBuddies(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = objects.Emotion(
+    fusion = Emotion(
         kind=util.ITEM_FUSION,
         personA=p1,
         personB=p2,
@@ -606,7 +604,7 @@ def test_dateBuddies(timelineScene, model):
 #     p1 = timelineScene.query1(name="p1")
 #     p2 = timelineScene.query1(name="p2")
 
-#     fusion = objects.Emotion(kind=util.ITEM_FUSION)
+#     fusion = Emotion(kind=util.ITEM_FUSION)
 #     fusion.setPersonA(p1)
 #     fusion.setPersonB(p2)
 #     fusion.startEvent.setDateTime(util.Date(1980, 5, 11))

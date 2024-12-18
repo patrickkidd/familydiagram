@@ -1,4 +1,4 @@
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QAbstractListModel,
     QModelIndex,
@@ -8,9 +8,9 @@ from ..pyqt import (
     QMessageBox,
     QApplication,
 )
-from .. import util, commands
+from pkdiagram import util, commands
 from ..scene import Scene
-from ..objects import Layer, LayerItem, Property, Person
+from ..scene import Layer, LayerItem, Property, Person
 from .modelhelper import ModelHelper
 
 

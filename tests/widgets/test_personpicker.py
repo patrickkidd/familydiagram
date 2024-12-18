@@ -3,8 +3,9 @@ import logging
 import pytest
 
 from pkdiagram import util
-from pkdiagram.pyqt import QApplication, QVBoxLayout, QWidget, QQuickItem
-from pkdiagram import Scene, Person, QmlWidgetHelper, SceneModel
+from pkdiagram.pyqt import QVBoxLayout, QWidget
+from pkdiagram.scene import Scene, Person
+from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 
 

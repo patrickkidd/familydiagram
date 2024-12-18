@@ -1,7 +1,7 @@
-from ..pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
+from pkdiagram.pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
-from ..objects import Item, Property
+from ..scene import Item, Property
 
 
 class SearchModel(QObject, QObjectHelper):

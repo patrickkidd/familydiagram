@@ -1,6 +1,9 @@
 import pytest
 
-from pkdiagram import util, Scene, SceneModel, Layer
+from pkdiagram import util
+from pkdiagram.models import SceneModel
+from pkdiagram.scene import Scene, Layer
+
 
 pytestmark = [
     pytest.mark.component("SceneModel"),

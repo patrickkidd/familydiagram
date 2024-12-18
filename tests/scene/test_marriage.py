@@ -3,8 +3,8 @@ import copy, pickle
 import pytest
 
 from pkdiagram.pyqt import QDateTime, Qt
-from pkdiagram import util, Scene, Event, Person, Marriage, EventKind
-from pkdiagram.models.marriagepropertiesmodel import MarriagePropertiesModel
+from pkdiagram import util
+from pkdiagram.scene import Scene, Event, Person, Marriage, EventKind
 
 
 def test_no_dupe_events(simpleMarriage):

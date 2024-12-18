@@ -1,8 +1,9 @@
 import pytest
 
 from pkdiagram.pyqt import Qt
-from pkdiagram import util, Scene, TagsModel, Item
-from pkdiagram.models import SearchModel
+from pkdiagram import util
+from pkdiagram.scene import Scene, Item
+from pkdiagram.models import SearchModel, TagsModel
 
 
 pytestmark = [

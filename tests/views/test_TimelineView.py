@@ -1,9 +1,9 @@
 import pytest
 
 from pkdiagram.pyqt import QVBoxLayout, QWidget
-from pkdiagram import util, QmlWidgetHelper, objects, Scene
-from pkdiagram.objects import Person, Event
-from pkdiagram.models import SceneModel, TimelineModel
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person, Event
+from pkdiagram.widgets import QmlWidgetHelper
 
 
 class TimelineViewTest(QWidget, QmlWidgetHelper):
@@ -12,7 +12,6 @@ class TimelineViewTest(QWidget, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)
-        QVBoxLayout(self)
         self.initQmlWidgetHelper(engine, "tests/qml/TimelineViewTest.qml")
         self.checkInitQml()
         Layout = QVBoxLayout(self)

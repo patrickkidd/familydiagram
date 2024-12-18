@@ -1,5 +1,5 @@
-from pkdiagram import util, Scene
-from pkdiagram.objects import EmotionalUnit, Marriage, Person, Layer
+from pkdiagram import util
+from pkdiagram.scene import Scene, Marriage, Person, Layer
 
 
 def _add_unit(scene: Scene, children=True):

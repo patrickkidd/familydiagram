@@ -1,8 +1,8 @@
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime
-from pkdiagram import util, Scene
-from pkdiagram.objects import Person, Event, Layer, Emotion, Marriage
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person, Event, Layer, Emotion, Marriage
 from pkdiagram.models import TimelineModel, SearchModel, EmotionalUnitsModel
 
 

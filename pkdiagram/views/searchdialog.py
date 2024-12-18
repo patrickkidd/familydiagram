@@ -6,8 +6,7 @@ from pkdiagram.pyqt import (
     QVBoxLayout,
     QSize,
 )
-from pkdiagram.widgets import Dialog
-from pkdiagram.qmlwidgethelper import QmlWidgetHelper
+from pkdiagram.widgets import Dialog, QmlWidgetHelper
 
 _log = logging.getLogger(__name__)
 

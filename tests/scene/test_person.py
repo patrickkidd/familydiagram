@@ -1,9 +1,8 @@
 import pytest
 
 from pkdiagram.pyqt import QPointF, QDateTime
-from pkdiagram import (
-    util,
-    EventKind,
+from pkdiagram import util
+from pkdiagram.scene import (
     Scene,
     Person,
     Marriage,

@@ -5,7 +5,9 @@ import mock
 import pytest
 
 import vedana
-from pkdiagram import version, util, AppController, Scene, Person
+from pkdiagram import version, util
+from pkdiagram.scene import Scene, Person
+from pkdiagram.app import AppController
 from fdserver import util as fdserver_util
 
 

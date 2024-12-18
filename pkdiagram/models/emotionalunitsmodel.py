@@ -2,14 +2,14 @@ import logging
 
 from sortedcontainers import SortedList
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     qmlRegisterType,
     QAbstractListModel,
     QModelIndex,
 )
-from .. import util
-from pkdiagram.objects import Item, Layer
+from pkdiagram import util
+from pkdiagram.scene import Item, Layer
 from pkdiagram.models import ModelHelper
 
 _log = logging.getLogger(__name__)

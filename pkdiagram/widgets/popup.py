@@ -1,4 +1,4 @@
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QPen,
     QBrush,
@@ -17,7 +17,7 @@ from ..pyqt import (
     pyqtSignal,
     QPoint,
 )
-from .. import util
+from pkdiagram import util
 
 
 class PopUp(QFrame):

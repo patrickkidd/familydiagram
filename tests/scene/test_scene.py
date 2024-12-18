@@ -3,10 +3,8 @@ import os, os.path, pickle
 import pytest
 
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
-from pkdiagram.util import EventKind
-from pkdiagram import (
-    util,
-    commands,
+from pkdiagram import util, commands
+from pkdiagram.scene import (
     Scene,
     Item,
     Person,
@@ -15,8 +13,9 @@ from pkdiagram import (
     Event,
     MultipleBirth,
     Layer,
-    SceneLayerModel,
+    EventKind,
 )
+from pkdiagram.models import SceneLayerModel
 
 pytestmark = [
     pytest.mark.component("Scene"),

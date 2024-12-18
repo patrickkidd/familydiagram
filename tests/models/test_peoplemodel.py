@@ -1,5 +1,8 @@
 import pytest
-from pkdiagram import util, Scene, Person, PeopleModel
+
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person
+from pkdiagram.models import PeopleModel
 
 
 @pytest.fixture

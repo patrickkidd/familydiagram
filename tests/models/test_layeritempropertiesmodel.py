@@ -1,5 +1,9 @@
 import pytest
-from pkdiagram import *
+
+from pkdiagram.pyqt import Qt
+from pkdiagram import util
+from pkdiagram.scene import Scene, Layer, Callout, Person
+from pkdiagram.models import LayerItemLayersModel, SceneLayerModel
 
 
 @pytest.fixture

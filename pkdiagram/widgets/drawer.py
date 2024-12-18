@@ -1,6 +1,6 @@
-from ..pyqt import *
-from .. import util, commands
-from ..util import CUtil
+from pkdiagram.pyqt import *
+from pkdiagram import util, commands
+from pkdiagram.util import CUtil
 from . import Stylesheeter
 
 

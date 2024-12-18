@@ -1,5 +1,5 @@
 import os
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QModelIndex,
     QVariant,
@@ -9,7 +9,7 @@ from ..pyqt import (
     QApplication,
     QAbstractListModel,
 )
-from .. import util
+from pkdiagram import util
 from .qobjecthelper import QObjectHelper
 
 

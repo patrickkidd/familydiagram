@@ -3,24 +3,12 @@ import pickle
 import pytest
 
 import vedana
-import pkdiagram
-from pkdiagram.pyqt import QObject, QApplication
-from pkdiagram import (
-    util,
-    Scene,
-    Person,
-    Event,
-    QmlWidgetHelper,
-    Session,
-    CaseProperties,
-)
-from pkdiagram import (
-    SearchModel,
-    TimelineModel,
-    SceneModel,
-    PeopleModel,
-    AccessRightsModel,
-)
+from pkdiagram.pyqt import QObject
+from pkdiagram import util
+from pkdiagram.server_types import Diagram as fe_Diagram
+from pkdiagram.scene import Scene
+from pkdiagram.models import AccessRightsModel
+from pkdiagram.views import CaseProperties
 
 from fdserver.extensions import db
 from fdserver.models import User, Diagram
@@ -50,7 +38,7 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
         qmlEngine.setScene(scene)
         if loadFreeDiagram:
             diagram = Diagram.query.get(test_user.free_diagram_id).as_dict()
-            diagram = pkdiagram.Diagram.create(diagram)
+            diagram = fe_Diagram.create(diagram)
             qmlEngine.sceneModel.setServerDiagram(diagram)
             qmlEngine.accessRightsModel.setServerDiagram(diagram)
 

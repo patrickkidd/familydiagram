@@ -1,8 +1,8 @@
 import pytest, mock
-from sqlalchemy import inspect
 
 import vedana
-from pkdiagram import util, version, AppController
+from pkdiagram import util, version
+from pkdiagram.app import AppController
 
 from fdserver.extensions import db
 from fdserver.models import Activation, License, Policy, Machine, User, Session

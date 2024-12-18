@@ -3,8 +3,9 @@ import pytest, mock
 from sqlalchemy import inspect
 
 import vedana
-from pkdiagram import util, version, Session, Diagram
-from pkdiagram.analytics import MixpanelEvent, MixpanelProfile
+from pkdiagram import util, version
+from pkdiagram.server_types import Diagram
+from pkdiagram.app import Session
 
 from fdserver import util as fdserver_util
 
@@ -33,7 +34,7 @@ def create_session(request, analytics):
 @pytest.fixture(autouse=True)
 def Analytics_send():
     with mock.patch("time.time", return_value=123):
-        with mock.patch("pkdiagram.analytics.Analytics.send") as send:
+        with mock.patch("pkdiagram.app.Analytics.send") as send:
             yield send
 
 

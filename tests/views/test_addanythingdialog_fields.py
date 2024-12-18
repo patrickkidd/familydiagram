@@ -3,9 +3,9 @@ import logging
 import pytest
 import mock
 
-from pkdiagram import util, objects, EventKind, SceneModel, Scene, Person, Marriage
-from pkdiagram.pyqt import Qt, QQuickItem, QApplication
-from pkdiagram.addanythingdialog import AddAnythingDialog
+from pkdiagram import util
+from pkdiagram.scene import Person, Marriage, EventKind
+
 
 from .test_addanythingdialog import scene, dlg
 

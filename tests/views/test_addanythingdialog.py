@@ -1,23 +1,10 @@
 import logging
 
 import pytest
-import mock
 
-from pkdiagram.pyqt import (
-    Qt,
-    QQuickItem,
-    QApplication,
-    QMetaObject,
-    Q_RETURN_ARG,
-    QVariant,
-    QJSValue,
-    QEventLoop,
-    QTimer,
-    QRectF,
-)
-from pkdiagram import util, EventKind, Scene
-from pkdiagram.objects import Person, Marriage, Event
-from pkdiagram.addanythingdialog import AddAnythingDialog
+from pkdiagram import util
+from pkdiagram.scene import Scene, Person, Marriage, Event, EventKind
+from pkdiagram.views import AddAnythingDialog
 
 _log = logging.getLogger(__name__)
 

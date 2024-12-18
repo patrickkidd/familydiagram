@@ -1,7 +1,5 @@
-import pytest
-import mock
-
-from pkdiagram import util, Server
+from pkdiagram import util
+from pkdiagram.server_types import Server
 
 
 def test_no_callbacks_clears_replies():

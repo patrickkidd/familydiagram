@@ -30,6 +30,7 @@ def modTest(__test__, loadfile=True, useMW=False):
 
     import mock
 
+    from _pkdiagram import FDDocument
     from pkdiagram.pyqt import (
         QObject,
         QTimer,
@@ -43,17 +44,16 @@ def modTest(__test__, loadfile=True, useMW=False):
     from pkdiagram.util import CUtil
     from pkdiagram import util, Scene, Application, QmlEngine, Session
 
-    FDDocument = util.FDDocument
-
     sys.path.append(os.path.realpath(os.path.join(__file__, "..", "..", "tests")))
-    import test_util
 
     def _makeSettings():
         dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
         prefs = util.Settings(dpath, "vedanamedia")
         return prefs
 
-    with mock.patch("pkdiagram.Application.makeSettings", side_effect=_makeSettings):
+    with mock.patch(
+        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
+    ):
         app = Application(sys.argv)
 
     def _quit(x, y):
@@ -343,20 +343,6 @@ def __test__PersonProperties(scene, parent, sceneModel):
     pp.show([person], animate=False)
     parent.resize(400, 600)
     return pp
-
-
-def __test__MarriageProperties(scene, parent, sceneModel):
-    scene.setTags(["here", "you", "are"])
-    mp = QmlDrawer(
-        "qml/MarriageProperties.qml", parent=parent, propSheetModel="marriageModel"
-    )
-    mp.qml.rootObject().setProperty("sceneModel", sceneModel)
-    Debug(scene.marriages()[0].events())
-
-    mp.setScene(scene)
-    mp.show([scene.marriages()[0]], animate=False)
-    parent.resize(400, 600)
-    return mp
 
 
 def __test__EventProperties(scene, parent, engine):

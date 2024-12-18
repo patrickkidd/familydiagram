@@ -1,3 +1,7 @@
+"""
+Third-party extensions.
+"""
+
 import os.path
 import logging
 import logging

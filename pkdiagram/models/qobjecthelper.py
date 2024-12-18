@@ -1,6 +1,6 @@
 import inspect
 import enum
-from ..pyqt import (
+from pkdiagram.pyqt import (
     pyqtProperty,
     pyqtSignal,
     QVariant,
@@ -12,7 +12,7 @@ from ..pyqt import (
     QDate,
     QDateTime,
 )
-from .. import objects
+from pkdiagram import scene
 
 
 CLASS_PROPERTIES = {}
@@ -27,7 +27,7 @@ class QObjectHelper:
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
         """
         Dynamically add Qt properties, signals, and slots to match
-        objects.Property. 'convertTo' sets the type on the property for the
+        scene.Property. 'convertTo' sets the type on the property for the
         pyqtProperty while leaving 'type' in place. This allows converting types
         between the model and the items.
         """
@@ -40,7 +40,7 @@ class QObjectHelper:
         )
         classAttrs["qsignalNames"] = qsignalNames = classAttrs.get("qsignalNames", [])
         if attrEntries is None:
-            attrEntries = objects.Item.classProperties(itemType)
+            attrEntries = scene.Item.classProperties(itemType)
         for kwargs in attrEntries:
             kwargs["globalContext"] = globalContext
 

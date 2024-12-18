@@ -1,12 +1,13 @@
 import logging
 
-from ..pyqt import (
+from pkdiagram.pyqt import (
     Qt,
     QObject,
     pyqtSlot,
     qmlRegisterType,
 )
-from .. import objects, commands
+from pkdiagram import commands
+from pkdiagram.scene import Item, Event, Emotion
 from .modelhelper import ModelHelper
 from pkdiagram.pyqt import pyqtSlot
 
@@ -16,8 +17,8 @@ _log = logging.getLogger(__name__)
 
 class EventPropertiesModel(QObject, ModelHelper):
 
-    PROPERTIES = objects.Item.adjustedClassProperties(
-        objects.Event,
+    PROPERTIES = Item.adjustedClassProperties(
+        Event,
         [
             {"attr": "editText"},
             {"attr": "nodal", "convertTo": Qt.CheckState},
@@ -97,7 +98,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     else:
                         ret = f"{itemLabel}: {item.description()} Event"
                 elif item.parent.isEmotion:
-                    itemLabel = objects.Emotion.kindLabelForKind(item.parent.kind())
+                    itemLabel = Emotion.kindLabelForKind(item.parent.kind())
                     if item.uniqueId() == "emotionStartEvent":
                         ret = f"{itemLabel}: Start Event"
                     elif item.uniqueId() == "emotionEndEvent":

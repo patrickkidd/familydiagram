@@ -1,17 +1,15 @@
 import pytest
+
 from pkdiagram.pyqt import Qt, QDateTime, QPointF
-from pkdiagram import (
-    util,
-    commands,
+from pkdiagram import util, commands
+from pkdiagram.scene import (
     Person,
     Event,
     Layer,
-    QmlDrawer,
-    LayerItemLayersModel,
     Scene,
 )
-from pkdiagram.models import SearchModel
-from tests.views.test_eventproperties import runEventProperties
+from pkdiagram.views import QmlDrawer
+from pkdiagram.models import LayerItemLayersModel
 
 
 pytestmark = [
@@ -537,26 +535,21 @@ def __test_remove_event_button(pp, qmlScene, eventProps):
     )
 
 
-# TODO: what does this have to do with PersonProperties?
-def _test_load_event_from_fd(simpleFamilyScene):
-    person = next([p for p in simpleFamilyScene.people() if p.name() == "Guy2"])
-
-
 # TODO:
-def _test_edit_event_in_timelinev(qtbot, pp, qmlScene, personProps, person):
+# def _test_edit_event_in_timeline(qtbot, pp, qmlScene, personProps, person):
 
-    event = Event(description="here we are", dateTime=util.Date(2003, 5, 11))
-    event.setParent(person)
-    pp.show([person])
-    # activate(pp)
+#     event = Event(description="here we are", dateTime=util.Date(2003, 5, 11))
+#     event.setParent(person)
+#     pp.show([person])
+#     # activate(pp)
 
-    pp.ui.tabWidget.setCurrentIndex(1)
-    pp.clickTableViewItem(pp.ui.timelineView, "here we are", column=3)
+#     pp.ui.tabWidget.setCurrentIndex(1)
+#     pp.clickTableViewItem(pp.ui.timelineView, "here we are", column=3)
 
-    pp.mouseClick(pp.ui.editEventButton, Qt.LeftButton)
-    assert pp.eventProperties.isShown()
+#     pp.mouseClick(pp.ui.editEventButton, Qt.LeftButton)
+#     assert pp.eventProperties.isShown()
 
-    runEventProperties(pp.eventProperties.ui, personProps)
-    assertEventProperties(event, personProps)
+#     runEventProperties(pp.eventProperties.ui, personProps)
+#     assertEventProperties(event, personProps)
 
-    # TODO: Add test tags
+#     # TODO: Add test tags

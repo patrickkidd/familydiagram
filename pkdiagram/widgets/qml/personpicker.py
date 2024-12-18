@@ -2,7 +2,7 @@ import logging
 
 from pkdiagram import util
 from pkdiagram.pyqt import QApplication, QQuickItem
-from pkdiagram import QmlWidgetHelper
+from pkdiagram.widgets import QmlWidgetHelper
 
 
 _log = logging.getLogger(__name__)

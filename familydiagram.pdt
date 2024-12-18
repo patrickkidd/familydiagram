@@ -4,7 +4,7 @@ sysroots_dir = ""
 parts = [ "Python:time", "Python:pickle", "Python:queue", "Python:datetime", "Python:inspect", "Python:pprint", "Python:zipfile", "Python:decimal", "Python:tempfile", "Python:logging", "Python:smtplib", "Python:_socket", "Python:encodings.idna", "Python:platform", "Python:posix", "Python:zlib", "Python:wsgiref", "Python:wsgiref.handlers", "Python:wsgiref.headers", "Python:wsgiref.simple_server", "Python:wsgiref.util", "Python:wsgiref.validate", "Python:optparse", "Python:xml.parsers.expat", "Python:math", "Python:profile", "Python:cProfile", "Python:json", "Python:pkgutil", "PyQt:PyQt5.Qt", "PyQt:PyQt5.QtGui", "PyQt:PyQt5.QtWidgets", "PyQt:PyQt5.QtNetwork", "PyQt:PyQt5.QtQuick", "PyQt:PyQt5.QtQuickWidgets", "PyQt:PyQt5.QtPrintSupport", "six:six", "dateutil:dateutil", "sortedcontainers:sortedcontainers", "xlsxwriter:xlsxwriter", "Python:uuid", "bugsnag:bugsnag", "mixpanel:mixpanel", "Python:sysconfig", "Python:typing", "Python:urllib.request", "pydantic:pydantic", "Python:pathlib", "typing_extensions:typing_extensions", "Python:ipaddress", "Python:colorsys", "Python:dataclasses", "Python:urllib.parse", "vedana:vedana", "Python:__future__", "_pkdiagram:_pkdiagram",]
 
 [Application]
-entry_point = "pkdiagram.app:main"
+entry_point = "pkdiagram.__main__:main"
 is_console = false
 is_bundle = true
 name = "Family Diagram"
@@ -21,42 +21,52 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "accountdialog.py"
+name = "__main__.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "addanythingdialog.py"
+name = "app"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "analytics.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
-name = "app.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "appconfig.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "appcontroller.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
-name = "appdirs.py"
+[[Application.Package.Content.Content]]
+name = "application.py"
 included = true
 is_directory = false
 
+[[Application.Package.Content.Content]]
+name = "qmlutil.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "session.py"
+included = true
+is_directory = false
+
+
 [[Application.Package.Content]]
-name = "application.py"
+name = "appdirs.py"
 included = true
 is_directory = false
 
@@ -76,24 +86,79 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "documentview"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "documentcontroller.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "documentview.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "dragpan.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
-name = "eventkind.py"
+[[Application.Package.Content.Content]]
+name = "graphicaltimeline.py"
 included = true
 is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "graphicaltimelinecanvas.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "graphicaltimelineview.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "helpoverlay.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "legend.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "panzoom.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qmlengine.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "toolbars.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "view.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "wheelzoom.py"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content]]
 name = "extensions.py"
@@ -106,49 +171,49 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "mainwindow"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "filemanager.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
-name = "graphicaltimeline.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "graphicaltimelinecanvas.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "graphicaltimelineview.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "helpoverlay.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "itemgarbage.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "legend.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "mainwindow.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
+[[Application.Package.Content.Content]]
 name = "mainwindow_form.py"
 included = true
 is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "preferences.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "preferences_form.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "welcome.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "welcome_form.py"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content]]
 name = "models"
@@ -216,7 +281,7 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "peoplesearchmodel.py"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
@@ -266,157 +331,7 @@ is_directory = false
 
 
 [[Application.Package.Content]]
-name = "objects"
-included = true
-is_directory = true
-[[Application.Package.Content.Content]]
-name = "__init__.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "callout.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "childof.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "emotionalunit.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "emotions.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "event.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "item.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "itemanimationhelper.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "itemdetails.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "layer.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "layeritem.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "marriage.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "multiplebirth.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "pathitem.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "pencilstroke.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "person.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "property.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "variablesdatabase.py"
-included = true
-is_directory = false
-
-
-[[Application.Package.Content]]
-name = "panzoom.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
 name = "pepper.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "_pkdiagram"
-included = false
-is_directory = true
-[[Application.Package.Content.Content]]
-name = "_pkdiagram_mac.mm"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "project.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "pyproject.toml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "sip"
-included = false
-is_directory = true
-[[Application.Package.Content.Content.Content]]
-name = "_pkdiagram"
-included = false
-is_directory = true
-[[Application.Package.Content.Content.Content.Content]]
-name = "_pkdiagrammod.sip"
-included = false
-is_directory = false
-
-
-
-
-[[Application.Package.Content]]
-name = "pkdiagram.pro.user"
-included = false
-is_directory = false
-
-[[Application.Package.Content]]
-name = "preferences.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "preferences_form.py"
 included = true
 is_directory = false
 
@@ -426,37 +341,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "qmldrawer.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "qmlengine.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "qmlhelpers.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "qmlutil.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "qmlvedana.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "qmlwidgethelper.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "random_names.py"
+name = "qnam.py"
 included = true
 is_directory = false
 
@@ -1120,11 +1005,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "SearchDialog.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
 name = "PK"
 included = true
 is_directory = true
@@ -1340,6 +1220,11 @@ is_directory = false
 
 
 [[Application.Package.Content.Content.Content]]
+name = "SearchDialog.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"
 included = false
 is_directory = false
@@ -1457,17 +1342,122 @@ is_directory = false
 
 
 [[Application.Package.Content]]
+name = "scene"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "callout.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "childof.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "emotionalunit.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "emotions.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "event.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "eventkind.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "item.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemanimationhelper.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemdetails.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemgarbage.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layer.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "layeritem.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "marriage.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "multiplebirth.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pathitem.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "pencilstroke.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "person.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "property.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "random_names.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "scene.py"
 included = true
 is_directory = false
 
-[[Application.Package.Content]]
-name = "server_types.py"
+[[Application.Package.Content.Content]]
+name = "variablesdatabase.py"
 included = true
 is_directory = false
 
+
 [[Application.Package.Content]]
-name = "session.py"
+name = "server_types.py"
 included = true
 is_directory = false
 
@@ -1482,22 +1472,12 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "toolbars.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
 name = "util.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content]]
 name = "version.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "view.py"
 included = true
 is_directory = false
 
@@ -1511,25 +1491,40 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "accountdialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "addanythingdialog.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "caseproperties.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qmldrawer.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qmlhelpers.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qmlvedana.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "searchdialog.py"
 included = true
 is_directory = false
 
-
-[[Application.Package.Content]]
-name = "welcome.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "welcome_form.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
-name = "wheelzoom.py"
-included = true
-is_directory = false
 
 [[Application.Package.Content]]
 name = "widgets"
@@ -1594,6 +1589,11 @@ name = "personpicker.py"
 included = true
 is_directory = false
 
+
+[[Application.Package.Content.Content]]
+name = "qmlwidgethelper.py"
+included = true
+is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "timelinecallout.py"

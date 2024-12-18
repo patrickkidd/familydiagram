@@ -35,11 +35,11 @@ RUN pipenv run which sip-install
 # RUN git clone --verbose https://github.com/patrickkidd/familydiagram.git .
 COPY pkdiagram pkdiagram
 
-RUN cd pkdiagram/_pkdiagram && \
+RUN cd _pkdiagram && \
     pipenv run sip-install
-RUN cd pkdiagram/_pkdiagram && \
+RUN cd _pkdiagram && \
     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-RUN cd pkdiagram/_pkdiagram && \
+RUN cd _pkdiagram && \
     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h 
 
 
