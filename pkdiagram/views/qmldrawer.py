@@ -124,7 +124,7 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
         super().hide(**_kwargs)
 
     def onDone(self):
-        self.hide()
+        self.hideRequested.emit()
 
     def onExpandAnimationFinished(self):
         super().onExpandAnimationFinished()

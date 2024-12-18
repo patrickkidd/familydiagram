@@ -505,37 +505,6 @@ class DocumentView(QWidget):
             self.scene.setStopOnAllEvents(isTimelineShown)
             self.graphicalTimelineView.update()
 
-    def closeTopLevelView(self) -> bool:
-        """
-        Return True if something was closed, define the priority of closure.
-        """
-        if self.searchDialog.isShown():
-            self.searchDialog.hide()
-            return True
-        elif self.currentDrawer:
-            for (
-                drawer
-            ) in (
-                self.drawers
-            ):  # cycle through them as a stack to catch secondary-drawers
-                if drawer.isVisible() and drawer.canClose():
-
-                    if drawer is self.addAnythingDialog:
-                        if self.view.rightToolBar.addAnythingButton.isChecked():
-                            self.view.rightToolBar.addAnythingButton.setChecked(False)
-                    elif drawer is self.caseProps:
-                        if self.view.rightToolBar.timelineButton.isChecked():
-                            self.view.rightToolBar.timelineButton.setChecked(False)
-                        elif self.view.rightToolBar.settingsButton.isChecked():
-                            self.view.rightToolBar.settingsButton.setChecked(False)
-                        elif self.view.rightToolBar.timelineButton.isChecked():
-                            self.view.rightToolBar.timelineButton.setChecked(False)
-                    # drawer.onDone()
-                    return True
-        elif self.graphicalTimelineView.isExpanded():
-            self.graphicalTimelineView.setExpanded(False)
-            return True
-
     def adjustDrawerShim(self, drawer, progress):
         if not self.ignoreDrawerAnim:
             if drawer.showing:
@@ -646,11 +615,11 @@ class DocumentView(QWidget):
             and (self.currentDrawer is None or self.currentDrawer is self.caseProps)
         )
 
-    ## Actions
+    ## Actions (TODO: Move to controller)
 
     def showDiagram(self):
         count = 0
-        while self.closeTopLevelView() and count < 4:
+        while self.controller.closeTopLevelView() and count < 4:
             count += 1
         if self.scene:
             self.scene.update()

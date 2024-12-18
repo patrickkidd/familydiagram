@@ -26,11 +26,11 @@ ListView {
             PK.CheckBox {
                 id: activeBox
                 textColor: util.textColor(selected, current, alternate)
-                checkState: active
+                checkState: active !== undefined ? active : Qt.Unchecked
                 onCheckStateChanged: active = checkState
             }
             PK.Text {
-                text: name
+                text: name !== undefined ? name : ''
                 color: util.textColor(selected, current, alternate)
                 anchors.verticalCenter: parent.verticalCenter
                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
