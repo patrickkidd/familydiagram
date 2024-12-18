@@ -2,7 +2,6 @@ import logging
 
 from pkdiagram.pyqt import (
     pyqtSignal,
-    pyqtSignal,
     Q_RETURN_ARG,
     Q_ARG,
     Qt,
@@ -72,8 +71,6 @@ class AddAnythingDialog(QmlDrawer):
             objectName="addEverythingDialog",
             **contextProperties,
         )
-        self._returnTo = None
-        self._canceled = False
 
         # self.startTimer(1000)
 
@@ -91,7 +88,6 @@ class AddAnythingDialog(QmlDrawer):
     def onInitQml(self):
         super().onInitQml()
         self.qml.rootObject().setProperty("widget", self)
-        self.qml.rootObject().add.connect(self.onAdd)
         self.qml.rootObject().cancel.connect(self.onCancel)
         self._eventModel = self.rootProp("eventModel")
 
@@ -135,8 +131,8 @@ class AddAnythingDialog(QmlDrawer):
         # just for tags
         self._eventModel.items = [Event(addDummy=True)]
 
-    def onAdd(self):
-        _log.debug(f"AddAnythingDialog.onAdd: {self.rootProp('kind')}")
+    def onDone(self):
+        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
 
         if self.rootProp("kind") is None:
             kind = None
@@ -689,7 +685,7 @@ class AddAnythingDialog(QmlDrawer):
         self.clear()
 
     def canClose(self):
-        if self.property("dirty") and not self._canceled:
+        if self.property("dirty"):
             discard = QMessageBox.question(
                 self,
                 "Discard changes?",
@@ -697,18 +693,13 @@ class AddAnythingDialog(QmlDrawer):
             )
             if discard == QMessageBox.No:
                 return False
-            self._canceled = True
         return True
 
     def onCancel(self):
-        """Cancel button; supports returnTo"""
-        if not self.canClose():
-            return
-        super().hide()
-        # self.hide(callback=self.clear)
-
-    def onDone(self):
-        self.onCancel()
+        """
+        Same as onDone but no add logic.
+        """
+        self.hideRequested.emit()
 
     ## Testing
 

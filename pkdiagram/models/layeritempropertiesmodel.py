@@ -1,7 +1,11 @@
+import logging
+
 from pkdiagram.pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegisterType
 from pkdiagram import util, scene, commands
 from ..scene import Scene
 from .modelhelper import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class LayerItemLayersModel(QAbstractListModel, ModelHelper):
@@ -133,6 +137,10 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                 ret = Qt.Checked
             elif x is None:
                 ret = Qt.PartiallyChecked
+        if ret is None:
+            _log.warning(
+                f"LayerItemLayersModel.data() is None: index: {index}, role: {role}"
+            )
         return ret
 
     def setData(self, index, value, role):

@@ -225,7 +225,7 @@ class AppController(QObject):
 
     def onEscapeKey(self, e):
         if self.mw:
-            self.mw.documentView.closeTopLevelView()
+            self.mw.documentView.controller.closeTopLevelView()
             e.accept()
 
     def onSessionChanged(self, oldFeatures, newFeatures):

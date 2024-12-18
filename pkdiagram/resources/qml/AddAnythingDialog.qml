@@ -12,7 +12,6 @@ PK.Drawer {
     id: root
     objectName: 'AddAnythingDialog'
 
-    signal add
     signal cancel
 
     property int margin: util.QML_MARGINS
@@ -273,7 +272,7 @@ PK.Drawer {
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
-                add()
+                done()
             }
         }
     }

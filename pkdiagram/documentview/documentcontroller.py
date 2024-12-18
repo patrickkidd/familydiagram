@@ -25,6 +25,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util, commands
 from pkdiagram.scene import Property, Person, Emotion, Event, LayerItem, Layer, ChildOf
 from pkdiagram.models import selectedEvents
+from pkdiagram.widgets import Drawer
 from pkdiagram.documentview import RightDrawerView
 
 if not util.IS_IOS:
@@ -179,6 +180,12 @@ class DocumentController(QObject):
         self.dv.caseProps.qml.rootObject().eventPropertiesTemplateIndexChanged[
             int
         ].connect(self.onEventPropertiesTemplateIndexChanged)
+        self.dv.caseProps.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.personProps.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.emotionProps.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.layerItemProps.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.addAnythingDialog.hideRequested.connect(self.onHideCurrentDrawer)
 
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
@@ -864,6 +871,49 @@ class DocumentController(QObject):
     def onInspectItemById(self, itemId):
         item = self.scene.find(itemId)
         self.dv.inspectSelection(selection=[item])
+
+    def closeTopLevelView(self) -> bool:
+        """
+        Return True if something was closed, define the priority of closure.
+        """
+        if self.dv.searchDialog.isShown():
+            self.dv.searchDialog.hide()
+            return True
+        elif self.dv.currentDrawer and self.dv.currentDrawer.isShown():
+            return self.onHideCurrentDrawer()
+        elif self.dv.graphicalTimelineView.isExpanded():
+            self.dv.graphicalTimelineView.setExpanded(False)
+            return True
+
+    def onHideCurrentDrawer(self):
+        if self.dv.currentDrawer:
+            self.tryToHideDrawer(self.dv.currentDrawer)
+
+    def tryToHideDrawer(self, drawer: Drawer) -> bool:
+        """
+        The canonical way to close a drawer on the right toolbar. Ensures
+        consistency with action and button states.
+        """
+        if drawer.canClose():
+            if drawer is self.dv.addAnythingDialog:
+                if self.ui.actionAdd_Anything.isChecked():
+                    self.ui.actionAdd_Anything.setChecked(False)
+                    return True
+            elif drawer is self.dv.caseProps:
+                if self.view.ui.actionShow_Timeline.isChecked():
+                    self.view.ui.actionShow_Timeline.setChecked(False)
+                    return True
+                elif self.view.rightToolBar.settingsButton.isChecked():
+                    self.view.rightToolBar.settingsButton.setChecked(False)
+                    return True
+            else:
+                # No button to update
+                drawer.hide()
+                return True
+        return False
+
+    def onPropertySheetHideRequested(self):
+        self.tryToHideDrawer(self.dv.currentDrawer)
 
     def showNotesFor(self, pathItem):
         self._ignoreSelectionChanges = True

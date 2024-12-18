@@ -1,7 +1,26 @@
-from pkdiagram.pyqt import *
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    pyqtSlot,
+    Qt,
+    QFrame,
+    QVBoxLayout,
+    QVariantAnimation,
+    QObject,
+    QEvent,
+    QCursor,
+    QMargins,
+    QWidget,
+    QColor,
+    QRect,
+    QPen,
+    QApplication,
+    QPainter,
+    QPalette,
+    QStyleOption,
+    QStyle,
+    QAbstractAnimation,
+)
 from pkdiagram import util, commands
-from pkdiagram.util import CUtil
-from . import Stylesheeter
 
 
 class Drawer(QFrame):
@@ -10,6 +29,10 @@ class Drawer(QFrame):
     OVER_WIDTH = util.DRAWER_OVER_WIDTH
 
     manuallyResized = pyqtSignal()
+
+    # Signals the container that the drawer itself requested to hide, e.g. done
+    # or cancel. Then the container can handle any response.
+    hideRequested = pyqtSignal()
 
     def documentView(self):
         """Allows binding onDrawerAnimationStart for multiple Drawers (maybe for iOS?)."""
@@ -366,6 +389,8 @@ class Drawer(QFrame):
             # only shrinks after full window width
             travelX = self.parent().width() - self.WIDTH
             travelW = (self._expandAnimStartGeo.width() - self.WIDTH) * -1
+        else:
+            return
         x = self._expandAnimStartGeo.x() + travelX * coeff
         width = self._expandAnimStartGeo.width() + travelW * coeff
         self.setGeometry(int(x), self.y(), int(width), self.height())
