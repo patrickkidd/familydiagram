@@ -5,7 +5,7 @@
 
 import QtQuick 2.12
 import QtQuick.Window 2.2
-import QtQuick.Controls 2.12
+import QtQuick.Controls 2.15
 import "." 1.0 as PK
 
 

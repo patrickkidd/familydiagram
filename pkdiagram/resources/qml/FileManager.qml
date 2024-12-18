@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.14
 import QtQuick.Controls.Universal 2.12
-import QtQuick.Layouts 1.12
+import QtQuick.Layouts 1.15
 import './PK' 1.0 as PK
 import PK.Models 1.0
 import 'js/Global.js' as Global
