@@ -87,3 +87,7 @@ def main():
         mainWindow.deinit()
         controller.deinit()
         app.deinit()
+
+
+if __name__ == "__main__":
+    main()
