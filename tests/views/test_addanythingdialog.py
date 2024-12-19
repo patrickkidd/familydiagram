@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+import mock
 
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Marriage, Event, EventKind
@@ -425,9 +426,17 @@ for this event.
     dlg.add_tag(TAG_1)
     dlg.add_tag(TAG_2)
     dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.submit()
+    with mock.patch(
+        "pkdiagram.scene.ItemAnimationHelper.flash", autospec=True
+    ) as flash:
+        dlg.submit()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
+    emotion = personA.emotions()[0]
+    assert flash.call_count == 3
+    assert flash.call_args_list[0][0][0] == personA
+    assert flash.call_args_list[1][0][0] == personB
+    assert flash.call_args_list[2][0][0] == emotion
     assert len(scene.people()) == 2
     assert len(personA.emotions()) == 1
     assert len(personB.emotions()) == 1
