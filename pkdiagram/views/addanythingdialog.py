@@ -488,7 +488,7 @@ class AddAnythingDialog(QmlDrawer):
                     marriage = Marriage.marriageForSelection([parentA, parentB])
                     if not marriage:
                         marriage = commands.addMarriage(self.scene, parentA, parentB)
-                        newMarriage.append(marriage)
+                        newMarriages.append(marriage)
                     commands.setParents(person, marriage)
             elif kind == EventKind.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
