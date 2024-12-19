@@ -343,6 +343,8 @@ class AddAnythingDialog(QmlDrawer):
         movers = None
         receivers = None
         newPeople = None
+        newMarriages = []
+        newEmotions = []
 
         def _entries2People(entries):
             existingPeople = []
@@ -486,6 +488,7 @@ class AddAnythingDialog(QmlDrawer):
                     marriage = Marriage.marriageForSelection([parentA, parentB])
                     if not marriage:
                         marriage = commands.addMarriage(self.scene, parentA, parentB)
+                        newMarriage.append(marriage)
                     commands.setParents(person, marriage)
             elif kind == EventKind.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
@@ -500,6 +503,7 @@ class AddAnythingDialog(QmlDrawer):
                         **kwargs,
                     ),
                 )
+                newEmotions.append(emotion)
                 newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():
                     newEvents.append(emotion.endEvent)
@@ -526,6 +530,7 @@ class AddAnythingDialog(QmlDrawer):
                 # marriages/weddings between the same person just get separate
                 # `married`` events.
                 marriage = commands.addMarriage(self.scene, personA, personB)
+                newMarriages.append(marriage)
 
             kwargs = {"endDateTime": endDateTime} if isDateRange else {}
             if kind == EventKind.CustomPairBond:
@@ -566,6 +571,7 @@ class AddAnythingDialog(QmlDrawer):
                     )
                     emotion.startEvent.setTags(tags)
                     commands.addEmotion(self.scene, emotion)
+                    newEmotions.append(emotion)
                 newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():
                     newEvents.append(emotion.endEvent)
@@ -681,6 +687,8 @@ class AddAnythingDialog(QmlDrawer):
                 timelineModel.lastEventDateTime(), undo=propertyUndoId
             )
         commands.stack().endMacro()
+        for pathItem in newPeople + newMarriages + newEmotions:
+            pathItem.flash()
         self.submitted.emit()  # for testing
         self.clear()
 
