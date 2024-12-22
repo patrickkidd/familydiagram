@@ -10,8 +10,9 @@ from pkdiagram.pyqt import (
     QVariant,
     QMessageBox,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Emotion, Event, Marriage
+from pkdiagram.scene.commands import SetParents
 from pkdiagram.views import QmlDrawer
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
@@ -129,7 +130,7 @@ class AddAnythingDialog(QmlDrawer):
             ids = [x.id for x in selection if x.isPerson]
             self.initWithMultiplePeople(ids)
         # just for tags
-        self._eventModel.items = [Event(addDummy=True)]
+        self._eventModel.items = [Event()]
 
     def onDone(self):
         _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
@@ -405,7 +406,7 @@ class AddAnythingDialog(QmlDrawer):
             f"Add {kind.value} event, with {len(newPeople)} new people."
         )
         if newPeople:
-            commands.addPeople(self.scene, newPeople)
+            self.scene.addItems(*newPeople)
 
         # Ensure variables in scene
 
@@ -470,39 +471,38 @@ class AddAnythingDialog(QmlDrawer):
                         parentBKind = util.PERSON_KIND_FEMALE
 
                     if not parentA:
-                        parentA = commands.addPerson(
-                            self.scene,
-                            parentAKind,
-                            QPointF(),
-                            self.scene.newPersonSize(),
+                        parentA = Person(
+                            gender=parentAKind,
+                            itemPos=QPointF(),
+                            size=self.scene.newPersonSize(),
                         )
+                        self.scene.addItem(parentA, undo=True)
                         newPeople.append(parentA)
                     if not parentB:
-                        parentB = commands.addPerson(
-                            self.scene,
+                        parentB = Person(
                             personBKind,
                             QPointF(),
                             self.scene.newPersonSize(),
                         )
+                        self.scene.addItem(parentB, undo=True)
                         newPeople.append(parentB)
                     marriage = Marriage.marriageForSelection([parentA, parentB])
                     if not marriage:
-                        marriage = commands.addMarriage(self.scene, parentA, parentB)
+                        marriage = Marriage(parentA, parentB)
+                        self.scene.addItem(marriage, undo=True)
                         newMarriages.append(marriage)
-                    commands.setParents(person, marriage)
+                    person.setParents(marriage, undo=True)
             elif kind == EventKind.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
                 if notes:
                     kwargs["notes"] = notes
-                emotion = commands.addEmotion(
-                    self.scene,
-                    Emotion(
-                        kind=util.ITEM_CUTOFF,
-                        personA=person,
-                        startDateTime=startDateTime,
-                        **kwargs,
-                    ),
+                emotion = Emotion(
+                    kind=util.ITEM_CUTOFF,
+                    personA=person,
+                    startDateTime=startDateTime,
+                    **kwargs,
                 )
+                self.scene.addItem(emotion, undo=True)
                 newEmotions.append(emotion)
                 newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():
@@ -511,16 +511,15 @@ class AddAnythingDialog(QmlDrawer):
         elif kind == EventKind.CustomIndividual:
             kwargs = {"location": location} if location else {}
             for person in people:
-                event = commands.addEvent(
-                    person,
-                    Event(
-                        description=description,
-                        dateTime=startDateTime,
-                        notes=notes,
-                        tags=tags,
-                        **kwargs,
-                    ),
+                event = Event(
+                    parent,
+                    description=description,
+                    dateTime=startDateTime,
+                    notes=notes,
+                    tags=tags,
+                    **kwargs,
                 )
+                self.scene.addItem(event, undo=True)
                 newEvents.append(event)
 
         elif EventKind.isPairBond(kind):
@@ -529,7 +528,8 @@ class AddAnythingDialog(QmlDrawer):
                 # Generally there is only one marriage item per person. Multiple
                 # marriages/weddings between the same person just get separate
                 # `married`` events.
-                marriage = commands.addMarriage(self.scene, personA, personB)
+                marriage = Marriage(personA, personB)
+                self.scene.addItem(marriage, undo=True)
                 newMarriages.append(marriage)
 
             kwargs = {"endDateTime": endDateTime} if isDateRange else {}
@@ -545,10 +545,8 @@ class AddAnythingDialog(QmlDrawer):
             _log.debug(
                 f"Adding {kind} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
             )
-            event = commands.addEvent(
-                marriage,
-                Event(dateTime=startDateTime, tags=tags, **kwargs),
-            )
+            event = (Event(marriage, dateTime=startDateTime, tags=tags, **kwargs),)
+            self.scene.addItem(event, undo=True)
             newEvents.append(event)
 
         elif EventKind.isDyadic(kind):
@@ -570,7 +568,7 @@ class AddAnythingDialog(QmlDrawer):
                         **kwargs,
                     )
                     emotion.startEvent.setTags(tags)
-                    commands.addEmotion(self.scene, emotion)
+                    self.scene.addItem(emotion, undo=True)
                     newEmotions.append(emotion)
                 newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():

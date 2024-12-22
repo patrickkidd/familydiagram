@@ -61,7 +61,7 @@ def dlg(qtbot, scene, qmlEngine):
     qtbot.waitActive(dlg)
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
-    dlg._eventModel.items = [Event(addDummy=True)]
+    dlg._eventModel.items = [Event()]
     dlg.mouseClick("clearFormButton")
     # dlg.adjustFlickableHack()
 

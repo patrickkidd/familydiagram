@@ -126,29 +126,29 @@ class PersonPropertiesModel(QObject, ModelHelper):
             gender = util.personKindFromIndex(value)
             self.set("gender", gender)
         elif attr == "deceasedLocation":
-            id = commands.nextId()
-            for item in self._items:
-                item.deathEvent.setLocation(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.deathEvent.setLocation(value, undo=True)
         elif attr == "birthDateUnsure":
-            id = commands.nextId()
-            for item in self._items:
-                item.birthEvent.setUnsure(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.birthEvent.setUnsure(value, undo=True)
         elif attr == "adoptedDateUnsure":
-            id = commands.nextId()
-            for item in self._items:
-                item.adoptedEvent.setUnsure(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.adoptedEvent.setUnsure(value, undo=True)
         elif attr == "deceasedDateUnsure":
-            id = commands.nextId()
-            for item in self._items:
-                item.deathEvent.setUnsure(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.deathEvent.setUnsure(value, undo=True)
         elif attr == "deemphasize":
-            id = commands.nextId()
-            if value:
-                for item in self._items:
-                    item.setItemOpacity(util.DEEMPHASIZED_OPACITY, undo=id)
-            else:
-                for item in self._items:
-                    item.prop("itemOpacity").reset(undo=id)
+            with self._scene.macro():
+                if value:
+                    for item in self._items:
+                        item.setItemOpacity(util.DEEMPHASIZED_OPACITY, undo=True)
+                else:
+                    for item in self._items:
+                        item.prop("itemOpacity").reset(undo=True)
         elif attr == "age":
             if self.deceased:
                 x = self.deceasedDate.dateTime().addYears(-value)
@@ -165,21 +165,27 @@ class PersonPropertiesModel(QObject, ModelHelper):
             "deceasedLocation",
         ):
             x = self.setterConvertTo(attr, value)
-            id = commands.nextId()
-            if attr == "birthDateTime":
-                [item.birthEvent.setDateTime(x, undo=True) for item in self._items]
-                self.refreshProperty("age")
-            elif attr == "adoptedDateTime":
-                [item.adoptedEvent.setDateTime(x, undo=id) for item in self._items]
-            elif attr == "deceasedDateTime":
-                [item.deathEvent.setDateTime(x, undo=id) for item in self._items]
-                self.refreshProperty("age")
-            elif attr == "birthLocation":
-                [item.birthEvent.setLocation(x, undo=id) for item in self._items]
-            elif attr == "adoptedLocation":
-                [item.adoptedEvent.setLocation(x, undo=id) for item in self._items]
-            elif attr == "deceasedLocation":
-                [item.deathEvent.setLocation(x, undo=id) for item in self._items]
+            with self._scene.macro():
+                if attr == "birthDateTime":
+                    [item.birthEvent.setDateTime(x, undo=True) for item in self._items]
+                    self.refreshProperty("age")
+                elif attr == "adoptedDateTime":
+                    [
+                        item.adoptedEvent.setDateTime(x, undo=True)
+                        for item in self._items
+                    ]
+                elif attr == "deceasedDateTime":
+                    [item.deathEvent.setDateTime(x, undo=True) for item in self._items]
+                    self.refreshProperty("age")
+                elif attr == "birthLocation":
+                    [item.birthEvent.setLocation(x, undo=True) for item in self._items]
+                elif attr == "adoptedLocation":
+                    [
+                        item.adoptedEvent.setLocation(x, undo=True)
+                        for item in self._items
+                    ]
+                elif attr == "deceasedLocation":
+                    [item.deathEvent.setLocation(x, undo=True) for item in self._items]
         return super().set(attr, value)
 
     def get(self, attr):
@@ -269,23 +275,41 @@ class PersonPropertiesModel(QObject, ModelHelper):
         elif attr == "deemphasize":
             super().reset("itemOpacity")
         elif attr == "birthDateTime":
-            id = commands.nextId()
-            [item.birthEvent.prop("dateTime").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.birthEvent.prop("dateTime").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "adoptedDateTime":
-            id = commands.nextId()
-            [item.adoptedEvent.prop("dateTime").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.adoptedEvent.prop("dateTime").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "deceasedDateTime":
-            id = commands.nextId()
-            [item.deathEvent.prop("dateTime").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.deathEvent.prop("dateTime").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "birthLocation":
-            id = commands.nextId()
-            [item.birthEvent.prop("location").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.birthEvent.prop("location").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "adoptedLocation":
-            id = commands.nextId()
-            [item.adoptedEvent.prop("location").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.adoptedEvent.prop("location").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "deceasedLocation":
-            id = commands.nextId()
-            [item.deathEvent.prop("location").reset(undo=id) for item in self._items]
+            with self._scene.macro():
+                [
+                    item.deathEvent.prop("location").reset(undo=True)
+                    for item in self._items
+                ]
         elif attr == "itemPos":
             self.scene.setResettingSomeLayerProps(True)
             super().reset(attr)

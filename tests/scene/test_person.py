@@ -310,12 +310,11 @@ def test_new_event_adds_variable_values():
     scene.addItems(person)
 
     # Simulate AddEventDialog setup.
-    event = Event(addDummy=True, dateTime=util.Date(2021, 5, 11))
+    event = Event(dateTime=util.Date(2021, 5, 11))
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
     prop.set("123")
-    event.addDummy = False
     event.setParent(person)
 
     assert person.variablesDatabase.get("var1", event.dateTime().addYears(-1)) == (

@@ -390,11 +390,7 @@ class DocumentController(QObject):
             tmpl=self.NEW_VAR_TMPL,
             key=lambda x: x["name"],
         )
-        commands.createEventProperty(self.scene, name)
-
-    def removeEventProperty(self, index):
-        entry = self.scene.eventProperties()[index]
-        commands.removeEventProperty(self.scene, entry["name"])
+        self.scene.addEventProperty(name)
 
     def onEventPropertiesTemplateIndexChanged(self, index: int):
         """
@@ -434,7 +430,7 @@ class DocumentController(QObject):
             ]
         elif index == 2:  # Stinson Model
             newProps = ["Toward/Away", "Δ Arousal", "Δ Symptom", "Mechanism"]
-        commands.replaceEventProperties(self.scene, newProps)
+        self.scene.replaceEventProperties(newProps, undo=True)
         # for name in [e['name'] for e in self.scene.eventProperties()]:
         #     commands.removeEventProperty(self.scene, name)
         # for name in newProps:
@@ -743,9 +739,9 @@ class DocumentController(QObject):
                 action.blockSignals(True)
                 action.setChecked(False)
                 action.blockSignals(False)
-        id = commands.nextId()
-        for layer in self.scene.activeLayers():
-            layer.setActive(False, undo=id)
+        with self.scene.macro():
+            for layer in self.scene.activeLayers():
+                layer.setActive(False, undo=True)
 
     def onSceneItemMode(self):
         if self.scene.itemMode() is util.ITEM_NONE:

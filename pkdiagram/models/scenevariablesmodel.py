@@ -25,7 +25,7 @@ class SceneVariablesModel(QStringListModel, ModelHelper):
         """Called when variable renamed."""
         oldName = self._scene.eventProperties()[start.row()]["name"]
         newName = self.data(start, Qt.DisplayRole)
-        commands.renameEventProperty(self._scene, oldName, newName)
+        self._scene.replaceEventProperty(oldName, newName, undo=True)
 
     @util.blocked
     def onSceneProperty(self, prop):

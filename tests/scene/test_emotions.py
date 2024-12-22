@@ -454,7 +454,7 @@ def test_add_emotion_sets_scene_currentDate():
     conflict = Emotion(
         personA, personB, kind=util.ITEM_CONFLICT, startDateTime=START_DATETIME
     )
-    commands.addEmotion(scene, conflict)
+    scene.addItem(conflict)
     assert scene.currentDateTime() == START_DATETIME
 
 

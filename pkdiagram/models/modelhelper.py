@@ -1,7 +1,7 @@
-from pkdiagram import util, scene, commands
-from .qobjecthelper import QObjectHelper
-from ..scene import Scene
 from pkdiagram.pyqt import pyqtSlot
+from pkdiagram import util
+from .qobjecthelper import QObjectHelper
+from pkdiagram.scene import Scene, Property
 
 
 class ModelHelper(QObjectHelper):
@@ -154,14 +154,10 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "scene":
             if self._scene:
-                self._scene.propertyChanged[scene.Property].disconnect(
-                    self.onSceneProperty
-                )
+                self._scene.propertyChanged[Property].disconnect(self.onSceneProperty)
             self._scene = value
             if self._scene:
-                self._scene.propertyChanged[scene.Property].connect(
-                    self.onSceneProperty
-                )
+                self._scene.propertyChanged[Property].connect(self.onSceneProperty)
             self.refreshProperty("scene")
             return
         elif attr == "blockNotify":
@@ -193,24 +189,22 @@ class ModelHelper(QObjectHelper):
         #
         x = self.setterConvertTo(attr, value)
         # set on property
-        if self._blockUndo:
-            id = False
-        else:
-            id = commands.nextId()
         notify = not self._blockNotify
+        undo = not self._blockUndo
         foundItemProp = False
-        for item in self._items:
-            # if the item has not been set yet then leave it alone
-            prop = item.prop(attr)
-            if prop is not None:
-                foundItemProp = True
-                y = prop.get()
-                if y != x:
-                    prop.set(x, notify=notify, undo=id)
-                    # if x == prop.default:
-                    #     prop.reset(notify=notify, undo=id)
-                    # else:
-                    #     prop.set(x, notify=notify, undo=id)
+        with self._scene.macro():
+            for item in self._items:
+                # if the item has not been set yet then leave it alone
+                prop = item.prop(attr)
+                if prop is not None:
+                    foundItemProp = True
+                    y = prop.get()
+                    if y != x:
+                        prop.set(x, notify=notify, undo=undo)
+                        # if x == prop.default:
+                        #     prop.reset(notify=notify, undo=undo)
+                        # else:
+                        #     prop.set(x, notify=notify, undo=undo)
         if not foundItemProp:
             super().set(attr, value)
 
@@ -223,12 +217,10 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "dirty":
             self.set("dirty", False)
-        if self.blockUndo:
-            id = False
-        else:
-            id = commands.nextId()
-        notify = not self.blockNotify
-        for item in self._items:
-            prop = item.prop(attr)
-            if prop:
-                item.prop(attr).reset(notify=notify, undo=id)
+        notify = not self._blockNotify
+        undo = not self._blockUndo
+        with self._scene.macro():
+            for item in self._items:
+                prop = item.prop(attr)
+                if prop:
+                    item.prop(attr).reset(notify=notify, undo=undo)

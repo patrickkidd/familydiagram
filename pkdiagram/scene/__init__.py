@@ -18,3 +18,5 @@ from .person import Person
 from .pencilstroke import PencilStroke
 from .callout import Callout
 from .scene import Scene
+
+from . import commands

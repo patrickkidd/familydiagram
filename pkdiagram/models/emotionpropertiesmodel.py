@@ -87,55 +87,55 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             self.set("intensity", intensity)
         elif attr == "startDateTime":
             x = self.setterConvertTo(attr, value)
-            id = commands.nextId()
-            for item in self._items:
-                item.startEvent.setDateTime(x, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.startEvent.setDateTime(x, undo=True)
         elif attr == "startDateUnsure":
-            id = commands.nextId()
-            for item in self._items:
-                item.startEvent.setUnsure(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.startEvent.setUnsure(value, undo=True)
         elif attr == "endDateTime":
             x = self.setterConvertTo(attr, value)
-            id = commands.nextId()
-            for item in self._items:
-                item.endEvent.setDateTime(x, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.endEvent.setDateTime(x, undo=True)
         elif attr == "endDateUnsure":
-            id = commands.nextId()
-            for item in self._items:
-                item.endEvent.setUnsure(value, undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.endEvent.setUnsure(value, undo=True)
         elif attr == "personAId" and self._scene:
             person = self._scene.find(id=value)
             if self._addMode:
                 for item in self._items:
                     item.setPersonA(person)
             else:
-                id = commands.nextId()
-                for item in self._items:
-                    if person != item.personA():
-                        commands.setEmotionPerson(item, personA=person, id=id)
+                with self._scene.macro():
+                    for item in self._items:
+                        if person != item.personA():
+                            item.setPersonA(person, undo=True)
         elif attr == "personBId" and self._scene:
             person = self._scene.find(id=value)
             if self._addMode:
                 for item in self._items:
                     item.setPersonB(person)
             else:
-                id = commands.nextId()
-                for item in self._items:
-                    if person != item.personB():
-                        commands.setEmotionPerson(item, personB=person, id=id)
+                with self._scene.macro():
+                    for item in self._items:
+                        if person != item.personB():
+                            item.setPersonB(person, undo=True)
         return super().set(attr, value)
 
     def reset(self, attr):
         if attr == "intensityIndex":
             super().reset("intensity")
         elif attr == "startDateTime":
-            id = commands.nextId()
-            for item in self._items:
-                item.startEvent.prop("dateTime").reset(undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.startEvent.prop("dateTime").reset(undo=True)
         elif attr == "endDateTime":
-            id = commands.nextId()
-            for item in self._items:
-                item.endEvent.prop("dateTime").reset(undo=id)
+            with self._scene.macro():
+                for item in self._items:
+                    item.endEvent.prop("dateTime").reset(undo=True)
         super().reset(attr)
 
     @pyqtProperty(list, constant=True)

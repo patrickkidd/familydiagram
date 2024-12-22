@@ -33,8 +33,10 @@ from pkdiagram.pyqt import (
     QApplication,
     QMessageBox,
     QFileInfo,
+    QUndoStack,
 )
 from pkdiagram import version, util, commands, version, compat, slugify
+from pkdiagram.commands import AddItem, RemoveItem, SetParents, MoveItem
 from pkdiagram.scene import (
     EmotionalUnit,
     Property,
@@ -104,6 +106,45 @@ class DragCreateItem(PathItem):
             if value:
                 self._timerId = self.startTimer(util.ANIM_TIMER_MS)
         return super().itemChange(change, value)
+
+
+class UndoStack(QUndoStack):
+    """This should go away."""
+
+    def push(self, cmd: "UndoCommand"):  # type: ignore
+        """Track analytics for non-compressed commands."""
+        s = None
+        if isinstance(cmd.ANALYTICS, str):
+            s = "Commands: " + cmd.ANALYTICS
+        elif cmd.ANALYTICS is True and cmd.id() == -1:
+            s = "Commands: " + cmd.text()
+        if cmd.ANALYTICS:
+            if s and cmd.logKwargs():
+                self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
+            elif s and not cmd.logKwargs():
+                log.warning(f"No logKwargs for command: {cmd}")
+                self.track(s)
+            logKwargs_s = pprint.pformat(cmd.logKwargs())
+            log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
+
+        super().push(cmd)
+
+    def track(self, eventName, properties={}):
+
+        if not util.prefs() or util.IS_IOS:
+            return
+        log.debug(f"{eventName}, {properties}")
+
+        enableAppUsageAnalytics = util.prefs().value(
+            "enableAppUsageAnalytics", defaultValue=True, type=bool
+        )
+        if enableAppUsageAnalytics:
+            if _activeSession:
+                _activeSession.track(eventName, properties=properties)
+            # else:
+            #     log.warning(
+            #         f"Cannot track analytics event {eventName}: no active session."
+            #     )
 
 
 class Scene(QGraphicsScene, Item):
@@ -219,6 +260,7 @@ class Scene(QGraphicsScene, Item):
         self._areActiveLayersChanging = False
         self._isResettingSomeLayerProps = False
         self._isAddingLayerItem = False
+        self._undoStack = QUndoStack(self)
         self.dragStartItem = None
         self.dragCreateItem = None
         self.mouseElapsedTimer = QElapsedTimer()
@@ -311,7 +353,22 @@ class Scene(QGraphicsScene, Item):
     def setScaleFactor(self, *args, **kwargs):
         self.prop("scaleFactor").set(*args, **kwargs)
 
-    def addItem(self, item, register=True):
+    def addItem(self, item, undo=False) -> Item:
+        if undo:
+            cmd = AddItem(self, item)
+            self.push(cmd)
+        else:
+            self._addItem(item)
+        return item
+
+    def removeItem(self, item, undo=False):
+        if undo:
+            cmd = RemoveItem(item)
+            self.push(cmd)
+        else:
+            self._removeItem(item)
+
+    def _addItem(self, item, register=True):
         if (
             isinstance(item, QGraphicsItem) or isinstance(item, QGraphicsObject)
         ) and not item.scene() is self:
@@ -352,6 +409,7 @@ class Scene(QGraphicsScene, Item):
             item.emotionalUnit().setLayer(layer)
             if not self.isBatchAddingRemovingItems():
                 item.emotionalUnit().update()
+            item.updateGeometry()
             self.marriageAdded[Marriage].emit(item)
             item.eventAdded[Event].connect(self.eventAdded)
             item.eventRemoved[Event].connect(self.eventRemoved)
@@ -368,7 +426,11 @@ class Scene(QGraphicsScene, Item):
                 self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
+            item.personA()._onAddEmotion(self.emotion)
+            if item.personB():
+                item.personB()._onAddEmotion(self.emotion)
             if not self.isBatchAddingRemovingItems():
+                self.setCurrentDateTime(self.emotion.startDateTime())
                 self.emotionAdded.emit(item)
         elif item.isLayer:
             self._layers.append(item)
@@ -394,6 +456,7 @@ class Scene(QGraphicsScene, Item):
                         )
                     item.setLayers(layerIds)
                 self.layerItemAdded.emit(item)
+            item.setItemPos(QPointF(0, 0))
             self._isAddingLayerItem = False
         elif item.isItemDetails:
             self._itemDetails.append(item)
@@ -410,16 +473,13 @@ class Scene(QGraphicsScene, Item):
     def addItems(self, *args, batch=True):
         if batch:
             self.setBatchAddingRemovingItems(True)
-        for item in args:
-            self.addItem(item)
-        if batch:
-            self.setBatchAddingRemovingItems(False)
-
-    def removeItems(self, *args, batch=True):
-        if batch:
-            self.setBatchAddingRemovingItems(True)
-        for item in args:
-            self.removeItem(item)
+        if undo:
+            with self.macro():
+                for item in args:
+                    self.addItem(item, undo=True)
+        else:
+            for item in args:
+                self._addItem(item)
         if batch:
             self.setBatchAddingRemovingItems(False)
 
@@ -470,7 +530,7 @@ class Scene(QGraphicsScene, Item):
                 self._batchAddedItems = []
                 self._batchRemovedItems = []
 
-    def removeItem(self, item):
+    def _removeItem(self, item):
         if isinstance(item, QGraphicsItem) and item.scene() is self:
             super().removeItem(item)
         if not isinstance(item, Item):
@@ -491,6 +551,8 @@ class Scene(QGraphicsScene, Item):
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
         elif item.isMarriage:
+            for person in item.people:
+                person._onRemoveMarriage(item)
             emotionalUnit = item.emotionalUnit()
             item.personA().setLayers(
                 [x for x in item.personA().layers() if x != emotionalUnit.layer().id]
@@ -518,6 +580,9 @@ class Scene(QGraphicsScene, Item):
             ):
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
+            item.personA()._onRemoveEmotion(self.emotion)
+            if item.personB():
+                item.personB()._onRemoveEmotion(self.emotion)
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
         elif item.isLayer:
@@ -920,7 +985,7 @@ class Scene(QGraphicsScene, Item):
             pencilStroke = self.pencilCanvas.finish()
             self.removeItem(self.pencilCanvas)
             if pencilStroke:
-                commands.addPencilStroke(self, pencilStroke)
+                self.addItem(pencilStroke, undo=True)
             self.pencilParent = None
         return True
 
@@ -999,15 +1064,16 @@ class Scene(QGraphicsScene, Item):
                 self.dragStartItem = item
                 self.dragStartItem.setHover(True)
                 self.dragCreateItem = DragCreateItem()
-                self.addItem(self.dragCreateItem)
+                self.addItem(self.dragCreateItem, undo=True)
                 # self.dragCreateItem.setPen(self.dragStartItem.pen())
             else:
                 self.setItemMode(util.ITEM_NONE)
         elif self.itemMode() == util.ITEM_PENCIL:
             self.pencilEvent(e, e.scenePos(), mousePressure())
         else:
-            if self.draggableUnder(e.scenePos()):  # drag-moving?
-                self.mousePressOnDraggable = commands.nextId()
+            draggable = self.draggableUnder(e.scenePos())
+            if draggable:  # drag-moving?
+                self.mousePressOnDraggable = draggable
                 self._isDraggingSomething = True
             e.ignore()
             super().mousePressEvent(e)
@@ -1079,11 +1145,25 @@ class Scene(QGraphicsScene, Item):
             return
         if self.itemMode() == util.ITEM_MALE:
             e.accept()
-            commands.addPerson(self, "male", e.scenePos(), self.newPersonSize())
+            self.addItem(
+                Person(
+                    gender=util.PERSON_KIND_MALE,
+                    itemPos=e.scenePos(),
+                    size=self.newPersonSize(),
+                ),
+                undo=True,
+            )
             self.setItemMode(util.ITEM_NONE)
         elif self.itemMode() == util.ITEM_FEMALE:
             e.accept()
-            commands.addPerson(self, "female", e.scenePos(), self.newPersonSize())
+            self.addItem(
+                Person(
+                    gender=util.PERSON_KIND_FEMALE,
+                    itemPos=e.scenePos(),
+                    size=self.newPersonSize(),
+                ),
+                undo=True,
+            )
             self.setItemMode(util.ITEM_NONE)
         elif self.itemMode() in [util.ITEM_MARRY, util.ITEM_CHILD] + Emotion.kinds():
             e.accept()
@@ -1091,14 +1171,14 @@ class Scene(QGraphicsScene, Item):
             if self.itemMode() is util.ITEM_MARRY:
                 person = self.personUnder(e.scenePos())
                 if person and person is not self.dragStartItem:
-                    commands.addMarriage(self, self.dragStartItem, person)
+                    self.addItem(Marriage(self.dragStartItem, person), undo=True)
                     success = True
             elif self.itemMode() is util.ITEM_CHILD:
                 parentItem = self.itemUnder(
                     e.scenePos(), types=[Marriage, ChildOf, MultipleBirth]
                 )
                 if parentItem:
-                    commands.setParents(self.dragStartItem, parentItem)
+                    self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
             elif self.itemMode() in Emotion.kinds():
                 person = self.personUnder(e.scenePos())
@@ -1112,7 +1192,7 @@ class Scene(QGraphicsScene, Item):
                     emotion = None
                 if emotion:
                     emotion.isCreating = True
-                    commands.addEmotion(self, emotion)
+                    self.addItem(emotion, undo=True)
                     emotion.isCreating = False
                 success = emotion is not None
             if self.dragCreateItem:
@@ -1128,9 +1208,13 @@ class Scene(QGraphicsScene, Item):
                 self.setItemMode(util.ITEM_NONE)
         elif self.itemMode() == util.ITEM_CALLOUT:
             e.accept()
-            callout = commands.addCallout(
-                self, e.scenePos(), parentPerson=self.calloutParent
-            )
+            callout = Callout()
+            callout.setItemPosNow(e.scenePos())
+            if self.calloutParent:
+                callout.setParentId(
+                    self.parentPerson.id
+                )  # handles position translation
+            self.addItem(callout, undo=True)
             callout.setSelected(True)
             self.setItemMode(util.ITEM_NONE)
             self.calloutParent = None
@@ -1139,6 +1223,7 @@ class Scene(QGraphicsScene, Item):
             self.setItemMode(util.ITEM_NONE)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
+            self.push(SetPos(item, pos))
             self.mousePressOnDraggable = None  # for self.checkItemDragged()
         if self.snapItem.scene() is self:
             self.removeItem(self.snapItem)
@@ -1208,7 +1293,6 @@ class Scene(QGraphicsScene, Item):
         Also implicitly cancel any pinch events in the view.
         """
         if self.mousePressOnDraggable:
-            commands.moveItem(item, pos, id=self.mousePressOnDraggable)
             self.itemDragged.emit(item)
 
     def isDraggingSomething(self):
@@ -1222,17 +1306,17 @@ class Scene(QGraphicsScene, Item):
 
     def nudgeSelection(self, delta):
         self._isNudgingSomething = True
-        id = commands.nextId()
-        selection = self.selectedStuff()
-        for item in selection:
-            if not item.parentItem() in selection:
-                newPos = item.pos() + delta
-                if isinstance(item, Person):
-                    item.nudging = True
-                commands.moveItem(item, newPos, id)
-                item.setPos(newPos)
-                if isinstance(item, Person):
-                    item.nudging = False
+        with self.macro():
+            selection = self.selectedStuff()
+            for item in selection:
+                if not item.parentItem() in selection:
+                    newPos = item.pos() + delta
+                    if isinstance(item, Person):
+                        item.nudging = True
+                    self.push(SetPos(item, newPos))
+                    item.setPos(newPos)
+                    if isinstance(item, Person):
+                        item.nudging = False
         self._isNudgingSomething = False
 
     def setPencilColor(self, name):
@@ -1469,6 +1553,35 @@ class Scene(QGraphicsScene, Item):
                 s = nickNameRE.sub("[%s]" % person.alias(), s)
         return s
 
+    # Undo/Redo
+
+    def push(self, cmd: QUndoCommand):
+        cmd.scene = self
+        self._undoStack.push(cmd)
+
+    def undo(self):
+        self._undoStack.undo()
+
+    def redo(self):
+        self._undoStack.redo()
+
+    @contextlib.contextmanager
+    def macro(self, batchAddRemove=False):
+        self.setBatchAddingRemovingItems(True)
+        self._undoStack.beginMacro()
+        _e = None
+        try:
+            yield
+        except Exception as e:
+            _e
+        finally:
+            self._undoStack.endMacro()
+            self.setBatchAddingRemovingItems(False)
+        if _e:
+            raise _e
+
+    # Event Handlers
+
     def onProperty(self, prop):
         if prop.name() == "scaleFactor":
             self.updateMouseCursorItem()
@@ -1658,19 +1771,19 @@ class Scene(QGraphicsScene, Item):
 
     def setExclusiveActiveLayerIndex(self, iLayer):
         """Put in batch job so zoomFit can run after all items are shown|hidden."""
-        id = commands.nextId()
         activeLayers = []
         changedLayers = []
-        for layer in self.layers():
-            if layer.order() == iLayer:
-                if layer.active() is not True:
-                    changedLayers.append(layer)
-                layer.setActive(True, undo=id, notify=False)
-                activeLayers.append(layer)
-            else:
-                if layer.active() is not False:
-                    changedLayers.append(layer)
-                layer.setActive(False, undo=id, notify=False)
+        with self.macro():
+            for layer in self.layers():
+                if layer.order() == iLayer:
+                    if layer.active() is not True:
+                        changedLayers.append(layer)
+                    layer.setActive(True, undo=True, notify=False)
+                    activeLayers.append(layer)
+                else:
+                    if layer.active() is not False:
+                        changedLayers.append(layer)
+                    layer.setActive(False, undo=True, notify=False)
         for layer in changedLayers:
             self.layerChanged.emit(layer.prop("active"))
         self.updateActiveLayers()
@@ -1685,6 +1798,25 @@ class Scene(QGraphicsScene, Item):
         return list(x.emotionalUnit() for x in self.marriages())
 
     # Tags
+
+    def addTag(self, tag, notify=True):
+        self.setTag(tag, notify, undo=True)
+
+    def removeTag(self, tag, notify=True):
+        with self.macro():
+            items = self.find(tags=tag)
+            self.unsetTag(tag, notify=notify)
+            for item in items:
+                item.unsetTag(tag)
+
+    def renameTag(self, old, new):
+        if old in self.tags():
+            with self.macro():
+                self.removeTag(old, notify=False)
+                self.addTag(new, notify=False)
+                for item in self.find(tags=old):
+                    item.onTagRenamed(old, new)
+                self.onProperty(self.prop("tags"))
 
     def setActiveTags(self, tags: list[str], skipUpdate=False):
         changed = set(tags) != set(self._activeTags)
@@ -1764,7 +1896,7 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            commands.removeItems(self, self.selectedItems())
+            self.push(RemoveItems(self, self.selectedItems()))
 
     def copy(self):
         self.clipboard = commands.Clipboard(self.selectedItems())
@@ -1808,7 +1940,7 @@ class Scene(QGraphicsScene, Item):
         )
         if btn == QMessageBox.No:
             return
-        commands.removeItems(self, events)
+        self.push(RemoveItems(self, events))
 
     def removeEvent(self, event):
         """Accomodate scene as dummy parent for new events."""
@@ -1819,19 +1951,26 @@ class Scene(QGraphicsScene, Item):
         if not selectedPeople:
             return
 
-        undoId = commands.nextId()
-        for person in selectedPeople:
-            rect = person.mapToScene(person.boundingRect()).boundingRect()
-            fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
-            motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
-            father = commands.addPerson(
-                self, util.PERSON_KIND_MALE, fatherPos, person.size(), id=undoId
-            )
-            mother = commands.addPerson(
-                self, util.PERSON_KIND_FEMALE, motherPos, person.size(), id=undoId
-            )
-            marriage = commands.addMarriage(self, father, mother, id=undoId)
-            commands.setParents(person, marriage, id=undoId)
+        with self.macro(batchAddRemove=True):
+            for person in selectedPeople:
+                rect = person.mapToScene(person.boundingRect()).boundingRect()
+                fatherPos = person.pos() - QPointF(
+                    rect.width() * 1.5, rect.height() * 2
+                )
+                motherPos = person.pos() - QPointF(
+                    rect.width() * -1.5, rect.height() * 2
+                )
+                father = Person(
+                    gender=util.PERSON_KIND_MALE, itemPos=fatherPos, size=person.size()
+                )
+                mother = Person(
+                    gender=util.PERSON_KIND_FEMALE,
+                    itemPos=motherPos,
+                    size=person.size(),
+                )
+                marriage = Marriage(father, mother)
+                self.addItems(father, mother, marriage)
+                self.push(SetParents(person, marriage))
 
     def setStopOnAllEvents(self, on):
         self._stopOnAllEvents = on
@@ -1990,23 +2129,9 @@ class Scene(QGraphicsScene, Item):
         self.jumpToNow()
         self.diagramReset.emit()
 
-    def addTag(self, tag, notify=True):
-        self.setTag(tag, notify, undo=None)
-
-    def removeTag(self, tag, notify=True):
-        self.unsetTag(tag, notify=notify, undo=None)
-
-    def renameTag(self, old, new):
-        if old in self.tags():
-            self.removeTag(old, notify=False)
-            self.addTag(new, notify=False)
-            for item in self.find(tags=old):
-                item.onTagRenamed(old, new)
-            self.onProperty(self.prop("tags"))
-
     ## Event properties
 
-    def addEventProperty(self, propName, index=None):
+    def _addEventProperty(self, propName, index=None):
         names = [entry["name"] for entry in self.eventProperties()]
         if not propName in names:
             x = list(self.eventProperties())
@@ -2020,7 +2145,7 @@ class Scene(QGraphicsScene, Item):
             for event in self.events():
                 event.addDynamicProperty(attr)
 
-    def removeEventProperty(self, propName):
+    def _removeEventPropertyByName(self, propName: str):
         newEntries = []
         entry = None
         for e in self.eventProperties():
@@ -2033,7 +2158,21 @@ class Scene(QGraphicsScene, Item):
             for event in self.events():
                 event.removeDynamicProperty(entry["attr"])
 
-    def renameEventProperty(self, oldName, newName):
+    def addEventProperty(self, propName, index=None):
+        self.push(AddEventProperty(propName, index))
+
+    def removeEventPropertyByName(self, propName: str, undo=False):
+        if undo:
+            self.push(RemoveEventProperty(propName))
+        else:
+            self._removeEventPropertyByName(propName)
+
+    @pyqtSlot(int)
+    def removeEventPropertyByIndex(self, index: int):
+        entry = self.eventProperties()[index]
+        self.removeEventPropertyByName(entry["name"])
+
+    def _renameEventProperty(self, oldName, newName):
         entry = None
         for e in self.eventProperties():
             if e["name"] == oldName:
@@ -2046,7 +2185,13 @@ class Scene(QGraphicsScene, Item):
             event.renameDynamicProperty(oldSlug, entry["attr"])
         self.onProperty(self.prop("eventProperties"))  # hack force
 
-    def replaceEventProperties(self, newPropNames):
+    def renameEventProperty(self, oldName: str, newName: str, undo=False):
+        if undo:
+            self.push(ReplaceEventProperty(oldName, newName))
+        else:
+            self._renameEventProperty(oldName, newName)
+
+    def _replaceEventProperties(self, newPropNames: list[str]):
         """So that there is only one notification."""
         oldAttrs = [entry["attr"] for entry in self.eventProperties()]
         for event in self.events():
@@ -2060,6 +2205,12 @@ class Scene(QGraphicsScene, Item):
             for event in self.events():
                 event.addDynamicProperty(attr)
         self.prop("eventProperties").set(newEntries)
+
+    def replaceEventPropertyies(self, newPropNames: list[str], undo=False):
+        if undo:
+            self.push(ReplaceEventProperties(newPropNames))
+        else:
+            self._replaceEventProperties(newPropNames)
 
 
 from pkdiagram.pyqt import qmlRegisterUncreatableType

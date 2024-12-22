@@ -28,11 +28,6 @@ class Event(Item):
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
         if "id" in kwargs:
             self.id = kwargs["id"]
-        if "addDummy" in kwargs:
-            self.addDummy = kwargs["addDummy"]
-            del kwargs["addDummy"]
-        else:
-            self.addDummy = False
         self._aliasDescription = None
         self._aliasNotes = None
         self._aliasParentName = None
@@ -146,36 +141,31 @@ class Event(Item):
         else:
             return False
 
-    def setParent(self, parent, notify=None, undo=False):
+    def _setParent(self, parent, notify=True, undo=False):
         """The proper way to assign a parent, also called from Event(parent)."""
-        if notify is None:
-            notify = not self.addDummy
-        if undo:
-            commands.setEventParent(self, parent)
-        else:
-            if not self.addDummy:
-                was = self.parent
-                self.parent = parent
-                if was and not was.isEmotion and not was.isScene:
-                    was._onRemoveEvent(self)
-                if parent and not parent.isEmotion and not parent.isScene:
-                    parent._onAddEvent(self)
-            else:
-                self.parent = parent
-            wasDescription = self.description()
-            wasNotes = self.notes()
-            wasParentName = self.parentName()
-            # >>> still needed ???
-            self.updateDescription()
-            self.updateNotes()
-            self.updateParentName()
-            # <<< still needed ???
-            if self.description() != wasDescription:
-                self.onProperty(self.prop("description"))
-            if self.notes() != wasNotes:
-                self.onProperty(self.prop("notes"))
-            if self.parentName() != wasParentName:
-                self.onProperty(self.prop("parentName"))
+        was = self.parent
+        self.parent = parent
+        if was and not was.isEmotion and not was.isScene:
+            was._onRemoveEvent(self)
+        if parent and not parent.isEmotion and not parent.isScene:
+            parent._onAddEvent(self)
+        wasDescription = self.description()
+        wasNotes = self.notes()
+        wasParentName = self.parentName()
+        # >>> still needed ???
+        self.updateDescription()
+        self.updateNotes()
+        self.updateParentName()
+        # <<< still needed ???
+        if self.description() != wasDescription:
+            self.onProperty(self.prop("description"))
+        if self.notes() != wasNotes:
+            self.onProperty(self.prop("notes"))
+        if self.parentName() != wasParentName:
+            self.onProperty(self.prop("parentName"))
+
+    def setParent(self, parent, notify=True, undo=False):
+        self.scene().push(SetEventParent(self, parent))
 
     def onProperty(self, prop):
         if prop.name() == "description" or (
@@ -188,15 +178,12 @@ class Event(Item):
                 self.updateNotes()
         elif prop.name() == "uniqueId":
             self.updateDescription()
-        if not self.addDummy:
-            super().onProperty(prop)
-            if self.parent:
-                self.parent.onEventProperty(prop)
+        super().onProperty(prop)
+        if self.parent:
+            self.parent.onEventProperty(prop)
 
     def scene(self):
-        if self.addDummy:
-            return None
-        elif self.parent:
+        if self.parent:
             if self.parent.isScene:
                 return self.parent
             else:
@@ -233,9 +220,6 @@ class Event(Item):
         if self._updatingDescription:
             return
         self._updatingDescription = True
-        # Was preventing editing of description and don't know what it is for any more.
-        # if self.addDummy:
-        #     return
         prop = self.prop("description")
         wasDescription = prop.get()
         newDescription = None
@@ -258,8 +242,6 @@ class Event(Item):
 
     def updateNotes(self):
         """Force re-write of aliases."""
-        if self.addDummy:
-            return
         prop = self.prop("notes")
         notes = prop.get()
         scene = self.scene()

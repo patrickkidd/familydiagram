@@ -1274,7 +1274,7 @@ class Emotion(PathItem):
 
     ITEM_Z = util.EMOTION_Z
 
-    def __init__(self, personA=None, personB=None, addDummy=False, **kwargs):
+    def __init__(self, personA=None, personB=None, **kwargs):
         super().__init__(**kwargs)
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
@@ -1286,7 +1286,6 @@ class Emotion(PathItem):
         self._aliasNotes = None
         self._aliasParentName = None
         self._onShowAliases = False
-        self.addDummy = addDummy
         self.people = [personA, personB]
         self.startEvent = Event(self, uniqueId="emotionStartEvent")
         self.endEvent = Event(self, uniqueId="emotionEndEvent")
@@ -1851,36 +1850,42 @@ class Emotion(PathItem):
         self.personBChanged.emit(self.people[0].id)
         self.onPeopleChanged()
 
+    def _setPersonA(self, personA):
+        if self.people[0]:
+            self.people[0]._onRemoveEmotion(self)
+        self.people[0] = person
+        if not self.isDyadic():
+            self.setParentItem(person)
+        if self.people[0]:
+            self.people[0]._onAddEmotion(self)
+            self.personAChanged.emit(person.id)
+        else:
+            self.personAChanged.emit(None)
+        self.onPeopleChanged()
+
     def setPersonA(self, person, undo=False):
-        if self.people[0] == person:
+        if self.personA() == person:
             return
         if undo:
-            commands.setEmotionPerson(self, personA=person)
+            self.scene().push(SetEmotionPerson(self, personA=person))
         else:
-            if self.people[0]:
-                self.people[0]._onRemoveEmotion(self)
-            self.people[0] = person
-            if not self.isDyadic():
-                self.setParentItem(person)
-            if self.people[0] and not self.addDummy:
-                self.people[0]._onAddEmotion(self)
-                self.personAChanged.emit(person.id)
-            else:
-                self.personAChanged.emit(None)
-            self.onPeopleChanged()
+            self._setPersonA(person)
+
+    def _setPersonB(self, personA):
+        if self.people[1]:
+            self.people[1]._onRemoveEmotion(self)
+        self.people[1] = person
+        if self.people[1]:
+            self.people[1]._onAddEmotion(self)
+            self.personBChanged.emit(person.id)
+        else:
+            self.personBChanged.emit(None)
+        self.onPeopleChanged()
 
     def setPersonB(self, person, undo=False):
-        if self.people[1] == person:
+        if self.personB() == person:
             return
         if undo:
-            commands.setEmotionPerson(self, personB=person)
+            self.scene().push(SetEmotionPerson(self, personB=person))
         else:
-            if self.people[1]:
-                self.people[1]._onRemoveEmotion(self)
-            self.people[1] = person
-            if self.people[1] and not self.addDummy:
-                self.people[1]._onAddEmotion(self)
-                self.personBChanged.emit(person.id)
-            else:
-                self.personBChanged.emit(None)
-            self.onPeopleChanged()
+            self._setPersonB(person)

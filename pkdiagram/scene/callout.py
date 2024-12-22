@@ -1,5 +1,20 @@
-from pkdiagram.pyqt import *
-from pkdiagram import util, commands
+from pkdiagram.pyqt import (
+    Qt,
+    QGraphicsEllipseItem,
+    QGraphicsItem,
+    QGraphicsView,
+    QRectF,
+    QPen,
+    QBrush,
+    QGraphicsTextItem,
+    QPainterPath,
+    QLineF,
+    QMarginsF,
+    QColor,
+    QEvent,
+    QSizeF,
+)
+from pkdiagram import util
 from pkdiagram.scene import LayerItem
 
 
@@ -89,8 +104,6 @@ class Callout(LayerItem):
         self.bubbleRect = QRectF()
         self.adjustingWidth = None
         self.adjustingScale = None
-        self.setWidthCmdId = None
-        self.setTextCmdId = None
         self.anchoredDrag = None
         self.modifiers = None
         self.mousePressPoints = None
@@ -198,7 +211,6 @@ class Callout(LayerItem):
         super().mouseDoubleClickEvent(e)
         # TOOD: maybe only handle in bubble?
         e.accept()
-        self.setTextCmdId = commands.nextId()
         self.textItem.setTextInteractionFlags(Qt.TextEditorInteraction)
         self.textItem.setFocus()
         if self.scene() and self.scene().view():
@@ -210,7 +222,6 @@ class Callout(LayerItem):
     def eventFilter(self, o, e):
         if o == self.textItem:
             if e.type() == QEvent.FocusOut:
-                self.setTextCmdId = None
                 self.textItem.setTextInteractionFlags(Qt.NoTextInteraction)
                 if self.scene() and self.scene().view():
                     self.scene().view().ignoreDelete = False
@@ -251,7 +262,7 @@ class Callout(LayerItem):
         super().onProperty(prop)
 
     def onTextEdited(self):
-        self.setText(self.textItem.toPlainText(), undo=self.setTextCmdId)
+        self.setText(self.textItem.toPlainText(), undo=True)
         self.updateBubbleRect()
         for handle in self.pointHandles:
             if handle.isnew:
@@ -338,14 +349,12 @@ class Callout(LayerItem):
             self._anchorPressScale = self.scale()
             self._anchorResizing = True
             e.accept()
-            self._anchorUndoId = commands.nextId()
             return
         else:
             self._anchorResizing = False
         #
         if self.widthHandle().contains(e.pos()):
             self.adjustingWidth = (e.pos(), self.width())
-            self.setWidthCmdId = commands.nextId()
         else:
             super().mousePressEvent(e)
             if e.modifiers() & Qt.AltModifier:  # anchored-drag
@@ -388,11 +397,11 @@ class Callout(LayerItem):
                 newSize = QSizeF(size.width() - delta.x(), size.height() + delta.y())
             newScale = self._anchorPressScale * (newSize.width() / size.width())
             # self.setPos(newPos)
-            self.setScale(newScale, notify=False, undo=self._anchorUndoId)
+            self.setScale(newScale, notify=False, undo=True)
         elif self.adjustingWidth:
             origP, origW = self.adjustingWidth
             delta = e.pos().x() - origP.x()
-            self.setWidth(origW + delta, undo=self.setWidthCmdId)
+            self.setWidth(origW + delta, undo=True)
         else:
             super().mouseMoveEvent(e)
             self.modifiers = e.modifiers()
@@ -409,7 +418,6 @@ class Callout(LayerItem):
                 self.unsetCursor()
         if self.adjustingWidth:
             self.adjustingWidth = None
-            self.setWidthCmdId = None
         else:
             super().mouseReleaseEvent(e)
             if self.anchoredDrag:
@@ -510,28 +518,3 @@ class Callout(LayerItem):
         elif handle[0] == "south-west":
             cursor = Qt.SizeBDiagCursor
         return cursor
-
-
-TEST_NO_FILE = True
-
-
-def __test__(scene, parent):
-    from pkdiagram.pyqt import QGraphicsView
-
-    view = QGraphicsView(parent)
-    callout = Callout(text="here we are", points=[QPointF(-200, -100)])
-    callout.setSelected(True)
-    scene.addItem(callout)
-    view.show()
-    view.setScene(scene)
-    parent.resize(500, 500)
-
-    def again():
-        callout.setText(callout.text() + "\nagain")
-        callout.updateGeometry()
-
-    again.timer = QTimer()
-    again.timer.timeout.connect(again)
-    again.timer.start(1000)
-
-    return view

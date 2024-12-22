@@ -350,7 +350,7 @@ PK.Drawer {
                                 onRemove: {
                                     // workaround to possibly prevent QQuickTableView assertion when removing visible column
                                     timelineView.delayUpdates = true
-                                    root.removeEventProperty(variablesList.currentIndex)
+                                    sceneModel.scene.removeEventPropertyByIndex(variablesList.currentIndex)
                                     timelineView.delayUpdates = false
                                     variablesList.currentIndex = -1
                                 }

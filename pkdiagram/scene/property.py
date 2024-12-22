@@ -1,6 +1,6 @@
 import copy
 
-from pkdiagram import commands
+from pkdiagram.commands import SetItemProperty, ResetItemProperty
 
 
 class Property:
@@ -127,11 +127,11 @@ class Property:
                 ret = None
         return ret
 
-    def set(self, x, notify=True, undo=None, forLayers=None, force=False):
+    def set(self, x, notify=True, undo=False, forLayers=None, force=False):
         """Return True if value was changed, otherwise False.
         forLayers == None: current visible value
         forLayers == []: non-layer value
-        force = True for commands.SetItemProperty so notifications are sent
+        force = True for SetItemProperty so notifications are sent
         """
         if x is None:
             y = None
@@ -144,14 +144,11 @@ class Property:
             y = y.strip()
         currentValue = self.get()
         if force or y != currentValue:
+            cmd = SetItemProperty(self, y, layers=self._activeLayers)
             if undo:
-                # do this before setting the value so `was` can be extracted from layers
-                if undo is True:
-                    undo = commands.nextId()
-                cmd = commands.SetItemProperty(
-                    self, y, layers=self._activeLayers, id=undo
-                )
-                commands.stack().push(cmd)
+                self.scene().push(cmd)
+            else:
+                cmd.redo()
             if forLayers is None:
                 layers = self._activeLayers
             else:
@@ -181,15 +178,18 @@ class Property:
         else:
             return False
 
-    def reset(self, notify=True, undo=None):
+    def reset(self, notify=True, undo=False):
         if not self.isset():
             return
         self._isResetting = True
         if undo:
             if undo is True:
                 undo = commands.nextId()
-            cmd = commands.ResetItemProperty(self, layers=self._activeLayers, id=undo)
-            commands.stack().push(cmd)
+            cmd = ResetItemProperty(self, layers=self._activeLayers, id=undo)
+            if undo:
+                self.scene().push(cmd)
+            else:
+                cmd.redo()
         if self._usingLayer:
             for layer in self._activeLayers:
                 layer.resetItemProperty(self)

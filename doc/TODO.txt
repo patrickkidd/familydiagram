@@ -1,6 +1,41 @@
 v2.0.0
 =============================================================================
 
+DECOUPLING COMMANDS
+-----------------------
+- Think through class SetPos
+  - Really only exists for Callout's, otherwise just setPos() + updateGeoemtry
+  - How to just utilize SetProperty's undo support for callout?
+- Verify that empty macros do not not add noop undo's
+- Remove all occurrences of mergeWith() in command.py
+  - No case for command compression any more.
+- Ensure undo= correctly passed to Scene.addItem
+- Add command compression support (in SetItemProperty?):
+  - Drag scene item
+  - Type text
+  - Add Scene.endCompression or something for mouseReleaseEvent on drag, etc?
+- Move to pkdiagram.scene.commands? Integral with data model after all.
+- UndoCommand's need to become the canonical way that actions occur.
+  - Example: Scene.addItem needs to use AddPerson, or maybe better AddItem
+- Move stack to DocumentView / qmlEngine scope
+  - *** Figure out how to access commands+stack everywhere properties are set
+- Analytics
+  - Access analytics object from:
+    - session
+    - documentview
+    - mainwindow
+    - preferences 
+    - qml
+    - drawer
+  - commands.track*() -> activeSession[global] -> Session.track[user info]
+- nextId(), proper command compression
+  - Previously compressing via cmd id, need to move to macros
+  - Property undo support
+    - Convenience when setting properties on multiple objects
+  - All property sheets, aggregated property setters
+- Cleanup
+  - Remove Person.marriageAdded|Removed?
+
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
 - Notes in add data point field doesn't store / show icon

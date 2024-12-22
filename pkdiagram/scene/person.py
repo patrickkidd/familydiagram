@@ -646,7 +646,7 @@ class Person(PathItem):
         if self.childOf:
             return self.childOf.multipleBirth
 
-    def setParents(self, parentItem):
+    def _setParents(self, parentItem):
         """The single entry point for adding+removing a person to a pair-bond.
         `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
@@ -701,6 +701,13 @@ class Person(PathItem):
                     self.scene().addItem(self.childOf.multipleBirth)
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
+
+    def setParents(self, marriage, undo=False):
+        if undo:
+            cmd = SetParents(self, marriage)
+            self.scene().push(cmd)
+        else:
+            self._setParents(marriage)
 
     def _onAddMarriage(self, m):
         if not m in self.marriages:

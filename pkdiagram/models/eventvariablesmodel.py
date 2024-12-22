@@ -67,13 +67,13 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
             eventProperties = self._scene.eventProperties()
             attr = eventProperties[index.row()]["attr"]
             if attr:
-                id = commands.nextId()
-                for item in self.items:
-                    prop = item.dynamicProperty(attr)
-                    if value:
-                        prop.set(value, undo=id)
-                    else:
-                        prop.reset(undo=id)
+                with self._scene.macro():
+                    for item in self.items:
+                        prop = item.dynamicProperty(attr)
+                        if value:
+                            prop.set(value, undo=True)
+                        else:
+                            prop.reset(undo=True)
             else:
                 return False
         self.dataChanged.emit(index, index, [role])

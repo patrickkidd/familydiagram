@@ -376,30 +376,6 @@ def __test__EmotionProperties(scene, parent, sceneModel):
     return ep
 
 
-def __test__LayerItemProperties(scene, parent, sceneModel):
-    def addLayer():
-        name = util.newNameOf(scene.layers(), tmpl="View %i", key=lambda x: x.name())
-        layer = pkdiagram.Layer(name=name)
-        commands.addLayer(scene, layer)
-
-    addLayer()
-    addLayer()
-    addLayer()
-    callout = pkdiagram.Callout()
-    callout.setLayers([scene.layers()[1].id, scene.layers()[3].id])
-    scene.addItem(callout)
-    lip = QmlDrawer(
-        "qml/LayerItemProperties.qml",
-        parent=parent,
-        propSheetModel="layerItemModel",
-        resizable=False,
-    )
-    lip.setScene(scene)
-    lip.show(scene.layerItems(), animate=False)
-    parent.resize(400, 600)
-    return lip
-
-
 def __test__GraphicalTimelineView(scene, parent):
     scene.setTags(["Tag 1", "Tag 2"])
     for i, event in enumerate(scene.events()):

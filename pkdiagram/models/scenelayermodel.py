@@ -104,7 +104,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             self._layers, tmpl=self.NEW_NAME_TMPL, key=lambda x: x.name()
         )
         layer = Layer(name=name)
-        commands.addLayer(self.scene, layer)
+        self._scene.addItem(layer, undo=True)
 
     @pyqtSlot(int)
     def duplicateRow(self, row):
@@ -113,7 +113,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         tmpl = oldLayer.name() + " %i"
         name = util.newNameOf(self._layers, tmpl=tmpl, key=lambda x: x.name())
         newLayer.setName(name)
-        commands.addLayer(self._scene, newLayer)
+        self._scene.addItem(newLayer, undo=True)
         self._scene.tidyLayerOrder()
 
     @pyqtSlot(int)
@@ -138,7 +138,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             )
         if btn == QMessageBox.No:
             return
-        commands.removeItems(self.scene, layer)
+        self._scene.removeItem(self.scene, layer, undo=True)
 
     def layerForIndex(self, index):
         if index.row() >= 0 and index.row() < len(self._layers):

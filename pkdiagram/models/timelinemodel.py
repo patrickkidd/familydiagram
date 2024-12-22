@@ -512,7 +512,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 elif role == self.ParentIdRole:
                     if event.parent is None or value != event.parent.id:
                         person = self._scene.find(id=value)
-                        commands.setEventParent(event, person)
+                        event.setParent(person, undo=True)
                     else:
                         success = False
         elif self.isColumn(index, self.NODAL):
@@ -797,7 +797,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if btn == QMessageBox.No:
             return
         if events:
-            commands.removeItems(self._scene, list(events))
+            with self._scene.macro():
+                for event in events:
+                    self._scene.removeItem(event, undo=True)
 
 
 qmlRegisterType(TimelineModel, "PK.Models", 1, 0, "TimelineModel")

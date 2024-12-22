@@ -136,6 +136,8 @@ def test_undo_commands(simpleScene, undoStack):
     simpleScene.addItem(layer)
     layer.setActive(True)
 
+    assert False, "Need to re-implement"
+
     id = commands.nextId()
     person1.setColor("#ABCABC", undo=id)
     person2.setColor("#DEFDEF", undo=id)
@@ -314,7 +316,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     callout3 = Callout()
     simpleScene.addItem(callout3)  # layer1, layer2
 
-    commands.removeItems(simpleScene, [layer1])
+    simpleScene.removeItem(layer1, undo=True)
     assert not (layer1 in simpleScene.layers())
     assert not (callout1 in simpleScene.layerItems())
     assert callout2 in simpleScene.layerItems()
@@ -334,7 +336,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     ##
 
-    commands.removeItems(simpleScene, [layer2])
+    simpleScene.removeItem(layer2, undo=True)
     assert not (layer2 in simpleScene.layers())
     assert callout1 in simpleScene.layerItems()
     assert not (callout2 in simpleScene.layerItems())
@@ -354,7 +356,9 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     ##
 
-    commands.removeItems(simpleScene, [layer1, layer2])
+    with simpleScene.macro():
+        simpleScene.removeItem(layer1, undo=True)
+        simpleScene.removeItem(layer2, undo=True)
     assert not (layer1 in simpleScene.layers())
     assert not (layer2 in simpleScene.layers())
     assert not (callout1 in simpleScene.layerItems())
