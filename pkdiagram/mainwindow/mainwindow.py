@@ -1,4 +1,4 @@
-import os.path, sys, datetime, shutil, logging
+import os.path, sys, datetime, shutil, logging, atexit
 import pickle
 
 from PyQt5.QtCore import QT_VERSION_STR
@@ -97,6 +97,7 @@ class MainWindow(QMainWindow):
             self.setAttribute(Qt.WA_ContentsMarginsRespectsSafeArea, False)
 
         MainWindow._instance = self
+        self._profile = None
         self.prefs = prefs
         self.session = session
         self.appConfig = appConfig
@@ -1828,12 +1829,31 @@ class MainWindow(QMainWindow):
     def onStartProfile(self):
         self.ui.actionStart_Profile.setEnabled(False)
         self.ui.actionStop_Profile.setEnabled(True)
-        util.startProfile()
+
+        import cProfile
+
+        _profile = cProfile.Profile()
+        _profile.enable()
+        atexit.register(self._profile_atexit)
 
     def onStopProfile(self):
         self.ui.actionStart_Profile.setEnabled(True)
         self.ui.actionStop_Profile.setEnabled(False)
-        util.stopProfile()
+
+        self._profile.disable()
+        import io, pstats
+
+        s = io.StringIO()
+        sortby = "cumulative"
+        ps = pstats.Stats(self._profile, stream=s).sort_stats(sortby)
+        ps.print_stats()  # ('pksampler')
+        log.info(s.getvalue())
+        self._profile = None
+        atexit.unregister(self._profile_atexit)
+
+    def _profile_atexit(self):
+        if self._profile:
+            self.onStopProfile()
 
     @util.blocked
     def onClearPreferences(self, dummy=None):

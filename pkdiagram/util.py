@@ -300,6 +300,8 @@ PERSON_KINDS = [
     {"name": "Unknown", "kind": PERSON_KIND_UNKNOWN},
 ]
 PERSON_KIND_NAMES = [entry["name"] for entry in PERSON_KINDS]
+NORMAL_PERSON_SIZE = 4
+
 
 # Emotion
 
@@ -511,32 +513,6 @@ S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN = "Emotional units are not shown because
 S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
     "Emotional units will show here when you add pair-bonds between people with names."
 )
-
-
-___DATA_PATH = None
-___DATA_PATH_LOCAL = None
-___DATA_PATH_ICLOUD = None
-
-NORMAL_PERSON_SIZE = 4
-
-# if IS_DEV:
-#     from profilehooks import profile
-# else:
-
-#     def profile(fn=None, skip=0, filename=None, immediate=False, dirs=False,
-#             sort=None, entries=40,
-#             profiler=('cProfile', 'profile', 'hotshot'),
-#             stdout=True):
-
-#         if fn is None:  # @profile() syntax -- we are a decorator maker
-#             def decorator(fn):
-#                 return profile(fn, skip=skip, filename=filename,
-#                                immediate=immediate, dirs=dirs,
-#                                sort=sort, entries=entries,
-#                                profiler=profiler, stdout=stdout)
-#             return decorator
-#         else:
-#             return fn
 
 
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"
@@ -1753,69 +1729,6 @@ def validate_uuid4(uuid_string):
     # valid uuid4. This is bad for validation purposes.
 
     return val.hex == uuid_string.replace("-", "")
-
-
-_profile = None
-
-
-def startProfile():
-    global _profile
-
-    ### Std Python profiler
-    import cProfile
-
-    _profile = cProfile.Profile()
-    _profile.enable()
-
-    import atexit
-
-    atexit.register(_profile_atexit)
-
-    ### pyinstrument
-    # import pyinstrument
-    # self.profile = pyinstrument.Profiler()
-
-    ### pycallgraph
-    # from pycallgraph import PyCallGraph
-    # from pycallgraph.output import GraphvizOutput
-    # graphviz = GraphvizOutput(output_file='profile.png')
-    # self.profiler = PyCallGraph(output=graphviz)
-    # self.profiler.start()
-
-
-def stopProfile():
-    global _profile
-
-    ### Std python profiler
-    _profile.disable()
-    import io, pstats
-
-    s = io.StringIO()
-    sortby = "cumulative"
-    ps = pstats.Stats(_profile, stream=s).sort_stats(sortby)
-    ps.print_stats()  # ('pksampler')
-    log.info(s.getvalue())
-    _profile = None
-
-    import atexit
-
-    atexit.unregister(_profile_atexit)
-
-    ### pyinstrument
-    # self.profiler.stop()
-    # self.here(profiler.output_text(unicode=True, color=True))
-    # self.profiler = None
-
-    ### pycallgraph
-    # self.profiler.done()
-    # self.profiler = None # saves file
-    # os.system('open profile.png')
-
-
-def _profile_atexit():
-    global _profile
-    if _profile:
-        stopProfile()
 
 
 ABLETON_COLORS = [
