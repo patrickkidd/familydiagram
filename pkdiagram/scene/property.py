@@ -1,6 +1,6 @@
 import copy
 
-from pkdiagram.commands import SetItemProperty, ResetItemProperty
+from pkdiagram.scene.commands import SetProperty, ResetProperty
 
 
 class Property:
@@ -127,11 +127,11 @@ class Property:
                 ret = None
         return ret
 
-    def set(self, x, notify=True, undo=False, forLayers=None, force=False):
+    def _do_set(self, x, notify=True, forLayers=None, force=False):
         """Return True if value was changed, otherwise False.
         forLayers == None: current visible value
         forLayers == []: non-layer value
-        force = True for SetItemProperty so notifications are sent
+        force = True for SetProperty so notifications are sent
         """
         if x is None:
             y = None
@@ -144,11 +144,6 @@ class Property:
             y = y.strip()
         currentValue = self.get()
         if force or y != currentValue:
-            cmd = SetItemProperty(self, y, layers=self._activeLayers)
-            if undo:
-                self.scene().push(cmd)
-            else:
-                cmd.redo()
             if forLayers is None:
                 layers = self._activeLayers
             else:
@@ -178,18 +173,16 @@ class Property:
         else:
             return False
 
-    def reset(self, notify=True, undo=False):
+    def set(self, y, notify=True, forLayers=None, force=False, undo=False):
+        if undo:
+            return self.scene().push(SetProperty(self, y, notify, forLayers, force))
+        else:
+            return self._do_set(y, notify, forLayers, force)
+
+    def _do_reset(self, notify=True):
         if not self.isset():
             return
         self._isResetting = True
-        if undo:
-            if undo is True:
-                undo = commands.nextId()
-            cmd = ResetItemProperty(self, layers=self._activeLayers, id=undo)
-            if undo:
-                self.scene().push(cmd)
-            else:
-                cmd.redo()
         if self._usingLayer:
             for layer in self._activeLayers:
                 layer.resetItemProperty(self)
@@ -202,6 +195,12 @@ class Property:
             if self.onset and hasattr(self.item, self.onset):
                 getattr(self.item, self.onset)()
         self._isResetting = False
+
+    def reset(self, notify=True, undo=False):
+        if undo:
+            self.scene().push(ResetProperty(self, layers=self._activeLayers))
+        else:
+            self._do_reset(notify=notify)
 
     def isUsingLayer(self):
         """Return True if value is currently being pulled from the layer versus this props's internal value."""

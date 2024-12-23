@@ -13,6 +13,9 @@ from pkdiagram.pyqt import (
     QColor,
     QEvent,
     QSizeF,
+    QFont,
+    QPointF,
+    QTextCursor,
 )
 from pkdiagram import util
 from pkdiagram.scene import LayerItem

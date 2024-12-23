@@ -3,6 +3,7 @@ import os
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, commands, slugify
 from pkdiagram.scene import EventKind, Item, Property
+from pkdiagram.scene.commands import SetEventParent
 
 
 class Event(Item):
@@ -141,8 +142,7 @@ class Event(Item):
         else:
             return False
 
-    def _setParent(self, parent, notify=True, undo=False):
-        """The proper way to assign a parent, also called from Event(parent)."""
+    def _setParent(self, parent):
         was = self.parent
         self.parent = parent
         if was and not was.isEmotion and not was.isScene:
@@ -164,8 +164,12 @@ class Event(Item):
         if self.parentName() != wasParentName:
             self.onProperty(self.prop("parentName"))
 
-    def setParent(self, parent, notify=True, undo=False):
-        self.scene().push(SetEventParent(self, parent))
+    def setParent(self, parent, undo=False):
+        """The proper way to assign a parent, also called from Event(parent)."""
+        if undo:
+            self.scene().push(SetEventParent(self, parent))
+        else:
+            self._setParent(parent)
 
     def onProperty(self, prop):
         if prop.name() == "description" or (

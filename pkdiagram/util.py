@@ -2078,21 +2078,5 @@ def test_finish_group(group):
 
 
 def exec_():
+    """For troubleshooting."""
     QApplication.instance().exec_()
-
-
-#####################################################
-##
-##  Init
-##
-#####################################################
-
-
-# TODO: None of the following should be global
-
-_prefs = None
-
-
-def prefs() -> QSettings:
-    global _prefs
-    return _prefs

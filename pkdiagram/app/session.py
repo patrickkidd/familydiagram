@@ -425,6 +425,15 @@ class Session(QObject, QObjectHelper):
             )
         )
 
+    def trackApp(self, eventName, properties={}):
+        return self.track("Application: " + eventName, properties)
+
+    def trackAction(self, eventName, properties={}):
+        return self.track("Action: " + eventName, properties)
+
+    def trackView(self, eventName, properties={}):
+        return self.track("View: " + eventName, properties)
+
 
 from pkdiagram.pyqt import qmlRegisterType
 

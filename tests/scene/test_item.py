@@ -126,7 +126,7 @@ def test_layered_property():
 
 
 def test_layered_property_undo_redo():
-    """commands.SetItemProperty wasn't working for non-layered properties."""
+    """commands.SetProperty wasn't working for non-layered properties."""
     scene = Scene()
     item = LayeredItem()
     layer = Layer(name="View 1")

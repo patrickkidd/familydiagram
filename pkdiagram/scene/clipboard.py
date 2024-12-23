@@ -2,11 +2,9 @@
 Currently unused but keeping for future.
 """
 
-
-class CutItems(RemoveItems):
-    def __init__(self, scene, items):
-        super().__init__(scene, items)
-        self.setText("Cut items")
+from pkdiagram.pyqt import QUndoCommand
+from pkdiagram import util
+from pkdiagram.scene.commands import RemoveItems
 
 
 class Clipboard:

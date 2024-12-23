@@ -36,6 +36,7 @@ from pkdiagram.scene import (
     VariablesDatabase,
     random_names,
 )
+from pkdiagram.scene import SetParents
 
 
 _log = logging.getLogger(__name__)
@@ -646,7 +647,7 @@ class Person(PathItem):
         if self.childOf:
             return self.childOf.multipleBirth
 
-    def _setParents(self, parentItem):
+    def _do_setParents(self, parentItem):
         """The single entry point for adding+removing a person to a pair-bond.
         `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
@@ -707,7 +708,7 @@ class Person(PathItem):
             cmd = SetParents(self, marriage)
             self.scene().push(cmd)
         else:
-            self._setParents(marriage)
+            self._do_setParents(marriage)
 
     def _onAddMarriage(self, m):
         if not m in self.marriages:

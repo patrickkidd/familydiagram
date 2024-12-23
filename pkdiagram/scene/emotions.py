@@ -22,6 +22,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, commands
 from pkdiagram.scene import Event, PathItem
+from pkdiagram.scene.commands import SetEmotionPerson
 
 
 DEBUG = False
@@ -1850,7 +1851,7 @@ class Emotion(PathItem):
         self.personBChanged.emit(self.people[0].id)
         self.onPeopleChanged()
 
-    def _setPersonA(self, personA):
+    def _setPersonA(self, person):
         if self.people[0]:
             self.people[0]._onRemoveEmotion(self)
         self.people[0] = person
@@ -1871,7 +1872,7 @@ class Emotion(PathItem):
         else:
             self._setPersonA(person)
 
-    def _setPersonB(self, personA):
+    def _setPersonB(self, person):
         if self.people[1]:
             self.people[1]._onRemoveEmotion(self)
         self.people[1] = person

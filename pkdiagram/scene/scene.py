@@ -34,9 +34,9 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QFileInfo,
     QUndoStack,
+    QUndoCommand,
 )
-from pkdiagram import version, util, commands, version, compat, slugify
-from pkdiagram.commands import AddItem, RemoveItem, SetParents, MoveItem
+from pkdiagram import version, util, version, compat, slugify
 from pkdiagram.scene import (
     EmotionalUnit,
     Property,
@@ -53,6 +53,17 @@ from pkdiagram.scene import (
     LayerItem,
     Callout,
     ItemGarbage,
+    clipboard,
+)
+from pkdiagram.scene.commands import (
+    AddItem,
+    RemoveItem,
+    SetParents,
+    ReplaceEventProperty,
+    ReplaceEventProperties,
+    AddEventProperty,
+    RemoveEventProperty,
+    SetPos,
 )
 
 
@@ -106,45 +117,6 @@ class DragCreateItem(PathItem):
             if value:
                 self._timerId = self.startTimer(util.ANIM_TIMER_MS)
         return super().itemChange(change, value)
-
-
-class UndoStack(QUndoStack):
-    """This should go away."""
-
-    def push(self, cmd: "UndoCommand"):  # type: ignore
-        """Track analytics for non-compressed commands."""
-        s = None
-        if isinstance(cmd.ANALYTICS, str):
-            s = "Commands: " + cmd.ANALYTICS
-        elif cmd.ANALYTICS is True and cmd.id() == -1:
-            s = "Commands: " + cmd.text()
-        if cmd.ANALYTICS:
-            if s and cmd.logKwargs():
-                self.track(s, {k: str(v) for k, v in cmd.logKwargs().items()})
-            elif s and not cmd.logKwargs():
-                log.warning(f"No logKwargs for command: {cmd}")
-                self.track(s)
-            logKwargs_s = pprint.pformat(cmd.logKwargs())
-            log.debug(f"{cmd.__class__.__name__}: {logKwargs_s}")
-
-        super().push(cmd)
-
-    def track(self, eventName, properties={}):
-
-        if not util.prefs() or util.IS_IOS:
-            return
-        log.debug(f"{eventName}, {properties}")
-
-        enableAppUsageAnalytics = util.prefs().value(
-            "enableAppUsageAnalytics", defaultValue=True, type=bool
-        )
-        if enableAppUsageAnalytics:
-            if _activeSession:
-                _activeSession.track(eventName, properties=properties)
-            # else:
-            #     log.warning(
-            #         f"Cannot track analytics event {eventName}: no active session."
-            #     )
 
 
 class Scene(QGraphicsScene, Item):
@@ -358,7 +330,7 @@ class Scene(QGraphicsScene, Item):
             cmd = AddItem(self, item)
             self.push(cmd)
         else:
-            self._addItem(item)
+            self._do_addItem(item)
         return item
 
     def removeItem(self, item, undo=False):
@@ -368,7 +340,7 @@ class Scene(QGraphicsScene, Item):
         else:
             self._removeItem(item)
 
-    def _addItem(self, item, register=True):
+    def _do_addItem(self, item, register=True):
         if (
             isinstance(item, QGraphicsItem) or isinstance(item, QGraphicsObject)
         ) and not item.scene() is self:
@@ -473,13 +445,8 @@ class Scene(QGraphicsScene, Item):
     def addItems(self, *args, batch=True):
         if batch:
             self.setBatchAddingRemovingItems(True)
-        if undo:
-            with self.macro():
-                for item in args:
-                    self.addItem(item, undo=True)
-        else:
-            for item in args:
-                self._addItem(item)
+        for item in args:
+            self._do_addItem(item)
         if batch:
             self.setBatchAddingRemovingItems(False)
 
@@ -1223,7 +1190,9 @@ class Scene(QGraphicsScene, Item):
             self.setItemMode(util.ITEM_NONE)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
-            self.push(SetPos(item, pos))
+            with self.macro():
+                for item in self.selectedItems():
+                    self.push(SetPos(item, item.pos()))
             self.mousePressOnDraggable = None  # for self.checkItemDragged()
         if self.snapItem.scene() is self:
             self.removeItem(self.snapItem)
@@ -1567,7 +1536,8 @@ class Scene(QGraphicsScene, Item):
 
     @contextlib.contextmanager
     def macro(self, batchAddRemove=False):
-        self.setBatchAddingRemovingItems(True)
+        if batchAddRemove:
+            self.setBatchAddingRemovingItems(True)
         self._undoStack.beginMacro()
         _e = None
         try:
@@ -1576,6 +1546,7 @@ class Scene(QGraphicsScene, Item):
             _e
         finally:
             self._undoStack.endMacro()
+        if batchAddRemove:
             self.setBatchAddingRemovingItems(False)
         if _e:
             raise _e
@@ -1896,51 +1867,30 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            self.push(RemoveItems(self, self.selectedItems()))
+            with self.macro():
+                for item in self.selectedItems():
+                    self.removeItem(item)
 
     def copy(self):
-        self.clipboard = commands.Clipboard(self.selectedItems())
+        self.clipboard = clipboard.Clipboard(self.selectedItems())
         self.clipboardChanged.emit()
 
     def cut(self):
         items = self.selectedItems()
-        self.clipboard = commands.Clipboard(items)
-        commands.cutItems(self, items)
+        self.clipboard = clipboard.Clipboard(items)
+        with self.macro():
+            for item in items:
+                self.removeItem(item, undo=True)
         self.clipboardChanged.emit()
 
     def paste(self):
         for item in self.selectedItems():
             item.setSelected(False)
         items = self.clipboard.copy(scene=self)
-        commands.pasteItems(self, items)
+        self.push(clipboard.PasteItems(items))
         for item in items:
             item.setSelected(True)
         return items
-
-    def __clearAllEvents(self):
-        nFiles = 0
-        events = []
-        for person in self.selectedPeople():
-            for event in person.events():
-                if event.uniqueId() is not None:
-                    events.append(event)
-                    docsPath = event.documentsPath()
-                    if docsPath:
-                        eventDocPath = docsPath.replace(
-                            self.document().url().toLocalFile() + os.sep, ""
-                        )
-                        for relativePath in self.document().fileList():
-                            if relativePath.startswith(eventDocPath):
-                                nFiles = nFiles + 1
-        btn = QMessageBox.question(
-            self.view().mw,
-            "Are you sure?",
-            "Are you sure you want to delete %i events and their %i files? If you undo this the files will still be deleted."
-            % (len(events), nFiles),
-        )
-        if btn == QMessageBox.No:
-            return
-        self.push(RemoveItems(self, events))
 
     def removeEvent(self, event):
         """Accomodate scene as dummy parent for new events."""
@@ -2131,7 +2081,7 @@ class Scene(QGraphicsScene, Item):
 
     ## Event properties
 
-    def _addEventProperty(self, propName, index=None):
+    def _do_addEventProperty(self, propName, index=None):
         names = [entry["name"] for entry in self.eventProperties()]
         if not propName in names:
             x = list(self.eventProperties())
@@ -2145,7 +2095,7 @@ class Scene(QGraphicsScene, Item):
             for event in self.events():
                 event.addDynamicProperty(attr)
 
-    def _removeEventPropertyByName(self, propName: str):
+    def _do_removeEventPropertyByName(self, propName: str):
         newEntries = []
         entry = None
         for e in self.eventProperties():
@@ -2165,14 +2115,14 @@ class Scene(QGraphicsScene, Item):
         if undo:
             self.push(RemoveEventProperty(propName))
         else:
-            self._removeEventPropertyByName(propName)
+            self._do_removeEventPropertyByName(propName)
 
     @pyqtSlot(int)
     def removeEventPropertyByIndex(self, index: int):
         entry = self.eventProperties()[index]
         self.removeEventPropertyByName(entry["name"])
 
-    def _renameEventProperty(self, oldName, newName):
+    def _do_renameEventProperty(self, oldName, newName):
         entry = None
         for e in self.eventProperties():
             if e["name"] == oldName:
@@ -2189,9 +2139,9 @@ class Scene(QGraphicsScene, Item):
         if undo:
             self.push(ReplaceEventProperty(oldName, newName))
         else:
-            self._renameEventProperty(oldName, newName)
+            self._do_renameEventProperty(oldName, newName)
 
-    def _replaceEventProperties(self, newPropNames: list[str]):
+    def _do_replaceEventProperties(self, newPropNames: list[str]):
         """So that there is only one notification."""
         oldAttrs = [entry["attr"] for entry in self.eventProperties()]
         for event in self.events():
@@ -2210,7 +2160,7 @@ class Scene(QGraphicsScene, Item):
         if undo:
             self.push(ReplaceEventProperties(newPropNames))
         else:
-            self._replaceEventProperties(newPropNames)
+            self._do_replaceEventProperties(newPropNames)
 
 
 from pkdiagram.pyqt import qmlRegisterUncreatableType

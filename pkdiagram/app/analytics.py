@@ -23,24 +23,6 @@ from pkdiagram.qnam import QNAM
 log = logging.getLogger(__name__)
 
 
-class AnalyticsBase(QObject):
-    """
-    An idea, until moved elsewhere.
-    """
-
-    def track(eventName, properties={}):
-        return stack().track(eventName, properties)
-
-    def trackApp(eventName, properties={}):
-        return track("Application: " + eventName, properties)
-
-    def trackAction(eventName, properties={}):
-        return track("Action: " + eventName, properties)
-
-    def trackView(eventName, properties={}):
-        return track("View: " + eventName, properties)
-
-
 class MixpanelItem(pydantic.BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
@@ -70,7 +52,7 @@ class MixpanelProfile(MixpanelItem):
     properties: dict
 
 
-class Analytics(AnalyticsBase):
+class Analytics(QObject):
     """
     TODO: Rename to MixpanelManager
 

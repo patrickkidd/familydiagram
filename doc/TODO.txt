@@ -3,14 +3,10 @@ v2.0.0
 
 DECOUPLING COMMANDS
 -----------------------
-- Think through class SetPos
-  - Really only exists for Callout's, otherwise just setPos() + updateGeoemtry
-  - How to just utilize SetProperty's undo support for callout?
 - Verify that empty macros do not not add noop undo's
 - Remove all occurrences of mergeWith() in command.py
   - No case for command compression any more.
-- Ensure undo= correctly passed to Scene.addItem
-- Add command compression support (in SetItemProperty?):
+- Add command compression support (in SetProperty?):
   - Drag scene item
   - Type text
   - Add Scene.endCompression or something for mouseReleaseEvent on drag, etc?
@@ -403,7 +399,7 @@ v1.2.0
   - test_timelinemodel.py::test_dont_show_not_deceased_with_deceased_date
   - Adding a person to the scene with deceased date already set calls
     scene().addItem(self.deceasedDate) from Person.itemChange which
-    emits Scene.eventAdded, then event is added to timeline in TimelineModel._addItem
+    emits Scene.eventAdded, then event is added to timeline in TimelineModel._do_addItem
     which obiovusly doesn't consider Person.deceased.
   - It is not clear how to handle this yet.
 - [Debug build only] Zooming way into pencil stroke -> 

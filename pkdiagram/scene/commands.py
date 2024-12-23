@@ -5,18 +5,15 @@ UndoCommand contains the logic to *undo* that basic change.
 
 *However*, UndoCommand's are also only ever created by the Scene and Item API's
 when undo=True is passed to a basic api method, e.g. Scene.addItem(). This means
-that the api method needs to call a secondary method like Scene._addItem() that
+that the api method needs to call a secondary method like Scene._do_addItem() that
 contains the actual logic for the basic change and not creating the UndoCommand.
 This is not ideal, but accomodates the existing QGraphicsScene and
 QGraphicsItem-based data model.
 """
 
 import os, shutil, logging
-import pprint
 
-from pkdiagram.pyqt import QUndoStack, QUndoCommand, QPointF
-from pkdiagram import util
-from pkdiagram.scene import Callout
+from pkdiagram.pyqt import QUndoCommand
 
 
 _log = logging.getLogger(__name__)
@@ -31,7 +28,7 @@ class AddItem(QUndoCommand):
         self._calloutParentId = item.parentId() if item.isCallout else None
 
     def redo(self):
-        self.scene._addItem(self.item)
+        self.scene._do_addItem(self.item)
         if self.item.isLayer:
             layers = self.scene.layers()
             iOrder = len(self.scene.layers())
@@ -359,177 +356,160 @@ class RemoveItems(QUndoCommand):
 
 
 class SetPos(QUndoCommand):
-
-    def __init__(self, item, pos, id):
-        super().__init__("Move items", id)
-
+    def __init__(self, item, pos):
+        super().__init__("Set pos")
+        self.was_pos = item.pos()
+        self.item = item
+        self.pos = pos
         if item.isCallout:
-            calloutPoints = item.mouseMovePoints
-            calloutPoints_was = item.mousePressPoints
+            self.calloutPoints = item.mouseMovePoints
+            self.was_calloutPoints = item.mousePressPoints
+
+    def redo(self):
+        self.item.setPos(self.pos)
+        if self.item.isCallout and self.calloutPoints:
+            self.item.setPoints(self.calloutPoints)
+        self.item.updateGeometry()
+
+    def undo(self):
+        self.item.setPos(self.was_pos)
+        if self.item.isCallout:
+            self.item.setPoints(self.was_calloutPoints)
+        self.item.updateGeometry()
+
+
+class SetProperty(QUndoCommand):
+    def __init__(self, prop, value, forLayers=[]):
+        if forLayers:
+            super().__init__(f"Set '{prop.name()}' on layers")
         else:
-            calloutPoints = None
-            calloutPoints_was = None
-        self.data = {
-            item: {
-                "pos": pos,  # latest
-                "pos_was": item.pos(),
-                "calloutPoints": calloutPoints,  # latest
-                "calloutPoints_was": calloutPoints_was,
+            super().__init__(f"Set '{prop.name()}' on item")
+        self.forLayers = forLayers
+        if forLayers:
+            self.was_values = {
+                layer.id: layer.getItemProperty(prop.item.id, prop.name())
+                for layer in forLayers
+                if layer.getItemProperty(prop.item.id, prop.name())[0]
             }
-        }
-        self.scene = item.scene()
-        self.firstRun = True
+        else:
+            self.was_set = prop.isset()
+            self.was_value = prop.get()
+        self.value = value
+        self.prop = prop
 
     def redo(self):
-        if self.firstRun:
-            # Items are already in place; don't move until true 'redo.'
-            self.firstRun = False
+        if self.forLayers:
+            for layer in self.forLayers:
+                layer.setItemProperty(self.item.id, self.prop.name(), self.value)
+            self.prop.onActiveLayersChanged()
         else:
-            for item, entry in self.data.items():
-                item.setPos(entry["pos"])
-                if item.isCallout and entry["calloutPoints"]:
-                    item.setPoints(entry["calloutPoints"])
-            # after set pos
-            for item, entry in self.data.items():
-                if hasattr(item, "updateGeometry"):  # needed?
-                    item.updateGeometry()
+            self.prop._do_set(self.value, force=True)
 
     def undo(self):
-        for item, entry in self.data.items():
-            item.setPos(entry["pos_was"])
-            if item.isCallout and entry["calloutPoints_was"]:
-                item.setPoints(entry["calloutPoints_was"])
-        # after
-        for item, entry in self.data.items():
-            if hasattr(item, "updateGeometry"):  # needed?
-                item.updateGeometry()
-
-    def mergeWith(self, other):
-        for item, entry in other.data.items():
-            if item in self.data:
-                self.data[item].update(
-                    {"pos": entry["pos"], "calloutPoints": entry["calloutPoints"]}
-                )
+        if self.forlayers:
+            for layer in self.forLayers:
+                if layer.id in self.was_values:
+                    was = self.was_values[layer.id]
+                    layer.setItemValue(self.prop.item.id, self.prop.name(), was)
+                else:
+                    layer.resetItemProperty(self.prop)
+            self.prop.onActiveLayersChanged()
+        else:
+            if self.was_set:
+                self.prop._do_set(self.was_value, force=True)
             else:
-                self.data[item] = {
-                    "pos": entry["pos"],
-                    "pos_was": entry["pos_was"],
-                    "calloutPoints": entry["calloutPoints"],
-                    "calloutPoints_was": entry["calloutPoints_was"],
-                }
-        return True
+                self.prop._do_reset()
 
 
-class SetItemProperty(QUndoCommand):
-    """Only called from Property.set()."""
-
-    ANALYTICS = False  # "SetItemProperty"
-
-    def __init__(self, prop, value, layers=[]):
-        if layers:
-            super().__init__("Set %s on layers" % prop.name())
+class ResetProperty(QUndoCommand):
+    def __init__(self, prop, forLayers=[]):
+        if forLayers:
+            super().__init__(f"Reset '{prop.name()}' on layers")
         else:
-            super().__init__("Set %s" % prop.name())
-        self.data = {}
-
-        def _addEntry(layer, prop, value, was):
-            if not layer in self.data:
-                self.data[layer] = {}
-            if not prop.item.id in self.data[layer]:
-                self.data[layer][prop.item.id] = {}
-            self.data[layer][prop.item.id][prop.name()] = {"value": value, "prop": prop}
-            self.data[layer][prop.item.id][prop.name()]["wasSet"] = prop.isset()
-            if not was is None:
-                self.data[layer][prop.item.id][prop.name()]["was"] = was
-
-        if layers:
-            for layer in layers:
-                was, ok = layer.getItemProperty(prop.item.id, prop.name())
-                _addEntry(layer, prop, value, was)
+            super().__init__(f"Reset '{prop.name()}' on item")
+        self.forLayers = forLayers
+        if forLayers:
+            self.was_values = {
+                layer.id: layer.getItemProperty(prop.item.id, prop.name())
+                for layer in forLayers
+                if layer.getItemProperty(prop.item.id, prop.name())[0]
+            }
         else:
-            _addEntry(None, prop, value, prop.get())
-        self.firstTime = True  # yep
+            self.was_set = prop.isset()
+            self.was_value = prop.get()
+        self.prop = prop
 
     def redo(self):
-        if self.firstTime:
-            self.firstTime = False
-            return
-        for layer, itemData in self.data.items():
-            for itemId, props in itemData.items():
-                for propName, data in props.items():
-                    if layer:
-                        layer.setItemProperty(itemId, propName, data["value"])
-                        data["prop"].onActiveLayersChanged()
-                    else:
-                        data["prop"].set(data["value"], force=True)
+        if self.forlayers:
+            for layer in self.forLayers:
+                if layer.id in self.was_values:
+                    layer.resetItemProperty(self.prop)
+            self.prop.onActiveLayersChanged()
+        elif self.was_set:
+            self.prop._do_reset()
 
     def undo(self):
-        for layer, itemData in self.data.items():
-            for itemId, props in itemData.items():
-                for propName, data in props.items():
-                    if layer:
-                        if data["wasSet"] and "was" in data:
-                            layer.setItemProperty(itemId, propName, data["was"])
-                        else:
-                            layer.resetItemProperty(data["prop"])
-                        data["prop"].onActiveLayersChanged()
-                    else:
-                        if data["wasSet"] and "was" in data:
-                            data["prop"].set(data["was"], force=True)
-                        else:
-                            data["prop"].reset()
-
-    def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore="was")
-        return True
+        if self.forlayers:
+            for layer in self.forLayers:
+                if layer.id in self.was_values:
+                    was = self.was_values[layer.id]
+                    layer.setItemValue(self.prop.item.id, self.prop.name(), was)
+            self.prop.onActiveLayersChanged()
+        elif self.was_set:
+            self.prop._do_set(self.was_value, force=True)
 
 
-class ResetItemProperty(QUndoCommand):
-    """Only used from Property.reset(."""
+class SetEmotionPerson(QUndoCommand):
 
-    def __init__(self, prop, layers=[]):
-        item = prop.item
-        super().__init__("Reset %s" % prop.name())
-        self.data = {}
-        if prop.layered:
-            # only take `was` values stored on selected layers
-            for layer in layers:
-                self.data[layer] = {}
-                x, ok = layer.getItemProperty(prop.item.id, prop.name())
-                if ok:
-                    self.data[layer] = {prop: x}
+    def __init__(self, emotion, personA=None, personB=None):
+        super().__init__("Set emotion person")
+        self.emotion = emotion
+        self.personA = personA
+        self.personB = personB
+        self.was_personA = emotion.personA()
+        self.was_personB = emotion.personB()
+        if personA == self.was_personB and personB == self.was_personA:
+            self.swap = True
         else:
-            self.data[None] = {prop: prop.get()}
-        self.firstTime = True
+            self.swap = False
 
     def redo(self):
-        if self.firstTime:
-            self.firstTime = False
-            return
-        for layer, propEntry in self.data.items():
-            for prop, was in propEntry.items():
-                if layer:
-                    layer.resetItemProperty(prop)
-                else:
-                    prop.reset()
-        self.firstTime = False
+        if self.swap:
+            self.emotion.swapPeople()
+        else:
+            if self.personA:
+                self.emotion.setPersonA(self.personA)
+            if self.personB:
+                self.emotion.setPersonB(self.personB)
 
     def undo(self):
-        for layer, propEntry in self.data.items():
-            for prop, was in propEntry.items():
-                if layer:
-                    layer.setItemProperty(prop.item.id, prop.name(), was)
-                else:
-                    prop.set(was)
+        if self.swap:
+            self.emotion.swapPeople()
+        else:
+            if self.was_personA != self.emotion.personA():
+                self.emotion.setPersonA(self.was_personA)
+            if self.was_personB != self.emotion.personB():
+                self.emotion.setPersonB(self.was_personB)
 
-    def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore="was")
-        return True
+
+class SetEventParent(QUndoCommand):
+
+    def __init__(self, event, parent):
+        super().__init__(f"Set event {event.itemName()} parent to {parent.itemName()}")
+        self.was_parent = event.parent
+        self.event = event
+        self.parent = parent
+
+    def redo(self):
+        self.event.setParent(self.parent, notify=True)
+
+    def undo(self):
+        self.event.setParent(self.was_parent, notify=True)
 
 
 class SetParents(QUndoCommand):
     def __init__(self, person, target):
-        super().__init__("Set child")
+        super().__init__("Set parents")
         #
         if target is None:
             data = {"state": None}
@@ -594,31 +574,23 @@ class SetParents(QUndoCommand):
             elif data["was_state"] is None:
                 person.setParents(None)
 
-    def mergeWith(self, other):
-        util.deepMerge(self.data, other.data)
-        return True
-
 
 class AddEventProperty(QUndoCommand):
 
-    ANALYTICS = "Create event property"
-
     def __init__(self, scene, propName, index=None):
-        super().__init__('Create event property "%s"' % propName)
+        super().__init__("Create event property")
         self.scene = scene
         self.propName = propName
         self.index = index
 
     def redo(self):
-        self.scene._addEventProperty(self.propName, self.index)
+        self.scene._do_addEventProperty(self.propName, self.index)
 
     def undo(self):
-        self.scene._removeEventProperty(self.propName)
+        self.scene._do_removeEventProperty(self.propName)
 
 
 class RemoveEventProperty(QUndoCommand):
-
-    ANALYTICS = "Remove event property"
 
     @staticmethod
     def readValueCache(scene, onlyAttr=None):
@@ -649,7 +621,7 @@ class RemoveEventProperty(QUndoCommand):
                     )
 
     def __init__(self, scene, propName):
-        super().__init__('Remove event property "%s"' % propName)
+        super().__init__(f"Remove event property '{propName}'")
         self.scene = scene
         self.propName = propName
         self.attr = None
@@ -672,7 +644,7 @@ class RemoveEventProperty(QUndoCommand):
 class RenameEventProperty(QUndoCommand):
 
     def __init__(self, scene, old, new):
-        super().__init__('Rename event property "%s" to "%s"' % (old, new))
+        super().__init__("Rename event property")
         self.scene = scene
         self.old = old
         self.new = new
@@ -686,10 +658,8 @@ class RenameEventProperty(QUndoCommand):
 
 class ReplaceEventProperties(QUndoCommand):
 
-    ANALYTICS = "Replace event properties"
-
     def __init__(self, scene, newPropNames):
-        super().__init__('Create event properties with "%s"' % newPropNames)
+        super().__init__(f"Replace event properties")
         self.scene = scene
         self.oldPropNames = [entry["name"] for entry in scene.eventProperties()]
         self.newPropNames = newPropNames
@@ -701,128 +671,3 @@ class ReplaceEventProperties(QUndoCommand):
     def undo(self):
         self.scene.replaceEventProperties(self.oldPropNames)
         RemoveEventProperty.writeValueCache(self.scene, self.valueCache)
-
-
-class SetEmotionPerson(QUndoCommand):
-
-    ANALYTICS = "Set emotion person"
-
-    def __init__(self, emotion, personA=None, personB=None):
-        if personA and personB:
-            super().__init__(
-                "Set %s on <%s> and <%s>"
-                % (emotion.__class__.__name__, personA.itemName(), personB.itemName()),
-                id,
-            )
-        elif personA:
-            super().__init__(
-                "Set person A on %s on <%s>"
-                % (emotion.__class__.__name__, personA.itemName()),
-                id,
-            )
-        elif personB:
-            super().__init__(
-                "Set person B on %s on <%s>"
-                % (emotion.__class__.__name__, personB.itemName()),
-                id,
-            )
-        self.emotion = emotion
-        self.personA = personA
-        self.personB = personB
-        self.was_personA = emotion.personA()
-        self.was_personB = emotion.personB()
-        if personA == was_personB and personB == was_personA:
-            self.swap = True
-        else:
-            self.swap = False
-
-    def redo(self):
-        if self.swap:
-            emotion.swapPeople()
-        else:
-            if self.personA:
-                emotion.setPersonA(self.personA)
-            if self.personB:
-                emotion.setPersonB(self.personB)
-
-    def undo(self):
-        if self.swap:
-            emotion.swapPeople()
-        else:
-            if self.was_personA != emotion.personA():
-                emotion.setPersonA(self.was_personA)
-            if self.was_personB != emotion.personB():
-                emotion.setPersonB(self.was_personB)
-
-
-class SetEventParent(QUndoCommand):
-
-    ANALYTICS = "Set event parent"
-
-    def __init__(self, event, parent):
-        super().__init__("Add <%s> to <%s>" % (event.itemName(), parent.itemName()))
-        self.was = event.parent
-        self.event = event
-        self.parent = parent
-
-    def redo(self):
-        self.event.setParent(self.parent)
-
-    def undo(self):
-        self.event.setParent(self.was)
-
-
-class SetLayerOrder(QUndoCommand):
-
-    ANALYTICS = "Set layer order"
-
-    def __init__(self, scene, layers):
-        super().__init__("Set layer order")
-        self.scene = scene
-        self.oldLayers = scene.layers()  # sorted
-        self.newLayers = layers  # new sorted
-
-    def redo(self):
-        for i, layer in enumerate(self.newLayers):
-            layer.setOrder(i)
-        self.scene.resortLayersFromOrder()
-
-    def undo(self):
-        for i, layer in enumerate(self.oldLayers):  # re-init order
-            layer.setOrder(i)
-        self.scene.resortLayersFromOrder()
-
-
-class SetLayerItemParent(QUndoCommand):
-
-    ANALYTICS = "Set LayerItem parent"
-
-    def __init__(self, item, parent):
-        parentName = parent and parent.itemName() or None
-        super().__init__("Reparent %s parent to <%s>" % (item.itemName(), parentName))
-        self.data = {item: {"parent": parent, "parent_was": item.parentPerson()}}
-
-    def redo(self):
-        for item, data in self.data.items():
-            if data["parent"]:
-                parentId = data["parent"]
-            else:
-                parentId = None
-            item.setParentId(parentId)
-
-    def undo(self):
-        for item, data in self.data.items():
-            if data["parent_was"]:
-                parentId = data["parent_was"]
-            else:
-                parentId = None
-            item.setParentId(parentId)
-
-    def mergeWith(self, other):
-        util.deepMerge(self.data, other.data, ignore="parent_was")
-        return True
-
-
-def setLayerItemParent(*args, **kwargs):
-    cmd = SetLayerItemParent(*args, **kwargs)
-    stack().push(cmd)

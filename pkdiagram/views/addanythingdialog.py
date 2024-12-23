@@ -133,6 +133,10 @@ class AddAnythingDialog(QmlDrawer):
         self._eventModel.items = [Event()]
 
     def onDone(self):
+        with self.scene.macro():
+            self._onDone()
+
+    def _do_onDone(self):
         _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
 
         if self.rootProp("kind") is None:
@@ -402,9 +406,6 @@ class AddAnythingDialog(QmlDrawer):
             newPeople = newMovers + newReceivers
 
         _log.debug(f"Adding {len(newPeople)} new people to scene")
-        commands.stack().beginMacro(
-            f"Add {kind.value} event, with {len(newPeople)} new people."
-        )
         if newPeople:
             self.scene.addItems(*newPeople)
 
@@ -424,7 +425,6 @@ class AddAnythingDialog(QmlDrawer):
         # Add Events
 
         newEvents = []
-        propertyUndoId = commands.nextId()
 
         if EventKind.isMonadic(kind):
             if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
@@ -436,11 +436,11 @@ class AddAnythingDialog(QmlDrawer):
                     person.setAdopted(True)
                 elif kind == EventKind.Death:
                     event = person.deathEvent
-                event.setDateTime(startDateTime, undo=propertyUndoId)
+                event.setDateTime(startDateTime, undo=True)
                 if location:
-                    event.setLocation(location, undo=propertyUndoId)
+                    event.setLocation(location, undo=True)
                 if notes:
-                    event.setNotes(notes, undo=propertyUndoId)
+                    event.setNotes(notes, undo=True)
                 event.setTags(tags)
                 newEvents.append(event)
 
@@ -449,7 +449,7 @@ class AddAnythingDialog(QmlDrawer):
                     kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death)
                     and self.scene.currentDateTime() < startDateTime
                 ):
-                    self.scene.setCurrentDateTime(startDateTime, undo=propertyUndoId)
+                    self.scene.setCurrentDateTime(startDateTime, undo=True)
 
                 # Optional: Add Parents
                 if (parentA or parentB) and kind in (
@@ -512,7 +512,7 @@ class AddAnythingDialog(QmlDrawer):
             kwargs = {"location": location} if location else {}
             for person in people:
                 event = Event(
-                    parent,
+                    person,
                     description=description,
                     dateTime=startDateTime,
                     notes=notes,
@@ -681,10 +681,7 @@ class AddAnythingDialog(QmlDrawer):
 
         timelineModel = self.qmlEngine().rootContext().contextProperty("timelineModel")
         if self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
-            self.scene.setCurrentDateTime(
-                timelineModel.lastEventDateTime(), undo=propertyUndoId
-            )
-        commands.stack().endMacro()
+            self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:
             pathItem.flash()
         self.submitted.emit()  # for testing
