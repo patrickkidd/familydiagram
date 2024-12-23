@@ -268,9 +268,7 @@ def qApp():
         prefs = util.Settings(dpath, "vedanamedia")
         return prefs
 
-    with mock.patch(
-        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
-    ):
+    with mock.patch("pkdiagram.util.makeSettings", side_effect=_makeSettings):
         app = Application(sys.argv)
 
     _orig_Server_deinit = Server.deinit

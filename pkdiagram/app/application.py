@@ -25,14 +25,12 @@ class Application(QApplication):
 
     def __init__(self, *args, **kwargs):
 
-        import logging  # Won't pull in from module scope
-
-        # TODO: Should not be global
-        util._prefs = self.makeSettings()
-
+        # Just loaded here temporarily and then destroyed before any mainwindows
+        # appear.
         # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
-        util.prefs().setAutoSave(True)
-        util.prefs().setValue("lastVersion", version.VERSION)
+        prefs = util.makeSettings()
+        prefs.setAutoSave(True)
+        prefs.setValue("lastVersion", version.VERSION)
 
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
@@ -115,15 +113,13 @@ class Application(QApplication):
         CUtil.startup()  # after QApplication() for QFileSystemWatcher
         util.IS_UI_DARK_MODE = CUtil.instance().isUIDarkMode()
 
-        if util.IS_DEV and util.prefs().value(
-            "iCloudWasOn", defaultValue=False, type=bool
-        ):
-            lastiCloudPath = util.prefs().value("lastiCloudPath", defaultValue=None)
+        if util.IS_DEV and prefs.value("iCloudWasOn", defaultValue=False, type=bool):
+            lastiCloudPath = prefs.value("lastiCloudPath", defaultValue=None)
             if lastiCloudPath is not None:
                 # Debug("Forcing docRoot for [dev]:", lastiCloudPath)
                 CUtil.instance().forceDocsPath(lastiCloudPath)
         else:
-            localDocsPath = util.prefs().value("localDocsPath", type=str)
+            localDocsPath = prefs.value("localDocsPath", type=str)
             CUtil.instance().forceDocsPath(localDocsPath)
 
         # def _onQmlWarning(warnings):
@@ -176,6 +172,7 @@ class Application(QApplication):
 
         CUtil.instance().init()  # blocking now, at end of __init__()
         self._qmlUtil.initColors()  # After CUtil.init()
+        prefs = None
 
     def deinit(self):
         def iCloudDevPostInit():
@@ -195,17 +192,6 @@ class Application(QApplication):
 
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())
-
-    @staticmethod
-    def makeSettings() -> QSettings:
-        if util.IS_IOS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
-        elif util.IS_APPLE:
-            prefs = util.Settings("vedanamedia", "familydiagrammac")
-        elif util.IS_WINDOWS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
-
-        return prefs
 
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:

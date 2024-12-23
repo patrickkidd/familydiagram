@@ -1,6 +1,7 @@
 import sys, os.path, logging
 from optparse import OptionParser
 
+from pkdiagram.pyqt import QSettings
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import Application, AppController
@@ -70,10 +71,7 @@ def main():
     else:
 
         app = Application(sys.argv)
-        if options.prefsName:
-            prefs = util.Settings("vedanamedia", options.prefsName)
-        else:
-            prefs = util.prefs()
+        prefs = util.makeSettings(prefsName=options.prefsName)
         controller = AppController(app, prefs, prefsName=options.prefsName)
         controller.init()
 

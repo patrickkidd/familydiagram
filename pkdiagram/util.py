@@ -543,6 +543,16 @@ QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
 
 
+def makeSettings(prefsName=None) -> QSettings:
+    if prefsName is None:
+        if IS_IOS or IS_WINDOWS:
+            prefsName = "familydiagram"
+        elif IS_APPLE:
+            prefsName = "familydiagrammac"
+    prefs = QSettings("vedanamedia", prefsName)
+    return prefs
+
+
 def personKindIndexFromName(name):
     return PERSON_KIND_NAMES.index(name)
 
@@ -1409,36 +1419,6 @@ class Center(QGraphicsItem):
         # center point
         painter.setBrush(QColor("black"))
         painter.drawEllipse(QRectF(0, 0, 5, 5))
-
-
-class Settings(QSettings):
-    """Currently only used for auto save feature."""
-
-    # valueChanged = pyqtSignal(str, QVariant)
-
-    def __init__(self, *args):
-        super().__init__(*args)
-        self._autoSave = False
-        # self.block = False
-
-    def autoSave(self):
-        return self._autoSave
-
-    def setAutoSave(self, x):
-        self._autoSave = bool(x)
-        return self._autoSave
-
-    autoSave = pyqtProperty(bool, autoSave, setAutoSave)
-
-    def setValue(self, *args, **kwargs):
-        super().setValue(*args, **kwargs)
-        # if not self.block:
-        #     self.valueChanged.emit(args[0], args[1])
-        if self.autoSave:
-            self.sync()
-
-    # def blockSignals(self, on):
-    #     self.block = on
 
 
 class ClickFilter(QObject):
