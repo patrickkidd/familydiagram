@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import pyqtSlot, QQmlEngine, QQmlError, QObject, QApplication
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.models import (
     SceneModel,
     SearchModel,
@@ -8,13 +8,6 @@ from pkdiagram.models import (
     AccessRightsModel,
 )
 from pkdiagram.views import QmlVedana
-
-
-class CommandsWrapper(QObject):
-
-    @pyqtSlot(str)
-    def trackView(self, s):
-        commands.trackView(s)
 
 
 class QmlEngine(QQmlEngine):
@@ -32,7 +25,6 @@ class QmlEngine(QQmlEngine):
         super().__init__(parent)
         for path in util.QML_IMPORT_PATHS:
             self.addImportPath(path)
-        self.commands = CommandsWrapper(self)
         self.util = QApplication.instance().qmlUtil()  # should be local, not global
         self.vedana = QmlVedana(self)
         self._errors = []
@@ -57,7 +49,6 @@ class QmlEngine(QQmlEngine):
 
         self.rootContext().setContextProperty("engine", self)
         self.rootContext().setContextProperty("util", self.util)
-        self.rootContext().setContextProperty("commands", self.commands)
         self.rootContext().setContextProperty("vedana", self.vedana)
         self.rootContext().setContextProperty("session", self.session)
         self.rootContext().setContextProperty("sceneModel", self.sceneModel)

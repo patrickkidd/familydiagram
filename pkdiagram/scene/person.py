@@ -36,7 +36,7 @@ from pkdiagram.scene import (
     VariablesDatabase,
     random_names,
 )
-from pkdiagram.scene import SetParents
+from pkdiagram.scene.commands import SetParents
 
 
 _log = logging.getLogger(__name__)

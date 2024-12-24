@@ -44,6 +44,7 @@ from pkdiagram.pyqt import (
     QVariant,
     QMessageBox,
     QEventLoop,
+    QSettings,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
@@ -263,12 +264,10 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
 def qApp():
     log.debug(f"Create qApp for familydiagram/tests")
 
-    def _makeSettings():
-        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
-        prefs = util.Settings(dpath, "vedanamedia")
-        return prefs
-
-    with mock.patch("pkdiagram.util.makeSettings", side_effect=_makeSettings):
+    # Just a placeholder to avoid overwriting the user app folder one; each test
+    # will be mocked
+    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+    with mock.patch("pkdiagram.app.application.Application.prefs", return_value=prefs):
         app = Application(sys.argv)
 
     _orig_Server_deinit = Server.deinit
@@ -303,6 +302,13 @@ def qApp():
         yield app
 
     app.deinit()
+
+
+@pytest.fixture(autouse=True)
+def prefs():
+    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
+        yield prefs
 
 
 @pytest.fixture(autouse=True)

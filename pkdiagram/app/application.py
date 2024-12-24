@@ -23,14 +23,11 @@ log = logging.getLogger(__name__)
 
 class Application(QApplication):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, prefsName=None, **kwargs):
+        self._prefsName = prefsName
 
-        # Just loaded here temporarily and then destroyed before any mainwindows
-        # appear.
-        # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
-        prefs = util.makeSettings()
-        prefs.setAutoSave(True)
-        prefs.setValue("lastVersion", version.VERSION)
+        # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
+        self.prefs().setValue("lastVersion", version.VERSION)
 
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
@@ -113,13 +110,15 @@ class Application(QApplication):
         CUtil.startup()  # after QApplication() for QFileSystemWatcher
         util.IS_UI_DARK_MODE = CUtil.instance().isUIDarkMode()
 
-        if util.IS_DEV and prefs.value("iCloudWasOn", defaultValue=False, type=bool):
-            lastiCloudPath = prefs.value("lastiCloudPath", defaultValue=None)
+        if util.IS_DEV and self.prefs().value(
+            "iCloudWasOn", defaultValue=False, type=bool
+        ):
+            lastiCloudPath = self.prefs().value("lastiCloudPath", defaultValue=None)
             if lastiCloudPath is not None:
                 # Debug("Forcing docRoot for [dev]:", lastiCloudPath)
                 CUtil.instance().forceDocsPath(lastiCloudPath)
         else:
-            localDocsPath = prefs.value("localDocsPath", type=str)
+            localDocsPath = self.prefs().value("localDocsPath", type=str)
             CUtil.instance().forceDocsPath(localDocsPath)
 
         # def _onQmlWarning(warnings):
@@ -172,15 +171,14 @@ class Application(QApplication):
 
         CUtil.instance().init()  # blocking now, at end of __init__()
         self._qmlUtil.initColors()  # After CUtil.init()
-        prefs = None
 
     def deinit(self):
         def iCloudDevPostInit():
             iCloudRoot = CUtil.instance().iCloudDocsPath()
             if iCloudRoot:
-                lastiCloudPath = util.prefs().value("lastiCloudPath", defaultValue=None)
+                lastiCloudPath = self.prefs().value("lastiCloudPath", defaultValue=None)
                 if iCloudRoot != lastiCloudPath:
-                    util.prefs().setValue("lastiCloudPath", iCloudRoot)
+                    self.prefs().setValue("lastiCloudPath", iCloudRoot)
 
         iCloudDevPostInit()
         CUtil.instance().deinit()
@@ -189,6 +187,16 @@ class Application(QApplication):
         if not "pytest" in sys.modules:
             sys.excepthook = self._excepthook_was
         self._excepthook_was = None
+
+    def prefs(self):
+        if not self._prefs:
+            if self._prefsName is None:
+                if util.IS_IOS or util.IS_WINDOWS:
+                    self._prefsName = "familydiagram"
+                elif util.IS_APPLE:
+                    self._prefsName = "familydiagrammac"
+            self._prefs = QSettings("vedanamedia", self._prefsName)
+        return self._prefs
 
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())

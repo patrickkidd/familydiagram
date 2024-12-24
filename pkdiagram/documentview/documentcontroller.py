@@ -22,7 +22,7 @@ from pkdiagram.pyqt import (
     QColor,
     QItemSelection,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Property, Person, Emotion, Event, LayerItem, Layer, ChildOf
 from pkdiagram.models import selectedEvents
 from pkdiagram.widgets import Drawer
@@ -70,8 +70,8 @@ class DocumentController(QObject):
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
 
         # Edit
-        self.ui.actionUndo.triggered.connect(self.view.onUndo)
-        self.ui.actionRedo.triggered.connect(self.view.onRedo)
+        self.ui.actionUndo.triggered.connect(self.onUndo)
+        self.ui.actionRedo.triggered.connect(self.onRedo)
         self.ui.actionInspect.triggered.connect(self.onInspect)
         self.ui.actionInspect_Item.triggered.connect(self.onInspectItemTab)
         self.ui.actionInspect_Timeline.triggered.connect(self.onInspectTimelineTab)
@@ -535,8 +535,10 @@ class DocumentController(QObject):
         self.ui.actionShow_Legend.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
 
-        self.ui.actionUndo.setEnabled(on and commands.stack().canUndo())
-        self.ui.actionRedo.setEnabled(on and commands.stack().canRedo())
+        canUndo = self.scene.stack().canUndo if self.scene else False
+        self.ui.actionUndo.setEnabled(on and canUndo)
+        canRedo = self.scene.stack().canRedo if self.scene else False
+        self.ui.actionRedo.setEnabled(on and canRedo)
         if self.scene:
             numLayers = len(self.scene.layers(includeInternal=False))
             iActiveLayer = self.scene.activeLayer()
@@ -759,6 +761,14 @@ class DocumentController(QObject):
 
     def onGraphicalTimelineViewExpandedOrContracted(self):
         self.dv.graphicalTimelineCallout.hide()
+
+    def onUndo(self):
+        self.scene.stack().undo()
+        self.view.onUndo()
+
+    def onRedo(self):
+        self.scene.stack().redo()
+        self.view.onRedo()
 
     def onDelete(self):
         fw = QApplication.focusWidget()

@@ -46,14 +46,10 @@ def modTest(__test__, loadfile=True, useMW=False):
 
     sys.path.append(os.path.realpath(os.path.join(__file__, "..", "..", "tests")))
 
-    def _makeSettings():
-        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
-        prefs = util.Settings(dpath, "vedanamedia")
-        return prefs
-
-    with mock.patch(
-        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
-    ):
+    prefs = util.Settings(
+        os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia"
+    )
+    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
         app = Application(sys.argv)
 
     def _quit(x, y):

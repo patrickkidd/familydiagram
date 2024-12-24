@@ -1,6 +1,6 @@
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import QDialog, QApplication, QFileDialog
-from pkdiagram import version, util, commands
+from pkdiagram import version, util
 from pkdiagram.mainwindow.preferences_form import Ui_Preferences
 
 
@@ -90,18 +90,18 @@ class Preferences(QDialog):
     def onEditorMode(self, on):
         self.prefs.setValue("editorMode", on)
         self.mw.onEditorMode(on)
-        commands.track("Prefs: editorMode %s" % on)
+        self.mw.session.track("Prefs: editorMode %s" % on)
 
     @util.blocked
     def onReopenLastFile(self, on):
         self.prefs.setValue("reopenLastFile", on)
-        commands.track("Prefs: reopenLastFile %s" % on)
+        self.mw.session.track("Prefs: reopenLastFile %s" % on)
 
     @util.blocked
     def onEnablePinchZoom(self, on):
         util.ENABLE_PINCH_PAN_ZOOM = on
         self.prefs.setValue("enablePinchPanZoom", on)
-        commands.track("Prefs: enablePinchZoom %s" % on)
+        self.mw.session.track("Prefs: enablePinchZoom %s" % on)
 
     @util.blocked
     def onEnableWheelPan(self, on):
@@ -111,7 +111,7 @@ class Preferences(QDialog):
     @util.blocked
     def onCheckForUpdatesAutomatically(self, on):
         self.prefs.setValue("checkForUpdatesAutomatically", on)
-        commands.track("Prefs: checkForUpdatesAutomatically %s" % on)
+        self.mw.session.track("Prefs: checkForUpdatesAutomatically %s" % on)
 
     @util.blocked
     def onDarkLightMode(self, on):
@@ -124,7 +124,9 @@ class Preferences(QDialog):
         elif self.ui.darkLightLightBox.isChecked():
             self.prefs.setValue("darkLightMode", util.PREFS_UI_LIGHT_MODE)
         QApplication.instance().paletteChanged.emit(QApplication.instance().palette())
-        commands.track("Prefs: darkLightMode %s" % self.prefs.value("darkLightMode"))
+        self.mw.session.track(
+            "Prefs: darkLightMode %s" % self.prefs.value("darkLightMode")
+        )
 
     @util.blocked
     def oniCloudOnChanged(self, on):
@@ -134,7 +136,7 @@ class Preferences(QDialog):
     @util.blocked
     def oniCloudDrive(self, on):
         if on and on != util.usingOrSimulatingiCloud():
-            commands.track("iCloud %s" % on)
+            self.mw.session.track("iCloud %s" % on)
             # if on:
             #     ret = QMessageBox.question(self, 'Are you sure?',
             #                                'Are you sure you want to move all of your files from your local Documents folder to iCloud Drive?')
@@ -153,7 +155,7 @@ class Preferences(QDialog):
 
     def onLocalDrive(self, on):
         if on and on != (not util.usingOrSimulatingiCloud()):
-            commands.track("Use local drive %s" % on)
+            self.mw.session.track("Use local drive %s" % on)
             # ret = QMessageBox.question(self, 'Are you sure?',
             #                            'Are you sure you want to move all of your files from iCloud Drive to your local folder?')
             # if ret == QMessageBox.No:

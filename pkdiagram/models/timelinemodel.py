@@ -15,7 +15,7 @@ from pkdiagram.pyqt import (
     pyqtSlot,
     qmlRegisterType,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 

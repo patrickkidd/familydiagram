@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import Qt, QAbstractTableModel, QModelIndex, qmlRegisterType
-from pkdiagram import util, commands
+from pkdiagram import util
 from .modelhelper import ModelHelper
 
 

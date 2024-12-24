@@ -1,13 +1,11 @@
 from pkdiagram.pyqt import (
     Qt,
     QObject,
-    pyqtSlot,
     QDate,
-    QAbstractItemModel,
     QDateTime,
     qmlRegisterType,
 )
-from pkdiagram import util, scene, commands
+from pkdiagram import util, scene
 from pkdiagram.scene import EventKind
 from pkdiagram.models import ModelHelper
 

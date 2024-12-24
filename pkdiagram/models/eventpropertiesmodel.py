@@ -6,7 +6,6 @@ from pkdiagram.pyqt import (
     pyqtSlot,
     qmlRegisterType,
 )
-from pkdiagram import commands
 from pkdiagram.scene import Item, Event, Emotion
 from .modelhelper import ModelHelper
 from pkdiagram.pyqt import pyqtSlot

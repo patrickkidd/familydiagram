@@ -11,9 +11,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QMessageBox,
 )
-from pkdiagram import util, scene, commands
-from ..scene import Item, Property, Layer
-from ..scene import Scene
+from pkdiagram import util
 from .modelhelper import ModelHelper
 from pkdiagram.models import SearchModel
 

@@ -70,13 +70,12 @@ def main():
 
     else:
 
-        app = Application(sys.argv)
-        prefs = util.makeSettings(prefsName=options.prefsName)
-        controller = AppController(app, prefs, prefsName=options.prefsName)
+        app = Application(sys.argv, prefsName=options.prefsName)
+        controller = AppController(app, prefsName=options.prefsName)
         controller.init()
 
         mainWindow = MainWindow(
-            appConfig=controller.appConfig, session=controller.session, prefs=prefs
+            appConfig=controller.appConfig, session=controller.session
         )
         mainWindow.init()
 

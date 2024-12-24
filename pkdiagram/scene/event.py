@@ -1,7 +1,7 @@
 import os
 
 from pkdiagram.pyqt import QDateTime
-from pkdiagram import util, commands, slugify
+from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, Item, Property
 from pkdiagram.scene.commands import SetEventParent
 
@@ -37,7 +37,7 @@ class Event(Item):
         self.parent = None
         # avoid adding to the parent in various cases
         if parent:  # for tidyness in ctors
-            self.setParent(parent, notify=False)
+            self._do_setParent(parent)
             self.updateDescription()
 
     def itemName(self):
@@ -142,7 +142,7 @@ class Event(Item):
         else:
             return False
 
-    def _setParent(self, parent):
+    def _do_setParent(self, parent):
         was = self.parent
         self.parent = parent
         if was and not was.isEmotion and not was.isScene:
@@ -169,7 +169,7 @@ class Event(Item):
         if undo:
             self.scene().push(SetEventParent(self, parent))
         else:
-            self._setParent(parent)
+            self._do_setParent(parent)
 
     def onProperty(self, prop):
         if prop.name() == "description" or (

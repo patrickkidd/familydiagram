@@ -519,16 +519,6 @@ QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
 
 
-def makeSettings(prefsName=None) -> QSettings:
-    if prefsName is None:
-        if IS_IOS or IS_WINDOWS:
-            prefsName = "familydiagram"
-        elif IS_APPLE:
-            prefsName = "familydiagrammac"
-    prefs = QSettings("vedanamedia", prefsName)
-    return prefs
-
-
 def personKindIndexFromName(name):
     return PERSON_KIND_NAMES.index(name)
 

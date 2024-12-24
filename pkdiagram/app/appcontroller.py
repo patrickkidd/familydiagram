@@ -2,7 +2,7 @@ import signal, os.path, logging
 
 import vedana
 from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox
-from pkdiagram import util, version, commands, pepper
+from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
 
 
@@ -71,7 +71,6 @@ class AppController(QObject):
         assert not self.isInitialized
 
         self._analytics.init()
-        commands.setActiveSession(self.session)  # hack
 
         self.appConfig.init()
 
@@ -82,7 +81,6 @@ class AppController(QObject):
         self.session.deinit()
 
         self._analytics.deinit()
-        commands.setActiveSession(None)  # hack
 
     def _pre_event_loop(self, mw):
         """

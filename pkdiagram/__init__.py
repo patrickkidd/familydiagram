@@ -9,7 +9,6 @@ util.init_logging()
 
 from .slugify import slugify
 from . import version
-from . import commands
 from . import scene
 from . import widgets
 from . import models

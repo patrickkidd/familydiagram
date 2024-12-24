@@ -66,7 +66,7 @@ PK.Drawer {
     }
     
     function inspectEvents(events) {
-        commands.trackView('Edit timeline events')
+        session.trackView('Edit timeline events')
         eventProperties.eventModel.items = events
         eventPropertiesDrawer.visible = true
     }
@@ -83,7 +83,7 @@ PK.Drawer {
     }
 
     function onInspectNotes(row) {
-        commands.trackView('Edit event notes')
+        session.trackView('Edit event notes')
         eventProperties.eventModel.items = timelineView.selectedEvents
         eventProperties.setCurrentTab('notes')
         eventPropertiesDrawer.visible = true

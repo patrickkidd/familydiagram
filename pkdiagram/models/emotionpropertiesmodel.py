@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Item, Emotion
 from .modelhelper import ModelHelper
 

@@ -20,7 +20,7 @@ from pkdiagram.pyqt import (
     QColor,
     QMarginsF,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Event, PathItem
 from pkdiagram.scene.commands import SetEmotionPerson
 

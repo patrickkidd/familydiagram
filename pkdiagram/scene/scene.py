@@ -57,9 +57,9 @@ from pkdiagram.scene import (
 )
 from pkdiagram.scene.commands import (
     AddItem,
-    RemoveItem,
+    RemoveItems,
     SetParents,
-    ReplaceEventProperty,
+    RenameEventProperty,
     ReplaceEventProperties,
     AddEventProperty,
     RemoveEventProperty,
@@ -335,8 +335,7 @@ class Scene(QGraphicsScene, Item):
 
     def removeItem(self, item, undo=False):
         if undo:
-            cmd = RemoveItem(item)
-            self.push(cmd)
+            self.push(RemoveItems(item))
         else:
             self._removeItem(item)
 
@@ -398,11 +397,11 @@ class Scene(QGraphicsScene, Item):
                 self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
-            item.personA()._onAddEmotion(self.emotion)
+            item.personA()._onAddEmotion(item)
             if item.personB():
-                item.personB()._onAddEmotion(self.emotion)
+                item.personB()._onAddEmotion(item)
             if not self.isBatchAddingRemovingItems():
-                self.setCurrentDateTime(self.emotion.startDateTime())
+                self.setCurrentDateTime(item.startDateTime())
                 self.emotionAdded.emit(item)
         elif item.isLayer:
             self._layers.append(item)
@@ -1524,6 +1523,9 @@ class Scene(QGraphicsScene, Item):
 
     # Undo/Redo
 
+    def stack(self) -> QUndoStack:
+        return self._undoStack
+
     def push(self, cmd: QUndoCommand):
         cmd.scene = self
         self._undoStack.push(cmd)
@@ -2137,7 +2139,7 @@ class Scene(QGraphicsScene, Item):
 
     def renameEventProperty(self, oldName: str, newName: str, undo=False):
         if undo:
-            self.push(ReplaceEventProperty(oldName, newName))
+            self.push(RenameEventProperty(oldName, newName))
         else:
             self._do_renameEventProperty(oldName, newName)
 

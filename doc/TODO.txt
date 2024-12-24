@@ -3,6 +3,7 @@ v2.0.0
 
 DECOUPLING COMMANDS
 -----------------------
+- Search "commands."
 - Verify that empty macros do not not add noop undo's
 - Remove all occurrences of mergeWith() in command.py
   - No case for command compression any more.

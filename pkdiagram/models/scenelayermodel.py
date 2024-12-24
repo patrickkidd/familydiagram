@@ -8,9 +8,8 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QApplication,
 )
-from pkdiagram import util, commands
-from ..scene import Scene
-from ..scene import Layer, LayerItem, Property, Person
+from pkdiagram import util
+from ..scene import Layer, LayerItem, Property
 from .modelhelper import ModelHelper
 
 
