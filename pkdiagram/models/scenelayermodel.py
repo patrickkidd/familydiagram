@@ -157,7 +157,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     def moveLayer(self, oldRow, newRow):
         self._reorderingLayers = True
         self._layers.insert(newRow, self._layers.pop(oldRow))
-        commands.setLayerOrder(self._scene, self._layers)
+        self._scene.setLayerOrder(self._layers, undo=True)
         self.modelReset.emit()
         self._reorderingLayers = False
 

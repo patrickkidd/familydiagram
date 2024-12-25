@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QPointF
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import (
     Person,
     Event,
@@ -211,20 +211,20 @@ def test_date_undo_redo(pp, personProps):
     pp.mouseClick("birthDateButtons.clearButton")  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    pp.scene.stack().undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
     assert pp.itemProp("birthDateButtons", "dateTime") == dateTime
     assert pp.itemProp("birthDatePicker", "dateTime") == dateTime
 
     util.HERE = True
 
-    commands.stack().redo()  # 1
+    pp.scene.stack().redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    pp.scene.stack().undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
 
-    commands.stack().redo()  # 1
+    pp.scene.stack().redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
 

@@ -1136,12 +1136,12 @@ class MainWindow(QMainWindow):
                 self.scene.toggleShowPathItemShapes
             )
             self.scene.loaded.disconnect(self.showDiagram)
+            self.scene.stack().clear()
             self.scene.deinit(self.itemGarbage)  # hopefully it gets deleted now
 
         self.ui.actionShow_Scene_Center.setChecked(False)
         self.ui.actionShow_Print_Rect.setChecked(False)
         self.ui.actionShow_View_Scene_Rect.setChecked(False)
-        commands.stack().clear()
 
         oldDoc, newDoc = self.document, document
         self.document = document
@@ -1212,7 +1212,7 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionShow_Legend.setChecked(self.scene.legendData()["shown"])
             self._blocked = False
-            commands.stack().clear()
+            self.scene.stack().clear()
             self.documentView.setScene(self.scene)
             # various scenarios for delaying the view animation for aesthetics
             if self.isInitializing:  # loading last opened file stored in prefs
@@ -1235,8 +1235,6 @@ class MainWindow(QMainWindow):
             self.ui.actionImport_Diagram.setEnabled(False)
             self.ui.actionClose.setEnabled(False)
             self.serverPollTimer.stop()
-        self.ui.actionUndo.setEnabled(commands.stack().canUndo())
-        self.ui.actionRedo.setEnabled(commands.stack().canRedo())
         self.updateWindowTitle()
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
@@ -1249,10 +1247,10 @@ class MainWindow(QMainWindow):
                 self.serverFileModel.syncDiagramFromServer(diagram.id)
 
     def onDocumentFileAdded(self, relativePath):
-        commands.stack().resetClean()
+        self.scene.stack().resetClean()
 
     def onDocumentFileRemoved(self, relativePath):
-        commands.stack().resetClean()
+        self.scene.stack().resetClean()
 
     def onFileLocked(self, url):
         if url == self.document.url():
@@ -1432,7 +1430,8 @@ class MainWindow(QMainWindow):
             self.documentView.move(self.width(), 0)
             self.onViewAnimationDone()
         self.updateWindowTitle()
-        commands.stack().clear()
+        if self.scene:
+            self.scene.stack().clear()
 
     def onViewAnimationDone(self):
         if self.documentView.x() == self.width():  # at home

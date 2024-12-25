@@ -1,6 +1,5 @@
 import pytest
 
-from pkdiagram import commands
 from pkdiagram.scene import Scene, Item, Person, Marriage, Layer
 
 pytestmark = [pytest.mark.component("Item")]
@@ -126,7 +125,7 @@ def test_layered_property():
 
 
 def test_layered_property_undo_redo():
-    """commands.SetProperty wasn't working for non-layered properties."""
+    """SetProperty wasn't working for non-layered properties."""
     scene = Scene()
     item = LayeredItem()
     layer = Layer(name="View 1")
@@ -140,12 +139,12 @@ def test_layered_property_undo_redo():
     assert item.count == 1
     assert item.layeredCount == 0
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert item.num() == -1
     assert item.count == 2
     assert item.layeredCount == 0
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert item.num() == 1
     assert item.count == 3
     assert item.layeredCount == 0

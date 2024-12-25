@@ -147,7 +147,7 @@ def test_undo_remove_child_selected(qtbot, simpleScene):
     p2.setSelected(True)
 
     qtbot.clickYesAfter(lambda: simpleScene.removeSelection())
-    commands.stack().undo()
+    simpleScene.undo()
 
     assert not m.isSelected()
     assert not p.isSelected()
@@ -662,10 +662,10 @@ def test_undo_add_remove_layered_item_props(qtbot):
     qtbot.clickYesAfter(lambda: scene.removeSelection())
     assert len(scene.items()) == 0
 
-    commands.stack().undo()
+    scene.undo()
     assert len(scene.items()) == 24
 
-    commands.stack().redo()
+    scene.redo()
     assert len(scene.items()) == 0
 
 

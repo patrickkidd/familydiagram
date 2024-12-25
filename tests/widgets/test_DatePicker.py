@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import QObject, QWidget, QVBoxLayout, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import Item
+from pkdiagram.scene import Item, Scene
 from pkdiagram.models import ModelHelper
 from pkdiagram.widgets import QmlWidgetHelper
 
@@ -48,10 +48,12 @@ class DatePickerTest(QWidget, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         super().__init__(parent)
         self.model = DateModel()
+        self.model.scene = Scene()
         self.initQmlWidgetHelper(engine, "tests/qml/DatePickerTest.qml")
         self.checkInitQml()
         self.setRootProp("model", self.model)
         item = DatedItem()
+        self.model.scene.addItem(item)
         self.model.items = [item]
         self.resize(800, 600)
         Layout = QVBoxLayout(self)
@@ -161,6 +163,7 @@ def test_reset_prop_from_buttons(datePickerTest):
 
 def test_reset_undo_redo(datePickerTest):
     view = datePickerTest
+    scene = view.rootModel().scene
     dateTime = QDateTime(2001, 2, 3, 0, 0)
     view.model.dateTime = dateTime  # 0
     assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"
@@ -169,18 +172,18 @@ def test_reset_undo_redo(datePickerTest):
     view.mouseClick("clearButton")  # 1
     assert view.itemProp("dateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"
     assert view.itemProp("dateButtons", "dateTime") == dateTime
     assert view.itemProp("datePickerTumbler", "dateTime") == dateTime
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert view.itemProp("dateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert view.itemProp("dateButtons.dateTextInput", "text") == "--/--/----"
 
 

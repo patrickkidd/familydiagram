@@ -64,6 +64,7 @@ from pkdiagram.scene.commands import (
     AddEventProperty,
     RemoveEventProperty,
     SetPos,
+    SetLayerOrder,
 )
 
 
@@ -335,7 +336,7 @@ class Scene(QGraphicsScene, Item):
 
     def removeItem(self, item, undo=False):
         if undo:
-            self.push(RemoveItems(item))
+            self.push(RemoveItems(self, item))
         else:
             self._removeItem(item)
 
@@ -1437,6 +1438,17 @@ class Scene(QGraphicsScene, Item):
     def layersForPerson(self, person):
         return [self.find(id=layerId) for layerId in person.layers()]
 
+    def _do_setLayerOrder(self, layers: list[Layer]):
+        for i, layer in enumerate(layers):
+            layer.setOrder(i)
+        self.resortLayersFromOrder()
+
+    def setLayerOrder(self, layers: list[Layer], undo=False):
+        if undo:
+            self.push(SetLayerOrder(self, layers))
+        else:
+            self._do_setLayerOrder(layers)
+
     def draggableUnder(self, pos):
         for item in self.items(pos):
             if item.flags() & QGraphicsItem.ItemIsMovable:
@@ -1527,7 +1539,6 @@ class Scene(QGraphicsScene, Item):
         return self._undoStack
 
     def push(self, cmd: QUndoCommand):
-        cmd.scene = self
         self._undoStack.push(cmd)
 
     def undo(self):

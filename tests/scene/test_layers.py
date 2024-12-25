@@ -8,12 +8,6 @@ from pkdiagram.scene import Scene, Layer, PathItem, Person, Property, Callout
 pytestmark = [pytest.mark.component("Layer")]
 
 
-@pytest.fixture
-def undoStack():
-    commands.stack().clear()
-    return commands.stack()
-
-
 def test_scene_layersForPerson():
     scene = Scene()
     layer1 = Layer()
@@ -85,7 +79,7 @@ def test_layerOrderChanged():
     assert layerOrderChanged.callCount == 1
 
 
-def test_scene_signals(simpleScene, undoStack):
+def test_scene_signals(simpleScene):
     onLayerAdded = util.Condition()
     simpleScene.layerAdded[Layer].connect(onLayerAdded)
     onLayerChanged = util.Condition()
@@ -127,7 +121,7 @@ def test_scene_signals(simpleScene, undoStack):
     assert onLayerRemoved.callCount == 3
 
 
-def test_undo_commands(simpleScene, undoStack):
+def test_undo_commands(simpleScene):
     """Test merging multiple undo commands values."""
     person1 = simpleScene.query1(name="p1")
     person2 = simpleScene.query1(name="p2")
@@ -136,24 +130,22 @@ def test_undo_commands(simpleScene, undoStack):
     simpleScene.addItem(layer)
     layer.setActive(True)
 
-    assert False, "Need to re-implement"
+    with simpleScene.macro():
+        person1.setColor("#ABCABC", undo=True)
+        person2.setColor("#DEFDEF", undo=True)
 
-    id = commands.nextId()
-    person1.setColor("#ABCABC", undo=id)
-    person2.setColor("#DEFDEF", undo=id)
-
-    id = commands.nextId()
-    person1.setColor("#123123", undo=id)
-    person2.setColor("#456456", undo=id)
+    with simpleScene.macro():
+        person1.setColor("#123123", undo=True)
+        person2.setColor("#456456", undo=True)
 
     assert person1.color() == "#123123"
     assert person2.color() == "#456456"
 
-    undoStack.undo()
+    simpleScene.undo()
     assert person1.color() == "#ABCABC"
     assert person2.color() == "#DEFDEF"
 
-    undoStack.undo()
+    simpleScene.undo()
     assert person1.color() == None
     assert person2.color() == None
 
@@ -403,7 +395,7 @@ def test_delete_layer_prop_with_items(qtbot):
     assert value == None
     assert len(layer.itemProperties().items()) == 0
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     value, ok = layer.getItemProperty(item.id, "something")
     assert ok == True
     assert value == "here"

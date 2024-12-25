@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Marriage, Event, Scene, Emotion
 from pkdiagram.views import QmlDrawer
 
@@ -379,6 +379,7 @@ def test_reset_description_on_reset_uniqueId(qtbot, ep):
 
 
 def test_uniqueId_undo_redo(qtbot, ep):
+    scene = ep.rootModel().scene
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
@@ -386,6 +387,7 @@ def test_uniqueId_undo_redo(qtbot, ep):
         uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
+    scene.addItems(personA, personB, marriage)
     ep.eventModel.items = [married]
     qtbot.waitActive(ep)
     ep.mouseClick("resetUniqueIdButton")
@@ -393,18 +395,20 @@ def test_uniqueId_undo_redo(qtbot, ep):
     assert married.description() == None
     assert ep.itemProp("uniqueIdBox", "currentText") == ""
 
-    commands.stack().undo()
+    scene.undo()
     assert married.uniqueId() == EventKind.Married.value
     assert married.description() == "Married"
     assert ep.itemProp("uniqueIdBox", "currentText") == "Married"
 
 
 def test_uniqueId_undo_redo_custom_event(qtbot, ep):
+    scene = ep.rootModel().scene
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     event = Event(
         parent=marriage, description="Something", dateTime=util.Date(1900, 1, 1)
     )
+    scene.addItems(personA, personB, marriage)
     ep.eventModel.items = [event]
     qtbot.waitActive(ep)
     assert event.uniqueId() == None
@@ -418,14 +422,14 @@ def test_uniqueId_undo_redo_custom_event(qtbot, ep):
     assert event.description() == "Separated"
     assert ep.itemProp("descriptionEdit", "text") == "Separated"
 
-    commands.stack().undo()
+    scene.undo()
     assert event.uniqueId() == None
     assert event.description() == "Something"
     assert ep.itemProp("uniqueIdBox", "currentText") == ""
     assert ep.itemProp("uniqueIdBox", "currentIndex") == -1
     assert ep.itemProp("descriptionEdit", "text") == "Something"
 
-    commands.stack().redo()
+    scene.redo()
     assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     assert ep.itemProp("descriptionEdit", "text") == "Separated"

@@ -671,3 +671,18 @@ class ReplaceEventProperties(QUndoCommand):
     def undo(self):
         self.scene.replaceEventProperties(self.oldPropNames)
         RemoveEventProperty.writeValueCache(self.scene, self.valueCache)
+
+
+class SetLayerOrder(QUndoCommand):
+
+    def __init__(self, scene, layers):
+        super().__init__("Set layer order")
+        self.scene =
+        self.was_layers = scene.layers()  # sorted
+        self.layers = list(layers)  # new sorted
+
+    def redo(self):
+        self.scene._do_setLayerOrder(self.layers)
+
+    def undo(self):
+        self.scene._do_setLayerOrder(self.was_layers)
