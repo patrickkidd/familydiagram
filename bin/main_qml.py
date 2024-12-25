@@ -5,7 +5,6 @@ from pkdiagram.pyqt import *
 import pkdiagram
 from pkdiagram import (
     util,
-    commands,
     QmlDrawer,
     QmlWidgetHelper,
     Layer,

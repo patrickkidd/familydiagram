@@ -1,6 +1,6 @@
 import pytest
 from pkdiagram.pyqt import QPointF, QDateTime
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel

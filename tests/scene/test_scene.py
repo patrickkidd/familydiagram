@@ -3,7 +3,7 @@ import os, os.path, pickle
 import pytest
 
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import (
     Scene,
     Item,
@@ -859,16 +859,6 @@ def test_save_load_delete_items(qtbot):
         assert id == item.id
     scene.selectAll()
     qtbot.clickYesAfter(lambda: scene.removeSelection())  # would throw exception
-
-
-@pytest.mark.skip(
-    reason="Import into non-free diagram relies on paste which is not supported yet."
-)
-def test_import(simpleScene):
-    scene = Scene()
-    simpleScene.selectAll()
-    commands.importItems(scene, simpleScene.selectedItems())
-    assert len(scene.items()) == len(simpleScene.items())
 
 
 class View(QGraphicsView):

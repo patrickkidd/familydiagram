@@ -677,7 +677,7 @@ class SetLayerOrder(QUndoCommand):
 
     def __init__(self, scene, layers):
         super().__init__("Set layer order")
-        self.scene =
+        self.scene = scene
         self.was_layers = scene.layers()  # sorted
         self.layers = list(layers)  # new sorted
 
