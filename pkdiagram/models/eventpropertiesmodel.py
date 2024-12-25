@@ -125,7 +125,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                 was = None
             # Aggregate uniqueId and description props into single undo command
             # it is assumed the value is not blank
-            with self._scene.macro():
+            with self._scene.macro(f"Set event type"):
                 for item in self.items:
                     # notify=False here so that description isn't automatically set in onProperty('uniqueId')
                     # that allows the undo command ot be aggregated here.
@@ -147,7 +147,7 @@ class EventPropertiesModel(QObject, ModelHelper):
         if attr == "parentId" and self._scene:
             person = self._scene.find(id=value)
             if person:
-                with self._scene.macro():
+                with self._scene.macro("Set event owner"):
                     for event in self._items:
                         if event.uniqueId() is None:
                             event.setParent(person, undo=True)
@@ -163,7 +163,7 @@ class EventPropertiesModel(QObject, ModelHelper):
     def reset(self, attr):
         if attr == "uniqueId":
             # Aggregate uniqueId and description props into single undo command
-            with self._scene.macro():
+            with self._scene.macro("Reset event id"):
                 for item in self.items:
                     # notify=False here so that description isn't automatically set in onProperty('uniqueId')
                     item.prop("uniqueId").reset(notify=False, undo=True)

@@ -1190,7 +1190,7 @@ class Scene(QGraphicsScene, Item):
             self.setItemMode(util.ITEM_NONE)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
-            with self.macro():
+            with self.macro("Move item(s)"):
                 for item in self.selectedItems():
                     self.push(SetPos(item, item.pos()))
             self.mousePressOnDraggable = None  # for self.checkItemDragged()
@@ -1275,7 +1275,7 @@ class Scene(QGraphicsScene, Item):
 
     def nudgeSelection(self, delta):
         self._isNudgingSomething = True
-        with self.macro():
+        with self.macro("Nudge diagram selection"):
             selection = self.selectedStuff()
             for item in selection:
                 if not item.parentItem() in selection:
@@ -1548,10 +1548,10 @@ class Scene(QGraphicsScene, Item):
         self._undoStack.redo()
 
     @contextlib.contextmanager
-    def macro(self, batchAddRemove=False):
+    def macro(self, text, batchAddRemove=False):
         if batchAddRemove:
             self.setBatchAddingRemovingItems(True)
-        self._undoStack.beginMacro()
+        self._undoStack.beginMacro(text)
         _e = None
         try:
             yield
@@ -1757,7 +1757,7 @@ class Scene(QGraphicsScene, Item):
         """Put in batch job so zoomFit can run after all items are shown|hidden."""
         activeLayers = []
         changedLayers = []
-        with self.macro():
+        with self.macro("Set active layer"):
             for layer in self.layers():
                 if layer.order() == iLayer:
                     if layer.active() is not True:
@@ -1787,7 +1787,7 @@ class Scene(QGraphicsScene, Item):
         self.setTag(tag, notify, undo=True)
 
     def removeTag(self, tag, notify=True):
-        with self.macro():
+        with self.macro(f"Remove tag '{tag}'"):
             items = self.find(tags=tag)
             self.unsetTag(tag, notify=notify)
             for item in items:
@@ -1795,7 +1795,7 @@ class Scene(QGraphicsScene, Item):
 
     def renameTag(self, old, new):
         if old in self.tags():
-            with self.macro():
+            with self.macro(f"Rename tag '{old}' to '{new}'"):
                 self.removeTag(old, notify=False)
                 self.addTag(new, notify=False)
                 for item in self.find(tags=old):
@@ -1880,7 +1880,7 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            with self.macro():
+            with self.macro("Delete diagram selection"):
                 for item in self.selectedItems():
                     self.removeItem(item)
 
@@ -1891,7 +1891,7 @@ class Scene(QGraphicsScene, Item):
     def cut(self):
         items = self.selectedItems()
         self.clipboard = clipboard.Clipboard(items)
-        with self.macro():
+        with self.macro("Cut diagram items"):
             for item in items:
                 self.removeItem(item, undo=True)
         self.clipboardChanged.emit()
@@ -1914,7 +1914,7 @@ class Scene(QGraphicsScene, Item):
         if not selectedPeople:
             return
 
-        with self.macro(batchAddRemove=True):
+        with self.macro("Add parents to person", batchAddRemove=True):
             for person in selectedPeople:
                 rect = person.mapToScene(person.boundingRect()).boundingRect()
                 fatherPos = person.pos() - QPointF(
@@ -2122,11 +2122,11 @@ class Scene(QGraphicsScene, Item):
                 event.removeDynamicProperty(entry["attr"])
 
     def addEventProperty(self, propName, index=None):
-        self.push(AddEventProperty(propName, index))
+        self.push(AddEventProperty(self, propName, index))
 
     def removeEventPropertyByName(self, propName: str, undo=False):
         if undo:
-            self.push(RemoveEventProperty(propName))
+            self.push(RemoveEventProperty(self, propName))
         else:
             self._do_removeEventPropertyByName(propName)
 

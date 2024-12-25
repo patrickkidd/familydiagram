@@ -192,7 +192,9 @@ class ModelHelper(QObjectHelper):
         notify = not self._blockNotify
         undo = not self._blockUndo
         foundItemProp = False
-        with self._scene.macro():
+        with self._scene.macro(
+            f"Set attribute '{attr}' on model class '{self.__class__.__name__}'"
+        ):
             for item in self._items:
                 # if the item has not been set yet then leave it alone
                 prop = item.prop(attr)
@@ -219,7 +221,9 @@ class ModelHelper(QObjectHelper):
             self.set("dirty", False)
         notify = not self._blockNotify
         undo = not self._blockUndo
-        with self._scene.macro():
+        with self._scene.macro(
+            f"Reset attribute '{attr}' on model class '{self.__class__.__name__}'"
+        ):
             for item in self._items:
                 prop = item.prop(attr)
                 if prop:

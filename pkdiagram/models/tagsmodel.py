@@ -249,7 +249,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
                         todo.add(item.endEvent)
                 # Do the value set
                 self._settingItemTags = True
-                with self._scene.macro():
+                with self._scene.macro(f"Set tag '{tag}' on items to {value}"):
                     for item in todo:
                         if value == Qt.Checked or value:
                             if not tag in item.tags():

@@ -149,7 +149,7 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                 pass  # never set on click right?
             else:
                 layer = self.layerForRow(index.row())
-                with self._scene.macro():
+                with self._scene.macro("Set layer on layer item"):
                     for item in self._items:
                         if not value:
                             newLayers = [id for id in item.layers() if id != layer.id]

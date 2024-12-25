@@ -87,20 +87,20 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             self.set("intensity", intensity)
         elif attr == "startDateTime":
             x = self.setterConvertTo(attr, value)
-            with self._scene.macro():
+            with self._scene.macro("Set emotion start datetime"):
                 for item in self._items:
                     item.startEvent.setDateTime(x, undo=True)
         elif attr == "startDateUnsure":
-            with self._scene.macro():
+            with self._scene.macro("Set emotion start unsure"):
                 for item in self._items:
                     item.startEvent.setUnsure(value, undo=True)
         elif attr == "endDateTime":
             x = self.setterConvertTo(attr, value)
-            with self._scene.macro():
+            with self._scene.macro("Set emotion end datetime"):
                 for item in self._items:
                     item.endEvent.setDateTime(x, undo=True)
         elif attr == "endDateUnsure":
-            with self._scene.macro():
+            with self._scene.macro("Set emotion end unsure"):
                 for item in self._items:
                     item.endEvent.setUnsure(value, undo=True)
         elif attr == "personAId" and self._scene:
@@ -109,7 +109,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
                 for item in self._items:
                     item.setPersonA(person)
             else:
-                with self._scene.macro():
+                with self._scene.macro("Set emotion person A"):
                     for item in self._items:
                         if person != item.personA():
                             item.setPersonA(person, undo=True)
@@ -119,7 +119,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
                 for item in self._items:
                     item.setPersonB(person)
             else:
-                with self._scene.macro():
+                with self._scene.macro("Set emotiona person B"):
                     for item in self._items:
                         if person != item.personB():
                             item.setPersonB(person, undo=True)
@@ -129,11 +129,11 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         if attr == "intensityIndex":
             super().reset("intensity")
         elif attr == "startDateTime":
-            with self._scene.macro():
+            with self._scene.macro("Reset emotion start datetime"):
                 for item in self._items:
                     item.startEvent.prop("dateTime").reset(undo=True)
         elif attr == "endDateTime":
-            with self._scene.macro():
+            with self._scene.macro("Reset emotion end datetime"):
                 for item in self._items:
                     item.endEvent.prop("dateTime").reset(undo=True)
         super().reset(attr)

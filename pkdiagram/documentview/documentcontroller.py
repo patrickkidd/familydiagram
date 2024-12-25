@@ -741,7 +741,7 @@ class DocumentController(QObject):
                 action.blockSignals(True)
                 action.setChecked(False)
                 action.blockSignals(False)
-        with self.scene.macro():
+        with self.scene.macro("Deactivate all laters"):
             for layer in self.scene.activeLayers():
                 layer.setActive(False, undo=True)
 

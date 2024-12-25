@@ -67,7 +67,7 @@ class EventVariablesModel(QAbstractTableModel, ModelHelper):
             eventProperties = self._scene.eventProperties()
             attr = eventProperties[index.row()]["attr"]
             if attr:
-                with self._scene.macro():
+                with self._scene.macro("Set event variable name"):
                     for item in self.items:
                         prop = item.dynamicProperty(attr)
                         if value:

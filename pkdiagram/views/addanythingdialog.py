@@ -133,7 +133,11 @@ class AddAnythingDialog(QmlDrawer):
         self._eventModel.items = [Event()]
 
     def onDone(self):
-        with self.scene.macro():
+        if self.rootProp("kind") is None:
+            kind = None
+        else:
+            kind = EventKind(self.rootProp("kind"))
+        with self.scene.macro(f"Add '{kind.name}' event"):
             self._onDone()
 
     def _do_onDone(self):

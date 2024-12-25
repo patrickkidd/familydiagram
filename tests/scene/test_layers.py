@@ -130,11 +130,11 @@ def test_undo_commands(simpleScene):
     simpleScene.addItem(layer)
     layer.setActive(True)
 
-    with simpleScene.macro():
+    with simpleScene.macro("Set color first time"):
         person1.setColor("#ABCABC", undo=True)
         person2.setColor("#DEFDEF", undo=True)
 
-    with simpleScene.macro():
+    with simpleScene.macro("Set color second time"):
         person1.setColor("#123123", undo=True)
         person2.setColor("#456456", undo=True)
 
@@ -348,7 +348,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     ##
 
-    with simpleScene.macro():
+    with simpleScene.macro("Remove layer items"):
         simpleScene.removeItem(layer1, undo=True)
         simpleScene.removeItem(layer2, undo=True)
     assert not (layer1 in simpleScene.layers())

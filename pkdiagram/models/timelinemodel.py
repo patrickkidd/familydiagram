@@ -797,7 +797,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if btn == QMessageBox.No:
             return
         if events:
-            with self._scene.macro():
+            with self._scene.macro("Delete selected events"):
                 for event in events:
                     self._scene.removeItem(event, undo=True)
 
