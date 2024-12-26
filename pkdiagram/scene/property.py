@@ -83,7 +83,10 @@ class Property:
 
     def scene(self):
         if self.item:
-            return self.item.scene()
+            if self.item.isScene:
+                return self.item
+            else:
+                return self.item.scene()
 
     def onActiveLayersChanged(self):
         if self.layered:

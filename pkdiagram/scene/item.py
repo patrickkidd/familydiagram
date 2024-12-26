@@ -259,14 +259,14 @@ class Item:
     def endUpdateFrame(self):
         """Virtual"""
 
-    def setTag(self, x, notify=True, undo=None):
+    def setTag(self, x, notify=True, undo=False):
         tags = list(self.tags())
         if not x in tags:
             tags.append(x)
             tags.sort()
             self.prop("tags").set(tags, notify=notify, undo=undo)
 
-    def addTags(self, newTags, notify=True, undo=None):
+    def addTags(self, newTags, notify=True, undo=False):
         itemTags = list(self.tags())
         for tag in newTags:
             if not tag in itemTags:
@@ -275,7 +275,7 @@ class Item:
         if itemTags != self.tags():
             self.prop("tags").set(itemTags, notify=notify, undo=undo)
 
-    def unsetTag(self, x, notify=True, undo=None):
+    def unsetTag(self, x, notify=True, undo=False):
         tags = list(self.tags())
         if x in tags:
             tags.remove(x)
@@ -290,13 +290,3 @@ class Item:
         else:
             return False
 
-    def onTagRenamed(self, old, new):
-        """Called right from Scene.renameTag()"""
-        tags = []
-        for index, tag in enumerate(self.tags()):
-            if tag == old:
-                tags.append(new)
-            else:
-                tags.append(tag)
-        tags.sort()
-        self.prop("tags").set(tags, notify=False, undo=False)

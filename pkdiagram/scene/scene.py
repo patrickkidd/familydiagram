@@ -442,22 +442,13 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(self, *args, batch=True):
-        if batch:
-            self.setBatchAddingRemovingItems(True)
-        for item in args:
-            self._do_addItem(item)
-        if batch:
-            self.setBatchAddingRemovingItems(False)
+    def addItems(self, *args, batch=True, undo=False):
+        with self.macro("Adding items", undo=undo, batchAddRemove=batch):
+            for item in args:
+                self._do_addItem(item)
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
-
-    @contextlib.contextmanager
-    def batchAddRemoveItems(self):
-        self.setBatchAddingRemovingItems(True)
-        yield
-        self.setBatchAddingRemovingItems(False)
 
     def isBatchAddingRemovingItems(self):
         return self._batchAddRemoveStackLevel > 0
@@ -738,7 +729,9 @@ class Scene(QGraphicsScene, Item):
                     item.read(chunk, itemMap.get) == False
                 ):  # have to read in ids before addItem()
                     erroredOut.append(item)
-            with self.batchAddRemoveItems():
+            with self.macro(
+                "Adding items during read file", undo=False, batchAddRemove=True
+            ):
                 for item in items:
                     if item.isEmotion and item.personA() is None:
                         log.warning(
@@ -1548,19 +1541,23 @@ class Scene(QGraphicsScene, Item):
         self._undoStack.redo()
 
     @contextlib.contextmanager
-    def macro(self, text, batchAddRemove=False):
+    def macro(self, text, undo=True, batchAddRemove=False):
         if batchAddRemove:
+            was = self.isBatchAddingRemovingItems()
             self.setBatchAddingRemovingItems(True)
-        self._undoStack.beginMacro(text)
+        else:
+            was = None
+        if undo:
+            self._undoStack.beginMacro(text)
         _e = None
         try:
             yield
         except Exception as e:
             _e
-        finally:
+        if undo:
             self._undoStack.endMacro()
         if batchAddRemove:
-            self.setBatchAddingRemovingItems(False)
+            self.setBatchAddingRemovingItems(was)
         if _e:
             raise _e
 
@@ -1783,23 +1780,32 @@ class Scene(QGraphicsScene, Item):
 
     # Tags
 
-    def addTag(self, tag, notify=True):
-        self.setTag(tag, notify, undo=True)
+    def addTag(self, tag, notify=True, undo=False):
+        self.setTag(tag, notify, undo=undo)
 
-    def removeTag(self, tag, notify=True):
-        with self.macro(f"Remove tag '{tag}'"):
+    def removeTag(self, tag, notify=True, undo=False):
+        with self.macro(f"Remove tag '{tag}'", undo=undo):
             items = self.find(tags=tag)
-            self.unsetTag(tag, notify=notify)
+            self.unsetTag(tag, notify=notify, undo=undo)
             for item in items:
-                item.unsetTag(tag)
+                item.unsetTag(tag, undo=undo)
 
-    def renameTag(self, old, new):
+    def renameTag(self, old, new, undo=False):
         if old in self.tags():
-            with self.macro(f"Rename tag '{old}' to '{new}'"):
-                self.removeTag(old, notify=False)
-                self.addTag(new, notify=False)
+            with self.macro(f"Rename tag '{old}' to '{new}'", undo=undo):
+                self.prop("tags").set(
+                    sorted([new if tag == old else tag for tag in self.tags()]),
+                    notify=False,
+                    undo=undo,
+                )
                 for item in self.find(tags=old):
-                    item.onTagRenamed(old, new)
+                    itemTags = item.tags()
+                    if old in itemTags:
+                        item.prop("tags").set(
+                            sorted([new if tag == old else tag for tag in item.tags()]),
+                            notify=False,
+                            undo=undo,
+                        )
                 self.onProperty(self.prop("tags"))
 
     def setActiveTags(self, tags: list[str], skipUpdate=False):
@@ -1837,6 +1843,9 @@ class Scene(QGraphicsScene, Item):
         self.removeSelection()
 
     def removeSelection(self):
+        """
+        Uses undo
+        """
         iPeople = 0
         iFiles = 0
         iEvents = 0
@@ -1882,7 +1891,7 @@ class Scene(QGraphicsScene, Item):
         if btn == QMessageBox.Yes:
             with self.macro("Delete diagram selection"):
                 for item in self.selectedItems():
-                    self.removeItem(item)
+                    self.removeItem(item, undo=True)
 
     def copy(self):
         self.clipboard = clipboard.Clipboard(self.selectedItems())

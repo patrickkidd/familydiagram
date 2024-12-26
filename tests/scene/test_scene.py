@@ -269,16 +269,16 @@ string"""
     )
 
 
-def test_rename_tag_retains_tag_on_items():
-    s = Scene()
-    s.setTags(["aaa", "ccc", "ddd"])
+def test_renameTag():
+    scene = Scene()
+    scene.setTags(["aaa", "ccc", "ddd"])
     item = Item()
-    s.addItem(item)
+    scene.addItem(item)
     item.setTags(["ddd"])
+    assert item.tags() == ["ddd"]
 
-    s.renameTag("ddd", "bbb")
-
-    assert s.tags() == ["aaa", "bbb", "ccc"]
+    scene.renameTag("ddd", "bbb")
+    assert scene.tags() == ["aaa", "bbb", "ccc"]
     assert item.tags() == ["bbb"]
 
 

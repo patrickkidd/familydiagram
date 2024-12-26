@@ -511,7 +511,7 @@ def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):
     ensureVisibleSet = util.Condition(
         dv.caseProps.findItem("caseProps_timelineView").ensureVisibleSet
     )
-    with dv.scene.batchAddRemoveItems():
+    with dv.scene.macro(batchAddRemoveItems=True):
         events = [
             Event(
                 parent=person,
