@@ -15,7 +15,6 @@ PK.Drawer {
     signal addEvent
     signal hidden
     signal addEventProperty()
-    signal removeEventProperty(int index)
     signal flashTimelineRow(int index)
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)

@@ -406,7 +406,7 @@ class SetProperty(QUndoCommand):
             self.prop._do_set(self.value, force=True)
 
     def undo(self):
-        if self.forlayers:
+        if self.forLayers:
             for layer in self.forLayers:
                 if layer.id in self.was_values:
                     was = self.was_values[layer.id]

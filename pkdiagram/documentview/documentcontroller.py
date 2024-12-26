@@ -168,9 +168,6 @@ class DocumentController(QObject):
         self.dv.caseProps.qml.rootObject().addEventProperty.connect(
             self.addEventProperty
         )
-        self.dv.caseProps.qml.rootObject().removeEventProperty[int].connect(
-            self.removeEventProperty
-        )
         self.dv.caseProps.qml.rootObject().flashTimelineSelection.connect(
             self.onFlashTimelineSelection
         )
@@ -535,9 +532,9 @@ class DocumentController(QObject):
         self.ui.actionShow_Legend.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
 
-        canUndo = self.scene.stack().canUndo if self.scene else False
+        canUndo = self.scene.stack().canUndo() if self.scene else False
         self.ui.actionUndo.setEnabled(on and canUndo)
-        canRedo = self.scene.stack().canRedo if self.scene else False
+        canRedo = self.scene.stack().canRedo() if self.scene else False
         self.ui.actionRedo.setEnabled(on and canRedo)
         if self.scene:
             numLayers = len(self.scene.layers(includeInternal=False))
