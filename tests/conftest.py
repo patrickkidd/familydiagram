@@ -803,6 +803,13 @@ def simpleScene(request):
     return s
 
 
+@pytest.fixture
+def scene(qApp):
+    _scene = Scene()
+    yield _scene
+    _scene.deinit()
+
+
 # TODO: DECRECATED
 @pytest.fixture
 def qmlScene(simpleScene):

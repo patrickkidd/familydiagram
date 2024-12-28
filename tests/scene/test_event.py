@@ -11,6 +11,23 @@ def test_init():
     assert event in person.events()
 
 
+@pytest.mark.parametrize("undo", [True, False])
+def test_setParent(scene, undo):
+    person = Person()
+    scene.addItem(person)
+    event = Event()
+    event.setParent(person, undo=undo)
+    assert event in scene.events()
+    assert event in person.events()
+    scene.undo()
+    if undo:
+        assert event not in person.events()
+        assert event not in scene.events()
+    else:
+        assert event in person.events()
+        assert event in scene.events()
+
+
 def __test___lt__():
     parent = Person()
     birth = Event(uniqueId=EventKind.Birth.value)

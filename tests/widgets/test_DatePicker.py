@@ -163,7 +163,7 @@ def test_reset_prop_from_buttons(datePickerTest):
 
 def test_reset_undo_redo(datePickerTest):
     view = datePickerTest
-    scene = view.rootModel().scene
+    scene = view.rootProp("model").scene
     dateTime = QDateTime(2001, 2, 3, 0, 0)
     view.model.dateTime = dateTime  # 0
     assert view.itemProp("dateButtons.dateTextInput", "text") == "02/03/2001"

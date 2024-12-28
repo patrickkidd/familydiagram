@@ -340,21 +340,20 @@ class Scene(QGraphicsScene, Item):
         else:
             self._removeItem(item)
 
-    def _do_addItem(self, item, register=True):
+    def _do_addItem(self, item):
         if (
             isinstance(item, QGraphicsItem) or isinstance(item, QGraphicsObject)
         ) and not item.scene() is self:
             super().addItem(item)
         if not isinstance(item, Item):
             return
-        if register:
-            if item.id is None:
-                item.id = self.nextId()
-            elif item.id > self.lastItemId():
-                self.setLastItemId(item.id)  # bump
-            elif self.itemRegistry.get(item.id, None) is item:  # already registered
-                return
-            self.itemRegistry[item.id] = item
+        if item.id is None:
+            item.id = self.nextId()
+        elif item.id > self.lastItemId():
+            self.setLastItemId(item.id)  # bump
+        elif self.itemRegistry.get(item.id, None) is item:  # already registered
+            return
+        self.itemRegistry[item.id] = item
         ## Signals
         if item.isPathItem:
             if not self.isBatchAddingRemovingItems():
@@ -538,9 +537,9 @@ class Scene(QGraphicsScene, Item):
             ):
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
-            item.personA()._onRemoveEmotion(self.emotion)
+            item.personA()._onRemoveEmotion(item)
             if item.personB():
-                item.personB()._onRemoveEmotion(self.emotion)
+                item.personB()._onRemoveEmotion(item)
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
         elif item.isLayer:
@@ -2178,7 +2177,7 @@ class Scene(QGraphicsScene, Item):
                 event.addDynamicProperty(attr)
         self.prop("eventProperties").set(newEntries)
 
-    def replaceEventPropertyies(self, newPropNames: list[str], undo=False):
+    def replaceEventProperties(self, newPropNames: list[str], undo=False):
         if undo:
             self.push(ReplaceEventProperties(newPropNames))
         else:

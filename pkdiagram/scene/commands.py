@@ -1,17 +1,15 @@
 """
-Undo logic is tightly bound to the data model, i.e. the Scene object. The Scene
-and its child Item's have the basic logic needed to perform a change. Any
-UndoCommand contains the logic to *undo* that basic change.
+Undo logic is tightly bound to the data model, i.e. the Scene object. This is
+because the data model (Item) and UI (QGraphicsScene) were fused from the start.
+Methods with the `undo=` kwarg use the undo api.
 
-*However*, UndoCommand's are also only ever created by the Scene and Item API's
-when undo=True is passed to a basic api method, e.g. Scene.addItem(). This means
-that the api method needs to call a secondary method like Scene._do_addItem() that
-contains the actual logic for the basic change and not creating the UndoCommand.
-This is not ideal, but accomodates the existing QGraphicsScene and
-QGraphicsItem-based data model.
+If `undo=False`, no UndoCommand is created and the underlying method is called
+directly. If `undo=True`, then an UndoCommand is created to store any necessary
+state from the object required to undo the underlying api call.
 """
 
 import os, shutil, logging
+from typing import Union
 
 from pkdiagram.pyqt import QUndoCommand
 
@@ -440,7 +438,7 @@ class ResetProperty(QUndoCommand):
         self.prop = prop
 
     def redo(self):
-        if self.forlayers:
+        if self.forLayers:
             for layer in self.forLayers:
                 if layer.id in self.was_values:
                     layer.resetItemProperty(self.prop)
@@ -449,7 +447,7 @@ class ResetProperty(QUndoCommand):
             self.prop._do_reset()
 
     def undo(self):
-        if self.forlayers:
+        if self.forLayers:
             for layer in self.forLayers:
                 if layer.id in self.was_values:
                     was = self.was_values[layer.id]
@@ -501,32 +499,36 @@ class SetEventParent(QUndoCommand):
         self.parent = parent
 
     def redo(self):
-        self.event.setParent(self.parent, notify=True)
+        self.event._do_setParent(self.parent)
 
     def undo(self):
-        self.event.setParent(self.was_parent, notify=True)
+        self.event._do_setParent(self.was_parent)
 
 
 class SetParents(QUndoCommand):
     def __init__(self, person, target):
+        """
+        target is either a Marriage, ChildOf, or MultipleBirth.
+        """
         super().__init__("Set parents")
         #
         if target is None:
             data = {"state": None}
         elif target.isMarriage:
             data = {"state": "marriage", "parents": target}
-        elif target.isChildOf and target.multipleBirth is None:
-            data = {
-                "state": "multipleBirth.person",
-                "parents": target.parents(),
-                "otherPerson": target.person,
-            }
-        elif target.isChildOf and target.multipleBirth:
-            data = {
-                "state": "multipleBirth.children",
-                "parents": target.parents(),
-                "people": list(target.multipleBirth.children()),
-            }
+        elif target.isChildOf:
+            if target.multipleBirth:
+                data = {
+                    "state": "multipleBirth.children",
+                    "parents": target.parents(),
+                    "people": list(target.multipleBirth.children()),
+                }
+            else:
+                data = {
+                    "state": "multipleBirth.person",
+                    "parents": target.parents(),
+                    "otherPerson": target.person,
+                }
         elif target.isMultipleBirth:
             data = {
                 "state": "multipleBirth.children",

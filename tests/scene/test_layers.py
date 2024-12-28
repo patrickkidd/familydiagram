@@ -287,7 +287,7 @@ def test_write_read_active_layer_items():
     assert scene.query1(name="personB").isVisible() == True
 
 
-def test_remove_layers_with_layerItems(simpleScene, undoStack):
+def test_remove_layers_with_layerItems(simpleScene):
     layer1 = Layer()
     simpleScene.addItem(layer1)
     layer2 = Layer()
@@ -317,7 +317,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == [layer2.id]
     assert callout3.layers() == [layer2.id]
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer1 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()
     assert callout2 in simpleScene.layerItems()
@@ -337,7 +337,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == []
     assert callout3.layers() == [layer1.id]
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer2 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()
     assert callout2 in simpleScene.layerItems()
@@ -360,7 +360,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == []
     assert callout3.layers() == []
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer1 in simpleScene.layers()
     assert layer2 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()

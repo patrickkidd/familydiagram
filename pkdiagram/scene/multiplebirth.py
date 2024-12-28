@@ -65,7 +65,13 @@ class MultipleBirth(PathItem):
 
         return path
 
-    def __init__(self, marriage=None, firstChildOf=None, secondChild=None):
+    def __init__(self, marriage, firstChildOf=None, secondChild=None):
+        """
+        The canonical way to create a MultipleBirth is:
+        - mb = MultipleBirth(marriage)
+        - person1.setParents(mb)
+        - person2.setParents(mb)
+        """
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.prop("itemPos").setLayered(False)

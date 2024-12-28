@@ -1,4 +1,5 @@
 import os, shutil, random, logging, math
+from typing import Union
 
 from _pkdiagram import PersonDelegate
 from pkdiagram.pyqt import (
@@ -312,6 +313,10 @@ class Person(PathItem):
             self.initAlias()
         if "birthDateTime" in kwargs:
             self.setBirthDateTime(kwargs["birthDateTime"])
+        if "adoptedDateTime" in kwargs:
+            self.setAdoptedDateTime(kwargs["adoptedDateTime"])
+        if "deceasedDateTime" in kwargs:
+            self.setDeceasedDateTime(kwargs["deceasedDateTime"])
         if "name" in kwargs:
             for event in self._events + [
                 self.birthEvent,
@@ -648,7 +653,8 @@ class Person(PathItem):
             return self.childOf.multipleBirth
 
     def _do_setParents(self, parentItem):
-        """The single entry point for adding+removing a person to a pair-bond.
+        """
+        The single entry point for adding+removing a person to a pair-bond.
         `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
         if self.childOf:
@@ -703,12 +709,11 @@ class Person(PathItem):
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
 
-    def setParents(self, marriage, undo=False):
+    def setParents(self, target: Union[Marriage, ChildOf], undo=False):
         if undo:
-            cmd = SetParents(self, marriage)
-            self.scene().push(cmd)
+            self.scene().push(SetParents(self, target))
         else:
-            self._do_setParents(marriage)
+            self._do_setParents(target)
 
     def _onAddMarriage(self, m):
         if not m in self.marriages:

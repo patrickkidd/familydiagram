@@ -461,7 +461,8 @@ def test_add_emotion_sets_scene_currentDate():
 def test_mirror_notes_set_from_item():
     NOTES = "bleh"
 
-    emotion = Emotion()
+    personA, personB = Person(), Person()
+    emotion = Emotion(personA=personA, personB=personB)
     scene = Scene()
     scene.addItem(emotion)
     emotion.setNotes(NOTES)
@@ -471,7 +472,8 @@ def test_mirror_notes_set_from_item():
 def test_mirror_notes_set_from_startEvent():
     NOTES = "bleh"
 
-    emotion = Emotion()
+    personA, personB = Person(), Person()
+    emotion = Emotion(personA=personA, personB=personB)
     scene = Scene()
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)
