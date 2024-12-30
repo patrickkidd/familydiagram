@@ -328,8 +328,7 @@ class Scene(QGraphicsScene, Item):
 
     def addItem(self, item, undo=False) -> Item:
         if undo:
-            cmd = AddItem(self, item)
-            self.push(cmd)
+            self.push(AddItem(self, item))
         else:
             self._do_addItem(item)
         return item
@@ -338,7 +337,7 @@ class Scene(QGraphicsScene, Item):
         if undo:
             self.push(RemoveItems(self, item))
         else:
-            self._removeItem(item)
+            self._do_removeItem(item)
 
     def _do_addItem(self, item):
         if (
@@ -444,7 +443,7 @@ class Scene(QGraphicsScene, Item):
     def addItems(self, *args, batch=True, undo=False):
         with self.macro("Adding items", undo=undo, batchAddRemove=batch):
             for item in args:
-                self._do_addItem(item)
+                self.addItem(item, undo=undo)
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
@@ -487,7 +486,7 @@ class Scene(QGraphicsScene, Item):
                 self._batchAddedItems = []
                 self._batchRemovedItems = []
 
-    def _removeItem(self, item):
+    def _do_removeItem(self, item):
         if isinstance(item, QGraphicsItem) and item.scene() is self:
             super().removeItem(item)
         if not isinstance(item, Item):
@@ -520,14 +519,16 @@ class Scene(QGraphicsScene, Item):
             self.removeItem(item.emotionalUnit().layer())
             item.emotionalUnit().update()
             self._marriages.remove(item)
-            self.marriageRemoved.emit(item)
             item.eventAdded[Event].disconnect(self.eventAdded)
             item.eventRemoved[Event].disconnect(self.eventRemoved)
             self.marriageRemoved[Marriage].emit(item)
         elif item.isChildOf:
+            if item.multipleBirth:
+                item.multipleBirth()._onRemoveChild(item.person)
             layer = item.parents().emotionalUnit().layer()
             item.person.setLayers([x for x in item.person.layers() if x != layer.id])
             item.parents().emotionalUnit().update()
+            item.person.setParents(None)
         elif item.isEvent:
             self._events.remove(item)
             self.eventRemoved.emit(item)

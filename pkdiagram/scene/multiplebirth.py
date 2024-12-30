@@ -65,12 +65,18 @@ class MultipleBirth(PathItem):
 
         return path
 
-    def __init__(self, marriage, firstChildOf=None, secondChild=None):
+    def __init__(self, marriage=None, firstChildOf=None, secondChild=None):
         """
-        The canonical way to create a MultipleBirth is:
-        - mb = MultipleBirth(marriage)
-        - person1.setParents(mb)
-        - person2.setParents(mb)
+        The canonical ways to create a MultipleBirth is:
+        - During read of fd file:
+            mb = MultiplBirth()
+            mb._onSetParents(marriage)
+            person1.setParents(mb)
+            person2.setParents(mb)
+
+        - During drag-create in diagram
+            person1.setParents(marriage)
+            person2.setParents(person1.childOf)
         """
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)

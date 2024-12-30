@@ -657,6 +657,7 @@ class Person(PathItem):
         The single entry point for adding+removing a person to a pair-bond.
         `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
+        # Remove existing parent(s)
         if self.childOf:
             if self.childOf.multipleBirth:
                 multipleBirth = self.childOf.multipleBirth
@@ -680,16 +681,21 @@ class Person(PathItem):
             self.childOf = None
         #
         if parentItem:
+            # First ensure childOf is created
             if parentItem.isMarriage:
                 self.childOf = ChildOf(self, parentItem)
             elif parentItem.isChildOf or parentItem.isMultipleBirth:
                 self.childOf = ChildOf(self, parentItem.parents())
+
+            # Then do setup for the specific configuration
             if parentItem.isMarriage:
                 parentItem._onAddChild(self)
+
             elif parentItem.isMultipleBirth:
                 self.childOf._onSetMultipleBirth(parentItem)
                 parentItem._onAddChild(self)
                 parentItem.parents()._onAddChild(self)
+
             elif parentItem.isChildOf:
                 if parentItem.multipleBirth:
                     self.childOf._onSetMultipleBirth(parentItem.multipleBirth)
@@ -702,6 +708,8 @@ class Person(PathItem):
                     parentItem.parents()._onAddChild(self)
                     parentItem._onSetMultipleBirth(multipleBirth)
                     self.childOf._onSetMultipleBirth(multipleBirth)
+
+            # Post config init
             if self.scene():
                 self.scene().addItem(self.childOf)
                 if self.childOf.multipleBirth:

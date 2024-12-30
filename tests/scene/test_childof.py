@@ -11,7 +11,6 @@ from pkdiagram.scene import (
     Layer,
     EventKind,
 )
-from pkdiagram.scene.commands import SetParents
 
 
 def test_set_first_second_child():
@@ -93,7 +92,7 @@ def test_MultipleBirth_set_second_via_ChildOf_undo():
     tripletA.setParents(marriage)
     tripletB.setParents(tripletA.childOf)  # 0
 
-    scene.push(SetParents(tripletC, tripletB.childOf))  # 1
+    tripletC.setParents(tripletB.childOf, undo=True)  # 1
     assert marriage.children == [tripletA, tripletB, tripletC]
     assert tripletA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -470,9 +469,9 @@ def test_ChildOf_MultipleBirth_read_write():
     scene.addItems(personA, personB, marriage, childA, childB, twinC, twinD)
     data = {}
     scene.write(data)
+
     scene = Scene()
     scene.read(data)
-
     personA = scene.query1(name="personA")
     personB = scene.query1(name="personB")
     childA = scene.query1(name="childA")

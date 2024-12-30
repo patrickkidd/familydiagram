@@ -1277,6 +1277,8 @@ class Emotion(PathItem):
 
     def __init__(self, personA=None, personB=None, **kwargs):
         super().__init__(**kwargs)
+        if "kind" not in kwargs:
+            raise TypeError(f"`kind` kwarg is required for Emotion()")
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.prop("itemPos").setLayered(False)

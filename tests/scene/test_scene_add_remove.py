@@ -3,7 +3,7 @@ import os.path
 import pytest
 import mock
 
-from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QDateTime
+from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QDateTime, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import (
     Scene,
@@ -71,19 +71,18 @@ def test_add_emotion(scene, undo):
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Emotion(person1, person2)
-    scene.addItems(person1, person2, emotion, undo=undo)
+    emotion = Emotion(person1, person2, kind=util.ITEM_CONFLICT)
+    scene.addItems(person1, person2)
+    scene.addItem(emotion, undo=undo)
     assert emotionAdded.callCount == 1
     assert scene.people() == [person1, person2]
     assert scene.emotions() == [emotion]
     scene.undo()
     if undo:
         assert emotionRemoved.callCount == 1
-        assert scene.people() == []
         assert scene.emotions() == []
     else:
         assert emotionRemoved.callCount == 0
-        assert scene.people() == [person1, person2]
         assert scene.emotions() == [emotion]
 
 
@@ -115,27 +114,43 @@ def test_add_childof(scene, undo):
     if undo:
         assert person3.childOf is None
     else:
-        assert person3.childOf == marriage
+        assert person3.childOf.parents() == marriage
 
 
-def test_add_multipleBirth(scene, undo):
+def test_add_multipleBirth_read_file(scene):
     person1 = Person(name="person1")
     person2 = Person(name="person2")
     marriage = Marriage(person1, person2)
     person3 = Person(name="person3")
     person4 = Person(name="person4")
     scene.addItems(person1, person2, marriage, person3, person4)
-    multipleBirth = MultipleBirth(marriage)
-    scene.addItems(multipleBirth, undo=undo)
-    person3.setParents(multipleBirth=multipleBirth)
-    person4.setParents(multipleBirth=multipleBirth)
+    multipleBirth = MultipleBirth()
+    scene.addItem(multipleBirth)
+    multipleBirth._onSetParents(marriage)
+    person3.setParents(multipleBirth)
+    person4.setParents(multipleBirth)
     assert person3.childOf.multipleBirth == multipleBirth
-    assert person3.childOf.multipleBirth == multipleBirth
+    assert person4.childOf.multipleBirth == multipleBirth
+    assert multipleBirth.children() == [person3, person4]
+
+
+def test_add_multipleBirth_from_diagram(scene, undo):
+    person1 = Person(name="person1")
+    person2 = Person(name="person2")
+    marriage = Marriage(person1, person2)
+    person3 = Person(name="person3")
+    person4 = Person(name="person4")
+    scene.addItems(person1, person2, marriage, person3, person4)
+    person3.setParents(marriage)
+    person4.setParents(person3.childOf, undo=undo)
+    multipleBirth = person3.childOf.multipleBirth
+    assert person3.childOf.multipleBirth != None
+    assert person4.childOf.multipleBirth is multipleBirth
     assert multipleBirth.children() == [person3, person4]
     scene.undo()
     if undo:
-        assert person3.childOf is None
-        assert person3.childOf is None
+        assert person3.childOf is not None
+        assert person4.childOf is None
         assert multipleBirth.children() == []
     else:
         assert person3.childOf.multipleBirth == multipleBirth
@@ -196,8 +211,9 @@ def test_remove_emotion(scene, undo):
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Emotion(person1, person2)
-    scene.addItems(person1, person2, emotion)
+    emotion = Emotion(person1, person2, kind=util.ITEM_CONFLICT)
+    scene.addItems(person1, person2)
+    scene.addItem(emotion)
     scene.removeItem(emotion, undo=undo)
     assert emotionAdded.callCount == 1
     assert emotionRemoved.callCount == 1
@@ -207,12 +223,10 @@ def test_remove_emotion(scene, undo):
     if undo:
         assert emotionAdded.callCount == 2
         assert emotionRemoved.callCount == 1
-        assert scene.people() == [person1, person2]
         assert scene.emotions() == [emotion]
     else:
         assert emotionAdded.callCount == 1
         assert emotionRemoved.callCount == 1
-        assert scene.people() == [person1, person2]
         assert scene.emotions() == []
 
 
@@ -244,10 +258,10 @@ def test_remove_childof(scene, undo):
     person3.setParents(marriage)
     scene.addItems(person1, person2, marriage, person3)
     scene.removeItem(person3.childOf, undo=undo)
-    assert person3.childOf is not None
+    assert person3.childOf is None
     scene.undo()
     if undo:
-        assert person3.childOf == marriage
+        assert person3.childOf.parents() == marriage
     else:
         assert person3.childOf is None
 
@@ -263,18 +277,20 @@ def test_remove_multipleBirth(scene, undo):
     scene.addItems(multipleBirth)
     person3.setParents(multipleBirth)
     person4.setParents(multipleBirth)
-    scene.removeItem(multipleBirth, undo=undo)
-    assert person3.childOf.multipleBirth is not None
-    assert person4.childOf.multipleBirth is not None
+    with scene.macro("Remove multipleBirth", undo=undo):
+        person3.setParents(None, undo=undo)
+        person4.setParents(None, undo=undo)
+    # scene.removeItem(multipleBirth, undo=undo)
+    assert person3.childOf is None
+    assert person4.childOf is None
     assert multipleBirth.children() == []
     scene.undo()
     if undo:
-        assert person3.childOf.multipleBirth == multipleBirth
-        assert person4.childOf.multipleBirth == multipleBirth
-        assert multipleBirth.children() == [person3, person4]
+        assert person4 in person3.childOf.multipleBirth.children()
+        assert person3 in person4.childOf.multipleBirth.children()
     else:
-        assert person3.childOf.multipleBirth is None
-        assert person4.childOf.multipleBirth is None
+        assert person3.childOf is None
+        assert person4.childOf is None
         assert multipleBirth.children() == []
 
 
@@ -298,7 +314,9 @@ def test_undo_remove_child_selected(scene):
     person1.setSelected(True)
     person2.setSelected(True)
 
-    with mock.patch("PyQt5.QtGui.QMessageBox.question"):
+    with mock.patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
         scene.removeSelection()
     scene.undo()
 

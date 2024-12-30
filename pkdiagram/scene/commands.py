@@ -35,7 +35,7 @@ class AddItem(QUndoCommand):
             self.item.setParentId(self._calloutParentId)
 
     def undo(self):
-        self.scene._removeItem(self.item)
+        self.scene._do_removeItem(self.item)
         if self.item.isLayer:
             for i, layer in enumerate(self._layerOrders):
                 layer.setOrder(i, notify=False)
@@ -189,7 +189,6 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
-        self.scene.setBatchAddingRemovingItems(True)
         for item in self.items:
 
             if item.isPerson:
@@ -267,10 +266,7 @@ class RemoveItems(QUndoCommand):
 
             ## Ignore ItemDetails, SeparationIndicator
 
-        self.scene.setBatchAddingRemovingItems(False)
-
     def undo(self):
-        self.scene.setBatchAddingRemovingItems(True)
         for item in self.items:
             if not item.isChildOf and not item.isMultipleBirth:
                 self.scene.addItem(item)
@@ -350,7 +346,6 @@ class RemoveItems(QUndoCommand):
             if birthPartners:
                 for child in birthPartners:
                     child.childOf.updateGeometry()
-        self.scene.setBatchAddingRemovingItems(False)
 
 
 class SetPos(QUndoCommand):
