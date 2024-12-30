@@ -123,7 +123,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
     @pyqtSlot()
     def addTag(self):
         tag = util.newNameOf(self._sceneTags, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
-        self._scene.addTag(self._scene, tag)
+        self._scene.addTag(tag)
 
     @pyqtSlot(int)
     def removeTag(self, row):

@@ -2115,6 +2115,12 @@ class Scene(QGraphicsScene, Item):
             for event in self.events():
                 event.addDynamicProperty(attr)
 
+    def addEventProperty(self, propName, index=None, undo=False):
+        if undo:
+            self.push(AddEventProperty(self, propName, index))
+        else:
+            self._do_addEventProperty(propName, index)
+
     def _do_removeEventPropertyByName(self, propName: str):
         newEntries = []
         entry = None
@@ -2127,9 +2133,6 @@ class Scene(QGraphicsScene, Item):
             self.prop("eventProperties").set(newEntries)
             for event in self.events():
                 event.removeDynamicProperty(entry["attr"])
-
-    def addEventProperty(self, propName, index=None):
-        self.push(AddEventProperty(self, propName, index))
 
     def removeEventPropertyByName(self, propName: str, undo=False):
         if undo:

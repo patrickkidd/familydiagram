@@ -259,7 +259,9 @@ class Item:
     def endUpdateFrame(self):
         """Virtual"""
 
-    def setTag(self, x, notify=True, undo=False):
+    def setTag(self, x: str, notify=True, undo=False):
+        if not isinstance(x, str):
+            raise ValueError("Tag must be a string")
         tags = list(self.tags())
         if not x in tags:
             tags.append(x)
@@ -289,4 +291,3 @@ class Item:
             return True
         else:
             return False
-

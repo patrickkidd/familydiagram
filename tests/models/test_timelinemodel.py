@@ -393,6 +393,8 @@ def test_delete_emotion_date(qtbot, timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
     conflict = Emotion(
+        personA=p1,
+        personB=p2,
         kind=util.ITEM_CONFLICT,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),

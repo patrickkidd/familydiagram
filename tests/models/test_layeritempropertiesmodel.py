@@ -247,7 +247,7 @@ def test_set_layer_on_person():
     layer1 = Layer(name="View 1")
     layer2 = Layer(name="View 2")
     layer3 = Layer(name="View 3")
-    scene.addItems(layer1, layer2, layer3)
+    scene.addItems(person, layer1, layer2, layer3)
     model.scene = scene
     model.items = [person]
 

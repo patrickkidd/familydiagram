@@ -137,7 +137,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             )
         if btn == QMessageBox.No:
             return
-        self._scene.removeItem(self.scene, layer, undo=True)
+        self._scene.removeItem(layer, undo=True)
 
     def layerForIndex(self, index):
         if index.row() >= 0 and index.row() < len(self._layers):

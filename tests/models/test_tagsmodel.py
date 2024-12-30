@@ -112,6 +112,7 @@ def test_set_active():
     model.scene = scene
     item1 = Item()
     item2 = Item()
+    scene.addItems(item1, item2)
     model.items = [item1, item2]
 
     scene.setTags(["here", "we", "are"])

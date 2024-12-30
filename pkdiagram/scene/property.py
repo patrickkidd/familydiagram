@@ -184,7 +184,8 @@ class Property:
 
     def set(self, y, notify=True, forLayers=None, force=False, undo=False):
         if undo:
-            return self.scene().push(Property._SetProperty(self, y, forLayers))
+            self.scene().push(Property._SetProperty(self, y, forLayers))
+            return True
         else:
             return self._do_set(y, notify, forLayers, force)
 

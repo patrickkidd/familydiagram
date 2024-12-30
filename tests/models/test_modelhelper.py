@@ -65,14 +65,15 @@ def test_items_property():
     assert model.items == [item1, item2]
 
 
-def test_signals():
+def test_signals(scene):
 
     item1 = MyItem(myint=10)
     item2 = MyItem()
+    scene.addItems(item1, item2)
 
     model = Model()
-    changed = util.Condition()
-    model.myintChanged.connect(changed)
+    model.scene = scene
+    changed = util.Condition(model.myintChanged)
     model.items = [item1, item2]
 
     assert changed.callCount == 0
@@ -181,12 +182,14 @@ def test_init_separate():
     assert model.myint == model.defaultFor("myint")
 
 
-def test_reset():
+def test_reset(scene):
 
     item1 = MyItem(myint=123)
     item2 = MyItem(myint=321)
+    scene.addItems(item1, item2)
 
     model = Model()
+    model.scene = scene
     model.items = [item1, item2]
     myintChanged = util.Condition(model.myintChanged)
 

@@ -631,7 +631,7 @@ class RemoveEventProperty(QUndoCommand):
         self.valueCache = self.readValueCache(scene, onlyAttr=self.attr)
 
     def redo(self):
-        self.scene.removeEventProperty(self.propName)
+        self.scene.removeEventPropertyByName(self.propName)
 
     def undo(self):
         self.scene.addEventProperty(self.propName, index=self.propIndex)
