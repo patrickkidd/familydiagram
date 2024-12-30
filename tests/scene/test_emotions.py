@@ -462,7 +462,7 @@ def test_mirror_notes_set_from_item():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB)
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
     scene = Scene()
     scene.addItem(emotion)
     emotion.setNotes(NOTES)
@@ -473,7 +473,7 @@ def test_mirror_notes_set_from_startEvent():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB)
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
     scene = Scene()
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)

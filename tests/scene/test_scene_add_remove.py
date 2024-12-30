@@ -13,6 +13,8 @@ from pkdiagram.scene import (
     Event,
     MultipleBirth,
     Layer,
+    PathItem,
+    ChildOf,
 )
 
 pytestmark = [
@@ -274,7 +276,7 @@ def test_remove_multipleBirth(scene, undo):
     person4 = Person(name="person4")
     scene.addItems(person1, person2, marriage, person3, person4)
     multipleBirth = MultipleBirth(marriage)
-    scene.addItems(multipleBirth)
+    scene.addItem(multipleBirth)
     person3.setParents(multipleBirth)
     person4.setParents(multipleBirth)
     with scene.macro("Remove multipleBirth", undo=undo):
@@ -292,6 +294,32 @@ def test_remove_multipleBirth(scene, undo):
         assert person3.childOf is None
         assert person4.childOf is None
         assert multipleBirth.children() == []
+
+
+def test_remove_nuclear_family_with_MultipleBirth():
+    scene = Scene()
+    parentA = Person(name="parentA")
+    parentB = Person(name="parentB")
+    twinA = Person(name="twinA")
+    twinB = Person(name="twinB")
+    marriage = Marriage(parentA, parentB)
+    scene.addItems(parentA, parentB, marriage, twinA, twinB)
+    twinA.setParents(marriage)
+    twinB.setParents(twinA.childOf)  # 0
+
+    scene.selectAll()
+    with mock.patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        scene.removeSelection()  # 1
+    assert scene.find(types=PathItem) == []
+
+    scene.undo()  # 0
+    assert len(scene.find(types=MultipleBirth)) == 1
+    assert len(scene.find(types=ChildOf)) == 2
+    assert len(scene.find(types=Person)) == 4
+    assert twinA.multipleBirth() != None
+    assert twinA.multipleBirth() == twinB.multipleBirth()
 
 
 def test_undo_remove_child_selected(scene):

@@ -1889,9 +1889,7 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            with self.macro("Delete diagram selection"):
-                for item in self.selectedItems():
-                    self.removeItem(item, undo=True)
+            self.push(RemoveItems(self, self.selectedItems()))
 
     def copy(self):
         self.clipboard = clipboard.Clipboard(self.selectedItems())
