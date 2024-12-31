@@ -275,45 +275,33 @@ class PersonPropertiesModel(QObject, ModelHelper):
             super().reset("itemOpacity")
         elif attr == "birthDateTime":
             with self._scene.macro("Reset birth datetime"):
-                [
+                for item in self._items:
                     item.birthEvent.prop("dateTime").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "adoptedDateTime":
             with self._scene.macro("Reset adopted datetime"):
-                [
+                for item in self._items:
                     item.adoptedEvent.prop("dateTime").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "deceasedDateTime":
             with self._scene.macro("Reset deceased datetime"):
-                [
+                for item in self._items:
                     item.deathEvent.prop("dateTime").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "birthLocation":
             with self._scene.macro("Reset birth location"):
-                [
+                for item in self._items:
                     item.birthEvent.prop("location").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "adoptedLocation":
             with self._scene.macro("Reset adopted location"):
-                [
+                for item in self._items:
                     item.adoptedEvent.prop("location").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "deceasedLocation":
             with self._scene.macro("Reset deceased location"):
-                [
+                for item in self._items:
                     item.deathEvent.prop("location").reset(undo=True)
-                    for item in self._items
-                ]
         elif attr == "itemPos":
             with self.scene.resettingSomeLayerProps():
                 super().reset(attr)
-            return
-        super().reset(attr)
+        else:
+            super().reset(attr)
 
 
 qmlRegisterType(PersonPropertiesModel, "PK.Models", 1, 0, "PersonPropertiesModel")

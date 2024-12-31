@@ -211,18 +211,18 @@ def test_date_undo_redo(pp, personProps):
     pp.mouseClick("birthDateButtons.clearButton")  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    pp.scene.stack().undo()  # 0
+    pp.scene.undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
     assert pp.itemProp("birthDateButtons", "dateTime") == dateTime
     assert pp.itemProp("birthDatePicker", "dateTime") == dateTime
 
-    pp.scene.stack().redo()  # 1
+    pp.scene.redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    pp.scene.stack().undo()  # 0
+    pp.scene.undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
 
-    pp.scene.stack().redo()  # 1
+    pp.scene.redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
 
