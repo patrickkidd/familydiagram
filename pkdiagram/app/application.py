@@ -24,11 +24,6 @@ log = logging.getLogger(__name__)
 class Application(QApplication):
 
     def __init__(self, *args, prefsName=None, **kwargs):
-        self._prefsName = prefsName
-
-        # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
-        self.prefs().setValue("lastVersion", version.VERSION)
-
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
                 "QMacCGContext:: Unsupported paint engine type",
@@ -99,6 +94,11 @@ class Application(QApplication):
         #     "-qmljsdebugger=port:1234,block",
         # )
         super().__init__(*args, **kwargs)
+
+        self._prefsName = prefsName
+        self._prefs = None
+        # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
+        self.prefs().setValue("lastVersion", version.VERSION)
 
         # TODO: Should not be global
         self._qmlUtil = QmlUtil(self)

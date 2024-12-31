@@ -1,7 +1,7 @@
 import signal, os.path, logging
 
 import vedana
-from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox
+from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
 from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
 
@@ -36,13 +36,13 @@ class AppController(QObject):
         "The app configuration has been upgraded. Please log in again."
     )
 
-    def __init__(self, app, prefs, prefsName=None):
+    def __init__(self, app, prefsName=None):
         super().__init__(app)
         self.isInitialized = False
 
         self.mw = None
         self.app = app
-        self.prefs = prefs
+        self.prefs = QApplication.instance().prefs()
         self._pendingOpenFilePath = None
         self.appConfig = AppConfig(app, prefsName=prefsName)
         self._analytics = Analytics(
@@ -50,7 +50,7 @@ class AppController(QObject):
             mixpanel_project_token=pepper.MIXPANEL_PROJECT_TOKEN,
         )
         self.session = Session(self._analytics)
-        if not prefs.value("enableAppUsageAnalytics", defaultValue=True, type=bool):
+        if not self.prefs.value("enableAppUsageAnalytics", defaultValue=True, type=bool):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)

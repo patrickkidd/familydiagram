@@ -177,7 +177,7 @@ class QmlUtil(QObject, QObjectHelper):
         self.initQObjectHelper()
 
     def initColors(self):
-        darkLightMode = QApplication.instance().prefs.value(
+        darkLightMode = QApplication.instance().prefs().value(
             "darkLightMode", defaultValue=util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE
         )
         if darkLightMode == util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE:

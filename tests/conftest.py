@@ -45,6 +45,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QEventLoop,
     QSettings,
+    QGraphicsView
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
@@ -267,7 +268,9 @@ def qApp():
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
-    with mock.patch("pkdiagram.app.application.Application.prefs", return_value=prefs):
+    def _prefs(self):
+        return prefs
+    with mock.patch.object(Application, "prefs", _prefs):
         app = Application(sys.argv)
 
     _orig_Server_deinit = Server.deinit
@@ -529,6 +532,14 @@ class PKQtBot(QtBot):
         if self.DEBUG:
             log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
         return super().mouseDClick(*args, **kwargs)
+    
+    def mouseClickGraphicsItem(self, view: QGraphicsView, item):
+        rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
+        self.mouseClick(view.viewport(), Qt.LeftButton, modifier=Qt.KeyboardModifier.NoModifier, pos=rect.center())
+
+    def mouseDClickGraphicsItem(self, view: QGraphicsView, item):
+        rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
+        self.mouseDClick(view.viewport(), Qt.LeftButton, modifier=Qt.KeyboardModifier.NoModifier, pos=rect.center())
 
     @staticmethod
     def mouseMove(
@@ -850,11 +861,11 @@ def create_ac_mw(request, qtbot, tmp_path):
         if editorMode is not None:
             prefs.setValue("editorMode", editorMode)
 
-        ac = AppController(QApplication.instance(), prefs, prefsName=prefsName)
+        ac = AppController(QApplication.instance(), prefsName=prefsName)
         if savedYet is not None:
             ac.appConfig.savedYet = lambda: savedYet
 
-        mw = MainWindow(appConfig=ac.appConfig, session=ac.session, prefs=prefs)
+        mw = MainWindow(appConfig=ac.appConfig, session=ac.session)
 
         if not appConfig:
             appConfig = {}

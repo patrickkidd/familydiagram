@@ -225,6 +225,7 @@ class Callout(LayerItem):
     def eventFilter(self, o, e):
         if o == self.textItem:
             if e.type() == QEvent.FocusOut:
+                self.setText(self.textItem.toPlainText(), undo=True)
                 self.textItem.setTextInteractionFlags(Qt.NoTextInteraction)
                 if self.scene() and self.scene().view():
                     self.scene().view().ignoreDelete = False
@@ -265,7 +266,6 @@ class Callout(LayerItem):
         super().onProperty(prop)
 
     def onTextEdited(self):
-        self.setText(self.textItem.toPlainText(), undo=True)
         self.updateBubbleRect()
         for handle in self.pointHandles:
             if handle.isnew:

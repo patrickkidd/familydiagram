@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
     documentChanged = pyqtSignal(FDDocument, FDDocument)
     closed = pyqtSignal()  # for app.py
 
-    def __init__(self, appConfig, session, prefs):
+    def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
 
         if hasattr(Qt, "WA_ContentsMarginsRespectsSafeArea"):
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
 
         MainWindow._instance = self
         self._profile = None
-        self.prefs = prefs
+        self.prefs = QApplication.instance().prefs()
         self.session = session
         self.appConfig = appConfig
         self.eula = None
