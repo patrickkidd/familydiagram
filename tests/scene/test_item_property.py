@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.scene import Scene, Item
+from pkdiagram.scene import Scene, Item, Layer
 
 pytestmark = [pytest.mark.component("Item")]
 
@@ -58,6 +58,34 @@ def test_property_reset_with_undo(scene):
     item = MyItem(num=123)
     scene.addItem(item)
     assert item.num() == 123  # 0
+
+    item.prop("num").reset(undo=True)  # 1
+    assert item.num() == -1
+
+    scene.undo()  # 0
+    assert item.num() == 123
+
+    scene.undo()  # 0
+    assert item.num() == 123
+
+    scene.redo()  # 1
+    assert item.num() == -1
+
+
+class MyItemLayered(Item):
+    Item.registerProperties(({"attr": "num", "default": -1, "layered": True},))
+
+
+def test_property_layered_reset_with_undo(scene):
+    item = MyItemLayered()
+    layer = Layer()
+    scene.addItems(item, layer)
+    layer.setActive(True)
+
+    item.setNum(123)
+    assert item.num() == 123  # 0
+    assert item.prop("num").isUsingLayer() == True
+    assert layer.getItemProperty(item.id, "num") == (123, True)
 
     item.prop("num").reset(undo=True)  # 1
     assert item.num() == -1

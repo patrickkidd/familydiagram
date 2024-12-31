@@ -421,36 +421,30 @@ class ResetProperty(QUndoCommand):
             super().__init__(f"Reset '{prop.name()}' on layers")
         else:
             super().__init__(f"Reset '{prop.name()}' on item")
-        self.forLayers = forLayers
-        if forLayers:
-            self.was_values = {
-                layer.id: layer.getItemProperty(prop.item.id, prop.name())
-                for layer in forLayers
-                if layer.getItemProperty(prop.item.id, prop.name())[0]
-            }
+
+        self.was_values = {}
+        if prop.layered:
+            # only take `was` values stored on selected layers
+            for layer in forLayers:
+                self.was_values[layer] = {}
+                x, ok = layer.getItemProperty(prop.item.id, prop.name())
+                if ok:
+                    self.was_values[layer] = {prop: x}
         else:
-            self.was_set = prop.isset()
-            self.was_value = prop.get()
+            self.was_values[None] = {prop: prop.get()}
         self.prop = prop
 
     def redo(self):
-        if self.forLayers:
-            for layer in self.forLayers:
-                if layer.id in self.was_values:
-                    layer.resetItemProperty(self.prop)
-            self.prop.onActiveLayersChanged()
-        elif self.was_set:
-            self.prop._do_reset()
+        self.prop._do_reset()
 
     def undo(self):
-        if self.forLayers:
-            for layer in self.forLayers:
-                if layer.id in self.was_values:
-                    was = self.was_values[layer.id]
-                    layer.setItemValue(self.prop.item.id, self.prop.name(), was)
-            self.prop.onActiveLayersChanged()
-        elif self.was_set:
-            self.prop._do_set(self.was_value, force=True)
+        for layer, propEntry in self.was_values.items():
+            for prop, was in propEntry.items():
+                if layer:
+                    layer.setItemProperty(prop.item.id, prop.name(), was)
+                else:
+                    prop.set(was)
+                prop.onActiveLayersChanged()
 
 
 class SetEmotionPerson(QUndoCommand):

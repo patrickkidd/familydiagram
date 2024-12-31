@@ -354,6 +354,7 @@ def _test_open_tabs_retained(pp):
 
 def test_clear_layered_pos(pp, monkeypatch):
     """It was taking two clicks to clear the person props."""
+    resetItemPosButton = pp.rootProp("resetItemPosButton")
     layer = Layer()
     pp.scene.addItem(layer)
     pp.scene.setStorePositionsInLayers(True)
@@ -370,13 +371,13 @@ def test_clear_layered_pos(pp, monkeypatch):
     personModel = pp.rootProp("personModel")
     assert personModel.itemPos == QPointF(200, 200)
     assert personModel.itemPos == person.itemPos()
-    assert pp.itemProp("resetItemPosButton", "enabled") == True
+    assert resetItemPosButton.property("enabled") == True
     assert personModel.isItemPosSetInCurrentLayer == True
 
-    pp.mouseClick("resetItemPosButton")
+    pp.mouseClickItem(resetItemPosButton)
     assert personModel.itemPos == QPointF(100, 100)
     assert personModel.isItemPosSetInCurrentLayer == False
-    assert pp.itemProp("resetItemPosButton", "enabled") == False
+    assert resetItemPosButton.property("enabled") == False
 
 
 # def test_tabKeys():

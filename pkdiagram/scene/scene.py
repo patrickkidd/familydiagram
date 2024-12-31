@@ -1671,10 +1671,13 @@ class Scene(QGraphicsScene, Item):
         for item in updateGraph:
             item.endUpdateFrame()
 
-    def setResettingSomeLayerProps(self, on):
-        self._isResettingSomeLayerProps = on
-        if not on:
-            self.layerAnimationGroup.start()  # start all added animations on all items that have changed
+    @contextlib.contextmanager
+    def resettingSomeLayerProps(self):
+        self._isResettingSomeLayerProps = True
+        yield
+        # start all added animations on all items that have changed
+        self.layerAnimationGroup.start()
+        self._isResettingSomeLayerProps = False
 
     def isResettingSomeLayerProps(self):
         return self._isResettingSomeLayerProps
