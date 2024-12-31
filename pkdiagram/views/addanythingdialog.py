@@ -144,18 +144,8 @@ class AddAnythingDialog(QmlDrawer):
         self._eventModel.items = [self._dummyEvent]
 
     def onDone(self):
-        if self.rootProp("kind") is None:
-            kind = None
-        else:
-            kind = EventKind(self.rootProp("kind"))
-        if kind is not None:
-            with self.scene.macro(f"Add '{kind.name}' event"):
-                self._do_onDone()
-        self.scene.removeItem(self._dummyEvent)
-        self._dummyEvent = None
 
-    def _do_onDone(self):
-        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+        ## Validation first
 
         if self.rootProp("kind") is None:
             kind = None
@@ -354,6 +344,39 @@ class AddAnythingDialog(QmlDrawer):
                 )
                 if button == QMessageBox.NoButton:
                     return
+
+        with self.scene.macro(f"Add '{kind.name}' event"):
+            self._addEvent()
+
+        self.scene.removeItem(self._dummyEvent)
+        self._dummyEvent = None
+
+    def _addEvent(self):
+        """
+        Only here to be easily wrapped in a macro.
+        """
+        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+
+        if self.rootProp("kind") is None:
+            kind = None
+        else:
+            kind = EventKind(self.rootProp("kind"))
+        personEntry = self.personEntry()
+        personAEntry = self.personAEntry()
+        personBEntry = self.personBEntry()
+        peopleEntries = self.peopleEntries()
+        moverEntries = self.moverEntries()
+        receiverEntries = self.receiverEntries()
+        description = self.rootProp("description")
+        location = self.rootProp("location")
+        startDateTime = self.rootProp("startDateTime")
+        endDateTime = self.rootProp("endDateTime")
+        isDateRange = self.rootProp("isDateRange")
+        anxiety = self.rootProp("anxiety")
+        functioning = self.rootProp("functioning")
+        symptom = self.rootProp("symptom")
+        notes = self.rootProp("notes")
+        tags = self._eventModel.items[0].tags()
 
         # Add People
 
