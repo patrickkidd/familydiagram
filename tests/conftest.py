@@ -842,7 +842,7 @@ def create_ac_mw(request, qtbot, tmp_path):
     ):
         if prefs is None:
             dpath = os.path.join(tmp_path, "settings.ini")
-            prefs = util.Settings(dpath, "pytests")
+            prefs = Application.instance().prefs()
             prefs.setValue("dontShowWelcome", True)
             prefs.setValue("acceptedEULA", True)
             prefs.setValue("enableAppUsageAnalytics", False)

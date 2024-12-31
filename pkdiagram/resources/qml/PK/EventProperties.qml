@@ -328,7 +328,11 @@ Page {
                                 id: uniqueIdBox
                                 objectName: "uniqueIdBox"
                                 model: ['Bonded', 'Married', 'Separated', 'Divorced', 'Moved']
-                                currentIndex: ['bonded', 'married', 'separated', 'divorced', 'moved'].indexOf(eventModel.uniqueId)
+                                currentIndex: {
+                                    var ret = ['bonded', 'married', 'separated', 'divorced', 'moved'].indexOf(eventModel.uniqueId)
+                                    print('currentIndex: ' + eventModel.uniqueId + ', ' + ret)
+                                    return ret
+                                }
                                 KeyNavigation.tab: resetUniqueIdButton
                                 onCurrentIndexChanged: {
                                     if(!eventModel.parentIsMarriage)

@@ -12,13 +12,21 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Emotion, Event, Marriage
-from pkdiagram.scene.commands import SetParents
 from pkdiagram.views import QmlDrawer
 from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
 from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
 from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 
 _log = logging.getLogger(__name__)
+
+
+class DummyEvent(Event):
+    def __init__(self, scene):
+        super().__init__()
+        self._scene = scene
+
+    def scene(self):
+        return self._scene
 
 
 class AddAnythingDialog(QmlDrawer):
@@ -72,6 +80,7 @@ class AddAnythingDialog(QmlDrawer):
             objectName="addEverythingDialog",
             **contextProperties,
         )
+        self._dummyEvent = None
 
         # self.startTimer(1000)
 
@@ -130,15 +139,20 @@ class AddAnythingDialog(QmlDrawer):
             ids = [x.id for x in selection if x.isPerson]
             self.initWithMultiplePeople(ids)
         # just for tags
-        self._eventModel.items = [Event()]
+        self._dummyEvent = DummyEvent(self.scene)
+        self.scene.addItem(self._dummyEvent)
+        self._eventModel.items = [self._dummyEvent]
 
     def onDone(self):
         if self.rootProp("kind") is None:
             kind = None
         else:
             kind = EventKind(self.rootProp("kind"))
-        with self.scene.macro(f"Add '{kind.name}' event"):
-            self._onDone()
+        if kind is not None:
+            with self.scene.macro(f"Add '{kind.name}' event"):
+                self._do_onDone()
+        self.scene.removeItem(self._dummyEvent)
+        self._dummyEvent = None
 
     def _do_onDone(self):
         _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
@@ -484,9 +498,9 @@ class AddAnythingDialog(QmlDrawer):
                         newPeople.append(parentA)
                     if not parentB:
                         parentB = Person(
-                            personBKind,
-                            QPointF(),
-                            self.scene.newPersonSize(),
+                            gender=personBKind,
+                            itemPos=QPointF(),
+                            size=self.scene.newPersonSize(),
                         )
                         self.scene.addItem(parentB, undo=True)
                         newPeople.append(parentB)
@@ -549,7 +563,7 @@ class AddAnythingDialog(QmlDrawer):
             _log.debug(
                 f"Adding {kind} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
             )
-            event = (Event(marriage, dateTime=startDateTime, tags=tags, **kwargs),)
+            event = Event(marriage, dateTime=startDateTime, tags=tags, **kwargs)
             self.scene.addItem(event, undo=True)
             newEvents.append(event)
 
@@ -706,6 +720,8 @@ class AddAnythingDialog(QmlDrawer):
         """
         Same as onDone but no add logic.
         """
+        self.scene.removeItem(self._dummyEvent)
+        self._dummyEvent = None
         self.hideRequested.emit()
 
     ## Testing

@@ -115,35 +115,19 @@ class EventPropertiesModel(QObject, ModelHelper):
         return ret
 
     def set(self, attr, value):
-        if (
-            attr == "uniqueId" and self.parentIsMarriage
-        ):  # right now marriage is the only parent type that uses uniqueId
-            if self.blockNotify:
-                was = self.blockNotify
-                self.blockNotify = False  # set to True for `addMode`
-            else:
-                was = None
-            # Aggregate uniqueId and description props into single undo command
-            # it is assumed the value is not blank
+        if attr == "uniqueId":
             with self._scene.macro(f"Set event type"):
-                for item in self.items:
-                    # notify=False here so that description isn't automatically set in onProperty('uniqueId')
-                    # that allows the undo command ot be aggregated here.
-                    # This potentially sacrifices other listeners from updating, so keep eyes open for that.
-                    item.prop("uniqueId").set(value, notify=False, undo=True)
-                    newDescription = item.getDescriptionForUniqueId(value)
-                    item.prop("description").set(
-                        newDescription, notify=False, undo=True
-                    )
+                for item in self._items:
+                    # notify=False prevents onProperty('uniqueId') from calling
+                    # updateDescription so we can do it ourselves with
+                    # undo=True. Otherwise there is no way to undo the
+                    # description to the previous, potentially custom value.
+                    item.setUniqueId(value, undo=True)
+                    item.updateDescription(undo=True)
             self.refreshProperty("uniqueId")
             self.refreshProperty("description")
-            for item in self.items:
-                item.onProperty(item.prop("uniqueId"))  # follow-up to notify=False
-                item.onProperty(item.prop("description"))  # follow-up to notify=False
-            if was is not None:
-                self.blockNotify = was
-            return
-        super().set(attr, value)
+        else:
+            super().set(attr, value)
         if attr == "parentId" and self._scene:
             person = self._scene.find(id=value)
             if person:

@@ -231,8 +231,10 @@ def test_edit_single(qtbot, view, eventProps):
     assertEventProperties(event, eventProps)
 
 
-def test_edit_multiple(qtbot, view, eventProps):
+def test_edit_multiple(qtbot, scene, view, eventProps):
+    person = Person(name="person")
     event1 = Event(
+        person,
         description="Some Event 1",
         unsure=True,
         dateTime=util.Date(2001, 5, 20),
@@ -241,6 +243,7 @@ def test_edit_multiple(qtbot, view, eventProps):
         location="Seward, AK",
     )
     event2 = Event(
+        person,
         description="Some Event 2",
         unsure=False,
         dateTime=util.Date(2000, 4, 19),
@@ -248,6 +251,7 @@ def test_edit_multiple(qtbot, view, eventProps):
         notes="Some notes I had 2",
         location="Anchorage, AK",
     )
+    scene.addItems(person, event1, event2)
     view.eventModel.items = [event1, event2]
     qtbot.waitActive(view)
 
@@ -341,12 +345,13 @@ def test_empty_strings_reset_props(view, eventProps):
     assert eventModel.notes == eventModel.defaultFor("notes")
 
 
-def test_set_uniqueId_with_description(qtbot, view):
+def test_set_uniqueId_with_description(qtbot, scene, view):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     event = Event(
         parent=marriage, description="here we are", dateTime=util.Date(1900, 1, 1)
     )
+    scene.addItems(personA, personB, marriage, event)
     view.eventModel.items = [event]
     qtbot.waitActive(view)
 
@@ -356,7 +361,7 @@ def test_set_uniqueId_with_description(qtbot, view):
     # qtbot.clickYesAfter(lambda: view.clickComboBoxItem('uniqueIdBox', 'Separated'))
 
 
-def test_reset_description_on_reset_uniqueId(qtbot, view):
+def test_reset_description_on_reset_uniqueId(qtbot, view, scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
@@ -364,6 +369,7 @@ def test_reset_description_on_reset_uniqueId(qtbot, view):
         uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
+    scene.addItems(marriage, married)
     view.eventModel.items = [married]
     qtbot.waitActive(view)
     assert married.uniqueId() == EventKind.Married.value
@@ -399,21 +405,20 @@ def test_uniqueId_undo_redo(qtbot, view):
     assert view.itemProp("uniqueIdBox", "currentText") == "Married"
 
 
-def test_uniqueId_undo_redo_custom_event(qtbot, view):
-    scene = view.rootModel().scene
+def test_uniqueId_undo_redo_custom_event(qtbot, view, scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     event = Event(
-        parent=marriage, description="Something", dateTime=util.Date(1900, 1, 1)
+        parent=marriage, description="Initial", dateTime=util.Date(1900, 1, 1)
     )
-    scene.addItems(personA, personB, marriage)
+    scene.addItems(personA, personB, marriage, event)
     view.eventModel.items = [event]
     qtbot.waitActive(view)
     assert event.uniqueId() == None
-    assert event.description() == "Something"
+    assert event.description() == "Initial"
     assert view.itemProp("uniqueIdBox", "currentText") == ""
     assert view.itemProp("uniqueIdBox", "currentIndex") == -1
-    assert view.itemProp("descriptionEdit", "text") == "Something"
+    assert view.itemProp("descriptionEdit", "text") == "Initial"
 
     view.clickComboBoxItem("uniqueIdBox", "Separated")
     assert event.uniqueId() == EventKind.Separated.value
@@ -422,10 +427,10 @@ def test_uniqueId_undo_redo_custom_event(qtbot, view):
 
     scene.undo()
     assert event.uniqueId() == None
-    assert event.description() == "Something"
+    assert event.description() == "Initial"
     assert view.itemProp("uniqueIdBox", "currentText") == ""
     assert view.itemProp("uniqueIdBox", "currentIndex") == -1
-    assert view.itemProp("descriptionEdit", "text") == "Something"
+    assert view.itemProp("descriptionEdit", "text") == "Initial"
 
     scene.redo()
     assert event.uniqueId() == EventKind.Separated.value

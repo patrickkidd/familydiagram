@@ -175,16 +175,16 @@ class Event(Item):
             self._do_setParent(parent)
 
     def onProperty(self, prop):
-        if prop.name() == "description" or (
-            prop.name() == "location" and self.uniqueId() == EventKind.Moved.value
-        ):
+        if prop.name() == "location" and self.uniqueId() == EventKind.Moved.value:
             if not self._onShowAliases:
                 self.updateDescription()
         elif prop.name() == "notes":
             if not self._onShowAliases:
                 self.updateNotes()
-        elif prop.name() == "uniqueId":
-            self.updateDescription()
+        # Disabled because this is probably only ever set from the emotion
+        # properties and now we aggreate uniqueId and description into a single
+        #     QUndoEvent. elif prop.name() == "uniqueId":
+        #     self.updateDescription()
         super().onProperty(prop)
         if self.parent:
             self.parent.onEventProperty(prop)
@@ -222,7 +222,7 @@ class Event(Item):
         else:
             self._aliasParentName = None
 
-    def updateDescription(self):
+    def updateDescription(self, undo=False):
         """Force re-write of aliases."""
         if self._updatingDescription:
             return
@@ -235,11 +235,9 @@ class Event(Item):
             newDescription = self.getDescriptionForUniqueId(uniqueId)
             if wasDescription != newDescription:
                 if newDescription:
-                    prop.set(
-                        newDescription
-                    )  # not sure why this was notify=False before
+                    prop.set(newDescription, undo=undo)
                 else:
-                    prop.reset()
+                    prop.reset(undo=undo)
         scene = self.scene()
         if prop.get() is not None and scene:
             self._aliasDescription = scene.anonymize(prop.get())

@@ -425,11 +425,11 @@ class Session(QObject, QObjectHelper):
             )
         )
 
-    def trackApp(self, eventName, properties={}):
-        return self.track("Application: " + eventName, properties)
+    def trackApp(self, eventName):
+        return self.track("Application: " + eventName)
 
     def trackAction(self, eventName, properties={}):
-        return self.track("Action: " + eventName, properties)
+        return self.track("Action: " + eventName, properties=properties)
 
     @pyqtSlot(str)
     def trackView(self, eventName):

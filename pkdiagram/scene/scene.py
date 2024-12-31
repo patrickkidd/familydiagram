@@ -1553,7 +1553,7 @@ class Scene(QGraphicsScene, Item):
         try:
             yield
         except Exception as e:
-            _e
+            _e = e
         if undo:
             self._undoStack.endMacro()
         if batchAddRemove:

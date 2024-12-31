@@ -216,8 +216,6 @@ def test_date_undo_redo(pp, personProps):
     assert pp.itemProp("birthDateButtons", "dateTime") == dateTime
     assert pp.itemProp("birthDatePicker", "dateTime") == dateTime
 
-    util.HERE = True
-
     pp.scene.stack().redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 

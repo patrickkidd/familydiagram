@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
         self.isInitializing = False
         self._blocked = False
         self._savingServerFile = False
+        self._isOpeningDiagram = False
         self._isImportingToFreeDiagram = False
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -139,9 +140,7 @@ class MainWindow(QMainWindow):
             self.ui.horizontalLayout.setObjectName("horizontalLayout")
             self.setCentralWidget(self.ui.centralWidget)
 
-        self.undoStack.canUndoChanged.connect(self.ui.actionUndo.setEnabled)
         self.ui.actionUndo.setEnabled(False)
-        self.undoStack.canRedoChanged.connect(self.ui.actionRedo.setEnabled)
         self.ui.actionRedo.setEnabled(False)
 
         self.profiler = None
@@ -997,6 +996,7 @@ class MainWindow(QMainWindow):
     def setDocument(self, document):
         """Called from CUtil.openExistingFile() async open."""
         newScene = None
+        self._isOpeningDiagram = True
 
         if document:  # see if scene loads successfully first
             if not self.session.hasFeature(vedana.LICENSE_FREE):
@@ -1061,6 +1061,7 @@ class MainWindow(QMainWindow):
             if ret:
                 self.onOpenFileError(ret)
                 self.fileManager.setEnabled(True)
+                self._isOpeningDiagram = False
                 return
 
             #
@@ -1172,6 +1173,8 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
+            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -1239,6 +1242,7 @@ class MainWindow(QMainWindow):
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
             self.documentChanged.emit(oldDoc, newDoc)
+        self._isOpeningDiagram = False
 
     def onServerPollTimer(self):
         if self.scene:
@@ -1761,7 +1765,8 @@ class MainWindow(QMainWindow):
             self._blocked = True
             self.ui.actionShow_Graphical_Timeline.setChecked(on)
             self._blocked = False
-        self.scene.setHideDateSlider(not on, undo=True)
+        undo = not self._isOpeningDiagram
+        self.scene.setHideDateSlider(not on, undo=undo)
 
     def onExpandGraphicalTimeline(self, on):
         if self._blocked:

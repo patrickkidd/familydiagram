@@ -183,7 +183,6 @@ class AppController(QObject):
 
         ## Write Preferences
 
-        was = self.prefs.setAutoSave(False)
         self.prefs.setValue("windowSize", mw.size())
         lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(
             vedana.LICENSE_FREE
@@ -192,7 +191,6 @@ class AppController(QObject):
         showCurrentDate = mw.ui.actionShow_Current_Date.isChecked()
         self.prefs.setValue("showCurrentDate", showCurrentDate)
         self.prefs.sync()
-        self.prefs.setAutoSave(was)
 
         self.mw = None
 

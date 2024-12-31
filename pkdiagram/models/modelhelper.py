@@ -15,7 +15,6 @@ class ModelHelper(QObjectHelper):
             {"attr": "items", "type": list},
             {"attr": "scene", "type": Scene, "default": None},
             {"attr": "blockNotify", "type": bool, "default": False},
-            {"attr": "blockUndo", "type": bool, "default": False},
             {"attr": "addMode", "type": bool, "default": False},
             {
                 "attr": "dirty",
@@ -32,7 +31,6 @@ class ModelHelper(QObjectHelper):
     def initModelHelper(self, storage=False):
         self._ModelHelperInitializing = True
         self._blockNotify = False
-        self._blockUndo = False
         self._addMode = False
         self._dirty = False
         self._items = []
@@ -107,8 +105,6 @@ class ModelHelper(QObjectHelper):
             return self._scene
         elif attr == "blockNotify":
             return self._blockNotify
-        elif attr == "blockUndo":
-            return self._blockUndo
         elif attr == "addMode":
             return self._addMode
         elif attr == "dirty":
@@ -162,25 +158,12 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "blockNotify":
             self._blockNotify = value
-            # pks: Removed b/c was causing problems and couldn't figure out what it was for
-            # if not self._blockNotify or not self._blockUndo:
-            #     self._addMode = False
             self.refreshProperty("blockNotify")
-            # self.refreshProperty('addMode')
-        elif attr == "blockUndo":
-            self._blockUndo = value
-            # pks: Removed b/c was causing problems and couldn't figure out what it was for
-            # if not self._blockNotify or not self._blockUndo:
-            #     self._addMode = False
-            self.refreshProperty("blockUndo")
-            # self.refreshProperty('addMode')
         elif attr == "addMode":
-            self._blockUndo = value
             self._blockNotify = value
             self._addMode = value
             self.refreshProperty("addMode")
             self.refreshProperty("blockNotify")
-            self.refreshProperty("blockUndo")
         elif attr == "dirty":
             self._dirty = value
         elif attr == "resetter":
@@ -190,11 +173,12 @@ class ModelHelper(QObjectHelper):
         x = self.setterConvertTo(attr, value)
         # set on property
         notify = not self._blockNotify
-        undo = not self._blockUndo
+        undo = attr != "resetter"
         foundItemProp = False
-        if self._scene:
+        if self._scene and self._items:
             with self._scene.macro(
-                f"Set attribute '{attr}' on model class '{self.__class__.__name__}'"
+                f"Set attribute '{attr}' on model class '{self.__class__.__name__}'",
+                undo=undo,
             ):
                 for item in self._items:
                     # if the item has not been set yet then leave it alone
@@ -221,7 +205,7 @@ class ModelHelper(QObjectHelper):
         elif attr == "dirty":
             self.set("dirty", False)
         notify = not self._blockNotify
-        undo = not self._blockUndo
+        undo = attr != "resetter"
         with self._scene.macro(
             f"Reset attribute '{attr}' on model class '{self.__class__.__name__}'"
         ):

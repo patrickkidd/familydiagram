@@ -1440,7 +1440,9 @@ class ClickFilter(QObject):
 
 
 def usingOrSimulatingiCloud():
-    if IS_DEV and prefs().value("iCloudWasOn", defaultValue=False, type=bool):
+    if IS_DEV and QApplication.instance().prefs().value(
+        "iCloudWasOn", defaultValue=False, type=bool
+    ):
         ret = True  # simulate in dev
     else:
         ret = CUtil.instance().iCloudOn()

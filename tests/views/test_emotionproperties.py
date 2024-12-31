@@ -110,19 +110,19 @@ def assertEmotionPropertiesInit(props, ep):
 
 
 def test_show_init(qmlScene, ep, emotionProps):
-    personAName = qmlScene.people()[0].name()
-    personBName = qmlScene.people()[1].name()
+    personA = qmlScene.people()[0]
+    personB = qmlScene.people()[1]
     initProps = {"kind": util.ITEM_PROJECTION, "intensity": 2}
-    emotion = scene.Emotion(**initProps)
+    emotion = scene.Emotion(personA=personA, personB=personB, **initProps)
     qmlScene.addItem(emotion)
     ep.show(emotion)
     assertEmotionPropertiesInit(initProps, ep)
 
     runEmotionProperties(
-        emotionProps, ep, personAName=personAName, personBName=personBName
+        emotionProps, ep, personAName=personA.name(), personBName=personB.name()
     )
     assertEmotionProperties(
-        emotion, emotionProps, personAName=personAName, personBName=personBName
+        emotion, emotionProps, personAName=personA.name(), personBName=personB.name()
     )
 
 

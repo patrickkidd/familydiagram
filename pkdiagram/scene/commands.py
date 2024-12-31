@@ -12,6 +12,7 @@ import os, shutil, logging
 from typing import Union
 
 from pkdiagram.pyqt import QUndoCommand
+from pkdiagram.scene import EventKind
 
 
 _log = logging.getLogger(__name__)
@@ -490,6 +491,21 @@ class SetEventParent(QUndoCommand):
     def __init__(self, event, parent):
         super().__init__(f"Set event {event.itemName()} parent to {parent.itemName()}")
         self.was_parent = event.parent
+        self.event = event
+        self.parent = parent
+
+    def redo(self):
+        self.event._do_setParent(self.parent)
+
+    def undo(self):
+        self.event._do_setParent(self.was_parent)
+
+
+class SetEventKind(QUndoCommand):
+
+    def __init__(self, events, kind: EventKind):
+        super().__init__(f"Set event(s) to {kind.name}")
+        self.was_kinds
         self.event = event
         self.parent = parent
 
