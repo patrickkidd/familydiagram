@@ -31,6 +31,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         super().__init__(parent)
         self._layers = []
         self._reorderingLayers = False
+        self._isResettingModel = False
         self.initModelHelper()
 
     def set(self, attr, value):
@@ -47,7 +48,9 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value.layerRemoved[Layer].connect(self.onLayerRemoved)
                 value.diagramReset.connect(self.onDiagramReset)
                 self._layers = [x for x in value.layers(includeInternal=False)]
+            self._isResettingModel = True
             self.modelReset.emit()
+            self._isResettingModel = False
         super().set(attr, value)
 
     @util.blocked
@@ -203,6 +206,8 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         return ret
 
     def setData(self, index, value, role=NameRole):
+        if self._isResettingModel:
+            return False
         success = True
         layer = self._layers[index.row()]
         if role == self.NameRole:
@@ -212,15 +217,18 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value = False
             else:
                 value = True
-            success = layer.setActive(value, undo=True)
+            if value != layer.active():
+                success = layer.setActive(value, undo=True)
         elif role == self.DescriptionRole:
-            success = layer.setDescription(value, undo=True)
+            if value != layer.description():
+                success = layer.setDescription(value, undo=True)
         elif role == self.NotesRole:
-            success = layer.setNotes(value, undo=True)
+            if value != layer.notes():
+                success = layer.setNotes(value, undo=True)
         elif role == self.StoreGeometryRole:
-            success = layer.setStoreGeometry(value, undo=True)
+            if value != layer.storeGeometry():
+                success = layer.setStoreGeometry(value, undo=True)
         elif role == self.ItemPropertiesRole:
-            layer = self._layers[index.row()]
             success = layer.setItemProperties(value)
         else:
             success = False

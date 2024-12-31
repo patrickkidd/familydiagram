@@ -1704,7 +1704,7 @@ class MainWindow(QMainWindow):
         if on != self.ui.actionHide_ToolBars.isChecked():
             self.ui.actionHide_ToolBars.setChecked(on)
         self._blocked = False
-        self.scene.setHideToolBars(on, undo=True)
+        self.scene.setHideToolBars(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onShowAliases(self, on):
@@ -1729,19 +1729,19 @@ class MainWindow(QMainWindow):
         # Optimize hiding names (this doesn't really help much)
         self._blocked = False
         if self.scene:
-            self.scene.setShowAliases(on, undo=True)
+            self.scene.setShowAliases(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideEmotionalProcess(self, on):
         if on != self.ui.actionHide_Emotional_Process.isChecked():
             self.ui.actionHide_Emotional_Process.setChecked(on)
-        self.scene.setHideEmotionalProcess(on, undo=True)
+        self.scene.setHideEmotionalProcess(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideEmotionColors(self, on):
         if on != self.ui.actionHide_Emotion_Colors.isChecked():
             self.ui.actionHide_Emotion_Colors.setChecked(on)
-        self.scene.setHideEmotionColors(on, undo=True)
+        self.scene.setHideEmotionColors(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideNames(self, on):
@@ -1751,13 +1751,13 @@ class MainWindow(QMainWindow):
     def onHideVariablesOnDiagram(self, on):
         if on != self.ui.actionHide_Variables_on_Diagram.isChecked():
             self.ui.actionHide_Variables_on_Diagram.setChecked(on)
-        self.scene.setHideVariablesOnDiagram(on, undo=True)
+        self.scene.setHideVariablesOnDiagram(on, undo=(not self._isOpeningDiagram))
 
     @util.fblocked
     def onHideVariableSteadyStates(self, on):
         if on != self.ui.actionHide_Variable_Steady_States.isChecked():
             self.ui.actionHide_Variable_Steady_States.setChecked(on)
-        self.scene.setHideVariableSteadyStates(on, undo=True)
+        self.scene.setHideVariableSteadyStates(on, undo=(not self._isOpeningDiagram))
 
     def onGraphicalTimeline(self):
         on = self.ui.actionShow_Graphical_Timeline.isChecked()

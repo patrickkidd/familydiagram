@@ -375,9 +375,10 @@ class SetPos(QUndoCommand):
 class SetProperty(QUndoCommand):
     def __init__(self, prop, value, forLayers=[]):
         if forLayers:
-            super().__init__(f"Set '{prop.name()}' on layers")
+            layerNames = ','.join([layer.name() for layer in forLayers])
+            super().__init__(f"Set property '{prop.name()}' on {prop.item.__class__.__name__} for layers {layerNames}")
         else:
-            super().__init__(f"Set '{prop.name()}' on item")
+            super().__init__(f"Set property '{prop.name()}' on {prop.item.__class__.__name__}")
         self.forLayers = forLayers
         if forLayers:
             self.was_values = {
