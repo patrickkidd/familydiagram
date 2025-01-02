@@ -412,7 +412,7 @@ def test_store_geometry(qtbot, monkeypatch):
 
     # Each assert should have all three cases; current visible, no layers, layer.
 
-    person.setPos(QPointF(100, 100))
+    person.setItemPosNow(QPointF(100, 100))
     person.setSize(1)
     assert person.itemPos() == QPointF(100, 100)
     assert person.itemPos(forLayers=[]) == QPointF(100, 100)
@@ -428,7 +428,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[]) == 1
     assert person.size(forLayers=[layer]) == None
 
-    person.setPos(QPointF(200, 200))
+    person.setItemPos(QPointF(200, 200))
     person.setSize(2)
     assert person.itemPos() == QPointF(200, 200)
     assert person.itemPos(forLayers=[]) == QPointF(200, 200)
@@ -445,7 +445,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[]) == 2
     assert person.size(forLayers=[layer]) == None
 
-    person.setPos(QPointF(300, 300))
+    person.setItemPos(QPointF(300, 300))
     person.setSize(3)
     assert person.itemPos() == QPointF(300, 300)
     assert person.itemPos(forLayers=[]) == QPointF(200, 200)
@@ -481,7 +481,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[layer]) == None
 
     # test values are not stored in layer, even if layer active
-    person.setPos(QPointF(400, 400))
+    person.setItemPos(QPointF(400, 400))
     person.setSize(4)
     assert person.itemPos() == QPointF(400, 400)  # value still stored in layer
     assert person.itemPos(forLayers=[]) == QPointF(400, 400)  # new default value
@@ -501,7 +501,7 @@ def test_dont_store_positions(monkeypatch):
     layer.setStoreGeometry(False)
     monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
-    item.setPos(QPointF(100, 100))
+    item.setItemPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
@@ -509,24 +509,24 @@ def test_dont_store_positions(monkeypatch):
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
-    item.setPos(QPointF(200, 200))
+    item.setItemPos(QPointF(200, 200))
     assert item.itemPos() == QPointF(200, 200)
     assert item.itemPos(forLayers=[layer]) == None
 
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(300, 300))
+    item.setItemPos(QPointF(300, 300))
     assert item.itemPos() == QPointF(300, 300)
     assert item.itemPos(forLayers=[layer]) == QPointF(300, 300)
 
     layer.setStoreGeometry(False)
-    item.setPos(QPointF(400, 400))  # layer still active
+    item.setItemPos(QPointF(400, 400))  # layer still active
     assert item.itemPos() == QPointF(400, 400)
     assert (
         item.itemPos(forLayers=[layer]) == None
     )  # layer value deleted when setting storeGeometry = False
 
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(500, 500))  # layer still active
+    item.setItemPos(QPointF(500, 500))  # layer still active
     assert item.itemPos() == QPointF(500, 500)
     assert item.itemPos(forLayers=[layer]) == QPointF(500, 500)
 
@@ -542,13 +542,13 @@ def test_storeGeometry_dont_reset_LayerItem_pos(monkeypatch):
     scene.addItems(layer, item)
     monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
-    item.setPos(QPointF(100, 100))
+    item.setItemPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
     layer.setActive(True)
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(200, 200))
+    item.setItemPos(QPointF(200, 200))
     assert item.itemPos() == QPointF(200, 200)
     assert item.itemPos(forLayers=[layer]) == QPointF(200, 200)
 

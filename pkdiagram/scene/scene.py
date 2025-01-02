@@ -63,7 +63,7 @@ from pkdiagram.scene.commands import (
     ReplaceEventProperties,
     AddEventProperty,
     RemoveEventProperty,
-    SetPos,
+    SetItemPos,
     SetLayerOrder,
 )
 
@@ -1185,7 +1185,7 @@ class Scene(QGraphicsScene, Item):
             self.checkPrintRectChanged()
             with self.macro("Move item(s)"):
                 for item in self.selectedItems():
-                    self.push(SetPos(item, item.pos()))
+                    self.push(SetItemPos(item, item.pos()))
             self.mousePressOnDraggable = None  # for self.checkItemDragged()
         if self.snapItem.scene() is self:
             self.removeItem(self.snapItem)

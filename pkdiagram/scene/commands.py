@@ -349,24 +349,24 @@ class RemoveItems(QUndoCommand):
                     child.childOf.updateGeometry()
 
 
-class SetPos(QUndoCommand):
-    def __init__(self, item, pos):
-        super().__init__("Set pos")
-        self.was_pos = item.pos()
+class SetItemPos(QUndoCommand):
+    def __init__(self, item, value):
+        super().__init__("Set item pos")
+        self.was_value = item.itemPos()
         self.item = item
-        self.pos = pos
+        self.value = value
         if item.isCallout:
             self.calloutPoints = item.mouseMovePoints
             self.was_calloutPoints = item.mousePressPoints
 
     def redo(self):
-        self.item.setPos(self.pos)
+        self.item.setItemPosNow(self.value)
         if self.item.isCallout and self.calloutPoints:
             self.item.setPoints(self.calloutPoints)
         self.item.updateGeometry()
 
     def undo(self):
-        self.item.setPos(self.was_pos)
+        self.item.setItemPosNow(self.was_value)
         if self.item.isCallout:
             self.item.setPoints(self.was_calloutPoints)
         self.item.updateGeometry()
@@ -375,10 +375,14 @@ class SetPos(QUndoCommand):
 class SetProperty(QUndoCommand):
     def __init__(self, prop, value, forLayers=[]):
         if forLayers:
-            layerNames = ','.join([layer.name() for layer in forLayers])
-            super().__init__(f"Set property '{prop.name()}' on {prop.item.__class__.__name__} for layers {layerNames}")
+            layerNames = ",".join([layer.name() for layer in forLayers])
+            super().__init__(
+                f"Set property '{prop.name()}' on {prop.item.__class__.__name__} for layers {layerNames}"
+            )
         else:
-            super().__init__(f"Set property '{prop.name()}' on {prop.item.__class__.__name__}")
+            super().__init__(
+                f"Set property '{prop.name()}' on {prop.item.__class__.__name__}"
+            )
         self.forLayers = forLayers
         if forLayers:
             self.was_values = {

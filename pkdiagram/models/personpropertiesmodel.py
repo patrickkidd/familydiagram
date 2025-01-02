@@ -74,7 +74,6 @@ class PersonPropertiesModel(QObject, ModelHelper):
             self.refreshProperty("age")
         elif prop.name() == "itemPos":
             self.refreshProperty("isItemPosSetInCurrentLayer")
-            x = 1
 
     def onEventProperty(self, prop):
         if prop.name() == "dateTime":

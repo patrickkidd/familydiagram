@@ -364,10 +364,10 @@ def test_clear_layered_pos(pp, monkeypatch):
     pp.setCurrentTab("meta")
 
     monkeypatch.setattr(pp.scene, "isMovingSomething", lambda: True)
-    person.setPos(QPointF(100, 100))  # default
+    person.setItemPos(QPointF(100, 100))  # default
     layer.setActive(True)
     layer.setStoreGeometry(True)
-    person.setPos(QPointF(200, 200))  # in layer
+    person.setItemPos(QPointF(200, 200))  # in layer
     personModel = pp.rootProp("personModel")
     assert personModel.itemPos == QPointF(200, 200)
     assert personModel.itemPos == person.itemPos()

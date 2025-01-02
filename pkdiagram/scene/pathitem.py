@@ -52,6 +52,16 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
 
     Item.registerProperties(
         (
+            # `itemPos` is what is stored in the file. It has a different name
+            # from `pos` to:
+            # - Avoid getter/setter conflicts with QGraphicsItem.pos
+            # - Allow the value to vary from the visual value when animating or
+            #   dragging so that the stored value can just be set with undo on
+            #   mouse release.
+            #
+            # So you can use setPos() to change the visual represention without
+            # changing the stored value. Use setItemPos as the canonical way to
+            # move an item since it stores its value at the same time.
             {
                 "attr": "itemPos",
                 "type": QPointF,
@@ -201,22 +211,23 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
         self.setPos(pos)
 
     def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionHasChanged:
-            if (
-                self.scene()
-                and self.scene().isMovingSomething()
-                and not self.scene().areActiveLayersChanging()
-            ):
-                self.setItemPos(value, notify=True)
-            # if self.posAnimation.state() == QAbstractAnimation.Running or \
-            #     (self.scene() and (self.scene().isInitializing or self.scene().isUpdatingAll())) or \
-            #     not self._useItemPos:
-            #     pass
-            # else:
-            #     # should only be when dragging.
-            #     self.setItemPos(value, notify=False)
-            #     self.here(value)
-        elif change == QGraphicsItem.ItemSelectedHasChanged:
+        # if change == QGraphicsItem.ItemPositionHasChanged:
+        #     if (
+        #         self.scene()
+        #         and self.scene().isMovingSomething()
+        #         and not self.scene().areActiveLayersChanging()
+        #     ):
+        #         self.setItemPos(value, notify=True)
+        #         _log.info(f"itemChange: {value}")
+        #     # if self.posAnimation.state() == QAbstractAnimation.Running or \
+        #     #     (self.scene() and (self.scene().isInitializing or self.scene().isUpdatingAll())) or \
+        #     #     not self._useItemPos:
+        #     #     pass
+        #     # else:
+        #     #     # should only be when dragging.
+        #     #     self.setItemPos(value, notify=False)
+        #     #     self.here(value)
+        if change == QGraphicsItem.ItemSelectedHasChanged:
             # Disabled for performance
             # if value:
             #     dropShadow = QGraphicsDropShadowEffect(self)
@@ -399,4 +410,4 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
 
     def setShowNotesIcon(self, on):
         if on != self._notesIcon.isVisible():
-            self._notesIcon.setVisible(on)
+            self._notesIcon.setVisible(on)  #
