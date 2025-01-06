@@ -45,7 +45,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QEventLoop,
     QSettings,
-    QGraphicsView
+    QGraphicsView,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
@@ -268,8 +268,10 @@ def qApp():
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+
     def _prefs(self):
         return prefs
+
     with mock.patch.object(Application, "prefs", _prefs):
         app = Application(sys.argv)
 
@@ -532,14 +534,24 @@ class PKQtBot(QtBot):
         if self.DEBUG:
             log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
         return super().mouseDClick(*args, **kwargs)
-    
+
     def mouseClickGraphicsItem(self, view: QGraphicsView, item):
         rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
-        self.mouseClick(view.viewport(), Qt.LeftButton, modifier=Qt.KeyboardModifier.NoModifier, pos=rect.center())
+        self.mouseClick(
+            view.viewport(),
+            Qt.LeftButton,
+            modifier=Qt.KeyboardModifier.NoModifier,
+            pos=rect.center(),
+        )
 
     def mouseDClickGraphicsItem(self, view: QGraphicsView, item):
         rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
-        self.mouseDClick(view.viewport(), Qt.LeftButton, modifier=Qt.KeyboardModifier.NoModifier, pos=rect.center())
+        self.mouseDClick(
+            view.viewport(),
+            Qt.LeftButton,
+            modifier=Qt.KeyboardModifier.NoModifier,
+            pos=rect.center(),
+        )
 
     @staticmethod
     def mouseMove(
