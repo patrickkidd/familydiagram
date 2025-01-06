@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import QPointF
 from pkdiagram.scene import PathItem
-)
+
 
 pytestmark = [
     pytest.mark.component("PathItem"),

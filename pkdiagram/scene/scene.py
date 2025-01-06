@@ -361,8 +361,6 @@ class Scene(QGraphicsScene, Item):
                 item.endUpdateFrame()
         if item.isPerson:
             self._people.append(item)
-            item.eventAdded[Event].connect(self.eventAdded)
-            item.eventRemoved[Event].connect(self.eventRemoved)
             if not self.isBatchAddingRemovingItems():
                 item.setLayers([x.id for x in self.activeLayers()])
                 if self.activeLayers():
@@ -381,8 +379,6 @@ class Scene(QGraphicsScene, Item):
                 item.emotionalUnit().update()
             item.updateGeometry()
             self.marriageAdded[Marriage].emit(item)
-            item.eventAdded[Event].connect(self.eventAdded)
-            item.eventRemoved[Event].connect(self.eventRemoved)
         elif item.isChildOf:
             if not self.isBatchAddingRemovingItems():
                 item.parents().emotionalUnit().update()
@@ -504,8 +500,6 @@ class Scene(QGraphicsScene, Item):
         if item.isPerson:
             self._people.remove(item)
             self.personRemoved.emit(item)
-            item.eventAdded[Event].disconnect(self.eventAdded)
-            item.eventRemoved[Event].disconnect(self.eventRemoved)
         elif item.isMarriage:
             for person in item.people:
                 person._onRemoveMarriage(item)
@@ -519,8 +513,6 @@ class Scene(QGraphicsScene, Item):
             self.removeItem(item.emotionalUnit().layer())
             item.emotionalUnit().update()
             self._marriages.remove(item)
-            item.eventAdded[Event].disconnect(self.eventAdded)
-            item.eventRemoved[Event].disconnect(self.eventRemoved)
             self.marriageRemoved[Marriage].emit(item)
         elif item.isChildOf:
             if item.multipleBirth:

@@ -183,6 +183,30 @@ def test_remove_person(scene, undo):
         assert scene.people() == []
 
 
+def test_remove_event(scene, undo):
+    person = Person(name="person")
+    scene.addItem(person)
+    eventAdded = util.Condition(scene.eventAdded)
+    eventRemoved = util.Condition(scene.eventRemoved)
+    event = Event(
+        person, description="Something happened", dateTime=util.Date(2001, 1, 1)
+    )
+    scene.addItem(event)
+    assert eventAdded.callCount == 1
+    assert eventRemoved.callCount == 0
+    assert scene.events(onlyDated=True) == [event]
+    scene.removeItem(event, undo=undo)
+    scene.undo()
+    if undo:
+        assert eventAdded.callCount == 2
+        assert eventRemoved.callCount == 1
+        assert scene.events(onlyDated=True) == [event]
+    else:
+        assert eventAdded.callCount == 1
+        assert eventRemoved.callCount == 1
+        assert scene.events(onlyDated=True) == []
+
+
 def test_remove_marriage(scene, undo):
     marriageAdded = util.Condition(scene.marriageAdded)
     marriageRemoved = util.Condition(scene.marriageRemoved)
