@@ -103,7 +103,7 @@ class Item:
         for prop in self.props:
             if not prop.layered and prop.get() != prop.default:
                 props[prop.attr] = prop.get()
-        s = util.pretty(props, exclude=exclude)
+        s = util.pretty(props, exclude=exclude).replace("PyQt5.QtCore.", "")
         if s:
             s = ": " + s
         return "<%s[%s]%s>" % (self.__class__.__name__, self.id, s)

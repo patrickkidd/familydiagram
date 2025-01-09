@@ -53,9 +53,9 @@ def test_some_events_shown(tv, qmlEngine):
     scene = qmlEngine.sceneModel.scene
     person = Person(name="Hey", lastName="There")
     event = Event(
-        person, dateTime=util.Date(2001, 1, 1), description="Something happened"
+        parent=person, dateTime=util.Date(2001, 1, 1), description="Something happened"
     )
-    scene.addItem(person, event)
+    scene.addItem(person)
     util.waitALittle()
     assert tv.itemProp("table", "visible") == True
     assert tv.itemProp("noEventsLabel", "visible") == False
@@ -77,7 +77,7 @@ def test_some_events_filtered_out(tv, qmlEngine):
         )
         for i in range(3)
     ]
-    scene.addItems(person)
+    scene.addItem(person)
     qmlEngine.searchModel.startDateTime = util.Date(2020, 1, 1)
     util.waitALittle()
     assert tv.itemProp("noEventsLabel", "visible") == True

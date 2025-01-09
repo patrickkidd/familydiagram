@@ -7,6 +7,13 @@ from pkdiagram.scene.commands import SetEventParent
 
 
 class Event(Item):
+    """
+    Canonical way to add:
+        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), uniqueId=EventKind.Birth.value)
+        scene.addItem(event)
+
+    Events are also added / removed from the scene whenever the parent is added / removed from the scene.
+    """
 
     Item.registerProperties(
         (

@@ -972,16 +972,12 @@ class Person(PathItem):
             return
         if x not in self._events:
             self._events.append(x)
-            if self.scene():
-                self.scene().addItem(x)
             self.updateEvents()
 
     def _onRemoveEvent(self, x):
         """Called from Event.setParent."""
         if x in self._events:
             self._events.remove(x)
-            if self.scene():
-                self.scene().removeItem(x)
             self.updateEvents()
 
     ## Emotions

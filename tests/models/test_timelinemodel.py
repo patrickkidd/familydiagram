@@ -129,7 +129,7 @@ def test_set_searchModel():
         dateTime=util.Date(2004, 1, 1),
         tags=["there"],
     )
-    scene.addItems(personA, personB, personC, eventA, eventB, eventB2)
+    scene.addItems(personA, personB, personC)
 
     model = TimelineModel()
     model.scene = scene
@@ -155,10 +155,10 @@ def test_init_multiple_people():
     personA.setBirthDateTime(util.Date(2000, 1, 1))
     personB.setBirthDateTime(util.Date(2001, 1, 1))
     eventA = Event(
-        parent=personA, description="PersonA something", dateTime=util.Date(2002, 1, 1)
+        personA, description="PersonA something", dateTime=util.Date(2002, 1, 1)
     )
     eventB = Event(
-        parent=personB, description="PersonB something", dateTime=util.Date(2003, 1, 1)
+        personB, description="PersonB something", dateTime=util.Date(2003, 1, 1)
     )
     # add two emotions where only one person's end should should in the timeline
     emotionA = Emotion(
@@ -222,9 +222,7 @@ def test_access_data_after_deinit():
     model.data(model.index(0, 1), model.FlagsRole)
 
 
-def test_include_marriage_events():
-
-    scene = Scene()
+def test_include_marriage_events(scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItems(personA, personB, marriage)
@@ -239,6 +237,7 @@ def test_include_marriage_events():
         uniqueId=EventKind.Separated.value,
         dateTime=util.Date(2001, 1, 1),
     )
+    scene.addItem(separated)
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
 
@@ -248,6 +247,7 @@ def test_include_marriage_events():
         uniqueId=EventKind.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
+    scene.addItem(married)
     assert model.rowCount() == 2
     assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2000, 1, 1)
     assert model.data(model.index(1, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
@@ -259,7 +259,7 @@ def test_include_marriage_events():
     assert model.data(model.index(1, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
 
 
-def test_flags(qtbot, timelineScene, model):
+def test_flags(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 

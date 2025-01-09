@@ -469,7 +469,9 @@ class DocumentView(QWidget):
         elif events:
             if tab is None and self.currentDrawer is self.caseProps:
                 tab = self.eventProps.currentTab()
-            self.setCurrentDrawer(self.caseProps, items=events, tab="timeline")
+            self.setCurrentDrawer(
+                self.caseProps, items=events, tab=RightDrawerView.Timeline.value
+            )
             self.session.trackView("Edit event")
         elif layerItems:
             if tab is None and self.currentDrawer is self.layerItemProps:
@@ -497,7 +499,7 @@ class DocumentView(QWidget):
         if self.scene:  # redundnant?
             if (
                 self.currentDrawer is self.caseProps
-                and self.caseProps.currentTab() == "timeline"
+                and self.caseProps.currentTab() == RightDrawerView.Timeline.value
             ):
                 isTimelineShown = True
             else:

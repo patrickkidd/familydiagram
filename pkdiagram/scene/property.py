@@ -60,7 +60,7 @@ class Property:
             kwargs["type"] = self.type
 
     def __repr__(self):
-        s = str(self.get())
+        s = str(self.get()).replace("PyQt5.QtCore.", "")
         if len(s):
             s = ": " + s
         return "<Property[%i, %s]%s>" % (self.id(), self.name(), s)

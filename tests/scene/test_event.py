@@ -7,25 +7,30 @@ from pkdiagram.scene import EventKind, Event, Person
 def test_init():
     """Try to break ctor."""
     person = Person()
-    event = Event(parent=person)
+    event = Event(person)
     assert event in person.events()
 
 
 @pytest.mark.parametrize("undo", [True, False])
 def test_setParent(scene, undo):
-    person = Person()
-    scene.addItem(person)
-    event = Event()
-    event.setParent(person, undo=undo)
-    assert event in scene.events()
-    assert event in person.events()
+    """
+    We really only need to test switching parents, not setting back to None.
+    """
+    personA, personB = Person(), Person()
+    scene.addItems(personA, personB)
+    event = Event(parent=personB)
+    scene.addItem(event)
+    #
+    event.setParent(personA, undo=undo)
+    assert event in personA.events()
+    assert event not in personB.events()
     scene.undo()
     if undo:
-        assert event not in person.events()
-        assert event not in scene.events()
+        assert event not in personA.events()
+        assert event in personB.events()
     else:
-        assert event in person.events()
-        assert event in scene.events()
+        assert event in personA.events()
+        assert event not in personB.events()
 
 
 def __test___lt__():

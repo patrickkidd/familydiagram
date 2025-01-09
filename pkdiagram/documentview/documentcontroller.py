@@ -860,7 +860,7 @@ class DocumentController(QObject):
         self.onInspect(tab="item")
 
     def onInspectTimelineTab(self):
-        self.onInspect(tab="timeline")
+        self.onInspect(tab=RightDrawerView.Timeline.value)
 
     def onInspectNotesTab(self):
         self.onInspect(tab="notes")

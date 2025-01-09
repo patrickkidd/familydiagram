@@ -833,18 +833,6 @@ def scene(qApp):
     _scene.deinit()
 
 
-# TODO: DECRECATED
-@pytest.fixture
-def qmlScene(simpleScene):
-    sceneModel = SceneModel()
-    sceneModel.scene = simpleScene
-    simpleScene._sceneModel = sceneModel
-
-    yield simpleScene
-
-    simpleScene.deinit()
-
-
 @pytest.fixture
 def create_ac_mw(request, qtbot, tmp_path):
     """

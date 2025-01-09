@@ -246,7 +246,7 @@ ColumnLayout {
 
     function scrollToDateTime(dateTime) {
         // print('TimelineView.scrollToDateTime: ' + dateTime)
-        var row = model.firstRowForDateTime(dateTime)
+        var row = model.firstRowForDateTime(dateTime)        
         if(row > -1) {
             table.ensureVisible(row, true)
         }

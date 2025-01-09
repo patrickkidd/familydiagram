@@ -20,14 +20,13 @@ pytestmark = [
 
 
 @pytest.fixture
-def create_gtv(qtbot):
+def create_gtv(scene, qtbot):
 
     created = []
 
     def _create_gtv():
         nonlocal created
 
-        scene = Scene()
         folks = (
             Person(name=f"person_{i}", birthDateTime=QDateTime(QDate(2000 + i, 1, 1)))
             for i in range(5)
@@ -56,7 +55,7 @@ def create_gtv(qtbot):
         gtv.hide()
 
 
-def test_is_slider_multiple_tags(create_gtv):
+def test_is_slider_multiple_tags(scene, create_gtv):
 
     TAG_1 = "Tag 1"
     TAG_2 = "Tag 2"
@@ -87,12 +86,12 @@ def test_is_slider_multiple_tags(create_gtv):
         dateTime=util.Date(1900, 1, 1),
         description="item3",
     )
-    canvas.scene.addItems(person, event1, event2, event3)
+    scene.addItems(person)
 
 
-def test_scene_setCurrentDate_from_graphical_timeline_click(qtbot, create_gtv):
+def test_scene_setCurrentDate_from_graphical_timeline_click(qtbot, scene, create_gtv):
     gtv = create_gtv()
-    assert len(gtv.scene.people()) > 0  # otherwise will get a false positive
+    assert len(scene.people()) > 0  # otherwise will get a false positive
     pos = QPoint(
         int(gtv.timeline.canvas.width() / 3), int(gtv.height() / 3)
     )  # sort of 1/3 upper left
@@ -100,17 +99,16 @@ def test_scene_setCurrentDate_from_graphical_timeline_click(qtbot, create_gtv):
         pos
     ).date()  # lose time precision for easier equality
     qtbot.mouseClick(gtv.timeline.canvas, Qt.LeftButton, Qt.NoModifier, pos)
-    assert gtv.scene.currentDateTime().date() == date
+    assert scene.currentDateTime().date() == date
 
 
 # @pytest.mark.parametrize("sullivanianTime", [True, False])
-def test_rubber_band_select_events(qtbot, create_gtv):
+def test_rubber_band_select_events(qtbot, scene, create_gtv):
     TAG_1 = "Tag 1"
     TAG_2 = "Tag 2"
 
     gtv = create_gtv()
     gtv.searchModel.tags = [TAG_1, TAG_2]
-    scene = gtv.timelineModel.scene
     canvas = gtv.timeline.canvas
     canvas.setIsSlider(False)
     timelineModel = gtv.timelineModel

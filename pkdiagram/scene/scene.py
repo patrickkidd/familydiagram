@@ -233,7 +233,11 @@ class Scene(QGraphicsScene, Item):
         self._areActiveLayersChanging = False
         self._isResettingSomeLayerProps = False
         self._isAddingLayerItem = False
+        #
+        self._isUndoRedoing = False
         self._undoStack = QUndoStack(self)
+        self._undoStackDateTimes = {}  # by stack index
+        #
         self.dragStartItem = None
         self.dragCreateItem = None
         self.mouseElapsedTimer = QElapsedTimer()
@@ -363,10 +367,6 @@ class Scene(QGraphicsScene, Item):
             self._people.append(item)
             if not self.isBatchAddingRemovingItems():
                 item.setLayers([x.id for x in self.activeLayers()])
-                if self.activeLayers():
-                    # Added because person remained hidden because
-                    # they weren't updated after setting tags.
-                    item.updateAll()
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
             self._marriages.append(item)
@@ -389,15 +389,17 @@ class Scene(QGraphicsScene, Item):
                     item.addDynamicProperty(entry["attr"])
             if item.dateTime() and not self.isBatchAddingRemovingItems():
                 self.eventAdded.emit(item)
-                self.setCurrentDateTime(item.dateTime())
+                if not self._isUndoRedoing:
+                    self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
             item.personA()._onAddEmotion(item)
             if item.personB():
                 item.personB()._onAddEmotion(item)
             if not self.isBatchAddingRemovingItems():
-                self.setCurrentDateTime(item.startDateTime())
                 self.emotionAdded.emit(item)
+                if item.startDateTime() and not self._isUndoRedoing:
+                    self.setCurrentDateTime(item.startDateTime())
         elif item.isLayer:
             self._layers.append(item)
             item.setScene(self)
@@ -527,6 +529,7 @@ class Scene(QGraphicsScene, Item):
             if (
                 not [x for x in self._events if x.dateTime()]
                 and not self.isBatchAddingRemovingItems()
+                and not self._isUndoRedoing
             ):
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
@@ -1524,13 +1527,35 @@ class Scene(QGraphicsScene, Item):
         return self._undoStack
 
     def push(self, cmd: QUndoCommand):
+        currentDateTime = self.currentDateTime()
         self._undoStack.push(cmd)
+        index = max(self._undoStack.index() - 1, 0)
+        self._undoStackDateTimes[index] = currentDateTime
+        assert len(self._undoStackDateTimes.keys()) == self._undoStack.count()
 
     def undo(self):
+        self._isUndoRedoing = True
+        cmd = self._undoStack.command(self._undoStack.index() - 1)
         self._undoStack.undo()
+        self._isUndoRedoing = False
+        if cmd:
+            dateTime = self._undoStackDateTimes[self._undoStack.index()]
+            self.setCurrentDateTime(dateTime)
 
     def redo(self):
+        preEvents = self.events(onlyDated=True)
+        self._isUndoRedoing = True
         self._undoStack.redo()
+        self._isUndoRedoing = False
+        postEvents = self.events(onlyDated=True)
+        if preEvents != postEvents:
+            if postEvents and not self.currentDateTime():
+                self.setCurrentDateTime(postEvents[-1])
+            elif not postEvents and self.currentDateTime():
+                self.setCurrentDateTime(QDateTime())
+
+    def isUndoRedoing(self) -> bool:
+        return self._isUndoRedoing
 
     @contextlib.contextmanager
     def macro(self, text, undo=True, batchAddRemove=False):
@@ -1542,12 +1567,15 @@ class Scene(QGraphicsScene, Item):
         if undo:
             self._undoStack.beginMacro(text)
         _e = None
+
         try:
             yield
         except Exception as e:
             _e = e
+
         if undo:
             self._undoStack.endMacro()
+            self._undoStackDateTimes[self._undoStack.index()] = self.currentDateTime()
         if batchAddRemove:
             self.setBatchAddingRemovingItems(was)
         if _e:
@@ -1906,10 +1934,6 @@ class Scene(QGraphicsScene, Item):
         for item in items:
             item.setSelected(True)
         return items
-
-    def removeEvent(self, event):
-        """Accomodate scene as dummy parent for new events."""
-        pass
 
     def addParentsToSelection(self):
         selectedPeople = self.selectedPeople()

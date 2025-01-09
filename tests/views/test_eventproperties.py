@@ -25,13 +25,6 @@ def eventProps():
 
 
 @pytest.fixture
-def scene(qApp):
-    scene = Scene()
-    yield scene
-    scene.deinit()
-
-
-@pytest.fixture
 def view(qtbot, qmlEngine, scene):
     qmlEngine.setScene(scene)
     view = QmlDrawer(
@@ -139,7 +132,7 @@ def assertEventProperties(event, props, updates={}, personName=None):
 def test_init_single(scene, view, eventProps):
     person = Person()
     event = Event(person, **eventProps)
-    scene.addItem(event)
+    scene.addItem(person)
     view.eventModel.items = [event]
 
     props = eventProps
@@ -175,6 +168,7 @@ def test_init_multiple_same(scene, view, eventProps):
     event2 = Event()
     event1.setProperties(**eventProps)
     event2.setProperties(**eventProps)
+    scene.addItems(event1, event2)
     view.eventModel.items = [event1, event2]
 
     props = eventProps
@@ -186,7 +180,7 @@ def test_init_multiple_same(scene, view, eventProps):
     assert view.itemProp("eventNotesEdit", "text") == props["notes"]
 
 
-def test_init_multiple_different(view):
+def test_init_multiple_different(scene, view):
     """Test that fields with different values have proper defaults."""
     nodalBox = view.rootProp("nodalBox")
     event1 = Event(
@@ -205,6 +199,7 @@ def test_init_multiple_different(view):
         notes="Some notes I had 2",
         location="Anchorage, AK",
     )
+    scene.addItems(event1, event2)
     view.eventModel.items = [event1, event2]
 
     assert view.itemProp("dateButtons", "dateTime") == QDateTime()
@@ -215,8 +210,7 @@ def test_init_multiple_different(view):
     assert view.itemProp("eventNotesEdit", "text") == ""
 
 
-def test_edit_single(qtbot, view, eventProps):
-    scene = view.qmlEngine().sceneModel.scene
+def test_edit_single(qtbot, scene, view, eventProps):
     person = Person()
     event = Event(
         person,
@@ -234,7 +228,7 @@ def test_edit_single(qtbot, view, eventProps):
 def test_edit_multiple(qtbot, scene, view, eventProps):
     person = Person(name="person")
     event1 = Event(
-        person,
+        parent=person,
         description="Some Event 1",
         unsure=True,
         dateTime=util.Date(2001, 5, 20),
@@ -243,7 +237,7 @@ def test_edit_multiple(qtbot, scene, view, eventProps):
         location="Seward, AK",
     )
     event2 = Event(
-        person,
+        parent=person,
         description="Some Event 2",
         unsure=False,
         dateTime=util.Date(2000, 4, 19),
@@ -251,7 +245,7 @@ def test_edit_multiple(qtbot, scene, view, eventProps):
         notes="Some notes I had 2",
         location="Anchorage, AK",
     )
-    scene.addItems(person, event1, event2)
+    scene.addItem(person)
     view.eventModel.items = [event1, event2]
     qtbot.waitActive(view)
 
@@ -321,7 +315,7 @@ def __test_tabs_disabled(qtbot, view):
 
 def test_empty_strings_reset_props(view, eventProps):
     person = Person(name="Me")
-    event = Event(person, description="here we are")
+    event = Event(parent=person, description="here we are")
     event.setProperties(**eventProps)
     scene = Scene()
     scene.addItem(person)
@@ -351,7 +345,7 @@ def test_set_uniqueId_with_description(qtbot, scene, view):
     event = Event(
         parent=marriage, description="here we are", dateTime=util.Date(1900, 1, 1)
     )
-    scene.addItems(personA, personB, marriage, event)
+    scene.addItems(personA, personB, marriage)
     view.eventModel.items = [event]
     qtbot.waitActive(view)
 
@@ -369,7 +363,7 @@ def test_reset_description_on_reset_uniqueId(qtbot, view, scene):
         uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
-    scene.addItems(marriage, married)
+    scene.addItems(marriage)
     view.eventModel.items = [married]
     qtbot.waitActive(view)
     assert married.uniqueId() == EventKind.Married.value
@@ -411,7 +405,7 @@ def test_uniqueId_undo_redo_custom_event(qtbot, view, scene):
     event = Event(
         parent=marriage, description="Initial", dateTime=util.Date(1900, 1, 1)
     )
-    scene.addItems(personA, personB, marriage, event)
+    scene.addItems(personA, personB, marriage)
     view.eventModel.items = [event]
     qtbot.waitActive(view)
     assert event.uniqueId() == None

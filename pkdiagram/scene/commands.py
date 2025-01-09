@@ -9,7 +9,6 @@ state from the object required to undo the underlying api call.
 """
 
 import os, shutil, logging
-from typing import Union
 
 from pkdiagram.pyqt import QUndoCommand
 from pkdiagram.scene import EventKind
@@ -242,6 +241,7 @@ class RemoveItems(QUndoCommand):
                     item.prop("dateTime").reset()
                 else:
                     item.setParent(None)
+                    self.scene.removeItem(item)
 
             elif item.isEmotion:
                 for person in list(item.people):
@@ -500,19 +500,19 @@ class SetEventParent(QUndoCommand):
         self.event._do_setParent(self.was_parent)
 
 
-class SetEventKind(QUndoCommand):
+# class SetEventKind(QUndoCommand):
 
-    def __init__(self, events, kind: EventKind):
-        super().__init__(f"Set event(s) to {kind.name}")
-        self.was_kinds
-        self.event = event
-        self.parent = parent
+#     def __init__(self, events, kind: EventKind):
+#         super().__init__(f"Set event(s) to {kind.name}")
+#         self.was_kinds
+#         self.event = event
+#         self.parent = parent
 
-    def redo(self):
-        self.event._do_setParent(self.parent)
+#     def redo(self):
+#         self.event._do_setParent(self.parent)
 
-    def undo(self):
-        self.event._do_setParent(self.was_parent)
+#     def undo(self):
+#         self.event._do_setParent(self.was_parent)
 
 
 class SetParents(QUndoCommand):

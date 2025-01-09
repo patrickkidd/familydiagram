@@ -47,8 +47,7 @@ class PeoplePickerTest(QWidget, QmlWidgetHelper):
 
 
 @pytest.fixture
-def scene():
-    scene = Scene()
+def scene(scene):
     scene.addItem(Person(first_name="Patrick", last_name="Stinson"))
     scene._sceneModel = SceneModel()
     scene._sceneModel.scene = scene

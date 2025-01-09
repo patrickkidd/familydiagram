@@ -10,22 +10,21 @@ pytestmark = [pytest.mark.component("MarriageProperties")]
 
 
 @pytest.fixture
-def noEvents(qmlScene, request):
-    personA, personB = Person(), Person()
+def noEvents(scene):
+    personA, personB = Person(name="personA"), Person(name="personB")
     marriage = Marriage(personA=personA, personB=personB)
-    qmlScene.addItems(personA, personB, marriage)
-    request.addfinalizer(lambda: qmlScene.deinit())
+    scene.addItems(personA, personB, marriage)
     return marriage
 
 
 @pytest.fixture
-def mp(qtbot, qmlScene, qmlEngine):
-    qmlEngine.setScene(qmlScene)
+def mp(qtbot, scene, qmlEngine):
+    qmlEngine.setScene(scene)
     mp = QmlDrawer(
         qmlEngine, "qml/MarriageProperties.qml", propSheetModel="marriageModel"
     )
     mp.checkInitQml()
-    mp.scene = qmlScene
+    mp.scene = scene
     mp.marriageModel = mp.rootProp("marriageModel")
     qtbot.addWidget(mp)
     mp.resize(600, 800)
@@ -35,14 +34,14 @@ def mp(qtbot, qmlScene, qmlEngine):
     mp.deinit()
 
 
-def test_show_init(mp, qmlScene):
-    m = qmlScene.marriages()[0]
-    mp.marriageModel.items = [m]
-    mp.marriageModel.scene = qmlScene
+def test_show_init(mp, scene, noEvents):
+    marriage = noEvents
+    mp.marriageModel.items = [marriage]
+    mp.marriageModel.scene = scene
 
     assert mp.itemProp("itemTitle", "text") == "(Pair-Bond): %s & %s" % (
-        m.personA().name(),
-        m.personB().name(),
+        marriage.personA().name(),
+        marriage.personB().name(),
     )
 
 
@@ -106,7 +105,7 @@ def test_married_disabled_when_divorced(noEvents, mp):
     assert mp.itemProp("separatedBox", "enabled") == False
 
 
-def test_divorced_disabled_when_divorce_events(noEvents, mp):
+def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
     marriage = noEvents
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
@@ -115,38 +114,41 @@ def test_divorced_disabled_when_divorce_events(noEvents, mp):
     assert mp.itemProp("separatedBox", "enabled") == True
     assert mp.itemProp("divorcedBox", "enabled") == True
 
-    Event(
+    event = Event(
         parent=marriage,
         uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(2000, 1, 1),
     )
+    scene.addItem(event)
     assert mp.itemProp("marriedBox", "enabled") == False
     assert mp.itemProp("separatedBox", "enabled") == False
     assert mp.itemProp("divorcedBox", "enabled") == False
 
 
-def test_married_becomes_enabled_after_delete_married_event(noEvents, mp):
+def test_married_becomes_enabled_after_delete_married_event(scene, noEvents, mp):
     marriage = noEvents
-    marriedEvent = Event(
+    married = Event(
         parent=marriage,
         uniqueId=EventKind.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
+    scene.addItem(married)
     mp.rootProp("marriageModel").items = [marriage]
     assert mp.itemProp("marriedBox", "enabled") == False
 
-    marriedEvent.setParent(None)
+    married.setParent(None)
     assert mp.itemProp("marriedBox", "enabled") == True
 
 
-def test_married_separated_divorced_disabled_with_events(noEvents, mp):
+def test_married_separated_divorced_disabled_with_events(scene, noEvents, mp):
     marriage = noEvents
     mp.rootProp("marriageModel").items = [marriage]
     mp.itemProp("marriedBox", "enabled") == True
     mp.itemProp("separatedBox", "enabled") == True
     mp.itemProp("divorcedBox", "enabled") == True
 
-    Event(parent=marriage, description="Something happened")
+    event = Event(parent=marriage, description="Something happened")
+    scene.addItem(event)
     mp.itemProp("marriedBox", "enabled") == False
     mp.itemProp("separatedBox", "enabled") == False
     mp.itemProp("divorcedBox", "enabled") == False
