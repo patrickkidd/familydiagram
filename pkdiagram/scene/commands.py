@@ -348,6 +348,12 @@ class RemoveItems(QUndoCommand):
                 for child in birthPartners:
                     child.childOf.updateGeometry()
 
+        for item in self.items:
+            if item.isPathItem:
+                item.flash()
+            elif item.isEvent:
+                item.parent.flash()
+
 
 class SetItemPos(QUndoCommand):
     def __init__(self, item, value):

@@ -1270,7 +1270,7 @@ class Scene(QGraphicsScene, Item):
                     newPos = item.pos() + delta
                     if isinstance(item, Person):
                         item.nudging = True
-                    self.push(SetPos(item, newPos))
+                    self.push(SetItemPos(item, newPos))
                     item.setPos(newPos)
                     if isinstance(item, Person):
                         item.nudging = False

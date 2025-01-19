@@ -760,11 +760,11 @@ class DocumentController(QObject):
         self.dv.graphicalTimelineCallout.hide()
 
     def onUndo(self):
-        self.scene.stack().undo()
+        self.scene.undo()
         self.view.onUndo()
 
     def onRedo(self):
-        self.scene.stack().redo()
+        self.scene.redo()
         self.view.onRedo()
 
     def onDelete(self):

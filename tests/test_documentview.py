@@ -144,11 +144,18 @@ def test_remove_person(qtbot, dv, scene):
 
 def test_undo_remove_event(dv, scene):
     person = Person(name="Hey")
-    scene.addItem(person)
-    event = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
-    scene.removeItem(event, undo=True)
-    scene.undo()
-    assert scene.events(onlyDated=True) == [event]
+    event1 = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    scene.addItems(person)  # batch add remove
+    event2 = Event(person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    scene.addItem(event2)
+    scene.setCurrentDateTime(
+        util.Date(2003, 1, 1)
+    )  # so the flash happens no matter what
+    scene.removeItem(event2, undo=True)
+    with mock.patch("pkdiagram.scene.Person.flash") as flash:
+        scene.undo()
+    assert set(scene.events(onlyDated=True)) == {event2, event1}
+    assert flash.call_count == 1
     # and no exceptions form documentview
 
 
