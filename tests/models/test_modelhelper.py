@@ -51,7 +51,7 @@ class Model(QObject, ModelHelper):
                 self.newEntryChanged.emit(x)
         if propName == "newEntryNoType":
             if x != self._newEntryNoType:
-                self._newEntryNType = x
+                self._newEntryNoType = x
                 self.newEntryNoTypeChanged.emit(x)
         else:
             return super().set(propName, x)

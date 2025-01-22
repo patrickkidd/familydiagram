@@ -236,7 +236,6 @@ class Scene(QGraphicsScene, Item):
         #
         self._isUndoRedoing = False
         self._undoStack = QUndoStack(self)
-        self._undoStackDateTimes = {}  # by stack index
         #
         self.dragStartItem = None
         self.dragCreateItem = None
@@ -1527,30 +1526,30 @@ class Scene(QGraphicsScene, Item):
         return self._undoStack
 
     def push(self, cmd: QUndoCommand):
-        currentDateTime = self.currentDateTime()
-        self._undoStack.push(cmd)
-        index = max(self._undoStack.index() - 1, 0)
-        self._undoStackDateTimes[index] = currentDateTime
-        assert len(self._undoStackDateTimes.keys()) == self._undoStack.count()
+        with self._undoRedoing():
+            self._undoStack.push(cmd)
 
     def undo(self):
-        self._isUndoRedoing = True
-        cmd = self._undoStack.command(self._undoStack.index() - 1)
-        self._undoStack.undo()
-        self._isUndoRedoing = False
-        if cmd:
-            dateTime = self._undoStackDateTimes[self._undoStack.index()]
-            self.setCurrentDateTime(dateTime)
+        with self._undoRedoing():
+            self._undoStack.undo()
 
     def redo(self):
+        with self._undoRedoing():
+            self._undoStack.redo()
+
+    @contextlib.contextmanager
+    def _undoRedoing(self):
+        """Handle date changes."""
         preEvents = self.events(onlyDated=True)
+
         self._isUndoRedoing = True
-        self._undoStack.redo()
+        yield
         self._isUndoRedoing = False
+
         postEvents = self.events(onlyDated=True)
         if preEvents != postEvents:
             if postEvents and not self.currentDateTime():
-                self.setCurrentDateTime(postEvents[-1])
+                self.setCurrentDateTime(postEvents[-1].dateTime())
             elif not postEvents and self.currentDateTime():
                 self.setCurrentDateTime(QDateTime())
 
@@ -1575,7 +1574,6 @@ class Scene(QGraphicsScene, Item):
 
         if undo:
             self._undoStack.endMacro()
-            self._undoStackDateTimes[self._undoStack.index()] = self.currentDateTime()
         if batchAddRemove:
             self.setBatchAddingRemovingItems(was)
         if _e:

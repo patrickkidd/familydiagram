@@ -3,19 +3,19 @@ v2.0.0
 
 DECOUPLING COMMANDS
 -----------------------
+2025-01-19 17:50:59,259 ERROR application.py:69          Traceback (most recent call last):
+2025-01-19 17:50:59,259 ERROR application.py:69            File "/Users/patrick/dev/familydiagram/pkdiagram/scene/scene.py", line 1183, in mouseReleaseEvent
+    self.push(SetItemPos(item, item.pos()))
+2025-01-19 17:50:59,259 ERROR application.py:69            File "/Users/patrick/dev/familydiagram/pkdiagram/scene/scene.py", line 1534, in push
+    assert len(self._undoStackDateTimes.keys()) == self._undoStack.count()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-01-19 17:50:59,260 ERROR application.py:69          AssertionError
+
+Jan 17, 2025
+Reciprocity
+Connie was still irritated from the day before. This time getting ready to go to Cooper Landing after work. Patrick asked how she was doing on the car ride, thinking about open contact. The conversation got heavy and hopless from Connie. Patrick became negative and Connie became more positive. It was as if Patrick "absorbed" half of Connie's mood. Content of Patrick's negativity was that him "being in a good mood would not help Connie." This lasted until the next day.
+
 - Can't inspect emotion, close, inspect another emotion
-- Undo delete event on timeline
-  Traceback (most recent call last):
-    File "/Users/patrick/dev/familydiagram/pkdiagram/documentview/documentcontroller.py", line 257, in onSceneProperty
-      self.onFlashTimelineRow(row)
-    File "/Users/patrick/dev/familydiagram/pkdiagram/documentview/documentcontroller.py", line 451, in onFlashTimelineRow
-      item.flash()
-    AttributeError: 'NoneType' object has no attribute 'flash'
-  Traceback (most recent call last):
-    File "/Users/patrick/dev/familydiagram/pkdiagram/models/timelinemodel.py", line 475, in data
-      if event.parent.isEmotion:
-      ^^^^^^^^^^^^^^^^^^^^^^
-  AttributeError: 'NoneType' object has no attribute 'isEmotion'
 - Undo delete emotion hides bottom timeline
 - Analytics
   - Access analytics object from:
