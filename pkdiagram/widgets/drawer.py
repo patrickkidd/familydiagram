@@ -341,7 +341,7 @@ class Drawer(QFrame):
         if animate:
             self.expandAnimation.setDuration(util.ANIM_DURATION_MS)
         elif swapping:
-            self.expandAnimation.setDuration(util.ANIM_DURATION_MS * 0.75)
+            self.expandAnimation.setDuration(int(util.ANIM_DURATION_MS * 0.75))
         else:
             self.expandAnimation.setDuration(0)
         if callback:

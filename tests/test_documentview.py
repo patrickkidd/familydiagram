@@ -329,6 +329,31 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     ) == {event_1, event_2}
 
 
+def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
+    personA = Person(name="PersonA")
+    personB = Person(name="PersonB")
+    emotion1 = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    emotion2 = Emotion(personA=personA, personB=personB, kind=util.ITEM_PROJECTION)
+    scene.addItems(personA, personB, emotion1, emotion2)
+    personA.setItemPos(QPointF(-200, -200))
+    personB.setItemPos(QPointF(200, 200))
+    emotion1.setSelected(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.emotionProps
+    assert dv.emotionProps.rootProp("emotionModel").items == [emotion1]
+
+    qtbot.mouseClick(
+        dv.view.viewport(),
+        Qt.LeftButton,
+        Qt.NoModifier,
+        dv.view.mapFromScene(emotion2.sceneBoundingRect().center()),
+    )
+    assert emotion1.isSelected() == False
+    assert emotion2.isSelected() == True
+    assert dv.currentDrawer == dv.emotionProps
+    assert dv.emotionProps.rootProp("emotionModel").items == [emotion2]
+
+
 def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 

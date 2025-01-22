@@ -412,7 +412,7 @@ class DocumentView(QWidget):
             ):
                 # same drawer new data
                 was.setCurrentTab(tab)
-            elif was is drawer and tab is not None:
+            elif was is drawer and tab != drawer.currentTab():
                 drawer.setCurrentTab(tab)
             else:
                 if not "tab" in kwargs:
