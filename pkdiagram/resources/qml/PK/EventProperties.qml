@@ -61,7 +61,7 @@ Page {
         PK.ToolButton {
             id: doneButton
             objectName: 'event_doneButton'
-            text: eventModel.addMode ? 'Add' : 'Done'
+            text: 'Done'
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: done()
@@ -79,7 +79,7 @@ Page {
             id: cancelButton
             objectName: 'cancelButton'
             text: 'Cancel'
-            visible: eventModel.addMode
+            visible: false
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: cancel()
@@ -189,7 +189,6 @@ Page {
                             PK.Button {
                                 id: editParentButton
                                 objectName: "editParentButton"
-                                enabled: ! eventModel.addMode
                                 source: '../../details-button.png'
                                 clip: true
                                 implicitWidth: 20

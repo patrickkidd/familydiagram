@@ -89,10 +89,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     ret = "New Event"
                 elif item.parent.isPerson:
                     itemLabel = item.parent.firstNameOrAlias()
-                    if self.addMode:
-                        ret = f"{itemLabel}: New Event"
-                    else:
-                        ret = f"{itemLabel}: {item.description()} Event"
+                    ret = f"{itemLabel}: {item.description()} Event"
                 elif item.parent.isEmotion:
                     itemLabel = Emotion.kindLabelForKind(item.parent.kind())
                     if item.uniqueId() == "emotionStartEvent":
@@ -100,10 +97,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     elif item.uniqueId() == "emotionEndEvent":
                         ret = f"{itemLabel}: End Event"
                 elif item.parent.isMarriage:
-                    if self.addMode:
-                        ret = f"Pair-Bond: New Event"
-                    else:
-                        ret = f"Pair-Bond: {item.description()} Event"
+                    ret = f"Pair-Bond: {item.description()} Event"
                 else:
                     ret = "Event"
             else:

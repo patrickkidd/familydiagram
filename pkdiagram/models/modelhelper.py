@@ -14,8 +14,6 @@ class ModelHelper(QObjectHelper):
         [
             {"attr": "items", "type": list},
             {"attr": "scene", "type": Scene, "default": None},
-            {"attr": "blockNotify", "type": bool, "default": False},
-            {"attr": "addMode", "type": bool, "default": False},
             {
                 "attr": "dirty",
                 "type": bool,
@@ -30,8 +28,6 @@ class ModelHelper(QObjectHelper):
 
     def initModelHelper(self, storage=False):
         self._ModelHelperInitializing = True
-        self._blockNotify = False
-        self._addMode = False
         self._dirty = False
         self._items = []
         self._scene = None
@@ -103,10 +99,6 @@ class ModelHelper(QObjectHelper):
             return self._items
         elif attr == "scene":
             return self._scene
-        elif attr == "blockNotify":
-            return self._blockNotify
-        elif attr == "addMode":
-            return self._addMode
         elif attr == "dirty":
             return self._dirty
         elif attr == "resetter":
@@ -156,14 +148,6 @@ class ModelHelper(QObjectHelper):
                 self._scene.propertyChanged[Property].connect(self.onSceneProperty)
             self.refreshProperty("scene")
             return
-        elif attr == "blockNotify":
-            self._blockNotify = value
-            self.refreshProperty("blockNotify")
-        elif attr == "addMode":
-            self._blockNotify = value
-            self._addMode = value
-            self.refreshProperty("addMode")
-            self.refreshProperty("blockNotify")
         elif attr == "dirty":
             self._dirty = value
         elif attr == "resetter":
@@ -172,7 +156,6 @@ class ModelHelper(QObjectHelper):
         #
         x = self.setterConvertTo(attr, value)
         # set on property
-        notify = not self._blockNotify
         undo = attr != "resetter"
         foundItemProp = False
         if self._scene and self._items:
@@ -187,7 +170,7 @@ class ModelHelper(QObjectHelper):
                         foundItemProp = True
                         y = prop.get()
                         if y != x:
-                            prop.set(x, notify=notify, undo=undo)
+                            prop.set(x, undo=undo)
                             # if x == prop.default:
                             #     prop.reset(notify=notify, undo=undo)
                             # else:
@@ -204,7 +187,6 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "dirty":
             self.set("dirty", False)
-        notify = not self._blockNotify
         undo = attr != "resetter"
         with self._scene.macro(
             f"Reset attribute '{attr}' on model class '{self.__class__.__name__}'"
@@ -212,4 +194,4 @@ class ModelHelper(QObjectHelper):
             for item in self._items:
                 prop = item.prop(attr)
                 if prop:
-                    item.prop(attr).reset(notify=notify, undo=undo)
+                    item.prop(attr).reset(undo=undo)

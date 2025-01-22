@@ -105,24 +105,16 @@ class EmotionPropertiesModel(QObject, ModelHelper):
                     item.endEvent.setUnsure(value, undo=True)
         elif attr == "personAId" and self._scene:
             person = self._scene.find(id=value)
-            if self._addMode:
+            with self._scene.macro("Set emotion person A"):
                 for item in self._items:
-                    item.setPersonA(person)
-            else:
-                with self._scene.macro("Set emotion person A"):
-                    for item in self._items:
-                        if person != item.personA():
-                            item.setPersonA(person, undo=True)
+                    if person != item.personA():
+                        item.setPersonA(person, undo=True)
         elif attr == "personBId" and self._scene:
             person = self._scene.find(id=value)
-            if self._addMode:
+            with self._scene.macro("Set emotiona person B"):
                 for item in self._items:
-                    item.setPersonB(person)
-            else:
-                with self._scene.macro("Set emotiona person B"):
-                    for item in self._items:
-                        if person != item.personB():
-                            item.setPersonB(person, undo=True)
+                    if person != item.personB():
+                        item.setPersonB(person, undo=True)
         return super().set(attr, value)
 
     def reset(self, attr):

@@ -27,19 +27,10 @@ Page {
         }
     }
     property string emotionTitle: {
-        if(emotionModel.addMode) {
-            if(emotionKindBox.currentText) {
-                'New ' + emotionKindBox.currentText + ': ' + itemTitle
-
-            } else {
-                'New Relationship'
-            }
+        if(emotionKindBox.currentText) {
+            emotionKindBox.currentText + ': ' + itemTitle
         } else {
-            if(emotionKindBox.currentText) {
-                emotionKindBox.currentText + ': ' + itemTitle
-            } else {
-                'Edit Relationship'
-            }
+            'Edit Relationship'
         }
     }
     property var emotionModel: EmotionPropertiesModel {
@@ -85,7 +76,7 @@ Page {
         PK.ToolButton {
             id: doneButton
             objectName: 'emotion_doneButton'
-            text: emotionModel.addMode ? 'Add' : 'Done'
+            text: 'Done'
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: done()
@@ -103,7 +94,7 @@ Page {
             id: cancelButton
             objectName: 'cancelButton'
             text: 'Cancel'
-            visible: emotionModel.addMode
+            visible: false
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: cancel()
