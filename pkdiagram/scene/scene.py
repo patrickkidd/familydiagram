@@ -1027,7 +1027,9 @@ class Scene(QGraphicsScene, Item):
         else:
             draggable = self.draggableUnder(e.scenePos())
             if draggable:  # drag-moving?
-                self.mousePressOnDraggable = draggable
+                self.mousePressOnDraggable = {
+                    x: x.pos() for x in set(self.selectedItems() + [draggable])
+                }
                 self._isDraggingSomething = True
             e.ignore()
             super().mousePressEvent(e)
@@ -1177,9 +1179,15 @@ class Scene(QGraphicsScene, Item):
             self.setItemMode(util.ITEM_NONE)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
-            with self.macro("Move item(s)"):
-                for item in self.selectedItems():
-                    self.push(SetItemPos(item, item.pos()))
+            changedPos = [
+                x
+                for x, origPos in self.mousePressOnDraggable.items()
+                if x.pos() != origPos
+            ]
+            if changedPos:
+                with self.macro("Move item(s)"):
+                    for item in changedPos:
+                        self.push(SetItemPos(item, item.pos()))
             self.mousePressOnDraggable = None  # for self.checkItemDragged()
         if self.snapItem.scene() is self:
             self.removeItem(self.snapItem)
