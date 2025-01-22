@@ -477,9 +477,7 @@ class Drawer(QFrame):
     def toggleExpand(self):
         if self.expanded and not (self.expanding or self.shrinking):
             self.expandTo(self.WIDTH)
-            self.documentView().session.trackView("Expand " + self.objectName())
         elif not (self.expanding or self.shrinking):
-            self.documentView().session.trackView("Shrink " + self.objectName())
             if self.parent():
                 self.expandTo(self.parent().width())
             else:

@@ -1,20 +1,6 @@
 v2.0.0
 =============================================================================
 
-DECOUPLING COMMANDS
------------------------
-- Analytics
-  - Access analytics object from:
-    - session
-    - documentview
-    - mainwindow
-    - preferences 
-    - qml
-    - drawer
-  - commands.track*() -> activeSession[global] -> Session.track[user info]
-- Cleanup
-  - Remove Person.marriageAdded|Removed?
-
 BUGS
 ------------------------------------
 - View tag, add R symbol, lots of things are hidden
