@@ -12,13 +12,13 @@ def scene(qApp):
     _scene.deinit()
 
 
-class MyItem(Item):
+class MyNumItem(Item):
     Item.registerProperties(({"attr": "num", "default": -1},))
 
 
 @pytest.mark.parametrize("undo", [False, True])
 def test_property_setter(scene, undo):
-    item = MyItem(num=123)
+    item = MyNumItem(num=123)
     scene.addItem(item)
     assert item.num() == 123
 
@@ -30,7 +30,7 @@ def test_property_setter(scene, undo):
 
 
 def test_property_set_with_undo(scene):
-    item = MyItem(num=123)
+    item = MyNumItem(num=123)
     scene.addItem(item)
     assert item.num() == 123
 
@@ -46,7 +46,7 @@ def test_property_set_with_undo(scene):
 
 @pytest.mark.parametrize("undo", [False, True])
 def test_property_resetter(scene, undo):
-    item = MyItem(num=123)
+    item = MyNumItem(num=123)
     scene.addItem(item)
     assert item.num() == 123
 
@@ -55,7 +55,7 @@ def test_property_resetter(scene, undo):
 
 
 def test_property_reset_with_undo(scene):
-    item = MyItem(num=123)
+    item = MyNumItem(num=123)
     scene.addItem(item)
     assert item.num() == 123  # 0
 
@@ -72,12 +72,12 @@ def test_property_reset_with_undo(scene):
     assert item.num() == -1
 
 
-class MyItemLayered(Item):
+class MyNumItemLayered(Item):
     Item.registerProperties(({"attr": "num", "default": -1, "layered": True},))
 
 
 def test_property_layered_reset_with_undo(scene):
-    item = MyItemLayered()
+    item = MyNumItemLayered()
     layer = Layer()
     scene.addItems(item, layer)
     layer.setActive(True)

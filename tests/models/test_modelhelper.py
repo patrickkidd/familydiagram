@@ -16,10 +16,6 @@ class MyItem(Item):
         ]
     )
 
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.setProperties(**kwargs)  # pass to Item.__init__ instead?
-
 
 class Model(QObject, ModelHelper):
 
