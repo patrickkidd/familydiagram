@@ -320,8 +320,8 @@ jobs:
           echo "Downloading https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz"
           curl -L "https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz" -o "sysroot/PyQt5-5.15.11.tar.gz"
 
-          # powershell -Command "Invoke-WebRequest 'https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
-          # powershell -Command "Invoke-WebRequest 'https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz' -OutFile 'sysroot/PyQt5-5.15.11.tar.gz'"
+          REM powershell -Command "Invoke-WebRequest 'https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
+          REM powershell -Command "Invoke-WebRequest 'https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz' -OutFile 'sysroot/PyQt5-5.15.11.tar.gz'"
           cd _pkdiagram
           dir build\_pkdiagram\release
           mkdir build\_pkdiagram\release

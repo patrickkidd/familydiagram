@@ -76,11 +76,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "commands.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content]]
 name = "compat.py"
 included = true
 is_directory = false
@@ -849,12 +844,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "User-Manual"
-included = false
-is_directory = true
-Content = []
-
-[[Application.Package.Content.Content.Content]]
 name = "WinSparkle.dll"
 included = false
 is_directory = false
@@ -1357,6 +1346,16 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "childof.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "clipboard.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "commands.py"
 included = true
 is_directory = false
 
