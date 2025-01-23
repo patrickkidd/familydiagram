@@ -11,9 +11,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QMessageBox,
 )
-from pkdiagram import util, scene, commands
-from ..scene import Item, Property, Layer
-from ..scene import Scene
+from pkdiagram import util
 from .modelhelper import ModelHelper
 from pkdiagram.models import SearchModel
 
@@ -125,7 +123,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
     @pyqtSlot()
     def addTag(self):
         tag = util.newNameOf(self._sceneTags, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
-        commands.createTag(self._scene, tag)
+        self._scene.addTag(tag)
 
     @pyqtSlot(int)
     def removeTag(self, row):
@@ -147,7 +145,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
             )
         if ok == QMessageBox.Yes:
             self._blocked = True
-            commands.deleteTag(self._scene, tag)
+            self._scene.removeTag(tag)
             self._blocked = False
 
     @pyqtSlot()
@@ -155,7 +153,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
         if self._items:
             self._settingItemTags = True
             for item in self._items:
-                if item.isEvent and item.addDummy:
+                if item.isEvent:
                     item.setTags([])
             self._settingItemTags = False
         self.modelReset.emit()
@@ -220,7 +218,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
         tag = self.tagAtRow(index.row())
         if role == self.NameRole:
             if value and value not in self._scene.tags():  # must be valid + unique
-                commands.renameTag(self._scene, tag, value)
+                self._scene.renameTag(tag, value)
                 emit = False
                 success = True
             else:  # trigger a cancel
@@ -250,17 +248,17 @@ class TagsModel(QAbstractListModel, ModelHelper):
                         todo.add(item.startEvent)
                         todo.add(item.endEvent)
                 # Do the value set
-                id = commands.nextId()
                 self._settingItemTags = True
-                for item in todo:
-                    if value == Qt.Checked or value:
-                        if not tag in item.tags():
-                            item.setTag(tag, undo=id)
-                            success = True
-                    else:
-                        if tag in item.tags():
-                            item.unsetTag(tag, undo=id)
-                            success = True
+                with self._scene.macro(f"Set tag '{tag}' on items to {value}"):
+                    for item in todo:
+                        if value == Qt.Checked or value:
+                            if tag not in item.tags():
+                                item.setTag(tag, undo=True)
+                                success = True
+                        else:
+                            if tag in item.tags():
+                                item.unsetTag(tag, undo=True)
+                                success = True
                 self._settingItemTags = False
             else:
                 raise RuntimeError(

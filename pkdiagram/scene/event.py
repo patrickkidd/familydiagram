@@ -1,11 +1,19 @@
 import os
 
 from pkdiagram.pyqt import QDateTime
-from pkdiagram import util, commands, slugify
+from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, Item, Property
+from pkdiagram.scene.commands import SetEventParent
 
 
 class Event(Item):
+    """
+    Canonical way to add:
+        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), uniqueId=EventKind.Birth.value)
+        scene.addItem(event)
+
+    Events are also added / removed from the scene whenever the parent is added / removed from the scene.
+    """
 
     Item.registerProperties(
         (
@@ -28,11 +36,6 @@ class Event(Item):
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
         if "id" in kwargs:
             self.id = kwargs["id"]
-        if "addDummy" in kwargs:
-            self.addDummy = kwargs["addDummy"]
-            del kwargs["addDummy"]
-        else:
-            self.addDummy = False
         self._aliasDescription = None
         self._aliasNotes = None
         self._aliasParentName = None
@@ -41,7 +44,7 @@ class Event(Item):
         self.parent = None
         # avoid adding to the parent in various cases
         if parent:  # for tidyness in ctors
-            self.setParent(parent, notify=False)
+            self._do_setParent(parent)
             self.updateDescription()
 
     def itemName(self):
@@ -146,57 +149,55 @@ class Event(Item):
         else:
             return False
 
-    def setParent(self, parent, notify=None, undo=False):
+    def _do_setParent(self, parent):
+        was = self.parent
+        self.parent = parent
+        if was and not was.isEmotion and not was.isScene:
+            was._onRemoveEvent(self)
+        if parent and not parent.isEmotion and not parent.isScene:
+            parent._onAddEvent(self)
+        wasDescription = self.description()
+        wasNotes = self.notes()
+        wasParentName = self.parentName()
+        # >>> still needed ???
+        self.updateDescription()
+        self.updateNotes()
+        self.updateParentName()
+        # <<< still needed ???
+        if self.description() != wasDescription:
+            self.onProperty(self.prop("description"))
+        if self.notes() != wasNotes:
+            self.onProperty(self.prop("notes"))
+        if self.parentName() != wasParentName:
+            self.onProperty(self.prop("parentName"))
+
+    def setParent(self, parent, undo=False):
         """The proper way to assign a parent, also called from Event(parent)."""
-        if notify is None:
-            notify = not self.addDummy
         if undo:
-            commands.setEventParent(self, parent)
+            scene = self.scene()
+            if not scene:
+                scene = parent.scene()
+            scene.push(SetEventParent(self, parent))
         else:
-            if not self.addDummy:
-                was = self.parent
-                self.parent = parent
-                if was and not was.isEmotion and not was.isScene:
-                    was._onRemoveEvent(self)
-                if parent and not parent.isEmotion and not parent.isScene:
-                    parent._onAddEvent(self)
-            else:
-                self.parent = parent
-            wasDescription = self.description()
-            wasNotes = self.notes()
-            wasParentName = self.parentName()
-            # >>> still needed ???
-            self.updateDescription()
-            self.updateNotes()
-            self.updateParentName()
-            # <<< still needed ???
-            if self.description() != wasDescription:
-                self.onProperty(self.prop("description"))
-            if self.notes() != wasNotes:
-                self.onProperty(self.prop("notes"))
-            if self.parentName() != wasParentName:
-                self.onProperty(self.prop("parentName"))
+            self._do_setParent(parent)
 
     def onProperty(self, prop):
-        if prop.name() == "description" or (
-            prop.name() == "location" and self.uniqueId() == EventKind.Moved.value
-        ):
+        if prop.name() == "location" and self.uniqueId() == EventKind.Moved.value:
             if not self._onShowAliases:
                 self.updateDescription()
         elif prop.name() == "notes":
             if not self._onShowAliases:
                 self.updateNotes()
-        elif prop.name() == "uniqueId":
-            self.updateDescription()
-        if not self.addDummy:
-            super().onProperty(prop)
-            if self.parent:
-                self.parent.onEventProperty(prop)
+        # Disabled because this is probably only ever set from the emotion
+        # properties and now we aggreate uniqueId and description into a single
+        #     QUndoEvent. elif prop.name() == "uniqueId":
+        #     self.updateDescription()
+        super().onProperty(prop)
+        if self.parent:
+            self.parent.onEventProperty(prop)
 
     def scene(self):
-        if self.addDummy:
-            return None
-        elif self.parent:
+        if self.parent:
             if self.parent.isScene:
                 return self.parent
             else:
@@ -228,14 +229,11 @@ class Event(Item):
         else:
             self._aliasParentName = None
 
-    def updateDescription(self):
+    def updateDescription(self, undo=False):
         """Force re-write of aliases."""
         if self._updatingDescription:
             return
         self._updatingDescription = True
-        # Was preventing editing of description and don't know what it is for any more.
-        # if self.addDummy:
-        #     return
         prop = self.prop("description")
         wasDescription = prop.get()
         newDescription = None
@@ -244,11 +242,9 @@ class Event(Item):
             newDescription = self.getDescriptionForUniqueId(uniqueId)
             if wasDescription != newDescription:
                 if newDescription:
-                    prop.set(
-                        newDescription
-                    )  # not sure why this was notify=False before
+                    prop.set(newDescription, undo=undo)
                 else:
-                    prop.reset()
+                    prop.reset(undo=undo)
         scene = self.scene()
         if prop.get() is not None and scene:
             self._aliasDescription = scene.anonymize(prop.get())
@@ -258,8 +254,6 @@ class Event(Item):
 
     def updateNotes(self):
         """Force re-write of aliases."""
-        if self.addDummy:
-            return
         prop = self.prop("notes")
         notes = prop.get()
         scene = self.scene()

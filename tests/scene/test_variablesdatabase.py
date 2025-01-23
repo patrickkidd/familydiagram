@@ -55,17 +55,14 @@ def test_set_get(mock):
     assert_mock(db, mock)
 
 
-def test_person_init(mock):
+def test_person_init(mock, scene):
     data, (d0, d1, d2, d3) = mock
-
-    scene = Scene()
     scene.replaceEventProperties([VAR_1, VAR_2])
     person = Person()
-    scene.addItem(person)
-
     event0 = Event(parent=person, dateTime=d0)
     event1 = Event(parent=person, dateTime=d1)
     event2 = Event(parent=person, dateTime=d3)
+    scene.addItem(person)
 
     for attr, dateTime, value in data:
         if value is not None:

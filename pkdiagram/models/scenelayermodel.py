@@ -8,9 +8,8 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QApplication,
 )
-from pkdiagram import util, commands
-from ..scene import Scene
-from ..scene import Layer, LayerItem, Property, Person
+from pkdiagram import util
+from ..scene import Layer, LayerItem, Property
 from .modelhelper import ModelHelper
 
 
@@ -32,6 +31,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         super().__init__(parent)
         self._layers = []
         self._reorderingLayers = False
+        self._isResettingModel = False
         self.initModelHelper()
 
     def set(self, attr, value):
@@ -48,7 +48,9 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value.layerRemoved[Layer].connect(self.onLayerRemoved)
                 value.diagramReset.connect(self.onDiagramReset)
                 self._layers = [x for x in value.layers(includeInternal=False)]
+            self._isResettingModel = True
             self.modelReset.emit()
+            self._isResettingModel = False
         super().set(attr, value)
 
     @util.blocked
@@ -104,7 +106,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             self._layers, tmpl=self.NEW_NAME_TMPL, key=lambda x: x.name()
         )
         layer = Layer(name=name)
-        commands.addLayer(self.scene, layer)
+        self._scene.addItem(layer, undo=True)
 
     @pyqtSlot(int)
     def duplicateRow(self, row):
@@ -113,7 +115,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         tmpl = oldLayer.name() + " %i"
         name = util.newNameOf(self._layers, tmpl=tmpl, key=lambda x: x.name())
         newLayer.setName(name)
-        commands.addLayer(self._scene, newLayer)
+        self._scene.addItem(newLayer, undo=True)
         self._scene.tidyLayerOrder()
 
     @pyqtSlot(int)
@@ -138,7 +140,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             )
         if btn == QMessageBox.No:
             return
-        commands.removeItems(self.scene, layer)
+        self._scene.removeItem(layer, undo=True)
 
     def layerForIndex(self, index):
         if index.row() >= 0 and index.row() < len(self._layers):
@@ -158,7 +160,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     def moveLayer(self, oldRow, newRow):
         self._reorderingLayers = True
         self._layers.insert(newRow, self._layers.pop(oldRow))
-        commands.setLayerOrder(self._scene, self._layers)
+        self._scene.setLayerOrder(self._layers, undo=True)
         self.modelReset.emit()
         self._reorderingLayers = False
 
@@ -204,6 +206,8 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         return ret
 
     def setData(self, index, value, role=NameRole):
+        if self._isResettingModel:
+            return False
         success = True
         layer = self._layers[index.row()]
         if role == self.NameRole:
@@ -213,15 +217,18 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
                 value = False
             else:
                 value = True
-            success = layer.setActive(value, undo=True)
+            if value != layer.active():
+                success = layer.setActive(value, undo=True)
         elif role == self.DescriptionRole:
-            success = layer.setDescription(value, undo=True)
+            if value != layer.description():
+                success = layer.setDescription(value, undo=True)
         elif role == self.NotesRole:
-            success = layer.setNotes(value, undo=True)
+            if value != layer.notes():
+                success = layer.setNotes(value, undo=True)
         elif role == self.StoreGeometryRole:
-            success = layer.setStoreGeometry(value, undo=True)
+            if value != layer.storeGeometry():
+                success = layer.setStoreGeometry(value, undo=True)
         elif role == self.ItemPropertiesRole:
-            layer = self._layers[index.row()]
             success = layer.setItemProperties(value)
         else:
             success = False

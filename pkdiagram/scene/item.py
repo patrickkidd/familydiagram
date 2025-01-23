@@ -103,7 +103,7 @@ class Item:
         for prop in self.props:
             if not prop.layered and prop.get() != prop.default:
                 props[prop.attr] = prop.get()
-        s = util.pretty(props, exclude=exclude)
+        s = util.pretty(props, exclude=exclude).replace("PyQt5.QtCore.", "")
         if s:
             s = ": " + s
         return "<%s[%s]%s>" % (self.__class__.__name__, self.id, s)
@@ -259,14 +259,16 @@ class Item:
     def endUpdateFrame(self):
         """Virtual"""
 
-    def setTag(self, x, notify=True, undo=None):
+    def setTag(self, x: str, notify=True, undo=False):
+        if not isinstance(x, str):
+            raise ValueError("Tag must be a string")
         tags = list(self.tags())
         if not x in tags:
             tags.append(x)
             tags.sort()
             self.prop("tags").set(tags, notify=notify, undo=undo)
 
-    def addTags(self, newTags, notify=True, undo=None):
+    def addTags(self, newTags, notify=True, undo=False):
         itemTags = list(self.tags())
         for tag in newTags:
             if not tag in itemTags:
@@ -275,7 +277,7 @@ class Item:
         if itemTags != self.tags():
             self.prop("tags").set(itemTags, notify=notify, undo=undo)
 
-    def unsetTag(self, x, notify=True, undo=None):
+    def unsetTag(self, x, notify=True, undo=False):
         tags = list(self.tags())
         if x in tags:
             tags.remove(x)
@@ -289,14 +291,3 @@ class Item:
             return True
         else:
             return False
-
-    def onTagRenamed(self, old, new):
-        """Called right from Scene.renameTag()"""
-        tags = []
-        for index, tag in enumerate(self.tags()):
-            if tag == old:
-                tags.append(new)
-            else:
-                tags.append(tag)
-        tags.sort()
-        self.prop("tags").set(tags, notify=False, undo=False)

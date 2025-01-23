@@ -16,6 +16,7 @@ PK.Drawer {
     signal editTimelineItem
 
     property bool isDrawerOpen: eventPropertiesDrawer.visible
+    property var resetItemPosButton: resetItemPosButton
 
     property int margin: util.QML_MARGINS
     property var focusResetter: personPageInner
@@ -74,7 +75,7 @@ PK.Drawer {
     
     function onInspect(tab) {
         if(canInspect && timelineView.selectedEvents.length) {
-            commands.trackView('Edit person events')
+            session.trackView('Edit person events')
             if(tab !== undefined) {
                 eventProperties.setCurrentTab(tab)
             } else {
@@ -86,7 +87,7 @@ PK.Drawer {
     }
 
     function onInspectNotes(row) {
-        commands.trackView('Edit event notes')
+        session.trackView('Edit event notes')
         eventProperties.eventModel.items = timelineView.selectedEvents
         eventProperties.setCurrentTab('notes')
         eventPropertiesDrawer.visible = true
@@ -923,7 +924,6 @@ PK.Drawer {
                             
                             PK.Button {
                                 id: resetItemPosButton
-                                objectName: 'resetItemPosButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20

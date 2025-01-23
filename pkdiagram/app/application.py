@@ -23,17 +23,7 @@ log = logging.getLogger(__name__)
 
 class Application(QApplication):
 
-    def __init__(self, *args, **kwargs):
-
-        import logging  # Won't pull in from module scope
-
-        # TODO: Should not be global
-        util._prefs = self.makeSettings()
-
-        # prefsPath = QFileInfo(util.prefs().fileName()).filePath()
-        util.prefs().setAutoSave(True)
-        util.prefs().setValue("lastVersion", version.VERSION)
-
+    def __init__(self, *args, prefsName=None, **kwargs):
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
                 "QMacCGContext:: Unsupported paint engine type",
@@ -105,6 +95,11 @@ class Application(QApplication):
         # )
         super().__init__(*args, **kwargs)
 
+        self._prefsName = prefsName
+        self._prefs = None
+        # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
+        self.prefs().setValue("lastVersion", version.VERSION)
+
         # TODO: Should not be global
         self._qmlUtil = QmlUtil(self)
 
@@ -115,15 +110,15 @@ class Application(QApplication):
         CUtil.startup()  # after QApplication() for QFileSystemWatcher
         util.IS_UI_DARK_MODE = CUtil.instance().isUIDarkMode()
 
-        if util.IS_DEV and util.prefs().value(
+        if util.IS_DEV and self.prefs().value(
             "iCloudWasOn", defaultValue=False, type=bool
         ):
-            lastiCloudPath = util.prefs().value("lastiCloudPath", defaultValue=None)
+            lastiCloudPath = self.prefs().value("lastiCloudPath", defaultValue=None)
             if lastiCloudPath is not None:
                 # Debug("Forcing docRoot for [dev]:", lastiCloudPath)
                 CUtil.instance().forceDocsPath(lastiCloudPath)
         else:
-            localDocsPath = util.prefs().value("localDocsPath", type=str)
+            localDocsPath = self.prefs().value("localDocsPath", type=str)
             CUtil.instance().forceDocsPath(localDocsPath)
 
         # def _onQmlWarning(warnings):
@@ -181,9 +176,9 @@ class Application(QApplication):
         def iCloudDevPostInit():
             iCloudRoot = CUtil.instance().iCloudDocsPath()
             if iCloudRoot:
-                lastiCloudPath = util.prefs().value("lastiCloudPath", defaultValue=None)
+                lastiCloudPath = self.prefs().value("lastiCloudPath", defaultValue=None)
                 if iCloudRoot != lastiCloudPath:
-                    util.prefs().setValue("lastiCloudPath", iCloudRoot)
+                    self.prefs().setValue("lastiCloudPath", iCloudRoot)
 
         iCloudDevPostInit()
         CUtil.instance().deinit()
@@ -193,19 +188,18 @@ class Application(QApplication):
             sys.excepthook = self._excepthook_was
         self._excepthook_was = None
 
+    def prefs(self):
+        if not self._prefs:
+            if self._prefsName is None:
+                if util.IS_IOS or util.IS_WINDOWS:
+                    self._prefsName = "familydiagram"
+                elif util.IS_APPLE:
+                    self._prefsName = "familydiagrammac"
+            self._prefs = QSettings("vedanamedia", self._prefsName)
+        return self._prefs
+
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())
-
-    @staticmethod
-    def makeSettings() -> QSettings:
-        if util.IS_IOS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
-        elif util.IS_APPLE:
-            prefs = util.Settings("vedanamedia", "familydiagrammac")
-        elif util.IS_WINDOWS:
-            prefs = util.Settings("vedanamedia", "familydiagram")
-
-        return prefs
 
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:

@@ -104,8 +104,7 @@ def test_detailsText_visible_at_pos():
 
 
 @pytest.fixture
-def detailsText_person():
-    scene = Scene()
+def detailsText_person(scene):
     scene.addEventProperty("varX")
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
     person = Person(name="Roger")
@@ -113,7 +112,9 @@ def detailsText_person():
     person.setDiagramNotes("here are some notes")
     person.setBirthDateTime(util.Date(2001, 1, 1))
     event = Event(person, dateTime=scene.currentDateTime())
+    scene.addItem(event)
     event.dynamicProperty("varx").set("123")
+    scene.addItem(event)
     person.updateDetails()
     return person
 
@@ -301,22 +302,19 @@ def test_person_setLayers():
     assert set(person.layers()) == set([layer1.id])
 
 
-def test_new_event_adds_variable_values():
-
-    scene = Scene()
+def test_new_event_adds_variable_values(scene):
     scene.addEventProperty("var1")
 
     person = Person()
     scene.addItems(person)
 
     # Simulate AddEventDialog setup.
-    event = Event(addDummy=True, dateTime=util.Date(2021, 5, 11))
+    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
     prop.set("123")
-    event.addDummy = False
-    event.setParent(person)
+    scene.addItem(event)
 
     assert person.variablesDatabase.get("var1", event.dateTime().addYears(-1)) == (
         None,

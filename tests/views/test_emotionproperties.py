@@ -1,8 +1,8 @@
 import pytest
 
-from pkdiagram.pyqt import *
-from pkdiagram import util, scene
-from pkdiagram.scene import Emotion
+from pkdiagram.pyqt import Qt, QDateTime
+from pkdiagram import util
+from pkdiagram.scene import Person, Emotion, person
 from pkdiagram.views import QmlDrawer
 
 
@@ -80,17 +80,18 @@ def assertEmotionProperties(
 
 
 @pytest.fixture
-def ep(qtbot, qmlScene, qmlEngine):
-    qmlEngine.setScene(qmlScene)
+def ep(qtbot, scene, qmlEngine):
+    qmlEngine.setScene(scene)
     ep = QmlDrawer(
         qmlEngine, "qml/EmotionPropertiesDrawer.qml", propSheetModel="emotionModel"
     )
     ep.checkInitQml()
     ep.emotionModel = ep.rootProp("emotionModel")
-    ep.setScene(qmlScene)
+    ep.setScene(scene)
     ep.show()
     qtbot.waitActive(ep)
     assert ep.isShown()
+
     yield ep
 
     ep.setScene(None)
@@ -109,38 +110,33 @@ def assertEmotionPropertiesInit(props, ep):
     ) == util.emotionIntensityNameForIntensity(props["intensity"])
 
 
-def test_show_init(qmlScene, ep, emotionProps):
-    personAName = qmlScene.people()[0].name()
-    personBName = qmlScene.people()[1].name()
+def test_show_init(scene, ep, emotionProps):
+    personA, personB = Person(name="personA"), Person(name="personB")
+    scene.addItems(personA, personB)
     initProps = {"kind": util.ITEM_PROJECTION, "intensity": 2}
-    emotion = scene.Emotion(**initProps)
-    qmlScene.addItem(emotion)
+    emotion = Emotion(personA=personA, personB=personB, **initProps)
+    scene.addItem(emotion)
     ep.show(emotion)
     assertEmotionPropertiesInit(initProps, ep)
 
     runEmotionProperties(
-        emotionProps, ep, personAName=personAName, personBName=personBName
+        emotionProps, ep, personAName=personA.name(), personBName=personB.name()
     )
     assertEmotionProperties(
-        emotion, emotionProps, personAName=personAName, personBName=personBName
+        emotion, emotionProps, personAName=personA.name(), personBName=personB.name()
     )
 
 
-def test_fields_disabled(qmlScene, ep):
+def test_fields_disabled(scene, ep):
 
-    personA = scene.Person(name="Harold")
-    qmlScene.addItem(personA)
+    personA, personB = Person(name="Harold"), Person(name="Maude")
+    scene.addItems(personA, personB)
 
-    personB = scene.Person(name="Maude")
-    qmlScene.addItem(personB)
+    cutoff = Emotion(kind=util.ITEM_CUTOFF, personA=personA)
+    scene.addItem(cutoff)
 
-    cutoff = scene.Emotion(kind=util.ITEM_CUTOFF, personA=personA)
-    qmlScene.addItem(cutoff)
-
-    projection = scene.Emotion(
-        kind=util.ITEM_PROJECTION, personA=personA, personB=personB
-    )
-    qmlScene.addItem(projection)
+    projection = Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    scene.addItem(projection)
 
     ep.emotionModel.items = [cutoff]
     assert ep.emotionModel.kind == util.ITEM_CUTOFF
@@ -158,13 +154,11 @@ def test_fields_disabled(qmlScene, ep):
     assert ep.itemProp("personBBox", "enabled") == False
 
 
-def test_show_init_multiple_different(qmlScene, ep, emotionProps):
-    personAName = qmlScene.people()[0].name()
-    personBName = qmlScene.people()[1].name()
-    initProps1 = {"kind": util.ITEM_PROJECTION}
-    emotion1 = scene.Emotion(**initProps1)
-    initProps2 = {"kind": util.ITEM_CONFLICT}
-    emotion2 = scene.Emotion(**initProps2)
+def test_show_init_multiple_different(scene, ep):
+    personA, personB = Person(name="personA"), Person(name="personB")
+    emotion1 = Emotion(personA=personA, personB=personB, kind=util.ITEM_PROJECTION)
+    emotion2 = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    scene.addItems(emotion1, emotion2)
 
     # first init with single kind
     ep.show(emotion1)
@@ -176,9 +170,11 @@ def test_show_init_multiple_different(qmlScene, ep, emotionProps):
 
 
 @pytest.mark.parametrize("startDateTime", [util.Date(2000, 4, 21), QDateTime()])
-def test_notes_field_has_start_datetime(ep, startDateTime):
-    emotion = scene.Emotion(kind=util.ITEM_PROJECTION)
+def test_notes_field_has_start_datetime(scene, ep, startDateTime):
+    personA, personB = Person(name="personA"), Person(name="personB")
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_PROJECTION)
     emotion.startEvent.setDateTime(startDateTime)
+    scene.addItem(emotion)
     ep.show(emotion, tab="notes")
     emotionNotesEdit = ep.rootProp("emotionNotesEdit")
     notesHiddenHelpText = ep.rootProp("notesHiddenHelpText")

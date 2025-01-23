@@ -1,4 +1,5 @@
 import os, shutil, random, logging, math
+from typing import Union
 
 from _pkdiagram import PersonDelegate
 from pkdiagram.pyqt import (
@@ -36,6 +37,7 @@ from pkdiagram.scene import (
     VariablesDatabase,
     random_names,
 )
+from pkdiagram.scene.commands import SetParents
 
 
 _log = logging.getLogger(__name__)
@@ -311,6 +313,10 @@ class Person(PathItem):
             self.initAlias()
         if "birthDateTime" in kwargs:
             self.setBirthDateTime(kwargs["birthDateTime"])
+        if "adoptedDateTime" in kwargs:
+            self.setAdoptedDateTime(kwargs["adoptedDateTime"])
+        if "deceasedDateTime" in kwargs:
+            self.setDeceasedDateTime(kwargs["deceasedDateTime"])
         if "name" in kwargs:
             for event in self._events + [
                 self.birthEvent,
@@ -646,10 +652,12 @@ class Person(PathItem):
         if self.childOf:
             return self.childOf.multipleBirth
 
-    def setParents(self, parentItem):
-        """The single entry point for adding+removing a person to a pair-bond.
+    def _do_setParents(self, parentItem):
+        """
+        The single entry point for adding+removing a person to a pair-bond.
         `parentItem` can be a Marriage, ChildOf, or MultipleBirth.
         """
+        # Remove existing parent(s)
         if self.childOf:
             if self.childOf.multipleBirth:
                 multipleBirth = self.childOf.multipleBirth
@@ -673,16 +681,21 @@ class Person(PathItem):
             self.childOf = None
         #
         if parentItem:
+            # First ensure childOf is created
             if parentItem.isMarriage:
                 self.childOf = ChildOf(self, parentItem)
             elif parentItem.isChildOf or parentItem.isMultipleBirth:
                 self.childOf = ChildOf(self, parentItem.parents())
+
+            # Then do setup for the specific configuration
             if parentItem.isMarriage:
                 parentItem._onAddChild(self)
+
             elif parentItem.isMultipleBirth:
                 self.childOf._onSetMultipleBirth(parentItem)
                 parentItem._onAddChild(self)
                 parentItem.parents()._onAddChild(self)
+
             elif parentItem.isChildOf:
                 if parentItem.multipleBirth:
                     self.childOf._onSetMultipleBirth(parentItem.multipleBirth)
@@ -695,12 +708,20 @@ class Person(PathItem):
                     parentItem.parents()._onAddChild(self)
                     parentItem._onSetMultipleBirth(multipleBirth)
                     self.childOf._onSetMultipleBirth(multipleBirth)
+
+            # Post config init
             if self.scene():
                 self.scene().addItem(self.childOf)
                 if self.childOf.multipleBirth:
                     self.scene().addItem(self.childOf.multipleBirth)
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
+
+    def setParents(self, target: Union[Marriage, ChildOf], undo=False):
+        if undo:
+            self.scene().push(SetParents(self, target))
+        else:
+            self._do_setParents(target)
 
     def _onAddMarriage(self, m):
         if not m in self.marriages:
@@ -951,16 +972,12 @@ class Person(PathItem):
             return
         if x not in self._events:
             self._events.append(x)
-            if self.scene():
-                self.scene().addItem(x)
             self.updateEvents()
 
     def _onRemoveEvent(self, x):
         """Called from Event.setParent."""
         if x in self._events:
             self._events.remove(x)
-            if self.scene():
-                self.scene().removeItem(x)
             self.updateEvents()
 
     ## Emotions

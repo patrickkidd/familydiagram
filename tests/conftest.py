@@ -44,6 +44,8 @@ from pkdiagram.pyqt import (
     QVariant,
     QMessageBox,
     QEventLoop,
+    QSettings,
+    QGraphicsView,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
@@ -263,14 +265,14 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
 def qApp():
     log.debug(f"Create qApp for familydiagram/tests")
 
-    def _makeSettings():
-        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
-        prefs = util.Settings(dpath, "vedanamedia")
+    # Just a placeholder to avoid overwriting the user app folder one; each test
+    # will be mocked
+    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+
+    def _prefs(self):
         return prefs
 
-    with mock.patch(
-        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
-    ):
+    with mock.patch.object(Application, "prefs", _prefs):
         app = Application(sys.argv)
 
     _orig_Server_deinit = Server.deinit
@@ -305,6 +307,13 @@ def qApp():
         yield app
 
     app.deinit()
+
+
+@pytest.fixture(autouse=True)
+def prefs():
+    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
+        yield prefs
 
 
 @pytest.fixture(autouse=True)
@@ -525,6 +534,24 @@ class PKQtBot(QtBot):
         if self.DEBUG:
             log.info(f"PKQtBot.mouseDClick({args}, {kwargs})")
         return super().mouseDClick(*args, **kwargs)
+
+    def mouseClickGraphicsItem(self, view: QGraphicsView, item):
+        rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
+        self.mouseClick(
+            view.viewport(),
+            Qt.LeftButton,
+            modifier=Qt.KeyboardModifier.NoModifier,
+            pos=rect.center(),
+        )
+
+    def mouseDClickGraphicsItem(self, view: QGraphicsView, item):
+        rect = view.mapFromScene(item.mapToScene(item.boundingRect())).boundingRect()
+        self.mouseDClick(
+            view.viewport(),
+            Qt.LeftButton,
+            modifier=Qt.KeyboardModifier.NoModifier,
+            pos=rect.center(),
+        )
 
     @staticmethod
     def mouseMove(
@@ -799,16 +826,11 @@ def simpleScene(request):
     return s
 
 
-# TODO: DECRECATED
 @pytest.fixture
-def qmlScene(simpleScene):
-    sceneModel = SceneModel()
-    sceneModel.scene = simpleScene
-    simpleScene._sceneModel = sceneModel
-
-    yield simpleScene
-
-    simpleScene.deinit()
+def scene(qApp):
+    _scene = Scene()
+    yield _scene
+    _scene.deinit()
 
 
 @pytest.fixture
@@ -831,7 +853,7 @@ def create_ac_mw(request, qtbot, tmp_path):
     ):
         if prefs is None:
             dpath = os.path.join(tmp_path, "settings.ini")
-            prefs = util.Settings(dpath, "pytests")
+            prefs = Application.instance().prefs()
             prefs.setValue("dontShowWelcome", True)
             prefs.setValue("acceptedEULA", True)
             prefs.setValue("enableAppUsageAnalytics", False)
@@ -839,11 +861,11 @@ def create_ac_mw(request, qtbot, tmp_path):
         if editorMode is not None:
             prefs.setValue("editorMode", editorMode)
 
-        ac = AppController(QApplication.instance(), prefs, prefsName=prefsName)
+        ac = AppController(QApplication.instance(), prefsName=prefsName)
         if savedYet is not None:
             ac.appConfig.savedYet = lambda: savedYet
 
-        mw = MainWindow(appConfig=ac.appConfig, session=ac.session, prefs=prefs)
+        mw = MainWindow(appConfig=ac.appConfig, session=ac.session)
 
         if not appConfig:
             appConfig = {}

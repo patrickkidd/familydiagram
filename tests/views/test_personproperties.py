@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QPointF
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import (
     Person,
     Event,
@@ -211,20 +211,18 @@ def test_date_undo_redo(pp, personProps):
     pp.mouseClick("birthDateButtons.clearButton")  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    pp.scene.undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
     assert pp.itemProp("birthDateButtons", "dateTime") == dateTime
     assert pp.itemProp("birthDatePicker", "dateTime") == dateTime
 
-    util.HERE = True
-
-    commands.stack().redo()  # 1
+    pp.scene.redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
-    commands.stack().undo()  # 0
+    pp.scene.undo()  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
 
-    commands.stack().redo()  # 1
+    pp.scene.redo()  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
 
 
@@ -356,6 +354,7 @@ def _test_open_tabs_retained(pp):
 
 def test_clear_layered_pos(pp, monkeypatch):
     """It was taking two clicks to clear the person props."""
+    resetItemPosButton = pp.rootProp("resetItemPosButton")
     layer = Layer()
     pp.scene.addItem(layer)
     pp.scene.setStorePositionsInLayers(True)
@@ -365,20 +364,20 @@ def test_clear_layered_pos(pp, monkeypatch):
     pp.setCurrentTab("meta")
 
     monkeypatch.setattr(pp.scene, "isMovingSomething", lambda: True)
-    person.setPos(QPointF(100, 100))  # default
+    person.setItemPos(QPointF(100, 100))  # default
     layer.setActive(True)
     layer.setStoreGeometry(True)
-    person.setPos(QPointF(200, 200))  # in layer
+    person.setItemPos(QPointF(200, 200))  # in layer
     personModel = pp.rootProp("personModel")
     assert personModel.itemPos == QPointF(200, 200)
     assert personModel.itemPos == person.itemPos()
-    assert pp.itemProp("resetItemPosButton", "enabled") == True
+    assert resetItemPosButton.property("enabled") == True
     assert personModel.isItemPosSetInCurrentLayer == True
 
-    pp.mouseClick("resetItemPosButton")
+    pp.mouseClickItem(resetItemPosButton)
     assert personModel.itemPos == QPointF(100, 100)
     assert personModel.isItemPosSetInCurrentLayer == False
-    assert pp.itemProp("resetItemPosButton", "enabled") == False
+    assert resetItemPosButton.property("enabled") == False
 
 
 # def test_tabKeys():
@@ -516,13 +515,15 @@ def _test_add_to_layer(pp):
     assert layer.id not in person.layers()
 
 
-def __test_remove_event_button(pp, qmlScene, eventProps):
-    pp.init(qmlScene)
+def __test_remove_event_button(pp, scene, eventProps):
+    pp.init(scene)
     person = Person()
     event = Event(
-        person, description=eventProps["description"], dateTime=util.Date(2001, 2, 3)
+        parent=person,
+        description=eventProps["description"],
+        dateTime=util.Date(2001, 2, 3),
     )
-    qmlScene.addItem(person)
+    scene.addItem(person)
     pp.show([person])
 
     pp.clickTimelineViewItem(
@@ -536,7 +537,7 @@ def __test_remove_event_button(pp, qmlScene, eventProps):
 
 
 # TODO:
-# def _test_edit_event_in_timeline(qtbot, pp, qmlScene, personProps, person):
+# def _test_edit_event_in_timeline(qtbot, pp, scene, personProps, person):
 
 #     event = Event(description="here we are", dateTime=util.Date(2003, 5, 11))
 #     event.setParent(person)

@@ -1,4 +1,4 @@
-import os.path, sys, datetime, shutil, logging
+import os.path, sys, datetime, shutil, logging, atexit
 import pickle
 
 from PyQt5.QtCore import QT_VERSION_STR
@@ -51,9 +51,10 @@ from pkdiagram.pyqt import (
     QKeyEvent,
     QQuickWidget,
 )
-from pkdiagram import version, util, commands
+from pkdiagram import version, util
 from pkdiagram.server_types import Diagram, HTTPError
 from pkdiagram.scene import ItemGarbage, Property, Scene
+from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
 from pkdiagram.documentview import DocumentView
 from pkdiagram.mainwindow import FileManager, Preferences, Welcome
@@ -90,14 +91,15 @@ class MainWindow(QMainWindow):
     documentChanged = pyqtSignal(FDDocument, FDDocument)
     closed = pyqtSignal()  # for app.py
 
-    def __init__(self, appConfig, session, prefs):
+    def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
 
         if hasattr(Qt, "WA_ContentsMarginsRespectsSafeArea"):
             self.setAttribute(Qt.WA_ContentsMarginsRespectsSafeArea, False)
 
         MainWindow._instance = self
-        self.prefs = prefs
+        self._profile = None
+        self.prefs = QApplication.instance().prefs()
         self.session = session
         self.appConfig = appConfig
         self.eula = None
@@ -105,6 +107,7 @@ class MainWindow(QMainWindow):
         self.isInitializing = False
         self._blocked = False
         self._savingServerFile = False
+        self._isOpeningDiagram = False
         self._isImportingToFreeDiagram = False
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -137,13 +140,8 @@ class MainWindow(QMainWindow):
             self.ui.horizontalLayout.setObjectName("horizontalLayout")
             self.setCentralWidget(self.ui.centralWidget)
 
-        self.undoStack = commands.stack()  # TODO: replace global stack with local stack
-        self.undoStack.canUndoChanged.connect(self.ui.actionUndo.setEnabled)
-        self.ui.actionUndo.setEnabled(self.undoStack.canUndo())
-        self.ui.actionUndo.triggered.connect(self.undoStack.undo)
-        self.undoStack.canRedoChanged.connect(self.ui.actionRedo.setEnabled)
-        self.ui.actionRedo.setEnabled(self.undoStack.canRedo())
-        self.ui.actionRedo.triggered.connect(self.undoStack.redo)
+        self.ui.actionUndo.setEnabled(False)
+        self.ui.actionRedo.setEnabled(False)
 
         self.profiler = None
 
@@ -166,9 +164,9 @@ class MainWindow(QMainWindow):
         self.ui.actionInstall_Update.setEnabled(False)
 
         # DEBUG: UndoStackView
-        self.undoView = QUndoView(commands.stack())
+        self.undoView = QUndoView()
         self.undoView.hide()
-        self.ui.actionShow_Undo_View.toggled.connect(self.undoView.setVisible)
+        self.ui.actionShow_Undo_View.toggled.connect(self.onShowUndoView)
 
         # Document View
 
@@ -217,7 +215,7 @@ class MainWindow(QMainWindow):
         for action in self.findChildren(QAction):
             if action not in (self.ui.actionUndo, self.ui.actionRedo):
                 action.triggered.connect(
-                    lambda x: commands.trackAction(self.sender().text())
+                    lambda x: self.session.trackAction(self.sender().text())
                 )
 
         # Signals
@@ -337,7 +335,6 @@ class MainWindow(QMainWindow):
         """Called after CUtil is initialized."""
         self.isInitializing = True
         log.debug(f"init {version.VERSION}")
-        commands.stack().cleanChanged[bool].connect(self.onUndoCleanChanged)
 
         ## Document View
 
@@ -429,7 +426,6 @@ class MainWindow(QMainWindow):
         if not self.isInitialized:
             return
         log.debug(f"deinit {version.VERSION}")
-        commands.stack().cleanChanged[bool].disconnect(self.onUndoCleanChanged)
 
         QApplication.clipboard().changed.disconnect(self.onClipboardChanged)
         QApplication.instance().focusChanged.disconnect(self.onFocusChanged)
@@ -525,6 +521,11 @@ class MainWindow(QMainWindow):
                 self.onServerFileClicked(filePath, diagram)
                 self.documentView.setReloadingCurrentDiagram(False)
 
+    def onShowUndoView(self, on):
+        if on:
+            self.undoView.setStack(self.scene.stack())
+        self.undoView.setVisible(on)
+
     def clearWindowIcon(self):
         p = QPixmap(1, 1)
         p.fill(Qt.transparent)
@@ -546,7 +547,7 @@ class MainWindow(QMainWindow):
             else:
                 title = self.scene.name()
             try:
-                isClean = commands.stack().isClean()
+                isClean = self.scene.stack().isClean()
             except RuntimeError as e:
                 isClean = True  # shutting down, so doesn't matter.
             if not isClean:
@@ -614,7 +615,7 @@ class MainWindow(QMainWindow):
     def confirmSave(self):
         if not util.CONFIRM_SAVE:
             return True
-        if self.scene and not commands.stack().isClean():
+        if self.scene and not self.scene.stack().isClean():
             ret = QMessageBox.question(
                 self,
                 "Save changes?",
@@ -644,7 +645,7 @@ class MainWindow(QMainWindow):
         if not self.isInitialized:
             return
         if self.scene.readOnly():
-            commands.stack().setClean()
+            self.scene.stack().setClean()
         else:
             self.updateWindowTitle()
             self.ui.actionSave.setEnabled(not on)
@@ -731,7 +732,7 @@ class MainWindow(QMainWindow):
             self._savingServerFile = False
         else:
             self.document.save(quietly=latent)  # emits 'saved'; calls onDocumentSaved()
-        commands.stack().setClean()
+        self.scene.stack().setClean()
 
     # def onDocumentSaved(self):
     #     """ Called from CUtils. """
@@ -862,7 +863,7 @@ class MainWindow(QMainWindow):
         self.fileManager.showLocalFiles(not on)
 
     def onLocalFileClicked(self, fpath):
-        commands.trackApp("Open local file from file manager")
+        self.session.trackApp("Open local file from file manager")
         self.fileManager.setEnabled(False)
         self.open(filePath=fpath)
         # def doOpen():
@@ -871,7 +872,7 @@ class MainWindow(QMainWindow):
         # QTimer.singleShot(10, doOpen) # repaint with disabled state
 
     def onServerFileClicked(self, fpath, diagram):
-        commands.trackApp("Open server file from file manager")
+        self.session.trackApp("Open server file from file manager")
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
@@ -953,10 +954,8 @@ class MainWindow(QMainWindow):
 
                         else:
                             newScene.selectAll()
-                            items = commands.Clipboard(newScene.selectedItems()).copy(
-                                self.scene
-                            )
-                            commands.importItems(self.scene, items)
+                            items = Clipboard(newScene.selectedItems()).copy(self.scene)
+                            self.scene.push(ImportItems(items))
         else:
             CUtil.instance().openExistingFile(
                 QUrl.fromLocalFile(filePath)
@@ -997,6 +996,7 @@ class MainWindow(QMainWindow):
     def setDocument(self, document):
         """Called from CUtil.openExistingFile() async open."""
         newScene = None
+        self._isOpeningDiagram = True
 
         if document:  # see if scene loads successfully first
             if not self.session.hasFeature(vedana.LICENSE_FREE):
@@ -1061,6 +1061,7 @@ class MainWindow(QMainWindow):
             if ret:
                 self.onOpenFileError(ret)
                 self.fileManager.setEnabled(True)
+                self._isOpeningDiagram = False
                 return
 
             #
@@ -1106,6 +1107,7 @@ class MainWindow(QMainWindow):
 
         if self.document:
             # deinit document
+            self.scene.stack().cleanChanged[bool].disconnect(self.onUndoCleanChanged)
             # self.document.saved.disconnect(self.onDocumentSaved)
             self.document.fileAdded.disconnect(self.onDocumentFileAdded)
             self.document.fileRemoved.disconnect(self.onDocumentFileRemoved)
@@ -1135,18 +1137,19 @@ class MainWindow(QMainWindow):
                 self.scene.toggleShowPathItemShapes
             )
             self.scene.loaded.disconnect(self.showDiagram)
+            self.scene.stack().clear()
             self.scene.deinit(self.itemGarbage)  # hopefully it gets deleted now
 
         self.ui.actionShow_Scene_Center.setChecked(False)
         self.ui.actionShow_Print_Rect.setChecked(False)
         self.ui.actionShow_View_Scene_Rect.setChecked(False)
-        commands.stack().clear()
 
         oldDoc, newDoc = self.document, document
         self.document = document
         self.scene = newScene
         self.documentView.setScene(None)  # close all drawers/sheets, deinit all models
         if self.document:
+            self.scene.stack().cleanChanged[bool].connect(self.onUndoCleanChanged)
             # self.document.saved.connect(self.onDocumentSaved)
             self.document.fileAdded.connect(self.onDocumentFileAdded)
             self.document.fileRemoved.connect(self.onDocumentFileRemoved)
@@ -1170,6 +1173,8 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
+            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -1210,7 +1215,7 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionShow_Legend.setChecked(self.scene.legendData()["shown"])
             self._blocked = False
-            commands.stack().clear()
+            self.scene.stack().clear()
             self.documentView.setScene(self.scene)
             # various scenarios for delaying the view animation for aesthetics
             if self.isInitializing:  # loading last opened file stored in prefs
@@ -1233,12 +1238,11 @@ class MainWindow(QMainWindow):
             self.ui.actionImport_Diagram.setEnabled(False)
             self.ui.actionClose.setEnabled(False)
             self.serverPollTimer.stop()
-        self.ui.actionUndo.setEnabled(commands.stack().canUndo())
-        self.ui.actionRedo.setEnabled(commands.stack().canRedo())
         self.updateWindowTitle()
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
             self.documentChanged.emit(oldDoc, newDoc)
+        self._isOpeningDiagram = False
 
     def onServerPollTimer(self):
         if self.scene:
@@ -1247,10 +1251,10 @@ class MainWindow(QMainWindow):
                 self.serverFileModel.syncDiagramFromServer(diagram.id)
 
     def onDocumentFileAdded(self, relativePath):
-        commands.stack().resetClean()
+        self.scene.stack().resetClean()
 
     def onDocumentFileRemoved(self, relativePath):
-        commands.stack().resetClean()
+        self.scene.stack().resetClean()
 
     def onFileLocked(self, url):
         if url == self.document.url():
@@ -1416,7 +1420,7 @@ class MainWindow(QMainWindow):
             return
         if not self.confirmSave():
             return
-        commands.trackApp("Close document")
+        self.session.trackApp("Close document")
         self.diagramShown = False
         self.setDocument(None)
         self.documentView.showDiagram()
@@ -1430,7 +1434,8 @@ class MainWindow(QMainWindow):
             self.documentView.move(self.width(), 0)
             self.onViewAnimationDone()
         self.updateWindowTitle()
-        commands.stack().clear()
+        if self.scene:
+            self.scene.stack().clear()
 
     def onViewAnimationDone(self):
         if self.documentView.x() == self.width():  # at home
@@ -1699,7 +1704,7 @@ class MainWindow(QMainWindow):
         if on != self.ui.actionHide_ToolBars.isChecked():
             self.ui.actionHide_ToolBars.setChecked(on)
         self._blocked = False
-        self.scene.setHideToolBars(on, undo=True)
+        self.scene.setHideToolBars(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onShowAliases(self, on):
@@ -1724,19 +1729,19 @@ class MainWindow(QMainWindow):
         # Optimize hiding names (this doesn't really help much)
         self._blocked = False
         if self.scene:
-            self.scene.setShowAliases(on, undo=True)
+            self.scene.setShowAliases(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideEmotionalProcess(self, on):
         if on != self.ui.actionHide_Emotional_Process.isChecked():
             self.ui.actionHide_Emotional_Process.setChecked(on)
-        self.scene.setHideEmotionalProcess(on, undo=True)
+        self.scene.setHideEmotionalProcess(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideEmotionColors(self, on):
         if on != self.ui.actionHide_Emotion_Colors.isChecked():
             self.ui.actionHide_Emotion_Colors.setChecked(on)
-        self.scene.setHideEmotionColors(on, undo=True)
+        self.scene.setHideEmotionColors(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideNames(self, on):
@@ -1746,13 +1751,13 @@ class MainWindow(QMainWindow):
     def onHideVariablesOnDiagram(self, on):
         if on != self.ui.actionHide_Variables_on_Diagram.isChecked():
             self.ui.actionHide_Variables_on_Diagram.setChecked(on)
-        self.scene.setHideVariablesOnDiagram(on, undo=True)
+        self.scene.setHideVariablesOnDiagram(on, undo=(not self._isOpeningDiagram))
 
     @util.fblocked
     def onHideVariableSteadyStates(self, on):
         if on != self.ui.actionHide_Variable_Steady_States.isChecked():
             self.ui.actionHide_Variable_Steady_States.setChecked(on)
-        self.scene.setHideVariableSteadyStates(on, undo=True)
+        self.scene.setHideVariableSteadyStates(on, undo=(not self._isOpeningDiagram))
 
     def onGraphicalTimeline(self):
         on = self.ui.actionShow_Graphical_Timeline.isChecked()
@@ -1760,7 +1765,8 @@ class MainWindow(QMainWindow):
             self._blocked = True
             self.ui.actionShow_Graphical_Timeline.setChecked(on)
             self._blocked = False
-        self.scene.setHideDateSlider(not on, undo=True)
+        undo = not self._isOpeningDiagram
+        self.scene.setHideDateSlider(not on, undo=undo)
 
     def onExpandGraphicalTimeline(self, on):
         if self._blocked:
@@ -1828,12 +1834,31 @@ class MainWindow(QMainWindow):
     def onStartProfile(self):
         self.ui.actionStart_Profile.setEnabled(False)
         self.ui.actionStop_Profile.setEnabled(True)
-        util.startProfile()
+
+        import cProfile
+
+        _profile = cProfile.Profile()
+        _profile.enable()
+        atexit.register(self._profile_atexit)
 
     def onStopProfile(self):
         self.ui.actionStart_Profile.setEnabled(True)
         self.ui.actionStop_Profile.setEnabled(False)
-        util.stopProfile()
+
+        self._profile.disable()
+        import io, pstats
+
+        s = io.StringIO()
+        sortby = "cumulative"
+        ps = pstats.Stats(self._profile, stream=s).sort_stats(sortby)
+        ps.print_stats()  # ('pksampler')
+        log.info(s.getvalue())
+        self._profile = None
+        atexit.unregister(self._profile_atexit)
+
+    def _profile_atexit(self):
+        if self._profile:
+            self.onStopProfile()
 
     @util.blocked
     def onClearPreferences(self, dummy=None):

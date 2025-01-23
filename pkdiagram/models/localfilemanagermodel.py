@@ -9,10 +9,10 @@ class LocalFileManagerModel(FileManagerModel):
 
     loaded = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, prefs, parent=None):
         super().__init__(parent)
         self.isLoaded = False  # for smooth animation aesthetics during app init
-        self.prefs = util.prefs()
+        self.prefs = QApplication.instance().prefs()
         CUtil.instance().fileAdded.connect(self.onFileAdded)
         CUtil.instance().fileStatusChanged.connect(self.onFileStatusChanged)
         CUtil.instance().fileRemoved.connect(self.onFileRemoved)

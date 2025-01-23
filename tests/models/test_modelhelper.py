@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import Qt, QObject
+from pkdiagram.pyqt import Qt, QObject, QApplication
 from pkdiagram import util
 from pkdiagram.scene import Item
 from pkdiagram.models import ModelHelper
@@ -15,10 +15,6 @@ class MyItem(Item):
             {"attr": "someBool", "type": bool, "convertTo": Qt.CheckState},
         ]
     )
-
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.setProperties(**kwargs)  # pass to Item.__init__ instead?
 
 
 class Model(QObject, ModelHelper):
@@ -51,7 +47,7 @@ class Model(QObject, ModelHelper):
                 self.newEntryChanged.emit(x)
         if propName == "newEntryNoType":
             if x != self._newEntryNoType:
-                self._newEntryNType = x
+                self._newEntryNoType = x
                 self.newEntryNoTypeChanged.emit(x)
         else:
             return super().set(propName, x)
@@ -65,14 +61,15 @@ def test_items_property():
     assert model.items == [item1, item2]
 
 
-def test_signals():
+def test_signals(scene):
 
     item1 = MyItem(myint=10)
     item2 = MyItem()
+    scene.addItems(item1, item2)
 
     model = Model()
-    changed = util.Condition()
-    model.myintChanged.connect(changed)
+    model.scene = scene
+    changed = util.Condition(model.myintChanged)
     model.items = [item1, item2]
 
     assert changed.callCount == 0
@@ -181,12 +178,14 @@ def test_init_separate():
     assert model.myint == model.defaultFor("myint")
 
 
-def test_reset():
+def test_reset(scene):
 
     item1 = MyItem(myint=123)
     item2 = MyItem(myint=321)
+    scene.addItems(item1, item2)
 
     model = Model()
+    model.scene = scene
     model.items = [item1, item2]
     myintChanged = util.Condition(model.myintChanged)
 

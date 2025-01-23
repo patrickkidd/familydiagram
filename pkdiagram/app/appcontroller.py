@@ -1,8 +1,8 @@
 import signal, os.path, logging
 
 import vedana
-from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox
-from pkdiagram import util, version, commands, pepper
+from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
+from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
 
 
@@ -36,13 +36,13 @@ class AppController(QObject):
         "The app configuration has been upgraded. Please log in again."
     )
 
-    def __init__(self, app, prefs, prefsName=None):
+    def __init__(self, app, prefsName=None):
         super().__init__(app)
         self.isInitialized = False
 
         self.mw = None
         self.app = app
-        self.prefs = prefs
+        self.prefs = QApplication.instance().prefs()
         self._pendingOpenFilePath = None
         self.appConfig = AppConfig(app, prefsName=prefsName)
         self._analytics = Analytics(
@@ -50,7 +50,7 @@ class AppController(QObject):
             mixpanel_project_token=pepper.MIXPANEL_PROJECT_TOKEN,
         )
         self.session = Session(self._analytics)
-        if not prefs.value("enableAppUsageAnalytics", defaultValue=True, type=bool):
+        if not self.prefs.value("enableAppUsageAnalytics", defaultValue=True, type=bool):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
@@ -71,7 +71,6 @@ class AppController(QObject):
         assert not self.isInitialized
 
         self._analytics.init()
-        commands.setActiveSession(self.session)  # hack
 
         self.appConfig.init()
 
@@ -82,7 +81,6 @@ class AppController(QObject):
         self.session.deinit()
 
         self._analytics.deinit()
-        commands.setActiveSession(None)  # hack
 
     def _pre_event_loop(self, mw):
         """
@@ -185,7 +183,6 @@ class AppController(QObject):
 
         ## Write Preferences
 
-        was = self.prefs.setAutoSave(False)
         self.prefs.setValue("windowSize", mw.size())
         lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(
             vedana.LICENSE_FREE
@@ -194,7 +191,6 @@ class AppController(QObject):
         showCurrentDate = mw.ui.actionShow_Current_Date.isChecked()
         self.prefs.setValue("showCurrentDate", showCurrentDate)
         self.prefs.sync()
-        self.prefs.setAutoSave(was)
 
         self.mw = None
 

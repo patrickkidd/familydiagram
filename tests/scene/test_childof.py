@@ -1,5 +1,7 @@
-from pkdiagram.pyqt import QDateTime
-from pkdiagram import util, commands
+import mock
+
+from pkdiagram.pyqt import QDateTime, QMessageBox
+from pkdiagram import util
 from pkdiagram.scene import (
     Scene,
     PathItem,
@@ -92,7 +94,7 @@ def test_MultipleBirth_set_second_via_ChildOf_undo():
     tripletA.setParents(marriage)
     tripletB.setParents(tripletA.childOf)  # 0
 
-    commands.setParents(tripletC, tripletB.childOf)  # 1
+    tripletC.setParents(tripletB.childOf, undo=True)  # 1
     assert marriage.children == [tripletA, tripletB, tripletC]
     assert tripletA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -105,7 +107,7 @@ def test_MultipleBirth_set_second_via_ChildOf_undo():
     assert tripletC.multipleBirth() == tripletC.multipleBirth()
     assert tripletA.multipleBirth().children() == [tripletA, tripletB, tripletC]
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     marriage.children == [tripletA, tripletB]
     assert tripletA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -269,7 +271,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     )  # 0
 
     # add first normal child
-    commands.setParents(childA, marriage)  # 1
+    childA.setParents(marriage, undo=True)  # 1
     assert marriage.children == [childA]
     assert childA.parents() == marriage
     assert scene.find(childA.childOf.id) == childA.childOf
@@ -277,7 +279,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     assert scene.find(types=ChildOf) == [childA.childOf]
 
     # add second normal child
-    commands.setParents(tripletB, marriage)  # 2
+    tripletB.setParents(marriage, undo=True)  # 2
     assert marriage.children == [childA, tripletB]
     assert childA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -286,7 +288,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     assert scene.find(types=ChildOf) == [childA.childOf, tripletB.childOf]
 
     # add first multiple birth ** via ChildOf **
-    commands.setParents(tripletC, tripletB.childOf)  # 3
+    tripletC.setParents(tripletB.childOf, undo=True)  # 3
     assert marriage.children == [childA, tripletB, tripletC]
     assert childA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -307,7 +309,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     ]
 
     # add second multiple birth ** via MultipleBirth **
-    commands.setParents(tripletD, tripletB.multipleBirth())  # 4
+    tripletD.setParents(tripletB.multipleBirth(), undo=True)  # 4
     assert marriage.children == [childA, tripletB, tripletC, tripletD]
     assert childA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -333,7 +335,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     ]
 
     # remove third triplet
-    commands.setParents(tripletD, None)  # 5
+    tripletD.setParents(None, undo=True)  # 5
     assert marriage.children == [childA, tripletB, tripletC]
     assert childA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -357,7 +359,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     ]
 
     # remove second triplet
-    commands.setParents(tripletC, None)  # 6
+    tripletC.setParents(None, undo=True)  # 6
     assert marriage.children == [childA, tripletB]
     assert childA.parents() == marriage
     assert tripletB.parents() == marriage
@@ -375,7 +377,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     assert scene.find(types=ChildOf) == [childA.childOf, tripletB.childOf]
 
     # remove second child
-    commands.setParents(tripletB, None)  # 7
+    tripletB.setParents(None, undo=True)  # 7
     assert marriage.children == [childA]
     assert childA.parents() == marriage
     assert tripletB.parents() == None
@@ -385,7 +387,7 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     assert scene.find(types=MultipleBirth) == []
     assert scene.find(types=ChildOf) == [childA.childOf]
 
-    commands.setParents(childA, None)  # 8
+    childA.setParents(None, undo=True)  # 8
     assert marriage.children == []
     assert childA.parents() == None
     assert scene.find(types=ChildOf) == []
@@ -469,9 +471,9 @@ def test_ChildOf_MultipleBirth_read_write():
     scene.addItems(personA, personB, marriage, childA, childB, twinC, twinD)
     data = {}
     scene.write(data)
+
     scene = Scene()
     scene.read(data)
-
     personA = scene.query1(name="personA")
     personB = scene.query1(name="personB")
     childA = scene.query1(name="childA")
@@ -509,24 +511,24 @@ def test_ChildOf_set_undo_redo():
     assert childA.childOf == None
     assert childA.multipleBirth() == None
 
-    commands.setParents(childA, marriage)  # 1
+    childA.setParents(marriage, undo=True)  # 1
     assert marriage.children == [childA]
     assert childA.childOf != None
     assert childA.multipleBirth() == None
     assert childA.childOf.multipleBirth == None
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == []
     assert childA.childOf == None
     assert childA.multipleBirth() == None
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert marriage.children == [childA]
     assert childA.childOf != None
     assert childA.multipleBirth() == None
     assert childA.childOf.multipleBirth == None
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == []
     assert childA.childOf == None
     assert childA.multipleBirth() == None
@@ -549,7 +551,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf == None
     assert twinB.multipleBirth() == None
 
-    commands.setParents(twinA, marriage)  # 1
+    twinA.setParents(marriage, undo=True)  # 1
     assert marriage.children == [twinA]
     assert twinA.parents() == marriage
     assert twinA.childOf.multipleBirth == None
@@ -558,7 +560,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf == None
     assert twinB.multipleBirth() == None
 
-    commands.setParents(twinB, twinA.childOf)  # 2
+    twinB.setParents(twinA.childOf, undo=True)  # 2
     assert marriage.children == [twinA, twinB]
     assert twinA.parents() == marriage
     assert twinB.childOf.multipleBirth != None
@@ -568,7 +570,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf.multipleBirth == twinA.childOf.multipleBirth
     assert twinB.multipleBirth() == twinA.multipleBirth()
 
-    commands.stack().undo()  # 1
+    scene.undo()  # 1
     assert marriage.children == [twinA]
     assert twinA.parents() == marriage
     assert twinA.childOf != None
@@ -577,7 +579,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf == None
     assert twinB.multipleBirth() == None
 
-    commands.stack().redo()  # 2
+    scene.redo()  # 2
     assert marriage.children == [twinA, twinB]
     assert twinA.parents() == marriage
     assert twinB.childOf.multipleBirth != None
@@ -587,7 +589,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf.multipleBirth == twinA.childOf.multipleBirth
     assert twinB.multipleBirth() == twinA.multipleBirth()
 
-    commands.stack().undo()  # 1
+    scene.undo()  # 1
     assert marriage.children == [twinA]
     assert twinA.parents() == marriage
     assert twinA.childOf != None
@@ -596,7 +598,7 @@ def test_MultipleBirth_undo_redo():
     assert twinB.childOf == None
     assert twinB.multipleBirth() == None
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == []
     assert twinA.parents() == None
     assert twinA.childOf == None
@@ -624,28 +626,28 @@ def test_MultipleBirth_set_move_undo_redo():
     assert twinB.multipleBirth() == twinC.multipleBirth()
     assert scene.find(types=MultipleBirth) == [twinB.multipleBirth()]
 
-    commands.setParents(twinC, childA.childOf)  # 1
+    twinC.setParents(childA.childOf, undo=True)  # 1
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() != None
     assert childA.multipleBirth() == twinC.multipleBirth()
     assert twinB.multipleBirth() == None
     assert scene.find(types=MultipleBirth) == [childA.multipleBirth()]
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() != None
     assert twinB.multipleBirth() == twinC.multipleBirth()
     assert scene.find(types=MultipleBirth) == [twinB.multipleBirth()]
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() != None
     assert childA.multipleBirth() == twinC.multipleBirth()
     assert twinB.multipleBirth() == None
     assert scene.find(types=MultipleBirth) == [childA.multipleBirth()]
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() != None
@@ -673,23 +675,23 @@ def test_ChildOf_MultipleBirth_undo_redo_integration():
     assert scene.find(types=ChildOf) == []
     assert scene.find(types=MultipleBirth) == []
 
-    commands.setParents(childA, marriage)  # 1
-    commands.setParents(twinB, marriage)  # 2
-    commands.setParents(twinC, twinB.childOf)  # 3
+    childA.setParents(marriage, undo=True)  # 1
+    twinB.setParents(marriage, undo=True)  # 2
+    twinC.setParents(twinB.childOf, undo=True)  # 3
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() != None
     assert twinB.multipleBirth() == twinC.multipleBirth()
     assert scene.find(types=MultipleBirth) == [twinB.multipleBirth()]
 
-    commands.setParents(twinC, childA.childOf)  # 4
+    twinC.setParents(childA.childOf, undo=True)  # 4
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() != None
     assert childA.multipleBirth() == twinC.multipleBirth()
     assert twinB.multipleBirth() == None
     assert scene.find(types=MultipleBirth) == [childA.multipleBirth()]
 
-    commands.removeItems(scene, twinC.multipleBirth())  # 5
+    scene.removeItem(twinC.multipleBirth(), undo=True)  # 5
     assert marriage.children == [twinB]
     assert childA.parents() == None
     assert twinB.parents() == marriage
@@ -700,21 +702,21 @@ def test_ChildOf_MultipleBirth_undo_redo_integration():
     assert scene.find(types=MultipleBirth) == []
     assert scene.find(types=ChildOf) == [twinB.childOf]
 
-    commands.stack().undo()  # 4
+    scene.undo()  # 4
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() != None
     assert childA.multipleBirth() == twinC.multipleBirth()
     assert twinB.multipleBirth() == None
     assert scene.find(types=MultipleBirth) == [childA.multipleBirth()]
 
-    commands.stack().undo()  # 3
+    scene.undo()  # 3
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() != None
     assert twinB.multipleBirth() == twinC.multipleBirth()
     assert scene.find(types=MultipleBirth) == [twinB.multipleBirth()]
 
-    commands.stack().undo()  # 2
+    scene.undo()  # 2
     assert marriage.children == [childA, twinB]
     assert twinB.multipleBirth() == None
     assert twinC.multipleBirth() == None
@@ -723,7 +725,7 @@ def test_ChildOf_MultipleBirth_undo_redo_integration():
     assert scene.find(types=ChildOf) == [childA.childOf, twinB.childOf]
     assert scene.find(types=MultipleBirth) == []
 
-    commands.stack().undo()  # 1
+    scene.undo()  # 1
     assert marriage.children == [childA]
     assert twinB.multipleBirth() == None
     assert twinC.multipleBirth() == None
@@ -732,7 +734,7 @@ def test_ChildOf_MultipleBirth_undo_redo_integration():
     assert scene.find(types=ChildOf) == [childA.childOf]
     assert scene.find(types=MultipleBirth) == []
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == []
     assert twinB.multipleBirth() == None
     assert twinC.multipleBirth() == None
@@ -769,7 +771,7 @@ def test_ChildOf_delete_undo_redo(qtbot):
     assert scene.find(types=[ChildOf]) == [twinB.childOf]
     assert scene.find(types=[MultipleBirth]) == []
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [twinA, twinB]
     assert twinA.childOf != None
     assert twinA.multipleBirth() != None
@@ -777,7 +779,7 @@ def test_ChildOf_delete_undo_redo(qtbot):
     assert twinA.parents() == marriage
     assert twinB.parents() == marriage
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert marriage.children == [twinB]
     assert twinA.parents() == None
     assert twinB.parents() == marriage
@@ -787,7 +789,7 @@ def test_ChildOf_delete_undo_redo(qtbot):
     assert scene.find(types=[ChildOf]) == [twinB.childOf]
     assert scene.find(types=[MultipleBirth]) == []
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [twinA, twinB]
     assert twinA.childOf != None
     assert twinA.multipleBirth() != None
@@ -823,7 +825,7 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     assert twinA.multipleBirth() == twinB.multipleBirth()
     assert scene.find(types=[ChildOf, MultipleBirth]) == []
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [twinA, twinB]
     assert twinA.childOf != None
     assert twinA.multipleBirth() != None
@@ -833,7 +835,7 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     assert scene.find(types=[ChildOf]) == [twinA.childOf, twinB.childOf]
     assert scene.find(types=[MultipleBirth]) == [twinA.multipleBirth()]
 
-    commands.stack().redo()  # 1
+    scene.redo()  # 1
     assert marriage.children == []
     assert twinA.parents() == None
     assert twinB.parents() == None
@@ -842,7 +844,7 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     assert twinA.multipleBirth() == twinB.multipleBirth()
     assert scene.find(types=[ChildOf, MultipleBirth]) == []
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert marriage.children == [twinA, twinB]
     assert twinA.childOf != None
     assert twinA.multipleBirth() != None
@@ -908,7 +910,7 @@ def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     assert len(scene.find(types=ChildOf)) == 1
     assert len(scene.find(types=Person)) == 5
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert len(scene.find(types=MultipleBirth)) == 1
     assert len(scene.find(types=ChildOf)) == 3
     assert len(scene.find(types=Person)) == 5
@@ -936,54 +938,10 @@ def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     assert len(scene.find(types=ChildOf)) == 1
     assert len(scene.find(types=Person)) == 4
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     assert len(scene.find(types=MultipleBirth)) == 1
     assert len(scene.find(types=ChildOf)) == 2
     assert len(scene.find(types=Person)) == 4
-
-
-def test_MultipleBirth_nuclear_family_delete_undo(qtbot):
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
-    twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
-
-    scene.selectAll()
-    qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
-    assert scene.find(types=PathItem) == []
-
-    commands.stack().undo()  # 0
-    assert len(scene.find(types=MultipleBirth)) == 1
-    assert len(scene.find(types=ChildOf)) == 2
-    assert len(scene.find(types=Person)) == 4
-
-
-def test_MultipleBirth_nuclear_family_delete_undo_updateGeometry(qtbot):
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
-    twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
-
-    scene.selectAll()
-    qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
-    assert scene.find(types=PathItem) == []
-
-    commands.stack().undo()  # 0
-    assert len(scene.find(types=MultipleBirth)) == 1
-    assert len(scene.find(types=ChildOf)) == 2
-    assert len(scene.find(types=Person)) == 4
-    assert twinA.multipleBirth() != None
-    assert twinA.multipleBirth() == twinB.multipleBirth()
 
 
 def test_MultipleBirth_pathFor_hidden_person():

@@ -64,7 +64,7 @@ class PencilStroke(LayerItem):
             self.item.setColor(self.color().name())
             if parentItem:
                 self.item.setParentItem(parentItem)
-            self.scene().addItem(self.item)
+            self.scene().addItem(self.item, undo=True)
             self.item.addPoint(pos)
 
         def drawTo(self, pos, pressure):

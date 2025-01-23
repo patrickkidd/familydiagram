@@ -1,6 +1,6 @@
 import pytest
 from pkdiagram.pyqt import QPointF, QDateTime
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel
@@ -454,14 +454,15 @@ def test_add_emotion_sets_scene_currentDate():
     conflict = Emotion(
         personA, personB, kind=util.ITEM_CONFLICT, startDateTime=START_DATETIME
     )
-    commands.addEmotion(scene, conflict)
+    scene.addItem(conflict)
     assert scene.currentDateTime() == START_DATETIME
 
 
 def test_mirror_notes_set_from_item():
     NOTES = "bleh"
 
-    emotion = Emotion()
+    personA, personB = Person(), Person()
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
     scene = Scene()
     scene.addItem(emotion)
     emotion.setNotes(NOTES)
@@ -471,7 +472,8 @@ def test_mirror_notes_set_from_item():
 def test_mirror_notes_set_from_startEvent():
     NOTES = "bleh"
 
-    emotion = Emotion()
+    personA, personB = Person(), Person()
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
     scene = Scene()
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)

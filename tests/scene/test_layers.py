@@ -1,17 +1,11 @@
 import pytest
 
 from pkdiagram.pyqt import QPointF
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Scene, Layer, PathItem, Person, Property, Callout
 
 
 pytestmark = [pytest.mark.component("Layer")]
-
-
-@pytest.fixture
-def undoStack():
-    commands.stack().clear()
-    return commands.stack()
 
 
 def test_scene_layersForPerson():
@@ -85,7 +79,7 @@ def test_layerOrderChanged():
     assert layerOrderChanged.callCount == 1
 
 
-def test_scene_signals(simpleScene, undoStack):
+def test_scene_signals(simpleScene):
     onLayerAdded = util.Condition()
     simpleScene.layerAdded[Layer].connect(onLayerAdded)
     onLayerChanged = util.Condition()
@@ -127,7 +121,7 @@ def test_scene_signals(simpleScene, undoStack):
     assert onLayerRemoved.callCount == 3
 
 
-def test_undo_commands(simpleScene, undoStack):
+def test_undo_commands(simpleScene):
     """Test merging multiple undo commands values."""
     person1 = simpleScene.query1(name="p1")
     person2 = simpleScene.query1(name="p2")
@@ -136,22 +130,22 @@ def test_undo_commands(simpleScene, undoStack):
     simpleScene.addItem(layer)
     layer.setActive(True)
 
-    id = commands.nextId()
-    person1.setColor("#ABCABC", undo=id)
-    person2.setColor("#DEFDEF", undo=id)
+    with simpleScene.macro("Set color first time"):
+        person1.setColor("#ABCABC", undo=True)
+        person2.setColor("#DEFDEF", undo=True)
 
-    id = commands.nextId()
-    person1.setColor("#123123", undo=id)
-    person2.setColor("#456456", undo=id)
+    with simpleScene.macro("Set color second time"):
+        person1.setColor("#123123", undo=True)
+        person2.setColor("#456456", undo=True)
 
     assert person1.color() == "#123123"
     assert person2.color() == "#456456"
 
-    undoStack.undo()
+    simpleScene.undo()
     assert person1.color() == "#ABCABC"
     assert person2.color() == "#DEFDEF"
 
-    undoStack.undo()
+    simpleScene.undo()
     assert person1.color() == None
     assert person2.color() == None
 
@@ -293,7 +287,7 @@ def test_write_read_active_layer_items():
     assert scene.query1(name="personB").isVisible() == True
 
 
-def test_remove_layers_with_layerItems(simpleScene, undoStack):
+def test_remove_layers_with_layerItems(simpleScene):
     layer1 = Layer()
     simpleScene.addItem(layer1)
     layer2 = Layer()
@@ -314,7 +308,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     callout3 = Callout()
     simpleScene.addItem(callout3)  # layer1, layer2
 
-    commands.removeItems(simpleScene, [layer1])
+    simpleScene.removeItem(layer1, undo=True)
     assert not (layer1 in simpleScene.layers())
     assert not (callout1 in simpleScene.layerItems())
     assert callout2 in simpleScene.layerItems()
@@ -323,7 +317,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == [layer2.id]
     assert callout3.layers() == [layer2.id]
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer1 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()
     assert callout2 in simpleScene.layerItems()
@@ -334,7 +328,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     ##
 
-    commands.removeItems(simpleScene, [layer2])
+    simpleScene.removeItem(layer2, undo=True)
     assert not (layer2 in simpleScene.layers())
     assert callout1 in simpleScene.layerItems()
     assert not (callout2 in simpleScene.layerItems())
@@ -343,7 +337,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == []
     assert callout3.layers() == [layer1.id]
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer2 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()
     assert callout2 in simpleScene.layerItems()
@@ -354,7 +348,9 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
 
     ##
 
-    commands.removeItems(simpleScene, [layer1, layer2])
+    with simpleScene.macro("Remove layer items"):
+        simpleScene.removeItem(layer1, undo=True)
+        simpleScene.removeItem(layer2, undo=True)
     assert not (layer1 in simpleScene.layers())
     assert not (layer2 in simpleScene.layers())
     assert not (callout1 in simpleScene.layerItems())
@@ -364,7 +360,7 @@ def test_remove_layers_with_layerItems(simpleScene, undoStack):
     assert callout2.layers() == []
     assert callout3.layers() == []
 
-    undoStack.undo()
+    simpleScene.undo()
     assert layer1 in simpleScene.layers()
     assert layer2 in simpleScene.layers()
     assert callout1 in simpleScene.layerItems()
@@ -399,7 +395,7 @@ def test_delete_layer_prop_with_items(qtbot):
     assert value == None
     assert len(layer.itemProperties().items()) == 0
 
-    commands.stack().undo()  # 0
+    scene.undo()  # 0
     value, ok = layer.getItemProperty(item.id, "something")
     assert ok == True
     assert value == "here"
@@ -416,7 +412,7 @@ def test_store_geometry(qtbot, monkeypatch):
 
     # Each assert should have all three cases; current visible, no layers, layer.
 
-    person.setPos(QPointF(100, 100))
+    person.setItemPosNow(QPointF(100, 100))
     person.setSize(1)
     assert person.itemPos() == QPointF(100, 100)
     assert person.itemPos(forLayers=[]) == QPointF(100, 100)
@@ -432,7 +428,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[]) == 1
     assert person.size(forLayers=[layer]) == None
 
-    person.setPos(QPointF(200, 200))
+    person.setItemPos(QPointF(200, 200))
     person.setSize(2)
     assert person.itemPos() == QPointF(200, 200)
     assert person.itemPos(forLayers=[]) == QPointF(200, 200)
@@ -449,7 +445,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[]) == 2
     assert person.size(forLayers=[layer]) == None
 
-    person.setPos(QPointF(300, 300))
+    person.setItemPos(QPointF(300, 300))
     person.setSize(3)
     assert person.itemPos() == QPointF(300, 300)
     assert person.itemPos(forLayers=[]) == QPointF(200, 200)
@@ -485,7 +481,7 @@ def test_store_geometry(qtbot, monkeypatch):
     assert person.size(forLayers=[layer]) == None
 
     # test values are not stored in layer, even if layer active
-    person.setPos(QPointF(400, 400))
+    person.setItemPos(QPointF(400, 400))
     person.setSize(4)
     assert person.itemPos() == QPointF(400, 400)  # value still stored in layer
     assert person.itemPos(forLayers=[]) == QPointF(400, 400)  # new default value
@@ -505,7 +501,7 @@ def test_dont_store_positions(monkeypatch):
     layer.setStoreGeometry(False)
     monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
-    item.setPos(QPointF(100, 100))
+    item.setItemPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
@@ -513,24 +509,24 @@ def test_dont_store_positions(monkeypatch):
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
-    item.setPos(QPointF(200, 200))
+    item.setItemPos(QPointF(200, 200))
     assert item.itemPos() == QPointF(200, 200)
     assert item.itemPos(forLayers=[layer]) == None
 
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(300, 300))
+    item.setItemPos(QPointF(300, 300))
     assert item.itemPos() == QPointF(300, 300)
     assert item.itemPos(forLayers=[layer]) == QPointF(300, 300)
 
     layer.setStoreGeometry(False)
-    item.setPos(QPointF(400, 400))  # layer still active
+    item.setItemPos(QPointF(400, 400))  # layer still active
     assert item.itemPos() == QPointF(400, 400)
     assert (
         item.itemPos(forLayers=[layer]) == None
     )  # layer value deleted when setting storeGeometry = False
 
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(500, 500))  # layer still active
+    item.setItemPos(QPointF(500, 500))  # layer still active
     assert item.itemPos() == QPointF(500, 500)
     assert item.itemPos(forLayers=[layer]) == QPointF(500, 500)
 
@@ -546,13 +542,13 @@ def test_storeGeometry_dont_reset_LayerItem_pos(monkeypatch):
     scene.addItems(layer, item)
     monkeypatch.setattr(scene, "isMovingSomething", lambda: True)
 
-    item.setPos(QPointF(100, 100))
+    item.setItemPos(QPointF(100, 100))
     assert item.itemPos() == QPointF(100, 100)
     assert item.itemPos(forLayers=[layer]) == None
 
     layer.setActive(True)
     layer.setStoreGeometry(True)
-    item.setPos(QPointF(200, 200))
+    item.setItemPos(QPointF(200, 200))
     assert item.itemPos() == QPointF(200, 200)
     assert item.itemPos(forLayers=[layer]) == QPointF(200, 200)
 

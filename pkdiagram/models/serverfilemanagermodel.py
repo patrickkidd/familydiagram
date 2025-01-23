@@ -1,17 +1,15 @@
-import os, os.path, pickle, shutil, datetime, email.utils, logging
-import urllib.parse
+import os, os.path, pickle, shutil, datetime, logging
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
-    QModelIndex,
-    pyqtSignal,
     pyqtSlot,
+    pyqtSignal,
     qmlRegisterType,
+    QApplication,
     QMessageBox,
     QApplication,
     QDateTime,
     QMessageBox,
-    QCheckBox,
 )
 from pkdiagram.util import CUtil
 from pkdiagram import util
@@ -57,7 +55,7 @@ class ServerFileManagerModel(FileManagerModel):
         self.initialized = False
         self.diagramCache = {}
         self._indexReplies = []
-        self.prefs = util.prefs()
+        self.prefs = QApplication.instance().prefs()
         self.session = None
         self.dataPath = dataPath
         if dataPath is None:

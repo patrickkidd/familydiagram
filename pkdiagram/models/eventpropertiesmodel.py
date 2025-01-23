@@ -6,7 +6,6 @@ from pkdiagram.pyqt import (
     pyqtSlot,
     qmlRegisterType,
 )
-from pkdiagram import commands
 from pkdiagram.scene import Item, Event, Emotion
 from .modelhelper import ModelHelper
 from pkdiagram.pyqt import pyqtSlot
@@ -25,7 +24,6 @@ class EventPropertiesModel(QObject, ModelHelper):
             {"attr": "unsure", "convertTo": Qt.CheckState},
             {"attr": "numWritable", "type": int, "constant": True},
             {"attr": "parentId", "type": int},
-            {"attr": "addDummy", "type": bool},
             {"attr": "parentIsPerson", "type": bool},
             {"attr": "parentIsMarriage", "type": bool},
             {"attr": "parentIsEmotion", "type": bool},
@@ -70,8 +68,6 @@ class EventPropertiesModel(QObject, ModelHelper):
             ret = self.sameOf(attr, getPID)
             if ret is None:
                 ret = -1
-        elif attr == "addDummy":
-            ret = self.sameOf(attr, lambda item: item.addDummy)
         elif attr == "parentIsPerson":
             ret = self.sameOf(
                 attr, lambda item: item.parent and item.parent.isPerson or False
@@ -93,10 +89,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     ret = "New Event"
                 elif item.parent.isPerson:
                     itemLabel = item.parent.firstNameOrAlias()
-                    if self.addMode:
-                        ret = f"{itemLabel}: New Event"
-                    else:
-                        ret = f"{itemLabel}: {item.description()} Event"
+                    ret = f"{itemLabel}: {item.description()} Event"
                 elif item.parent.isEmotion:
                     itemLabel = Emotion.kindLabelForKind(item.parent.kind())
                     if item.uniqueId() == "emotionStartEvent":
@@ -104,10 +97,7 @@ class EventPropertiesModel(QObject, ModelHelper):
                     elif item.uniqueId() == "emotionEndEvent":
                         ret = f"{itemLabel}: End Event"
                 elif item.parent.isMarriage:
-                    if self.addMode:
-                        ret = f"Pair-Bond: New Event"
-                    else:
-                        ret = f"Pair-Bond: {item.description()} Event"
+                    ret = f"Pair-Bond: {item.description()} Event"
                 else:
                     ret = "Event"
             else:
@@ -119,40 +109,26 @@ class EventPropertiesModel(QObject, ModelHelper):
         return ret
 
     def set(self, attr, value):
-        if (
-            attr == "uniqueId" and self.parentIsMarriage
-        ):  # right now marriage is the only parent type that uses uniqueId
-            if self.blockNotify:
-                was = self.blockNotify
-                self.blockNotify = False  # set to True for `addMode`
-            else:
-                was = None
-            # Aggregate uniqueId and description props into single undo command
-            # it is assumed the value is not blank
-            id = commands.nextId()
-            for item in self.items:
-                # notify=False here so that description isn't automatically set in onProperty('uniqueId')
-                # that allows the undo command ot be aggregated here.
-                # This potentially sacrifices other listeners from updating, so keep eyes open for that.
-                item.prop("uniqueId").set(value, notify=False, undo=id)
-                newDescription = item.getDescriptionForUniqueId(value)
-                item.prop("description").set(newDescription, notify=False, undo=id)
+        if attr == "uniqueId":
+            with self._scene.macro(f"Set event type"):
+                for item in self._items:
+                    # notify=False prevents onProperty('uniqueId') from calling
+                    # updateDescription so we can do it ourselves with
+                    # undo=True. Otherwise there is no way to undo the
+                    # description to the previous, potentially custom value.
+                    item.setUniqueId(value, undo=True)
+                    item.updateDescription(undo=True)
             self.refreshProperty("uniqueId")
             self.refreshProperty("description")
-            for item in self.items:
-                item.onProperty(item.prop("uniqueId"))  # follow-up to notify=False
-                item.onProperty(item.prop("description"))  # follow-up to notify=False
-            if was is not None:
-                self.blockNotify = was
-            return
-        super().set(attr, value)
+        else:
+            super().set(attr, value)
         if attr == "parentId" and self._scene:
             person = self._scene.find(id=value)
             if person:
-                id = commands.nextId()
-                for event in self._items:
-                    if event.uniqueId() is None:
-                        commands.setEventParent(event, person, undo=id)
+                with self._scene.macro("Set event owner"):
+                    for event in self._items:
+                        if event.uniqueId() is None:
+                            event.setParent(person, undo=True)
             self.refreshProperty("parentId")
         elif attr == "items":
             self.refreshProperty("numWritable")
@@ -165,11 +141,11 @@ class EventPropertiesModel(QObject, ModelHelper):
     def reset(self, attr):
         if attr == "uniqueId":
             # Aggregate uniqueId and description props into single undo command
-            id = commands.nextId()
-            for item in self.items:
-                # notify=False here so that description isn't automatically set in onProperty('uniqueId')
-                item.prop("uniqueId").reset(notify=False, undo=id)
-                item.prop("description").reset(notify=False, undo=id)
+            with self._scene.macro("Reset event id"):
+                for item in self.items:
+                    # notify=False here so that description isn't automatically set in onProperty('uniqueId')
+                    item.prop("uniqueId").reset(notify=False, undo=True)
+                    item.prop("description").reset(notify=False, undo=True)
             self.refreshProperty("uniqueId")
             self.refreshProperty("description")
         else:

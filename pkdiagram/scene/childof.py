@@ -44,7 +44,13 @@ class ChildOf(PathItem):
             end = QPointF(x, y)
             path.moveTo(start)
             path.lineTo(end)
-        elif person.childOf and person.childOf.multipleBirth:
+        elif (
+            person.childOf
+            and person.childOf.multipleBirth
+            and len(person.childOf.multipleBirth.children()) > 1
+        ):
+            # children is less than two for intermediate step when reading scene
+            # from file.
             start = ChildOf.personConnectionPoint(person)
             mRect = marriage.mapToScene(marriage.boundingRect()).boundingRect()
             end = QPointF(start.x(), person.childOf.multipleBirth.jigY())

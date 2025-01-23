@@ -2,12 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../familydiagram-server"
-		},
-		{
-			"path": "../vedana"
 		}
 	],
 	"settings": {
@@ -32,6 +26,7 @@
 		"[xml]": {
 			"editor.defaultFormatter": "redhat.vscode-xml"
 		},
-		"makefile.configureOnOpen": false
+		"makefile.configureOnOpen": false,
+		"python.languageServer": "Pylance"
 	}
 }

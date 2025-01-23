@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import Qt, QStringListModel, qmlRegisterType, pyqtSlot
-from pkdiagram import util, commands
+from pkdiagram import util
 from .modelhelper import ModelHelper
 
 
@@ -25,7 +25,7 @@ class SceneVariablesModel(QStringListModel, ModelHelper):
         """Called when variable renamed."""
         oldName = self._scene.eventProperties()[start.row()]["name"]
         newName = self.data(start, Qt.DisplayRole)
-        commands.renameEventProperty(self._scene, oldName, newName)
+        self._scene.replaceEventProperty(oldName, newName, undo=True)
 
     @util.blocked
     def onSceneProperty(self, prop):
@@ -37,12 +37,12 @@ class SceneVariablesModel(QStringListModel, ModelHelper):
     def addRow(self):
         names = [x["name"] for x in self._scene.eventProperties()]
         name = util.newNameOf(names, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
-        self._scene.addEventProperty(name)
+        self._scene.addEventProperty(name, undo=True)
 
     @pyqtSlot(int)
     def removeRow(self, row):
         name = self.data(self.index(row, 0), Qt.DisplayRole)
-        self._scene.removeEventProperty(name)
+        self._scene.removeEventPropertyByName(name, undo=True)
 
 
 qmlRegisterType(SceneVariablesModel, "PK.Models", 1, 0, "SceneVariablesModel")

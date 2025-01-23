@@ -61,7 +61,7 @@ def dlg(qtbot, scene, qmlEngine):
     qtbot.waitActive(dlg)
     assert dlg.isShown()
     assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
-    dlg._eventModel.items = [Event(addDummy=True)]
+    dlg.initForSelection([])
     dlg.mouseClick("clearFormButton")
     # dlg.adjustFlickableHack()
 
@@ -100,6 +100,7 @@ def test_clear_CustomIndividual(dlg):
 
 
 def test_clear_Dyadic(dlg):
+    dlg.initForSelection([])
     dlg.set_kind(EventKind.Cutoff)  # dyadic for end date
     dlg.set_startDateTime(START_DATETIME)
     dlg.set_endDateTime(END_DATETIME)

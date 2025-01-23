@@ -15,7 +15,6 @@ PK.Drawer {
     signal addEvent
     signal hidden
     signal addEventProperty()
-    signal removeEventProperty(int index)
     signal flashTimelineRow(int index)
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
@@ -66,7 +65,7 @@ PK.Drawer {
     }
     
     function inspectEvents(events) {
-        commands.trackView('Edit timeline events')
+        session.trackView('Edit timeline events')
         eventProperties.eventModel.items = events
         eventPropertiesDrawer.visible = true
     }
@@ -83,7 +82,7 @@ PK.Drawer {
     }
 
     function onInspectNotes(row) {
-        commands.trackView('Edit event notes')
+        session.trackView('Edit event notes')
         eventProperties.eventModel.items = timelineView.selectedEvents
         eventProperties.setCurrentTab('notes')
         eventPropertiesDrawer.visible = true
@@ -350,7 +349,7 @@ PK.Drawer {
                                 onRemove: {
                                     // workaround to possibly prevent QQuickTableView assertion when removing visible column
                                     timelineView.delayUpdates = true
-                                    root.removeEventProperty(variablesList.currentIndex)
+                                    sceneModel.scene.removeEventPropertyByIndex(variablesList.currentIndex)
                                     timelineView.delayUpdates = false
                                     variablesList.currentIndex = -1
                                 }

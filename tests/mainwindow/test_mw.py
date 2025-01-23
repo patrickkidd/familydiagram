@@ -7,7 +7,8 @@ import mock
 
 import vedana
 from pkdiagram import util
-from pkdiagram.scene import Person, Scene
+from pkdiagram.pyqt import QApplication
+from pkdiagram.scene import Person, Scene, Marriage, Layer
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import AppController
 
@@ -70,3 +71,36 @@ def test_appconfig_upgraded(qApp, tmp_path, data_root, create_ac_mw):
     warning.assert_called_once_with(
         None, "Login required", AppController.S_APPCONFIG_UPGRADED_LOGIN_REQUIRED
     )
+
+
+def test_add_complex_fd_does_not_set_dirty(tmp_path, create_ac_mw):
+    """
+    There are many listeners that can pass undo=True, setting the undo stack
+    dirty. Keep adding conditions here when discovered.
+    """
+
+    # Write file with a bunch fo stuff in it; add more when necessary
+    scene = Scene(
+        showAliases=True,
+        hideNames=True,
+        hideToolBars=True,
+        hideEmotionalProcess=True,
+        hideEmotionColors=True,
+        hideDateSlider=True,
+    )
+    layer = Layer(name="Layer 1", storeGeometry=True)
+    parentA = Person(name="parentA")
+    parentB = Person(name="parentB")
+    twinA = Person(name="twinA")
+    twinB = Person(name="twinB")
+    marriage = Marriage(parentA, parentB)
+    scene.addItems(layer, parentA, parentB, marriage, twinA, twinB)
+    twinA.setParents(marriage)
+    twinB.setParents(twinA.childOf)
+    filePath = os.path.join(tmp_path, "some_family.fd")
+    util.touchFD(filePath, bdata=pickle.dumps(scene.data()))
+
+    ac, mw = create_ac_mw()
+    mw.open(filePath=filePath)
+    QApplication.instance().processEvents()
+    assert mw.scene.stack().isClean() == True

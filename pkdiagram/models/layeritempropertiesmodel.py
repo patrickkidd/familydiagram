@@ -1,8 +1,7 @@
 import logging
 
 from pkdiagram.pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegisterType
-from pkdiagram import util, scene, commands
-from ..scene import Scene
+from pkdiagram import util, scene
 from .modelhelper import ModelHelper
 
 _log = logging.getLogger(__name__)
@@ -150,20 +149,20 @@ class LayerItemLayersModel(QAbstractListModel, ModelHelper):
                 pass  # never set on click right?
             else:
                 layer = self.layerForRow(index.row())
-                id = commands.nextId()
-                for item in self._items:
-                    if not value:
-                        newLayers = [id for id in item.layers() if id != layer.id]
-                        if not item.isPerson and len(newLayers) == 0:
-                            success = True  # cancel
-                            continue
-                    else:
-                        if layer.id in item.layers():
-                            continue
-                        newLayers = [l for l in item.layers()] + [layer.id]
-                    if set(newLayers) != set(item.layers()):
-                        item.setLayers(newLayers, undo=id)
-                        success = True
+                with self._scene.macro("Set layer on layer item"):
+                    for item in self._items:
+                        if not value:
+                            newLayers = [id for id in item.layers() if id != layer.id]
+                            if not item.isPerson and len(newLayers) == 0:
+                                success = True  # cancel
+                                continue
+                        else:
+                            if layer.id in item.layers():
+                                continue
+                            newLayers = [l for l in item.layers()] + [layer.id]
+                        if set(newLayers) != set(item.layers()):
+                            item.setLayers(newLayers, undo=True)
+                            success = True
         if success:
             self.dataChanged.emit(index, index, [role])
         return success

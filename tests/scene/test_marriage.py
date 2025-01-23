@@ -24,11 +24,10 @@ def test_no_dupe_events_from_fd(simpleMarriage):
 
 
 @pytest.fixture
-def noEvents(qmlScene, request):
+def noEvents(scene, request):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
-    qmlScene.addItems(personA, personB, marriage)
-    request.addfinalizer(lambda: qmlScene.deinit())
+    scene.addItems(personA, personB, marriage)
     return marriage
 
 
@@ -41,7 +40,7 @@ def noEvents2Children(noEvents):
 
 
 @pytest.fixture
-def simpleMarriage(qmlScene, request):
+def simpleMarriage(scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     Event(
@@ -80,8 +79,7 @@ def simpleMarriage(qmlScene, request):
         uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1950, 1, 1),
     )
-    qmlScene.addItems(personA, personB, marriage)
-    request.addfinalizer(lambda: qmlScene.deinit())
+    scene.addItems(personA, personB, marriage)
     return marriage
 
 

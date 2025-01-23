@@ -44,7 +44,7 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dv(test_session, test_activation, qtbot):
+def dv(test_session, test_activation, qtbot, scene):
     # A mainwindow that only has the ui elements and actions required for DocumentView and View.
     mw = QMainWindow()
     mw.ui = Ui_MainWindow()
@@ -59,7 +59,7 @@ def dv(test_session, test_activation, qtbot):
 
     w.session.init(sessionData=test_session.account_editor_dict())
 
-    w.setScene(Scene())  # leave empty
+    w.setScene(scene)  # leave empty
     mw.resize(800, 800)
     mw.show()
     qtbot.addWidget(w)
@@ -131,15 +131,65 @@ def test_add_person(qtbot, dv):
     assert dv.view.noItemsCTALabel.isVisible() == False
 
 
-def test_remove_person(qtbot, dv):
+def test_remove_person(qtbot, dv, scene):
     person = Person(name="Hey", lastName="You")
-    dv.scene.addItem(person)
+    scene.addItem(person)
     assert dv.view.noItemsCTALabel.isVisible() == False
 
     person.setSelected(True)
     qtbot.clickYesAfter(lambda: dv.controller.onDelete())
-    assert dv.scene.people() == []
+    assert scene.people() == []
     assert dv.view.noItemsCTALabel.isVisible() == True
+
+
+def test_undo_remove_event(dv, scene):
+    person = Person(name="Hey")
+    event1 = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    scene.addItems(person)  # batch add remove
+    event2 = Event(person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    scene.addItem(event2)
+    scene.setCurrentDateTime(
+        util.Date(2003, 1, 1)
+    )  # so the flash happens no matter what
+    scene.removeItem(event2, undo=True)
+    with mock.patch("pkdiagram.scene.Person.flash") as flash:
+        scene.undo()
+    assert set(scene.events(onlyDated=True)) == {event2, event1}
+    assert flash.call_count == 1
+    # and no exceptions form documentview
+
+
+def test_undo_remove_undated_emotion(dv, scene):
+    personA = Person(name="PersonA", birthDateTime=util.Date(2001, 1, 1))
+    personB = Person(name="PersonB")
+    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    scene.addItems(personA, personB, emotion, batch=False)
+    assert dv.isGraphicalTimelineShown() == True
+
+    scene.removeItem(emotion, undo=True)
+    assert dv.isGraphicalTimelineShown() == True
+
+    scene.undo()
+    assert dv.isGraphicalTimelineShown() == True
+
+
+def test_undo_remove_emotion_no_other_events(dv, scene):
+    personA = Person(name="PersonA")
+    personB = Person(name="PersonB")
+    emotion = Emotion(
+        personA=personA,
+        personB=personB,
+        kind=util.ITEM_CONFLICT,
+        startDateTime=util.Date(2002, 1, 1),
+    )
+    scene.addItems(personA, personB, emotion, batch=False)
+    assert dv.isGraphicalTimelineShown() == True
+
+    scene.removeItem(emotion, undo=True)
+    assert dv.isGraphicalTimelineShown() == False
+
+    scene.undo()
+    assert dv.isGraphicalTimelineShown() == True
 
 
 def test_load_from_file_empty(dv):
@@ -203,7 +253,7 @@ def test_remove_last_event_hides_UI_elements(dv):
     assert_UIHasAnyEvents(dv, False)
 
 
-def test_remove_last_event(qtbot, dv):
+def test_remove_last_event(scene, dv):
     assert dv.graphicalTimelineCallout.isVisible() == False
 
     def _setShowGraphicalTimeline(self, on):
@@ -219,6 +269,7 @@ def test_remove_last_event(qtbot, dv):
     ):
         person = dv.scene.addItem(Person(name="person"))
         event = Event(person, dateTime=util.Date(2001, 1, 1))
+        scene.addItem(event)
         assert dv.timelineModel.events() == [event]
         assert_UIHasAnyEvents(dv, True)
 
@@ -278,6 +329,31 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     ) == {event_1, event_2}
 
 
+def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
+    personA = Person(name="PersonA")
+    personB = Person(name="PersonB")
+    emotion1 = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    emotion2 = Emotion(personA=personA, personB=personB, kind=util.ITEM_PROJECTION)
+    scene.addItems(personA, personB, emotion1, emotion2)
+    personA.setItemPos(QPointF(-200, -200))
+    personB.setItemPos(QPointF(200, 200))
+    emotion1.setSelected(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.emotionProps
+    assert dv.emotionProps.rootProp("emotionModel").items == [emotion1]
+
+    qtbot.mouseClick(
+        dv.view.viewport(),
+        Qt.LeftButton,
+        Qt.NoModifier,
+        dv.view.mapFromScene(emotion2.sceneBoundingRect().center()),
+    )
+    assert emotion1.isSelected() == False
+    assert emotion2.isSelected() == True
+    assert dv.currentDrawer == dv.emotionProps
+    assert dv.emotionProps.rootProp("emotionModel").items == [emotion2]
+
+
 def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 
@@ -316,15 +392,16 @@ def test_nextTaggedDateTime(dv):
     assert dv.scene.currentDateTime() == util.Date(2000, 1, 1)
 
 
-def test_toggle_search_tag_via_model(qtbot, dv):
+def test_toggle_search_tag_via_model(scene, dv):
     """Was bombing on setCurrentDate."""
     person = Person()
     person.birthEvent.setDateTime(util.Date(2001, 1, 1))
-    dv.scene.addItem(person)
+    scene.addItem(person)
     event_1 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
     event_2 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
     event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
-    dv.scene.setTags(["here", "you", "are"])
+    scene.addItems(event_1, event_2, event_3)
+    scene.setTags(["here", "you", "are"])
 
     dv.ui.actionFind.trigger()
     tagsEdit = dv.searchDialog.rootProp("tagsEdit")
@@ -335,7 +412,7 @@ def test_toggle_search_tag_via_model(qtbot, dv):
     )
     tagsEdit_list.clickActiveBox("you")
 
-    assert dv.scene.currentDateTime() == event_1.dateTime()
+    assert scene.currentDateTime() == event_1.dateTime()
     # Ensure callout updates
     assert dv.graphicalTimelineCallout.events[0].dateTime() == event_1.dateTime()
 
@@ -503,32 +580,32 @@ def test_show_search_view_from_graphical_timeline(qtbot, dv: DocumentView):
     assert dv.searchDialog.isVisible() == True
 
 
-def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):
-    person = dv.scene.addItem(Person(name="person"))
-    dv.scene.setCurrentDateTime(util.Date(2001, 1, 1))
+def test_show_events_from_timeline_callout(qtbot, scene, dv: DocumentView):
+    person = scene.addItem(Person(name="person"))
+    scene.setCurrentDateTime(util.Date(2001, 1, 1))
     ensureVisAnimation = dv.caseProps.findItem("ensureVisAnimation")
     ensureVisAnimation_finished = util.Condition(ensureVisAnimation.finished)
     ensureVisibleSet = util.Condition(
         dv.caseProps.findItem("caseProps_timelineView").ensureVisibleSet
     )
-    with dv.scene.batchAddRemoveItems():
-        events = [
-            Event(
-                parent=person,
-                dateTime=util.Date(2000 + i, 1, 1),
-                description=f"Event {i}",
-            )
-            for i in range(100)
-        ]
+    events = [
+        Event(
+            parent=person,
+            dateTime=util.Date(2000 + i, 1, 1),
+            description=f"Event {i}",
+        )
+        for i in range(100)
+    ]
+    scene.addItems(*events)
     DATETIME = events[50].dateTime()
-    dv.scene.setCurrentDateTime(DATETIME)
+    scene.setCurrentDateTime(DATETIME)
     # dv.onNextEvent()
     # dv.onNextEvent()
-    assert dv.scene.currentDateTime() == DATETIME
+    assert scene.currentDateTime() == DATETIME
     qtbot.mouseClick(dv.graphicalTimelineCallout, Qt.LeftButton)
     firstRow = dv.timelineModel.firstRowForDateTime(DATETIME)
     assert dv.currentDrawer == dv.caseProps
-    assert dv.caseProps.currentTab() == "timeline"
+    assert dv.caseProps.currentTab() == RightDrawerView.Timeline.value
     assert ensureVisAnimation_finished.wait() == True
     assert ensureVisibleSet.wait() == True
     assert ensureVisibleSet.callArgs[0][0] == util.QML_ITEM_HEIGHT * firstRow
@@ -539,16 +616,17 @@ def test_show_events_from_timeline_callout(qtbot, dv: DocumentView):
     #     == util.QML_ITEM_HEIGHT * firstRow )
 
 
-def test_nextTaggedDate_prevTaggedDateTime(dv: DocumentView):
-    scene = dv.scene
+def test_nextTaggedDate_prevTaggedDateTime(scene, dv: DocumentView):
     scene.replaceEventProperties(["Var 1", "Var 2"])
     person1 = Person()
     person1.setBirthDateTime(util.Date(2000, 1, 1))  # 0
     scene.addItem(person1)
     event1 = Event(parent=person1, dateTime=util.Date(2001, 1, 1))  # 1
+    scene.addItem(event1)
     event1.dynamicProperty("var-1").set("One")
     event2 = Event(parent=person1, dateTime=util.Date(2002, 1, 1))  # 2
     event3 = Event(parent=person1, dateTime=util.Date(2003, 1, 1))  # 3
+    scene.addItems(event2, event3)
     event3.dynamicProperty("var-2").set("Two")
     scene.setCurrentDateTime(person1.birthDateTime())  # 0
     dv.controller.onNextEvent()  # 1
@@ -570,8 +648,7 @@ def test_nextTaggedDate_prevTaggedDateTime(dv: DocumentView):
     assert scene.currentDateTime() == person1.birthDateTime()
 
 
-def test_nextTaggedDate_uses_search_tags(dv: DocumentView):
-    scene = dv.scene
+def test_nextTaggedDate_uses_search_tags(scene, dv: DocumentView):
     tags = ["test"]
 
     person1 = Person()
@@ -676,14 +753,19 @@ def test_nextTaggedDate_uses_searchModel(dv: DocumentView):
     assert scene.currentDateTime() == person1.birthDateTime()
 
 
-def test_writePDF(tmp_path, dv: DocumentView):
+def test_writePDF(tmp_path, scene, dv: DocumentView):
     FILE_PATH = os.path.join(tmp_path, "test_out.xlsx")
 
     person = dv.scene.addItem(Person(name="person"))
-    Event(person, datetime=util.Date(2001, 1, 1), description="Something happened")
-    Event(
-        person, datetime=util.Date(2002, 1, 1), description="Something happened again"
+    event1 = Event(
+        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
     )
+    event2 = Event(
+        parent=person,
+        datetime=util.Date(2002, 1, 1),
+        description="Something happened again",
+    )
+    scene.addItems(event1, event2)
     dv.controller.writeExcel(FILE_PATH)
     assert os.path.isfile(FILE_PATH) == True
 
@@ -706,20 +788,24 @@ def test_writePNG(tmp_path, dv: DocumentView):
     assert os.path.isfile(FILE_PATH) == True
 
 
-def test_writeExcel(tmp_path, dv: DocumentView):
+def test_writeExcel(tmp_path, scene, dv: DocumentView):
     FILE_PATH = os.path.join(tmp_path, "test_out.xlsx")
 
     person = dv.scene.addItem(Person(name="person"))
-    Event(person, datetime=util.Date(2001, 1, 1), description="Something happened")
-    Event(
-        person, datetime=util.Date(2002, 1, 1), description="Something happened again"
+    event1 = Event(
+        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
     )
+    event2 = Event(
+        parent=person,
+        datetime=util.Date(2002, 1, 1),
+        description="Something happened again",
+    )
+    scene.addItems(event1, event2)
     dv.controller.writeExcel(FILE_PATH)
     assert os.path.isfile(FILE_PATH) == True
 
 
-def test_writeExcel_2(tmp_path, dv: DocumentView):
-    scene = Scene()
+def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
     person1, person2 = Person(name="p1"), Person(name="p2")
     scene.addItems(person1, person2)
     kinds = itertools.cycle(
@@ -743,7 +829,10 @@ def test_writeExcel_2(tmp_path, dv: DocumentView):
         for parent in (person1, person2):
             iDay += stride
             dateTime = firstDate.addDays(iDay)
-            Event(parent, description="Test event %i" % iDay, dateTime=dateTime)
+            event = Event(
+                parent=parent, description="Test event %i" % iDay, dateTime=dateTime
+            )
+            scene.addItem(event)
         iDay += stride
         dateTime = firstDate.addDays(iDay)
         Emotion(personA=person1, personB=person2, kind=next(kinds), dateTime=dateTime)

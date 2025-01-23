@@ -5,7 +5,6 @@ from pkdiagram.pyqt import *
 import pkdiagram
 from pkdiagram import (
     util,
-    commands,
     QmlDrawer,
     QmlWidgetHelper,
     Layer,
@@ -46,14 +45,10 @@ def modTest(__test__, loadfile=True, useMW=False):
 
     sys.path.append(os.path.realpath(os.path.join(__file__, "..", "..", "tests")))
 
-    def _makeSettings():
-        dpath = os.path.join(tempfile.mkdtemp(), "settings.ini")
-        prefs = util.Settings(dpath, "vedanamedia")
-        return prefs
-
-    with mock.patch(
-        "pkdiagram.app.Application.makeSettings", side_effect=_makeSettings
-    ):
+    prefs = util.Settings(
+        os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia"
+    )
+    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
         app = Application(sys.argv)
 
     def _quit(x, y):
@@ -374,30 +369,6 @@ def __test__EmotionProperties(scene, parent, sceneModel):
     ep.show([scene.emotions()[0]], animate=False)
     parent.resize(400, 600)
     return ep
-
-
-def __test__LayerItemProperties(scene, parent, sceneModel):
-    def addLayer():
-        name = util.newNameOf(scene.layers(), tmpl="View %i", key=lambda x: x.name())
-        layer = pkdiagram.Layer(name=name)
-        commands.addLayer(scene, layer)
-
-    addLayer()
-    addLayer()
-    addLayer()
-    callout = pkdiagram.Callout()
-    callout.setLayers([scene.layers()[1].id, scene.layers()[3].id])
-    scene.addItem(callout)
-    lip = QmlDrawer(
-        "qml/LayerItemProperties.qml",
-        parent=parent,
-        propSheetModel="layerItemModel",
-        resizable=False,
-    )
-    lip.setScene(scene)
-    lip.show(scene.layerItems(), animate=False)
-    parent.resize(400, 600)
-    return lip
 
 
 def __test__GraphicalTimelineView(scene, parent):

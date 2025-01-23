@@ -3,8 +3,7 @@ from pkdiagram.models import EventPropertiesModel
 from pkdiagram.scene import Scene, Person, Event
 
 
-def test_numWritable():
-    scene = Scene()
+def test_numWritable(scene):
     model = EventPropertiesModel()
     model.scene = scene
     assert model.numWritable == 0
@@ -14,6 +13,7 @@ def test_numWritable():
     event = Event(
         parent=parent, description="Something happened", dateTime=util.Date(2019, 5, 11)
     )
+    scene.addItem(event)
     model.items = [event]
     assert model.numWritable == 1
 
@@ -24,6 +24,7 @@ def test_numWritable():
         dateTime=util.Date(2019, 5, 11),
         uniqueId="blah",
     )
+    scene.addItem(event2)
     model.items = [event2]
     assert model.numWritable == 0
 
@@ -37,8 +38,7 @@ def test_numWritable():
     assert model.numWritable == 0
 
 
-def test_parentId():
-    scene = Scene()
+def test_parentId(scene):
     personA = Person(name="A")
     personB = Person(name="B")
     event = Event(parent=personA)
@@ -53,12 +53,11 @@ def test_parentId():
     assert event.parent == personB
 
 
-def test_reset_color_multiple():
-    scene = Scene()
+def test_reset_color_multiple(scene):
     person = Person(name="A")
+    event_1 = Event(parent=person, description="Something happened")
+    event_2 = Event(parent=person, description="Something happened again")
     scene.addItem(person)
-    event_1 = Event(person, description="Something happened")
-    event_2 = Event(person, description="Something happened again")
     model = EventPropertiesModel()
     model.scene = scene
     model.items = [event_1, event_2]

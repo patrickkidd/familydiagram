@@ -1,6 +1,8 @@
 v2.0.0
 =============================================================================
 
+BUGS
+------------------------------------
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
 - Notes in add data point field doesn't store / show icon
@@ -10,6 +12,7 @@ v2.0.0
   - Sometimes only applied to substrings (Gabriella applied as Gabriel -> [Shawn]la)
 
 IDEAS
+------------------------------------
 - Add pregnancy
   - Change miscarraige to have X through it like death
 - Prompt for variable shifts for additional people when entering data point
@@ -368,7 +371,7 @@ v1.2.0
   - test_timelinemodel.py::test_dont_show_not_deceased_with_deceased_date
   - Adding a person to the scene with deceased date already set calls
     scene().addItem(self.deceasedDate) from Person.itemChange which
-    emits Scene.eventAdded, then event is added to timeline in TimelineModel._addItem
+    emits Scene.eventAdded, then event is added to timeline in TimelineModel._do_addItem
     which obiovusly doesn't consider Person.deceased.
   - It is not clear how to handle this yet.
 - [Debug build only] Zooming way into pencil stroke -> 

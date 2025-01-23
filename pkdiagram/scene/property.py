@@ -1,7 +1,5 @@
 import copy
 
-from pkdiagram import commands
-
 
 class Property:
     """Track changes and automatically write to file."""
@@ -26,8 +24,16 @@ class Property:
 
         return sorted(stuff, key=getKey)
 
+    _SetProperty = None
+    _ResetProperty = None
+
     def __init__(self, item, **kwargs):
         super().__init__()
+        if Property._SetProperty is None:
+            from pkdiagram.scene.commands import SetProperty, ResetProperty
+
+            Property._SetProperty = SetProperty
+            Property._ResetProperty = ResetProperty
         self._kwargs = kwargs
         self._id = Property._nextId
         Property._nextId = Property._nextId + 1
@@ -54,7 +60,7 @@ class Property:
             kwargs["type"] = self.type
 
     def __repr__(self):
-        s = str(self.get())
+        s = str(self.get()).replace("PyQt5.QtCore.", "")
         if len(s):
             s = ": " + s
         return "<Property[%i, %s]%s>" % (self.id(), self.name(), s)
@@ -83,7 +89,10 @@ class Property:
 
     def scene(self):
         if self.item:
-            return self.item.scene()
+            if self.item.isScene:
+                return self.item
+            else:
+                return self.item.scene()
 
     def onActiveLayersChanged(self):
         if self.layered:
@@ -127,11 +136,11 @@ class Property:
                 ret = None
         return ret
 
-    def set(self, x, notify=True, undo=None, forLayers=None, force=False):
+    def _do_set(self, x, notify=True, forLayers=None, force=False):
         """Return True if value was changed, otherwise False.
         forLayers == None: current visible value
         forLayers == []: non-layer value
-        force = True for commands.SetItemProperty so notifications are sent
+        force = True for SetProperty so notifications are sent
         """
         if x is None:
             y = None
@@ -144,14 +153,6 @@ class Property:
             y = y.strip()
         currentValue = self.get()
         if force or y != currentValue:
-            if undo:
-                # do this before setting the value so `was` can be extracted from layers
-                if undo is True:
-                    undo = commands.nextId()
-                cmd = commands.SetItemProperty(
-                    self, y, layers=self._activeLayers, id=undo
-                )
-                commands.stack().push(cmd)
             if forLayers is None:
                 layers = self._activeLayers
             else:
@@ -181,15 +182,17 @@ class Property:
         else:
             return False
 
-    def reset(self, notify=True, undo=None):
+    def set(self, y, notify=True, forLayers=None, force=False, undo=False):
+        if undo:
+            self.scene().push(Property._SetProperty(self, y, forLayers))
+            return True
+        else:
+            return self._do_set(y, notify, forLayers, force)
+
+    def _do_reset(self, notify=True):
         if not self.isset():
             return
         self._isResetting = True
-        if undo:
-            if undo is True:
-                undo = commands.nextId()
-            cmd = commands.ResetItemProperty(self, layers=self._activeLayers, id=undo)
-            commands.stack().push(cmd)
         if self._usingLayer:
             for layer in self._activeLayers:
                 layer.resetItemProperty(self)
@@ -202,6 +205,14 @@ class Property:
             if self.onset and hasattr(self.item, self.onset):
                 getattr(self.item, self.onset)()
         self._isResetting = False
+
+    def reset(self, notify=True, undo=False):
+        if undo:
+            self.scene().push(
+                Property._ResetProperty(self, forLayers=self._activeLayers)
+            )
+        else:
+            self._do_reset(notify=notify)
 
     def isUsingLayer(self):
         """Return True if value is currently being pulled from the layer versus this props's internal value."""

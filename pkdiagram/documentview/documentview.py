@@ -13,7 +13,7 @@ from pkdiagram.pyqt import (
     QPointF,
     QMainWindow,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
 from pkdiagram.widgets import TimelineCallout, Drawer
 from pkdiagram.views import AddAnythingDialog, SearchDialog, QmlDrawer, CaseProperties
@@ -412,7 +412,7 @@ class DocumentView(QWidget):
             ):
                 # same drawer new data
                 was.setCurrentTab(tab)
-            elif was is drawer and tab is not None:
+            elif was is drawer and tab != drawer.currentTab():
                 drawer.setCurrentTab(tab)
             else:
                 if not "tab" in kwargs:
@@ -455,27 +455,29 @@ class DocumentView(QWidget):
             if tab is None and self.currentDrawer is self.personProps:
                 tab = self.personProps.currentTab()
             self.setCurrentDrawer(self.personProps, items=people, tab=tab)
-            commands.trackView("Edit person")
+            self.session.trackView("Edit person")
         elif len(marriages) == 1:
             if tab is None and self.currentDrawer is self.marriageProps:
                 tab = self.marriageProps.currentTab()
             self.setCurrentDrawer(self.marriageProps, items=marriages, tab=tab)
-            commands.trackView("Edit marriage")
+            self.session.trackView("Edit marriage")
         elif emotions:
             if tab is None and self.currentDrawer is self.emotionProps:
                 tab = self.emotionProps.currentTab()
             self.setCurrentDrawer(self.emotionProps, items=emotions, tab=tab)
-            commands.trackView("Edit emotion")
+            self.session.trackView("Edit emotion")
         elif events:
             if tab is None and self.currentDrawer is self.caseProps:
                 tab = self.eventProps.currentTab()
-            self.setCurrentDrawer(self.caseProps, items=events, tab="timeline")
-            commands.trackView("Edit event")
+            self.setCurrentDrawer(
+                self.caseProps, items=events, tab=RightDrawerView.Timeline.value
+            )
+            self.session.trackView("Edit event")
         elif layerItems:
             if tab is None and self.currentDrawer is self.layerItemProps:
                 tab = self.layerItemProps.currentTab()
             self.setCurrentDrawer(self.layerItemProps, items=layerItems, tab=tab)
-            commands.trackView("Edit layer item")
+            self.session.trackView("Edit layer item")
 
     def onSceneSelectionChanged(self):
         if (
@@ -497,7 +499,7 @@ class DocumentView(QWidget):
         if self.scene:  # redundnant?
             if (
                 self.currentDrawer is self.caseProps
-                and self.caseProps.currentTab() == "timeline"
+                and self.caseProps.currentTab() == RightDrawerView.Timeline.value
             ):
                 isTimelineShown = True
             else:
@@ -596,9 +598,9 @@ class DocumentView(QWidget):
             self.graphicalTimelineAnimation.setEndValue(0)
         self.graphicalTimelineAnimation.start()
         if on:
-            commands.trackView("Show Graphical Timeline")
+            self.session.trackView("Show Graphical Timeline")
         else:
-            commands.trackView("Hide Graphical Timeline")
+            self.session.trackView("Hide Graphical Timeline")
 
     def onShowGraphicalTimelineTick(self, height):
         # if self.graphicalTimelineAnimation.state() == QAbstractAnimation.Running:

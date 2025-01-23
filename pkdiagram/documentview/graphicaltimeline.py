@@ -23,6 +23,7 @@ from pkdiagram.pyqt import (
     QDialog,
     QRect,
     QDateTime,
+    QApplication,
 )
 from pkdiagram import util
 from pkdiagram.documentview import GraphicalTimelineCanvas
@@ -281,8 +282,10 @@ class GraphicalTimeline(QScrollArea):
         import os.path
 
         desktopPath = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        filePath = util.prefs().value(
-            "lastFileSavePath", type=str, defaultValue=desktopPath
+        filePath = (
+            QApplication.instance()
+            .prefs()
+            .value("lastFileSavePath", type=str, defaultValue=desktopPath)
         )
         if self.scene.shouldShowAliases():
             fileName = "[%s]" % self.scene.alias

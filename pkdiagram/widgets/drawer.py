@@ -20,7 +20,7 @@ from pkdiagram.pyqt import (
     QStyle,
     QAbstractAnimation,
 )
-from pkdiagram import util, commands
+from pkdiagram import util
 
 
 class Drawer(QFrame):
@@ -341,7 +341,7 @@ class Drawer(QFrame):
         if animate:
             self.expandAnimation.setDuration(util.ANIM_DURATION_MS)
         elif swapping:
-            self.expandAnimation.setDuration(util.ANIM_DURATION_MS * 0.75)
+            self.expandAnimation.setDuration(int(util.ANIM_DURATION_MS * 0.75))
         else:
             self.expandAnimation.setDuration(0)
         if callback:
@@ -477,9 +477,7 @@ class Drawer(QFrame):
     def toggleExpand(self):
         if self.expanded and not (self.expanding or self.shrinking):
             self.expandTo(self.WIDTH)
-            commands.trackView("Expand " + self.objectName())
         elif not (self.expanding or self.shrinking):
-            commands.trackView("Shrink " + self.objectName())
             if self.parent():
                 self.expandTo(self.parent().width())
             else:
