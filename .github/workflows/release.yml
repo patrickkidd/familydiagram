@@ -328,6 +328,7 @@ jobs:
           moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
           cd ..\..
+          pip list
           pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
         shell: cmd
 
