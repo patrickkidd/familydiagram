@@ -295,9 +295,11 @@ jobs:
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
+          dir build\_pkdiagram
+          mkdir build\_pkdiagram\release
           pipenv run sip-build --no-compile
-          moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
-          moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
+          moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
+          moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
         shell: cmd
   
       - name: Setup sysroot caching
@@ -325,9 +327,9 @@ jobs:
 
           cd _pkdiagram
           dir build\_pkdiagram
-          REM mkdir build\_pkdiagram
-          moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
-          moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
+          mkdir build\_pkdiagram\release
+          moc -o build\_pkdiagram\release\moc_unsafearea.cpp unsafearea.h
+          moc -o build\_pkdiagram\release\moc__pkdiagram.cpp _pkdiagram.h
           cd ..
           pipenv run pip list
           pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
