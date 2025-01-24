@@ -18,8 +18,8 @@ BUILD_SOURCES = [
 if sys.platform == "win32":
     SOURCES += ["_pkdiagram_win32.cpp"]
     BUILD_SOURCES += [
-        "build/_pkdiagram/release/moc_unsafearea.cpp",
-        "build/_pkdiagram/release/moc__pkdiagram.cpp",
+        "build/_pkdiagram/moc_unsafearea.cpp",
+        "build/_pkdiagram/moc__pkdiagram.cpp",
     ]
 else:
     SOURCES += ["_pkdiagram_mac.mm"]
