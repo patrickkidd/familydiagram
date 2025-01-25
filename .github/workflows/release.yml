@@ -70,7 +70,7 @@ jobs:
         pip install pipenv
         mkdir .venv
         pipenv --clear
-        pipenv install --dev
+        PIPENV_CACHE_DIR=./pipenv_cache pipenv install --dev
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
