@@ -273,7 +273,7 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          pipenv install --dev
+          pipenv install --dev --skip-lock
   
       - name: Install Qt
         run: |
