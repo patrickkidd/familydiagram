@@ -273,7 +273,8 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          PIPENV_CACHE_DIR=./pipenv_cache pipenv install --dev
+          set PIPENV_CACHE_DIR=.\pipenv_cache
+          pipenv install --dev
   
       - name: Install Qt
         run: |
