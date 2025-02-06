@@ -241,14 +241,17 @@ class QmlWidgetHelper(QObjectHelper):
         item = self.findItem(objectName)
         self.resetFocusItem(item)
 
-    def keyClick(self, objectName, key, resetFocus=True):
-        self.focusItem(objectName)
+    def keyClickItem(self, item: QQuickItem, key, resetFocus=True):
+        self.focusItem(item)
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.keyClick("{objectName}", {key})')
+            log.info(f'QmlWidgetHelper.keyClick("{self._itemString(item)}", {key})')
         util.qtbot.keyClick(self.qml, key)
         if resetFocus:
-            self.resetFocus(objectName)
+            self.resetFocus(item)
         QApplication.processEvents()
+
+    def keyClick(self, objectName, key, resetFocus=True):
+        item = self.findItem(objectName)
 
     def keyClicksItem(
         self, item: QQuickItem, s: str, resetFocus=True, returnToFinish=True
@@ -276,9 +279,8 @@ class QmlWidgetHelper(QObjectHelper):
             item, s, resetFocus=resetFocus, returnToFinish=returnToFinish
         )
 
-    def keyClicksClear(self, objectName):
-        item = self.findItem(objectName)
-        self.focusItem(objectName)
+    def keyClicksClearItem(self, item: QQuickItem):
+        self.focusItem(item)
         item.selectAll()
         while item.property("text") not in (
             "",
@@ -286,20 +288,24 @@ class QmlWidgetHelper(QObjectHelper):
             util.BLANK_TIME_TEXT,
         ):
             prevText = item.property("text")
-            self.keyClick(objectName, Qt.Key_Backspace)
+            self.keyClickItem(item, Qt.Key_Backspace)
             if item.property("text") == prevText:
                 break
-        self.resetFocus(objectName)
+        self.resetFocusItem(item)
         itemText = item.property("text")
         assert itemText in (
             "",
             util.BLANK_DATE_TEXT,
             util.BLANK_TIME_TEXT,
-        ), f"Could not clear text for {objectName} (text = '{itemText}')"
+        ), f"Could not clear text for {self._itemString(item)} (text = '{itemText}')"
+
+    def keyClicksClear(self, objectName):
+        item = self.findItem(objectName)
+        self.keyClicksClearItem(item)
 
     def _itemString(self, item: QQuickItem) -> str:
         if item:
-            return f"{item.metaObject().className()}['{item.objectName()}', parent: {item.parent().metaObject().className()}]"
+            return f'{item.metaObject().className()}["{item.objectName()}"], parent: {item.parent().metaObject().className()}]'
         else:
             return "None"
 

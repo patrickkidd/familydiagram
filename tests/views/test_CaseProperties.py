@@ -3,7 +3,8 @@ import pickle
 import pytest
 
 import vedana
-from pkdiagram.pyqt import QObject
+from pkdiagram.documentview import RightDrawerView
+from pkdiagram.pyqt import Qt, QObject, QApplication
 from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
@@ -22,7 +23,7 @@ pytestmark = [
 
 
 @pytest.fixture
-def create_cp(request, test_session, test_user, qtbot, qmlEngine):
+def create_cp(request, test_session, test_user, qtbot, qmlEngine, scene):
 
     created = []
 
@@ -34,7 +35,6 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
             qmlEngine.session.init(sessionData=test_session.account_editor_dict())
         else:
             qmlEngine.session.init()
-        scene = Scene()
         qmlEngine.setScene(scene)
         if loadFreeDiagram:
             diagram = Diagram.query.get(test_user.free_diagram_id).as_dict()
@@ -45,7 +45,9 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
         w = CaseProperties(qmlEngine, "qml/CaseProperties.qml", parent=None)
         w.show(animate=False, tab="settings")
         w.resize(510, 600)
-        w.setItemProp("settingsView", "contentY", 643)
+        # w.setItemProp("settingsView", "contentY", 643)
+        qtbot.addWidget(w)
+        qtbot.waitActive(w)
 
         created.append(w)
         return w
@@ -60,6 +62,23 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine):
 def test_editorMode_enabled(test_session, create_cp, qmlEngine, editorMode):
     cp = create_cp(editorMode=editorMode)
     assert cp.itemProp("variablesBox", "visible") == editorMode
+
+
+def test_add_timeline_variable(create_cp, scene):
+    VAR_NAME = "here we go"
+
+    view = create_cp()
+    variablesCrudButtons = view.rootProp("variablesCrudButtons")
+    variablesList = view.rootProp("variablesList")
+    itemAddDone = util.Condition(variablesList.itemAddDone)
+    QApplication.processEvents()
+    view.mouseClickItem(variablesCrudButtons.property("addButtonItem"))
+    assert itemAddDone.wait() == True
+    itemDelegate = itemAddDone.callArgs[-1][0]
+    nameEdit = itemDelegate.property("nameEdit")
+    view.mouseDClickItem(nameEdit)
+    view.keyClicksItem(nameEdit, "\b" + VAR_NAME)
+    assert scene.eventProperties()[0]["name"] == VAR_NAME
 
 
 def test_serverBox_disabled_free(create_cp):

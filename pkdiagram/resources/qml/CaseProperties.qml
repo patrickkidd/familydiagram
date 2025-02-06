@@ -14,7 +14,6 @@ PK.Drawer {
 
     signal addEvent
     signal hidden
-    signal addEventProperty()
     signal flashTimelineRow(int index)
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
@@ -29,7 +28,10 @@ PK.Drawer {
         )) : false
     }
 
-    property alias eventProperties: eventProperties
+    property var variablesList: variablesList
+    property var variablesCrudButtons: variablesCrudButtons
+
+    property var eventProperties: eventProperties
 
     Connections {
         target: sceneModel
@@ -241,6 +243,7 @@ PK.Drawer {
             }
 
             function hack_setContentHeight() {
+                settingsView.contentY = 0
                 settingsView.contentHeight = settingsLayout.implicitHeight + root.margin * 2
             }
 
@@ -277,18 +280,30 @@ PK.Drawer {
                                 property bool readOnly: sceneModel.readOnly
                                 currentIndex: -1
                                 clip: true
+
+                                // delegate items are added asynchronously
+                                signal itemAddDone(Item item)
+                                signal itemRemoveDone(Item item)
+
                                 model: SceneVariablesModel {
+                                    id: sceneVariablesModel
                                     scene: sceneModel.scene
                                     onSceneChanged: variablesList.currentIndex = -1
                                 }
                                 delegate: Item {
+                                    id: dRoot
                                     property bool selected: variablesList.currentIndex == index
                                     property bool current: false
                                     property bool alternate: index % 2 == 1
-                                    
+                                    property var nameEdit: nameEdit
+
                                     width: variablesList.width
                                     height: util.QML_ITEM_HEIGHT
                                     property bool editMode: false
+
+                                    Component.onCompleted: variablesList.itemAddDone(dRoot)
+                                    Component.onDestruction: variablesList.itemRemoveDone(dRoot)
+
                                     Rectangle { // background
                                         anchors.fill: parent
                                         color: util.itemBgColor(selected, current, alternate)
@@ -298,17 +313,17 @@ PK.Drawer {
                                         color: util.textColor(selected, current)
                                         anchors.fill: parent
                                         verticalAlignment: TextInput.AlignVCenter
-                                        readOnly: !editMode
+                                        readOnly: !dRoot.editMode
                                         text: display
                                         leftPadding: margin
                                         onEditingFinished: {
                                             display = text
-                                            editMode = false
+                                            dRoot.editMode = false
                                         }
                                     }
                                     MouseArea {
                                         anchors.fill: parent
-                                        enabled: !editMode
+                                        enabled: !dRoot.editMode
                                         onClicked: {
                                             if(mouse.modifiers & Qt.ControlModifier) {
                                                 variablesList.currentIndex = -1
@@ -339,13 +354,14 @@ PK.Drawer {
                             spacing: 0
 
                             PK.CrudButtons {
+                                id: variablesCrudButtons
                                 Layout.fillWidth: true
                                 bottomBorder: true
                                 addButton: true
                                 addButtonEnabled: !sceneModel.readOnly
                                 removeButton: true
                                 removeButtonEnabled: variablesList.currentIndex > -1 && !sceneModel.readOnly
-                                onAdd: root.addEventProperty()
+                                onAdd: sceneVariablesModel.addRow()
                                 onRemove: {
                                     // workaround to possibly prevent QQuickTableView assertion when removing visible column
                                     timelineView.delayUpdates = true

@@ -165,9 +165,6 @@ class DocumentController(QObject):
 
         ## Views
 
-        self.dv.caseProps.qml.rootObject().addEventProperty.connect(
-            self.addEventProperty
-        )
         self.dv.caseProps.qml.rootObject().flashTimelineSelection.connect(
             self.onFlashTimelineSelection
         )
@@ -380,14 +377,6 @@ class DocumentController(QObject):
 
     def onEmotionAdded(self, emotion: Emotion):
         emotion.addTags(self.dv.searchModel.tags)
-
-    def addEventProperty(self):
-        name = util.newNameOf(
-            self.scene.eventProperties(),
-            tmpl=self.NEW_VAR_TMPL,
-            key=lambda x: x["name"],
-        )
-        self.scene.addEventProperty(name)
 
     def onEventPropertiesTemplateIndexChanged(self, index: int):
         """
