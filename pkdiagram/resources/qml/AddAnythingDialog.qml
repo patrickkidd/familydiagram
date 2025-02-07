@@ -801,7 +801,7 @@ PK.Drawer {
                     }
                     
                     PK.Text {
-                        text: "Anxiety"
+                        text: "Δ Anxiety"
                         visible: ! util.isRSymbolEventKind(root.kind)
                     }
 
@@ -822,7 +822,7 @@ PK.Drawer {
                     }
 
                     PK.Text {
-                        text: "Functioning"
+                        text: "Δ Functioning"
                         visible: ! util.isRSymbolEventKind(root.kind)
                     }
 
@@ -842,7 +842,7 @@ PK.Drawer {
                         Layout.fillWidth: true
                     }
                     PK.Text {
-                        text: "Symptom"
+                        text: "Δ Symptom"
                         visible: ! util.isRSymbolEventKind(root.kind)
                     }
 
