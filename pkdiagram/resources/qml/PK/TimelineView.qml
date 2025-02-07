@@ -400,7 +400,7 @@ ColumnLayout {
                 anim = true
             }
             if(row > 1) {
-                row = row -1 // give a littel top margin.
+                row = row -1 // give a little top margin.
             }
             var topY = util.QML_ITEM_HEIGHT * row // items are recycled
             var bottomY = util.QML_ITEM_HEIGHT + topY
