@@ -368,12 +368,12 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
         ),
         QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
     )
-    dv.onInspect()
-    assert dv.caseProperties.isEventPropertiesShown() == True
+    dv.caseProps.onInspect("item")
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
 
     dv.setShowGraphicalTimeline(True)
-    dv.graphicalTimelineView.timeline.canvas._selectEvents([event_1, event_2])
-    assert dv.caseProperties.isEventPropertiesShown() == False
+    dv.graphicalTimelineView.timeline.canvas._selectEvents([])
+    assert dv.caseProps.rootProp("isDrawerOpen") == False
 
 
 def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
@@ -390,12 +390,12 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
         ),
         QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
     )
-    dv.onInspect()
-    assert dv.caseProperties.isEventPropertiesShown() == True
+    dv.caseProps.onInspect("item")
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
 
     eventProperties = dv.caseProps.rootProp("eventProperties")
     dv.caseProps.keyClicksItem(eventProperties, "\b1/1/2001")
-    assert dv.caseProperties.isEventPropertiesShown() == True
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
 
 
 def test_load_reload(qtbot, dv):

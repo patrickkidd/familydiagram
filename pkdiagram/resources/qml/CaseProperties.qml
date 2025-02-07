@@ -99,10 +99,6 @@ PK.Drawer {
         timelineView.scrollToDateTime(dateTime, true)
     }
 
-    function isEventPropertiesShown() {
-        return eventPropertiesDrawer.visible
-    }
-
     QQC.Drawer {
 
         id: eventPropertiesDrawer

@@ -449,7 +449,6 @@ class DocumentView(QWidget):
         people = [i for i in selection if isinstance(i, Person)]
         marriages = [i for i in selection if isinstance(i, Marriage)]
         emotions = [i for i in selection if isinstance(i, Emotion)]
-        events = [i for i in selection if isinstance(i, Event)]
         layerItems = [i for i in selection if isinstance(i, LayerItem)]
         if people:
             if tab is None and self.currentDrawer is self.personProps:
@@ -466,13 +465,6 @@ class DocumentView(QWidget):
                 tab = self.emotionProps.currentTab()
             self.setCurrentDrawer(self.emotionProps, items=emotions, tab=tab)
             self.session.trackView("Edit emotion")
-        elif events:
-            if tab is None and self.currentDrawer is self.caseProps:
-                tab = self.eventProps.currentTab()
-            self.setCurrentDrawer(
-                self.caseProps, items=events, tab=RightDrawerView.Timeline.value
-            )
-            self.session.trackView("Edit event")
         elif layerItems:
             if tab is None and self.currentDrawer is self.layerItemProps:
                 tab = self.layerItemProps.currentTab()
