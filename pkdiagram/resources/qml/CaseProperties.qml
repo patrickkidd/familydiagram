@@ -210,7 +210,7 @@ PK.Drawer {
                 root.flashTimelineSelection(timelineView.selectionModel)
                 // Added for when changing selection from graphical timeline,
                 // but I guess makes sense all the time anyway.
-                if(eventPropertiesDrawer.visible) {
+                if(eventPropertiesDrawer.visible && ! eventProperties.eventModel.isSetting) {
                     eventPropertiesDrawer.visible = false
                 }
             }

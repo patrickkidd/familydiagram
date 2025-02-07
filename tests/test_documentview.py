@@ -354,6 +354,50 @@ def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     assert dv.emotionProps.rootProp("emotionModel").items == [emotion2]
 
 
+def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
+    personA = Person(name="PersonA")
+    personB = Person(name="PersonB")
+    scene.addItems(personA, personB)
+    event_1 = Event(personA, dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(personB, dateTime=util.Date(2002, 1, 1))
+    scene.addItems(event_1, event_2)
+    dv.timelineSelectionModel.select(
+        QItemSelection(
+            dv.timelineModel.indexForEvent(event_1),
+            dv.timelineModel.indexForEvent(event_2),
+        ),
+        QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
+    )
+    dv.caseProps.onInspect("item")
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
+
+    dv.setShowGraphicalTimeline(True)
+    dv.graphicalTimelineView.timeline.canvas._selectEvents([])
+    assert dv.caseProps.rootProp("isDrawerOpen") == False
+
+
+def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
+    personA = Person(name="PersonA")
+    personB = Person(name="PersonB")
+    scene.addItems(personA, personB)
+    event_1 = Event(personA, dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(personB, dateTime=util.Date(2002, 1, 1))
+    scene.addItems(event_1, event_2)
+    dv.timelineSelectionModel.select(
+        QItemSelection(
+            dv.timelineModel.indexForEvent(event_1),
+            dv.timelineModel.indexForEvent(event_2),
+        ),
+        QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
+    )
+    dv.caseProps.onInspect("item")
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
+
+    eventProperties = dv.caseProps.rootProp("eventProperties")
+    dv.caseProps.keyClicksItem(eventProperties, "\b1/1/2001")
+    assert dv.caseProps.rootProp("isDrawerOpen") == True
+
+
 def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
 
