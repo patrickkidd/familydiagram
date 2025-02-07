@@ -446,6 +446,8 @@ for this event.
     assert personA.emotions()[0].startDateTime() == START_DATETIME
     assert personA.emotions()[0].endDateTime() == START_DATETIME
     assert personA.emotions()[0].notes() == NOTES
+    assert personA.emotions()[0].startEvent.notes() == NOTES
+    assert personA.emotions()[0].endEvent.notes() == NOTES
 
 
 def test_add_new_dyadic_isDateRange(scene, dlg):

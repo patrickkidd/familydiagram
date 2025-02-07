@@ -30,6 +30,12 @@ Page {
 
     property alias colorBox: colorBox
     property alias nodalBox: nodalBox
+    property var includeOnDiagramBox: includeOnDiagramBox
+    property var notesEdit: notesEdit
+    property var dateTextInput: dateButtons.dateTextInput
+    property var timeTextInput: dateButtons.timeTextInput
+    property var descriptionEdit: descriptionEdit
+    property var locationEdit: locationEdit
 
     function setCurrentTab(tab) {
         var index = 0
@@ -403,13 +409,13 @@ Page {
         Flickable {
             id: notesEditFlickable
             contentX: 0
-            contentHeight: Math.max(eventNotesEdit.paintedHeight + 50, height) // allow scrolling
+            contentHeight: Math.max(notesEdit.paintedHeight + 50, height) // allow scrolling
             Layout.fillHeight: true
             Layout.fillWidth: true
 
             PK.TextEdit {
-                id: eventNotesEdit
-                objectName: "eventNotesEdit"
+                id: notesEdit
+                objectName: "notesEdit"
                 text: eventModel.notes
                 padding: margin
                 width: parent.width

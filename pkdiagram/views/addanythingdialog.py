@@ -596,7 +596,7 @@ class AddAnythingDialog(QmlDrawer):
                 kwargs = {"endDateTime": endDateTime}
             else:
                 kwargs = {}
-            if notes:
+            if notes and not startDateTime:
                 kwargs["notes"] = notes
             for personA in movers:
                 for personB in receivers:
@@ -610,9 +610,13 @@ class AddAnythingDialog(QmlDrawer):
                     )
                     emotion.startEvent.setTags(tags)
                     self.scene.addItem(emotion, undo=True)
+                    if startDateTime:
+                        # Have to set notes after setting scene for anonimize()
+                        emotion.startEvent.setNotes(notes)
                     newEmotions.append(emotion)
                 newEvents.append(emotion.startEvent)
                 if emotion.endEvent.dateTime():
+                    emotion.endEvent.setNotes(notes)
                     newEvents.append(emotion.endEvent)
         else:
             raise ValueError(f"Don't know how to handle EventKind {kind}")

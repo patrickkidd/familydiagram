@@ -1368,7 +1368,7 @@ class Emotion(PathItem):
             self.startEvent.updateDescription()
             self.endEvent.updateDescription()
         elif prop.name() == "notes":
-            prop.item.parent.setNotes(prop.get())
+            self.setNotes(prop.get())
 
     def isDyadic(self):
         return self.kind() != util.ITEM_CUTOFF

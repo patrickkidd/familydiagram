@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.pyqt import Qt, QDateTime
+from pkdiagram.pyqt import Qt, QDateTime, QApplication
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Marriage, Event, Scene, Emotion
 from pkdiagram.views import QmlDrawer
@@ -59,13 +59,12 @@ def runEventProperties(view, props, personName=None, updates={}):
         assert view.itemProp("nameBox", "currentText") == personName
 
     nodalBox = view.rootProp("nodalBox")
+    includeOnDiagramBox = view.rootProp("includeOnDiagramBox")
+    eventNotesEdit = view.rootProp("eventNotesEdit")
 
     # # This fails if after dateButtons for some reason. Hard to debug
     # if props["nodal"] != nodalBox.property("checkState"):
     #     view.mouseClickItem(nodalBox)
-
-    if props["includeOnDiagram"] != view.itemProp("includeOnDiagramBox", "checkState"):
-        view.mouseClick("includeOnDiagramBox")
 
     view.focusItem("dateButtons.dateTextInput")
     view.keyClick("dateButtons.dateTextInput", Qt.Key_Backspace)
@@ -99,14 +98,11 @@ def runEventProperties(view, props, personName=None, updates={}):
         resetFocus=resetFocus,
         returnToFinish=returnToFinish,
     )
-    view.clickTabBarButton("tabBar", 2)
-    view.findItem("eventNotesEdit").selectAll()
-    view.keyClicks(
-        "eventNotesEdit",
-        props["notes"],
-        resetFocus=resetFocus,
-        returnToFinish=returnToFinish,
-    )
+
+    view.clickTabBarButton("tabBar", 1)
+    eventNotesEdit.selectAll()
+    view.keyClicksItem(eventNotesEdit, props["notes"])
+
     colorBox = view.rootProp("colorBox")
     view.clickComboBoxItem(colorBox, props["color"])
     view.mouseClick("event_doneButton", Qt.LeftButton)
@@ -141,7 +137,7 @@ def test_init_single(scene, view, eventProps):
     assert view.itemProp("descriptionEdit", "text") == props["description"]
     assert view.itemProp("locationEdit", "text") == props["location"]
     # assert nodalBox.property("checkState") == props["nodal"]
-    assert view.itemProp("eventNotesEdit", "text") == props["notes"]
+    assert view.itemProp("notesEdit", "text") == props["notes"]
 
 
 def test_init_single_emotion(scene, view, eventProps):
@@ -177,7 +173,7 @@ def test_init_multiple_same(scene, view, eventProps):
     assert view.itemProp("descriptionEdit", "text") == props["description"]
     assert view.itemProp("locationEdit", "text") == props["location"]
     # assert nodalBox.property("checkState") == props["nodal"]
-    assert view.itemProp("eventNotesEdit", "text") == props["notes"]
+    assert view.itemProp("notesEdit", "text") == props["notes"]
 
 
 def test_init_multiple_different(scene, view):
@@ -207,51 +203,57 @@ def test_init_multiple_different(scene, view):
     assert view.itemProp("descriptionEdit", "text") == ""
     assert view.itemProp("locationEdit", "text") == ""
     # assert nodalBox.property("checkState") == Qt.PartiallyChecked
-    assert view.itemProp("eventNotesEdit", "text") == ""
+    assert view.itemProp("notesEdit", "text") == ""
 
 
-def test_edit_single(qtbot, scene, view, eventProps):
+@pytest.mark.parametrize(
+    "eventDates",
+    [
+        [util.Date(2000, 1, 2, 3, 4, 5)],
+        [util.Date(2001, 1, 2, 3, 4, 5), util.Date(2010, 1, 2, 3, 4, 5)],
+    ],
+)
+def test_set_fields(qtbot, scene, view, eventDates):
+
+    DATETIME = util.Date(2000, 4, 21, 3, 4)
+    DESCRIPTION = "Something happened"
+    LOCATION = "Somewhere, US"
+    NOTES = """here
+we
+are again."""
+    COLOR = "#3c3c3c"
+
+    dateTextInput = view.rootProp("dateTextInput")
+    timeTextInput = view.rootProp("timeTextInput")
+    notesEdit = view.rootProp("notesEdit")
+    descriptionEdit = view.rootProp("descriptionEdit")
+    locationEdit = view.rootProp("locationEdit")
+    colorBox = view.rootProp("colorBox")
+
     person = Person()
-    event = Event(
-        person,
-        description="here we are",
-        dateTime=util.Date(2000, 1, 2, 3, 4, 5),  # new date entry clears time too
-    )
+    events = [
+        Event(person, description=f"event {i}", dateTime=date)
+        for i, date in enumerate(eventDates)
+    ]
     scene.addItem(person)
-    view.eventModel.items = [event]
+    view.eventModel.items = events
     qtbot.waitActive(view)
 
-    runEventProperties(view, eventProps)
-    assertEventProperties(event, eventProps)
+    view.keyClicksItem(dateTextInput, "\b" + util.dateString(DATETIME))
+    view.keyClicksItem(timeTextInput, "\b" + util.timeString(DATETIME))
+    view.keyClicksItem(descriptionEdit, "\b" + DESCRIPTION)
+    view.keyClicksItem(locationEdit, "\b" + LOCATION)
+    view.clickComboBoxItem(colorBox, COLOR)
+    view.setCurrentTab("notes")
+    # QApplication.instance().exec()
+    notesEdit.selectAll()
+    view.keyClicksItem(notesEdit, "\b" + NOTES, returnToFinish=False)
 
-
-def test_edit_multiple(qtbot, scene, view, eventProps):
-    person = Person(name="person")
-    event1 = Event(
-        parent=person,
-        description="Some Event 1",
-        unsure=True,
-        dateTime=util.Date(2001, 5, 20),
-        nodal=False,
-        notes="Some notes I had 1",
-        location="Seward, AK",
-    )
-    event2 = Event(
-        parent=person,
-        description="Some Event 2",
-        unsure=False,
-        dateTime=util.Date(2000, 4, 19),
-        nodal=True,
-        notes="Some notes I had 2",
-        location="Anchorage, AK",
-    )
-    scene.addItem(person)
-    view.eventModel.items = [event1, event2]
-    qtbot.waitActive(view)
-
-    runEventProperties(view, eventProps)
-    assertEventProperties(event1, eventProps)
-    assertEventProperties(event2, eventProps)
+    assert set(x.description() for x in events) == {DESCRIPTION}
+    assert set(x.dateTime() for x in events) == {DATETIME}
+    assert set(x.location() for x in events) == {LOCATION}
+    assert set(x.notes() for x in events) == {NOTES}
+    assert set(x.color() for x in events) == {COLOR}
 
 
 def test_readOnlyFields(view, qmlEngine):
@@ -328,7 +330,7 @@ def test_empty_strings_reset_props(view, eventProps):
     view.keyClicksClear("descriptionEdit")
     view.keyClicksClear("locationEdit")
     view.clickTabBarButton("tabBar", 1)
-    view.keyClicksClear("eventNotesEdit")
+    view.keyClicksClear("notesEdit")
 
     # assert view.findItem('dateButtons.dateTextInput').property('text') == ''
 

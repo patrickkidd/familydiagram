@@ -23,6 +23,7 @@ Rectangle {
     property var backTabItem
 
     property var dateTextInput: dateTextInput
+    property var timeTextInput: timeTextInput
     property var datePicker: null
     property var timePicker: null
     property var dateTime
