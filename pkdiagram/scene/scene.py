@@ -2185,7 +2185,7 @@ class Scene(QGraphicsScene, Item):
 
     def renameEventProperty(self, oldName: str, newName: str, undo=False):
         if undo:
-            self.push(RenameEventProperty(oldName, newName))
+            self.push(RenameEventProperty(self, oldName, newName))
         else:
             self._do_renameEventProperty(oldName, newName)
 
@@ -2206,7 +2206,7 @@ class Scene(QGraphicsScene, Item):
 
     def replaceEventProperties(self, newPropNames: list[str], undo=False):
         if undo:
-            self.push(ReplaceEventProperties(newPropNames))
+            self.push(ReplaceEventProperties(self, newPropNames))
         else:
             self._do_replaceEventProperties(newPropNames)
 

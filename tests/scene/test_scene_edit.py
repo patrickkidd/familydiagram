@@ -88,3 +88,18 @@ def test_drag_pathitem_undo(qtbot, scene):
     )
     assert person.isSelected() == True
     assert scene.stack().count() == 1
+
+
+@pytest.mark.parametrize("undo", [True, False])
+def test_rename_timeline_property(scene, undo):
+    scene.addEventProperty("Var 1")
+    scene.renameEventProperty("Var 1", "Var 2", undo=undo)
+    assert scene.eventProperties()[0]["name"] == "Var 2"
+
+
+@pytest.mark.parametrize("undo", [True, False])
+def test_rename_timeline_property(scene, undo):
+    scene.addEventProperty("Var 1")
+    scene.addEventProperty("Var 2")
+    scene.replaceEventProperties(util.PAPERO_MODEL, undo=undo)
+    assert [x["name"] for x in scene.eventProperties()] == util.PAPERO_MODEL
