@@ -7,6 +7,7 @@ class CaseProperties(QmlDrawer):
             {"name": "inspectEvents"},
             {"name": "scrollSettingsToBottom"},
             {"name": "scrollTimelineToDateTime"},
+            {"name": "isEventPropertiesShown", "return": True},
         ]
     )
 

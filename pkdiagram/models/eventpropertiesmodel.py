@@ -29,6 +29,7 @@ class EventPropertiesModel(QObject, ModelHelper):
             {"attr": "parentIsEmotion", "type": bool},
             {"attr": "includeOnDiagram", "convertTo": Qt.CheckState},
             {"attr": "anyColor", "type": bool, "default": False},
+            {"attr": "isSetting", "type": bool, "default": False},
         ],
     )
 
@@ -36,6 +37,7 @@ class EventPropertiesModel(QObject, ModelHelper):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._isSetting = False
         self.initModelHelper()
 
     def onItemProperty(self, prop):
@@ -104,11 +106,23 @@ class EventPropertiesModel(QObject, ModelHelper):
                 ret = f"{len(self._items)} Events"
         elif attr == "anyColor":
             ret = self.any("color")
+        elif attr == "isSetting":
+            ret = self._isSetting
         else:
             ret = super().get(attr)
         return ret
 
     def set(self, attr, value):
+        # Not ideal, but a blocker to prevent event properties from being hidden
+        # during a real-time, i.e. not submitted in aggregate, datetime edit.
+        # When a datetime changes, it triggers a reset on the timeline model's
+        # rows, which triggers a selection change, which (correctly) hides the
+        # event props, e.g. for when the selection is changed from the graphical
+        # timeline.
+        was_isSetting = self._isSetting
+        self._isSetting = True
+        self.refreshProperty("isSetting")
+
         if attr == "uniqueId":
             with self._scene.macro(f"Set event type"):
                 for item in self._items:
@@ -136,6 +150,8 @@ class EventPropertiesModel(QObject, ModelHelper):
             self.refreshProperty("numWritable")
         elif attr == "location" and self._scene:
             self.refreshProperty("description")
+        self._isSetting = was_isSetting
+        self.refreshProperty("isSetting")
 
     @pyqtSlot(str)
     def reset(self, attr):

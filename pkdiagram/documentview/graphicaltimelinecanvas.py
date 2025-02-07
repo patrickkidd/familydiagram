@@ -26,6 +26,7 @@ from pkdiagram.pyqt import (
     QItemSelectionModel,
 )
 from pkdiagram import util
+from pkdiagram.scene import Event
 
 
 _log = logging.getLogger(__name__)
@@ -40,7 +41,6 @@ class GraphicalTimelineCanvas(QWidget):
 
     wheel = pyqtSignal(QWheelEvent)
     dateTimeClicked = pyqtSignal(QDateTime)
-    eventsSelected = pyqtSignal(list)
 
     def __init__(
         self,
@@ -158,7 +158,6 @@ class GraphicalTimelineCanvas(QWidget):
         return first, last
 
     def selectEventsInRect(self, selectionRect: QRectF):
-        selection = QItemSelection()
         events = set(
             [
                 event
@@ -166,6 +165,13 @@ class GraphicalTimelineCanvas(QWidget):
                 if selectionRect.intersects(rectF.toRect())
             ]
         )
+        self._selectEvents(events)
+
+    def _selectEvents(self, events: list[Event]):
+        """
+        For testing.
+        """
+        selection = QItemSelection()
         rows = []
         for event in events:
             row = self._timelineModel.rowForEvent(event)
