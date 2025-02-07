@@ -399,6 +399,9 @@ ColumnLayout {
             if(anim === undefined) {
                 anim = true
             }
+            if(row > 1) {
+                row = row -1 // give a littel top margin.
+            }
             var topY = util.QML_ITEM_HEIGHT * row // items are recycled
             var bottomY = util.QML_ITEM_HEIGHT + topY
             // print('topY: ' + topY + ' bottomY: ' + bottomY + ' contentY: ' + contentY + ' height: ' + height)
