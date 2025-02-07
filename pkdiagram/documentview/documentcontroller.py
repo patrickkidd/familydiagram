@@ -405,17 +405,11 @@ class DocumentController(QObject):
                     return
         newProps = []
         if index == 0:  # Havstad Model
-            newProps = ["Δ Symptom", "Δ Anxiety", "Δ Functioning", "Δ Relationship"]
+            newProps = util.HAVSTAD_MODEL
         elif index == 1:  # Papero Model
-            newProps = [
-                "Resourcefulness",
-                "Tension Management",
-                "Connectivity & Integration",
-                "Systems Thinking",
-                "Goal Structure",
-            ]
+            newProps = util.PAPERO_MODEL
         elif index == 2:  # Stinson Model
-            newProps = ["Toward/Away", "Δ Arousal", "Δ Symptom", "Mechanism"]
+            newProps = util.STINSON_MODEL
         self.scene.replaceEventProperties(newProps, undo=True)
         # for name in [e['name'] for e in self.scene.eventProperties()]:
         #     commands.removeEventProperty(self.scene, name)

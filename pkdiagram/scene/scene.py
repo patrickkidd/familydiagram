@@ -2206,7 +2206,7 @@ class Scene(QGraphicsScene, Item):
 
     def replaceEventProperties(self, newPropNames: list[str], undo=False):
         if undo:
-            self.push(ReplaceEventProperties(newPropNames))
+            self.push(ReplaceEventProperties(self, newPropNames))
         else:
             self._do_replaceEventProperties(newPropNames)
 

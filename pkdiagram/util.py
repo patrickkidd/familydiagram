@@ -418,6 +418,15 @@ QML_IMPORT_PATHS = [":/qml"]
 QML_SMALL_BUTTON_WIDTH = 50
 QML_MICRO_BUTTON_WIDTH = 21
 
+HAVSTAD_MODEL = ["Δ Symptom", "Δ Anxiety", "Δ Functioning", "Δ Relationship"]
+PAPERO_MODEL = [
+    "Resourcefulness",
+    "Tension Management",
+    "Connectivity & Integration",
+    "Systems Thinking",
+    "Goal Structure",
+]
+STINSON_MODEL = ["Toward/Away", "Δ Arousal", "Δ Symptom", "Mechanism"]
 
 S_EVENT_PROPS_HELP_TEXT = (
     "Events track anxiety, functioning, and symptoms, and how a person reacts to them over time. "
