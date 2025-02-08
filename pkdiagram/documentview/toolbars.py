@@ -88,6 +88,7 @@ class ButtonItemMixin(ItemMixin):
         self.ignoreToggle = ignoreToggle
         self.helpPixmap = helpPixmap
         self.setObjectName(objectName)
+        util.setButtonToolTip(self, self.action)
         if self.action:
             self.action.changed.connect(self.onActionChanged)
             self.onActionChanged()

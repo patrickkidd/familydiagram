@@ -925,10 +925,11 @@ def frange(start, end, step):
 
 
 def setButtonToolTip(button, action):
-    text = "%s (%s)" % (
-        action.toolTip(),
-        action.shortcut().toString(QKeySequence.NativeText),
-    )
+    s_shortcut = action.shortcut().toString(QKeySequence.NativeText)
+    if s_shortcut:
+        text = "%s (%s)" % (action.toolTip(), s_shortcut)
+    else:
+        text = action.toolTip()
     button.setToolTip(text)
 
 
