@@ -652,7 +652,7 @@ def test_show_events_from_timeline_callout(qtbot, scene, dv: DocumentView):
     assert dv.caseProps.currentTab() == RightDrawerView.Timeline.value
     assert ensureVisAnimation_finished.wait() == True
     assert ensureVisibleSet.wait() == True
-    assert ensureVisibleSet.callArgs[0][0] == util.QML_ITEM_HEIGHT * firstRow
+    assert ensureVisibleSet.callArgs[0][0] == util.QML_ITEM_HEIGHT * (firstRow - 1)
     # contentY was still zero after set and table not updated visually, but then
     # would jump there on first scroll. Suggests qml bug.
     #
