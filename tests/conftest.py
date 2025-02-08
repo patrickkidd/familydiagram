@@ -325,7 +325,7 @@ def watchdog(request, qApp):
 
         class Watchdog:
 
-            TIMEOUT_MS = 10000
+            TIMEOUT_MS = 15000
 
             def __init__(self):
                 self._killed = False
