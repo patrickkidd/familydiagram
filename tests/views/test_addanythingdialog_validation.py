@@ -8,7 +8,6 @@ from pkdiagram.views import AddAnythingDialog
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
 from .test_addanythingdialog import (
-    scene,
     dlg,
     START_DATETIME,
     END_DATETIME,

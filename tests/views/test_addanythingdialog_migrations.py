@@ -5,7 +5,7 @@ import pytest
 from pkdiagram.scene import EventKind, Person
 from pkdiagram.widgets.qml.peoplepicker import waitForPersonPickers
 
-from .test_addanythingdialog import scene, dlg
+from .test_addanythingdialog import dlg
 
 _log = logging.getLogger(__name__)
 

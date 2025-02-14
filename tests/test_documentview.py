@@ -900,3 +900,9 @@ def test_uploadButton(qtbot, dv: DocumentView):
     dv.caseProps.mouseClick("uploadButton")
     assert uploadToServer.wait() == True
     assert uploadToServer.callCount == 1
+
+
+def test_show_copilot(qtbot, dv: DocumentView):
+    qtbot.mouseClick(dv.view.rightToolBar.copilotButton, Qt.LeftButton)
+    copilotView = dv.rootProp("copilotView")
+    assert copilotView.property("visible") == True

@@ -101,8 +101,8 @@ def pytest_configure(config):
     config.dependency_disabled = config.getoption("--disable-dependencies")
 
 
-def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+# def pytest_generate_tests(metafunc):
+#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):

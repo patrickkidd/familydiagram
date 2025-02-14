@@ -47,11 +47,10 @@
             "name": "sysroot-dev TestDialog",
             "type": "debugpy",
             "request": "launch",
-            "module": "pkdiagram",
+            "program": "main_qml.py",
             "console": "integratedTerminal",
             "args": [
-                "--qml-module",
-                "TestDialog"
+                "CopilotView"
             ],
             "env": {
                 "--QT_LOGGING_RULES": "qt.quick.*=true"

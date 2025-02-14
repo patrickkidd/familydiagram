@@ -32,6 +32,7 @@ PK.Drawer {
     property var variablesCrudButtons: variablesCrudButtons
 
     property var eventProperties: eventProperties
+    property var copilotView: copilotView
 
     Connections {
         target: sceneModel
@@ -56,13 +57,16 @@ PK.Drawer {
             index = 0
         else if(tab == 'settings')
             index = 1
+        else if(tab == 'copilot')
+            index = 2
         tabBar.setCurrentIndex(index)
     }
 
     function currentTab() {
         return {
             0: 'timeline',
-            1: 'settings'
+            1: 'settings',
+            2: 'copilot'
         }[tabBar.currentIndex]
     }
     
@@ -145,6 +149,8 @@ PK.Drawer {
                     return "Timeline"
                 } else if(tabBar.currentIndex == 1) {
                     return "Settings"
+                } else if(tabBar.currentIndex == 2) {
+                    return "Copilot"
                 }
             }
             elide: Text.ElideRight
@@ -170,6 +176,7 @@ PK.Drawer {
         Layout.fillWidth: true
         PK.TabButton { text: "Timeline" }
         PK.TabButton { text: "Settings" }
+        PK.TabButton { text: "Copilot" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
         /* } */
@@ -778,6 +785,10 @@ PK.Drawer {
                     }
                 }
             }
+        }
+
+        CopilotView {
+            id: copilotView
         }
     }
 }

@@ -890,7 +890,12 @@ class RightToolBar(ToolBar):
                 action=self.ui.actionShow_Settings,
                 helpPixmap="diagram-settings.png",
             ),
-            Separator(objectName="sep2"),
+            PushButton(
+                objectName="copilotButton",
+                pixmap="callout.png",
+                action=self.ui.actionShow_Copilot,
+            ),
+            Separator(objectName="sep3"),
             PushButton(
                 objectName="detailsButton",
                 pixmap="details-button.png",
