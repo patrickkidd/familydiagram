@@ -39,6 +39,12 @@ snapshottest = "*"
 mock = "*"
 pyqtdeploy = { index="riverbank" }
 fdserver = { index="familydiagram" }
+pypdf = "*"
+langchain = "*"
+langchain-huggingface = "*"
+langchain-chroma = "*"
+langchain-ollama = "*"
+langchain-community = "*"
 
 [requires]
 python_version = "3.11.6"

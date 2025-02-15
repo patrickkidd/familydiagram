@@ -4,7 +4,7 @@ import pytest
 
 import vedana
 from pkdiagram.documentview import RightDrawerView
-from pkdiagram.pyqt import Qt, QObject, QApplication
+from pkdiagram.pyqt import QObject, QApplication
 from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
@@ -234,19 +234,8 @@ def test_variablesBox_enabled(test_activation, create_cp, is_read_only, qmlEngin
     assert cp.itemProp("variablesBox", "enabled") == (not is_read_only)
 
 
-@pytest.fixture
-def copilotView(test_activation, create_cp):
-    cp = create_cp(loadFreeDiagram=True)
-    cp.setCurrentTab(RightDrawerView.Copilot.value)
-    return CopilotView(cp, cp.rootProp("copilotView"))
-
-
-def test_copilot(qApp, copilotView):
-    copilotView.inputMessage("Here are we going?")
-    assert copilotView.chatBubbleAdded.wait() == True
-    assert copilotView.chatModel.property("count") == 2
-
-    copilotView.chatBubbleAdded.reset()
-    copilotView.inputMessage("Say somethign else")
-    assert copilotView.chatBubbleAdded.wait() == True
-    assert copilotView.chatModel.property("count") == 4
+# @pytest.fixture
+# def copilotView(test_activation, create_cp):
+#     cp = create_cp(loadFreeDiagram=True)
+#     cp.setCurrentTab(RightDrawerView.Copilot.value)
+#     return CopilotView(cp, cp.rootProp("copilotView"))

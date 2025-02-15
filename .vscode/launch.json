@@ -57,6 +57,28 @@
             }
         },
         {
+            "name": "ingest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            },
+            "args": [
+                "ingest",
+                "--data-dir",
+                "${workspaceFolder}/tests/data/vector_db",
+                "--sources-dir",
+                "${workspaceFolder}/../btcopilot/btcopilot/tests/data"
+            ],
+            "env": {
+                "FLASK_APP": "btcopilot",
+            },
+        },
+        {
             "name": "python: Current File",
             "type": "debugpy",
             "request": "launch",

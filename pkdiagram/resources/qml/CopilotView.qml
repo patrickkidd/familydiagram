@@ -10,7 +10,7 @@ import "js/Underscore.js" as Underscore
 Page {
 
     id: root
-    title: "Copilot Chat UI"
+    title: "BT Copilot"
 
     property var chatModel: chatModel
     property var textInput: textInput
@@ -25,13 +25,45 @@ Page {
         chatModel.clear()
     }
 
-    signal chatBubbleAdded(Item item)
-    signal chatBubbleRemoved(Item item)
+    function scrollToBottom() {
+        chatListView.contentY = chatListView.contentHeight - chatListView.height
+    }
+
+    signal humanBubbleAdded(Item item)
+    signal humanBubbleRemoved(Item item)
+    signal aiBubbleAdded(Item item)
+    signal aiBubbleRemoved(Item item)
 
     function submit(message) {
         chatModel.append({ "message": message, "fromUser": true });
         textInput.text = "";
-        chatModel.append({ "message": message, "fromUser": false });
+        var args = {
+            session: session.token,
+            question: message
+        };
+        Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
+            print('status code: ' + response.status_code)
+            if(response.status_code == 200) {
+                chatModel.append({
+                    "message": response.data.response,
+                    "sources": response.data.sources,
+                    "fromUser": false
+                });
+            } else if(response.status_code == 0) {
+                chatModel.append({
+                    "message": util.S_SERVER_IS_DOWN,
+                    "sources": [],
+                    "fromUser": false
+                });
+            } else {
+                print('Server error: ' + response.status_code)
+                chatModel.append({
+                    "message": util.S_SERVER_ERROR,
+                    "sources": [],
+                    "fromUser": false
+                });
+            }
+        });
     }
 
     ColumnLayout {
@@ -48,8 +80,9 @@ Page {
             delegate: RowLayout {
 
                 id: dRoot
-                width: parent.width
+                width: parent? parent.width : 0
                 spacing: 5
+                property var text: bubbleText.text
 
                 // Rectangle {
                 //     color: "transparent"
@@ -85,10 +118,18 @@ Page {
                 // }
 
                 Component.onCompleted: {
-                    root.chatBubbleAdded(dRoot)
+                    if(fromUser) {
+                        root.humanBubbleAdded(dRoot)
+                    } else {
+                        root.aiBubbleAdded(dRoot)
+                    }
                 }
                 Component.onDestruction: {
-                    root.chatBubbleRemoved(dRoot)
+                    if(fromUser) {
+                        root.humanBubbleRemoved(dRoot)
+                    } else {
+                        root.aiBubbleRemoved(dRoot)
+                    }
                 }
             }
         }

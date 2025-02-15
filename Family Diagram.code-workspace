@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../familydiagram-server"
+		},
+		{
+			"path": "../btcopilot"
 		}
 	],
 	"settings": {

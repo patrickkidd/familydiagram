@@ -53,6 +53,7 @@ pkdiagram/qrc_pkdiagram.py
 pkdiagram/qrc_qml.py
 tests/qml.py
 tests/dump_*.png
+tests/data/vector_db
 _pkdiagram/Makefile*
 _pkdiagram/build
 Pipfile.lock

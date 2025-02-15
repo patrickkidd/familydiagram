@@ -150,7 +150,7 @@ PK.Drawer {
                 } else if(tabBar.currentIndex == 1) {
                     return "Settings"
                 } else if(tabBar.currentIndex == 2) {
-                    return "Copilot"
+                    return "BT Copilot"
                 }
             }
             elide: Text.ElideRight

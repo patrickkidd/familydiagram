@@ -112,6 +112,8 @@ else:  # IS_DEV
         SERVER_URL_ROOT = "http://127.0.0.1:8888"
 
 
+SERVER_URL_ROOT = "http://127.0.0.1:8888"
+
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
 
@@ -522,6 +524,9 @@ S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN = "Emotional units are not shown because
 S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
     "Emotional units will show here when you add pair-bonds between people with names."
 )
+
+S_SERVER_IS_DOWN = "The server is down. Please try again later."
+S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
 
 
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"

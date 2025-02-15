@@ -17,10 +17,12 @@ class CopilotView:
         self.sendButton = item.property("sendButton")
         self.chatModel = item.property("chatModel")
 
-        self.chatBubbleAdded = util.Condition(item.chatBubbleAdded)
-        self.chatBubbleRemoved = util.Condition(item.chatBubbleRemoved)
+        self.humanBubbleAdded = util.Condition(item.humanBubbleAdded)
+        self.humanBubbleRemoved = util.Condition(item.humanBubbleRemoved)
+        self.aiBubbleAdded = util.Condition(item.aiBubbleAdded)
+        self.aiBubbleRemoved = util.Condition(item.aiBubbleRemoved)
 
     def inputMessage(self, message: str):
         self.view.keyClicksItem(self.textInput, message)
         self.view.mouseClickItem(self.sendButton)
-        assert self.chatBubbleAdded.wait() == True
+        assert self.humanBubbleAdded.wait() == True

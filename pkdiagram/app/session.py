@@ -33,7 +33,11 @@ class Session(QObject, QObjectHelper):
     logoutFinished = pyqtSignal()
 
     QObjectHelper.registerQtProperties(
-        [{"attr": "hash", "type": str}, {"attr": "isAdmin", "type": bool}]
+        [
+            {"attr": "hash", "type": str},
+            {"attr": "isAdmin", "type": bool},
+            {"attr": "copilot"},
+        ]
     )
 
     def __init__(self, analytics: Analytics = None, parent=None):
@@ -401,6 +405,8 @@ class Session(QObject, QObjectHelper):
         session_id = self._data["session"]["id"] if self._data else None
         if username is None and self._user:
             username = self._user.username
+        elif username is None:
+            username = ""
 
         if eventName in ("logged_in", "re_logged_in"):
             self._analytics.send(

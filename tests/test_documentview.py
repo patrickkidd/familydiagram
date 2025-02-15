@@ -904,5 +904,5 @@ def test_uploadButton(qtbot, dv: DocumentView):
 
 def test_show_copilot(qtbot, dv: DocumentView):
     qtbot.mouseClick(dv.view.rightToolBar.copilotButton, Qt.LeftButton)
-    copilotView = dv.rootProp("copilotView")
+    copilotView = dv.caseProps.rootProp("copilotView")
     assert copilotView.property("visible") == True

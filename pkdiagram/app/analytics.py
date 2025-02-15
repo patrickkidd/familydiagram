@@ -34,6 +34,11 @@ class MixpanelEvent(MixpanelItem):
     A queued Mixpanel event, either in memory or on disk.
     """
 
+    def __init__(self, **data):
+        if "time" in data and isinstance(data["time"], float):
+            data["time"] = int(data["time"])
+        super().__init__(**data)
+
     eventName: str
     username: str = None
     properties: dict

@@ -34,7 +34,7 @@ class Policy(pydantic.BaseModel):
     code: str
     product: str
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
 
 
 class License(pydantic.BaseModel):
@@ -48,12 +48,12 @@ class License(pydantic.BaseModel):
 class User(pydantic.BaseModel):
     id: int
     username: str
-    secret: Optional[bytes]
-    licenses: Optional[List[License]]
+    secret: Optional[bytes] = None
+    licenses: Optional[List[License]] = None
     first_name: str
     last_name: str
     roles: List[str]
-    free_diagram_id: Optional[int]
+    free_diagram_id: Optional[int] = None
 
 
 class AccessRight(pydantic.BaseModel):
@@ -65,14 +65,14 @@ class AccessRight(pydantic.BaseModel):
 class Diagram(pydantic.BaseModel):
     id: int
     user_id: int
-    name: Optional[str]
-    user: Optional[User]
-    use_real_names: Optional[bool]
-    require_password_for_real_names: Optional[bool]
-    data: Optional[bytes]
-    status: Optional[int]
+    name: Optional[str] = None
+    user: Optional[User] = None
+    use_real_names: Optional[bool] = None
+    require_password_for_real_names: Optional[bool] = None
+    data: Optional[bytes] = None
+    status: Optional[int] = None
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     access_rights: List[AccessRight]
 
     @classmethod
@@ -133,7 +133,7 @@ class HTTPError(Exception):
 class HTTPResponse(pydantic.BaseModel):
     body: bytes = None
     status_code: int = None
-    headers: Optional[Dict[str, str]]
+    headers: Optional[Dict[str, str]] = None
 
     def __init__(self, _reply=None, **kwargs):
         super().__init__(**kwargs)

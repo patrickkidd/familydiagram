@@ -94,19 +94,42 @@ def pytest_addoption(parser):
         default=False,
         help="Disable skipping tests when a component test fails.",
     )
+    parser.addoption(
+        "--integration",
+        action="store_true",
+        default=False,
+        help="Tun integration tests",
+    )
 
 
 def pytest_configure(config):
     config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
+    config.addinivalue_line("markers", "integration: mark test as integration test.")
 
 
-# def pytest_generate_tests(metafunc):
-#     os.environ["QT_QPA_PLATFORM"] = "offscreen"
+def pytest_generate_tests(metafunc):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
-    """Reorder test items based on component dependencies."""
+
+    # Skip mark "integration" by default, run only "integration" marks when "--integration" is passed
+    if not util.IS_DEBUGGER:
+        if not config.getoption("--integration"):
+            skip_mark = pytest.mark.skip(reason="Requires passing --integration to run")
+            for item in items:
+                if "integration" in [x.name for x in item.own_markers]:
+                    item.add_marker(skip_mark)
+        else:
+            skip_mark = pytest.mark.skip(
+                reason="Skipped because --integration was passed"
+            )
+            for item in items:
+                if "integration" not in [x.name for x in item.own_markers]:
+                    item.add_marker(skip_mark)
+
+    # Reorder test items based on component dependencies.
     if config.dependency_disabled:
         return
 
@@ -319,9 +342,13 @@ def prefs():
 @pytest.fixture(autouse=True)
 def watchdog(request, qApp):
 
-    NO_QT = "no_gui" in [m.name for m in request.node.iter_markers()]
+    integration = "integration" in [m.name for m in request.node.iter_markers()]
 
-    if not NO_QT and not util.IS_DEBUGGER and not request.config.watchdog_disabled:
+    if (
+        not util.IS_DEBUGGER
+        and not request.config.watchdog_disabled
+        and not integration
+    ):
 
         class Watchdog:
 
