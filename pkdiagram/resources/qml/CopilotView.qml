@@ -42,7 +42,6 @@ Page {
             question: message
         };
         Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
-            print('status code: ' + response.status_code)
             if(response.status_code == 200) {
                 chatModel.append({
                     "message": response.data.response,

@@ -5,13 +5,13 @@ import contextlib
 import pytest
 import mock
 
-from fdserver import v1
-from fdserver.tests.test_copilot import llm_response
-from pkdiagram.pyqt import QWidget, QQuickWidget, QUrl, QHBoxLayout
+from btcopilot import Engine
+from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout
 from pkdiagram import util
 from pkdiagram.views.qml import CopilotView
 from pkdiagram.widgets import QmlWidgetHelper
-from pkdiagram.documentview import RightDrawerView
+
+from btcopilot.tests.conftest import llm_response
 
 _log = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def view(tmp_path, test_session, qtbot, scene, qmlEngine):
     _view.deinit()
 
 
-def test_copilot(view, llm_response):
+def test_ask(flask_app, llm_response, view):
     RESPONSE_1 = "Hello back"
     RESPONSE_2 = "I'm here"
 
@@ -73,9 +73,7 @@ def test_server_down(view, server_down):
 
 
 def test_server_error(view):
-    with mock.patch.object(
-        v1.CopilotClient, "ask", side_effect=ValueError("Some exception")
-    ):
+    with mock.patch.object(Engine, "ask", side_effect=ValueError("Some exception")):
         view.inputMessage("Here we going?")
     assert view.aiBubbleAdded.wait() == True
     assert view.aiBubbleAdded.callArgs[0][0].property("text") == util.S_SERVER_ERROR

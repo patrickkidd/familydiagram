@@ -182,7 +182,7 @@
             "environment": [
                 {
                     "name": "PYTHONPATH",
-                    "value": "/Users/patrick/dev/familydiagram-server"
+                    "value": "/Users/patrick/dev/fdserver"
                 }
             ],
             "showAsyncStacks": "always",
