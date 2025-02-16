@@ -46,7 +46,8 @@ Page {
             if(response.status_code == 200) {
                 chatModel.append({
                     "message": response.data.response,
-                    "sources": response.data.sources,
+                    "sources": [],
+                    // "sources": response.data.sources, // was causing crash
                     "fromUser": false
                 });
             } else if(response.status_code == 0) {
@@ -63,6 +64,7 @@ Page {
                     "fromUser": false
                 });
             }
+            scrollToBottom()
         });
     }
 
