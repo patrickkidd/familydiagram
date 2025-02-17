@@ -43,8 +43,9 @@ Page {
         };
         Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
             if(response.status_code == 200) {
+                var s_aiResponse = util.formatChatResponse(response)
                 chatModel.append({
-                    "message": response.data.response,
+                    "message": s_aiResponse,
                     "sources": [],
                     // "sources": response.data.sources, // was causing crash
                     "fromUser": false

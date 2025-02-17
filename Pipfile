@@ -45,6 +45,7 @@ langchain-huggingface = "*"
 langchain-chroma = "*"
 langchain-ollama = "*"
 langchain-community = "*"
+langchain-openai = "*"
 
 [requires]
 python_version = "3.11.6"

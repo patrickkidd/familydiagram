@@ -929,6 +929,17 @@ def frange(start, end, step):
         start += step
 
 
+def formatChatResponse(response: dict) -> str:
+    ret = response["response"]
+    if response["sources"]:
+        s_sources = "\n---------\n".join(
+            f"{x['fd_title']}, {x['fd_authors']}: {x['passage']}"
+            for x in response["sources"]
+        )
+        ret += f"\n\nSources:\n\n{s_sources}"
+    return ret
+
+
 def setButtonToolTip(button, action):
     s_shortcut = action.shortcut().toString(QKeySequence.NativeText)
     if s_shortcut:

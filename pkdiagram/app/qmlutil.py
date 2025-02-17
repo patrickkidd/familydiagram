@@ -618,3 +618,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(str)
     def warning(self, message):
         log.warning(message)
+
+    @pyqtSlot(QVariant, result=str)
+    def formatChatResponse(self, response) -> str:
+        return util.formatChatResponse(response.toVariant()["data"])
