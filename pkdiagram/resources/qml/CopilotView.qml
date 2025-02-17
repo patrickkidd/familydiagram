@@ -158,8 +158,6 @@ Page {
                     root.aiBubbleRemoved(dRoot)
                 }
 
-                onWidthChanged: print('aiResponse width: ' + width)
-
                 // top padding
                 Rectangle {
                     width: dRoot.width
