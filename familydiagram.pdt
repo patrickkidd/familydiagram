@@ -939,6 +939,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "CopilotView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "EmotionPropertiesDrawer.qml"
 included = true
 is_directory = false
@@ -1503,6 +1508,21 @@ is_directory = false
 name = "caseproperties.py"
 included = true
 is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "qml"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "copilotview.py"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content.Content]]
 name = "qmldrawer.py"
