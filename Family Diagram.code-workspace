@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../btcopilot"
+		},
+		{
+			"path": "../vedana"
 		}
 	],
 	"settings": {
