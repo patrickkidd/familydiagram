@@ -16,6 +16,8 @@ Page {
     property var textInput: textInput
     property var sendButton: sendButton
 
+    property var chatMargin: util.QML_MARGINS * 1.5
+
     background: Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
@@ -35,7 +37,7 @@ Page {
     signal aiBubbleRemoved(Item item)
 
     function submit(message) {
-        chatModel.append({ "message": message, "fromUser": true });
+        chatModel.append({ "message": message, "fromUser": true, 'numSources': 0, 'sources': ''});
         textInput.text = "";
         var args = {
             session: session.token,
@@ -44,16 +46,19 @@ Page {
         Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
             if(response.status_code == 200) {
                 var s_aiResponse = util.formatChatResponse(response)
+                var s_aiSources = util.formatChatSources(response)
                 chatModel.append({
                     "message": s_aiResponse,
-                    "sources": [],
+                    "sources": s_aiSources,
+                    "numSources": response.data.sources.length,
                     // "sources": response.data.sources, // was causing crash
                     "fromUser": false
                 });
             } else if(response.status_code == 0) {
                 chatModel.append({
                     "message": util.S_SERVER_IS_DOWN,
-                    "sources": [],
+                    "sources": '',
+                    "numSources": 0,
                     "fromUser": false
                 });
             } else {
@@ -61,6 +66,7 @@ Page {
                 chatModel.append({
                     "message": util.S_SERVER_ERROR,
                     "sources": [],
+                    "numSources": 0,
                     "fromUser": false
                 });
             }
@@ -77,63 +83,136 @@ Page {
             id: chatListView
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: chatModel
+            model: ListModel {
+                id: chatModel
+            }
             clip: true
-            delegate: RowLayout {
+            delegate: Loader {
+                width: chatListView.width
+                // spacing: util.QML_MARGINS
+                property var dMessage: model.message
+                property var dSources: model.sources
+                property var dNumSources: model.numSources
+                sourceComponent: model.fromUser ? humanQuestion : aiResponse
+            }
+        }
+
+        Component {
+            id: humanQuestion
+
+            Column {
 
                 id: dRoot
-                width: parent? parent.width : 0
-                spacing: 5
-                property var text: bubbleText.text
 
-                // Rectangle {
-                //     color: "transparent"
-                //     visible: fromUser
-                //     width: util.QML_MARGINS * 3
-                // }
+                Component.onCompleted: {
+                    root.humanBubbleAdded(dRoot)
+                }
+                Component.onDestruction: {
+                    root.humanBubbleRemoved(dRoot)
+                }
 
-                // The chat bubble itself.
+                // top padding
+                Rectangle {
+                    width: dRoot.width
+                    height: util.QML_MARGINS
+                    color: 'transparent'
+                }
+
                 Rectangle {
                     id: bubble
-                    color: fromUser ? util.QML_ITEM_ALTERNATE_BG : "transparent"
-                    border.color: fromUser ? "#ccc" : "transparent"
+                    color: util.QML_ITEM_ALTERNATE_BG
+                    border.color: "#ccc"
                     radius: 8
-                    Layout.maximumWidth: parent.width * 0.7
-                    Layout.minimumWidth: parent.width * 0.7
-                    implicitHeight: bubbleText.implicitHeight + 20
-                    Layout.alignment: fromUser ? Qt.AlignRight : Qt.AlignLeft
+                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, chatListView.width - util.QML_MARGINS * 6)
+                    implicitHeight: questionText.implicitHeight + 20
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.chatMargin
 
                     Text {
-                        id: bubbleText
-                        text: message
-                        color: fromUser ? util.QML_TEXT_COLOR : util.QML_TEXT_COLOR
+                        id: questionText
+                        text: dMessage
+                        color: util.QML_TEXT_COLOR
                         wrapMode: Text.WordWrap
                         anchors.fill: parent
                         anchors.margins: 10
                     }
                 }
+            }
+        }
 
-                // Rectangle {
-                //     color: "transparent"
-                //     visible: ! fromUser
-                //     width: util.QML_MARGINS * 3
-                // }
+        Component {
+            id: aiResponse
+
+            Column {
+
+                id: dRoot
+                x: root.chatMargin
+
+                property var responseText: responseText.text
+                property var sourcesText: sourcesText.text
 
                 Component.onCompleted: {
-                    if(fromUser) {
-                        root.humanBubbleAdded(dRoot)
-                    } else {
-                        root.aiBubbleAdded(dRoot)
-                    }
+                    root.aiBubbleAdded(dRoot)
                 }
                 Component.onDestruction: {
-                    if(fromUser) {
-                        root.humanBubbleRemoved(dRoot)
-                    } else {
-                        root.aiBubbleRemoved(dRoot)
+                    root.aiBubbleRemoved(dRoot)
+                }
+
+                onWidthChanged: print('aiResponse width: ' + width)
+
+                // top padding
+                Rectangle {
+                    width: dRoot.width
+                    height: util.QML_MARGINS
+                    color: 'transparent'
+                }
+
+                Text {
+                    id: responseText
+                    text: dMessage
+                    color: util.QML_TEXT_COLOR
+                    wrapMode: Text.WordWrap
+                    width: dRoot.width - dRoot.x * 2
+                    bottomPadding: font.pixelSize
+                }
+
+                Text {
+                    text: '' + dNumSources + ' Sources >'
+                    font.underline: true
+                    color: Qt.darker(util.QML_TEXT_COLOR, 1.2)
+                    width: dRoot.width - dRoot.x * 2
+                    bottomPadding: font.pixelSize
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            sourcesText.toggle()
+                        }
                     }
                 }
-            }
+
+                Text {
+                    id: sourcesText
+                    text: dSources // 'Lorem ipsum odor amet, consectetuer adipiscing elit. Nunc metus at platea inceptos eros urna curabitur. Id primis maximus tortor egestas nostra suspendisse cubilia nibh.'
+                    color: Qt.darker(util.QML_TEXT_COLOR, 1.2)
+                    width: dRoot.width - dRoot.x * 2
+                    wrapMode: Text.WordWrap
+                    clip: true
+                    height: 0
+                    opacity: height / implicitHeight
+
+                    Behavior on height {
+                        NumberAnimation { duration: 200 }
+                    }
+
+                    function toggle() {
+                        if(height == 0) {
+                            height = implicitHeight
+                        } else {
+                            height = 0
+                        }
+                    }
+                }
+            }    
         }
 
         // Input area for typing messages
@@ -162,13 +241,6 @@ Page {
                 }
             }
         }
-    }
-
-    // Model holding chat messages
-    ListModel {
-        id: chatModel
-        // Starting conversation with a copilot (agent) message.
-        // ListElement { message: "Hello! I'm your copilot. How can I help you today?"; fromUser: false }
     }
 
 }

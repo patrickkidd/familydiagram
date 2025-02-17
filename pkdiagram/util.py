@@ -930,13 +930,14 @@ def frange(start, end, step):
 
 
 def formatChatResponse(response: dict) -> str:
-    ret = response["response"]
-    if response["sources"]:
-        s_sources = "\n---------\n".join(
-            f"{x['fd_title']}, {x['fd_authors']}: {x['passage']}"
-            for x in response["sources"]
-        )
-        ret += f"\n\nSources:\n\n{s_sources}"
+    return response["response"]
+
+
+def formatChatSources(response: dict) -> str:
+    ret = "\n---------\n".join(
+        f"{x['fd_title']}, {x['fd_authors']}:\n\n{x['passage']}"
+        for x in response["sources"]
+    )
     return ret
 
 

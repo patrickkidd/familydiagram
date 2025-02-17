@@ -49,7 +49,10 @@ def view(tmp_path, test_session, qtbot, scene, qmlEngine):
     _view.deinit()
 
 
-def test_ask(llm_response, flask_app, view):
+# LOREM = "Lorem ipsum odor amet, consectetuer adipiscing elit. Nunc metus at platea inceptos eros urna curabitur. Id primis maximus tortor egestas nostra suspendisse cubilia nibh."
+
+
+def test_ask(llm_response, qApp, flask_app, view):
 
     RESPONSE_1 = "Hello back"
     PASSAGE_1 = "Some content 1"
@@ -80,19 +83,23 @@ def test_ask(llm_response, flask_app, view):
             ),
         ],
     ):
-        view.inputMessage("Here we going?")
+        view.inputMessage("Hello there")
+
+    responseData = {
+        "response": RESPONSE_1,
+        "sources": [
+            {"passage": PASSAGE_1, "fd_title": TITLE_1, "fd_authors": AUTHORS_1},
+            {"passage": PASSAGE_2, "fd_title": TITLE_2, "fd_authors": AUTHORS_2},
+        ],
+    }
+
     assert view.aiBubbleAdded.wait() == True
     assert view.aiBubbleAdded.callArgs[0][0].property(
-        "text"
-    ) == util.formatChatResponse(
-        {
-            "response": RESPONSE_1,
-            "sources": [
-                {"passage": PASSAGE_1, "fd_title": TITLE_1, "fd_authors": AUTHORS_1},
-                {"passage": PASSAGE_2, "fd_title": TITLE_2, "fd_authors": AUTHORS_2},
-            ],
-        }
-    )
+        "responseText"
+    ) == util.formatChatResponse(responseData)
+    assert view.aiBubbleAdded.callArgs[0][0].property(
+        "sourcesText"
+    ) == util.formatChatSources(responseData)
 
     RESPONSE_2 = "I'm here"
 
@@ -101,8 +108,11 @@ def test_ask(llm_response, flask_app, view):
         view.inputMessage("Say somethign else")
     assert view.aiBubbleAdded.wait() == True
     assert view.aiBubbleAdded.callArgs[0][0].property(
-        "text"
+        "responseText"
     ) == util.formatChatResponse({"response": RESPONSE_2, "sources": []})
+    assert view.aiBubbleAdded.callArgs[0][0].property(
+        "sourcesText"
+    ) == util.formatChatSources({"response": RESPONSE_2, "sources": []})
 
 
 def test_server_down(view, server_down):

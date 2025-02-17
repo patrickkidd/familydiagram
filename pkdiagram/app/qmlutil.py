@@ -622,3 +622,7 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(QVariant, result=str)
     def formatChatResponse(self, response) -> str:
         return util.formatChatResponse(response.toVariant()["data"])
+
+    @pyqtSlot(QVariant, result=str)
+    def formatChatSources(self, response) -> str:
+        return util.formatChatSources(response.toVariant()["data"])
