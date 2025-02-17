@@ -112,8 +112,6 @@ else:  # IS_DEV
         SERVER_URL_ROOT = "http://127.0.0.1:8888"
 
 
-SERVER_URL_ROOT = "http://127.0.0.1:8888"
-
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
 
