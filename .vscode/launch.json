@@ -104,8 +104,6 @@
                 "--verbose",
                 "--sysroots-dir",
                 "${workspaceFolder}/sysroot",
-                "--component",
-                "SIP",
                 "sysroot/sysroot.toml"
             ]
         },

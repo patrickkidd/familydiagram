@@ -1,5 +1,6 @@
 import time
 import uuid, pickle, logging, copy
+import dataclasses
 
 import vedana
 
@@ -187,6 +188,7 @@ class Session(QObject, QObjectHelper):
                     roles=x["roles"],
                     free_diagram_id=x["free_diagram_id"],
                     licenses=[],
+                    created_at=x['created_at']
                 )
                 for x in data["users"]
             ]
@@ -197,9 +199,11 @@ class Session(QObject, QObjectHelper):
                     first_name=userData["first_name"],
                     last_name=userData["last_name"],
                     username=userData["username"],
-                    secret=userData["secret"],
+                    secret=userData["secret"].encode() if userData["secret"] else b'',
                     roles=userData["roles"],
                     free_diagram_id=userData["free_diagram_id"],
+                    created_at=userData["created_at"],
+                    updated_at=userData["updated_at"] if userData["updated_at"] else None,
                     licenses=[
                         License(
                             created_at_readable=util.pyDateTimeString(x["created_at"]),
@@ -208,7 +212,7 @@ class Session(QObject, QObjectHelper):
                         for x in userData["licenses"]
                     ],
                 )
-                self._userDict = self._user.dict()
+                self._userDict = dataclasses.asdict(self._user)
             else:
                 self._user = None
                 self._userDict = {}

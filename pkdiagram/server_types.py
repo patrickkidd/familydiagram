@@ -6,11 +6,10 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 
 import time, pickle, logging
 from datetime import datetime
-from typing import List, Dict, Optional
 import hashlib
 import urllib.error
 import wsgiref.handlers
-import pydantic
+from dataclasses import dataclass, InitVar
 
 import vedana
 from pkdiagram.pyqt import (
@@ -30,61 +29,114 @@ from pkdiagram.qnam import QNAM
 log = logging.getLogger(__name__)
 
 
-class Policy(pydantic.BaseModel):
+@dataclass
+class Activation:
+    license_id: int
+    machine_id: int
+
+
+@dataclass
+class Policy:
+    id: int
     code: str
     product: str
     name: str
-    description: Optional[str] = None
+    interval: str
+    maxActivations: int
+
+    amount: float
+    active: bool
+    public: bool
+
+    created_at: datetime
+
+    description: str = None
+    updated_at: datetime = None
 
 
-class License(pydantic.BaseModel):
+@dataclass
+class License:
+    id: int
     policy: Policy
     active: bool
     canceled: bool
+    user_id: int
+    policy_id: int
+    key: str
+    stripe_id: str
+    activations: list[Activation]
+    activated_at: datetime
+    canceled_at: datetime
     created_at: datetime
     created_at_readable: str
+    updated_at: datetime = None
 
+    def __post_init__(self):
+        if isinstance(self.policy, dict):
+            self.policy = Policy(**self.policy)
+        if isinstance(self.activations, dict):
+            self.activations = [Activation(**x) for x in self.activations]
 
-class User(pydantic.BaseModel):
+@dataclass
+class User:
     id: int
     username: str
-    secret: Optional[bytes] = None
-    licenses: Optional[List[License]] = None
     first_name: str
     last_name: str
-    roles: List[str]
-    free_diagram_id: Optional[int] = None
+    roles: list[str]
+    created_at: datetime = None
+    updated_at: datetime = None
+    secret: bytes = None
+    licenses: list[License] = None
+    free_diagram_id: int = None
+    active: bool = None
+    status: str = None
+
+    def __post_init__(self):
+        if self.licenses and isinstance(self.licenses[0], dict):
+            self.licenses = [License(**x) for x in self.licenses]
 
 
-class AccessRight(pydantic.BaseModel):
-    id: int
+@dataclass
+class AccessRight:
     user_id: int
     right: str
+    id: int = None
+    diagram_id: int = None
+    created_at: datetime = None
+    updated_at: datetime = None
 
 
-class Diagram(pydantic.BaseModel):
+@dataclass
+class Diagram:
     id: int
     user_id: int
-    name: Optional[str] = None
-    user: Optional[User] = None
-    use_real_names: Optional[bool] = None
-    require_password_for_real_names: Optional[bool] = None
-    data: Optional[bytes] = None
-    status: Optional[int] = None
+    access_rights: list[AccessRight]
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    access_rights: List[AccessRight]
+    updated_at: datetime = None
+    name: str = None
+    user: User = None
+    use_real_names: bool = None
+    require_password_for_real_names: bool = None
+    data: bytes = None
+    status: int = None
+    alias: str = None
+
+    def __post_init__(self, *args, **kwargs):
+        if isinstance(self.user, dict):
+            self.user = User(**self.user)
+        if self.access_rights and isinstance(self.access_rights[0], dict):
+            self.access_rights = [AccessRight(**x) for x in self.access_rights]
+
+    # sometimes passed in
+    saved_at: InitVar[datetime] = None 
 
     @classmethod
     def create(cls, data):
         _data = dict(**data)
-        user = _data.pop("user")
-        access_rights = _data.pop("access_rights")
-        return Diagram(
-            access_rights=[AccessRight(**entry) for entry in access_rights],
-            user=User(**user),
-            **_data,
-        )
+        if 'saved_at' in _data:
+            _data.pop('saved_at')
+        return Diagram(**_data)
 
     @classmethod
     def get(cls, diagram_id, session):
@@ -130,13 +182,14 @@ class HTTPError(Exception):
         self.url = url
 
 
-class HTTPResponse(pydantic.BaseModel):
+@dataclass
+class HTTPResponse:
     body: bytes = None
     status_code: int = None
-    headers: Optional[Dict[str, str]] = None
+    headers: dict[str, str] = None
+    _reply: InitVar[QNetworkReply] = None
 
-    def __init__(self, _reply=None, **kwargs):
-        super().__init__(**kwargs)
+    def __post_init__(self, _reply: QNetworkReply = None):
         if _reply:
             self.status_code = _reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
             self.headers = {

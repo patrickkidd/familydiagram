@@ -53,6 +53,11 @@ def test_init(test_session, create_session, Analytics_send):
         == "patrickkidd+unittest@gmail.com"
     )
 
+def test_init_with_activation(test_session, test_activation, create_session):
+    session = create_session()
+    assert session.isLoggedIn() == True
+    assert session.user.licenses[0].id == test_activation.license_id
+
 
 def test_init_no_server(create_session, server_down, Analytics_send):
     with server_down():

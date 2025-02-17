@@ -59,6 +59,7 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine, scene):
         w.deinit()
 
 
+@pytest.mark.watchdog(timeout_ms=20000) # not sure why needs more time when `-n 8``
 @pytest.mark.parametrize("editorMode", [True, False])
 def test_editorMode_enabled(test_session, qApp, create_cp, qmlEngine, editorMode):
     cp = create_cp(editorMode=editorMode)

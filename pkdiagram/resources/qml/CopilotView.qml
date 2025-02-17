@@ -65,7 +65,7 @@ Page {
                 print('Server error: ' + response.status_code)
                 chatModel.append({
                     "message": util.S_SERVER_ERROR,
-                    "sources": [],
+                    "sources": '',
                     "numSources": 0,
                     "fromUser": false
                 });
