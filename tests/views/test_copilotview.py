@@ -119,14 +119,20 @@ def test_server_down(view, server_down):
     with server_down():
         view.inputMessage("Here we going?")
     assert view.aiBubbleAdded.wait() == True
-    assert view.aiBubbleAdded.callArgs[0][0].property("text") == util.S_SERVER_IS_DOWN
+    assert (
+        view.aiBubbleAdded.callArgs[0][0].property("responseText")
+        == util.S_SERVER_IS_DOWN
+    )
 
 
 def test_server_error(view):
     with mock.patch.object(Engine, "ask", side_effect=ValueError("Some exception")):
         view.inputMessage("Here we going?")
     assert view.aiBubbleAdded.wait() == True
-    assert view.aiBubbleAdded.callArgs[0][0].property("text") == util.S_SERVER_ERROR
+    assert (
+        view.aiBubbleAdded.callArgs[0][0].property("responseText")
+        == util.S_SERVER_ERROR
+    )
 
 
 TIMEOUT_MS = 30000
