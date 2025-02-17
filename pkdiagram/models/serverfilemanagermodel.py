@@ -1,4 +1,6 @@
 import os, os.path, pickle, shutil, datetime, logging
+import dataclasses
+
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
@@ -410,7 +412,7 @@ class ServerFileManagerModel(FileManagerModel):
         return [Diagram.create(entry) for entry in data]
 
     def _marshal(self, data):
-        return [diagram.dict() for diagram_id, diagram in data.items()]
+        return [dataclasses.asdict(diagram) for diagram_id, diagram in data.items()]
 
     ## Model Virtuals
 

@@ -399,6 +399,12 @@ class DocumentView(QWidget):
         ):
             self.view.ui.actionShow_Settings.setChecked(False)
 
+        if self.view.ui.actionShow_Copilot.isChecked() and (
+            drawer != self.caseProps
+            or kwargs.get("tab") != RightDrawerView.Copilot.value
+        ):
+            self.view.ui.actionShow_Copilot.setChecked(False)
+
         was = self.currentDrawer
         self.currentDrawer = drawer
         if was is drawer and was is not None:  # same drawer, new data
@@ -638,6 +644,12 @@ class DocumentView(QWidget):
     def showSettings(self, on=True):
         if on:
             self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Settings.value)
+        else:
+            self.setCurrentDrawer(None)
+
+    def showCopilot(self, on=True):
+        if on:
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Copilot.value)
         else:
             self.setCurrentDrawer(None)
 

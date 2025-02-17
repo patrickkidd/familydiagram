@@ -45,12 +45,6 @@ class TestAddAnythingDialog(AddAnythingDialog):
 
 
 @pytest.fixture
-def scene():
-    scene = Scene()
-    yield scene
-
-
-@pytest.fixture
 def dlg(qtbot, scene, qmlEngine):
     qmlEngine.setScene(scene)
     dlg = TestAddAnythingDialog(qmlEngine)

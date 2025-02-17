@@ -47,15 +47,36 @@
             "name": "sysroot-dev TestDialog",
             "type": "debugpy",
             "request": "launch",
-            "module": "pkdiagram",
+            "program": "main_qml.py",
             "console": "integratedTerminal",
             "args": [
-                "--qml-module",
-                "TestDialog"
+                "CopilotView"
             ],
             "env": {
                 "--QT_LOGGING_RULES": "qt.quick.*=true"
             }
+        },
+        {
+            "name": "ingest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            },
+            "args": [
+                "ingest",
+                "--data-dir",
+                "${workspaceFolder}/tests/data/vector_db",
+                "--sources-dir",
+                "${workspaceFolder}/../btcopilot/btcopilot/tests/data"
+            ],
+            "env": {
+                "FLASK_APP": "btcopilot",
+            },
         },
         {
             "name": "python: Current File",
@@ -83,8 +104,6 @@
                 "--verbose",
                 "--sysroots-dir",
                 "${workspaceFolder}/sysroot",
-                "--component",
-                "SIP",
                 "sysroot/sysroot.toml"
             ]
         },
@@ -161,7 +180,7 @@
             "environment": [
                 {
                     "name": "PYTHONPATH",
-                    "value": "/Users/patrick/dev/familydiagram-server"
+                    "value": "/Users/patrick/dev/fdserver"
                 }
             ],
             "showAsyncStacks": "always",

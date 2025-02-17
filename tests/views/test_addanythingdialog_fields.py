@@ -7,7 +7,7 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, EventKind
 
 
-from .test_addanythingdialog import scene, dlg
+from .test_addanythingdialog import dlg
 
 _log = logging.getLogger(__name__)
 

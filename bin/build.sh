@@ -18,7 +18,7 @@ export PYTHONPATH=`pwd`/lib/site-packages
 
 if [[ $TARGET = osx* ]]; then
 
-    function build_and_notarize {
+    function build_archive {
 
         # https://forums.developer.apple.com/thread/107976
         # https://stackoverflow.com/questions/45748140/xcode-9-distribution-build-fails-because-format-of-exportoptions-plist-has-chang
@@ -61,6 +61,10 @@ if [[ $TARGET = osx* ]]; then
 
         rm build/osx/Release/Family\ Diagram.app
         cp -R $FD_BUILD_DIR/Export/Family\ Diagram.app build/osx/Release
+
+    }
+
+    function notarize {
 
         echo "PKS Zipping up archive"
 
@@ -116,6 +120,7 @@ if [[ $TARGET = osx* ]]; then
             --no-internet-enable \
             "Release/Family Diagram.dmg" \
             "Release/"
+        cd ../..
     }
 
     # export CI=1 # prevent xcode from prompting anything?
@@ -195,12 +200,17 @@ if [[ $TARGET = osx* ]]; then
             -xcconfig build/osx/Family-Diagram-Release.xcconfig \
             -UseModernBuildSystem=YES \
             build
-    
+
+        ./build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
+
+
     elif [[ $TARGET == "osx-release" ]]; then
 
         cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release $QT_EXTRA_CONFIG && cd ../..
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null
-        build_and_notarize
+        build_archive
+        ./build/osx/Release/Family\ Diagram.app/Contents/MacOS/Family\ Diagram --version
+        notarize
         osx_dmg
 
         # zip -r -X build/osx/Release/Family\ Diagram-$FAMILYDIAGRAM_VERSION.dSYM.zip build/osx/Release/Family\ Diagram.dSYM

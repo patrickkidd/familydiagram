@@ -1,12 +1,11 @@
-# std lib
 import os, sys
+import time
 import contextlib
 import logging
 import tempfile
 import contextlib
 from typing import Optional
 
-# third-party
 import pytest, mock
 import flask.testing
 
@@ -94,11 +93,18 @@ def pytest_addoption(parser):
         default=False,
         help="Disable skipping tests when a component test fails.",
     )
+    parser.addoption(
+        "--integration",
+        action="store_true",
+        default=False,
+        help="Tun integration tests",
+    )
 
 
 def pytest_configure(config):
     config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
+    config.addinivalue_line("markers", "integration: mark test as integration test.")
 
 
 def pytest_generate_tests(metafunc):
@@ -106,7 +112,23 @@ def pytest_generate_tests(metafunc):
 
 
 def pytest_collection_modifyitems(session, config, items):
-    """Reorder test items based on component dependencies."""
+
+    # Skip mark "integration" by default, run only "integration" marks when "--integration" is passed
+    if not util.IS_DEBUGGER:
+        if not config.getoption("--integration"):
+            skip_mark = pytest.mark.skip(reason="Requires passing --integration to run")
+            for item in items:
+                if "integration" in [x.name for x in item.own_markers]:
+                    item.add_marker(skip_mark)
+        else:
+            skip_mark = pytest.mark.skip(
+                reason="Skipped because --integration was passed"
+            )
+            for item in items:
+                if "integration" not in [x.name for x in item.own_markers]:
+                    item.add_marker(skip_mark)
+
+    # Reorder test items based on component dependencies.
     if config.dependency_disabled:
         return
 
@@ -319,17 +341,26 @@ def prefs():
 @pytest.fixture(autouse=True)
 def watchdog(request, qApp):
 
-    NO_QT = "no_gui" in [m.name for m in request.node.iter_markers()]
+    integration = "integration" in [m.name for m in request.node.iter_markers()]
 
-    if not NO_QT and not util.IS_DEBUGGER and not request.config.watchdog_disabled:
+    start_time = time.time()
+    watchog_mark = request.node.get_closest_marker("watchdog")
+    if watchog_mark:
+        timeout_ms = watchog_mark.kwargs['timeout_ms']
+    else:
+        timeout_ms = 10000
 
+    if (
+        not request.config.watchdog_disabled
+        and not integration
+    ):
+        
         class Watchdog:
 
-            TIMEOUT_MS = 15000
-
-            def __init__(self):
+            def __init__(self, timeout_ms):
                 self._killed = False
                 self._canceled = False
+                self._timeout_ms = timeout_ms
 
             def cancel(self):
                 """
@@ -339,7 +370,7 @@ def watchdog(request, qApp):
 
             def kill(self):
                 log.info(
-                    f"Watchdog timer reached after {watchdog.TIMEOUT_MS}ms, closing window"
+                    f"Watchdog timer reached after {timeout_ms}ms, closing window"
                 )
                 w = QApplication.activeWindow()
                 if w:
@@ -352,12 +383,12 @@ def watchdog(request, qApp):
             def cancelled(self):
                 return self._canceled
 
-        watchdog = Watchdog()
+        watchdog = Watchdog(timeout_ms)
         watchdogTimer = QTimer(qApp)
-        watchdogTimer.setInterval(watchdog.TIMEOUT_MS)
+        watchdogTimer.setInterval(timeout_ms)
         watchdogTimer.timeout.connect(watchdog.kill)
         watchdogTimer.start()
-        log.debug(f"Starting watchdog timer for {watchdog.TIMEOUT_MS}ms")
+        log.debug(f"Starting watchdog timer for {timeout_ms}ms")
 
     else:
         # log.warning("Qt hung test watchdog disabled.")
@@ -368,7 +399,11 @@ def watchdog(request, qApp):
     if watchdog:
         watchdogTimer.stop()
         if watchdog.killed() and not watchdog.cancelled():
-            pytest.fail(f"Watchdog triggered after {watchdog.TIMEOUT_MS}ms.")
+            pytest.fail(f"Watchdog triggered after {timeout_ms}ms.")
+    else:
+        elapsed = time.time() - start_time
+        if elapsed > timeout_ms:
+            log.warning(f"Watchdog would have been triggered after {timeout_ms}ms; test took {elapsed}ms.")
 
 
 @pytest.fixture

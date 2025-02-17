@@ -1,5 +1,6 @@
 import time
 import uuid, pickle, logging, copy
+import dataclasses
 
 import vedana
 
@@ -33,7 +34,11 @@ class Session(QObject, QObjectHelper):
     logoutFinished = pyqtSignal()
 
     QObjectHelper.registerQtProperties(
-        [{"attr": "hash", "type": str}, {"attr": "isAdmin", "type": bool}]
+        [
+            {"attr": "hash", "type": str},
+            {"attr": "isAdmin", "type": bool},
+            {"attr": "copilot"},
+        ]
     )
 
     def __init__(self, analytics: Analytics = None, parent=None):
@@ -183,6 +188,7 @@ class Session(QObject, QObjectHelper):
                     roles=x["roles"],
                     free_diagram_id=x["free_diagram_id"],
                     licenses=[],
+                    created_at=x['created_at']
                 )
                 for x in data["users"]
             ]
@@ -193,9 +199,11 @@ class Session(QObject, QObjectHelper):
                     first_name=userData["first_name"],
                     last_name=userData["last_name"],
                     username=userData["username"],
-                    secret=userData["secret"],
+                    secret=userData["secret"].encode() if userData["secret"] else b'',
                     roles=userData["roles"],
                     free_diagram_id=userData["free_diagram_id"],
+                    created_at=userData["created_at"],
+                    updated_at=userData["updated_at"] if userData["updated_at"] else None,
                     licenses=[
                         License(
                             created_at_readable=util.pyDateTimeString(x["created_at"]),
@@ -204,7 +212,7 @@ class Session(QObject, QObjectHelper):
                         for x in userData["licenses"]
                     ],
                 )
-                self._userDict = self._user.dict()
+                self._userDict = dataclasses.asdict(self._user)
             else:
                 self._user = None
                 self._userDict = {}
@@ -401,6 +409,8 @@ class Session(QObject, QObjectHelper):
         session_id = self._data["session"]["id"] if self._data else None
         if username is None and self._user:
             username = self._user.username
+        elif username is None:
+            username = ""
 
         if eventName in ("logged_in", "re_logged_in"):
             self._analytics.send(

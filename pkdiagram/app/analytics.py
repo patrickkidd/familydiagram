@@ -6,8 +6,7 @@ import base64
 import pickle
 from uuid import uuid4
 from typing import Union, Callable
-
-import pydantic
+from dataclasses import dataclass
 
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -23,23 +22,32 @@ from pkdiagram.qnam import QNAM
 log = logging.getLogger(__name__)
 
 
-class MixpanelItem(pydantic.BaseModel):
-    def __init__(self, **data):
-        super().__init__(**data)
+@dataclass
+class MixpanelItem:
+
+    properties: dict
+
+    def __post_init__(self):
         self.properties["$insert_id"] = str(uuid4())
 
 
+@dataclass
 class MixpanelEvent(MixpanelItem):
     """
     A queued Mixpanel event, either in memory or on disk.
     """
 
+    def __post_init__(self):
+        super().__post_init__()
+        if isinstance(self.time, float):
+            self.time = int(self.time)
+
     eventName: str
-    username: str = None
-    properties: dict
     time: int
+    username: str = None
 
 
+@dataclass
 class MixpanelProfile(MixpanelItem):
     """
     A queued Mixpanel user profile update, either in memory or on disk.
@@ -49,7 +57,6 @@ class MixpanelProfile(MixpanelItem):
     first_name: str
     last_name: str
     email: str
-    properties: dict
 
 
 class Analytics(QObject):
@@ -87,7 +94,11 @@ class Analytics(QObject):
     def init(self):
         if os.path.isfile(self.filePath()):
             with open(self.filePath(), "rb") as f:
-                self._eventQueue, self._profilesCache = pickle.load(f)
+                try:
+                    self._eventQueue, self._profilesCache = pickle.load(f)
+                except Exception as e:
+                    log.exception("Cached analytics data is corrupt")
+                    self._eventQueue, self._profilesCache = [], {}
         self._timer = self.startTimer(self.RETRY_TIMER_MS)
         self.tick()
 
@@ -172,25 +183,32 @@ class Analytics(QObject):
         return self._currentReply
 
     def _postNextEvents(self):
+
+        def _consume(chunk):
+            for event in chunk:
+                self._eventQueue.remove(event)
+            self._writeToDisk()
+
         chunk = self._eventQueue[: self.MIXPANEL_BATCH_MAX]
-        data = [
-            {
-                "event": x.eventName,
-                "properties": dict(distinct_id=x.username, time=x.time, **x.properties),
-            }
-            for x in chunk
-        ]
+        try:
+            data = [
+                {
+                    "event": x.eventName,
+                    "properties": dict(distinct_id=x.username, time=x.time, **x.properties),
+                }
+                for x in chunk
+            ]
+        except Exception as e:
+            log.exception("Error reading cached analytics event data")
+            _consume(chunk)
+            return
 
         def onSuccess(reply):
             log.debug(f"Sent {len(reply._chunk)} events to Mixpanel")
             self._numEventsSent += len(reply._chunk)
 
         def onFinished(reply, *args):
-            for event in reply._chunk:
-                self._eventQueue.remove(event)
-            # in case there is a dangling reference somewhere
-            reply_chunk = None
-            self._writeToDisk()
+            _consume(reply._chunk)
 
         log.debug(f"Attempting to send {len(chunk)} events to Mixpanel...")
         reply = self.sendJSONRequest(
@@ -200,21 +218,29 @@ class Analytics(QObject):
         reply._chunk = chunk
 
     def _postProfiles(self):
-        data = [
-            {
-                "$token": self._mixpanel_project_token,
-                "$distinct_id": username,
-                "$set": {
-                    "$first_name": x.first_name,
-                    "$last_name": x.last_name,
-                    "$email": x.email,
-                    "roles": x.properties.get("roles", []),
-                    "license": x.properties.get("licenses", []),
-                    "version": version.VERSION,
-                },
-            }
-            for username, x in self._profilesCache.items()
-        ]
+        def _consume():
+            self._profilesCache = {}
+            self._writeToDisk()
+        try:
+            data = [
+                {
+                    "$token": self._mixpanel_project_token,
+                    "$distinct_id": username,
+                    "$set": {
+                        "$first_name": x.first_name,
+                        "$last_name": x.last_name,
+                        "$email": x.email,
+                        "roles": x.properties.get("roles", []),
+                        "license": x.properties.get("licenses", []),
+                        "version": version.VERSION,
+                    },
+                }
+                for username, x in self._profilesCache.items()
+            ]
+        except Exception as e:
+            log.exception("Error reading cached analytics profile data")
+            self._profilesCache = {}
+            return
 
         def onSuccess(reply):
             log.debug(
@@ -222,6 +248,7 @@ class Analytics(QObject):
             )
 
         def onFinished(reply):
+            _consume()
             self._profilesCache = {}
             self._writeToDisk()
 

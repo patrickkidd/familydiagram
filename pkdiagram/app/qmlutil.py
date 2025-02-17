@@ -150,6 +150,8 @@ class QmlUtil(QObject, QObjectHelper):
         "S_EMOTIONAL_UNITS_HELP_TEXT",
         "S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN",
         "S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES",
+        "S_SERVER_IS_DOWN",
+        "S_SERVER_ERROR",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
     ]
@@ -616,3 +618,11 @@ class QmlUtil(QObject, QObjectHelper):
     @pyqtSlot(str)
     def warning(self, message):
         log.warning(message)
+
+    @pyqtSlot(QVariant, result=str)
+    def formatChatResponse(self, response) -> str:
+        return util.formatChatResponse(response.toVariant()["data"])
+
+    @pyqtSlot(QVariant, result=str)
+    def formatChatSources(self, response) -> str:
+        return util.formatChatSources(response.toVariant()["data"])

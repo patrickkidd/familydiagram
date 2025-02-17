@@ -523,6 +523,9 @@ S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
     "Emotional units will show here when you add pair-bonds between people with names."
 )
 
+S_SERVER_IS_DOWN = "The server is down. Please try again later."
+S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
+
 
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
@@ -922,6 +925,18 @@ def frange(start, end, step):
     while start < end:
         yield start
         start += step
+
+
+def formatChatResponse(response: dict) -> str:
+    return response["response"]
+
+
+def formatChatSources(response: dict) -> str:
+    ret = "\n---------\n".join(
+        f"{x['fd_title']}, {x['fd_authors']}:\n\n{x['passage']}"
+        for x in response["sources"]
+    )
+    return ret
 
 
 def setButtonToolTip(button, action):

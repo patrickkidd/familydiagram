@@ -31,9 +31,12 @@ class QmlWidgetHelper(QObjectHelper):
 
     qmlFocusItemChanged = pyqtSignal(QQuickItem)
 
-    def initQmlWidgetHelper(self, engine, source):
+    def initQmlWidgetHelper(self, engine, source: Union[str, QUrl]):
         self._engine = engine
-        self._qmlSource = util.QRC_QML + source
+        if isinstance(source, QUrl):
+            self._qmlSource = source
+        else:
+            self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
         self.initQObjectHelper()
 
@@ -56,7 +59,9 @@ class QmlWidgetHelper(QObjectHelper):
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        if self._qmlSource.startswith("qrc:"):
+        if isinstance(self._qmlSource, QUrl):
+            fpath = self._qmlSource
+        elif self._qmlSource.startswith("qrc:"):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)

@@ -5,6 +5,7 @@ class RightDrawerView(enum.Enum):
     AddAnything = "addanything"
     Timeline = "timeline"
     Settings = "settings"
+    Copilot = "copilot"
 
 
 from .qmlengine import QmlEngine

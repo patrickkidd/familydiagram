@@ -3,6 +3,7 @@ singleton Globals 1.0 Globals.qml
 ActiveListEdit 1.0 ActiveListEdit.qml
 Button 1.0 Button.qml
 ColorPicker 1.0 ColorPicker.qml
+CopilotView 1.0 CopilotView.qml
 CheckBox 1.0 CheckBox.qml
 ComboBox 1.0 ComboBox.qml
 CrudButtons 1.0 CrudButtons.qml

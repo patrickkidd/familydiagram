@@ -214,6 +214,31 @@ def test_queue_on_init_with_data(analytics):
     assert analytics.numProfilesQueued() == len(PROFILES.keys())
 
 
+def test_cache_file_is_corrupted(analytics):
+    with open(analytics.filePath(), "wb") as f:
+        pickle.dump('bad-analytics-cache', f)
+    analytics.init()
+    assert analytics.numEventsQueued() == 0
+    assert analytics.numProfilesQueued() == 0
+
+
+def test_cache_events_is_corrupted(analytics):
+    with open(analytics.filePath(), "wb") as f:
+        pickle.dump((['bad-event-data'], {}), f)
+    with mockRequest(0):
+        analytics.init()
+    assert analytics.numEventsQueued() == 0
+    assert analytics.numProfilesQueued() == 0
+
+def test_cache_profiles_is_corrupted(analytics):
+    with open(analytics.filePath(), "wb") as f:
+        pickle.dump(([], {'bad-profile-key': 'bad-profile-data'}), f)
+    with mockRequest(0):
+        analytics.init()
+    assert analytics.numEventsQueued() == 0
+    assert analytics.numProfilesQueued() == 0
+
+
 def test_offline_come_back_online_and_send(analytics):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()

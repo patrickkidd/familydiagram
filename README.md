@@ -40,3 +40,4 @@ $ python main.py
 - Versioning
     - VERSION_COMPAT in `version.py`
     - `Info.plist` updated according to `version.py` at build time
+

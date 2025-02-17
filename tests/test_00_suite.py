@@ -16,4 +16,4 @@ def test_hangWatchdog(qApp, watchdog):
     watchdog.cancel()
     log.info(f"")
     elapsed_time = (time.time() - start_time) * 1000
-    assert elapsed_time == pytest.approx(watchdog.TIMEOUT_MS, rel=0.05)
+    assert elapsed_time == pytest.approx(watchdog._timeout_ms, rel=0.05)

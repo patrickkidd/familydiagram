@@ -1944,7 +1944,7 @@ class MainWindow(QMainWindow):
                 bdata = reply.readAll()
             data = pickle.loads(bdata)
             data["status"] = CUtil.FileIsCurrent
-            data["owner"] = data["user"]["username"]
+            # data["owner"] = data["user"]["username"]
             diagram = Diagram.create(data)
             self.serverFileModel._addOrUpdateDiagram(diagram)
             fpath = self.serverFileModel.localPathForID(data["id"])

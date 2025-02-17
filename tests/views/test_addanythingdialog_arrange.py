@@ -5,7 +5,7 @@ from pkdiagram.pyqt import QPointF
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person
 
-from .test_addanythingdialog import scene, dlg, START_DATETIME, END_DATETIME
+from .test_addanythingdialog import dlg, START_DATETIME, END_DATETIME
 
 
 pytestmark = [

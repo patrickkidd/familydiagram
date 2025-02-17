@@ -4,12 +4,13 @@ import pytest
 
 import vedana
 from pkdiagram.documentview import RightDrawerView
-from pkdiagram.pyqt import Qt, QObject, QApplication
+from pkdiagram.pyqt import QObject, QApplication
 from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
 from pkdiagram.models import AccessRightsModel
 from pkdiagram.views import CaseProperties
+from pkdiagram.views.qml.copilotview import CopilotView
 
 from fdserver.extensions import db
 from fdserver.models import User, Diagram
@@ -58,9 +59,11 @@ def create_cp(request, test_session, test_user, qtbot, qmlEngine, scene):
         w.deinit()
 
 
+@pytest.mark.watchdog(timeout_ms=20000) # not sure why needs more time when `-n 8``
 @pytest.mark.parametrize("editorMode", [True, False])
-def test_editorMode_enabled(test_session, create_cp, qmlEngine, editorMode):
+def test_editorMode_enabled(test_session, qApp, create_cp, qmlEngine, editorMode):
     cp = create_cp(editorMode=editorMode)
+    qApp.exec()
     assert cp.itemProp("variablesBox", "visible") == editorMode
 
 
@@ -230,3 +233,10 @@ def test_variablesBox_enabled(test_activation, create_cp, is_read_only, qmlEngin
     qmlEngine.sceneModel.refreshProperty("readOnly")
 
     assert cp.itemProp("variablesBox", "enabled") == (not is_read_only)
+
+
+# @pytest.fixture
+# def copilotView(test_activation, create_cp):
+#     cp = create_cp(loadFreeDiagram=True)
+#     cp.setCurrentTab(RightDrawerView.Copilot.value)
+#     return CopilotView(cp, cp.rootProp("copilotView"))
