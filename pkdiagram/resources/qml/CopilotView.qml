@@ -130,10 +130,12 @@ Page {
                     anchors.right: parent.right
                     anchors.rightMargin: root.chatMargin
 
-                    Text {
+                    TextEdit {
                         id: questionText
                         text: dMessage
                         color: util.QML_TEXT_COLOR
+                        readOnly: true
+                        selectByMouse: true
                         wrapMode: Text.WordWrap
                         anchors.fill: parent
                         anchors.margins: 10
@@ -167,10 +169,12 @@ Page {
                     color: 'transparent'
                 }
 
-                Text {
+                TextEdit {
                     id: responseText
                     text: dMessage
                     color: util.QML_TEXT_COLOR
+                    readOnly: true
+                    selectByMouse: true
                     wrapMode: Text.WordWrap
                     width: dRoot.width - dRoot.x * 2
                     bottomPadding: font.pixelSize
