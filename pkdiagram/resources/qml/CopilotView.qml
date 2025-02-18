@@ -19,24 +19,10 @@ Page {
 
     property var chatModel: chatModel
     property var textInput: textInput
-    property var sendButton: sendButton
     property var noChatLabel: noChatLabel
     property var tagsCheckbox: tagsCheckbox
 
     property var chatMargin: util.QML_MARGINS * 1.5
-    property var tagsSummary: {
-        var summary = ""
-        for (var i = 0; i < searchModel.tags.length; i++) {
-            summary += searchModel.tags[i];
-            if (i < searchModel.tags.length - 1) {
-                summary += ", "
-            }
-        }
-        if(summary.length > 0) {
-            summary = "" + searchModel.tags.length + " tags"
-        }
-        return summary;
-    }
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -227,42 +213,45 @@ Page {
             }    
         }
 
-        RowLayout {
-            PK.CheckBox {
-                id: tagsCheckbox
-                text: "Include Tags: " + tagsSummary
-                checked: false
+        PK.TextField {
+            id: textInput
+            placeholderText: "Type your message..."
+            Layout.fillWidth: true
+            onAccepted: {
+                if (text.trim().length > 0) {
+                    copilot.ask(text, tagsCheckbox.checked);
+                    text = ''
+                }
             }
         }
+    }
+
+    footer: PK.ToolBar {
+        id: toolbar
+        spacing: height / 2
+
+        Layout.fillWidth: true
+        Layout.maximumHeight: util.QML_ITEM_HEIGHT // as with PK.CrudButtons
+        position: PK.ToolBar.Footer
 
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            PK.TextField {
-                id: textInput
-                placeholderText: "Type your message..."
-                Layout.fillWidth: true
-                onAccepted: {
-                    if (text.trim().length > 0) {
-                        copilot.ask(text, tagsCheckbox.checked);
-                    }
-                }
+            anchors.fill: parent
+            // anchors.leftMargin: margin 
+            anchors.rightMargin: util.QML_MARGINS / 2
+            PK.CheckBox {
+                id: tagsCheckbox
+                text: "Pertains to any events with the " + searchModel.tags.length + " selected tags"
+                checked: false
+                Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
             }
-
+            Rectangle { Layout.fillWidth: true }
             PK.Button {
-                id: sendButton
-                source: '../../up-arrow.png'
-                Layout.maximumHeight: 18
-                Layout.maximumWidth: 10
-                Layout.rightMargin: 10
-                Layout.topMargin: 3
-                Layout.bottomMargin: 3
-                onClicked: {
-                    if (textInput.text.trim().length > 0) {
-                        copilot.ask(textInput.text, tagsCheckbox.checked);
-                    }
-                }
+                source: "../../search-button.png"
+                ToolTip.text: "Select tags in search"
+                Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
+                onClicked: sceneModel.showSearch()
             }
         }
     }

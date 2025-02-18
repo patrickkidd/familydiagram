@@ -26,6 +26,7 @@ class SceneModel(QObject, ModelHelper):
     addEvent = pyqtSignal([QVariant, QVariant])
     addEmotion = pyqtSignal([], [QVariant])
     selectionChanged = pyqtSignal()  # called from prop sheets (deprecated)
+    showSearch = pyqtSignal()
     searchChanged = pyqtSignal()
     trySetShowAliases = pyqtSignal(bool)
     inspectItem = pyqtSignal(int)

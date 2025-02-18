@@ -8,6 +8,7 @@ from langchain.docstore.document import Document
 
 # from tests.models.test_copilotengine import copilot
 
+from btcopilot import Engine, Response
 from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout, QTimer
 from pkdiagram import util
 from pkdiagram.views.qml import CopilotView
@@ -86,7 +87,7 @@ def test_ask(view, llm_response):
 
     with llm_response(RESPONSE_1, SOURCES_1, 2):
         view.inputMessage("Hello there")
-
+    assert view.textInput.property("text") == ""
     assert view.aiBubbleAdded.wait() == True
     assert view.aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE_1
     assert view.aiBubbleAdded.callArgs[0][0].property("sourcesText") == SOURCES_1
@@ -97,6 +98,7 @@ def test_ask(view, llm_response):
     view.aiBubbleAdded.reset()
     with llm_response(RESPONSE_2, "", 0):
         view.inputMessage("Say somethign else")
+    assert view.textInput.property("text") == ""
     assert view.aiBubbleAdded.wait() == True
     assert view.aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE_2
     assert view.aiBubbleAdded.callArgs[0][0].property("sourcesText") == formatSources(
@@ -141,8 +143,9 @@ TIMEOUT_MS = 30000
         )
     )
 )
+@pytest.mark.real_server
 @pytest.mark.integration
-def test_full_stack(view, flask_app):
+def test_full_stack(view):
     last_response = None
 
     def _on_response(self, response: Response):
@@ -153,6 +156,7 @@ def test_full_stack(view, flask_app):
         view.inputMessage("What year was the NIMH study conducted?")
         assert view.aiBubbleAdded.wait(maxMS=TIMEOUT_MS) == True
         assert (
-            view.aiBubbleAdded.callArgs[0][0].property("text") == last_response.answer
+            view.aiBubbleAdded.callArgs[0][0].property("responseText")
+            == last_response.answer
         )
         _log.info(last_response.answer)

@@ -24,5 +24,4 @@ class CopilotView:
 
     def inputMessage(self, message: str):
         self.view.keyClicksItem(self.textInput, message)
-        self.view.mouseClickItem(self.sendButton)
         assert self.humanBubbleAdded.wait() == True

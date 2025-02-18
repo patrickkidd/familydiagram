@@ -1,3 +1,3 @@
-from pkdiagram.main import main()
+from pkdiagram.main import main
 
 main()

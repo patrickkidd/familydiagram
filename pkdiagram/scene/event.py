@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
@@ -30,7 +31,7 @@ class Event(Item):
         )
     )
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent=None, dynamicProperties: dict = None, **kwargs):
         super().__init__(**kwargs)
         self.isEvent = True
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
@@ -42,6 +43,9 @@ class Event(Item):
         self._onShowAliases = False
         self._updatingDescription = False
         self.parent = None
+        if dynamicProperties:
+            for attr, value in dynamicProperties.items():
+                self.addDynamicProperty(attr).set(value)
         # avoid adding to the parent in various cases
         if parent:  # for tidyness in ctors
             self._do_setParent(parent)

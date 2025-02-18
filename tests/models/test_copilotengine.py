@@ -7,8 +7,10 @@ from langchain.docstore.document import Document
 
 from btcopilot import Engine, Response
 from pkdiagram import util
+from pkdiagram.models import SearchModel
 from pkdiagram.models.copilotengine import CopilotEngine, formatSources
 from pkdiagram.app import Session
+from pkdiagram.scene import Person, Event, Marriage
 
 from btcopilot.tests.conftest import llm_response
 
@@ -16,11 +18,19 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def copilot(test_session):
+def searchModel(scene):
+    _searchModel = SearchModel()
+    _searchModel.scene = scene
+    yield _searchModel
+
+
+@pytest.fixture
+def copilot(test_session, scene, searchModel):
     session = Session()
     session.init(sessionData=test_session.account_editor_dict())
-    _copilot = CopilotEngine(session)
-    yield _copilot
+    copilot = CopilotEngine(session, searchModel)
+    copilot.setScene(scene)
+    yield copilot
 
 
 def test_ask(copilot, llm_response):
@@ -80,6 +90,40 @@ def test_ask(copilot, llm_response):
     assert responseReceived.callArgs[0][0] == RESPONSE_2
     assert responseReceived.callArgs[0][1] == formatSources([])
     assert responseReceived.callArgs[0][2] == 0
+
+
+def test_ask_with_tags(scene, qmlEngine, copilot, llm_response):
+    TAG_1 = "tag1"
+
+    responseReceived = util.Condition(copilot.responseReceived)
+    person_a, person_b = Person(name="Alice"), Person(name="Bob")
+    marriage = Marriage(person_a, person_b)
+    scene.addItems(person_a, person_b, marriage)
+    events = [
+        Event(
+            dateTime=util.Date(2021, 1, 1),
+            description="Bonded",
+            people=["Alice", "Bob"],
+            tags=[TAG_1],
+            dynamicProperties={
+                "anxiety": "down",
+                "symptom": "up",
+            },
+        ),
+        Event(
+            dateTime=util.Date(2022, 1, 1),
+            description="First argument",
+            people=["Alice", "Bob"],
+            tags=[TAG_1],
+            dynamicProperties={"anxiety": "up"},
+        ),
+    ]
+    scene.addItems(*events)
+    qmlEngine.searchModel.tags = [TAG_1]
+    with llm_response("Here is an answer"):
+        copilot.ask("Hello there", includeTags=True)
+    assert responseReceived.wait() == True
+    assert responseReceived.callArgs[0][0] == "Here is an answer"
 
 
 def test_server_down(server_down, copilot):

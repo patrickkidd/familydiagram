@@ -35,12 +35,11 @@ class QmlEngine(QQmlEngine):
         self.session = session
         self.session.setQmlEngine(self)
 
-        self.copilot = CopilotEngine(self.session)
-
         self.sceneModel = SceneModel(self)
         self.sceneModel.session = session
 
         self.searchModel = SearchModel(self)
+        self.copilot = CopilotEngine(self.session, self.searchModel)
 
         self.timelineModel = TimelineModel(self)
         self.timelineModel.searchModel = self.searchModel

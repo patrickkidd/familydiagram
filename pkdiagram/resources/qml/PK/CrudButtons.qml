@@ -64,7 +64,7 @@ PK.ToolBar {
     
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: margin
+        anchors.leftMargin: margin 
         anchors.rightMargin: margin
         spacing: margin
         PK.Button {

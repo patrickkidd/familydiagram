@@ -2,7 +2,9 @@ import pickle
 import logging
 
 from pkdiagram.pyqt import pyqtSlot, pyqtSignal, QObject, QNetworkRequest, QNetworkReply
+from pkdiagram import util
 from pkdiagram.server_types import HTTPError
+from pkdiagram.scene import Scene
 
 
 _log = logging.getLogger(__name__)
@@ -15,6 +17,9 @@ def formatSources(sources: list) -> str:
 
 
 class CopilotEngine(QObject):
+    """
+    Simply translates the UI into a REST request.
+    """
 
     requestSent = pyqtSignal(str)
     responseReceived = pyqtSignal(
@@ -23,10 +28,11 @@ class CopilotEngine(QObject):
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
-    def __init__(self, session):
+    def __init__(self, session, searchModel):
         super().__init__()
         self._session = session
-        self._scene = None
+        self._scene: Scene = None
+        self._searchModel = searchModel
 
     def setScene(self, scene):
         self._scene = scene
@@ -40,13 +46,11 @@ class CopilotEngine(QObject):
         Mockable because qml latches on to slots at init time.
         """
 
-        def onFinished(data):
-            if isinstance(data, str):
-                data = pickle.loads(data)
-                sourcesText = formatSources(data["sources"])
-                self.responseReceived.emit(
-                    data["response"], sourcesText, len(data["sources"])
-                )
+        def onSuccess(data):
+            sourcesText = formatSources(data["sources"])
+            self.responseReceived.emit(
+                data["response"], sourcesText, len(data["sources"])
+            )
 
         def onError():
             if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) == 0:
@@ -55,26 +59,27 @@ class CopilotEngine(QObject):
                 self.serverError.emit(reply.errorString())
 
         if includeTags:
-            timelineData = ""
-            eventProperties = self._scene.eventProperties()
-
-            def _vars(event):
-                return ", ".join(f"{x['attr']}: {x.get()}" for x in eventProperties)
-
-            for event in self._scene.events(tags=includeTags):
-                timelineData += (
-                    f"Timestamp: {event.dateTime}\t"
-                    f"Description: {event.description}\t"
-                    f"People: {', '.join(event.people)}\t"
-                    f"Variables: {', '.join(_vars(event))}\n"
-                )
+            events = self._scene.events(tags=self._searchModel.tags, onlyDated=True)
+        else:
+            events = []
 
         args = {
             "question": question,
             "session": self._session.token,
+            "events": [
+                {
+                    "dateTime": util.dateTimeString(event.dateTime()),
+                    "description": event.description(),
+                    "people": event.parentName() if event.parentName() else "",
+                    "variables": {
+                        prop["attr"]: event.dynamicProperty(prop["attr"]).get()
+                        for prop in self._scene.eventProperties()
+                    },
+                }
+                for event in events
+            ],
         }
         reply = self._session.server().nonBlockingRequest(
-            "POST", "/copilot/chat", data=args, error=onError, finished=onFinished
+            "POST", "/copilot/chat", data=args, error=onError, success=onSuccess
         )
-        onFinished._reply = reply
         self.requestSent.emit(question)

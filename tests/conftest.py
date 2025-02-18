@@ -434,6 +434,11 @@ def qmlEngine(qApp):
 def flask_qnam(tmp_path, request):
     """Per-test wrapper for tmp data dir and Qt HTTP requests."""
 
+    if request.node.get_closest_marker("real_server"):
+        with mock.patch.object(util, "SERVER_URL_ROOT", "http://127.0.0.1:8888"):
+            yield
+        return
+
     # Tie Qt HTTP requests to flask server
     def sendCustomRequest(qt_request, verb, data=b""):
 
