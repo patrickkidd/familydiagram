@@ -112,6 +112,8 @@ else:  # IS_DEV
         SERVER_URL_ROOT = "http://127.0.0.1:8888"
 
 
+SERVER_URL_ROOT = "http://127.0.0.1:8888"
+
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
 
@@ -929,18 +931,6 @@ def frange(start, end, step):
     while start < end:
         yield start
         start += step
-
-
-def formatChatResponse(response: dict) -> str:
-    return response["response"]
-
-
-def formatChatSources(response: dict) -> str:
-    ret = "\n---------\n".join(
-        f"{x['fd_title']}, {x['fd_authors']}:\n\n{x['passage']}"
-        for x in response["sources"]
-    )
-    return ret
 
 
 def setButtonToolTip(button, action):

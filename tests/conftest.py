@@ -204,7 +204,32 @@ def blockingRequest_200(monkeypatch):
     monkeypatch.setattr(Server, "blockingRequest", _blockingRequest)
 
 
-def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
+# Flask -> Qt
+class NetworkReply(QNetworkReply):
+    def abort(self):
+        pass
+
+    def writeData(self, data):
+        if not hasattr(self, "_data"):
+            self._data = b""
+        self._data = self._data + data
+        return len(data)
+
+    # def readData(self, maxSize):
+    #     return self._data
+    def readAll(self):
+        if getattr(self, "_hasReadAll", False):
+            return QByteArray(b"")
+        self._hasReadAll = True
+        if hasattr(self, "_data"):
+            return QByteArray(self._data)
+        else:
+            return QByteArray(b"")
+
+
+def _sendCustomRequest(
+    request, verb, data=b"", client=None, noconnect=False, status_code=None
+):
     # Debug(f"_sendCustomRequest: request.url(): {request.url()}")
     # Qt -> Flask
     headers = []
@@ -217,7 +242,7 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
         query_string = request.url().query()
     # method = request.attribute(QNetworkRequest.CustomVerbAttribute).decode('utf-8')
     # send
-    if not noconnect:
+    if not noconnect and status_code is None:
         response = flask.testing.FlaskClient.open(
             client,
             request.url().path(),
@@ -226,32 +251,12 @@ def _sendCustomRequest(request, verb, data=b"", client=None, noconnect=False):
             data=data,
         )
 
-    # Flask -> Qt
-    class NetworkReply(QNetworkReply):
-        def abort(self):
-            pass
-
-        def writeData(self, data):
-            if not hasattr(self, "_data"):
-                self._data = b""
-            self._data = self._data + data
-            return len(data)
-
-        # def readData(self, maxSize):
-        #     return self._data
-        def readAll(self):
-            if getattr(self, "_hasReadAll", False):
-                return QByteArray(b"")
-            self._hasReadAll = True
-            if hasattr(self, "_data"):
-                return QByteArray(self._data)
-            else:
-                return QByteArray(b"")
-
     reply = NetworkReply()
     reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
     if noconnect:
-        reply.setAttribute(QNetworkRequest.HttpStatusCodeAttribute, 0)
+        status_code = 0
+    if status_code is not None:
+        reply.setAttribute(QNetworkRequest.HttpStatusCodeAttribute, status_code)
     else:
         reply.setAttribute(
             QNetworkRequest.HttpStatusCodeAttribute, response.status_code
@@ -346,15 +351,12 @@ def watchdog(request, qApp):
     start_time = time.time()
     watchog_mark = request.node.get_closest_marker("watchdog")
     if watchog_mark:
-        timeout_ms = watchog_mark.kwargs['timeout_ms']
+        timeout_ms = watchog_mark.kwargs["timeout_ms"]
     else:
         timeout_ms = 10000
 
-    if (
-        not request.config.watchdog_disabled
-        and not integration
-    ):
-        
+    if not request.config.watchdog_disabled and not integration:
+
         class Watchdog:
 
             def __init__(self, timeout_ms):
@@ -369,9 +371,7 @@ def watchdog(request, qApp):
                 self._canceled = True
 
             def kill(self):
-                log.info(
-                    f"Watchdog timer reached after {timeout_ms}ms, closing window"
-                )
+                log.info(f"Watchdog timer reached after {timeout_ms}ms, closing window")
                 w = QApplication.activeWindow()
                 if w:
                     w.close()
@@ -403,7 +403,9 @@ def watchdog(request, qApp):
     else:
         elapsed = time.time() - start_time
         if elapsed > timeout_ms:
-            log.warning(f"Watchdog would have been triggered after {timeout_ms}ms; test took {elapsed}ms.")
+            log.warning(
+                f"Watchdog would have been triggered after {timeout_ms}ms; test took {elapsed}ms."
+            )
 
 
 @pytest.fixture
@@ -477,6 +479,27 @@ def server_down(flask_app):
             yield
 
     return _server_down
+
+
+@pytest.fixture
+def server_error(flask_app):
+    """
+    Can be called repeatedly to return a error status code from Server.nonBlockingRequest().
+    """
+
+    @contextlib.contextmanager
+    def _server_error(status_code=500):
+
+        def sendCustomRequest(request, verb, data=b""):
+            with flask_app.test_client() as client:
+                return _sendCustomRequest(
+                    request, verb, data=data, client=client, status_code=status_code
+                )
+
+        with mock.patch.object(QNAM.instance(), "sendCustomRequest", sendCustomRequest):
+            yield
+
+    return _server_error
 
 
 @pytest.fixture

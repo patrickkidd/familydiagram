@@ -18,3 +18,4 @@ from .emotionalunitsmodel import EmotionalUnitsModel
 from .searchmodel import SearchModel
 from .tagsmodel import TagsModel
 from .scenemodel import SceneModel
+from .copilotengine import CopilotEngine

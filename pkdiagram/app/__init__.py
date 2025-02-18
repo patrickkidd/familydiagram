@@ -1,7 +1,7 @@
-from .qmlutil import QmlUtil
 from .analytics import Analytics, MixpanelEvent, MixpanelProfile
-from .appconfig import AppConfig
 from .session import Session
+from .qmlutil import QmlUtil
+from .appconfig import AppConfig
 
 from .appcontroller import AppController
 from .application import Application

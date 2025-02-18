@@ -21,55 +21,62 @@ Page {
     property var textInput: textInput
     property var sendButton: sendButton
     property var noChatLabel: noChatLabel
+    property var tagsCheckbox: tagsCheckbox
 
     property var chatMargin: util.QML_MARGINS * 1.5
+    property var tagsSummary: {
+        var summary = ""
+        for (var i = 0; i < searchModel.tags.length; i++) {
+            summary += searchModel.tags[i];
+            if (i < searchModel.tags.length - 1) {
+                summary += ", "
+            }
+        }
+        if(summary.length > 0) {
+            summary = "" + searchModel.tags.length + " tags"
+        }
+        return summary;
+    }
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
     }
 
+    Connections {
+        target: copilot
+        function onRequestSent(questionText) {
+            chatModel.append({ "message": questionText, "sources": '', 'numSources': 0, "fromUser": true, });
+        }
+        function onResponseReceived(responseText, sourceText, numSources) {
+            chatModel.append({
+                "message": responseText,
+                "sources": sourceText,
+                "numSources": numSources,
+                "fromUser": false
+            });
+        }
+        function onServerDown() {
+            chatModel.append({
+                "message": util.S_SERVER_IS_DOWN,
+                "sources": '',
+                "numSources": 0,
+                "fromUser": false
+            });
+        }
+        function onServerError() {
+            chatModel.append({
+                "message": util.S_SERVER_ERROR,
+                "sources": '',
+                "numSources": 0,
+                "fromUser": false
+            });
+        }
+    }
+
     function clear() {
         chatModel.clear()
     }
-
-    function submit(message) {
-        chatModel.append({ "message": message, "fromUser": true, 'numSources': 0, 'sources': ''});
-        textInput.text = "";
-        var args = {
-            session: session.token,
-            question: message
-        };
-        Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
-            if(response.status_code == 200) {
-                var s_aiResponse = util.formatChatResponse(response)
-                var s_aiSources = util.formatChatSources(response)
-                chatModel.append({
-                    "message": s_aiResponse,
-                    "sources": s_aiSources,
-                    "numSources": response.data.sources.length,
-                    // "sources": response.data.sources, // was causing crash
-                    "fromUser": false
-                });
-            } else if(response.status_code == 0) {
-                chatModel.append({
-                    "message": util.S_SERVER_IS_DOWN,
-                    "sources": '',
-                    "numSources": 0,
-                    "fromUser": false
-                });
-            } else {
-                print('Server error: ' + response.status_code)
-                chatModel.append({
-                    "message": util.S_SERVER_ERROR,
-                    "sources": '',
-                    "numSources": 0,
-                    "fromUser": false
-                });
-            }
-        });
-    }
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -220,7 +227,14 @@ Page {
             }    
         }
 
-        // Input area for typing messages
+        RowLayout {
+            PK.CheckBox {
+                id: tagsCheckbox
+                text: "Include Tags: " + tagsSummary
+                checked: false
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: 10
@@ -231,7 +245,7 @@ Page {
                 Layout.fillWidth: true
                 onAccepted: {
                     if (text.trim().length > 0) {
-                        root.submit(text);
+                        copilot.ask(text, tagsCheckbox.checked);
                     }
                 }
             }
@@ -246,7 +260,7 @@ Page {
                 Layout.bottomMargin: 3
                 onClicked: {
                     if (textInput.text.trim().length > 0) {
-                        submit(textInput.text);
+                        copilot.ask(textInput.text, tagsCheckbox.checked);
                     }
                 }
             }
