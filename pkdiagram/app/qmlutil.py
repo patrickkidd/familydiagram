@@ -143,6 +143,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_NOTES_HELP_TEXT",
         "S_NO_ITEMS_LABEL",
         "S_NO_EVENTS_TEXT",
+        "S_NO_CHAT_TEXT",
         "S_EMAIL_SENT_TO_CHANGE_PASSWORD",
         "S_FAILED_TO_SEND_PASSWORD_RESET_EMAIL",
         "S_EMOTION_SYMBOL_NOTES_HIDDEN",

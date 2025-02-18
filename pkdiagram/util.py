@@ -490,6 +490,10 @@ S_NO_EVENTS_TEXT = LONG_TEXT(
     "Widen your search criteria or click the green (+) button to add some data points to the timeline."
 )
 
+S_NO_CHAT_TEXT = LONG_TEXT(
+    "Ask any question about the current diagram or biology and behavioral health. The more specific, the better."
+)
+
 S_EMAIL_SENT_TO_CHANGE_PASSWORD = LONG_TEXT(
     "An email was sent with instructions for how to change your password."
 )

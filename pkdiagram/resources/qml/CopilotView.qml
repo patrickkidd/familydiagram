@@ -12,9 +12,15 @@ Page {
     id: root
     title: "BT Copilot"
 
+    signal humanBubbleAdded(Item item)
+    signal humanBubbleRemoved(Item item)
+    signal aiBubbleAdded(Item item)
+    signal aiBubbleRemoved(Item item)
+
     property var chatModel: chatModel
     property var textInput: textInput
     property var sendButton: sendButton
+    property var noChatLabel: noChatLabel
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -26,15 +32,6 @@ Page {
     function clear() {
         chatModel.clear()
     }
-
-    function scrollToBottom() {
-        chatListView.contentY = chatListView.contentHeight - chatListView.height
-    }
-
-    signal humanBubbleAdded(Item item)
-    signal humanBubbleRemoved(Item item)
-    signal aiBubbleAdded(Item item)
-    signal aiBubbleRemoved(Item item)
 
     function submit(message) {
         chatModel.append({ "message": message, "fromUser": true, 'numSources': 0, 'sources': ''});
@@ -70,17 +67,30 @@ Page {
                     "fromUser": false
                 });
             }
-            scrollToBottom()
         });
     }
+
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
 
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "transparent"
+            visible: chatModel.count == 0
+
+            PK.NoDataText {
+                id: noChatLabel
+                text: util.S_NO_CHAT_TEXT
+            }
+        }
+
         // Chat message list
         ListView {
             id: chatListView
+            visible: chatModel.count > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: ListModel {
@@ -89,7 +99,6 @@ Page {
             clip: true
             delegate: Loader {
                 width: chatListView.width
-                // spacing: util.QML_MARGINS
                 property var dMessage: model.message
                 property var dSources: model.sources
                 property var dNumSources: model.numSources
@@ -182,15 +191,13 @@ Page {
                     bottomPadding: font.pixelSize
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: {
-                            sourcesText.toggle()
-                        }
+                        onClicked: sourcesText.toggle()
                     }
                 }
 
                 Text {
                     id: sourcesText
-                    text: dSources // 'Lorem ipsum odor amet, consectetuer adipiscing elit. Nunc metus at platea inceptos eros urna curabitur. Id primis maximus tortor egestas nostra suspendisse cubilia nibh.'
+                    text: dSources
                     color: Qt.darker(util.QML_TEXT_COLOR, 1.2)
                     width: dRoot.width - dRoot.x * 2
                     wrapMode: Text.WordWrap
@@ -229,9 +236,14 @@ Page {
                 }
             }
 
-            Button {
+            PK.Button {
                 id: sendButton
-                text: "Send"
+                source: '../../up-arrow.png'
+                Layout.maximumHeight: 18
+                Layout.maximumWidth: 10
+                Layout.rightMargin: 10
+                Layout.topMargin: 3
+                Layout.bottomMargin: 3
                 onClicked: {
                     if (textInput.text.trim().length > 0) {
                         submit(textInput.text);

@@ -52,7 +52,11 @@ def view(tmp_path, test_session, qtbot, scene, qmlEngine):
 # LOREM = "Lorem ipsum odor amet, consectetuer adipiscing elit. Nunc metus at platea inceptos eros urna curabitur. Id primis maximus tortor egestas nostra suspendisse cubilia nibh."
 
 
-def test_ask(llm_response, qApp, flask_app, view):
+def test_init(view):
+    assert view.item.property('noChatLabel').property('visible') == True
+
+
+def test_ask(llm_response, flask_app, view):
 
     RESPONSE_1 = "Hello back"
     PASSAGE_1 = "Some content 1"
@@ -100,6 +104,7 @@ def test_ask(llm_response, qApp, flask_app, view):
     assert view.aiBubbleAdded.callArgs[0][0].property(
         "sourcesText"
     ) == util.formatChatSources(responseData)
+    assert view.item.property('noChatLabel').property('visible') == False
 
     RESPONSE_2 = "I'm here"
 
@@ -113,6 +118,7 @@ def test_ask(llm_response, qApp, flask_app, view):
     assert view.aiBubbleAdded.callArgs[0][0].property(
         "sourcesText"
     ) == util.formatChatSources({"response": RESPONSE_2, "sources": []})
+    assert view.item.property('noChatLabel').property('visible') == False
 
 
 def test_server_down(view, server_down):
