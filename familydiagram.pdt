@@ -226,12 +226,12 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "compat.py"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "copilotengine.py"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
