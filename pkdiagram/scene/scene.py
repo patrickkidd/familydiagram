@@ -36,7 +36,7 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QUndoCommand,
 )
-from pkdiagram import version, util, version, compat, slugify
+from pkdiagram import version, util, version, slugify
 from pkdiagram.scene import (
     EmotionalUnit,
     Property,
@@ -652,6 +652,8 @@ class Scene(QGraphicsScene, Item):
     ## Files
 
     def read(self, data, byId=None):
+        from pkdiagram.models import compat
+
         """Read in a python dict, return an error string on failure."""
         if self._hasRead:
             raise RuntimeError("Can only read data into a Scene once.")

@@ -8,9 +8,6 @@
 		},
 		{
 			"path": "../btcopilot"
-		},
-		{
-			"path": "../vedana"
 		}
 	],
 	"settings": {
@@ -36,6 +33,8 @@
 			"editor.defaultFormatter": "redhat.vscode-xml"
 		},
 		"makefile.configureOnOpen": false,
-		"python.languageServer": "Pylance"
+		"python.languageServer": "Pylance",
+//		"black-formatter.trace.server": "verbose",
+		"black-formatter.importStrategy": "useBundled"
 	}
 }

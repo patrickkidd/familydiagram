@@ -41,9 +41,6 @@ lib/Python-*
 Defaults.properties
 .cache_ggshield
 
-.vscode/settings.json
-.vscode/c_cpp_properties.json
-
 ## Generated Sources
 
 pkdiagram/build_uuid.py

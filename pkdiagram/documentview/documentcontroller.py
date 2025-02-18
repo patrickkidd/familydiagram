@@ -68,6 +68,7 @@ class DocumentController(QObject):
         )
 
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
+        self.dv.qmlEngine().sceneModel.showSearch.connect(self.dv.showSearch)
 
         # Edit
         self.ui.actionUndo.triggered.connect(self.onUndo)

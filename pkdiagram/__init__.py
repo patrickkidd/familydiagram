@@ -10,8 +10,8 @@ util.init_logging()
 from .slugify import slugify
 from . import version
 from . import scene
-from . import widgets
 from . import models
+from . import widgets
 from . import views
 from . import documentview
 from . import mainwindow

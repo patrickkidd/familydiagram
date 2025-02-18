@@ -8,6 +8,7 @@ from pkdiagram.models import (
     AccessRightsModel,
 )
 from pkdiagram.views import QmlVedana
+from pkdiagram.models import CopilotEngine
 
 
 class QmlEngine(QQmlEngine):
@@ -38,6 +39,7 @@ class QmlEngine(QQmlEngine):
         self.sceneModel.session = session
 
         self.searchModel = SearchModel(self)
+        self.copilot = CopilotEngine(self.session, self.searchModel)
 
         self.timelineModel = TimelineModel(self)
         self.timelineModel.searchModel = self.searchModel
@@ -49,6 +51,7 @@ class QmlEngine(QQmlEngine):
 
         self.rootContext().setContextProperty("engine", self)
         self.rootContext().setContextProperty("util", self.util)
+        self.rootContext().setContextProperty("copilot", self.copilot)
         self.rootContext().setContextProperty("vedana", self.vedana)
         self.rootContext().setContextProperty("session", self.session)
         self.rootContext().setContextProperty("sceneModel", self.sceneModel)
@@ -72,6 +75,7 @@ class QmlEngine(QQmlEngine):
         self.peopleModel.scene = scene
         self.accessRightsModel.scene = scene
         self.searchModel.scene = scene
+        self.copilot.setScene(scene)
 
     def setServerDiagram(self, diagram):
         self.sceneModel.setServerDiagram(diagram)

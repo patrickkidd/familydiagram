@@ -19,8 +19,8 @@ Page {
 
     property var chatModel: chatModel
     property var textInput: textInput
-    property var sendButton: sendButton
     property var noChatLabel: noChatLabel
+    property var tagsCheckbox: tagsCheckbox
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -29,47 +29,40 @@ Page {
         anchors.fill: parent
     }
 
+    Connections {
+        target: copilot
+        function onRequestSent(questionText) {
+            chatModel.append({ "message": questionText, "sources": '', 'numSources': 0, "fromUser": true, });
+        }
+        function onResponseReceived(responseText, sourceText, numSources) {
+            chatModel.append({
+                "message": responseText,
+                "sources": sourceText,
+                "numSources": numSources,
+                "fromUser": false
+            });
+        }
+        function onServerDown() {
+            chatModel.append({
+                "message": util.S_SERVER_IS_DOWN,
+                "sources": '',
+                "numSources": 0,
+                "fromUser": false
+            });
+        }
+        function onServerError() {
+            chatModel.append({
+                "message": util.S_SERVER_ERROR,
+                "sources": '',
+                "numSources": 0,
+                "fromUser": false
+            });
+        }
+    }
+
     function clear() {
         chatModel.clear()
     }
-
-    function submit(message) {
-        chatModel.append({ "message": message, "fromUser": true, 'numSources': 0, 'sources': ''});
-        textInput.text = "";
-        var args = {
-            session: session.token,
-            question: message
-        };
-        Global.server(util, session, "POST", "/copilot/chat", args, function(response) {
-            if(response.status_code == 200) {
-                var s_aiResponse = util.formatChatResponse(response)
-                var s_aiSources = util.formatChatSources(response)
-                chatModel.append({
-                    "message": s_aiResponse,
-                    "sources": s_aiSources,
-                    "numSources": response.data.sources.length,
-                    // "sources": response.data.sources, // was causing crash
-                    "fromUser": false
-                });
-            } else if(response.status_code == 0) {
-                chatModel.append({
-                    "message": util.S_SERVER_IS_DOWN,
-                    "sources": '',
-                    "numSources": 0,
-                    "fromUser": false
-                });
-            } else {
-                print('Server error: ' + response.status_code)
-                chatModel.append({
-                    "message": util.S_SERVER_ERROR,
-                    "sources": '',
-                    "numSources": 0,
-                    "fromUser": false
-                });
-            }
-        });
-    }
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -137,10 +130,12 @@ Page {
                     anchors.right: parent.right
                     anchors.rightMargin: root.chatMargin
 
-                    Text {
+                    TextEdit {
                         id: questionText
                         text: dMessage
                         color: util.QML_TEXT_COLOR
+                        readOnly: true
+                        selectByMouse: true
                         wrapMode: Text.WordWrap
                         anchors.fill: parent
                         anchors.margins: 10
@@ -174,10 +169,12 @@ Page {
                     color: 'transparent'
                 }
 
-                Text {
+                TextEdit {
                     id: responseText
                     text: dMessage
                     color: util.QML_TEXT_COLOR
+                    readOnly: true
+                    selectByMouse: true
                     wrapMode: Text.WordWrap
                     width: dRoot.width - dRoot.x * 2
                     bottomPadding: font.pixelSize
@@ -220,35 +217,45 @@ Page {
             }    
         }
 
-        // Input area for typing messages
-        RowLayout {
+        PK.TextField {
+            id: textInput
+            placeholderText: "Type your message..."
             Layout.fillWidth: true
-            spacing: 10
-
-            PK.TextField {
-                id: textInput
-                placeholderText: "Type your message..."
-                Layout.fillWidth: true
-                onAccepted: {
-                    if (text.trim().length > 0) {
-                        root.submit(text);
-                    }
+            onAccepted: {
+                if (text.trim().length > 0) {
+                    copilot.ask(text, tagsCheckbox.checked);
+                    text = ''
                 }
             }
+        }
+    }
 
+    footer: PK.ToolBar {
+        id: toolbar
+        spacing: height / 2
+
+        Layout.fillWidth: true
+        Layout.maximumHeight: util.QML_ITEM_HEIGHT // as with PK.CrudButtons
+        position: PK.ToolBar.Footer
+
+        RowLayout {
+            anchors.fill: parent
+            // anchors.leftMargin: margin 
+            anchors.rightMargin: util.QML_MARGINS / 2
+            PK.CheckBox {
+                id: tagsCheckbox
+                text: "Pertains to any events with the " + searchModel.tags.length + " selected tags"
+                checked: false
+                Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
+            }
+            Rectangle { Layout.fillWidth: true }
             PK.Button {
-                id: sendButton
-                source: '../../up-arrow.png'
-                Layout.maximumHeight: 18
-                Layout.maximumWidth: 10
-                Layout.rightMargin: 10
-                Layout.topMargin: 3
-                Layout.bottomMargin: 3
-                onClicked: {
-                    if (textInput.text.trim().length > 0) {
-                        submit(textInput.text);
-                    }
-                }
+                source: "../../search-button.png"
+                ToolTip.text: "Select tags in search"
+                Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
+                onClicked: sceneModel.showSearch()
             }
         }
     }
