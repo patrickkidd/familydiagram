@@ -1,4 +1,10 @@
-from .analytics import Analytics, MixpanelEvent, MixpanelProfile
+from .analytics import (
+    Analytics,
+    DatadogLog,
+    DatadogLogLevel,
+    MixpanelEvent,
+    MixpanelProfile,
+)
 from .session import Session
 from .qmlutil import QmlUtil
 from .appconfig import AppConfig

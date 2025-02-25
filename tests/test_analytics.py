@@ -14,7 +14,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.qnam import QNAM
-from pkdiagram.app import Analytics, MixpanelEvent, MixpanelProfile
+from pkdiagram.app import Analytics, DatadogLog, MixpanelEvent, MixpanelProfile
 
 
 _log = logging.getLogger(__name__)
@@ -77,7 +77,9 @@ def analytics():
 
 def test_init(analytics):
     analytics.init()
+    assert analytics.numLogsQueued() == 0
     assert analytics.numEventsQueued() == 0
+    assert analytics.numProfilesQueued() == 0
     assert analytics.currentRequest() is None
 
 
@@ -92,7 +94,12 @@ def test_send_request(analytics):
     onFinished = mock.Mock()
     with mockRequest(200) as sendCustomRequest:
         analytics.sendJSONRequest(
-            URL, DATA, verb=b"POST", success=onSuccess, finished=onFinished
+            URL,
+            DATA,
+            verb=b"POST",
+            success=onSuccess,
+            finished=onFinished,
+            headers={b"Custom-Header": b"Custom-Value"},
         )
     assert analytics.currentRequest() is not None
 
@@ -100,9 +107,9 @@ def test_send_request(analytics):
     assert analytics.currentRequest() is None
     assert sendCustomRequest.call_count == 1
     assert sendCustomRequest.call_args[0][0].url().toString() == URL
-    assert sendCustomRequest.call_args[0][0].rawHeader(
-        b"Authorization"
-    ) == b"Basic " + base64.b64encode("some-token:".encode("utf-8"))
+    assert (
+        sendCustomRequest.call_args[0][0].rawHeader(b"Custom-Header") == b"Custom-Value"
+    )
     assert sendCustomRequest.call_args[0][1] == b"POST"
     assert sendCustomRequest.call_args[0][2] == b'{"event": "test_event"}'
 
@@ -118,6 +125,28 @@ def test_http_error_does_not_repeat(analytics):
     assert completedOneRequest.wait() == True
     assert analytics.numEventsQueued() == 0
     assert analytics.currentRequest() is None
+
+
+def test_datadog_send_logs_api(analytics):
+    completedOneRequest = util.Condition(analytics.completedOneRequest)
+    analytics.init()
+    assert analytics.numEventsQueued() == 0
+    assert analytics.currentRequest() is None
+
+    event = DatadogLog(message="some log content", username="user_1", timestamp=123)
+
+    with mock.patch("time.time", return_value=123):
+        with mockRequest(200) as sendCustomRequest:
+            analytics.send(event)
+    assert analytics.numLogsQueued() == 1
+    assert analytics.currentRequest() is not None
+    assert completedOneRequest.wait() == True
+    assert analytics.numLogsQueued() == 0
+    assert sendCustomRequest.call_count == 1
+    assert (
+        sendCustomRequest.call_args[0][2]
+        == b'[{"message": "some log content", "timestamp": 123, "host": "<desktop>", "service": "gui", "level": "info", "username": "user_1"}]'
+    )
 
 
 def test_mixpanel_send_events_api(analytics):
@@ -216,7 +245,7 @@ def test_queue_on_init_with_data(analytics):
 
 def test_cache_file_is_corrupted(analytics):
     with open(analytics.filePath(), "wb") as f:
-        pickle.dump('bad-analytics-cache', f)
+        pickle.dump("bad-analytics-cache", f)
     analytics.init()
     assert analytics.numEventsQueued() == 0
     assert analytics.numProfilesQueued() == 0
@@ -224,15 +253,16 @@ def test_cache_file_is_corrupted(analytics):
 
 def test_cache_events_is_corrupted(analytics):
     with open(analytics.filePath(), "wb") as f:
-        pickle.dump((['bad-event-data'], {}), f)
+        pickle.dump((["bad-event-data"], {}), f)
     with mockRequest(0):
         analytics.init()
     assert analytics.numEventsQueued() == 0
     assert analytics.numProfilesQueued() == 0
 
+
 def test_cache_profiles_is_corrupted(analytics):
     with open(analytics.filePath(), "wb") as f:
-        pickle.dump(([], {'bad-profile-key': 'bad-profile-data'}), f)
+        pickle.dump(([], {"bad-profile-key": "bad-profile-data"}), f)
     with mockRequest(0):
         analytics.init()
     assert analytics.numEventsQueued() == 0
@@ -394,9 +424,9 @@ def test_send_profiles_before_events(analytics):
     urls = []
     orig_sendJSONRequest = analytics.sendJSONRequest
 
-    def _sendJSONRequest(url, data, verb, success, finished):
+    def _sendJSONRequest(url, data, verb, success, finished, headers):
         urls.append(url)
-        return orig_sendJSONRequest(url, data, verb, success, finished)
+        return orig_sendJSONRequest(url, data, verb, success, finished, headers)
 
     with mock.patch(
         "pkdiagram.app.Analytics.sendJSONRequest", side_effect=_sendJSONRequest

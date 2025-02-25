@@ -184,10 +184,6 @@ class Application(QApplication):
         CUtil.instance().deinit()
         CUtil.shutdown()
 
-        if not "pytest" in sys.modules:
-            sys.excepthook = self._excepthook_was
-        self._excepthook_was = None
-
     def prefs(self):
         if not self._prefs:
             if self._prefsName is None:

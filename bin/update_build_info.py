@@ -26,6 +26,8 @@ with open(fpath, "w") as f:
     f.write(f"MIXPANEL_PROJECT_TOKEN = '{FD_BUILD_MIXPANEL_PROJECT_TOKEN}'\n")
     FD_BUILD_MIXPANEL_PROJECT_ID = os.getenv("FD_BUILD_MIXPANEL_PROJECT_ID")
     f.write(f"MIXPANEL_PROJECT_ID = '{FD_BUILD_MIXPANEL_PROJECT_ID}'\n")
+    FD_BUILD_DATADOG_API_KEY = os.getenv("FD_BUILD_DATADOG_API_KEY")
+    f.write(f"DATADOG_API_KEY = '{FD_BUILD_DATADOG_API_KEY}'\n")
 
 
 # Update version in platform-specific locations
