@@ -185,7 +185,7 @@ def init_logging():
     fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
 
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         handlers=[consoleHandler, fileHandler],
     )
 

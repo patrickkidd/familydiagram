@@ -1,7 +1,7 @@
 from .analytics import (
     Analytics,
     DatadogLog,
-    DatadogLogLevel,
+    DatadogLogStatus,
     MixpanelEvent,
     MixpanelProfile,
 )

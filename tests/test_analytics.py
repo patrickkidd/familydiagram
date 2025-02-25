@@ -1,7 +1,8 @@
 import pickle
 import contextlib
-import base64
 import logging
+import json
+import datetime
 
 import pytest
 import mock
@@ -12,9 +13,17 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
     QTimer,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.qnam import QNAM
-from pkdiagram.app import Analytics, DatadogLog, MixpanelEvent, MixpanelProfile
+from pkdiagram.app import (
+    Analytics,
+    DatadogLog,
+    DatadogLogStatus,
+    MixpanelEvent,
+    MixpanelProfile,
+)
+from pkdiagram.server_types import User
+from pkdiagram.app.analytics import time_2_iso8601
 
 
 _log = logging.getLogger(__name__)
@@ -68,7 +77,7 @@ def analytics():
     Just to ensure that timers are killed.
     """
 
-    x = Analytics(mixpanel_project_token="some-token")
+    x = Analytics(mixpanel_project_token="some-token", datadog_api_key="som-dd-key")
 
     yield x
 
@@ -120,33 +129,54 @@ def test_http_error_does_not_repeat(analytics):
     event = MixpanelEvent(
         eventName="test_event", username="user_1", time=123, properties={}
     )
-    with mockRequest(400):
+    with mockRequest(401):
         analytics.send(event)
     assert completedOneRequest.wait() == True
     assert analytics.numEventsQueued() == 0
     assert analytics.currentRequest() is None
 
 
-def test_datadog_send_logs_api(analytics):
+def test_datadog_send_logs_api(test_user, analytics):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
     assert analytics.numEventsQueued() == 0
     assert analytics.currentRequest() is None
 
-    event = DatadogLog(message="some log content", username="user_1", timestamp=123)
+    log = DatadogLog(
+        message="some log content",
+        user=test_user,
+        time=123,
+        status=DatadogLogStatus.Info,
+    )
 
     with mock.patch("time.time", return_value=123):
         with mockRequest(200) as sendCustomRequest:
-            analytics.send(event)
+            with mock.patch("os.uname", return_value="os_uname"):
+                analytics.send(log)
     assert analytics.numLogsQueued() == 1
     assert analytics.currentRequest() is not None
     assert completedOneRequest.wait() == True
     assert analytics.numLogsQueued() == 0
     assert sendCustomRequest.call_count == 1
-    assert (
-        sendCustomRequest.call_args[0][2]
-        == b'[{"message": "some log content", "timestamp": 123, "host": "<desktop>", "service": "gui", "level": "info", "username": "user_1"}]'
-    )
+    assert json.loads(sendCustomRequest.call_args[0][2].decode()) == [
+        {
+            "ddsource": "python",
+            "ddtags": "env:test",
+            "message": "some log content",
+            "date": time_2_iso8601(123),
+            "host": "",
+            "log_txt": "",
+            "service": "desktop",
+            "status": "info",
+            "user": {
+                "id": test_user.id,
+                "username": test_user.username,
+                "name": test_user.first_name + " " + test_user.last_name,
+            },
+            "device": "os_uname",
+            "version": version.VERSION,
+        }
+    ]
 
 
 def test_mixpanel_send_events_api(analytics):
@@ -209,6 +239,17 @@ def test_send_two_events_to_mixpanel(analytics):
 
 def test_queue_on_init_with_data(analytics):
 
+    LOGS = [
+        DatadogLog(
+            message="some log content",
+            user=User(
+                id=456, username="user_1", first_name="Hey", last_name="You", roles=[]
+            ),
+            time=123,
+            status=DatadogLogStatus.Info,
+        )
+        for i in range(10)
+    ]
     EVENTS = [
         MixpanelEvent(
             eventName="test_event",
@@ -236,9 +277,10 @@ def test_queue_on_init_with_data(analytics):
     }
 
     with open(analytics.filePath(), "wb") as f:
-        pickle.dump((EVENTS, PROFILES), f)
+        pickle.dump((LOGS, EVENTS, PROFILES), f)
     with mockRequest(0):
         analytics.init()
+    assert analytics.numLogsQueued() == len(LOGS)
     assert analytics.numEventsQueued() == len(EVENTS)
     assert analytics.numProfilesQueued() == len(PROFILES.keys())
 

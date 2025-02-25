@@ -1,3 +1,4 @@
+import os
 import time
 import uuid, pickle, logging, copy
 import dataclasses
@@ -19,7 +20,7 @@ from pkdiagram.server_types import User, License, Server, HTTPError
 from pkdiagram.app import (
     Analytics,
     DatadogLog,
-    DatadogLogLevel,
+    DatadogLogStatus,
     MixpanelEvent,
     MixpanelProfile,
 )
@@ -405,13 +406,22 @@ class Session(QObject, QObjectHelper):
     def error(self, etype, value, tb):
         import traceback
         from pkdiagram.app import DatadogLog
+        from pkdiagram.extensions import AccumulativeLogHandler
+
+        log_txt = None
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, AccumulativeLogHandler):
+                handler.flush()
+                log_txt = handler.read()
+                break
 
         self._analytics.send(
             DatadogLog(
-                message=traceback.format_exception(etype, value, tb),
-                timestamp=time.time(),
-                username=self._user.username if self._user else None,
-                level=DatadogLogLevel.Error.value,
+                message="\n".join(traceback.format_exception(etype, value, tb)),
+                time=time.time(),
+                user=self._user,
+                status=DatadogLogStatus.Error,
+                log_txt=log_txt,
             )
         )
 

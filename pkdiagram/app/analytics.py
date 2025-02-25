@@ -5,6 +5,7 @@ import logging
 import base64
 import pickle
 import enum
+import datetime
 from uuid import uuid4
 from typing import Union, Callable
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, version
 from pkdiagram.qnam import QNAM
+from pkdiagram.server_types import User
 
 
 log = logging.getLogger(__name__)
@@ -48,20 +50,24 @@ class MixpanelEvent(MixpanelItem):
     username: str = None
 
 
-class DatadogLogLevel(enum.Enum):
+class DatadogLogStatus(enum.Enum):
     Info = "info"
     Error = "error"
 
 
 @dataclass
 class DatadogLog:
-    timestamp: int
+    time: float
     message: str
-    host: str = "<desktop>"
-    service: str = "gui"
-    level: str = "info"
-    username: str = None
-    tags: list[str] = None
+    status: DatadogLogStatus
+    user: User
+    log_txt: str = ""
+
+
+def time_2_iso8601(x: float) -> str:
+    return (
+        datetime.datetime.fromtimestamp(x, tz=datetime.timezone.utc).isoformat() + "Z"
+    )
 
 
 @dataclass
@@ -83,7 +89,7 @@ class Analytics(QObject):
     Manage an offline-capable queue of analytics events.
     """
 
-    RETRY_TIMER_MS = 7000
+    RETRY_TIMER_MS = 12000
     MIXPANEL_BATCH_MAX = 2000
     DATADOG_BATCH_MAX = 1000
 
@@ -121,7 +127,9 @@ class Analytics(QObject):
         if os.path.isfile(self.filePath()):
             with open(self.filePath(), "rb") as f:
                 try:
-                    self._eventQueue, self._profilesCache = pickle.load(f)
+                    self._logQueue, self._eventQueue, self._profilesCache = pickle.load(
+                        f
+                    )
                 except Exception as e:
                     log.exception("Cached analytics data is corrupt")
                     self._eventQueue, self._profilesCache = [], {}
@@ -133,7 +141,7 @@ class Analytics(QObject):
             f"Writing {len(self._eventQueue)} DatadogLog's and {len(self._eventQueue)} MixpanelEvent's and {len(self._profilesCache)} MixpanelProfile's"  #  {self.filePath()}"
         )
         with open(self.filePath(), "wb") as f:
-            pickle.dump((self._eventQueue, self._profilesCache), f)
+            pickle.dump((self._logQueue, self._eventQueue, self._profilesCache), f)
 
     def deinit(self):
         if self._timer is None:
@@ -179,7 +187,14 @@ class Analytics(QObject):
         return f"https://http-intake.logs.datadoghq.com/api/v2/logs"
 
     def sendJSONRequest(
-        self, url, data, verb, success: Callable, finished: Callable, headers: dict
+        self,
+        url,
+        data,
+        verb,
+        success: Callable,
+        finished: Callable,
+        headers: dict,
+        statuses=[200],
     ) -> QNetworkReply:
         self._currentRequest = QNetworkRequest(QUrl(url))
         for k, v in headers.items():
@@ -195,20 +210,19 @@ class Analytics(QObject):
             reply.finished.disconnect(onFinished)
 
             status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-            if status_code != 0 and reply.error() == QNetworkReply.NoError:
+            if reply.error() == QNetworkReply.NoError and status_code in statuses:
                 success(reply)
                 finished(reply)
                 self.tick()
-            elif (
-                status_code != status_code
-                or reply.error() == QNetworkReply.HostNotFoundError
-            ):
-                log.debug(
-                    f"Analytics request {url} failed with HTTP code: {status_code}"
+            elif reply.error() == QNetworkReply.NoError and status_code != 0:
+                log.info(
+                    f"Analytics request {url} failed with HTTP code: {status_code} (not in {statuses})"
                 )
                 finished(reply)
             else:
-                log.debug(f"Analytics request {url} failed: no internet connection")
+                log.info(
+                    f"Analytics request {url} failed: could not connect to host (Qt error: {reply.error()}, status_code: {status_code})"
+                )
             self.completedOneRequest.emit(reply)
 
         self._currentReply.finished.connect(onFinished)
@@ -221,16 +235,36 @@ class Analytics(QObject):
                 self._logQueue.remove(event)
             self._writeToDisk()
 
+        if util.IS_TEST:
+            TAGS = "env:test"
+        elif util.IS_DEV:
+            TAGS = "env:staging"
+        else:
+            TAGS = "env:prod"
         chunk = self._logQueue[: self.DATADOG_BATCH_MAX]
         try:
             data = [
                 {
+                    "ddsource": "python",
+                    "ddtags": TAGS,
+                    "host": "",
+                    "service": "desktop",
+                    #
+                    "date": time_2_iso8601(x.time),
                     "message": x.message,
-                    "timestamp": x.timestamp,
-                    "host": x.host,
-                    "service": x.service,
-                    "level": x.level,
-                    "username": x.username,
+                    "status": x.status.value,
+                    "user": (
+                        {
+                            "id": x.user.id,
+                            "name": f"{x.user.first_name} {x.user.last_name}",
+                            "username": x.user.username,
+                        }
+                        if x.user
+                        else None
+                    ),
+                    "device": os.uname(),
+                    "version": version.VERSION,
+                    "log_txt": x.log_txt,
                 }
                 for x in chunk
             ]
@@ -240,13 +274,15 @@ class Analytics(QObject):
             return
 
         def onSuccess(reply):
-            log.debug(f"Sent {len(reply._chunk)} logs to Mixpanel")
+            log.debug(
+                f"Sent {len(reply._chunk)} logs to Datadog (status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)})"
+            )
             self._numLogsSent += len(reply._chunk)
 
         def onFinished(reply, *args):
             _consume(reply._chunk)
 
-        log.debug(f"Attempting to send {len(chunk)} logs to Mixpanel...")
+        log.debug(f"Attempting to send {len(chunk)} logs to Datadog: {data}")
         reply = self.sendJSONRequest(
             self.logsUrl(),
             data,
@@ -255,7 +291,9 @@ class Analytics(QObject):
             onFinished,
             {
                 b"Content-Type": b"application/json",
+                b"DD-API-KEY": self._datadog_api_key.encode("utf-8"),
             },
+            statuses=[202],
         )
         # so they can be popped from the queue afterward
         reply._chunk = chunk

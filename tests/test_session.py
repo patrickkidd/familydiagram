@@ -1,5 +1,6 @@
 import sys
 import traceback
+import datetime
 
 import pytest, mock
 from sqlalchemy import inspect
@@ -7,7 +8,8 @@ from sqlalchemy import inspect
 import vedana
 from pkdiagram import util, version
 from pkdiagram.server_types import Diagram
-from pkdiagram.app import Session, DatadogLogLevel
+from pkdiagram.app import Session, DatadogLogStatus
+
 
 from fdserver import util as fdserver_util
 
@@ -71,31 +73,6 @@ def test_init_no_server(create_session, server_down, Analytics_send):
     assert Analytics_send.call_count == 0
 
 
-def fake_traceback():
-    import sys
-    import traceback
-    import types
-
-    try:
-        raise ValueError("This is a simulated error for testing")
-    except ValueError as e:
-        # Capture the exception and its traceback
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-
-        # Create a fake traceback object
-        fake_traceback = types.TracebackType(
-            tb_next=None,  # No next traceback (end of the chain)
-            tb_frame=exc_traceback.tb_frame,  # Use the frame from the real traceback
-            tb_lasti=exc_traceback.tb_lasti,  # Use the last instruction from the real traceback
-            tb_lineno=exc_traceback.tb_lineno,  # Use the line number from the real traceback
-        )
-
-        # Attach the fake traceback to the exception
-        exc_value.__traceback__ = fake_traceback
-
-        return exc_type, exc_value, fake_traceback
-
-
 def test_error_no_user(create_session, Analytics_send):
     session = create_session(db_session=False)
 
@@ -107,11 +84,11 @@ def test_error_no_user(create_session, Analytics_send):
 
     session.error(etype, value, tb)
     assert Analytics_send.call_count == 1
-    assert Analytics_send.call_args[0][0].username == None
-    assert Analytics_send.call_args[0][0].timestamp == 123
-    assert Analytics_send.call_args[0][0].level == DatadogLogLevel.Error.value
-    assert Analytics_send.call_args[0][0].message == traceback.format_exception(
-        etype, value, tb
+    assert Analytics_send.call_args[0][0].user == None
+    assert Analytics_send.call_args[0][0].time == 123
+    assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
+    assert Analytics_send.call_args[0][0].message == "\n".join(
+        traceback.format_exception(etype, value, tb)
     )
 
 
@@ -126,11 +103,11 @@ def test_error_with_user(test_user, create_session, Analytics_send):
 
     session.error(etype, value, tb)
     assert Analytics_send.call_count == 3
-    assert Analytics_send.call_args[0][0].username == test_user.username
-    assert Analytics_send.call_args[0][0].timestamp == 123
-    assert Analytics_send.call_args[0][0].level == DatadogLogLevel.Error.value
-    assert Analytics_send.call_args[0][0].message == traceback.format_exception(
-        etype, value, tb
+    assert Analytics_send.call_args[0][0].user.username == test_user.username
+    assert Analytics_send.call_args[0][0].time == 123
+    assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
+    assert Analytics_send.call_args[0][0].message == "\n".join(
+        traceback.format_exception(etype, value, tb)
     )
 
 
