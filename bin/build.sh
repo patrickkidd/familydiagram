@@ -6,7 +6,7 @@ set -e
 TARGET=$1
 
 if [[ "$TARGET" = "" ]]; then
-    TARGET=osx-release
+    TARGET=osx
 fi
 
 BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"

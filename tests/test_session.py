@@ -1,11 +1,15 @@
-import pytest, mock
+import sys
+import traceback
+import datetime
 
+import pytest, mock
 from sqlalchemy import inspect
 
 import vedana
 from pkdiagram import util, version
 from pkdiagram.server_types import Diagram
-from pkdiagram.app import Session
+from pkdiagram.app import Session, DatadogLogStatus
+
 
 from fdserver import util as fdserver_util
 
@@ -53,6 +57,7 @@ def test_init(test_session, create_session, Analytics_send):
         == "patrickkidd+unittest@gmail.com"
     )
 
+
 def test_init_with_activation(test_session, test_activation, create_session):
     session = create_session()
     assert session.isLoggedIn() == True
@@ -66,6 +71,44 @@ def test_init_no_server(create_session, server_down, Analytics_send):
     assert len(session.users) == 0
     assert session.activeFeatures() == []
     assert Analytics_send.call_count == 0
+
+
+def test_error_no_user(create_session, Analytics_send):
+    session = create_session(db_session=False)
+
+    try:
+        raise ValueError("This is a simulated error for testing")
+    except ValueError as e:
+        # Capture the exception and its traceback
+        etype, value, tb = sys.exc_info()
+
+    session.error(etype, value, tb)
+    assert Analytics_send.call_count == 1
+    assert Analytics_send.call_args[0][0].user == None
+    assert Analytics_send.call_args[0][0].time == 123
+    assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
+    assert Analytics_send.call_args[0][0].message == "\n".join(
+        traceback.format_exception(etype, value, tb)
+    )
+
+
+def test_error_with_user(test_user, create_session, Analytics_send):
+    session = create_session(db_session=True)
+
+    try:
+        raise ValueError("This is a simulated error for testing")
+    except ValueError as e:
+        # Capture the exception and its traceback
+        etype, value, tb = sys.exc_info()
+
+    session.error(etype, value, tb)
+    assert Analytics_send.call_count == 3
+    assert Analytics_send.call_args[0][0].user.username == test_user.username
+    assert Analytics_send.call_args[0][0].time == 123
+    assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
+    assert Analytics_send.call_args[0][0].message == "\n".join(
+        traceback.format_exception(etype, value, tb)
+    )
 
 
 def test_login_with_username_password(test_user, analytics):

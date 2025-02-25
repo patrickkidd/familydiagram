@@ -1,6 +1,8 @@
-import time, os, os.path, datetime
+import sys
+import os, os.path
 import shutil
 import pickle
+import traceback
 
 import pytest
 import mock
@@ -11,6 +13,7 @@ from pkdiagram.pyqt import QApplication
 from pkdiagram.scene import Person, Scene, Marriage, Layer
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import AppController
+from pkdiagram.extensions import datadog_excepthook
 
 
 pytestmark = [
@@ -34,6 +37,21 @@ def test_load_fd(test_session, test_activation, tmp_path, create_ac_mw):
     assert mw.documentView.sceneModel.readOnly == False
     assert mw.scene.query1(name="You")
     assert mw.scene.query1(name="Me")
+
+
+def test_exception_logging(test_session, test_activation, tmp_path, create_ac_mw):
+    ac, mw = create_ac_mw()
+    try:
+        raise ValueError("This is a simulated error for testing")
+    except ValueError as e:
+        # Capture the exception and its traceback
+        etype, value, tb = sys.exc_info()
+    with mock.patch("pkdiagram.app.Analytics.send") as send:
+        datadog_excepthook(etype, value, tb)
+    assert send.call_count == 1
+    assert send.call_args[0][0].message == "\n".join(
+        traceback.format_exception(etype, value, tb)
+    )
 
 
 def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):

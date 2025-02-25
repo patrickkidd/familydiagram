@@ -57,32 +57,7 @@ class Application(QApplication):
 
         qInstallMessageHandler(qtMessageHandler)
 
-        ## Python exception handling
-
-        def no_abort(etype, value, tb):
-            """
-            The one and only excepthook.
-            Installing an excepthook prevent a call to abort on exception from PyQt
-            """
-            lines = traceback.format_exception(etype, value, tb)
-            for line in lines:
-                log.error(line[:-1])
-
-            if "pytest" in sys.modules:
-                sys.modules["pytest"].fail(str(value), pytrace=False)
-
-            # bugsnag
-            if "bugsnag" in sys.modules:
-                sys.modules["bugsnag"].legacy.default_client.notify_exc_info(
-                    etype, value, tb
-                )
-
         extensions.init_app(self)
-
-        # After extensions
-        self._excepthook_was = sys.excepthook
-        if not "pytest" in sys.modules:
-            sys.excepthook = no_abort
 
         QApplication.setAttribute(
             Qt.AA_EnableHighDpiScaling, True
@@ -183,10 +158,6 @@ class Application(QApplication):
         iCloudDevPostInit()
         CUtil.instance().deinit()
         CUtil.shutdown()
-
-        if not "pytest" in sys.modules:
-            sys.excepthook = self._excepthook_was
-        self._excepthook_was = None
 
     def prefs(self):
         if not self._prefs:

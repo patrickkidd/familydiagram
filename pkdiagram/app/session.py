@@ -1,3 +1,4 @@
+import os
 import time
 import uuid, pickle, logging, copy
 import dataclasses
@@ -16,7 +17,13 @@ from pkdiagram.pyqt import (
 from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import User, License, Server, HTTPError
-from pkdiagram.app import Analytics, MixpanelEvent, MixpanelProfile
+from pkdiagram.app import (
+    Analytics,
+    DatadogLog,
+    DatadogLogStatus,
+    MixpanelEvent,
+    MixpanelProfile,
+)
 
 
 log = logging.getLogger(__name__)
@@ -188,7 +195,7 @@ class Session(QObject, QObjectHelper):
                     roles=x["roles"],
                     free_diagram_id=x["free_diagram_id"],
                     licenses=[],
-                    created_at=x['created_at']
+                    created_at=x["created_at"],
                 )
                 for x in data["users"]
             ]
@@ -199,11 +206,13 @@ class Session(QObject, QObjectHelper):
                     first_name=userData["first_name"],
                     last_name=userData["last_name"],
                     username=userData["username"],
-                    secret=userData["secret"].encode() if userData["secret"] else b'',
+                    secret=userData["secret"].encode() if userData["secret"] else b"",
                     roles=userData["roles"],
                     free_diagram_id=userData["free_diagram_id"],
                     created_at=userData["created_at"],
-                    updated_at=userData["updated_at"] if userData["updated_at"] else None,
+                    updated_at=(
+                        userData["updated_at"] if userData["updated_at"] else None
+                    ),
                     licenses=[
                         License(
                             created_at_readable=util.pyDateTimeString(x["created_at"]),
@@ -393,6 +402,28 @@ class Session(QObject, QObjectHelper):
         """
         if self._data and self._data["session"]["token"]:
             self.login(token=self._data["session"]["token"])
+
+    def error(self, etype, value, tb):
+        import traceback
+        from pkdiagram.app import DatadogLog
+        from pkdiagram.extensions import AccumulativeLogHandler
+
+        log_txt = None
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, AccumulativeLogHandler):
+                handler.flush()
+                log_txt = handler.read()
+                break
+
+        self._analytics.send(
+            DatadogLog(
+                message="\n".join(traceback.format_exception(etype, value, tb)),
+                time=time.time(),
+                user=self._user,
+                status=DatadogLogStatus.Error,
+                log_txt=log_txt,
+            )
+        )
 
     def track(self, eventName: str, username: str = None, properties=None):
         """
