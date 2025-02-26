@@ -145,9 +145,6 @@ installed_modules = [
 
 # Misc Third-Party ####################################################################
 
-[mixpanel]
-version = "4.10.1"
-
 [six]
 version = "1.14.0"
 

@@ -146,7 +146,6 @@ if [[ $TARGET = osx* ]]; then
         echo "PKS Full release version detected"
     fi
     echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
-    echo "BUGSNAG_API_KEY = \"$FD_BUILD_BUGSNAG_API_KEY\"" >> pkdiagram/pepper.py
 
     echo "PKS Updating app pepper and version"
     if [ ! -f pkdiagram/build_uuid.py ] || \

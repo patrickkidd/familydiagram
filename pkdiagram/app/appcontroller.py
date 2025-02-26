@@ -45,11 +45,7 @@ class AppController(QObject):
         self.prefs = QApplication.instance().prefs()
         self._pendingOpenFilePath = None
         self.appConfig = AppConfig(app, prefsName=prefsName)
-        self._analytics = Analytics(
-            mixpanel_project_id=pepper.MIXPANEL_PROJECT_ID,
-            mixpanel_project_token=pepper.MIXPANEL_PROJECT_TOKEN,
-            datadog_api_key=pepper.DATADOG_API_KEY,
-        )
+        self._analytics = Analytics(datadog_api_key=pepper.DATADOG_API_KEY)
         self.session = Session(self._analytics)
         if not self.prefs.value(
             "enableAppUsageAnalytics", defaultValue=True, type=bool

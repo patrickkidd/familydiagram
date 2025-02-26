@@ -2,12 +2,10 @@ import os.path
 import logging
 import json
 import logging
-import base64
 import pickle
 import enum
 import datetime
-from uuid import uuid4
-from typing import Union, Callable
+from typing import Callable
 from dataclasses import dataclass
 
 from pkdiagram.pyqt import (
@@ -25,31 +23,6 @@ from pkdiagram.server_types import User
 log = logging.getLogger(__name__)
 
 
-@dataclass
-class MixpanelItem:
-
-    properties: dict
-
-    def __post_init__(self):
-        self.properties["$insert_id"] = str(uuid4())
-
-
-@dataclass
-class MixpanelEvent(MixpanelItem):
-    """
-    A queued Mixpanel event, either in memory or on disk.
-    """
-
-    def __post_init__(self):
-        super().__post_init__()
-        if isinstance(self.time, float):
-            self.time = int(self.time)
-
-    eventName: str
-    time: int
-    username: str = None
-
-
 class DatadogLogStatus(enum.Enum):
     Info = "info"
     Error = "error"
@@ -60,7 +33,8 @@ class DatadogLog:
     time: float
     message: str
     status: DatadogLogStatus
-    user: User
+    user: User = None
+    session_id: str = None
     log_txt: str = ""
 
 
@@ -70,54 +44,30 @@ def time_2_iso8601(x: float) -> str:
     )
 
 
-@dataclass
-class MixpanelProfile(MixpanelItem):
-    """
-    A queued Mixpanel user profile update, either in memory or on disk.
-    """
-
-    username: str
-    first_name: str
-    last_name: str
-    email: str
-
-
 class Analytics(QObject):
     """
-    TODO: Rename to MixpanelManager
-
     Manage an offline-capable queue of analytics events.
     """
 
     RETRY_TIMER_MS = 12000
-    MIXPANEL_BATCH_MAX = 2000
     DATADOG_BATCH_MAX = 1000
 
     completedOneRequest = pyqtSignal(QNetworkReply)
 
     def __init__(
         self,
-        mixpanel_project_id=None,
-        mixpanel_project_token=None,
         datadog_api_key: str = None,
         parent=None,
     ):
         super().__init__(parent)
-        if mixpanel_project_token is None:
-            raise ValueError("mixpanel_project_token is required")
-        self._mixpanel_project_id = mixpanel_project_id
-        self._mixpanel_project_token = mixpanel_project_token
+        if datadog_api_key is None:
+            raise ValueError("datadog_api_key is required")
         self._datadog_api_key = datadog_api_key
         self._enabled = True
         # Queue up events with timestamps stored and in order they are sent
         self._logQueue = []
-        # Queue up events with timestamps stored and in order they are sent
-        self._eventQueue = []
-        # Cache the last profile data since only the most recent ones apply
-        self._profilesCache = {}
-        self._currentRequest = None
         self._numLogsSent = 0
-        self._numEventsSent = 0
+        self._currentRequest = None
         self._timer = None
 
     def filePath(self) -> str:
@@ -127,21 +77,20 @@ class Analytics(QObject):
         if os.path.isfile(self.filePath()):
             with open(self.filePath(), "rb") as f:
                 try:
-                    self._logQueue, self._eventQueue, self._profilesCache = pickle.load(
-                        f
-                    )
+                    self._logQueue = pickle.load(f)
                 except Exception as e:
-                    log.exception("Cached analytics data is corrupt")
-                    self._eventQueue, self._profilesCache = [], {}
+                    log.exception("Cached analytics data is corrupt, recovering")
+                    self._logQueue = []
+                if self._logQueue and not isinstance(self._logQueue[0], DatadogLog):
+                    log.error("Cached analytics data is corrupt")
+                    self._logQueue = []
         self._timer = self.startTimer(self.RETRY_TIMER_MS)
         self.tick()
 
     def _writeToDisk(self):
-        log.debug(
-            f"Writing {len(self._eventQueue)} DatadogLog's and {len(self._eventQueue)} MixpanelEvent's and {len(self._profilesCache)} MixpanelProfile's"  #  {self.filePath()}"
-        )
+        log.debug(f"Writing {len(self._logQueue)} DatadogLog items")
         with open(self.filePath(), "wb") as f:
-            pickle.dump((self._logQueue, self._eventQueue, self._profilesCache), f)
+            pickle.dump(self._logQueue, f)
 
     def deinit(self):
         if self._timer is None:
@@ -162,26 +111,11 @@ class Analytics(QObject):
     def numLogsQueued(self) -> int:
         return len(self._logQueue)
 
-    def numProfilesQueued(self) -> int:
-        return len(self._profilesCache.keys())
-
-    def numEventsQueued(self) -> int:
-        return len(self._eventQueue)
-
-    def numEventsSent(self) -> int:
-        return self._numEventsSent
-
     def numLogsSent(self) -> int:
         return self._numLogsSent
 
     def currentRequest(self) -> QNetworkRequest:
         return self._currentRequest
-
-    def importUrl(self) -> str:
-        return f"https://api.mixpanel.com/import?strict=1&project_id={self._mixpanel_project_id}"
-
-    def profilesUrl(self) -> str:
-        return f"https://api.mixpanel.com/engage#profile-batch-update"
 
     def logsUrl(self) -> str:
         return f"https://http-intake.logs.datadoghq.com/api/v2/logs"
@@ -241,6 +175,7 @@ class Analytics(QObject):
             TAGS = "env:staging"
         else:
             TAGS = "env:prod"
+
         chunk = self._logQueue[: self.DATADOG_BATCH_MAX]
         try:
             data = [
@@ -258,6 +193,12 @@ class Analytics(QObject):
                             "id": x.user.id,
                             "name": f"{x.user.first_name} {x.user.last_name}",
                             "username": x.user.username,
+                            "free_diagram_id": x.user.free_diagram_id,
+                            "licenses": (
+                                [y.policy.code for y in x.user.licenses]
+                                if x.user.licenses
+                                else []
+                            ),
                         }
                         if x.user
                         else None
@@ -298,106 +239,6 @@ class Analytics(QObject):
         # so they can be popped from the queue afterward
         reply._chunk = chunk
 
-    def _postNextEvents(self):
-
-        def _consume(chunk):
-            for event in chunk:
-                self._eventQueue.remove(event)
-            self._writeToDisk()
-
-        chunk = self._eventQueue[: self.MIXPANEL_BATCH_MAX]
-        try:
-            data = [
-                {
-                    "event": x.eventName,
-                    "properties": dict(
-                        distinct_id=x.username, time=x.time, **x.properties
-                    ),
-                }
-                for x in chunk
-            ]
-        except Exception as e:
-            log.exception("Error reading cached analytics event data")
-            _consume(chunk)
-            return
-
-        def onSuccess(reply):
-            log.debug(f"Sent {len(reply._chunk)} events to Mixpanel")
-            self._numEventsSent += len(reply._chunk)
-
-        def onFinished(reply, *args):
-            _consume(reply._chunk)
-
-        log.debug(f"Attempting to send {len(chunk)} events to Mixpanel...")
-        reply = self.sendJSONRequest(
-            self.importUrl(),
-            data,
-            b"POST",
-            onSuccess,
-            onFinished,
-            {
-                b"Content-Type": b"application/json",
-                b"Accept": b"application/json",
-                b"Authorization": b"Basic "
-                + base64.b64encode(f"{self._mixpanel_project_token}:".encode("utf-8")),
-            },
-        )
-        # so they can be popped from the queue afterward
-        reply._chunk = chunk
-
-    def _postProfiles(self):
-        def _consume():
-            self._profilesCache = {}
-            self._writeToDisk()
-
-        try:
-            data = [
-                {
-                    "$token": self._mixpanel_project_token,
-                    "$distinct_id": username,
-                    "$set": {
-                        "$first_name": x.first_name,
-                        "$last_name": x.last_name,
-                        "$email": x.email,
-                        "roles": x.properties.get("roles", []),
-                        "license": x.properties.get("licenses", []),
-                        "version": version.VERSION,
-                    },
-                }
-                for username, x in self._profilesCache.items()
-            ]
-        except Exception as e:
-            log.exception("Error reading cached analytics profile data")
-            self._profilesCache = {}
-            return
-
-        def onSuccess(reply):
-            log.debug(
-                f"Successfully sent {len(self._profilesCache.keys())} profiles to Mixpanel"
-            )
-
-        def onFinished(reply):
-            _consume()
-            self._profilesCache = {}
-            self._writeToDisk()
-
-        log.debug(
-            f"Attempting to send {len(self._profilesCache.keys())} profiles to Mixpanel..."
-        )
-        self.sendJSONRequest(
-            self.profilesUrl(),
-            data,
-            b"POST",
-            onSuccess,
-            onFinished,
-            {
-                b"Content-Type": b"application/json",
-                b"Accept": b"application/json",
-                b"Authorization": b"Basic "
-                + base64.b64encode(f"{self._mixpanel_project_token}:".encode("utf-8")),
-            },
-        )
-
     def tick(self):
         """
         Idempotent check and send. Only one request at a time. Prioritize
@@ -405,25 +246,12 @@ class Analytics(QObject):
         """
         if self._currentRequest:
             return
-        elif self._logQueue:
+        if self._logQueue:
             self._postNextLogs()
-        elif self._profilesCache:
-            self._postProfiles()
-        elif self._eventQueue:
-            self._postNextEvents()
 
-    def send(
-        self, item: Union[MixpanelEvent, MixpanelProfile, DatadogLog], defer=False
-    ):
+    def send(self, item: DatadogLog, defer=False):
         if not self._enabled:
             return
-        if isinstance(item, DatadogLog):
-            self._logQueue.append(item)
-        elif isinstance(item, MixpanelEvent):
-            self._eventQueue.append(item)
-        elif isinstance(item, MixpanelProfile):
-            self._profilesCache[item.username] = item
-        else:
-            raise ValueError(f"Invalid analytics item type: {type(item)}")
+        self._logQueue.append(item)
         if not defer:
             self.tick()

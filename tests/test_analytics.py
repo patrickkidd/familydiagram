@@ -15,13 +15,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, version
 from pkdiagram.qnam import QNAM
-from pkdiagram.app import (
-    Analytics,
-    DatadogLog,
-    DatadogLogStatus,
-    MixpanelEvent,
-    MixpanelProfile,
-)
+from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus
 from pkdiagram.server_types import User
 from pkdiagram.app.analytics import time_2_iso8601
 
@@ -77,18 +71,21 @@ def analytics():
     Just to ensure that timers are killed.
     """
 
-    x = Analytics(mixpanel_project_token="some-token", datadog_api_key="som-dd-key")
+    x = Analytics(datadog_api_key="som-dd-key")
 
     yield x
 
     x.deinit()
 
 
+@pytest.fixture
+def user():
+    return User(id=123, username="user_1", first_name="Hey", last_name="You", roles=[])
+
+
 def test_init(analytics):
     analytics.init()
     assert analytics.numLogsQueued() == 0
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0
     assert analytics.currentRequest() is None
 
 
@@ -123,30 +120,28 @@ def test_send_request(analytics):
     assert sendCustomRequest.call_args[0][2] == b'{"event": "test_event"}'
 
 
-def test_http_error_does_not_repeat(analytics):
+def test_http_error_does_not_repeat(analytics, user):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
-    event = MixpanelEvent(
-        eventName="test_event", username="user_1", time=123, properties={}
-    )
     with mockRequest(401):
-        analytics.send(event)
+        analytics.send(
+            DatadogLog(
+                message="test_event", user=user, time=123, status=DatadogLogStatus.Info
+            )
+        )
     assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 0
+    assert analytics.numLogsQueued() == 0
     assert analytics.currentRequest() is None
 
 
-def test_datadog_send_logs_api(test_user, analytics):
+def test_datadog_send_logs_api(analytics, user):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
-    assert analytics.numEventsQueued() == 0
+    assert analytics.numLogsQueued() == 0
     assert analytics.currentRequest() is None
 
     log = DatadogLog(
-        message="some log content",
-        user=test_user,
-        time=123,
-        status=DatadogLogStatus.Info,
+        message="some log content", user=user, time=123, status=DatadogLogStatus.Info
     )
 
     with mock.patch("time.time", return_value=123):
@@ -169,9 +164,11 @@ def test_datadog_send_logs_api(test_user, analytics):
             "service": "desktop",
             "status": "info",
             "user": {
-                "id": test_user.id,
-                "username": test_user.username,
-                "name": test_user.first_name + " " + test_user.last_name,
+                "id": user.id,
+                "username": user.username,
+                "name": user.first_name + " " + user.last_name,
+                "free_diagram_id": None,
+                "licenses": [],
             },
             "device": "os_uname",
             "version": version.VERSION,
@@ -179,158 +176,79 @@ def test_datadog_send_logs_api(test_user, analytics):
     ]
 
 
-def test_mixpanel_send_events_api(analytics):
+def test_send_two_logs(analytics, user):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
-    assert analytics.numEventsQueued() == 0
-    assert analytics.currentRequest() is None
-
-    event = MixpanelEvent(
-        eventName="test_event", username="user_1", time=123, properties={}
+    log_1 = DatadogLog(
+        message="test_event 1", user=user, time=123, status=DatadogLogStatus.Info
     )
-
-    with mock.patch("time.time", return_value=123):
-        with mockRequest(200) as sendCustomRequest:
-            analytics.send(event)
-    assert analytics.numEventsQueued() == 1
-    assert analytics.currentRequest() is not None
-    assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 0
-    assert sendCustomRequest.call_count == 1
-    assert sendCustomRequest.call_args[0][2] == (
-        '[{"event": "test_event", "properties": {"distinct_id": "user_1", "time": 123, "$insert_id": "'
-        + event.properties["$insert_id"]
-        + '"}}]'
-    ).encode("utf-8")
-
-
-def test_send_two_events_to_mixpanel(analytics):
-    completedOneRequest = util.Condition(analytics.completedOneRequest)
-    analytics.init()
-    event_1 = MixpanelEvent(
-        eventName="test_event", username="user_1", time=123, properties={}
-    )
-    event_2 = MixpanelEvent(
-        eventName="test_event", username="user_1", time=123, properties={}
+    log_2 = DatadogLog(
+        message="test_event 2", user=user, time=123, status=DatadogLogStatus.Info
     )
     with mock.patch("time.time", return_value=123):
-        with mockRequest(200) as sendCustomRequest:
-            analytics.send(
-                event_1,
-                defer=True,
-            )
-            analytics.send(
-                event_2,
-                defer=True,
-            )
+        with mockRequest(202) as sendCustomRequest:
+            analytics.send(log_1, defer=True)
+            analytics.send(log_2, defer=True)
             analytics.tick()
     assert completedOneRequest.wait() == True
     assert sendCustomRequest.call_count == 1
-    assert sendCustomRequest.call_args[0][2] == (
-        '[{"event": "test_event", "properties": {"distinct_id": "user_1", "time": 123, "$insert_id": "'
-        + event_1.properties["$insert_id"]
-        + '"}}, {"event": "test_event", "properties": {"distinct_id": "user_1", "time": 123, "$insert_id": "'
-        + event_2.properties["$insert_id"]
-        + '"}}]'
-    ).encode("utf-8")
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numEventsSent() == 2
+    assert json.loads(sendCustomRequest.call_args[0][2])
+    assert analytics.numLogsQueued() == 0
+    assert analytics.numLogsSent() == 2
 
 
-def test_queue_on_init_with_data(analytics):
+def test_queue_on_init_with_data(analytics, user):
 
     LOGS = [
         DatadogLog(
             message="some log content",
-            user=User(
-                id=456, username="user_1", first_name="Hey", last_name="You", roles=[]
-            ),
+            user=user,
             time=123,
             status=DatadogLogStatus.Info,
         )
         for i in range(10)
     ]
-    EVENTS = [
-        MixpanelEvent(
-            eventName="test_event",
-            properties={},
-            username="user_1",
-            time=123 + i,
-        )
-        for i in range(10)
-    ]
-    PROFILES = {
-        "user_1": MixpanelProfile(
-            username="user_1",
-            email="you@me.com",
-            first_name="Hey",
-            last_name="You",
-            properties={},
-        ),
-        "user_2": MixpanelProfile(
-            username="user_2",
-            email="you@me.com",
-            first_name="Hey",
-            last_name="You",
-            properties={},
-        ),
-    }
 
     with open(analytics.filePath(), "wb") as f:
-        pickle.dump((LOGS, EVENTS, PROFILES), f)
+        pickle.dump(LOGS, f)
     with mockRequest(0):
         analytics.init()
     assert analytics.numLogsQueued() == len(LOGS)
-    assert analytics.numEventsQueued() == len(EVENTS)
-    assert analytics.numProfilesQueued() == len(PROFILES.keys())
 
 
 def test_cache_file_is_corrupted(analytics):
     with open(analytics.filePath(), "wb") as f:
         pickle.dump("bad-analytics-cache", f)
     analytics.init()
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0
+    assert analytics.numLogsQueued() == 0
 
 
-def test_cache_events_is_corrupted(analytics):
-    with open(analytics.filePath(), "wb") as f:
-        pickle.dump((["bad-event-data"], {}), f)
-    with mockRequest(0):
-        analytics.init()
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0
-
-
-def test_cache_profiles_is_corrupted(analytics):
-    with open(analytics.filePath(), "wb") as f:
-        pickle.dump(([], {"bad-profile-key": "bad-profile-data"}), f)
-    with mockRequest(0):
-        analytics.init()
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0
-
-
-def test_offline_come_back_online_and_send(analytics):
+def test_offline_come_back_online_and_send(analytics, user):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
-    assert analytics.numEventsQueued() == 0
+    assert analytics.numLogsQueued() == 0
     assert analytics.currentRequest() is None
 
     with mockRequest(0):
         analytics.send(
-            MixpanelEvent(
-                eventName="test_event", username="user_1", time=123, properties={}
+            DatadogLog(
+                message="test_event 1",
+                user=user,
+                status=DatadogLogStatus.Info,
+                time=123,
             )
         )
         analytics.send(
-            MixpanelEvent(
-                eventName="test_event", username="user_1", time=123, properties={}
+            DatadogLog(
+                message="test_event 2",
+                user=user,
+                status=DatadogLogStatus.Info,
+                time=123,
             )
         )
     assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 2
-    assert analytics.numEventsSent() == 0
+    assert analytics.numLogsQueued() == 2
+    assert analytics.numLogsSent() == 0
     assert analytics.currentRequest() is None
 
     # # complete request
@@ -338,147 +256,52 @@ def test_offline_come_back_online_and_send(analytics):
     # with mockRequest(200):
     #     analytics.tick()
     # assert completedOneRequest.wait() == True
-    # assert analytics.numEventsQueued() == 2
+    # assert analytics.numLogsQueued() == 2
     # assert analytics.currentRequest() is None
 
     # Simulate coming back online
     completedOneRequest.reset()
-    with mockRequest(200):
+    with mockRequest(202):
         analytics.timerEvent(None)
     assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numEventsSent() == 2
+    assert analytics.numLogsQueued() == 0
+    assert analytics.numLogsSent() == 2
 
 
-def test_offline_deinit_init_and_send(analytics):
+def test_offline_deinit_init_and_send(analytics, user):
     completedOneRequest = util.Condition(analytics.completedOneRequest)
     analytics.init()
     with mockRequest(0):
         analytics.send(
-            MixpanelEvent(
-                eventName="test_event", username="user_1", time=123, properties={}
+            DatadogLog(
+                message="test_event 1",
+                user=user,
+                status=DatadogLogStatus.Info,
+                time=123,
             )
         )
         analytics.send(
-            MixpanelEvent(
-                eventName="test_event", username="user_1", time=123, properties={}
+            DatadogLog(
+                message="test_event 2",
+                user=user,
+                status=DatadogLogStatus.Info,
+                time=123,
             )
         )
-    assert analytics.numEventsQueued() == 2
+    assert analytics.numLogsQueued() == 2
     assert analytics.currentRequest() is not None
 
     assert completedOneRequest.wait() == True
-    assert analytics.numEventsSent() == 0
-    assert analytics.numEventsQueued() == 2
+    assert analytics.numLogsSent() == 0
+    assert analytics.numLogsQueued() == 2
 
     analytics.deinit()
-    analytics = Analytics(mixpanel_project_token="678")
+    analytics = Analytics(datadog_api_key="678")
     completedOneRequest = util.Condition(analytics.completedOneRequest)
-    with mockRequest(200):
+    with mockRequest(202):
         analytics.init()
-    assert analytics.numEventsQueued() == 2
+    assert analytics.numLogsQueued() == 2
     assert analytics.currentRequest() is not None
     assert completedOneRequest.wait() == True
-    assert analytics.numEventsSent() == 2
-    assert analytics.numEventsQueued() == 0
-
-
-# test colaesce profile updates
-
-
-def test_coalesce_profiles(analytics):
-    analytics.init()
-    analytics.send(
-        MixpanelProfile(
-            username="user_1",
-            email="you@me.com",
-            first_name="Hey",
-            last_name="You",
-            properties={},
-        ),
-        defer=True,
-    )
-    assert analytics.numProfilesQueued() == 1
-
-    analytics.send(
-        MixpanelProfile(
-            username="user_2",
-            email="you_2@me.com",
-            first_name="Hey",
-            last_name="You2",
-            properties={},
-        ),
-        defer=True,
-    )
-    assert analytics.numProfilesQueued() == 2
-
-    analytics.send(
-        MixpanelProfile(
-            username="user_1",
-            email="you_2@me.com",
-            first_name="Hey",
-            last_name="You2",
-            properties={},
-        ),
-        defer=True,
-    )
-    assert analytics.numProfilesQueued() == 2
-
-
-def test_send_profiles_before_events(analytics):
-
-    completedOneRequest = util.Condition(analytics.completedOneRequest)
-    analytics.init()
-    analytics.send(
-        MixpanelEvent(
-            eventName="logged_in", username="user_1", time=123, properties={}
-        ),
-        defer=True,
-    )
-    analytics.send(
-        MixpanelEvent(
-            eventName="logged_in", username="user_2", time=123, properties={}
-        ),
-        defer=True,
-    )
-    analytics.send(
-        MixpanelProfile(
-            username="user_1",
-            email="you@me.com",
-            first_name="Hey",
-            last_name="You",
-            properties={},
-        ),
-        defer=True,
-    )
-    analytics.send(
-        MixpanelProfile(
-            username="user_2",
-            email="you_2@me.com",
-            first_name="Hey",
-            last_name="You2",
-            properties={},
-        ),
-        defer=True,
-    )
-    assert analytics.numProfilesQueued() == 2
-
-    urls = []
-    orig_sendJSONRequest = analytics.sendJSONRequest
-
-    def _sendJSONRequest(url, data, verb, success, finished, headers):
-        urls.append(url)
-        return orig_sendJSONRequest(url, data, verb, success, finished, headers)
-
-    with mock.patch(
-        "pkdiagram.app.Analytics.sendJSONRequest", side_effect=_sendJSONRequest
-    ) as sendJSONRequest:
-        with mockRequest(200):
-            analytics.tick()
-            assert completedOneRequest.wait() == True
-    assert analytics.numEventsQueued() == 0
-    assert analytics.numProfilesQueued() == 0
-    assert urls == [
-        analytics.profilesUrl(),
-        analytics.importUrl(),
-    ]
+    assert analytics.numLogsSent() == 2
+    assert analytics.numLogsQueued() == 0

@@ -47,13 +47,9 @@ def test_init(test_session, create_session, Analytics_send):
     assert session.isLoggedIn() == True
     assert len(test_session.account_editor_dict()["users"]) == len(session.users)
     assert session.activeFeatures() == [vedana.LICENSE_FREE]
-    assert Analytics_send.call_count == 2
+    assert Analytics_send.call_count == 1
     assert (
-        Analytics_send.call_args_list[0][0][0].username
-        == "patrickkidd+unittest@gmail.com"
-    )
-    assert (
-        Analytics_send.call_args_list[1][0][0].username
+        Analytics_send.call_args_list[0][0][0].user.username
         == "patrickkidd+unittest@gmail.com"
     )
 
@@ -102,7 +98,7 @@ def test_error_with_user(test_user, create_session, Analytics_send):
         etype, value, tb = sys.exc_info()
 
     session.error(etype, value, tb)
-    assert Analytics_send.call_count == 3
+    assert Analytics_send.call_count == 2
     assert Analytics_send.call_args[0][0].user.username == test_user.username
     assert Analytics_send.call_args[0][0].time == 123
     assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error

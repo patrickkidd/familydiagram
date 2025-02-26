@@ -10,11 +10,6 @@ if [ "$FD_BUILD_PEPPER" == "" ]; then
     exit 1
 fi
 
-if [ "$FD_BUILD_BUGSNAG_API_KEY" == "" ]; then
-    echo "FD_BUILD_BUGSNAG_API_KEY must be set"
-    exit 1
-fi
-
 if [ "$FD_BUILD_PROVISIONING_PROFILE_BASE64" == "" ]; then
     echo "FD_BUILD_PROVISIONING_PROFILE_BASE64 must be set"
     exit 1

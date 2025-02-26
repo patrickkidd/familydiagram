@@ -35,6 +35,9 @@
 		"makefile.configureOnOpen": false,
 		"python.languageServer": "Pylance",
 //		"black-formatter.trace.server": "verbose",
-		"black-formatter.importStrategy": "useBundled"
+		"black-formatter.importStrategy": "useBundled",
+		"files.exclude": {
+			"**/__pycache__": true
+		}
 	}
 }

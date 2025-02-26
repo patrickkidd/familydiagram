@@ -17,13 +17,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import User, License, Server, HTTPError
-from pkdiagram.app import (
-    Analytics,
-    DatadogLog,
-    DatadogLogStatus,
-    MixpanelEvent,
-    MixpanelProfile,
-)
+from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus
 
 
 log = logging.getLogger(__name__)
@@ -439,30 +433,19 @@ class Session(QObject, QObjectHelper):
             properties = {}
         session_id = self._data["session"]["id"] if self._data else None
         if username is None and self._user:
-            username = self._user.username
+            user = self._user
         elif username is None:
-            username = ""
-
-        if eventName in ("logged_in", "re_logged_in"):
-            self._analytics.send(
-                MixpanelProfile(
-                    username=username,
-                    email=username,
-                    first_name=self.user.first_name,
-                    last_name=self.user.last_name,
-                    properties={
-                        "free_diagram_id": self.user.free_diagram_id,
-                        "licenses": [x.policy.code for x in self.user.licenses],
-                    },
-                )
-            )
+            user = self._user
+        else:
+            user = None
 
         self._analytics.send(
-            MixpanelEvent(
-                eventName=eventName,
-                username=username,
+            DatadogLog(
+                message=eventName,
+                user=user,
+                status=DatadogLogStatus.Info,
+                session_id=session_id,
                 time=time.time(),
-                properties={"session_id": session_id},
             )
         )
 
