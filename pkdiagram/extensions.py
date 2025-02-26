@@ -14,9 +14,6 @@ from pkdiagram import util
 log = logging.getLogger(__name__)
 
 
-## Bugsnag
-
-
 class AccumulativeLogHandler(logging.Handler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,38 +37,6 @@ def findTheMainWindow():
         window = app.activeWindow()
     if window and hasattr(window, "session"):
         return window
-
-
-# def _error_data(etype, value, tb) -> tuple["Session", dict]:
-
-#     mainwindow = findTheMainWindow()
-#     if not mainwindow:
-#         return
-
-#     log_txt = None
-#     for handler in logging.getLogger().handlers:
-#         if isinstance(handler, AccumulativeLogHandler):
-#             handler.flush()
-#             log_txt = handler.read()
-#             break
-
-#     user = mainwindow.session.user
-#     data = {
-#         "user": {
-#             "id": user.username,
-#             "name": f"{user.first_name} {user.last_name}",
-#             "email": user.username,
-#         },
-#         "account": {
-#             "licenses": [
-#                 license.policy.name for license in user.licenses if license.active
-#             ]
-#         },
-#         "device": os.uname(),
-#         "log.txt": handler.read(),
-#         "version": version.VERSION,
-#     }
-#     return mainwindow.session, data
 
 
 def init_logging():
@@ -103,7 +68,6 @@ def datadog_excepthook(etype, value, tb):
     if not mainwindow:
         return
 
-    # session, data = _error_data(etype, value, tb)
     mainwindow.session.error(etype, value, tb)
 
 

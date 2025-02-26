@@ -20,7 +20,6 @@ $ python main.py
     - Confidential env vars (validated in bin/build_env.sh):
         - FD_BUILD_PEPPER The app secret that is used for encrypted disk writes.
           Written to pepper.py and imported in python.
-        - FD_BUILD_BUGSNAG_API_KEY: self explanatory
         - FD_BUILD_PROVISIONING_PROFILE_BASE64: Hashed contents of the provisioning profile.
         - FD_BUILD_CERTIFICATE_BASE64: Hashed contents of the signing certificate
         - FD_BUILD_PRIVATE_KEY_BASE64: Private key for the signing certificate
