@@ -203,6 +203,7 @@ class Analytics(QObject):
                         if x.user
                         else None
                     ),
+                    "session_id": x.session_id,
                     "device": os.uname(),
                     "version": version.VERSION,
                     "log_txt": x.log_txt,
