@@ -82,4 +82,5 @@ class CopilotEngine(QObject):
         reply = self._session.server().nonBlockingRequest(
             "POST", "/copilot/chat", data=args, error=onError, success=onSuccess
         )
+        self._session.track(f"CopilotEngine.ask: {question}")
         self.requestSent.emit(question)
