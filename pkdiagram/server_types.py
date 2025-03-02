@@ -77,6 +77,7 @@ class License:
         if isinstance(self.activations, dict):
             self.activations = [Activation(**x) for x in self.activations]
 
+
 @dataclass
 class User:
     id: int
@@ -129,13 +130,13 @@ class Diagram:
             self.access_rights = [AccessRight(**x) for x in self.access_rights]
 
     # sometimes passed in
-    saved_at: InitVar[datetime] = None 
+    saved_at: InitVar[datetime] = None
 
     @classmethod
     def create(cls, data):
         _data = dict(**data)
-        if 'saved_at' in _data:
-            _data.pop('saved_at')
+        if "saved_at" in _data:
+            _data.pop("saved_at")
         return Diagram(**_data)
 
     @classmethod
@@ -342,6 +343,7 @@ class Server(QObject):
                     finished(reply)
                 self._checkRequestsComplete(reply)
 
+        reply._pk_body = b""
         reply.setProperty("pk_success", success)
         reply.setProperty("pk_error", error)
         reply.setProperty("pk_finished", finished)
