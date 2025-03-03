@@ -29,7 +29,11 @@ releases_json = requests.get(
 
 for _os in [extras.OS.Windows, extras.OS.MacOS]:
     appcast_xml = extras.actions_2_appcast(
-        _os, releases_json.json(), "patrickkidd", "familydiagram"
+        _os,
+        releases_json.json(),
+        "patrickkidd",
+        "familydiagram",
+        prerelease=version.IS_BETA,
     )
 
     if version.IS_BETA:

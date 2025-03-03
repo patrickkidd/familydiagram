@@ -141,7 +141,7 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
+        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
 
     - name: Setup provisioning profile
       run: |
@@ -377,7 +377,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
-          qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+          qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
         shell: cmd # has to be shell or qmake won't work
   
       - name: Build
@@ -418,7 +418,7 @@ jobs:
         tag_name: ${{ needs.setup.outputs.version }}
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
-        prerelease: false
+        prerelease: true
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1

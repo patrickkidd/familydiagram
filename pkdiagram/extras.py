@@ -13,7 +13,9 @@ class OS(enum.Enum):
     MacOS = "macos"
 
 
-def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
+def actions_2_appcast(
+    os: OS, releases: list, repo_owner: str, repo_name: str, prerelease: bool
+):
     """
     Generate the Appcast XML from the GitHub releases.
 
@@ -58,8 +60,11 @@ def actions_2_appcast(os: OS, releases: list, repo_owner: str, repo_name: str):
     link.text = f"https://github.com/{repo_owner}/{repo_name}"
 
     for release in releases:
-        if release["draft"] or release["prerelease"]:
-            continue  # Skip drafts and pre-releases
+        if release["draft"]:
+            return  # Skip drafts
+
+        if release["prerelease"] and not prerelease:
+            continue
 
         item = ET.SubElement(channel, "item")
 
