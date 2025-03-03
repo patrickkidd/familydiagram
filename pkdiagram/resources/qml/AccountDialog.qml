@@ -1191,7 +1191,10 @@ Page {
                             palette.base: acceptableInput ? greenColor : defaultBackgroundColor
                             maximumLength: 4
                             placeholderText: 'CVC'
-                            inputMask: '9999'
+                            validator: IntValidator {
+                                bottom: 100
+                                top: 9999
+                            }
                             // validator: IntValidator {
                             //     bottom: 0
                             //     top: 999
