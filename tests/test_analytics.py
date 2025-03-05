@@ -163,6 +163,7 @@ def test_datadog_send_logs_api(analytics, user):
             "log_txt": "",
             "service": "desktop",
             "status": "info",
+            "session_id": None,
             "user": {
                 "id": user.id,
                 "username": user.username,
