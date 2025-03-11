@@ -96,7 +96,7 @@ ENABLE_DATE_BUDDIES = False
 
 
 SERVER_URL_ROOT = "https://database.familydiagram.com"
-# SERVER_URL_ROOT = "http://turin.local:8888"
+# SERVER_URL_ROOT = "http://127.0.0.1:8888"
 
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)

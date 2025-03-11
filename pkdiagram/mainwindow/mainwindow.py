@@ -289,10 +289,6 @@ class MainWindow(QMainWindow):
         self.ui.actionExport_Scene_dict.triggered.connect(self.onExportSceneDict)
         self.ui.actionCheck_for_Updates.triggered.connect(self.onCheckForUpdates)
         self.ui.actionInstall_Update.triggered.connect(self.onCheckForUpdates)
-        # Insert
-        self.ui.actionParents_to_Selection.triggered.connect(
-            self.view.addParentsToSelection
-        )
         #
         self.ui.actionJump_to_Now.triggered.connect(self.onJumpToNow)
         self.ui.actionReset_All.triggered.connect(self.onResetAll)

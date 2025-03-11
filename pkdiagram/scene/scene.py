@@ -1948,7 +1948,7 @@ class Scene(QGraphicsScene, Item):
         if not selectedPeople:
             return
 
-        with self.macro("Add parents to person", batchAddRemove=True):
+        with self.macro("Add parents to person"):
             for person in selectedPeople:
                 rect = person.mapToScene(person.boundingRect()).boundingRect()
                 fatherPos = person.pos() - QPointF(
@@ -1962,9 +1962,10 @@ class Scene(QGraphicsScene, Item):
                 )
                 mother = Person(
                     gender=util.PERSON_KIND_FEMALE,
-                    itemPos=motherPos,
                     size=person.size(),
                 )
+                father.setItemPosNow(fatherPos)
+                mother.setItemPosNow(motherPos)
                 marriage = Marriage(father, mother)
                 self.addItems(father, mother, marriage)
                 self.push(SetParents(person, marriage))
