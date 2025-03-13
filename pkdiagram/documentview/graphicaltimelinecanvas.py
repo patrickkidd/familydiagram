@@ -488,7 +488,11 @@ class GraphicalTimelineCanvas(QWidget):
             selectedBrush = QBrush(selectedColor)
             # nodalPen.setWidthF(normalPen.widthF() * 2)
             for event in events:
-                if event.dateTime() and event.dateTime() != QDate(QDate(1, 1, 1)):
+                if (
+                    event
+                    and event.dateTime()
+                    and event.dateTime() != QDate(QDate(1, 1, 1))
+                ):
                     days = firstDateTime.daysTo(event.dateTime())
                     x = dayPx * days
                     rect = firstR.translated(x, 0)
