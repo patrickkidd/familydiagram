@@ -418,7 +418,7 @@ jobs:
         tag_name: ${{ needs.setup.outputs.version }}
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
-        prerelease: false
+        prerelease: true
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
