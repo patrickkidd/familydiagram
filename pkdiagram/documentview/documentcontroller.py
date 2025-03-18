@@ -894,6 +894,9 @@ class DocumentController(QObject):
                 elif self.view.rightToolBar.settingsButton.isChecked():
                     self.view.rightToolBar.settingsButton.setChecked(False)
                     return True
+                elif self.view.rightToolBar.copilotButton.isChecked():
+                    self.view.rightToolBar.copilotButton.setChecked(False)
+                    return True
             else:
                 # No button to update
                 drawer.hide()
