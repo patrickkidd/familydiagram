@@ -148,8 +148,8 @@ class PersonPropertiesModel(QObject, ModelHelper):
                     for item in self._items:
                         item.prop("itemOpacity").reset(undo=True)
         elif attr == "age":
-            if self.deceased:
-                x = self.deceasedDate.dateTime().addYears(-value)
+            if self.deceased and self.deceasedDateTime:
+                x = self.deceasedDateTime.addYears(-value)
             else:
                 x = QDateTime.currentDateTime().addYears(-value)
             self.birthDateTime = QDateTime(QDate(x.date().year(), 1, 1))
