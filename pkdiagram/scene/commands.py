@@ -22,8 +22,9 @@ class AddItem(QUndoCommand):
         super().__init__(f"Add item: {item}")
         self.scene = scene
         self.item = item
-        self._layerOrders = self.scene.layers() if item.isLayer else None
+        self._layerOrders = self.scene.layers() if item.isLayer else []
         self._calloutParentId = item.parentId() if item.isCallout else None
+        self._calloutItemPos = item.itemPos() if item.isCallout else None
 
     def redo(self):
         self.scene._do_addItem(self.item)
@@ -31,8 +32,9 @@ class AddItem(QUndoCommand):
             layers = self.scene.layers()
             iOrder = len(self.scene.layers())
             self.item.setOrder(iOrder)  # append
-        elif self.item.isCallout and self.calloutParentId:
+        elif self.item.isCallout:
             self.item.setParentId(self._calloutParentId)
+            self.item.setItemPosNow(self._calloutItemPos)
 
     def undo(self):
         self.scene._do_removeItem(self.item)

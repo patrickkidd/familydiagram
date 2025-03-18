@@ -15,6 +15,7 @@ from pkdiagram.scene import (
     Layer,
     PathItem,
     ChildOf,
+    Callout,
 )
 
 pytestmark = [
@@ -201,6 +202,24 @@ def test_add_multipleBirth_from_diagram(scene, undo):
         assert person3.childOf.multipleBirth == multipleBirth
         assert person3.childOf.multipleBirth == multipleBirth
         assert multipleBirth.children() == [person3, person4]
+
+
+def test_add_callout(scene, undo):
+    layerItemAdded = util.Condition(scene.layerItemAdded)
+    layerItemRemoved = util.Condition(scene.layerItemRemoved)
+    layer = Layer(name="layer", active=True)
+    scene.addItem(layer)
+    callout = Callout(text="Hello, world")
+    scene.addItem(callout, undo=undo)
+    assert layerItemAdded.callCount == 1
+    assert scene.layerItems() == [callout]
+    scene.undo()
+    if undo:
+        assert layerItemRemoved.callCount == 1
+        assert scene.layerItems() == []
+    else:
+        assert layerItemRemoved.callCount == 0
+        assert scene.layerItems() == [callout]
 
 
 ## Remove items

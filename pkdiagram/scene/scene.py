@@ -544,6 +544,7 @@ class Scene(QGraphicsScene, Item):
             self.layerRemoved.emit(item)
         elif item.isLayerItem:
             self._layerItems.remove(item)
+            self.layerItemRemoved.emit(item)
         elif item.isItemDetails:
             self._itemDetails.remove(item)
         if item.isPathItem:  # so far only for details/sep items
@@ -987,7 +988,13 @@ class Scene(QGraphicsScene, Item):
             item = _item
             break
         # item = next(iter(self.items(e.scenePos())), None)
-        if self.itemMode() in [util.ITEM_MALE, util.ITEM_FEMALE, util.ITEM_CALLOUT]:
+        if self.itemMode() == util.ITEM_CALLOUT:
+            people = self.selectedItems(type=Person)
+            if len(people) == 1:
+                self.calloutParent = people[0]
+            else:
+                self.calloutParent = None
+        elif self.itemMode() in [util.ITEM_MALE, util.ITEM_FEMALE]:
             if (
                 item
                 and not isinstance(item, Marriage)
@@ -995,12 +1002,6 @@ class Scene(QGraphicsScene, Item):
             ):
                 e.accept()
                 self.setItemMode(util.ITEM_NONE)
-            if self.itemMode() == util.ITEM_CALLOUT:
-                people = self.selectedItems(type=Person)
-                if len(people) == 1:
-                    self.calloutParent = people[0]
-                else:
-                    self.calloutParent = None
         elif self.itemMode() in [
             util.ITEM_MARRY,
             util.ITEM_CHILD,
@@ -1167,11 +1168,13 @@ class Scene(QGraphicsScene, Item):
         elif self.itemMode() == util.ITEM_CALLOUT:
             e.accept()
             callout = Callout()
+            self.addItem(callout)
             callout.setItemPosNow(e.scenePos())
             if self.calloutParent:
                 callout.setParentId(
-                    self.parentPerson.id
+                    self.calloutParent.id
                 )  # handles position translation
+            self.push(AddItem(self, callout))
             self.addItem(callout, undo=True)
             callout.setSelected(True)
             self.setItemMode(util.ITEM_NONE)
