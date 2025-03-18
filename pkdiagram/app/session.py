@@ -379,7 +379,7 @@ class Session(QObject, QObjectHelper):
     @pyqtSlot()
     def logout(self):
         if self._data:
-            wasUsername = self._user.username if self._user else None
+            wasUser = self._user
             try:
                 self.server().blockingRequest("DELETE", f"/sessions/{self.token}")
             except HTTPError as e:
@@ -387,7 +387,7 @@ class Session(QObject, QObjectHelper):
             finally:
                 self.setData(None)
                 self.logoutFinished.emit()
-                self.track("logged_out", username=wasUsername)
+                self.track("logged_out", properties={"user": wasUser})
 
     @pyqtSlot()
     def update(self):
@@ -419,7 +419,7 @@ class Session(QObject, QObjectHelper):
             )
         )
 
-    def track(self, eventName: str, username: str = None, properties=None):
+    def track(self, eventName: str, properties=None):
         """
         The typical entrypoint for analytics is from a session, includes the
         username and that user's session. Tracking without a session is handled
@@ -429,20 +429,13 @@ class Session(QObject, QObjectHelper):
             # log.warning("Analytics not initialized on Session object.")
             return
 
-        if properties is None:
-            properties = {}
         session_id = self._data["session"]["id"] if self._data else None
-        if username is None and self._user:
-            user = self._user
-        elif username is None:
-            user = self._user
-        else:
-            user = None
-
+        if not properties:
+            properties = {}
         self._analytics.send(
             DatadogLog(
                 message=eventName,
-                user=user,
+                user=properties.get("user", self._user),
                 status=DatadogLogStatus.Info,
                 session_id=session_id,
                 time=time.time(),

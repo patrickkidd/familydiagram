@@ -15,7 +15,7 @@ from pkdiagram.pyqt import (
     QItemSelectionModel,
 )
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Layer, Event, Emotion, Marriage
+from pkdiagram.scene import Scene, Person, Layer, Event, Emotion, Marriage, Callout
 from pkdiagram.widgets import ActiveListEdit
 from pkdiagram.documentview import DocumentView, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
@@ -190,6 +190,45 @@ def test_undo_remove_emotion_no_other_events(dv, scene):
 
     scene.undo()
     assert dv.isGraphicalTimelineShown() == True
+
+
+def test_add_callout_from_mouse(qtbot, scene, dv):
+    layerItemAdded = util.Condition(scene.layerItemAdded)
+    layerItemRemoved = util.Condition(scene.layerItemRemoved)
+    scene.addItem(Layer(name="Here we are", active=True))
+    scene.setItemMode(util.ITEM_CALLOUT)
+    qtbot.mouseClick(
+        dv.view.viewport(),
+        Qt.LeftButton,
+        Qt.NoModifier,
+        dv.view.viewport().rect().center(),
+    )
+    assert layerItemAdded.callCount == 1
+    assert layerItemAdded.callArgs[0][0].__class__ == Callout
+    scene.undo()
+    assert layerItemRemoved.callCount == 1
+    assert scene.layerItems() == []
+
+
+def test_add_callout_from_mouse_to_person(qtbot, scene, dv):
+    layerItemAdded = util.Condition(scene.layerItemAdded)
+    layerItemRemoved = util.Condition(scene.layerItemRemoved)
+    scene.addItem(Layer(name="Here we are", active=True))
+    person = Person(name="Here I am")
+    scene.addItem(person)
+    scene.setItemMode(util.ITEM_CALLOUT)
+    person.setSelected(True)
+    qtbot.mouseClick(
+        dv.view.viewport(),
+        Qt.LeftButton,
+        Qt.NoModifier,
+        dv.view.viewport().rect().center(),
+    )
+    assert layerItemAdded.callCount == 1
+    assert layerItemAdded.callArgs[0][0].__class__ == Callout
+    scene.undo()
+    assert layerItemRemoved.callCount == 1
+    assert scene.layerItems() == []
 
 
 def test_load_from_file_empty(dv):

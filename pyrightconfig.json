@@ -1,0 +1,18 @@
+{
+  "include": [
+    "pkdiagram"
+  ],
+
+  "exclude": [
+    "**/__pycache__",
+    "lib",
+    "build",
+    "doc",
+    "_pkdiagram",
+    "sysroot/sysroot-*"
+  ],
+
+  "ignore": [
+    "src/oldstuff"
+  ]
+}

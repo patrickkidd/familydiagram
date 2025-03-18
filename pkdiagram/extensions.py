@@ -77,4 +77,5 @@ def init_datadog(app: QApplication):
 
 def init_app(app: QApplication):
     init_logging()
-    init_datadog(app)
+    if not util.IS_DEV:
+        init_datadog(app)

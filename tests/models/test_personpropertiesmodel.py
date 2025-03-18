@@ -1,14 +1,23 @@
 import pytest
+import mock
 
-from pkdiagram.pyqt import Qt
+from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram.models import PersonPropertiesModel
 from pkdiagram.scene import Scene, Person
+from pkdiagram import util
 
 
 pytestmark = [
     pytest.mark.component("PersonPropertiesModel"),
     pytest.mark.depends_on("Scene"),
 ]
+
+
+@pytest.fixture
+def model(scene):
+    _model = PersonPropertiesModel()
+    _model.scene = scene
+    return _model
 
 
 def test_read_checkStates(simpleScene):
@@ -68,3 +77,39 @@ def _test_prop_returns():
     scene.addItems(personA, personB)
     model.items = [personA, personB]
     assertNoneAreNone()
+
+
+@pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
+def test_set_age_on_deceased_one_person(scene, model, deceasedDateTime):
+    personA = Person(deceased=True)
+    personA.setDeceasedDateTime(deceasedDateTime)
+    scene.addItems(personA)
+    model.items = [personA]
+    with mock.patch(
+        "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
+    ):
+        model.age = 10
+    if deceasedDateTime:
+        assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
+    else:
+        assert personA.birthDateTime() == util.Date(1990, 1, 1)
+
+
+@pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
+def test_set_age_on_deceased_multiple_people(scene, model, deceasedDateTime):
+    personA = Person(deceased=True)
+    personB = Person(deceased=True)
+    personA.setDeceasedDateTime(deceasedDateTime)
+    personB.setDeceasedDateTime(deceasedDateTime)
+    scene.addItems(personA, personB)
+    model.items = [personA, personB]
+    with mock.patch(
+        "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
+    ):
+        model.age = 10
+    if deceasedDateTime:
+        assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
+        assert personB.birthDateTime() == model.deceasedDateTime.addYears(-10)
+    else:
+        assert personA.birthDateTime() == util.Date(1990, 1, 1)
+        assert personB.birthDateTime() == util.Date(1990, 1, 1)

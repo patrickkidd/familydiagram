@@ -216,6 +216,7 @@ class View(QGraphicsView):
         self.noItemsCTALabel.setWordWrap(True)
         self.noItemsCTALabel.setMaximumWidth(util.NO_ITEMS_FONT_PIXEL_SIZE * 50)
         self.noItemsCTALabel.setAlignment(Qt.AlignCenter)
+        self.noItemsCTALabel.setAttribute(Qt.WA_TransparentForMouseEvents, True)
 
         self.zoomFitAnim = QVariantAnimation(self)
         self.zoomFitAnim.setDuration(util.ANIM_DURATION_MS)

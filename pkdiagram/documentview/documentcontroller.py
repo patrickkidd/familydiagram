@@ -115,13 +115,13 @@ class DocumentController(QObject):
         self.itemModeActionGroup.addAction(self.ui.actionCallout)
         self.itemModeActionGroup.addAction(self.ui.actionPencilStroke)
         self.itemModeActionGroup.triggered[QAction].connect(self.onItemModeAction)
-        self.ui.actionParents_to_Selection.triggered.connect(
-            self.view.addParentsToSelection
-        )
         self.ui.actionMale.setData(util.ITEM_MALE)
         self.ui.actionFemale.setData(util.ITEM_FEMALE)
         self.ui.actionMarriage.setData(util.ITEM_MARRY)
         self.ui.actionChild_Of.setData(util.ITEM_CHILD)
+        self.ui.actionParents_to_Selection.triggered.connect(
+            self.view.addParentsToSelection
+        )
         self.ui.actionConflict.setData(util.ITEM_CONFLICT)
         self.ui.actionProjection.setData(util.ITEM_PROJECTION)
         self.ui.actionFusion.setData(util.ITEM_FUSION)
@@ -893,6 +893,9 @@ class DocumentController(QObject):
                     return True
                 elif self.view.rightToolBar.settingsButton.isChecked():
                     self.view.rightToolBar.settingsButton.setChecked(False)
+                    return True
+                elif self.view.rightToolBar.copilotButton.isChecked():
+                    self.view.rightToolBar.copilotButton.setChecked(False)
                     return True
             else:
                 # No button to update
