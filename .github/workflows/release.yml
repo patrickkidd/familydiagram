@@ -141,7 +141,7 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release CONFIG+=beta
+        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
 
     - name: Setup provisioning profile
       run: |
@@ -418,7 +418,7 @@ jobs:
         tag_name: ${{ needs.setup.outputs.version }}
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
-        prerelease: true
+        prerelease: false
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
