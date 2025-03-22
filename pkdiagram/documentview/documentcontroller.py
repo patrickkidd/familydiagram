@@ -899,7 +899,7 @@ class DocumentController(QObject):
                     return True
             else:
                 # No button to update
-                drawer.hide()
+                self.dv.setCurrentDrawer(None)
                 return True
         return False
 
