@@ -39,7 +39,26 @@ def findTheMainWindow():
         return window
 
 
+_excepthooks = []
+
+
+def _excepthook(etype, value, tb):
+    global _excepthooks
+
+    for hook in _excepthooks:
+        hook(etype, value, tb)
+
+
+def _logging_excepthook(etype, value, tb):
+    lines = traceback.format_exception(etype, value, tb)
+    for line in lines:
+        log.error(line[:-1])
+
+
 def init_logging():
+    global _excepthooks
+
+    _excepthooks.append(_logging_excepthook)
 
     logger = logging.getLogger()
 
@@ -60,10 +79,6 @@ def datadog_excepthook(etype, value, tb):
         sys.__excepthook__(etype, value, tb)
         return
 
-    lines = traceback.format_exception(etype, value, tb)
-    for line in lines:
-        log.error(line[:-1])
-
     mainwindow = findTheMainWindow()
     if not mainwindow:
         return
@@ -72,10 +87,13 @@ def datadog_excepthook(etype, value, tb):
 
 
 def init_datadog(app: QApplication):
-    sys.excepthook = datadog_excepthook
+    global _excepthooks
+
+    _excepthooks.append(datadog_excepthook)
 
 
 def init_app(app: QApplication):
+    sys.excepthook = _excepthook
     init_logging()
     if not util.IS_DEV:
         init_datadog(app)
