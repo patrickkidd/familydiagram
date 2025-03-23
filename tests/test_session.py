@@ -83,7 +83,7 @@ def test_error_no_user(create_session, Analytics_send):
     assert Analytics_send.call_args[0][0].user == None
     assert Analytics_send.call_args[0][0].time == 123
     assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
-    assert Analytics_send.call_args[0][0].message == "\n".join(
+    assert Analytics_send.call_args[0][0].message == "".join(
         traceback.format_exception(etype, value, tb)
     )
 
@@ -102,7 +102,7 @@ def test_error_with_user(test_user, create_session, Analytics_send):
     assert Analytics_send.call_args[0][0].user.username == test_user.username
     assert Analytics_send.call_args[0][0].time == 123
     assert Analytics_send.call_args[0][0].status == DatadogLogStatus.Error
-    assert Analytics_send.call_args[0][0].message == "\n".join(
+    assert Analytics_send.call_args[0][0].message == "".join(
         traceback.format_exception(etype, value, tb)
     )
 

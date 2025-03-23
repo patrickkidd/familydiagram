@@ -755,7 +755,7 @@ class MainWindow(QMainWindow):
 
         # Save file name
         if self.scene.shouldShowAliases():
-            fileName = "[%s]" % self.scene.alias
+            fileName = "[%s]" % self.scene.alias()
         else:
             fileName = QFileInfo(self.document.url().toLocalFile()).fileName()
 
@@ -829,9 +829,7 @@ class MainWindow(QMainWindow):
                 elif format == "PNG":
                     self.documentView.controller.writePNG(filePath)
                 elif format == "XLSX":
-                    self.documentView.controller.writeExcel(
-                        filePath, self.documentView.searchModel
-                    )
+                    self.documentView.controller.writeExcel(filePath)
                 elif format == "JSON":
                     self.documentView.controller.writeJSON(filePath)
         for item in selectedItems:

@@ -10,7 +10,7 @@
     },
     //		"black-formatter.trace.server": "verbose",
     "black-formatter.importStrategy": "useBundled",
-    "black-formatter.interpreter": [
-        ".venv/bin/python"
-    ]
+    // "black-formatter.interpreter": [
+    //     ".venv/bin/python"
+    // ]
 }
