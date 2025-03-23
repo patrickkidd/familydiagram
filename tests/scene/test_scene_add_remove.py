@@ -108,6 +108,24 @@ def test_add_marriage(scene, undo):
         assert scene.marriages() == [marriage]
 
 
+def test_add_pairbond_undo_redo(scene):
+    person1 = Person(name="person1")
+    person2 = Person(name="person2")
+    scene.addItems(person1, person2)
+    assert person1.marriages == []
+    assert person2.marriages == []
+
+    marriage = Marriage(person1, person2)
+    scene.addItem(marriage, undo=True)
+    assert person1.marriages == [marriage]
+
+    scene.undo()
+    assert person1.marriages == []
+
+    scene.redo()
+    assert person1.marriages == [marriage]
+
+
 def test_add_emotion(scene, undo):
     emotionAdded = util.Condition(scene.emotionAdded)
     emotionRemoved = util.Condition(scene.emotionRemoved)
@@ -220,6 +238,24 @@ def test_add_callout(scene, undo):
     else:
         assert layerItemRemoved.callCount == 0
         assert scene.layerItems() == [callout]
+
+
+def test_addParentsToSelection(scene):
+    person = Person(name="Hey", lastName="You")
+    scene.addItem(person)
+    person.setSelected(True)
+    scene.addParentsToSelection()
+    assert person.childOf is not None
+    assert person.parents() is not None
+    assert len(person.parents().people) == 2
+    scene.undo()
+    assert person.childOf is None
+    assert person.parents() is None
+
+    scene.redo()
+    assert person.childOf is not None
+    assert person.parents() is not None
+    assert len(person.parents().people) == 2
 
 
 ## Remove items

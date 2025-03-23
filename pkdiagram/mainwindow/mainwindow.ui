@@ -80,9 +80,6 @@
     </property>
     <addaction name="actionAdd_Anything"/>
     <addaction name="separator"/>
-    <addaction name="actionAdd_Event"/>
-    <addaction name="actionAdd_Relationship"/>
-    <addaction name="separator"/>
     <addaction name="actionMale"/>
     <addaction name="actionFemale"/>
     <addaction name="actionMarriage"/>

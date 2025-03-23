@@ -115,6 +115,7 @@ class DragCreateItem(PathItem):
         if change == self.ItemSceneHasChanged:
             if self._timerId:
                 self.killTimer(self._timerId)
+                self._timerId = None
             if value:
                 self._timerId = self.startTimer(util.ANIM_TIMER_MS)
         return super().itemChange(change, value)
@@ -376,6 +377,8 @@ class Scene(QGraphicsScene, Item):
             item.emotionalUnit().setLayer(layer)
             if not self.isBatchAddingRemovingItems():
                 item.emotionalUnit().update()
+            for person in item.people:
+                person._onAddMarriage(item)
             item.updateGeometry()
             self.marriageAdded[Marriage].emit(item)
         elif item.isChildOf:
@@ -1021,7 +1024,7 @@ class Scene(QGraphicsScene, Item):
                 self.dragStartItem = item
                 self.dragStartItem.setHover(True)
                 self.dragCreateItem = DragCreateItem()
-                self.addItem(self.dragCreateItem, undo=True)
+                self.addItem(self.dragCreateItem)
                 # self.dragCreateItem.setPen(self.dragStartItem.pen())
             else:
                 self.setItemMode(util.ITEM_NONE)
@@ -1951,7 +1954,7 @@ class Scene(QGraphicsScene, Item):
         if not selectedPeople:
             return
 
-        with self.macro("Add parents to person"):
+        with self.macro("Add parents to person", undo=True):
             for person in selectedPeople:
                 rect = person.mapToScene(person.boundingRect()).boundingRect()
                 fatherPos = person.pos() - QPointF(
@@ -1970,7 +1973,7 @@ class Scene(QGraphicsScene, Item):
                 father.setItemPosNow(fatherPos)
                 mother.setItemPosNow(motherPos)
                 marriage = Marriage(father, mother)
-                self.addItems(father, mother, marriage)
+                self.addItems(father, mother, marriage, undo=True)
                 self.push(SetParents(person, marriage))
 
     def setStopOnAllEvents(self, on):

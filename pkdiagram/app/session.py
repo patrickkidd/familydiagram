@@ -411,7 +411,7 @@ class Session(QObject, QObjectHelper):
 
         self._analytics.send(
             DatadogLog(
-                message="\n".join(traceback.format_exception(etype, value, tb)),
+                message="".join(traceback.format_exception(etype, value, tb)),
                 time=time.time(),
                 user=self._user,
                 status=DatadogLogStatus.Error,
