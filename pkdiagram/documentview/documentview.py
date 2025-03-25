@@ -57,6 +57,7 @@ class DocumentView(QWidget):
         self.timelineModel = self._qmlEngine.timelineModel
         self.peopleModel = self._qmlEngine.peopleModel
         self.accessRightsModel = self._qmlEngine.accessRightsModel
+        self.eventSelectionModel = self._qmlEngine.eventSelectionModel
 
         self.view = View(self, parent.ui)
 
@@ -73,15 +74,6 @@ class DocumentView(QWidget):
         # self.drawerShimAnimation.setEasingCurve(util.ANIM_EASING)
         # self.drawerShimAnimation.valueChanged.connect(self.onDrawerAnimationTick)
         # self.drawerShimAnimation.finished.connect(self.onDrawerAnimationFinished)
-
-        # contextProperties = {
-        #     "session": self.session,
-        #     "timelineModel": self.timelineModel,
-        #     "peopleModel": self.peopleModel,
-        #     "accessRightsModel": self.accessRightsModel,
-        #     "sceneModel": self.sceneModel,
-        #     "searchModel": self.searchModel,
-        # }
 
         # Property sheets
 
@@ -157,7 +149,7 @@ class DocumentView(QWidget):
         self.graphicalTimelineShim.setFixedHeight(0)
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
         self.graphicalTimelineView = GraphicalTimelineView(
-            self.searchModel, self.timelineModel, self
+            self.searchModel, self.eventSelectionModel, self
         )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded
@@ -210,7 +202,6 @@ class DocumentView(QWidget):
     #         QTimer.singleShot(util.QML_LAZY_DELAY_INTERVAL_MS, self._nextDelayedQmlInit)
 
     def init(self):
-        self.caseProps.checkInitQml()
         self.controller.init()
         self.controller.updateActions()
 
@@ -229,7 +220,6 @@ class DocumentView(QWidget):
         self.timelineSelectionModel = self.caseProps.rootProp("timelineView").property(
             "selectionModel"
         )
-        self.graphicalTimelineView.setSelectionModel(self.timelineSelectionModel)
         self.caseProps.findItem("stack").currentIndexChanged.connect(
             self.onCasePropsTabChanged
         )
