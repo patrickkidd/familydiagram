@@ -22,6 +22,9 @@ class FileManager(QWidget, QmlWidgetHelper):
         QWidget.__init__(self, parent)
         self.initQmlWidgetHelper(engine, "qml/FileManager.qml")
         self.checkInitQml()
+
+    def onInitQml(self):
+        super().onInitQml()
         self.qml.rootObject().localFileClicked.connect(self.localFileClicked)
         self.qml.rootObject().serverFileClicked.connect(self.onServerFileClicked)
         self.qml.rootObject().newButtonClicked.connect(self.newButtonClicked)

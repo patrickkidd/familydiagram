@@ -91,12 +91,7 @@ class DocumentView(QWidget):
             parent=self,
             objectName="caseProps",
         )
-        self.timelineSelectionModel = self.caseProps.findItem(
-            "caseProps_timelineView"
-        ).property("selectionModel")
-        self.caseProps.findItem("stack").currentIndexChanged.connect(
-            self.onCasePropsTabChanged
-        )
+        self.caseProps.qmlInitialized.connect(self.onCasePropsInit)
         self.personProps = QmlDrawer(
             self._qmlEngine,
             "qml/PersonProperties.qml",
@@ -131,10 +126,11 @@ class DocumentView(QWidget):
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
         self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
-        self.personProps.hide(animate=False)
-        self.marriageProps.hide(animate=False)
-        self.emotionProps.hide(animate=False)
-        self.layerItemProps.hide(animate=False)
+        QWidget.hide(self.caseProps)
+        QWidget.hide(self.personProps)
+        QWidget.hide(self.marriageProps)
+        QWidget.hide(self.emotionProps)
+        QWidget.hide(self.layerItemProps)
         self.drawers = [
             self.addAnythingDialog,
             self.caseProps,
@@ -161,7 +157,7 @@ class DocumentView(QWidget):
         self.graphicalTimelineShim.setFixedHeight(0)
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
         self.graphicalTimelineView = GraphicalTimelineView(
-            self.searchModel, self.timelineModel, self.timelineSelectionModel, self
+            self.searchModel, self.timelineModel, self
         )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded
@@ -190,13 +186,31 @@ class DocumentView(QWidget):
 
         # Init
 
+        # # delay-init qml widgets
+        # # self._nextQmlInit = 0
+        # # if util.QML_LAZY_DELAY_INTERVAL_MS:
+        # #     QTimer.singleShot(util.QML_LAZY_DELAY_INTERVAL_MS * 2, self._nextDelayedQmlInit) # after view animation
+        # for w in self.drawers:
+        #     w.checkInitQml()
+
         self.graphicalTimelineShim.lower()
         self.drawerShim.lower()
         self.onApplicationPaletteChanged()
         QApplication.instance().paletteChanged.connect(self.onApplicationPaletteChanged)
         self._isInitializing = False
 
+    # def _nextDelayedQmlInit(self):
+    #     """ Stagger lazy init of qml widgets over time. """
+    #     if self._nextQmlInit < len(self.drawers) and not self.isAnimating():
+    #         drawer = self.drawers[self._nextQmlInit]
+    #         drawer.checkInitQml()
+    #         self.here(drawer._qmlSource)
+    #         self._nextQmlInit += 1
+    #     if self._nextQmlInit < len(self.drawers):
+    #         QTimer.singleShot(util.QML_LAZY_DELAY_INTERVAL_MS, self._nextDelayedQmlInit)
+
     def init(self):
+        self.caseProps.checkInitQml()
         self.controller.init()
         self.controller.updateActions()
 
@@ -210,6 +224,15 @@ class DocumentView(QWidget):
         self.addAnythingDialog.deinit()
         self.searchDialog.deinit()
         self._qmlEngine.deinit()
+
+    def onCasePropsInit(self):
+        self.timelineSelectionModel = self.caseProps.rootProp("timelineView").property(
+            "selectionModel"
+        )
+        self.graphicalTimelineView.setSelectionModel(self.timelineSelectionModel)
+        self.caseProps.findItem("stack").currentIndexChanged.connect(
+            self.onCasePropsTabChanged
+        )
 
     def qmlEngine(self):
         return self._qmlEngine
@@ -234,11 +257,11 @@ class DocumentView(QWidget):
     def setScene(self, scene):
         self._isInitializing = True
         self.graphicalTimelineView.setScene(scene)
-        self.emotionProps.hide(animate=False)
-        self.layerItemProps.hide(animate=False)
-        self.marriageProps.hide(animate=False)
-        self.personProps.hide(animate=False)
-        self.caseProps.hide(animate=False)
+        QWidget.hide(self.caseProps)
+        QWidget.hide(self.personProps)
+        QWidget.hide(self.marriageProps)
+        QWidget.hide(self.emotionProps)
+        QWidget.hide(self.layerItemProps)
         self.addAnythingDialog.hide(animate=False)
         self.currentDrawer = None
         self.controller.setScene(None)

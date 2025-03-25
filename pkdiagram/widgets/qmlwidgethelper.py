@@ -1,3 +1,4 @@
+import time
 import logging
 from typing import Union
 
@@ -10,6 +11,7 @@ from pkdiagram.pyqt import (
     QApplication,
     QQuickWidget,
     QQuickItem,
+    QQmlComponent,
     QUrl,
     QRectF,
     QMetaObject,
@@ -28,8 +30,11 @@ log = logging.getLogger(__name__)
 class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
+    DEFER_UNTIL_SHOW = True
 
     qmlFocusItemChanged = pyqtSignal(QQuickItem)
+
+    _cache = {}
 
     def initQmlWidgetHelper(self, engine, source: Union[str, QUrl]):
         self._engine = engine
@@ -38,13 +43,14 @@ class QmlWidgetHelper(QObjectHelper):
         else:
             self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
+        self.qml = None
         self.initQObjectHelper()
 
     def qmlEngine(self):
         return self._engine
 
     def isQmlReady(self):
-        return hasattr(self, "qml")
+        return bool(self.qml)
 
     def onStatusChanged(self, status):
         pass
@@ -53,8 +59,10 @@ class QmlWidgetHelper(QObjectHelper):
 
     def checkInitQml(self):
         """Returns True if initialized on this call."""
-        if hasattr(self, "qml"):
+        if self.qml:
             return False
+
+        start_time = time.time()
         self.qml = QQuickWidget(self._engine, self)
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
@@ -65,7 +73,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
-        # log.info(f"Loading QML from: {fpath}")
+        log.info(f"Loading QML: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():
@@ -79,6 +87,8 @@ class QmlWidgetHelper(QObjectHelper):
                 setattr(self, k, v)
 
         self.onInitQml()
+        tot_time = time.time() - start_time
+        # log.info(f"QmlWidgetHelper.initQmlWidgetHelper() took {tot_time:.2f}s")
         return True
 
     def onInitQml(self):
@@ -87,12 +97,13 @@ class QmlWidgetHelper(QObjectHelper):
         )
 
     def deinit(self):
-        # Prevent qml exceptions when context props are set to null
-        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
-            self.onActiveFocusItemChanged
-        )
-        self.qml.setSource(QUrl(""))
-        self.qml = None
+        if getattr(self, "qml", None):
+            # Prevent qml exceptions when context props are set to null
+            self.qml.rootObject().window().activeFocusItemChanged.disconnect(
+                self.onActiveFocusItemChanged
+            )
+            self.qml.setSource(QUrl(""))
+            self.qml = None
 
     def onActiveFocusItemChanged(self):
         """Allow to avoid prev/next layer shortcut for cmd-left|right"""

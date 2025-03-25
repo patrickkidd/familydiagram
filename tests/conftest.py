@@ -333,6 +333,7 @@ def qApp():
             mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )
         stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
+        stack.enter_context(mock.patch("fdserver.extensions.init_excepthook"))
         yield app
 
     app.deinit()

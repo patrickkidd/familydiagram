@@ -38,7 +38,8 @@ def create_gtv(scene, qtbot):
         timelineModel.scene = scene
         timelineModel.items = [scene]
         selectionModel = QItemSelectionModel()
-        gtv = GraphicalTimelineView(searchModel, timelineModel, selectionModel)
+        gtv = GraphicalTimelineView(searchModel, timelineModel)
+        gtv.setSelectionModel(selectionModel)
         gtv.resize(800, 600)
         gtv.show()
         gtv.setScene(scene)

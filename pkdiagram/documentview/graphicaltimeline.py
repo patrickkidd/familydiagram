@@ -24,6 +24,7 @@ from pkdiagram.pyqt import (
     QRect,
     QDateTime,
     QApplication,
+    QItemSelectionModel,
 )
 from pkdiagram import util
 from pkdiagram.documentview import GraphicalTimelineCanvas
@@ -35,7 +36,7 @@ log = logging.getLogger(__name__)
 class GraphicalTimeline(QScrollArea):
     """Scroll area container for a GraphicalTimelineView that contains a GraphicalTimelineCanvas."""
 
-    def __init__(self, searchModel, timelineModel, selectionModel, parent=None):
+    def __init__(self, searchModel, selectionModel, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         if os.name != "nt":
@@ -71,9 +72,7 @@ class GraphicalTimeline(QScrollArea):
         self.sullivanianTimeBox = QCheckBox("Sullivanian Time", self.controls)
         ControlsLayout.addWidget(self.sullivanianTimeBox)
 
-        self.canvas = GraphicalTimelineCanvas(
-            searchModel, timelineModel, selectionModel, self
-        )
+        self.canvas = GraphicalTimelineCanvas(searchModel, selectionModel, self)
         self.setWidget(self.canvas)
         self.canvas.wheel[QWheelEvent].connect(self.wheelEvent)
         self.canvas.dateTimeClicked[QDateTime].connect(self.onCanvasDateTimeClicked)
@@ -97,6 +96,9 @@ class GraphicalTimeline(QScrollArea):
         self.zoomAbsolute(1.0)
         self.lastScaleFactor = 1.0
         self.tags = []
+
+    def setSelectionModel(self, selectionModel: QItemSelectionModel):
+        self.canvas.setSelectionModel(selectionModel)
 
     def onSearchTagsChanged(self, tags):
         self.setTags(tags)

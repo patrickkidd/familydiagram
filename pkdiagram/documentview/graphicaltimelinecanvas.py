@@ -46,13 +46,12 @@ class GraphicalTimelineCanvas(QWidget):
         self,
         searchModel,
         timelineModel,
-        selectionModel: QItemSelectionModel,
         parent=None,
     ):
         super().__init__(parent)
         self._searchModel = searchModel
         self._timelineModel = timelineModel
-        self._selectionModel = selectionModel
+        self._selectionModel = None
         self._isSelectingEvents = False
         self._events = SortedList()
         # A list for quick lookup, events can be listed more than once in
@@ -81,14 +80,16 @@ class GraphicalTimelineCanvas(QWidget):
         QApplication.instance().paletteChanged.connect(self.onPaletteChanged)
         self.onPaletteChanged()
 
-        self._selectionModel.selectionChanged.connect(self.onSelectionChanged)
-
         self._timelineModel.modelReset.connect(self.refresh)
         self._timelineModel.rowsInserted.connect(self.refresh)
         self._timelineModel.rowsMoved.connect(self.refresh)
         self._timelineModel.rowsRemoved.connect(self.refresh)
         self._timelineModel.dataChanged.connect(self.refresh)
         self.refresh()
+
+    def setSelectionModel(self, selectionModel: QItemSelectionModel):
+        self._selectionModel = selectionModel
+        self._selectionModel.selectionChanged.connect(self.onSelectionChanged)
 
     def onPaletteChanged(self):
         self.setFont(QFont(util.FONT_FAMILY, util.TEXT_FONT_SIZE))

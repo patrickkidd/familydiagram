@@ -9,8 +9,11 @@ from fdserver.models import Activation, License, Policy, Machine, User, Session
 from fdserver import util as fdserver_util
 
 
-def test_login(create_ac_mw):
+def test_hide_account_dialog(create_ac_mw):
     ac, mw = create_ac_mw()
+    mw.ui.actionShow_Account.trigger()
+    assert mw.accountDialog.isShown() == True
+
     mw.accountDialog.mouseClick("doneButton")
     assert mw.accountDialog.isShown() == False
 
@@ -119,6 +122,8 @@ def test_import_license(test_session, test_policy, qtbot, create_ac_mw):
 
     ac._pre_event_loop(mw)
 
+    mw.ui.actionShow_Account.trigger()
+    assert mw.accountDialog.isShown() == True
     dlg.mouseClick("licenseListPurchaseButton")
     assert dlg.itemProp("slideView", "currentIndex") == 1
 

@@ -93,6 +93,9 @@ def init_datadog(app: QApplication):
 
 
 def init_app(app: QApplication):
+    if sys.excepthook != sys.__excepthook__:
+        # already a custom excepthook, so keep it
+        _excepthooks.append(sys.excepthook)
     sys.excepthook = _excepthook
     init_logging()
     if not util.IS_DEV:

@@ -173,7 +173,6 @@ class MainWindow(QMainWindow):
         self.documentView = DocumentView(self, self.session)
         self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
         self.view = self.documentView.view
-        self.qmlWidgets = list(self.documentView.drawers)
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
         self.view.showToolBarButton.clicked.connect(self.ui.actionHide_ToolBars.trigger)
         self.viewAnimation = QPropertyAnimation(self.documentView, b"pos")
@@ -309,23 +308,6 @@ class MainWindow(QMainWindow):
         self.ui.actionUser_Manual_Latest_Version.setVisible(False)
         self.ui.actionShow_Legend.setVisible(False)
         # self.ui.actionShow_Welcome.setVisible(False)
-
-        # delay-init qml widgets
-        # self._nextQmlInit = 0
-        # if util.QML_LAZY_DELAY_INTERVAL_MS:
-        #     QTimer.singleShot(util.QML_LAZY_DELAY_INTERVAL_MS * 2, self._nextDelayedQmlInit) # after view animation
-        for w in self.qmlWidgets:
-            w.checkInitQml()
-
-    # def _nextDelayedQmlInit(self):
-    #     """ Stagger lazy init of qml widgets over time. """
-    #     if self._nextQmlInit < len(self.qmlWidgets) and not self.isAnimating():
-    #         drawer = self.qmlWidgets[self._nextQmlInit]
-    #         drawer.checkInitQml()
-    #         self.here(drawer._qmlSource)
-    #         self._nextQmlInit += 1
-    #     if self._nextQmlInit < len(self.qmlWidgets):
-    #         QTimer.singleShot(util.QML_LAZY_DELAY_INTERVAL_MS, self._nextDelayedQmlInit)
 
     def init(self):
         """Called after CUtil is initialized."""

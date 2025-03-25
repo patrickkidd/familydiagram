@@ -59,9 +59,7 @@ class DocumentController(QObject):
         assert self.ui is None
         self.ui = self.dv.ui
 
-        self.dv.timelineSelectionModel.selectionChanged[
-            QItemSelection, QItemSelection
-        ].connect(self.onTimelineSelectionChanged)
+        self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
 
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
@@ -167,15 +165,6 @@ class DocumentController(QObject):
 
         ## Views
 
-        self.dv.caseProps.qml.rootObject().flashTimelineSelection.connect(
-            self.onFlashTimelineSelection
-        )
-        self.dv.caseProps.qml.rootObject().flashTimelineRow.connect(
-            self.onFlashTimelineRow
-        )
-        self.dv.caseProps.qml.rootObject().eventPropertiesTemplateIndexChanged[
-            int
-        ].connect(self.onEventPropertiesTemplateIndexChanged)
         self.dv.caseProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.personProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
@@ -192,6 +181,20 @@ class DocumentController(QObject):
 
     def deinit(self):
         self._currentQmlFocusItem = None
+
+    def onCasePropsInit(self):
+        self.dv.timelineSelectionModel.selectionChanged[
+            QItemSelection, QItemSelection
+        ].connect(self.onTimelineSelectionChanged)
+        self.dv.caseProps.qml.rootObject().flashTimelineSelection.connect(
+            self.onFlashTimelineSelection
+        )
+        self.dv.caseProps.qml.rootObject().flashTimelineRow.connect(
+            self.onFlashTimelineRow
+        )
+        self.dv.caseProps.qml.rootObject().eventPropertiesTemplateIndexChanged[
+            int
+        ].connect(self.onEventPropertiesTemplateIndexChanged)
 
     def setScene(self, scene):
         if self.scene:
