@@ -97,9 +97,6 @@ class GraphicalTimeline(QScrollArea):
         self.lastScaleFactor = 1.0
         self.tags = []
 
-    def setSelectionModel(self, selectionModel: QItemSelectionModel):
-        self.canvas.setSelectionModel(selectionModel)
-
     def onSearchTagsChanged(self, tags):
         self.setTags(tags)
 

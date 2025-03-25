@@ -60,17 +60,18 @@ class GraphicalTimelineView(QFrame):
     def __init__(
         self,
         searchModel,
-        timelineModel,
+        selectionModel,
         parent=None,
     ):
         super().__init__(parent)
         self.scene = None
         self.documentView = parent if util.isInstance(parent, "DocumentView") else None
         self.searchModel = searchModel
-        self.timelineModel = timelineModel
-        self.selectionModel = None
+        self.timelineModel = selectionModel.model()
+        self.selectionModel = selectionModel
+        self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
 
-        self.timeline = GraphicalTimeline(searchModel, timelineModel, self)
+        self.timeline = GraphicalTimeline(searchModel, selectionModel, self)
         self.timeline.setStyleSheet("background-color: transparent")
         self.timeline.canvas.setStyleSheet("background-color: transparent")
         self.lastScaleFactor = self.timeline.scaleFactor
@@ -146,11 +147,6 @@ class GraphicalTimelineView(QFrame):
         self.state = self.CONTRACTING  # hack.1
         if scene:
             self.onAnimationFinished()  # hack.2
-
-    def setSelectionModel(self, selectionModel: QItemSelectionModel):
-        self.selectionModel = selectionModel
-        self.timeline.setSelectionModel(selectionModel)
-        self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
 
     @util.blocked
     def setExpanded(self, on):
