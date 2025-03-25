@@ -30,6 +30,7 @@ Rectangle {
     property bool isSubmitted: false
     property bool isDirty: false
     property var textEdit: pickerTextEdit // still need this one?
+    property var popupListView: popupListView
 
     signal numVisibleAutoCompleteItemsUpdated(var numVisibleItems) // for testing
     signal submitted(var entry)

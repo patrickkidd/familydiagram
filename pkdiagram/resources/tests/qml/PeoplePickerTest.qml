@@ -12,6 +12,8 @@ Rectangle {
     signal done;
     color: util.QML_ITEM_BG
 
+    property var peoplePicker: peoplePicker
+
     function setCurrentTab(x) {}
     function setExistingPeople(x) { peoplePicker.setExistingPeople(x) }
     function peopleEntries() { return peoplePicker.peopleEntries() }
@@ -23,7 +25,6 @@ Rectangle {
         PK.PeoplePicker {
             id: peoplePicker
             scenePeopleModel: peopleModel
-            objectName: "peoplePicker"
             Layout.fillWidth: true
             Layout.minimumHeight: 300
             Layout.maximumHeight: 300

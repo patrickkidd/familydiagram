@@ -21,13 +21,13 @@ def waitForPersonPickers():
     loop.exec()
 
 
-def _validate(peoplePickerItem):
-    if not peoplePickerItem.metaObject().className().startswith("PeoplePicker"):
+def _validate(peoplePicker):
+    if not peoplePicker.metaObject().className().startswith("PeoplePicker"):
         raise TypeError(
-            f"Expected a PeoplePicker, got {peoplePickerItem.metaObject().className()}"
+            f"Expected a PeoplePicker, got {peoplePicker.metaObject().className()}"
         )
-    elif not peoplePickerItem.property("visible"):
-        raise ValueError(f"Expected PeoplePicker '{peoplePickerItem}' to be visible.")
+    elif not peoplePicker.property("visible"):
+        raise ValueError(f"Expected PeoplePicker '{peoplePicker}' to be visible.")
 
 
 def add_and_keyClicks(
@@ -40,13 +40,13 @@ def add_and_keyClicks(
 
     _log.debug(f"add_and_keyClicks('{textInput}', '{peoplePicker}', {returnToFinish})")
 
-    peoplePickerItem = dlg.findItem(peoplePicker)
-    _validate(peoplePickerItem)
+    peoplePicker = dlg.rootProp(peoplePicker)
+    _validate(peoplePicker)
 
-    itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+    itemAddDone = util.Condition(peoplePicker.itemAddDone)
     waitForPersonPickers()
     #
-    dlg.mouseClick(f"{peoplePicker}.addButton")
+    dlg.mouseClickItem(peoplePicker.property("buttons").property("addButtonItem"))
     assert itemAddDone.wait() == True, "PersonPicker delegate not created"
     itemDelegate = itemAddDone.callArgs[-1][0]
     textEdit = itemDelegate.findChild(QQuickItem, "textEdit")
@@ -67,7 +67,7 @@ def add_new_person(
     resetFocus: bool = False,
 ) -> QQuickItem:
 
-    peoplePickerItem = dlg.findItem(peoplePicker)
+    peoplePickerItem = dlg.rootProp(peoplePicker)
     _validate(peoplePickerItem)
 
     itemDelegate = add_and_keyClicks(
@@ -111,9 +111,9 @@ def add_existing_person(
         returnToFinish=returnToFinish,
         resetFocus=resetFocus,
     )
-    popupListView = itemDelegate.findChild(QQuickItem, "popupListView")
+    popupListView = itemDelegate.property("popupListView")
     assert popupListView.property("visible") == True
-    picker.clickListViewItem_actual(popupListView, person.fullNameOrAlias()) == True
+    picker.clickListViewItem_actual(popupListView, person.fullNameOrAlias())
 
     if gender is not None:
         genderLabel = next(x["name"] for x in util.PERSON_KINDS if x["kind"] == gender)

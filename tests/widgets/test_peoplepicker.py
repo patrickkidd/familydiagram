@@ -29,13 +29,14 @@ class PeoplePickerTest(QWidget, QmlWidgetHelper):
         super().__init__(parent)
         self.initQmlWidgetHelper(engine, "tests/qml/PeoplePickerTest.qml")
         self.checkInitQml()
+
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
         Layout.addWidget(self.qml)
 
     def test_setExistingPeople(self, people):
-        peoplePickerItem = self.findItem("peoplePicker")
-        itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
+        peoplePicker = self.rootProp("peoplePicker")
+        itemAddDone = util.Condition(peoplePicker.itemAddDone)
         self.setExistingPeople(people)
         util.waitALittle()
         while itemAddDone.callCount < len(people):
@@ -60,7 +61,7 @@ def picker(scene, qtbot, qmlEngine):
     dlg = PeoplePickerTest(qmlEngine)
     dlg.resize(600, 800)
     dlg.show()
-    dlg.findItem("peoplePicker").clear()
+    dlg.rootProp("peoplePicker").clear()
     qtbot.addWidget(dlg)
     qtbot.waitActive(dlg)
     assert dlg.isVisible()
@@ -69,6 +70,11 @@ def picker(scene, qtbot, qmlEngine):
 
     dlg.hide()
     dlg.deinit()
+
+
+@pytest.fixture
+def model(picker):
+    yield picker.rootProp("peoplePicker").property("model")
 
 
 def test_init_fields(scene, picker):
@@ -89,8 +95,7 @@ def test_init_fields(scene, picker):
     assert entries[1]["gender"] == util.PERSON_KIND_FEMALE
 
 
-def test_one_existing_one_not(scene, picker):
-    model = picker.itemProp("peoplePicker", "model")
+def test_one_existing_one_not(scene, picker, model):
     existingPerson = scene.addItem(Person(name="John", lastName="Doe"))
     existingPersonDelegate = add_existing_person(
         picker, existingPerson, autoCompleteInput="John"
@@ -140,11 +145,10 @@ def test_one_existing_one_not(scene, picker):
     )
 
 
-def test_add_lots_of_mixed(scene, picker):
+def test_add_lots_of_mixed(scene, picker, model):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personC = scene.addItem(Person(name="Jane", lastName="Donner"))
-    model = picker.itemProp("peoplePicker", "model")
     add_existing_person(picker, personA, autoCompleteInput="Joh")
     add_new_person(picker, "Someone new 1", gender=util.PERSON_KIND_FEMALE)
     add_existing_person(
@@ -168,10 +172,9 @@ def test_add_lots_of_mixed(scene, picker):
     assert personCEntry["gender"] == util.PERSON_KIND_ABORTION
 
 
-def test_add_then_delete_then_add(scene, picker):
+def test_add_then_delete_then_add(scene, picker, model):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
-    model = picker.itemProp("peoplePicker", "model")
     delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
     delete_person(picker, delegate)
@@ -180,9 +183,8 @@ def test_add_then_delete_then_add(scene, picker):
     assert model.rowCount() == 1
 
 
-def test_maintain_selectedPeopleModel(scene, picker):
+def test_maintain_selectedPeopleModel(scene, picker, model):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    model = picker.itemProp("peoplePicker", "model")
     delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
     assert model.rowCount() == 1
     assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 1

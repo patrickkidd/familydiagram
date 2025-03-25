@@ -39,6 +39,7 @@ PK.GroupBox {
     property var isDirty: root.model.count > 0
 
     property var listView: list // for tests
+    property var buttons: buttons
     // for testing since delegate creation is async
     signal itemAddDone(Item item)
     signal itemRemoveDone(Item item)

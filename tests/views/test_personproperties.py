@@ -239,32 +239,34 @@ def test_set_props(pp):
 def test_date_undo_redo(pp):
     personPage = pp.rootProp("personPage")
     birthDateButtons = pp.rootProp("birthDateButtons")
+    birthDatePicker = pp.rootProp("birthDatePicker")
+    dateTextInput = birthDateButtons.property("dateTextInput")
     personA = Person()
     personB = Person()
     pp.scene.addItems(personA, personB)
     pp.show([personA, personB])
     dateTime = QDateTime(2001, 2, 3, 0, 0)
     pp.model.birthDateTime = dateTime  # 0
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
+    assert dateTextInput.property("text") == "02/03/2001"
 
     pp.scrollToItem(personPage, birthDateButtons)
-    pp.focusItem("birthDateButtons.dateTextInput")  # open picker
-    pp.mouseClick("birthDateButtons.clearButton")  # 1
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
+    pp.focusItem(birthDateButtons).property("dateTextInput")  # open picker
+    pp.mouseClickItem(birthDateButtons.property("clearButton"))  # 1
+    assert dateTextInput.property("text") == "--/--/----"
 
     pp.scene.undo()  # 0
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
-    assert pp.itemProp("birthDateButtons", "dateTime") == dateTime
-    assert pp.itemProp("birthDatePicker", "dateTime") == dateTime
+    assert dateTextInput.property("text") == "02/03/2001"
+    assert birthDateButtons.property("dateTime") == dateTime
+    assert birthDatePicker.property("dateTime") == dateTime
 
     pp.scene.redo()  # 1
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
+    assert dateTextInput.property("text") == "--/--/----"
 
     pp.scene.undo()  # 0
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
+    assert dateTextInput.property("text") == "02/03/2001"
 
     pp.scene.redo()  # 1
-    assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
+    assert dateTextInput.property("text") == "--/--/----"
 
 
 def test_person_readOnlyFields(pp, qmlEngine):
@@ -382,52 +384,53 @@ def test_scene_readOnlyFields(pp, qmlEngine):
     pp.scene.addItem(layer, person)
     pp.show([person])
 
-    assert not pp.itemProp("firstNameEdit", "enabled")
-    assert not pp.itemProp("middleNameEdit", "enabled")
-    assert not pp.itemProp("lastNameEdit", "enabled")
-    assert not pp.itemProp("nickNameEdit", "enabled")
-    assert not pp.itemProp("birthNameEdit", "enabled")
-    assert not pp.itemProp("sizeBox", "enabled")
-    assert not pp.itemProp("kindBox", "enabled")
-    assert not pp.itemProp("adoptedBox", "enabled")
-    assert not pp.itemProp("adoptedDateButtons", "enabled")
-    assert not pp.itemProp("primaryBox", "enabled")
-    assert not pp.itemProp("birthDateButtons", "enabled")
-    assert not pp.itemProp("birthLocationEdit", "enabled")
-    assert not pp.itemProp("deceasedBox", "enabled")
-    assert not pp.itemProp("deceasedDateButtons", "enabled")
-    assert not pp.itemProp("deceasedLocationEdit", "enabled")
-    assert not pp.itemProp("deceasedReasonEdit", "enabled")
-    assert not pp.itemProp("deceasedDateButtons", "enabled")
-    assert not pp.itemProp("notesEdit", "enabled")
-    assert not pp.itemProp("hideDetailsBox", "enabled")
-    assert not pp.itemProp("hideDatesBox", "enabled")
-    assert not pp.itemProp("hideVariablesBox", "enabled")
-    assert not pp.itemProp("colorBox", "enabled")
-    assert not pp.itemProp("resetColorButton", "enabled")
-    assert not pp.itemProp("deemphasizeBox", "enabled")
-    assert not pp.itemProp("resetDeemphasizeButton", "enabled")
+    assert not pp.rootProp("firstNameEdit").property("enabled")
+    assert not pp.rootProp("middleNameEdit").property("enabled")
+    assert not pp.rootProp("lastNameEdit").property("enabled")
+    assert not pp.rootProp("nickNameEdit").property("enabled")
+    assert not pp.rootProp("birthNameEdit").property("enabled")
+    assert not pp.rootProp("sizeBox").property("enabled")
+    assert not pp.rootProp("kindBox").property("enabled")
+    assert not pp.rootProp("adoptedBox").property("enabled")
+    assert not pp.rootProp("adoptedDateButtons").property("enabled")
+    assert not pp.rootProp("primaryBox").property("enabled")
+    assert not pp.rootProp("birthDateButtons").property("enabled")
+    assert not pp.rootProp("birthLocationEdit").property("enabled")
+    assert not pp.rootProp("deceasedBox").property("enabled")
+    assert not pp.rootProp("deceasedDateButtons").property("enabled")
+    assert not pp.rootProp("deceasedLocationEdit").property("enabled")
+    assert not pp.rootProp("deceasedReasonEdit").property("enabled")
+    assert not pp.rootProp("deceasedDateButtons").property("enabled")
+    assert not pp.rootProp("notesEdit").property("enabled")
+    assert not pp.rootProp("hideDetailsBox").property("enabled")
+    assert not pp.rootProp("hideDatesBox").property("enabled")
+    assert not pp.rootProp("hideVariablesBox").property("enabled")
+    assert not pp.rootProp("colorBox").property("enabled")
+    assert not pp.rootProp("resetColorButton").property("enabled")
+    assert not pp.rootProp("deemphasizeBox").property("enabled")
+    assert not pp.rootProp("resetDeemphasizeButton").property("enabled")
 
 
 # this wasn't thought through very well
 def _test_open_tabs_retained(pp):
     """Some tabs should be disabled when editing multiple people."""
+    tabBar = pp.rootProp("tabBar")
     person = Person()
     person.setBirthDateTime(util.Date(1900, 1, 1))
     pp.scene.addItem(person)
 
     pp.show([person])
     assert pp.currentTab() == 0
-    assert pp.itemProp("timelinePage", "enabled") == True
+    assert pp.rootProp("timelinePage").property("enabled") == True
 
     # just to be able to test if it switches back after...
-    pp.clickTabBarButton("tabBar", 1)
+    pp.clickTabBarButton(tabBar, 1)
     assert pp.currentTab() == 1
 
     pp.hide()
     pp.show([person])
     assert pp.currentTab() == 0
-    assert pp.itemProp("timelinePage", "enabled") == True
+    assert pp.rootProp("timelinePage").property("enabled") == True
 
 
 def test_clear_layered_pos(pp, monkeypatch):
@@ -495,40 +498,40 @@ def test_names_hidden(pp):
     person.read(chunk, chunk.get)  # assigns alias
     pp.show([person])
 
-    assert pp.itemProp("firstNameEdit", "enabled") == True
-    assert pp.itemProp("middleNameEdit", "enabled") == True
-    assert pp.itemProp("lastNameEdit", "enabled") == True
-    assert pp.itemProp("birthNameEdit", "enabled") == True
-    assert pp.itemProp("nickNameEdit", "enabled") == True
-    assert pp.itemProp("firstNameEdit", "text") == "Harold"
-    assert pp.itemProp("middleNameEdit", "text") == "Kidd"
-    assert pp.itemProp("lastNameEdit", "text") == "Stinson"
-    assert pp.itemProp("birthNameEdit", "text") == "you guessed it"
-    assert pp.itemProp("nickNameEdit", "text") == "Harry"
+    assert pp.rootProp("firstNameEdit").property("enabled") == True
+    assert pp.rootProp("middleNameEdit").property("enabled") == True
+    assert pp.rootProp("lastNameEdit").property("enabled") == True
+    assert pp.rootProp("birthNameEdit").property("enabled") == True
+    assert pp.rootProp("nickNameEdit").property("enabled") == True
+    assert pp.rootProp("firstNameEdit").property("text") == "Harold"
+    assert pp.rootProp("middleNameEdit").property("text") == "Kidd"
+    assert pp.rootProp("lastNameEdit").property("text") == "Stinson"
+    assert pp.rootProp("birthNameEdit").property("text") == "you guessed it"
+    assert pp.rootProp("nickNameEdit").property("text") == "Harry"
 
     pp.scene.setShowAliases(True)
-    assert pp.itemProp("firstNameEdit", "enabled") == False
-    assert pp.itemProp("middleNameEdit", "enabled") == False
-    assert pp.itemProp("lastNameEdit", "enabled") == False
-    assert pp.itemProp("birthNameEdit", "enabled") == False
-    assert pp.itemProp("nickNameEdit", "enabled") == False
-    assert pp.itemProp("firstNameEdit", "text") == "[%s]" % person.alias()
-    assert pp.itemProp("middleNameEdit", "text") == ""
-    assert pp.itemProp("lastNameEdit", "text") == ""
-    assert pp.itemProp("birthNameEdit", "text") == ""
-    assert pp.itemProp("nickNameEdit", "text") == ""
+    assert pp.rootProp("firstNameEdit").property("enabled") == False
+    assert pp.rootProp("middleNameEdit").property("enabled") == False
+    assert pp.rootProp("lastNameEdit").property("enabled") == False
+    assert pp.rootProp("birthNameEdit").property("enabled") == False
+    assert pp.rootProp("nickNameEdit").property("enabled") == False
+    assert pp.rootProp("firstNameEdit").property("text") == "[%s]" % person.alias()
+    assert pp.rootProp("middleNameEdit").property("text") == ""
+    assert pp.rootProp("lastNameEdit").property("text") == ""
+    assert pp.rootProp("birthNameEdit").property("text") == ""
+    assert pp.rootProp("nickNameEdit").property("text") == ""
 
     pp.scene.setShowAliases(False)
-    assert pp.itemProp("firstNameEdit", "enabled") == True
-    assert pp.itemProp("middleNameEdit", "enabled") == True
-    assert pp.itemProp("lastNameEdit", "enabled") == True
-    assert pp.itemProp("birthNameEdit", "enabled") == True
-    assert pp.itemProp("nickNameEdit", "enabled") == True
-    assert pp.itemProp("firstNameEdit", "text") == "Harold"
-    assert pp.itemProp("middleNameEdit", "text") == "Kidd"
-    assert pp.itemProp("lastNameEdit", "text") == "Stinson"
-    assert pp.itemProp("birthNameEdit", "text") == "you guessed it"
-    assert pp.itemProp("nickNameEdit", "text") == "Harry"
+    assert pp.rootProp("firstNameEdit").property("enabled") == True
+    assert pp.rootProp("middleNameEdit").property("enabled") == True
+    assert pp.rootProp("lastNameEdit").property("enabled") == True
+    assert pp.rootProp("birthNameEdit").property("enabled") == True
+    assert pp.rootProp("nickNameEdit").property("enabled") == True
+    assert pp.rootProp("firstNameEdit").property("text") == "Harold"
+    assert pp.rootProp("middleNameEdit").property("text") == "Kidd"
+    assert pp.rootProp("lastNameEdit").property("text") == "Stinson"
+    assert pp.rootProp("birthNameEdit").property("text") == "you guessed it"
+    assert pp.rootProp("nickNameEdit").property("text") == "Harry"
 
 
 def test_init_layer_list(pp):
@@ -536,7 +539,7 @@ def test_init_layer_list(pp):
     pp.scene.addItem(layer)
     person = Person()
     pp.show([person])
-    model = pp.itemProp("layerList", "model")
+    model = pp.rootProp("layerList").property("model")
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0)) == layer.name()
 
@@ -549,7 +552,7 @@ def test_multiple_people_and_layers_doesnt_break_layers_selection(pp):
     pp.scene.addItems(layer1, layer2, person1, person2)
     person1.setLayers([layer1.id, layer2.id])
     pp.show([person1, person2])
-    model = pp.itemProp("layerList", "model")
+    model = pp.rootProp("layerList").property("model")
     assert model.rowCount() == 2
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.PartiallyChecked
     assert model.data(model.index(1, 0), model.ActiveRole) == Qt.PartiallyChecked
@@ -584,6 +587,7 @@ def _test_add_to_layer(pp):
     pp.scene.addItem(layer)
     person = Person()
     pp.show([person])
+    layerList = pp.rootProp("layerList")
     assert layer.id not in person.layers() == False
 
     pp.clickListViewItem_actual("layerList", "My Layer")
@@ -607,7 +611,7 @@ def __test_remove_event_button(pp, scene, eventProps):
     pp.clickTimelineViewItem(
         "personProps_timelineView", eventProps["description"], column=3
     )
-    assert pp.itemProp("removeEventButton", "enabled") == True
+    assert pp.rootProp("removeEventButton").property("enabled") == True
     pp.mouseClick("removeEventButton", Qt.LeftButton)
     pp.assertNoTableViewItem(
         "personProps_timelineView", eventProps["description"], column=3
