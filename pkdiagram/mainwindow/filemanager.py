@@ -13,6 +13,7 @@ class FileManager(QWidget, QmlWidgetHelper):
         [{"name": "clearSelection"}, {"name": "showLocalFiles"}]
     )
 
+    qmlInitialized = pyqtSignal()
     localFileClicked = pyqtSignal(str)
     serverFileClicked = pyqtSignal(str, Diagram)
     newButtonClicked = pyqtSignal()
@@ -21,7 +22,6 @@ class FileManager(QWidget, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         QWidget.__init__(self, parent)
         self.initQmlWidgetHelper(engine, "qml/FileManager.qml")
-        self.checkInitQml()
 
     def onInitQml(self):
         super().onInitQml()
@@ -39,8 +39,7 @@ class FileManager(QWidget, QmlWidgetHelper):
         Layout.addWidget(self.qml)
 
     def init(self):
-        self.serverFileModel.init()
-        self.serverFileModel.setSession(self.qmlEngine().session)
+        pass
 
     def deinit(self):
         self.serverFileModel.deinit()
@@ -48,6 +47,9 @@ class FileManager(QWidget, QmlWidgetHelper):
 
     def showEvent(self, e):
         super().showEvent(e)
+        self.checkInitQml()
+        self.serverFileModel.init()
+        self.serverFileModel.setSession(self.qmlEngine().session)
 
     def onLocalFilesShownChanged(self):
         on = self.rootProp("localFilesShown")

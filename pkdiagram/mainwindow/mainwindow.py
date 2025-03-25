@@ -191,6 +191,7 @@ class MainWindow(QMainWindow):
         ## File Manager
 
         self.fileManager = FileManager(self.documentView.qmlEngine(), self)
+        self.fileManager.qmlInitialized.connect(self.onFileManagerInit)
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -198,9 +199,6 @@ class MainWindow(QMainWindow):
         self.fileManager.newButtonClicked.connect(self.new)
         self.fileManager.localFilesShownChanged[bool].connect(
             self.onLocalFilesShownChanged
-        )
-        self.fileManager.serverFileModel.dataChanged.connect(
-            self.onServerFileModelDataChanged
         )
         self.ui.centralWidget.layout().addWidget(self.fileManager)
         self.prefsDialog = None
@@ -321,7 +319,7 @@ class MainWindow(QMainWindow):
         ## File Manager View
 
         self.fileManager.init()
-        self.serverFileModel = self.fileManager.serverFileModel
+        self.serverFileModel = None
         self.serverPollTimer = QTimer(self)
         self.serverPollTimer.setInterval(self.OPEN_DIAGRAM_SYNC_MS)
         self.serverPollTimer.timeout.connect(self.onServerPollTimer)
@@ -361,13 +359,6 @@ class MainWindow(QMainWindow):
         # Things that are disabled for any beta users.
         if not util.IS_DEV or CUtil.dev_amIBeingDebugged():
             self.ui.menuTags.setTitle("Tags")
-
-        was = self._blocked  # remove and retest
-        self._blocked = True
-        self.ui.actionShow_Local_Files.setChecked(
-            self.fileManager.rootProp("localFilesShown")
-        )
-        self._blocked = was
 
         self.updateRecentFilesMenu()
         self.adjust()
@@ -423,6 +414,18 @@ class MainWindow(QMainWindow):
         self.view.setViewport(None)  # prevent segfault on destructing OpenGLWidget
         # self.view = None # avoid QApplication::style() assertion on shutdown
         self.isInitialized = False
+
+    def onFileManagerInit(self):
+        self.serverFileModel = self.fileManager.serverFileModel
+        self.fileManager.serverFileModel.dataChanged.connect(
+            self.onServerFileModelDataChanged
+        )
+        was = self._blocked  # remove and retest
+        self._blocked = True
+        self.ui.actionShow_Local_Files.setChecked(
+            self.fileManager.rootProp("localFilesShown")
+        )
+        self._blocked = was
 
     def showEvent(self, e):
         super().showEvent(e)
