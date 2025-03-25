@@ -45,6 +45,31 @@ PK.Drawer {
     property bool canRemove: tabBar.currentIndex == 1 && timelineView.canRemove
     property bool canInspect: tabBar.currentIndex == 1 && timelineView.canInspect
 
+    property var personPage: personPage
+    property var firstNameEdit: firstNameEdit
+    property var middleNameEdit: middleNameEdit
+    property var lastNameEdit: lastNameEdit
+    property var nickNameEdit: nickNameEdit
+    property var birthNameEdit: birthNameEdit
+    property var birthDateButtons: birthDateButtons
+    property var birthLocationEdit: birthLocationEdit
+    property var adoptedBox: adoptedBox
+    property var adoptedDateButtons: adoptedDateButtons
+    property var deceasedBox: deceasedBox
+    property var deceasedReasonEdit: deceasedReasonEdit
+    property var deceasedLocationEdit: deceasedLocationEdit
+    property var deceasedDateButtons: deceasedDateButtons
+    property var notesEdit: notesEdit
+    property var colorBox: colorBox
+    property var sizeBox: sizeBox
+    property var kindBox: kindBox
+    property var ageBox: ageBox
+    property var primaryBox: primaryBox
+    property var hideDetailsBox: hideDetailsBox
+    property var hideDatesBox: hideDatesBox
+    property var hideVariablesBox: hideVariablesBox
+    property var diagramNotesEdit: diagramNotesEdit
+
     onCanRemoveChanged: sceneModel.selectionChanged()
 
     function removeSelection() {
@@ -137,14 +162,12 @@ PK.Drawer {
 
     QQC.Drawer {
         id: eventPropertiesDrawer
-        objectName: 'eventPropertiesDrawer'
         width: util.DRAWER_OVER_WIDTH
         height: root.height
         dragMargin: 0
         edge: Qt.RightEdge
         PK.EventProperties {
             id: eventProperties
-            objectName: 'eventProperties'
             anchors.fill: parent
         }
         onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
@@ -159,13 +182,11 @@ PK.Drawer {
     StackLayout {
 
         id: stack
-        objectName: 'stack'
         currentIndex: tabBar.currentIndex
         anchors.fill: parent
 
         Flickable {
             id: personPage
-            objectName: 'personPage'
             contentWidth: width
             contentHeight: personPageInner.childrenRect.height + 50
         
@@ -346,7 +367,11 @@ PK.Drawer {
                             model: util.PERSON_SIZE_NAMES
                             enabled: !root.isReadOnly
                             KeyNavigation.tab: ageBox
-                            onActivated: personModel.sizeIndex = currentIndex
+                            onCurrentIndexChanged: {
+                                if(currentIndex != personModel.sizeIndex) {
+                                    personModel.sizeIndex = currentIndex
+                                }
+                            }
                         }
 
                         Rectangle { width: 1; height: 1; color: 'transparent' }

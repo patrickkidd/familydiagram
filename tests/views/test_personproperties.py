@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QPointF
@@ -18,84 +20,7 @@ pytestmark = [
 ]
 
 
-@pytest.fixture
-def personProps():
-    return {
-        "name": "Patrick",
-        "middleName": "Kidd",
-        "lastName": "Stinson",
-        "nickName": "Patricio",
-        "birthName": "Stinsonion",
-        "size": util.personSizeFromName("Small"),
-        "gender": util.personKindFromIndex(1),
-        "adopted": Qt.Checked,
-        "adoptedDateTime": QDateTime(util.Date(1982, 6, 16)),
-        "primary": Qt.Checked,
-        "birthDateTime": QDateTime(util.Date(1980, 5, 11)),
-        "deceased": Qt.Checked,
-        "deceasedDateTime": QDateTime(util.Date(2001, 1, 1)),
-        "deceasedReason": "heart attack",
-        "notes": "who knows anyway",
-        "hideDetails": Qt.Checked,
-        "hideDates": Qt.Unchecked,
-        "hideVariables": Qt.Unchecked,
-    }
-
-
-def setPersonProperties(pp, props):
-    pp.setItemProp("personPage", "contentY", 0)
-    pp.keyClicks("firstNameEdit", props["name"])
-    pp.keyClicks("middleNameEdit", props["middleName"])
-    pp.keyClicks("lastNameEdit", props["lastName"])
-    pp.keyClicks("nickNameEdit", props["nickName"])
-    pp.keyClicks("birthNameEdit", props["birthName"])
-    pp.clickComboBoxItem("sizeBox", util.personSizeNameFromSize(props["size"]))
-    pp.clickComboBoxItem("kindBox", util.personKindNameFromKind(props["gender"]))
-    pp.setItemProp("personPage", "contentY", -300)
-    pp.keyClick("adoptedBox", Qt.Key_Space)
-    if pp.itemProp("adoptedBox", "checkState") != props["adopted"]:
-        pp.mouseClick("adoptedBox")
-    assert pp.itemProp("adoptedDateButtons", "enabled") == util.csToBool(
-        props["adopted"]
-    )
-    pp.keyClicks(
-        "adoptedDateButtons.dateTextInput", util.dateString(props["adoptedDateTime"])
-    )
-    pp.mouseClick("primaryBox")
-    if pp.itemProp("primaryBox", "checkState") != props["primary"]:
-        pp.mouseClick("primaryBox")
-    pp.mouseClick("deceasedBox")
-    if pp.itemProp("deceasedBox", "checkState") != props["deceased"]:
-        pp.keyClick("deceasedBox", Qt.Key_Space)
-    assert pp.itemProp("deceasedReasonEdit", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    assert pp.itemProp("deceasedDateButtons", "enabled") == util.csToBool(
-        props["deceased"]
-    )
-    if util.csToBool(props["deceased"]):
-        pp.keyClicks("deceasedReasonEdit", props["deceasedReason"])
-        pp.keyClicks(
-            "deceasedDateButtons.dateTextInput",
-            util.dateString(props["deceasedDateTime"]),
-        )
-    pp.setCurrentTab("notes")
-    pp.keyClicks("notesEdit", props["notes"])
-
-
-def assertPersonProperties(person, props):
-    assert person.name() == props["name"]
-    assert person.middleName() == props["middleName"]
-    assert person.lastName() == props["lastName"]
-    assert person.nickName() == props["nickName"]
-    assert person.birthName() == props["birthName"]
-    assert person.gender() == props["gender"]
-    assert person.adopted() == util.csToBool(props["adopted"])
-    assert person.adoptedDateTime() == props["adoptedDateTime"]
-    assert person.deceased() == util.csToBool(props["deceased"])
-    assert person.deceasedDateTime() == props["deceasedDateTime"]
-    assert person.deceasedReason() == props["deceasedReason"]
-    assert person.primary() == util.csToBool(props["primary"])
+_log = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -123,81 +48,197 @@ def pp(qtbot, qmlEngine):
     scene.deinit()
 
 
-def test_show_init(pp, personProps):
-    person = Person()
-    for key, value in personProps.items():
-        if type(value) == Qt.CheckState:
-            value = util.csToBool(value)
-        if person.prop(key):
-            person.prop(key).set(value)
-        else:
-            setterName = "set" + key[0].upper() + key[1:]
-            if hasattr(person, setterName):
-                getattr(person, setterName)(value)
+def test_init_fields(pp):
+
+    FIRST_NAME = "Someone"
+    MIDDLE_NAME = "Middle"
+    LAST_NAME = "Last"
+    NICK_NAME = "Nick"
+    BIRTH_NAME = "Birth"
+    SIZE = 5
+    ADOPTED_DATE_TIME = util.Date(1982, 6, 16)
+    BIRTH_DATE_TIME = util.Date(1980, 5, 11)
+    DECEASED_DATE_TIME = util.Date(2001, 1, 1)
+    DECEASED_REASON = "heart attack"
+    NOTES = "who knows anyway"
+    DIAGRAM_NOTES = "Diagram notes\n\nmulti-line\n\n\n\n entry"
+
+    person = Person(
+        name=FIRST_NAME,
+        middleName=MIDDLE_NAME,
+        lastName=LAST_NAME,
+        nickName=NICK_NAME,
+        birthName=BIRTH_NAME,
+        size=SIZE,
+        gender=util.PERSON_KIND_FEMALE,
+        birthDateTime=BIRTH_DATE_TIME,
+        adopted=True,
+        adoptedDateTime=ADOPTED_DATE_TIME,
+        deceased=True,
+        deceasedDateTime=DECEASED_DATE_TIME,
+        deceasedReason=DECEASED_REASON,
+        notes=NOTES,
+        diagramNotes=DIAGRAM_NOTES,
+        primary=True,
+        hideDetails=True,
+        hideDates=False,
+        hideVariables=False,
+    )
     pp.scene.addItem(person)
     pp.show([person])
-    assert pp.itemProp("firstNameEdit", "text") == personProps["name"]
-    assert pp.itemProp("middleNameEdit", "text") == personProps["middleName"]
-    assert pp.itemProp("lastNameEdit", "text") == personProps["lastName"]
-    assert pp.itemProp("nickNameEdit", "text") == personProps["nickName"]
-    assert pp.itemProp("birthNameEdit", "text") == personProps["birthName"]
-    assert pp.itemProp("sizeBox", "currentText") == util.personSizeNameFromSize(
-        personProps["size"]
-    )
-    assert pp.itemProp("kindBox", "currentText") == util.personKindNameFromKind(
-        personProps["gender"]
-    )
-    assert pp.itemProp("adoptedBox", "checkState") == personProps["adopted"]
-    if personProps["adopted"]:
-        assert pp.itemProp("adoptedDateButtons", "enabled") == util.csToBool(
-            personProps["adopted"]
-        )
-        assert (
-            pp.itemProp("adoptedDateButtons", "dateTime")
-            == personProps["adoptedDateTime"]
-        )
-    assert pp.itemProp("primaryBox", "checkState") == personProps["primary"]
-    assert pp.itemProp("deceasedBox", "checkState") == personProps["deceased"]
-    assert pp.itemProp("deceasedDateButtons", "enabled") == util.csToBool(
-        personProps["deceased"]
-    )
-    assert pp.itemProp("deceasedReasonEdit", "enabled") == util.csToBool(
-        personProps["deceased"]
-    )
-    if personProps["deceased"]:
-        assert pp.itemProp("deceasedReasonEdit", "text") == "heart attack"
-        assert (
-            pp.itemProp("deceasedDateButtons", "dateTime")
-            == personProps["deceasedDateTime"]
-        )
-    assert pp.itemProp("notesEdit", "text") == personProps["notes"]
-    assert pp.itemProp("hideDetailsBox", "checkState") == personProps["hideDetails"]
-    assert pp.itemProp("hideDatesBox", "checkState") == personProps["hideDates"]
-    assert pp.itemProp("hideVariablesBox", "checkState") == personProps["hideVariables"]
-    # pp.clickTimelineViewItem('personProps_timelineView', 'Birth', column=3)
-    # if personProps['adopted']:
-    #     pp.clickTableViewItem('personProps_timelineView', 'Adopted', column=3)
-    # if personProps['deceased']:
-    #     pp.clickTableViewItem('personProps_timelineView', 'Death', column=3)
+
+    assert pp.rootProp("firstNameEdit").property("text") == FIRST_NAME
+    assert pp.rootProp("middleNameEdit").property("text") == MIDDLE_NAME
+    assert pp.rootProp("lastNameEdit").property("text") == LAST_NAME
+    assert pp.rootProp("nickNameEdit").property("text") == NICK_NAME
+    assert pp.rootProp("birthNameEdit").property("text") == BIRTH_NAME
+    assert pp.rootProp("sizeBox").property(
+        "currentText"
+    ) == util.personSizeNameFromSize(SIZE)
+    assert pp.rootProp("kindBox").property("currentText") == "Female"
+    assert pp.rootProp("adoptedBox").property("checkState") == Qt.Checked
+    assert pp.rootProp("adoptedDateButtons").property("dateTime") == ADOPTED_DATE_TIME
+    assert pp.rootProp("primaryBox").property("checkState") == Qt.Checked
+    assert pp.rootProp("birthDateButtons").property("dateTime") == BIRTH_DATE_TIME
+    assert pp.rootProp("adoptedDateButtons").property("dateTime") == ADOPTED_DATE_TIME
+    assert pp.rootProp("deceasedBox").property("checkState") == Qt.Checked
+    assert pp.rootProp("deceasedDateButtons").property("dateTime") == DECEASED_DATE_TIME
+    assert pp.rootProp("deceasedReasonEdit").property("text") == DECEASED_REASON
+    assert pp.rootProp("hideDetailsBox").property("checkState") == Qt.Checked
+    assert pp.rootProp("hideDatesBox").property("checkState") == Qt.Unchecked
+    assert pp.rootProp("hideVariablesBox").property("checkState") == Qt.Unchecked
+    assert pp.rootProp("notesEdit").property("text") == NOTES
 
 
-def test_set_props(personProps, pp):
+def test_set_props(pp):
     person = Person()
     pp.scene.addItem(person)
     pp.show([person])
-    setPersonProperties(pp, personProps)
-    assertPersonProperties(person, personProps)
+
+    ## Values
+
+    FIRST_NAME = "Someone"
+    MIDDLE_NAME = "Middle"
+    LAST_NAME = "Last"
+    NICK_NAME = "Nick"
+    BIRTH_NAME = "Birth"
+    SIZE = "Small"
+    GENDER = util.personKindFromIndex(1)
+    ADOPTED = Qt.Checked
+    ADOPTED_DATE_TIME = util.Date(1982, 6, 16)
+    PRIMARY = Qt.Checked
+    BIRTH_DATE_TIME = util.Date(1980, 5, 11)
+    DECEASED = Qt.Checked
+    DECEASED_DATE_TIME = util.Date(2001, 1, 1)
+    DECEASED_REASON = "heart attack"
+    NOTES = "who knows anyway"
+    HIDE_DETAILS = Qt.Checked
+    HIDE_DATES = Qt.Checked
+    HIDE_VARIABLES = Qt.Checked
+    DIAGRAM_NOTES = "Diagram notes\n\nmulti-line\n\n\n\n entry"
+
+    ## Items
+
+    personPage = pp.rootProp("personPage")
+
+    firstNameEdit = pp.rootProp("firstNameEdit")
+    middleNameEdit = pp.rootProp("middleNameEdit")
+    lastNameEdit = pp.rootProp("lastNameEdit")
+    nickNameEdit = pp.rootProp("nickNameEdit")
+    birthNameEdit = pp.rootProp("birthNameEdit")
+    sizeBox = pp.rootProp("sizeBox")
+    kindBox = pp.rootProp("kindBox")
+    adoptedBox = pp.rootProp("adoptedBox")
+    adoptedDateButtons = pp.rootProp("adoptedDateButtons")
+    primaryBox = pp.rootProp("primaryBox")
+
+    birthDateButtons = pp.rootProp("birthDateButtons")
+    adoptedDateButtons = pp.rootProp("adoptedDateButtons")
+    deceasedBox = pp.rootProp("deceasedBox")
+    deceasedDateButtons = pp.rootProp("deceasedDateButtons")
+    deceasedReasonEdit = pp.rootProp("deceasedReasonEdit")
+    notesEdit = pp.rootProp("notesEdit")
+    hideDetailsBox = pp.rootProp("hideDetailsBox")
+    hideDatesBox = pp.rootProp("hideDatesBox")
+    hideVariablesBox = pp.rootProp("hideVariablesBox")
+    diagramNotesEdit = pp.rootProp("diagramNotesEdit")
+
+    ## Set
+
+    pp.keyClicksItem(firstNameEdit, FIRST_NAME)
+    pp.keyClicksItem(middleNameEdit, MIDDLE_NAME)
+    pp.keyClicksItem(lastNameEdit, LAST_NAME)
+    pp.keyClicksItem(nickNameEdit, NICK_NAME)
+    pp.keyClicksItem(birthNameEdit, BIRTH_NAME)
+
+    pp.clickComboBoxItem(sizeBox, SIZE)
+    pp.clickComboBoxItem(kindBox, util.personKindNameFromKind(GENDER))
+
+    pp.scrollToItem(personPage, birthDateButtons)
+    pp.keyClicksItem(
+        birthDateButtons.property("dateTextInput"), util.dateString(BIRTH_DATE_TIME)
+    )
+
+    pp.scrollToItem(personPage, adoptedBox)
+    pp.mouseClickItem(adoptedBox)
+    pp.keyClicksItem(
+        adoptedDateButtons.property("dateTextInput"), util.dateString(ADOPTED_DATE_TIME)
+    )
+
+    pp.scrollToItem(personPage, deceasedBox)
+    pp.mouseClickItem(deceasedBox)
+    pp.keyClicksItem(
+        deceasedDateButtons.property("dateTextInput"),
+        util.dateString(DECEASED_DATE_TIME),
+    )
+    pp.scrollToItem(personPage, deceasedReasonEdit)
+    pp.keyClicksItem(deceasedReasonEdit, DECEASED_REASON)
+
+    pp.scrollToItem(personPage, primaryBox)
+    pp.mouseClickItem(primaryBox)
+
+    pp.scrollToItem(personPage, hideDetailsBox)
+    pp.mouseClickItem(hideDetailsBox)
+
+    pp.scrollToItem(personPage, hideDatesBox)
+    pp.mouseClickItem(hideDatesBox)
+
+    pp.scrollToItem(personPage, hideVariablesBox)
+    pp.mouseClickItem(hideVariablesBox)
+
+    pp.scrollToItem(personPage, diagramNotesEdit)
+    pp.keyClicksItem(diagramNotesEdit, DIAGRAM_NOTES, returnToFinish=False)
+
+    pp.setCurrentTab("notes")
+    pp.keyClicksItem(notesEdit, NOTES, returnToFinish=False)
+
+    ## Assert
+
+    assert person.name() == FIRST_NAME
+    assert person.middleName() == MIDDLE_NAME
+    assert person.lastName() == LAST_NAME
+    assert person.nickName() == NICK_NAME
+    assert person.birthName() == BIRTH_NAME
+    assert person.size() == util.personSizeFromName(SIZE)
+    assert person.gender() == GENDER
+    assert person.adopted() == util.csToBool(ADOPTED)
+    assert person.adoptedDateTime() == ADOPTED_DATE_TIME
+    assert person.primary() == util.csToBool(PRIMARY)
+    assert person.birthDateTime() == BIRTH_DATE_TIME
+    assert person.deceased() == util.csToBool(DECEASED)
+    assert person.deceasedDateTime() == DECEASED_DATE_TIME
+    assert person.deceasedReason() == DECEASED_REASON
+    assert person.notes() == NOTES
+    assert person.hideDetails() == util.csToBool(HIDE_DETAILS)
+    assert person.hideDates() == util.csToBool(HIDE_DATES)
+    assert person.hideVariables() == util.csToBool(HIDE_VARIABLES)
+    assert person.diagramNotes() == DIAGRAM_NOTES
+    assert person.notes() == NOTES
 
 
-def test_init_doesnt_set_dateTimes(pp, personProps):
-    person = Person()
-    person.birthEvent.setDateTime(util.Date(2001, 2, 3, 4, 5, 6))
-    pp.scene.addItem(person)
-    pp.show([person])
-    assert person.birthEvent.dateTime() == util.Date(2001, 2, 3, 4, 5, 6)
-
-
-def test_date_undo_redo(pp, personProps):
+def test_date_undo_redo(pp):
+    personPage = pp.rootProp("personPage")
+    birthDateButtons = pp.rootProp("birthDateButtons")
     personA = Person()
     personB = Person()
     pp.scene.addItems(personA, personB)
@@ -206,7 +247,7 @@ def test_date_undo_redo(pp, personProps):
     pp.model.birthDateTime = dateTime  # 0
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "02/03/2001"
 
-    pp.scrollToVisible("personPage", "birthDateButtons")
+    pp.scrollToItem(personPage, birthDateButtons)
     pp.focusItem("birthDateButtons.dateTextInput")  # open picker
     pp.mouseClick("birthDateButtons.clearButton")  # 1
     assert pp.itemProp("birthDateButtons.dateTextInput", "text") == "--/--/----"
@@ -231,10 +272,10 @@ def test_person_readOnlyFields(pp, qmlEngine):
     pp.scene.addItem(person)
     pp.scene.setReadOnly(True)
     qmlEngine.sceneModel.refreshProperty("readOnly")
-    assert pp.itemProp("firstNameEdit", "enabled") == False
-    assert pp.itemProp("middleNameEdit", "enabled") == False
-    assert pp.itemProp("lastNameEdit", "enabled") == False
-    assert pp.itemProp("ageBox", "enabled") == False
+    assert pp.rootProp("firstNameEdit").property("enabled") == False
+    assert pp.rootProp("middleNameEdit").property("enabled") == False
+    assert pp.rootProp("lastNameEdit").property("enabled") == False
+    assert pp.rootProp("ageBox").property("enabled") == False
 
 
 # @pytest.mark.skip(
@@ -257,43 +298,80 @@ def test_person_readOnlyFields(pp, qmlEngine):
 #     # assert pp.findItem('personProps_timelineView.table').property('rows') == 2
 
 
-def test_empty_strings_reset_fields(pp, personProps):
-    person = Person()
+@pytest.mark.parametrize(
+    "itemName, propertyName",
+    [
+        ("firstNameEdit", "name"),
+        ("middleNameEdit", "middleName"),
+        ("lastNameEdit", "lastName"),
+        ("nickNameEdit", "nickName"),
+        ("birthNameEdit", "birthName"),
+        ("deceasedReasonEdit", "deceasedReason"),
+    ],
+)
+def test_empty_strings_reset_string_fields(pp, itemName, propertyName):
+    SOME_VALUE = "some value"
+
+    person = Person(deceased=True)
+    person.prop(propertyName).set(SOME_VALUE)
     pp.scene.addItem(person)
     pp.show([person])
-    setPersonProperties(pp, personProps)
+    item = pp.rootProp(itemName)
+    pp.keyClicksClearItem(item)
+    assert person.prop(propertyName).get() is None
 
-    # clear all fields possible
-    pp.keyClicksClear("firstNameEdit")
-    pp.keyClicksClear("middleNameEdit")
-    pp.keyClicksClear("lastNameEdit")
-    pp.keyClicksClear("nickNameEdit")
-    pp.keyClicksClear("birthNameEdit")
-    # no gender buttons
-    pp.keyClicksClear("birthDateButtons.dateTextInput")
-    pp.keyClicksClear("birthLocationEdit")
-    # no adopted box
-    pp.keyClicksClear("adoptedDateButtons.dateTextInput")
-    # no primary box
-    # no deceased box
-    pp.keyClicksClear("deceasedReasonEdit")
-    pp.keyClicksClear("deceasedLocationEdit")
-    pp.keyClicksClear("deceasedDateButtons.dateTextInput")
+
+def test_empty_strings_reset_notesField(pp):
+    SOME_VALUE = "some value\nsdfsdfsdf"
+
+    person = Person(deceased=True)
+    person.prop("notes").set(SOME_VALUE)
+    pp.scene.addItem(person)
+    pp.show([person])
     pp.setCurrentTab("notes")
-    pp.keyClicksClear("notesEdit")  # no idea...
+    notesEdit = pp.rootProp("notesEdit")
+    pp.keyClickItem(notesEdit, Qt.Key_Backspace)
+    pp.resetFocusItem(notesEdit)
+    assert person.prop("notes").get() is None
 
-    assert person.name() is None
-    assert person.middleName() is None
-    assert person.lastName() is None
-    assert person.nickName() is None
-    assert person.birthName() is None
-    assert person.birthEvent.location() is None
-    assert person.birthDateTime() is None
-    assert person.adoptedDateTime() is None
-    assert person.deceasedDateTime() is None
-    assert person.deathEvent.location() is None
-    assert person.deceasedReason() is None
-    assert person.notes() is None  # no idea..
+
+@pytest.mark.parametrize(
+    "dateButtonsName, eventName",
+    [
+        ("birthDateButtons", "birthEvent"),
+        ("adoptedDateButtons", "adoptedEvent"),
+        ("deceasedDateButtons", "deathEvent"),
+    ],
+)
+def test_empty_strings_reset_dateTextInput_fields(pp, dateButtonsName, eventName):
+    person = Person(adopted=True, deceased=True)
+    pp.scene.addItem(person)
+    event = getattr(person, eventName)
+    event.setDateTime(util.Date(2001, 2, 3))
+    pp.show([person])
+    dateButtons = pp.rootProp(dateButtonsName)
+    pp.scrollToItem(pp.rootProp("personPage"), dateButtons)
+    dateTextInput = dateButtons.property("dateTextInput")
+    pp.keyClicksClearItem(dateTextInput)
+    assert getattr(person, eventName).dateTime() is None
+
+
+@pytest.mark.parametrize(
+    "locationEditName, eventName",
+    [
+        ("birthLocationEdit", "birthEvent"),
+        ("deceasedLocationEdit", "deathEvent"),
+    ],
+)
+def test_empty_strings_reset_event_location_fields(pp, locationEditName, eventName):
+    person = Person(deceased=True)
+    pp.scene.addItem(person)
+    event = getattr(person, eventName)
+    event.setLocation("Somewhere, US")
+    pp.show([person])
+    item = pp.rootProp(locationEditName)
+    pp.keyClicksClearItem(item)
+    assert getattr(person, eventName).location() is None
 
 
 def test_scene_readOnlyFields(pp, qmlEngine):

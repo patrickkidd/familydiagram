@@ -45,15 +45,9 @@ def test_add_pairbond_and_children(dlg):
     personA.marriages[0].events()[0].uniqueId() == EventKind.Married.value
 
 
-def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-    scene = mw.scene
-    dlg = mw.documentView.addAnythingDialog
+def test_mw_add_pairbond_and_children(qtbot, scene, dlg):
     submitted = util.Condition(dlg.submitted)
-    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
-
     # Add person and parents by birth
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "John Doe")
     dlg.set_new_person("personAPicker", "James Doe")
@@ -79,8 +73,7 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     }
 
     # Add by marriage
-    johnDoe.setSelected(True)
-    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.test_initForSelection([johnDoe])
     dlg.set_kind(EventKind.Married)
     dlg.set_new_person(
         "personBPicker",
@@ -97,10 +90,8 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     assert len(janetDoran.marriages[0].events()) == 1
     assert janetDoran.marriages[0].events()[0].dateTime() == START_DATETIME.addYears(25)
 
-    scene.clearSelection()
-
     # Add first kid
-    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.test_initForSelection([])
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person("personPicker", "Roberto Doe")
     dlg.set_existing_person("personAPicker", person=johnDoe)
@@ -112,11 +103,7 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
     assert robertoDoe.birthDateTime() == START_DATETIME.addYears(26)
     assert set(robertoDoe.parents().people) == {johnDoe, janetDoran}
 
-    scene.clearSelection()
-
     # Add second kid
-    assert johnDoe.isSelected() == False
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person(
         "personPicker",
@@ -140,29 +127,19 @@ def test_mw_add_pairbond_and_children(qtbot, create_ac_mw):
 #    make them married after the fact
 
 
-def test_add_pairbond_event_to_existing_pairbond(qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-    scene = mw.scene
-    dlg = mw.documentView.addAnythingDialog
-    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+def test_add_pairbond_event_to_existing_pairbond(scene, dlg):
     personA, personB = Person(name="John"), Person(name="Jane")
     # marriage = Marriage(personA, personB)
     scene.addItems(personA, personB)
 
-    mw.documentView.controller.onNextEvent()
-    mw.documentView.controller.onPrevEvent()
-
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Married)
     dlg.set_existing_person("personAPicker", person=personA)
     dlg.set_existing_person("personBPicker", person=personB)
     dlg.set_startDateTime(END_DATETIME)
     dlg.mouseClick("AddEverything_submitButton")
 
-    mw.documentView.controller.onNextEvent()
-    mw.documentView.controller.onPrevEvent()
+    scene.setCurrentDateTime(END_DATETIME)
 
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Bonded)
     dlg.set_existing_person("personAPicker", person=personA)
     dlg.set_existing_person("personBPicker", person=personB)
@@ -170,15 +147,10 @@ def test_add_pairbond_event_to_existing_pairbond(qtbot, create_ac_mw):
     dlg.mouseClick("AddEverything_submitButton")
 
 
-def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-    scene = mw.scene
-    dlg = mw.documentView.addAnythingDialog
+def test_mw_add_birth_w_parents_and_birth(scene, dlg):
     submitted = util.Condition(dlg.submitted)
-    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
 
     # Add person by birth
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
 
     dlg.set_new_person("personPicker", "John Doe")
@@ -205,7 +177,6 @@ def test_mw_add_birth_w_parents_and_birth(qtbot, create_ac_mw):
     }
 
     # Add Spouse Birth
-    qtbot.clickAndProcessEvents(addAnythingButton)
     dlg.set_kind(EventKind.Birth)
     dlg.set_new_person(
         "personPicker",
@@ -245,32 +216,31 @@ def test_add_second_marriage_to_person(dlg):
     assert person in spouse2.marriages[0].people
 
 
-def test_no_Marriage_DeferredDelete(qtbot, data_root, create_ac_mw):
+def test_no_Marriage_DeferredDelete(data_root, scene, dlg):
     """
     Disable the hack in PathItem.eventFilter for DeferredDelete and see how this
     causes it to get called.
     """
 
-    ac, mw = create_ac_mw()
-    mw.show()
-    mw.open(os.path.join(data_root, "blow-up-itemdetails.fd"))
-    scene = mw.scene
-    dlg = mw.documentView.addAnythingDialog
-    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
+    import pickle
+
+    with open(
+        os.path.join(data_root, "blow-up-itemdetails.fd", "diagram.pickle"), "rb"
+    ) as f:
+        bdata = f.read()
+    data = pickle.loads(bdata)
+    scene.read(data)
 
     patrick = scene.query1(name="Patrick")
     bob = scene.query1(name="bob")
 
-    patrick.marriages[0].setSelected(True)
-    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.test_initForSelection([patrick.marriages[0]])
     dlg.set_kind(EventKind.CustomPairBond)
     dlg.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
     dlg.set_description("Something pair-bond-y")
     dlg.mouseClick("AddEverything_submitButton")
 
-    scene.clearSelection()
-    patrick.setSelected(True)
-    qtbot.clickAndProcessEvents(addAnythingButton)
+    dlg.test_initForSelection([patrick])
     dlg.set_kind(EventKind.Birth)
     dlg.set_startDateTime(QDateTime(1900, 1, 1, 0, 0))
 

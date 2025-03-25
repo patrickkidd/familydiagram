@@ -360,7 +360,7 @@ def watchdog(request, qApp):
     else:
         timeout_ms = 10000
 
-    if not request.config.watchdog_disabled and not integration:
+    if not __debug__ and not request.config.watchdog_disabled and not integration:
 
         class Watchdog:
 

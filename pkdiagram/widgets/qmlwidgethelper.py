@@ -65,6 +65,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
+        # log.info(f"Loading QML from: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():
@@ -76,9 +77,6 @@ class QmlWidgetHelper(QObjectHelper):
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        for child in self.qml.rootObject().findChildren(QQuickItem):
-            if child.objectName():
-                self._qmlItemCache[child.objectName()] = child
 
         self.onInitQml()
         return True
@@ -294,8 +292,8 @@ class QmlWidgetHelper(QObjectHelper):
         ):
             prevText = item.property("text")
             self.keyClickItem(item, Qt.Key_Backspace)
-            if item.property("text") == prevText:
-                break
+            # if item.property("text") != prevText:
+            #     break
         self.resetFocusItem(item)
         itemText = item.property("text")
         assert itemText in (
@@ -521,11 +519,9 @@ class QmlWidgetHelper(QObjectHelper):
             comboBox.setProperty("currentIndex", -1)
         comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()
-        if not comboBox.property("currentText") == itemText:
-            raise RuntimeError(
-                'Could not set `currentText` to "%s" (currentIndex: %i) on %s'
-                % (itemText, currentIndex, objectName)
-            )
+        assert (
+            comboBox.property("currentText") == itemText
+        ), f'Could not set `currentText` to "{itemText}" (currentIndex: {currentIndex}) on {objectName}'
 
         # popup = item.findChildren(QQuickItem, 'popup')[0]
         # self.recursivePrintChildren(item, 0)
@@ -598,6 +594,21 @@ class QmlWidgetHelper(QObjectHelper):
     def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
         y = self.itemProp(visibleObjectName, "y")
         self.setItemProp(flickableObjectName, "contentY", -1 * y)
+
+    def scrollToItem(self, flickable: QQuickItem, item: QQuickItem):
+        y = item.y()
+        itemHeight = item.height()
+        flickableHeight = flickable.property("height")
+        contentY = flickable.property("contentY")
+        if y < contentY:
+            log.debug(f"Scrolling {flickable.objectName()} to contentY: {y}")
+            flickable.setProperty("contentY", y)
+        elif y + itemHeight > contentY + flickableHeight:
+            log.debug(
+                f"Scrolling {flickable.objectName()} to contentY: {y + itemHeight}"
+            )
+            flickable.setProperty("contentY", y + itemHeight)
+        QApplication.processEvents()
 
     def scrollChildToVisible(self, flickable: QQuickItem, item: QQuickItem):
         positionInContent = item.mapToItem(
