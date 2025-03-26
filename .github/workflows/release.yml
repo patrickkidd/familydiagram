@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_notes:
+        description: "Enter release notes for appcast (multi-line supported)"
+        required: false
+        type: string
   # push:
   #   branches:
   #     - master
@@ -419,6 +424,7 @@ jobs:
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
         prerelease: true
+        body: ${{ github.event.inputs.release_notes }}
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
