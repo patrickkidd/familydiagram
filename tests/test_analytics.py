@@ -1,3 +1,4 @@
+import sys
 import pickle
 import contextlib
 import logging
@@ -147,7 +148,8 @@ def test_datadog_send_logs_api(analytics, user):
     with mock.patch("time.time", return_value=123):
         with mockRequest(200) as sendCustomRequest:
             with mock.patch("os.uname", return_value="os_uname"):
-                analytics.send(log)
+                with mock.patch.object(sys, "platform", "platform-123"):
+                    analytics.send(log)
     assert analytics.numLogsQueued() == 1
     assert analytics.currentRequest() is not None
     assert completedOneRequest.wait() == True
@@ -158,6 +160,7 @@ def test_datadog_send_logs_api(analytics, user):
             "ddsource": "python",
             "ddtags": "env:test",
             "message": "some log content",
+            "platform": "platform-123",
             "date": time_2_iso8601(123),
             "host": "",
             "log_txt": "",
