@@ -1525,7 +1525,7 @@ class MainWindow(QMainWindow):
             QApplication.instance().paletteChanged.emit(
                 QApplication.instance().palette()
             )  # onSystemPaletteChanged()
-            self.scene.writeJPG(printer=printer)
+            self.documentView.controller.writeJPG(printer=printer)
             CUtil.instance().isUIDarkMode = _isUIDarkMode
             QApplication.instance().paletteChanged.emit(
                 QApplication.instance().palette()
