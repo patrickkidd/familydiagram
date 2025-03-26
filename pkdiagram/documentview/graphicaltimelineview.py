@@ -13,6 +13,7 @@ from pkdiagram.pyqt import (
     pyqtSignal,
     QApplication,
     QDateTime,
+    QItemSelectionModel,
     QColor,
 )
 from pkdiagram import util
@@ -59,21 +60,18 @@ class GraphicalTimelineView(QFrame):
     def __init__(
         self,
         searchModel,
-        timelineModel,
-        selectionModel: QItemSelectionModel,
+        selectionModel,
         parent=None,
     ):
         super().__init__(parent)
         self.scene = None
         self.documentView = parent if util.isInstance(parent, "DocumentView") else None
         self.searchModel = searchModel
-        self.timelineModel = timelineModel
+        self.timelineModel = selectionModel.model()
         self.selectionModel = selectionModel
         self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
 
-        self.timeline = GraphicalTimeline(
-            searchModel, timelineModel, selectionModel, self
-        )
+        self.timeline = GraphicalTimeline(searchModel, selectionModel, self)
         self.timeline.setStyleSheet("background-color: transparent")
         self.timeline.canvas.setStyleSheet("background-color: transparent")
         self.lastScaleFactor = self.timeline.scaleFactor

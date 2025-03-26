@@ -47,6 +47,13 @@ PK.Drawer {
     property var notes: notesEdit.text
     property var eventModel: EventPropertiesModel {}
 
+    property var personPicker: personPicker
+    property var peoplePicker: peoplePicker
+    property var personAPicker: personAPicker
+    property var personBPicker: personBPicker
+    property var moversPicker: moversPicker
+    property var receiversPicker: receiversPicker
+
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
         print('onStartDateTimeChanged: ' + startDateTime)

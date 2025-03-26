@@ -1242,7 +1242,7 @@ Page {
                             enabled: root.purchasingPolicy && creditCardForm.acceptableInput
                             KeyNavigation.tab: ccNumField
                             onClicked: {
-                                var yes = util.questionBox('Are you sure?', 'Are you sure that you want your credit card to be billed periodically for this license?')
+                                var yes = util.questionBox('Are you sure?', 'Are you sure that you want your credit card to be billed for this license?')
                                 if(!yes) {
                                     return
                                 }

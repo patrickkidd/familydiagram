@@ -10,7 +10,6 @@ import PK.Models 1.0
 PK.Drawer {
     
     id: root
-    objectName: 'personProps'
 
     signal toggleExpand
     signal editTimelineItem
@@ -44,6 +43,37 @@ PK.Drawer {
     property bool isReadOnly: (sceneModel && sceneModel.readOnly) ? true : false
     property bool canRemove: tabBar.currentIndex == 1 && timelineView.canRemove
     property bool canInspect: tabBar.currentIndex == 1 && timelineView.canInspect
+
+    property var personPage: personPage
+    property var firstNameEdit: firstNameEdit
+    property var middleNameEdit: middleNameEdit
+    property var lastNameEdit: lastNameEdit
+    property var nickNameEdit: nickNameEdit
+    property var birthNameEdit: birthNameEdit
+    property var birthDatePicker: birthDatePicker
+    property var birthDateButtons: birthDateButtons
+    property var birthLocationEdit: birthLocationEdit
+    property var adoptedBox: adoptedBox
+    property var adoptedDateButtons: adoptedDateButtons
+    property var deceasedBox: deceasedBox
+    property var deceasedReasonEdit: deceasedReasonEdit
+    property var deceasedLocationEdit: deceasedLocationEdit
+    property var deceasedDateButtons: deceasedDateButtons
+    property var notesEdit: notesEdit
+    property var deemphasizeBox: deemphasizeBox
+    property var resetDeemphasizeButton: resetDeemphasizeButton
+    property var resetColorButton: resetColorButton
+    property var colorBox: colorBox
+    property var sizeBox: sizeBox
+    property var kindBox: kindBox
+    property var ageBox: ageBox
+    property var primaryBox: primaryBox
+    property var hideDetailsBox: hideDetailsBox
+    property var hideDatesBox: hideDatesBox
+    property var hideVariablesBox: hideVariablesBox
+    property var diagramNotesEdit: diagramNotesEdit
+    property var layerList: layerList
+    property var timelinePage: timelinePage
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -122,7 +152,6 @@ PK.Drawer {
 
     footer: PK.TabBar {
         id: tabBar
-        objectName: "tabBar"
         currentIndex: stack.currentIndex
         PK.TabButton { text: "Person" }
         PK.TabButton { text: "Timeline" }
@@ -137,14 +166,12 @@ PK.Drawer {
 
     QQC.Drawer {
         id: eventPropertiesDrawer
-        objectName: 'eventPropertiesDrawer'
         width: util.DRAWER_OVER_WIDTH
         height: root.height
         dragMargin: 0
         edge: Qt.RightEdge
         PK.EventProperties {
             id: eventProperties
-            objectName: 'eventProperties'
             anchors.fill: parent
         }
         onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
@@ -159,13 +186,11 @@ PK.Drawer {
     StackLayout {
 
         id: stack
-        objectName: 'stack'
         currentIndex: tabBar.currentIndex
         anchors.fill: parent
 
         Flickable {
             id: personPage
-            objectName: 'personPage'
             contentWidth: width
             contentHeight: personPageInner.childrenRect.height + 50
         
@@ -201,7 +226,6 @@ PK.Drawer {
                         
                         PK.TextField {
                             id: firstNameEdit
-                            objectName: 'firstNameEdit'
                             Layout.fillWidth: true
                             text: sceneModel.showAliases ? personModel.fullNameOrAlias : personModel.name
                             enabled: !root.isReadOnly && !sceneModel.showAliases
@@ -220,7 +244,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: middleNameEdit
-                            objectName: 'middleNameEdit'
                             Layout.fillWidth: true
                             text: sceneModel.showAliases ? '' : personModel.middleName
                             enabled: !root.isReadOnly && !sceneModel.showAliases
@@ -230,7 +253,6 @@ PK.Drawer {
 
                         PK.CheckBox {
                             id: middleNameBox
-                            objectName: 'middleNameBox'
                             checkState: personModel.showMiddleName
                             enabled: !root.isReadOnly
                             KeyNavigation.tab: lastNameEdit
@@ -246,7 +268,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: lastNameEdit
-                            objectName: 'lastNameEdit'
                             Layout.fillWidth: true
                             text: sceneModel.showAliases ? '' : personModel.lastName
                             enabled: !root.isReadOnly && !sceneModel.showAliases
@@ -256,7 +277,6 @@ PK.Drawer {
 
                         PK.CheckBox {
                             id: lastNameBox
-                            objectName: 'lastNameBox'
                             checkState: personModel.showLastName
                             enabled: !root.isReadOnly
                             KeyNavigation.tab: nickNameEdit
@@ -272,7 +292,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: nickNameEdit
-                            objectName: 'nickNameEdit'
                             Layout.fillWidth: true
                             enabled: !root.isReadOnly && !sceneModel.showAliases
                             text: sceneModel.showAliases ? '' : personModel.nickName
@@ -282,7 +301,6 @@ PK.Drawer {
 
                         PK.CheckBox {
                             id: showNickNameBox
-                            objectName: 'showNickNameBox'
                             /* text: 'Show' */
                             checked: personModel.showNickName
                             enabled: !root.isReadOnly
@@ -299,7 +317,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: birthNameEdit
-                            objectName: 'birthNameEdit'
                             Layout.fillWidth: true
                             text: sceneModel.showAliases ? '' : personModel.birthName
                             enabled: !root.isReadOnly && !sceneModel.showAliases
@@ -320,7 +337,6 @@ PK.Drawer {
 
                         PK.ComboBox {
                             id: kindBox
-                            objectName: 'kindBox'
                             enabled: !root.isReadOnly
                             Layout.fillWidth: true
                             model: util.PERSON_KIND_NAMES
@@ -340,13 +356,16 @@ PK.Drawer {
 
                         PK.ComboBox {
                             id: sizeBox
-                            objectName: 'sizeBox'
                             Layout.fillWidth: true
                             currentIndex: personModel.sizeIndex
                             model: util.PERSON_SIZE_NAMES
                             enabled: !root.isReadOnly
                             KeyNavigation.tab: ageBox
-                            onActivated: personModel.sizeIndex = currentIndex
+                            onCurrentIndexChanged: {
+                                if(currentIndex != personModel.sizeIndex) {
+                                    personModel.sizeIndex = currentIndex
+                                }
+                            }
                         }
 
                         Rectangle { width: 1; height: 1; color: 'transparent' }
@@ -359,7 +378,6 @@ PK.Drawer {
                             Layout.columnSpan: 2
                             PK.TextField {
                                 id: ageBox
-                                objectName: 'ageBox'
                                 enabled: !root.isReadOnly
                                 palette.base: util.QML_ITEM_BG
                                 Layout.maximumWidth: 100
@@ -414,7 +432,6 @@ PK.Drawer {
 
                         PK.DatePickerButtons {
                             id: birthDateButtons
-                            objectName: 'birthDateButtons'
                             datePicker: birthDatePicker
                             timePicker: birthTimePicker
                             dateTime: personModel.birthDateTime
@@ -434,7 +451,6 @@ PK.Drawer {
 
                         PK.DatePicker {
                             id: birthDatePicker
-                            objectName: 'birthDatePicker'
                             dateTime: personModel.birthDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -449,7 +465,6 @@ PK.Drawer {
 
                         PK.TimePicker {
                             id: birthTimePicker
-                            objectName: "birthTimePicker"
                             dateTime: personModel.birthDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -468,7 +483,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: birthLocationEdit
-                            objectName: 'birthLocationEdit'
                             text: personModel.birthLocation
                             enabled: !root.isReadOnly
                             Layout.fillWidth: true
@@ -484,7 +498,6 @@ PK.Drawer {
                         
                         PK.CheckBox {
                             id: adoptedBox
-                            objectName: 'adoptedBox'
                             text: 'Adopted'
                             checkState: personModel.adopted
                             enabled: !root.isReadOnly
@@ -494,7 +507,6 @@ PK.Drawer {
                         
                         PK.DatePickerButtons {
                             id: adoptedDateButtons
-                            objectName: 'adoptedDateButtons'
                             datePicker: adoptedDatePicker
                             timePicker: adoptedTimePicker
                             dateTime: personModel.adoptedDateTime
@@ -514,7 +526,6 @@ PK.Drawer {
 
                         PK.DatePicker {
                             id: adoptedDatePicker
-                            objectName: 'adoptedDatePicker'
                             dateTime: personModel.adoptedDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -530,7 +541,6 @@ PK.Drawer {
                        
                         PK.TimePicker {
                             id: adoptedTimePicker
-                            objectName: 'adoptedTimePicker'
                             dateTime: personModel.adoptedDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -547,7 +557,6 @@ PK.Drawer {
                         
                         PK.CheckBox {
                             id: deceasedBox
-                            objectName: 'deceasedBox'
                             text: 'Deceased'
                             checkState: personModel.deceased
                             enabled: !root.isReadOnly
@@ -557,7 +566,6 @@ PK.Drawer {
                         
                         PK.DatePickerButtons {
                             id: deceasedDateButtons
-                            objectName: 'deceasedDateButtons'
                             datePicker: deceasedDatePicker
                             timePicker: deceasedTimePicker
                             dateTime: personModel.deceasedDateTime
@@ -577,7 +585,6 @@ PK.Drawer {
 
                         PK.DatePicker {
                             id: deceasedDatePicker
-                            objectName: 'deceasedDatePicker'
                             dateTime: personModel.deceasedDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -592,7 +599,6 @@ PK.Drawer {
 
                         PK.TimePicker {
                             id: deceasedTimePicker
-                            objectName: 'deceasedTimePicker'
                             dateTime: personModel.deceasedDateTime
                             Layout.columnSpan: 3
                             Layout.fillWidth: true
@@ -615,7 +621,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: deceasedReasonEdit
-                            objectName: 'deceasedReasonEdit'
                             text: personModel.deceasedReason
                             enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
                             visible: deceasedBox.checkState != Qt.Unchecked
@@ -641,7 +646,6 @@ PK.Drawer {
 
                         PK.TextField {
                             id: deceasedLocationEdit
-                            objectName: 'deceasedLocationEdit'
                             text: personModel.deceasedLocation
                             enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
                             visible: deceasedBox.checkState != Qt.Unchecked
@@ -710,7 +714,6 @@ PK.Drawer {
                         
                             PK.CheckBox {
                                 id: primaryBox
-                                objectName: 'primaryBox'
                                 text: "Primary"
                                 enabled: !root.isReadOnly
                                 checkState: personModel.primary
@@ -720,7 +723,6 @@ PK.Drawer {
 
                             PK.CheckBox {
                                 id: bigFontBox
-                                objectName: 'bigFontBox'
                                 text: "Big Font"
                                 enabled: !root.isReadOnly
                                 checkState: personModel.bigFont
@@ -736,7 +738,6 @@ PK.Drawer {
                         
                             PK.CheckBox {
                                 id: hideDetailsBox
-                                objectName: 'hideDetailsBox'
                                 text: "Hide Details"
                                 enabled: !root.isReadOnly
                                 checkState: personModel.hideDetails
@@ -746,7 +747,6 @@ PK.Drawer {
 
                             PK.CheckBox {
                                 id: hideDatesBox
-                                objectName: 'hideDatesBox'
                                 text: "Hide Dates"
                                 enabled: !root.isReadOnly
                                 checkState: personModel.hideDates
@@ -756,7 +756,6 @@ PK.Drawer {
 
                             PK.CheckBox {
                                 id: hideVariablesBox
-                                objectName: 'hideVariablesBox'
                                 text: "Hide Variables"
                                 enabled: !root.isReadOnly
                                 checkState: personModel.hideVariables
@@ -774,7 +773,6 @@ PK.Drawer {
         Page {
 
             id: timelinePage
-            objectName: 'timelinePage'
             Layout.fillHeight: true
             Layout.fillWidth: true
             padding: 0
@@ -784,9 +782,7 @@ PK.Drawer {
 
             PK.TimelineView {
                 id: timelineView
-                objectName: 'personProps_timelineView'
                 model: TimelineModel {
-                    objectName: 'personTimelineModel'
                     searchModel: searchModel
                     scene: sceneModel.scene
                     items: personModel.items.length > 0 ? personModel.items : undefined
@@ -809,7 +805,6 @@ PK.Drawer {
             
             PK.TextEdit {
                 id: notesEdit
-                objectName: 'notesEdit'
                 width: parent.width
                 text: personModel.notes
                 padding: margin
@@ -846,14 +841,12 @@ PK.Drawer {
                             
                             PK.ColorPicker {
                                 id: colorBox
-                                objectName: 'colorBox'
                                 color: personModel.color != undefined ? personModel.color : 'transparent'
                                 onCurrentIndexChanged: personModel.color = model[currentIndex]
                             }
                             
                             PK.Button {
                                 id: resetColorButton
-                                objectName: 'resetColorButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20
@@ -869,14 +862,12 @@ PK.Drawer {
                             
                             PK.CheckBox {
                                 id: deemphasizeBox
-                                objectName: 'deemphasizeBox'
                                 checkState: personModel.deemphasize
                                 onClicked: personModel.deemphasize = checkState
                             }
 
                             PK.Button {
                                 id: resetDeemphasizeButton
-                                objectName: 'resetDeemphasizeButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20
@@ -899,7 +890,6 @@ PK.Drawer {
                             
                             PK.Button {
                                 id: resetSizeButton
-                                objectName: 'resetSizeButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20
@@ -939,14 +929,12 @@ PK.Drawer {
                             
                             PK.CheckBox {
                                 id: layerBigFontBox
-                                objectName: 'layerBigFontBox'
                                 checkState: personModel.bigFont
                                 onClicked: personModel.bigFont = checkState
                             }
 
                             PK.Button {
                                 id: resetBigFontButton
-                                objectName: 'resetBigFontButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20
@@ -962,14 +950,12 @@ PK.Drawer {
                             
                             PK.CheckBox {
                                 id: layerHideDetailsBox
-                                objectName: 'layerHideDetailsBox'
                                 checkState: personModel.hideDetails
                                 onClicked: personModel.hideDetails = checkState
                             }
 
                             PK.Button {
                                 id: resetHideDetailsButton
-                                objectName: 'resetHideDetailsButton'
                                 source: '../../clear-button.png'
                                 clip: true
                                 implicitWidth: 20
@@ -991,9 +977,7 @@ PK.Drawer {
                             anchors.fill: parent
                             PK.ItemLayerList {
                                 id: layerList
-                                objectName: 'layerList'
                                 model: LayerItemLayersModel {
-                                    objectName: 'personProps_layerList'
                                     scene: sceneModel.scene
                                     items: personModel.items ? personModel.items : []
                                 }

@@ -1,3 +1,4 @@
+import sys
 import os.path
 import logging
 import json
@@ -205,6 +206,7 @@ class Analytics(QObject):
                     ),
                     "session_id": x.session_id,
                     "device": os.uname(),
+                    "platform": sys.platform,
                     "version": version.VERSION,
                     "log_txt": x.log_txt,
                 }

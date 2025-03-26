@@ -8,7 +8,10 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         super().__init__(parent)
         self._sizeHint = QSize()
         self.initQmlWidgetHelper(engine, "qml/AccountDialog.qml")
-        self.checkInitQml()
+        self._sizeHint = QSize()
+
+    def onInitQml(self):
+        super().onInitQml()
         self.qml.rootObject().done.connect(self.onDone)
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
@@ -19,12 +22,17 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         self.setMaximumSize(self.sizeHint())
         self.resize(self.sizeHint())
 
+    def show(self):
+        super().show()
+        self.checkInitQml()
+
     def sizeHint(self):
         return self._sizeHint
 
     def deinit(self):
-        self.qml.rootObject().done.disconnect(self.onDone)
-        QmlWidgetHelper.deinit(self)
+        if self.qml:
+            self.qml.rootObject().done.disconnect(self.onDone)
+            QmlWidgetHelper.deinit(self)
 
     def canClose(self):
         return bool(self.qmlEngine().session.isLoggedIn())

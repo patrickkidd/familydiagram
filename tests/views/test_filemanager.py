@@ -1,9 +1,11 @@
 import os.path
+
 import pytest
+import mock
 
 import vedana
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import QApplication, QTest
+from pkdiagram.pyqt import QApplication, QUrl
 from pkdiagram import util
 from pkdiagram.mainwindow import FileManager
 
@@ -57,8 +59,7 @@ def test_local_filter(tmp_path, create_fm):
             name = f"Diagram {i}-odd.fd"
         fpath = os.path.join(tmp_path, name)
         util.touchFD(fpath)
-    QTest.qSleep(1000)
-    QApplication.processEvents()
+    util.waitALittle()
 
     fm = create_fm()
     assert fm.rootProp("localFilesShown") == True
@@ -70,6 +71,26 @@ def test_local_filter(tmp_path, create_fm):
     fm.itemProp("localSearchBar.searchBox", "text") == "-odd"
     assert localFileModel.searchText == "-odd"
     assert localFileModel.rowCount() == NUM_FILES / 2
+
+
+def test_local_onFileStatusChanged(tmp_path, create_fm):
+    CUtil.instance().forceDocsPath(str(tmp_path))
+
+    name = f"Diagram-123.fd"
+    fpath = os.path.join(tmp_path, name)
+    util.touchFD(fpath)
+
+    fm = create_fm()
+    assert fm.rootProp("localFilesShown") == True
+
+    localFileModel = fm.rootProp("localFileModel")
+    with mock.patch.object(localFileModel, "updateFileEntry") as updateFileEntry:
+        localFileModel.onFileStatusChanged(
+            QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent
+        )
+    assert updateFileEntry.call_args[1]["path"] == fpath
+    assert updateFileEntry.call_args[1]["status"] == CUtil.FileIsCurrent
+    assert updateFileEntry.call_args[1]["modified"] == os.stat(fpath).st_mtime
 
 
 def test_server_filter_owner(

@@ -29,6 +29,7 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
         ]
     )
 
+    qmlInitialized = pyqtSignal()
     canInspectChanged = pyqtSignal()
 
     def __init__(
@@ -49,14 +50,13 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
             self._documentView = None
         self.propSheetModel = propSheetModel
         self.initQmlWidgetHelper(engine, source)
-        self.checkInitQml()
-        self.layout().addWidget(self.qml)
 
     def documentView(self):
         return self._documentView
 
     def onInitQml(self):
         super().onInitQml()
+        self.layout().addWidget(self.qml)
         self.qml.rootObject().done.connect(self.onDone)
         if hasattr(self.qml.rootObject(), "resize"):
             self.qml.rootObject().resize.connect(self.onResize)
@@ -67,10 +67,11 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
                 self.onIsDrawerOpenChanged
             )
         self.qml.rootObject().setProperty("expanded", self.expanded)
+        self.qmlInitialized.emit()
 
     def deinit(self):
-        self.qml.rootObject().done.disconnect(self.onDone)
-        if hasattr(self, "qml"):
+        if self.qml:
+            self.qml.rootObject().done.disconnect(self.onDone)
             model = self.rootModel()
             if model and model.items:
                 model.resetItems()
@@ -128,7 +129,7 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
 
     def onExpandAnimationFinished(self):
         super().onExpandAnimationFinished()
-        if hasattr(self, "qml"):
+        if self.qml:
             self.qml.rootObject().setProperty("expanded", self.expanded)
 
     def setCurrentTabIndex(self, x):

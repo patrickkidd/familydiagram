@@ -256,6 +256,7 @@ def test_load_from_file_with_people_no_events(dv):
 
 
 def test_load_from_file_with_people_and_events(dv):
+    dv.caseProps.checkInitQml()
     people = [Person(name="p1"), Person(name="p2")]
     scene = Scene()
     scene.addItems(*people)
@@ -394,6 +395,7 @@ def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
 
 
 def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
+    dv.caseProps.checkInitQml()
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
     scene.addItems(personA, personB)
@@ -416,6 +418,7 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
 
 
 def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
+    dv.caseProps.checkInitQml()
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
     scene.addItems(personA, personB)
@@ -439,6 +442,7 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
 
 def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
+    dv.searchDialog.checkInitQml()
 
     dv.searchModel.tags = ["blah"]
     dv.searchModel.description = "Some description"
@@ -669,7 +673,7 @@ def test_show_events_from_timeline_callout(qtbot, scene, dv: DocumentView):
     ensureVisAnimation = dv.caseProps.findItem("ensureVisAnimation")
     ensureVisAnimation_finished = util.Condition(ensureVisAnimation.finished)
     ensureVisibleSet = util.Condition(
-        dv.caseProps.findItem("caseProps_timelineView").ensureVisibleSet
+        dv.caseProps.rootProp("timelineView").ensureVisibleSet
     )
     events = [
         Event(

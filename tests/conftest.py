@@ -24,6 +24,7 @@ python_init.init_dev()
 for part in ("../_pkdiagram", ".."):
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), part))
 
+from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
     QNetworkReply,
@@ -300,6 +301,7 @@ def qApp():
         return prefs
 
     with mock.patch.object(Application, "prefs", _prefs):
+
         app = Application(sys.argv)
 
     _orig_Server_deinit = Server.deinit
@@ -331,16 +333,20 @@ def qApp():
             mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )
         stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
+        # stack.enter_context(mock.patch("fdserver.extensions.init_excepthook"))
         yield app
 
     app.deinit()
 
 
 @pytest.fixture(autouse=True)
-def prefs():
+def prefs(tmp_path):
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
     with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
-        yield prefs
+        with mock.patch.object(
+            CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
+        ):
+            yield prefs
 
 
 @pytest.fixture(autouse=True)
@@ -355,7 +361,7 @@ def watchdog(request, qApp):
     else:
         timeout_ms = 10000
 
-    if not request.config.watchdog_disabled and not integration:
+    if not __debug__ and not request.config.watchdog_disabled and not integration:
 
         class Watchdog:
 

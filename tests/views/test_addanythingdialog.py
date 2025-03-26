@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Marriage, Event, EventKind
+from pkdiagram.scene import Person, Marriage, EventKind, PathItem
 from pkdiagram.views import AddAnythingDialog
 
 _log = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 
 class TestAddAnythingDialog(AddAnythingDialog):
 
-    def test_initForSelection(self, selection):
+    def test_initForSelection(self, selection: list[PathItem]):
         if Marriage.marriageForSelection(selection):
             self.initForSelection(selection)
             # personAPickerItem = self.findItem("personAPicker")

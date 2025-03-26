@@ -23,7 +23,7 @@ ColumnLayout {
     property var _: Qt._
 
     property int margin: 10
-    property date currentDateTime: root.model ? root.model.dateTimeForRow(root.selectionModel.currentRow) : (new Date)
+    property date currentDateTime: root.model ? root.model.dateTimeForRow(root.currentRow) : (new Date)
     property int contentY: table.contentY
     property int defaultColumnWidth: 100
     property bool delayUpdates: false
@@ -40,13 +40,14 @@ ColumnLayout {
     property var modelItems: model ? model.items : []
 
     property var selectedEvents: []    
-    property var selectionModel: ItemSelectionModel {
+    property var selectionModel: eventSelectionModel
+    property var currentRow: -1
 
-        property int currentRow: -1
-        property bool resetter: false
+    property bool selectionResetter: false
 
-        model: root.model
-        onSelectionChanged: {
+    Connections {
+        target: selectionModel
+        function onSelectionChanged() {
             var selectedEvents = []
             var selectedRows = selectionModel.selectedRows(1)
             for(var i=0; i < selectedRows.length; i++) {
@@ -57,16 +58,16 @@ ColumnLayout {
                 }
             }
             root.selectedEvents = selectedEvents
-            resetter = ! resetter // update delegates
+            selectionResetter = ! selectionResetter // update delegates
             // emit after table.updateSelectionItems() so selectedEvents|Emotions are already updated
             root.selectionChanged()
         }
-        onCurrentIndexChanged: {
+       function  onCurrentIndexChanged() {
             if(currentIndex.row != currentRow) {
                 currentRow = currentIndex.row
             }
         }
-        onCurrentRowChanged: {
+        function onCurrentRowChanged() {
             if(currentRow != currentIndex.row) {
                 if(currentRow > -1) {
                     setCurrentIndex(root.model.index(currentRow, 0, nullIndex()), ItemSelectionModel.Current)
@@ -87,7 +88,7 @@ ColumnLayout {
     
     function clearSelection() {
         selectionModel.clear()
-        selectionModel.currentRow = -1
+        root.currentRow = -1
         selectedEvents = []
     }
 
@@ -330,25 +331,25 @@ ColumnLayout {
         Keys.onUpPressed: {
             var count = root.model.rowCount()
             if(count > 0) {
-                if(selectionModel.currentRow < 0)
-                    selectionModel.currentRow = 0
-                else if(selectionModel.currentRow > 0)
-                    selectionModel.currentRow = selectionModel.currentRow - 1
+                if(root.currentRow < 0)
+                    root.currentRow = 0
+                else if(root.currentRow > 0)
+                    root.currentRow = root.currentRow - 1
             } else {
-                selectionModel.currentRow = -1
+                root.currentRow = -1
             }
         }
         Keys.onDownPressed: {
             var count = root.model.rowCount()
             if(count > 0) {
-                var currentRow = selectionModel.currentRow + 1
+                var currentRow = root.currentRow + 1
                 if(currentRow >= count)
                     currentRow = count - 1
                 else if(currentRow < 0)
                     currentRow = 0
-                selectionModel.currentRow = currentRow
+                root.currentRow = currentRow
             } else {
-                selectionModel.currentRow = -1
+                root.currentRow = -1
             }
         }
         Keys.onPressed: {
@@ -545,7 +546,7 @@ ColumnLayout {
             function onRowsRemoved() { updateModel() }
             function onModelReset() { updateModel() }
             function updateModel() {
-                selectionModel.currentRow = -1
+                root.currentRow = -1
                 table.lastClickedRow = -1
                 doResponsive()
             }
@@ -562,10 +563,10 @@ ColumnLayout {
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
             property bool selected: {
-                selectionModel.resetter
+                selectionResetter
                 util.isRowSelected(selectionModel, thisRow)
             }
-            property bool current: thisRow !== undefined && selectionModel.currentRow != -1 && selectionModel.currentRow == thisRow
+            property bool current: thisRow !== undefined && root.currentRow != -1 && root.currentRow == thisRow
             property bool alternate: dRoot.thisRow % 2 == 1
             property bool sameDateAsSelected: model.dateTime != undefined && !isNaN(root.currentDateTime.getTime()) && model.dateTime.getTime() == currentDateTime.getTime()
             clip: true
@@ -745,7 +746,7 @@ ColumnLayout {
                         util.doRowsSelection(selectionModel, newRows, ItemSelectionModel.Select | ItemSelectionModel.Rows)
                     } else {
                         selectionModel.select(root.model.index(thisRow, 0), ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Rows)
-                        selectionModel.currentRow = thisRow
+                        root.currentRow = thisRow
                     }
                     table.forceActiveFocus()
                     table.lastClickedRow = thisRow

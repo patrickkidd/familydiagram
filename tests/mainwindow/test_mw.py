@@ -3,15 +3,17 @@ import os, os.path
 import shutil
 import pickle
 import traceback
+import contextlib
 
 import pytest
 import mock
 
 import vedana
 from pkdiagram import util
-from pkdiagram.pyqt import QApplication
+from pkdiagram.pyqt import QApplication, QPrinter, QDialog
 from pkdiagram.scene import Person, Scene, Marriage, Layer
 from pkdiagram.mainwindow import MainWindow
+from pkdiagram.documentview import DocumentController
 from pkdiagram.app import AppController
 from pkdiagram.extensions import datadog_excepthook
 
@@ -49,7 +51,7 @@ def test_exception_logging(test_session, test_activation, tmp_path, create_ac_mw
     with mock.patch("pkdiagram.app.Analytics.send") as send:
         datadog_excepthook(etype, value, tb)
     assert send.call_count == 1
-    assert send.call_args[0][0].message == "\n".join(
+    assert send.call_args[0][0].message == "".join(
         traceback.format_exception(etype, value, tb)
     )
 
@@ -122,3 +124,69 @@ def test_add_complex_fd_does_not_set_dirty(tmp_path, create_ac_mw):
     mw.open(filePath=filePath)
     QApplication.instance().processEvents()
     assert mw.scene.stack().isClean() == True
+
+
+def test_save_to_excel(tmp_path, create_ac_mw):
+    FD_PATH = os.path.join(tmp_path, "documents", "some_family.fd")
+    XLSX_PATH = FD_PATH.replace(".fd", ".xlsx")
+
+    scene = Scene(items=(Person(name="Hey"), Person(name="You")))
+    util.touchFD(FD_PATH, bdata=pickle.dumps(scene.data()))
+    ac, mw = create_ac_mw()
+    mw.prefs.setValue("lastFileSavePath", os.path.join(tmp_path, "some_prev_file.fd"))
+    mw.open(filePath=FD_PATH)
+    with mock.patch(
+        "PyQt5.QtWidgets.QFileDialog.getSaveFileName",
+        return_value=(XLSX_PATH, None),
+    ) as getSaveFileName:
+        with mock.patch.object(DocumentController, "writeExcel") as writeExcel:
+            mw.saveAs()
+    assert getSaveFileName.call_count == 1
+    assert getSaveFileName.call_args[0] == (
+        mw,
+        "Save File",
+        XLSX_PATH.replace(".xlsx", ""),
+        util.SAVE_FILE_TYPES,
+    )
+    assert writeExcel.call_count == 1
+    assert writeExcel.call_args[0][0] == XLSX_PATH
+    assert len(writeExcel.call_args[0]) == 1
+
+
+def test_print(tmp_path, create_ac_mw):
+    FD_PATH = os.path.join(tmp_path, "documents", "some_family.fd")
+    ac, mw = create_ac_mw()
+
+    # Prepare a mock QPrinter instance: native output.
+    printer = mock.MagicMock()
+    printer.outputFormat.return_value = QPrinter.NativeFormat
+    printer.NativeFormat = QPrinter.NativeFormat
+
+    # Patch QPrintDialog to return a dummy dialog with exec() returning QDialog.Accepted.
+    dialog = mock.MagicMock()
+    dialog.exec.return_value = QDialog.Accepted
+
+    scene = Scene(items=(Person(name="Hey"), Person(name="You")))
+    util.touchFD(FD_PATH, bdata=pickle.dumps(scene.data()))
+    mw.open(filePath=FD_PATH)
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch(
+                MainWindow.__module__ + ".QPrinter",
+                return_value=printer,
+                NativeFormat=QPrinter.NativeFormat,
+            )
+        )
+        stack.enter_context(
+            mock.patch(
+                MainWindow.__module__ + ".QPrintDialog",
+                return_value=dialog,
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(DocumentController, "writeJPG", return_value=None)
+        )
+
+        mw.onPrint()
+        mw.documentView.controller.writeJPG.assert_called_once_with(printer=printer)

@@ -30,7 +30,7 @@ PK.Drawer {
 
     property var variablesList: variablesList
     property var variablesCrudButtons: variablesCrudButtons
-
+    property var timelineView: timelineView
     property var eventProperties: eventProperties
     property var copilotView: copilotView
 
@@ -201,7 +201,6 @@ PK.Drawer {
 
         PK.TimelineView {
             id: timelineView
-            objectName: 'caseProps_timelineView'
             enabled: Qt.binding(function() { model.count > 0 })
             model: timelineModel
             showFilterButton: false

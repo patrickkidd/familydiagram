@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import pyqtSlot, QQmlEngine, QQmlError, QObject, QApplication
+from pkdiagram.pyqt import QQmlEngine, QQmlError, QApplication, QItemSelectionModel
 from pkdiagram import util
 from pkdiagram.models import (
     SceneModel,
@@ -43,6 +43,7 @@ class QmlEngine(QQmlEngine):
 
         self.timelineModel = TimelineModel(self)
         self.timelineModel.searchModel = self.searchModel
+        self.eventSelectionModel = QItemSelectionModel(self.timelineModel)
 
         self.peopleModel = PeopleModel(self)
 
@@ -57,6 +58,9 @@ class QmlEngine(QQmlEngine):
         self.rootContext().setContextProperty("sceneModel", self.sceneModel)
         self.rootContext().setContextProperty("searchModel", self.searchModel)
         self.rootContext().setContextProperty("timelineModel", self.timelineModel)
+        self.rootContext().setContextProperty(
+            "eventSelectionModel", self.eventSelectionModel
+        )
         self.rootContext().setContextProperty("peopleModel", self.peopleModel)
         self.rootContext().setContextProperty(
             "accessRightsModel", self.accessRightsModel

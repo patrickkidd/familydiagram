@@ -1,3 +1,4 @@
+import time
 import logging
 from typing import Union
 
@@ -10,6 +11,7 @@ from pkdiagram.pyqt import (
     QApplication,
     QQuickWidget,
     QQuickItem,
+    QQmlComponent,
     QUrl,
     QRectF,
     QMetaObject,
@@ -28,8 +30,11 @@ log = logging.getLogger(__name__)
 class QmlWidgetHelper(QObjectHelper):
 
     DEBUG = False
+    DEFER_UNTIL_SHOW = True
 
     qmlFocusItemChanged = pyqtSignal(QQuickItem)
+
+    _cache = {}
 
     def initQmlWidgetHelper(self, engine, source: Union[str, QUrl]):
         self._engine = engine
@@ -38,13 +43,14 @@ class QmlWidgetHelper(QObjectHelper):
         else:
             self._qmlSource = util.QRC_QML + source
         self._qmlItemCache = {}
+        self.qml = None
         self.initQObjectHelper()
 
     def qmlEngine(self):
         return self._engine
 
     def isQmlReady(self):
-        return hasattr(self, "qml")
+        return bool(self.qml)
 
     def onStatusChanged(self, status):
         pass
@@ -53,8 +59,10 @@ class QmlWidgetHelper(QObjectHelper):
 
     def checkInitQml(self):
         """Returns True if initialized on this call."""
-        if hasattr(self, "qml"):
+        if self.qml:
             return False
+
+        start_time = time.time()
         self.qml = QQuickWidget(self._engine, self)
         self.qml.statusChanged.connect(self.onStatusChanged)
         self.qml.setFormat(util.SURFACE_FORMAT)
@@ -65,6 +73,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
+        log.info(f"Loading QML: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():
@@ -76,11 +85,10 @@ class QmlWidgetHelper(QObjectHelper):
             if not hasattr(self, k) and isinstance(v, pyqtSignal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
-        for child in self.qml.rootObject().findChildren(QQuickItem):
-            if child.objectName():
-                self._qmlItemCache[child.objectName()] = child
 
         self.onInitQml()
+        tot_time = time.time() - start_time
+        # log.info(f"QmlWidgetHelper.initQmlWidgetHelper() took {tot_time:.2f}s")
         return True
 
     def onInitQml(self):
@@ -89,12 +97,13 @@ class QmlWidgetHelper(QObjectHelper):
         )
 
     def deinit(self):
-        # Prevent qml exceptions when context props are set to null
-        self.qml.rootObject().window().activeFocusItemChanged.disconnect(
-            self.onActiveFocusItemChanged
-        )
-        self.qml.setSource(QUrl(""))
-        self.qml = None
+        if getattr(self, "qml", None):
+            # Prevent qml exceptions when context props are set to null
+            self.qml.rootObject().window().activeFocusItemChanged.disconnect(
+                self.onActiveFocusItemChanged
+            )
+            self.qml.setSource(QUrl(""))
+            self.qml = None
 
     def onActiveFocusItemChanged(self):
         """Allow to avoid prev/next layer shortcut for cmd-left|right"""
@@ -117,7 +126,7 @@ class QmlWidgetHelper(QObjectHelper):
             if ret:
                 return ret
 
-    def findItem(self, objectName, noerror=False):
+    def findItem(self, objectName: str, noerror=False):
         if isinstance(objectName, QQuickItem):
             return objectName
         if objectName in self._qmlItemCache:
@@ -167,18 +176,14 @@ class QmlWidgetHelper(QObjectHelper):
         item = self.findItem(objectName)
         item.setProperty(attr, value)
 
-    def focusItem(self, objectNameOrItem: Union[str, QQuickItem]):
-        if isinstance(objectNameOrItem, str):
-            objectName = objectNameOrItem
-            item = self.findItem(objectNameOrItem)
-        else:
-            item = objectNameOrItem
-            objectName = item.objectName()
+    def focusItem(self, item: Union[QQuickItem, str]):
+        if isinstance(item, str):
+            item = self.findItem(item)
         if not self.isActiveWindow():
             # self.here('Setting active window to %s, currently %s' % (self, QApplication.activeWindow()))
             QApplication.setActiveWindow(self)
             if self.DEBUG:
-                log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
+                log.info(f'QmlWidgetHelper.focusItem("{item.objectName()}")')
             util.qtbot.waitActive(self)
             if not self.isActiveWindow():
                 raise RuntimeError(
@@ -189,9 +194,9 @@ class QmlWidgetHelper(QObjectHelper):
             #     Debug('Success setting active window to', self)
         assert (
             item.property("enabled") == True
-        ), f"The item {objectName} cannot be focused if it is not enabled."
+        ), f"The item {item.objectName()} cannot be focused if it is not enabled."
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.focusItem("{objectName}")')
+            log.info(f'QmlWidgetHelper.focusItem("{item.objectName()}")')
         self.mouseClickItem(item)
         if not item.hasActiveFocus():
             item.forceActiveFocus()  # in case mouse doesn't work if item out of view
@@ -200,7 +205,7 @@ class QmlWidgetHelper(QObjectHelper):
             item.setFocus(True)
             util.waitUntil(lambda: item.hasFocus())
         if not item.hasActiveFocus():
-            msg = "Could not set active focus on `%s`" % objectName
+            msg = "Could not set active focus on `%s`" % item.objectName()
             if not self.isActiveWindow():
                 raise RuntimeError(msg + ", window is not active.")
             elif not item.isEnabled():
@@ -294,8 +299,8 @@ class QmlWidgetHelper(QObjectHelper):
         ):
             prevText = item.property("text")
             self.keyClickItem(item, Qt.Key_Backspace)
-            if item.property("text") == prevText:
-                break
+            # if item.property("text") != prevText:
+            #     break
         self.resetFocusItem(item)
         itemText = item.property("text")
         assert itemText in (
@@ -376,8 +381,9 @@ class QmlWidgetHelper(QObjectHelper):
         assert item.property("enabled") == True
         self.mouseDClickItem(item, button=button)
 
-    def clickTabBarButton(self, objectName, iTab):
-        item = self.findItem(objectName)
+    def clickTabBarButton(self, item: Union[QQuickWidget, str], iTab):
+        if isinstance(item, str):
+            item = self.findItem(item)
         rect = item.mapRectToItem(
             self.qml.rootObject(), QRectF(0, 0, item.width(), item.height())
         ).toRect()
@@ -398,48 +404,43 @@ class QmlWidgetHelper(QObjectHelper):
                 "Unable to click tab bar button index %i for `%s`. `currentIndex` is still %i (focus widget: %s, focusItem: %s)"
                 % (
                     iTab,
-                    objectName,
+                    item.objectName(),
                     currentIndex,
                     QApplication.focusWidget(),
                     focusItem.objectName(),
                 )
             )
 
-    def clickListViewItem(self, objectName, index):
-        item = self.findItem(objectName)
+    def clickListViewItem(self, item: Union[QQuickItem, str], index):
+        if isinstance(item, str):
+            item = self.findItem(item)
         item.setProperty("currentIndex", index)
 
-    def clickListViewItem_actual(self, objectName, rowText, modifiers=Qt.NoModifier):
-        item = self.findItem(objectName)
+    def clickListViewItem_actual(
+        self, item: Union[QQuickItem, str], rowText, modifiers=Qt.NoModifier
+    ):
+        if isinstance(item, str):
+            item = self.findItem(item)
+
+        assert (
+            item.property("enabled") == True
+        ), "Cannot click ListView item if the ListView is disabled"
+
         model = item.property("model")
-        text = None
-        textRows = []
+        delegate = None
         for newCurrentIndex, row in enumerate(range(model.rowCount())):
             text = model.data(model.index(row, 0))
-            textRows.append(text)
             if text == rowText:
+                delegate = item.itemAtIndex(row)
                 break
-        assert (
-            text == rowText
-        ), f"ListView row with text '{rowText}' not found rows: {textRows}"  # cell found
-        assert self.itemProp(objectName, "enabled") == True
-        # calc visual rect
-        x = 0
-        y = util.QML_ITEM_HEIGHT * row - 1
-        w = item.width()
-        h = util.QML_ITEM_HEIGHT
-        # ensureVisible = lambda x: QMetaObject.invokeMethod(item, 'ensureVisible',
-        #                                                    Qt.DirectConnection,
-        #                                                    Q_ARG(QVariant, row))
-        # ensureVisible(row)
+        assert delegate, f"ListView row with text '{rowText}' not found"
+
         prevCurrentIndex = item.property("currentIndex")
         assert isinstance(
             prevCurrentIndex, int
-        ), f'Expected "currentIndex" to be an int, is {objectName} actually a ComboBox?'
-        rect = item.mapRectToScene(QRectF(x, y, w, h))
-        if self.DEBUG:
-            log.info(f"Clicking ListView item: '{rowText}' (index: {row})")
-        self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
+        ), f'Expected "currentIndex" to be an int, is {item.objectName()} actually a ComboBox?'
+        log.debug(f"Clicking ListView item: '{rowText}' (index: {row})")
+        self.mouseClickItem(item)
         if hasattr(item, "model") and isinstance(item.model, callable):
             model = item.model()
         else:
@@ -521,11 +522,9 @@ class QmlWidgetHelper(QObjectHelper):
             comboBox.setProperty("currentIndex", -1)
         comboBox.setProperty("currentIndex", currentIndex)
         comboBox.close()
-        if not comboBox.property("currentText") == itemText:
-            raise RuntimeError(
-                'Could not set `currentText` to "%s" (currentIndex: %i) on %s'
-                % (itemText, currentIndex, objectName)
-            )
+        assert (
+            comboBox.property("currentText") == itemText
+        ), f'Could not set `currentText` to "{itemText}" (currentIndex: {currentIndex}) on {objectName}'
 
         # popup = item.findChildren(QQuickItem, 'popup')[0]
         # self.recursivePrintChildren(item, 0)
@@ -598,6 +597,21 @@ class QmlWidgetHelper(QObjectHelper):
     def scrollToVisible(self, flickableObjectName: str, visibleObjectName: str):
         y = self.itemProp(visibleObjectName, "y")
         self.setItemProp(flickableObjectName, "contentY", -1 * y)
+
+    def scrollToItem(self, flickable: QQuickItem, item: QQuickItem):
+        y = item.y()
+        itemHeight = item.height()
+        flickableHeight = flickable.property("height")
+        contentY = flickable.property("contentY")
+        if y < contentY:
+            log.debug(f"Scrolling {flickable.objectName()} to contentY: {y}")
+            flickable.setProperty("contentY", y)
+        elif y + itemHeight > contentY + flickableHeight:
+            log.debug(
+                f"Scrolling {flickable.objectName()} to contentY: {y + itemHeight}"
+            )
+            flickable.setProperty("contentY", y + itemHeight)
+        QApplication.processEvents()
 
     def scrollChildToVisible(self, flickable: QQuickItem, item: QQuickItem):
         positionInContent = item.mapToItem(

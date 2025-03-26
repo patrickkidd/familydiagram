@@ -9,6 +9,7 @@ from pkdiagram.pyqt import QMessageBox
 log = logging.getLogger(__name__)
 
 
+@pytest.mark.skip("Only enable for debugging")
 def test_hangWatchdog(qApp, watchdog):
     start_time = time.time()
     QMessageBox.information(None, "Test", "Will hang test suite")

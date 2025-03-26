@@ -45,14 +45,13 @@ class GraphicalTimelineCanvas(QWidget):
     def __init__(
         self,
         searchModel,
-        timelineModel,
-        selectionModel: QItemSelectionModel,
+        selectionModel,
         parent=None,
     ):
         super().__init__(parent)
         self._searchModel = searchModel
-        self._timelineModel = timelineModel
         self._selectionModel = selectionModel
+        self._timelineModel = selectionModel.model()
         self._isSelectingEvents = False
         self._events = SortedList()
         # A list for quick lookup, events can be listed more than once in
@@ -82,7 +81,6 @@ class GraphicalTimelineCanvas(QWidget):
         self.onPaletteChanged()
 
         self._selectionModel.selectionChanged.connect(self.onSelectionChanged)
-
         self._timelineModel.modelReset.connect(self.refresh)
         self._timelineModel.rowsInserted.connect(self.refresh)
         self._timelineModel.rowsMoved.connect(self.refresh)

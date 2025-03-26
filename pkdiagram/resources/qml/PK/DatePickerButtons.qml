@@ -24,6 +24,7 @@ Rectangle {
 
     property var dateTextInput: dateTextInput
     property var timeTextInput: timeTextInput
+    property var clearButton: clearButton
     property var datePicker: null
     property var timePicker: null
     property var dateTime
