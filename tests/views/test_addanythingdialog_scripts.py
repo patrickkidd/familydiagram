@@ -253,37 +253,3 @@ def test_no_Marriage_DeferredDelete(data_root, scene, dlg):
     ) as onDeferredDelete:
         loop.exec()
     assert onDeferredDelete.call_count == 0
-
-
-@pytest.mark.skip(
-    reason="Started not accurately reproducing the problem. Was at one point though"
-)
-def test_no_Marriage_DeferredDelete_2(qtbot, create_ac_mw):
-    """
-    Disable the hack in PathItem.eventFilter for DeferredDelete and see how this
-    causes it to get called.
-    """
-
-    ac, mw = create_ac_mw()
-    scene = mw.scene
-    dlg = mw.documentView.addAnythingDialog
-    addAnythingButton = mw.documentView.view.rightToolBar.addAnythingButton
-
-    person_a = Person(name="Person A")
-    person_b = Person(name="Person B")
-    marriage = Marriage(person_a, person_b)
-    scene.addItems(person_a, person_b, marriage)
-
-    marriage.setSelected(True)
-    qtbot.clickAndProcessEvents(addAnythingButton)
-    dlg.set_kind(EventKind.CustomPairBond)
-    dlg.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
-    dlg.set_description("Something pair-bond-y")
-    dlg.mouseClick("AddEverything_submitButton")
-
-    scene.clearSelection()
-    person_a.setSelected(True)
-    qtbot.clickAndProcessEvents(addAnythingButton)
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_startDateTime(QDateTime(1900, 1, 1, 0, 0))
-    QEventLoop().exec()

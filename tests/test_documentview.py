@@ -1,6 +1,8 @@
 import os.path, datetime
 import logging
 import itertools
+import pickle
+import contextlib
 
 import pytest, mock
 
@@ -13,11 +15,13 @@ from pkdiagram.pyqt import (
     QDateTime,
     QItemSelection,
     QItemSelectionModel,
+    QPrinter,
+    QDialog,
 )
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Layer, Event, Emotion, Marriage, Callout
 from pkdiagram.widgets import ActiveListEdit
-from pkdiagram.documentview import DocumentView, RightDrawerView
+from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
 
@@ -949,3 +953,38 @@ def test_show_copilot(qtbot, dv: DocumentView):
     qtbot.mouseClick(dv.view.rightToolBar.copilotButton, Qt.LeftButton)
     copilotView = dv.caseProps.rootProp("copilotView")
     assert copilotView.property("visible") == True
+
+
+def test_print(tmp_path, dv: DocumentView):
+    # Prepare a mock QPrinter instance: native output.
+    printer = mock.MagicMock()
+    printer.outputFormat.return_value = QPrinter.NativeFormat
+    printer.NativeFormat = QPrinter.NativeFormat
+
+    # Patch QPrintDialog to return a dummy dialog with exec() returning QDialog.Accepted.
+    dialog = mock.MagicMock()
+    dialog.exec.return_value = QDialog.Accepted
+
+    scene = Scene(items=(Person(name="Hey"), Person(name="You")))
+    dv.setScene(scene)
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch(
+                DocumentController.__module__ + ".QPrinter",
+                return_value=printer,
+                NativeFormat=QPrinter.NativeFormat,
+            )
+        )
+        stack.enter_context(
+            mock.patch(
+                DocumentController.__module__ + ".QPrintDialog",
+                return_value=dialog,
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(DocumentController, "writeJPG", return_value=None)
+        )
+
+        dv.controller.onPrint()
+        dv.controller.writeJPG.assert_called_once_with(printer=printer)
