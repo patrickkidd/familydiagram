@@ -955,7 +955,7 @@ def test_show_copilot(qtbot, dv: DocumentView):
     assert copilotView.property("visible") == True
 
 
-def test_print(tmp_path, dv: DocumentView):
+def test_print(dv: DocumentView):
     # Prepare a mock QPrinter instance: native output.
     printer = mock.MagicMock()
     printer.outputFormat.return_value = QPrinter.NativeFormat

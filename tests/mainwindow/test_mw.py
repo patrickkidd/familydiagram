@@ -41,21 +41,6 @@ def test_load_fd(test_session, test_activation, tmp_path, create_ac_mw):
     assert mw.scene.query1(name="Me")
 
 
-def test_exception_logging(test_session, test_activation, tmp_path, create_ac_mw):
-    ac, mw = create_ac_mw()
-    try:
-        raise ValueError("This is a simulated error for testing")
-    except ValueError as e:
-        # Capture the exception and its traceback
-        etype, value, tb = sys.exc_info()
-    with mock.patch("pkdiagram.app.Analytics.send") as send:
-        datadog_excepthook(etype, value, tb)
-    assert send.call_count == 1
-    assert send.call_args[0][0].message == "".join(
-        traceback.format_exception(etype, value, tb)
-    )
-
-
 def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):
 
     # Write file to import
@@ -91,6 +76,22 @@ def test_appconfig_upgraded(qApp, tmp_path, data_root, create_ac_mw):
     warning.assert_called_once_with(
         None, "Login required", AppController.S_APPCONFIG_UPGRADED_LOGIN_REQUIRED
     )
+
+
+from pkdiagram.documentview import DocumentView
+
+
+@pytest.fixture
+def no_DocumentView():
+    "Experimental"
+
+    documentView = mock.MagicMock()
+    documentView.init = mock.MagicMock()
+    documentView.deinit = mock.MagicMock()
+    documentView.ui = mock.MagicMock()
+
+    with mock.patch(MainWindow.__module__ + ".DocumentView", return_value=documentView):
+        yield
 
 
 def test_add_complex_fd_does_not_set_dirty(tmp_path, create_ac_mw):

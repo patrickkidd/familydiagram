@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
 
         self.profiler = None
 
-        self.scene = None
+        self.scene: Scene = None
         self.document = None
         self.serverFileModel = None
         self.updateReply = None

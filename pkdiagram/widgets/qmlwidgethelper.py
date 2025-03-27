@@ -126,7 +126,7 @@ class QmlWidgetHelper(QObjectHelper):
             if ret:
                 return ret
 
-    def findItem(self, objectName: str, noerror=False):
+    def findItem(self, objectName: str, noerror=False) -> QQuickItem:
         if isinstance(objectName, QQuickItem):
             return objectName
         if objectName in self._qmlItemCache:
