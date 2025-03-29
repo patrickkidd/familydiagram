@@ -1691,10 +1691,7 @@ public:
     void init() {
         if(! m_bInitStarted) {
 
-            // qDebug() << "CUtil::init";
-            
             d = [d init];
-            
             if(d.forcedDocRoot) {
                 m_fsWatcher->addPath(QUrl::fromNSURL(d.forcedDocRoot).toLocalFile());
             } else if(!iCloudOn()) {

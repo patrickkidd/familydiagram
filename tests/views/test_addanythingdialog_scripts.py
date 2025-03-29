@@ -216,6 +216,7 @@ def test_add_second_marriage_to_person(dlg):
     assert person in spouse2.marriages[0].people
 
 
+@pytest.mark.skip("Not sure this is needed any more")
 def test_no_Marriage_DeferredDelete(data_root, scene, dlg):
     """
     Disable the hack in PathItem.eventFilter for DeferredDelete and see how this

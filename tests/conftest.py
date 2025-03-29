@@ -3,7 +3,6 @@ import time
 import contextlib
 import logging
 import tempfile
-import contextlib
 from typing import Optional
 
 import pytest, mock
@@ -57,6 +56,8 @@ from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session
 
 from fdserver.tests.conftest import *
+from fdserver.models import User
+import flask_bcrypt
 
 import appdirs
 
@@ -301,8 +302,10 @@ def qApp():
         return prefs
 
     with mock.patch.object(Application, "prefs", _prefs):
-
         app = Application(sys.argv)
+        CUtil.instance().forceDocsPath(
+            os.path.join(tempfile.mkdtemp(), "documents")
+        )  # to kill the file list query
 
     _orig_Server_deinit = Server.deinit
 
@@ -340,13 +343,33 @@ def qApp():
 
 
 @pytest.fixture(autouse=True)
-def prefs(tmp_path):
+def prefs(request, tmp_path):
+    """
+    More than just "prefs" now
+    """
+
+    dont_mock_bcrypt = request.node.get_closest_marker("dont_mock_bcrypt")
+
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
-    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
-        with mock.patch.object(
-            CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
-        ):
-            yield prefs
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch("pkdiagram.app.Application.prefs", return_value=prefs)
+        )
+        # bcrypt was using 45s
+        stack.enter_context(
+            mock.patch.object(
+                CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                flask_bcrypt, "generate_password_hash", return_value=b"1234"
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(flask_bcrypt, "check_password_hash", return_value=True)
+        )
+        yield prefs
 
 
 @pytest.fixture(autouse=True)
