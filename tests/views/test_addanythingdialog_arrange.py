@@ -5,7 +5,7 @@ from pkdiagram.pyqt import QPointF
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person
 
-from .test_addanythingdialog import dlg, START_DATETIME, END_DATETIME
+from .test_addanythingdialog import view, START_DATETIME, END_DATETIME
 
 
 pytestmark = [
@@ -14,25 +14,23 @@ pytestmark = [
 ]
 
 
-def test_parents_to_existing_person(dlg):
-    scene = dlg.scene
-    submitted = util.Condition(dlg.submitted)
+def test_parents_to_existing_person(scene, view):
+    submitted = util.Condition(view.view.submitted)
 
     person = Person(name="John", lastName="Doe")
     scene.addItems(person)
     SPACING = person.boundingRect().width() * 2
     assert person.scenePos() == QPointF(0, 0)
 
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_existing_person("personPicker", person=person)
-    dlg.set_new_person("personAPicker", "Father Doe")
-    dlg.set_new_person(
-        "personBPicker",
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_existing_person(person=person)
+    view.personAPicker.set_new_person("Father Doe")
+    view.personBPicker.set_new_person(
         "Mother Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
     )
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     assert submitted.wait() == True
     father = scene.query1(name="Father")
     mother = scene.query1(name="Mother")
@@ -41,15 +39,14 @@ def test_parents_to_existing_person(dlg):
     assert mother.scenePos() == QPointF(SPACING, -SPACING * 1.5)
 
 
-def test_add_via_birth_with_two_parents(dlg):
-    scene = dlg.scene
-    submitted = util.Condition(dlg.submitted)
+def test_add_via_birth_with_two_parents(scene, view):
+    submitted = util.Condition(view.view.submitted)
 
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "Son Doe")
-    dlg.set_new_person("personAPicker", "Father Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("Son Doe")
+    view.personAPicker.set_new_person("Father Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     assert submitted.wait() == True
     son = scene.query1(name="Son")
     father = scene.query1(name="Father")

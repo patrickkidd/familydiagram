@@ -45,12 +45,15 @@ from pkdiagram.pyqt import (
     QEventLoop,
     QSettings,
     QGraphicsView,
+    QVBoxLayout,
+    QUrl,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
 from pkdiagram.server_types import HTTPResponse, Server
 from pkdiagram.scene import Scene, Person, Marriage
-from pkdiagram.models import SceneModel, ServerFileManagerModel
+from pkdiagram.models import ServerFileManagerModel
+from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session
@@ -1000,12 +1003,38 @@ def create_ac_mw(request, qtbot, tmp_path):
         ac.deinit()
 
 
-def _scene_data(*items):
-    data = {}
-    scene = Scene()
-    scene.addItems(*items)
-    scene.write(data)
-    return data
+@pytest.fixture
+def create_qml(qtbot, scene, qmlEngine):
+
+    class QmlHelper(QWidget, QmlWidgetHelper):
+        pass
+
+    helpers = []
+
+    def _qmlParent(fpath: str) -> QmlWidgetHelper:
+
+        qmlEngine.setScene(scene)
+        helper = QmlHelper()
+        helper.initQmlWidgetHelper(qmlEngine, QUrl.fromLocalFile(fpath))
+        helper.checkInitQml()
+        Layout = QVBoxLayout(helper)
+        Layout.addWidget(helper.qml)
+
+        helper.resize(600, 800)
+        helper.show()
+        qtbot.addWidget(helper)
+        qtbot.waitActive(helper)
+        helpers.append(helper)
+
+        assert helper.isVisible()
+
+        return helper
+
+    yield _qmlParent
+
+    for helper in helpers:
+        helper.hide()
+        helper.deinit()
 
 
 # SIMPLE_SCENE_DATA = {

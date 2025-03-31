@@ -13,9 +13,6 @@ from pkdiagram.pyqt import (
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Emotion, Event, Marriage
 from pkdiagram.views import QmlDrawer
-from pkdiagram.widgets.qml.peoplepicker import add_new_person, add_existing_person
-from pkdiagram.widgets.qml.personpicker import set_new_person, set_existing_person
-from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 
 _log = logging.getLogger(__name__)
 
@@ -38,6 +35,7 @@ class AddAnythingDialog(QmlDrawer):
             {"name": "setPeopleHelpText"},
             {"name": "initWithPairBond"},
             {"name": "initWithMultiplePeople"},
+            {"name": "initWithNoSelection"},
             {"name": "setVariable"},
             {"name": "personEntry", "return": True, "parser": lambda x: x.toVariant()},
             {"name": "personAEntry", "return": True, "parser": lambda x: x.toVariant()},
@@ -84,7 +82,7 @@ class AddAnythingDialog(QmlDrawer):
 
         # self.startTimer(1000)
 
-    #     item = self.qml.rootObject().window().activeFocusItem()
+    #     item = self.item.window().activeFocusItem()
     #     if item:
     #         nextItem = item.nextItemInFocusChain()
     #         nextItemParent = nextItem.parent()
@@ -97,9 +95,10 @@ class AddAnythingDialog(QmlDrawer):
 
     def onInitQml(self):
         super().onInitQml()
-        self.qml.rootObject().setProperty("widget", self)
-        self.qml.rootObject().cancel.connect(self.onCancel)
-        self._eventModel = self.rootProp("eventModel")
+        self.item = self.qml.rootObject()
+        self.item.setProperty("widget", self)
+        self.item.cancel.connect(self.onCancel)
+        self._eventModel = self.item.property("eventModel")
 
     @staticmethod
     def nextItemInChain(self, item):
@@ -110,7 +109,7 @@ class AddAnythingDialog(QmlDrawer):
 
     def onActiveFocusItemChanged(self):
         super().onActiveFocusItemChanged()
-        # item = self.qml.rootObject().window().activeFocusItem()
+        # item = self.item.window().activeFocusItem()
         # if item:
         #     nextItem = item.nextItemInFocusChain()
         #     while not nextItem.isVisible() or not nextItem.isEnabled():
@@ -127,53 +126,56 @@ class AddAnythingDialog(QmlDrawer):
         #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
 
-    def initForSelection(self, selection):
+    def initForSelection(self, selection: list):
         """
         Canonical entry point when showing. Could have a better name
         """
         self.clear()
         pairBond = Marriage.marriageForSelection(selection)
+        # just for tags
+        self._dummyEvent = DummyEvent(self.scene)
+        self.scene.addItem(self._dummyEvent)
+        self._eventModel.items = [self._dummyEvent]
+        #
         if pairBond:
             self.initWithPairBond(pairBond.id)
         elif any(x.isPerson for x in selection):
             ids = [x.id for x in selection if x.isPerson]
             self.initWithMultiplePeople(ids)
-        # just for tags
-        self._dummyEvent = DummyEvent(self.scene)
-        self.scene.addItem(self._dummyEvent)
-        self._eventModel.items = [self._dummyEvent]
+        else:
+            self.initWithNoSelection()
 
     def onDone(self):
 
         ## Validation first
 
-        if self.rootProp("kind") is None:
+        if self.item.property("kind") is None:
             kind = None
         else:
-            kind = EventKind(self.rootProp("kind"))
+            kind = EventKind(self.item.property("kind"))
         personEntry = self.personEntry()
         personAEntry = self.personAEntry()
         personBEntry = self.personBEntry()
         peopleEntries = self.peopleEntries()
         moverEntries = self.moverEntries()
         receiverEntries = self.receiverEntries()
-        description = self.rootProp("description")
-        location = self.rootProp("location")
-        startDateTime = self.rootProp("startDateTime")
-        endDateTime = self.rootProp("endDateTime")
-        isDateRange = self.rootProp("isDateRange")
-        anxiety = self.rootProp("anxiety")
-        functioning = self.rootProp("functioning")
-        symptom = self.rootProp("symptom")
-        notes = self.rootProp("notes")
+        description = self.item.property("description")
+        location = self.item.property("location")
+        startDateTime = self.item.property("startDateTime")
+        endDateTime = self.item.property("endDateTime")
+        isDateRange = self.item.property("isDateRange")
+        anxiety = self.item.property("anxiety")
+        functioning = self.item.property("functioning")
+        symptom = self.item.property("symptom")
+        notes = self.item.property("notes")
         tags = self._eventModel.items[0].tags()
 
-        personPicker = self.findItem("personPicker")
-        peoplePicker = self.findItem("peoplePicker")
-        personAPicker = self.findItem("personAPicker")
-        personBPicker = self.findItem("personBPicker")
-        moversPicker = self.findItem("moversPicker")
-        receiversPicker = self.findItem("receiversPicker")
+        personPicker = self.item.property("personPicker")
+        peoplePicker = self.item.property("peoplePicker")
+        personAPicker = self.item.property("personAPicker")
+        personBPicker = self.item.property("personBPicker")
+        moversPicker = self.item.property("moversPicker")
+        receiversPicker = self.item.property("receiversPicker")
 
         def _isPickerRequired(kind: EventKind, pickerName: str):
             if EventKind.isMonadic(kind) and pickerName == "personPicker":
@@ -237,7 +239,7 @@ class AddAnythingDialog(QmlDrawer):
             pickerLabel = None
 
         if pickerLabel:
-            text = self.itemProp(pickerLabel, "text")
+            text = self.item.property(pickerLabel).property("text")
             msg = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text)
             _log.debug(f"Warning: Unconfirmed field, {msg}")
             QMessageBox.warning(
@@ -251,7 +253,7 @@ class AddAnythingDialog(QmlDrawer):
         # Validation: Required fields
 
         def _invalidPersonPickerLabel():
-            kindValue = self.rootProp("kind")
+            kindValue = self.item.property("kind")
             if not kindValue:
                 return
             kind = EventKind(kindValue)
@@ -262,12 +264,12 @@ class AddAnythingDialog(QmlDrawer):
                 if not peopleEntries:
                     ret = "peopleLabel"
             elif EventKind.isMonadic(kind):
-                if not self.itemProp("personPicker", "isSubmitted"):
+                if not personPicker.property("isSubmitted"):
                     ret = "personLabel"
             elif EventKind.isPairBond(kind):
-                if not self.itemProp("personAPicker", "isSubmitted"):
+                if not personAPicker.property("isSubmitted"):
                     ret = "personALabel"
-                elif not self.itemProp("personBPicker", "isSubmitted"):
+                elif not personBPicker.property("isSubmitted"):
                     ret = "personBLabel"
             elif EventKind.isDyadic(kind):
                 if not moverEntries:
@@ -280,19 +282,19 @@ class AddAnythingDialog(QmlDrawer):
 
         if invalidPersonPickerLabel:
             labelObjectName = invalidPersonPickerLabel
-        elif not self.rootProp("kind"):
+        elif not self.item.property("kind"):
             labelObjectName = "kindLabel"
-        elif not self.rootProp("description"):
+        elif not self.item.property("description"):
             labelObjectName = "descriptionLabel"
-        elif not self.rootProp("startDateTime"):
+        elif not self.item.property("startDateTime"):
             labelObjectName = "startDateTimeLabel"
         # Allowing open-ended dyadic date ranges for now.
-        # elif self.rootProp("isDateRange") and not self.rootProp("endDateTime"):
+        # elif self.item.property("isDateRange") and not self.item.property("endDateTime"):
         #     labelObjectName = "endDateTimeLabel"
         else:
             labelObjectName = None
         if labelObjectName:
-            name = self.itemProp(labelObjectName, "text")
+            name = self.item.property(labelObjectName).property("text")
             msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
             _log.debug(f"AddAnythingDialog validation DIALOG: {msg}")
             QMessageBox.warning(
@@ -355,27 +357,27 @@ class AddAnythingDialog(QmlDrawer):
         """
         Only here to be easily wrapped in a macro.
         """
-        _log.debug(f"AddAnythingDialog.onDone: {self.rootProp('kind')}")
+        _log.debug(f"AddAnythingDialog.onDone: {self.item.property('kind')}")
 
-        if self.rootProp("kind") is None:
+        if self.item.property("kind") is None:
             kind = None
         else:
-            kind = EventKind(self.rootProp("kind"))
+            kind = EventKind(self.item.property("kind"))
         personEntry = self.personEntry()
         personAEntry = self.personAEntry()
         personBEntry = self.personBEntry()
         peopleEntries = self.peopleEntries()
         moverEntries = self.moverEntries()
         receiverEntries = self.receiverEntries()
-        description = self.rootProp("description")
-        location = self.rootProp("location")
-        startDateTime = self.rootProp("startDateTime")
-        endDateTime = self.rootProp("endDateTime")
-        isDateRange = self.rootProp("isDateRange")
-        anxiety = self.rootProp("anxiety")
-        functioning = self.rootProp("functioning")
-        symptom = self.rootProp("symptom")
-        notes = self.rootProp("notes")
+        description = self.item.property("description")
+        location = self.item.property("location")
+        startDateTime = self.item.property("startDateTime")
+        endDateTime = self.item.property("endDateTime")
+        isDateRange = self.item.property("isDateRange")
+        anxiety = self.item.property("anxiety")
+        functioning = self.item.property("functioning")
+        symptom = self.item.property("symptom")
+        notes = self.item.property("notes")
         tags = self._eventModel.items[0].tags()
 
         # Add People
@@ -750,263 +752,3 @@ class AddAnythingDialog(QmlDrawer):
         self.scene.removeItem(self._dummyEvent)
         self._dummyEvent = None
         self.hideRequested.emit()
-
-    ## Testing
-
-    def set_person_picker_gender(self, personPicker, genderLabel):
-        genderBox = self.itemProp(personPicker, "genderBox")
-        assert genderBox is not None, f"Could not find genderBox for {personPicker}"
-        self.clickComboBoxItem(genderBox, genderLabel)
-
-    def set_people_picker_gender(self, peoplePicker, personIndex, genderLabel):
-        peopleAList = self.findItem(peoplePicker)
-        picker = QMetaObject.invokeMethod(
-            peopleAList,
-            "pickerAtIndex",
-            Qt.DirectConnection,
-            Q_RETURN_ARG(QVariant),
-            personIndex,
-        )
-        assert (
-            picker is not None
-        ), f"Could not find picker for {peoplePicker}:{personIndex}"
-        genderBox = picker.findChild("genderBox")
-        assert (
-            genderBox is not None
-        ), f"Could not find genderBox for {peoplePicker}:{personIndex}"
-        self.clickComboBoxItem(picker, genderLabel)
-
-    def set_kind(self, kind: EventKind):
-        self.clickComboBoxItem("kindBox", EventKind.menuLabelFor(kind), force=False)
-
-    def set_description(self, description: str):
-        self.keyClicks("descriptionEdit", description)
-
-    def set_new_person(
-        self,
-        personPicker: str,
-        textInput: str,
-        gender: str = None,
-        returnToFinish: bool = True,
-        resetFocus: bool = False,
-    ):
-        set_new_person(
-            self,
-            textInput,
-            personPicker,
-            gender,
-            returnToFinish=returnToFinish,
-            resetFocus=resetFocus,
-        )
-        # _log.info(f"set_new_person('{personPicker}', '{textInput}')")
-        # self.keyClicks(f"{personPicker}.textEdit", textInput, returnToFinish=True)
-        if returnToFinish:
-            assert self.itemProp(personPicker, "isSubmitted") == True
-            assert self.itemProp(personPicker, "isNewPerson") == True
-            assert self.itemProp(personPicker, "personName") == textInput
-        else:
-            assert self.itemProp(f"{personPicker}.textEdit", "text") == textInput
-
-    def set_existing_person(
-        self,
-        personPicker: str,
-        person: Person,
-        autoCompleteInput: str = None,
-        returnToFinish: bool = False,
-        resetFocus: bool = False,
-    ):
-        # _log.info(
-        #     f"_set_new_person('{personPicker}', {person}, autoCompleteInput='{autoCompleteInput}')"
-        # )
-        set_existing_person(
-            self,
-            person,
-            autoCompleteInput,
-            personPicker,
-            returnToFinish=returnToFinish,
-            resetFocus=resetFocus,
-        )
-        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == False
-        # if not autoCompleteInput:
-        #     autoCompleteInput = person.fullNameOrAlias()
-        # self.keyClicks(
-        #     f"{personPicker}.textEdit",
-        #     autoCompleteInput,
-        #     resetFocus=False,
-        #     returnToFinish=returnToFinish,
-        # )
-        # assert self.itemProp(f"{personPicker}.popupListView", "visible") == True
-        # self.clickListViewItem_actual(
-        #     f"personPicker.popupListView", person.fullNameOrAlias()
-        # )
-
-    def add_new_person(
-        self,
-        peoplePicker: str,
-        textInput: str,
-        gender: str = None,
-        returnToFinish: bool = True,
-        resetFocus: bool = False,
-    ):
-        add_new_person(
-            self,
-            textInput,
-            peoplePicker=peoplePicker,
-            gender=gender,
-            returnToFinish=returnToFinish,
-            resetFocus=resetFocus,
-        )
-
-    def add_existing_person(
-        self,
-        peoplePicker: str,
-        person: Person,
-        autoCompleteInput: str = None,
-    ):
-        add_existing_person(
-            self, person, autoCompleteInput=autoCompleteInput, peoplePicker=peoplePicker
-        )
-
-    def set_dateTime(
-        self,
-        dateTime,
-        buttonsItem,
-        datePickerItem,
-        timePickerItem,
-        returnToFinish: bool = False,
-        resetFocus: bool = False,
-    ):
-
-        S_DATE = util.dateString(dateTime)
-        S_TIME = util.timeString(dateTime)
-
-        # _log.info(
-        #     f"Setting {buttonsItem}, {datePickerItem}, {timePickerItem} to {dateTime}"
-        # )
-
-        self.keyClicks(
-            f"{buttonsItem}.dateTextInput",
-            S_DATE,
-            returnToFinish=returnToFinish,
-            resetFocus=resetFocus,
-        )
-        self.keyClicks(
-            f"{buttonsItem}.timeTextInput",
-            S_TIME,
-            returnToFinish=returnToFinish,
-            resetFocus=resetFocus,
-        )
-        assert self.itemProp(buttonsItem, "dateTime") == dateTime
-        assert self.itemProp(datePickerItem, "dateTime") == dateTime
-        assert self.itemProp(timePickerItem, "dateTime") == dateTime
-
-    def set_startDateTime(self, dateTime):
-        self.set_dateTime(
-            dateTime, "startDateButtons", "startDatePicker", "startTimePicker"
-        )
-
-    def set_isDateRange(self, on):
-        if not self.rootProp("isDateRange"):
-            assert self.itemProp("endDateTimeLabel", "visible") == False
-            assert self.itemProp("endDateButtons", "visible") == False
-            assert self.itemProp("endDatePicker", "visible") == False
-            assert self.itemProp("endTimePicker", "visible") == False
-            assert (
-                self.itemProp("isDateRangeBox", "visible") == True
-            ), f"isDateRangeBox hidden; incorrect event kind '{self.rootProp('kind')}'"
-            self.setItemProp("isDateRangeBox", "checked", True)
-            # self.mouseClick("isDateRangeBox")
-            assert self.rootProp("isDateRange") == True
-
-    def set_endDateTime(self, dateTime):
-        self.set_isDateRange(True)
-        assert self.itemProp("endDateTimeLabel", "visible") == True
-        assert self.itemProp("endDateButtons", "visible") == True
-        assert self.itemProp("endDatePicker", "visible") == True
-        assert self.itemProp("endTimePicker", "visible") == True
-        self.set_dateTime(dateTime, "endDateButtons", "endDatePicker", "endTimePicker")
-
-        # Annoying behavior only in test (so far)
-        # Re-set the checkbox since clicking into the text boxes seems to uncheck it
-        if not self.rootProp("isDateRange"):
-            self.setItemProp("isDateRangeBox", "checked", True)
-
-    def set_notes(self, notes):
-        self.keyClicks("notesEdit", notes, returnToFinish=False)
-
-    def expectedFieldLabel(self, expectedTextLabel):
-        name = self.itemProp(expectedTextLabel, "text")
-        expectedText = self.S_REQUIRED_FIELD_ERROR.format(name=name)
-        util.qtbot.clickOkAfter(
-            lambda: self.mouseClick("AddEverything_submitButton"),
-            text=expectedText,
-        )
-
-    def pickerNotSubmitted(self, pickerLabel):
-        name = self.itemProp(pickerLabel, "text")
-        expectedText = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=name)
-        util.qtbot.clickOkAfter(
-            lambda: self.mouseClick("AddEverything_submitButton"),
-            text=expectedText,
-        )
-
-    def set_anxiety(self, x):
-        self.setVariable("anxiety", x)
-
-    def set_functioning(self, x):
-        self.setVariable("functioning", x)
-
-    def set_symptom(self, x):
-        self.setVariable("symptom", x)
-
-    def add_tag(self, tag: str):
-        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
-        tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
-        tagsEdit.clickAddAndRenameRow(tag)
-
-    def set_active_tags(self, tags: list[str]):
-        self.scrollChildToVisible(self.rootProp("addPage"), self.rootProp("tagsEdit"))
-        tagsEdit = ActiveListEdit(self, self.rootProp("tagsEdit"))
-        for tag in tags:
-            tagsEdit.clickActiveBox(tag)
-
-    def submit(self):
-        self.mouseClickItem(self.rootProp("addButton"))
-
-    # scripts
-
-    def add_person_by_birth(self, personName: str, startDateTime) -> Person:
-        self.set_kind(EventKind.Birth)
-        self.set_new_person("personPicker", personName)
-        self.set_startDateTime(startDateTime)
-        self.mouseClick("AddEverything_submitButton")
-        person = self.scene.query1(methods={"fullNameOrAlias": personName})
-        return person
-
-    def add_marriage_to_person(self, person: Person, spouseName, startDateTime):
-        pre_marriages = set(person.marriages)
-        self.set_kind(EventKind.Married)
-        self.set_existing_person("personAPicker", person)
-        self.set_new_person("personBPicker", spouseName)
-        self.set_startDateTime(startDateTime)
-        self.mouseClick("AddEverything_submitButton")
-        spouse = self.scene.query1(methods={"fullNameOrAlias": spouseName})
-        return (set(person.marriages) - pre_marriages).pop()
-
-    def add_event_to_marriage(self, marriage: Marriage, kind: EventKind, startDateTime):
-        pre_events = set(marriage.events())
-        self.set_kind(kind)
-        self.set_existing_person("personAPicker", marriage.personA())
-        self.set_existing_person("personBPicker", marriage.personB())
-        self.set_startDateTime(startDateTime)
-        self.mouseClick("AddEverything_submitButton")
-        return (set(marriage.events()) - pre_events).pop()
-
-
-def __test__(scene, parent):
-    dlg = AddAnythingDialog(parent)
-    dlg.setScene(scene)
-    dlg.show(animate=False)
-    parent.show()
-    parent.resize(400, 600)
-    return dlg

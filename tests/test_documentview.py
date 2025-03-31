@@ -20,10 +20,11 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Layer, Event, Emotion, Marriage, Callout
-from pkdiagram.widgets import ActiveListEdit
 from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
+
+from tests.widgets import TestActiveListEdit
 
 pytestmark = [
     pytest.mark.component("DocumentView"),
@@ -498,7 +499,7 @@ def test_toggle_search_tag_via_model(scene, dv):
     tagsEdit = dv.searchDialog.rootProp("tagsEdit")
     propsPage = dv.searchDialog.rootProp("propsPage")
     dv.searchDialog.scrollChildToVisible(propsPage, tagsEdit)
-    tagsEdit_list = ActiveListEdit(
+    tagsEdit_list = TestActiveListEdit(
         dv.searchDialog, dv.searchDialog.qml.rootObject().property("tagsEdit")
     )
     tagsEdit_list.clickActiveBox("you")
@@ -585,7 +586,7 @@ def test_search_show_emotional_unit(dv, bothUnits):
     emotionalUnitsEdit = dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
     dv.searchDialog.scrollChildToVisible(propsPage, emotionalUnitsEdit)
 
-    emotionalUnitsEdit_list = ActiveListEdit(dv.searchDialog, emotionalUnitsEdit)
+    emotionalUnitsEdit_list = TestActiveListEdit(dv.searchDialog, emotionalUnitsEdit)
     emotionalUnitsEdit_list.clickActiveBox(marriage_1.itemName())
     if bothUnits:
         emotionalUnitsEdit_list.clickActiveBox(marriage_2.itemName())

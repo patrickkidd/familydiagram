@@ -489,19 +489,19 @@ class QmlWidgetHelper(QObjectHelper):
         newSelection = selModel.selectedRows()
         assert prevSelection != newSelection
 
-    def clickComboBoxItem(self, objectName, itemText, comboBox=None, force=True):
+    def clickComboBoxItem(self, objectName, itemText, force=True):
         if isinstance(objectName, str):
-            comboBox = self.findItem(objectName)
+            item = self.findItem(objectName)
         else:
-            comboBox = objectName
+            item = objectName
         self.mouseClick(objectName)  # for focus
-        model = comboBox.property("model")
+        model = item.property("model")
         if isinstance(model, list):
             itemTexts = model
         elif isinstance(model, QAbstractItemModel):
-            if not comboBox.property("textRole"):
-                raise TypeError(f"Expected a Qml ComboBox, got {comboBox.objectName()}")
-            textRole = comboBox.property("textRole").encode("utf-8")
+            if not item.property("textRole"):
+                raise TypeError(f"Expected a Qml ComboBox, got {item.objectName()}")
+            textRole = item.property("textRole").encode("utf-8")
             for role, roleName in model.roleNames().items():
                 if textRole == roleName:
                     break
@@ -519,11 +519,11 @@ class QmlWidgetHelper(QObjectHelper):
         if self.DEBUG:
             log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
         if force:
-            comboBox.setProperty("currentIndex", -1)
-        comboBox.setProperty("currentIndex", currentIndex)
-        comboBox.close()
+            item.setProperty("currentIndex", -1)
+        item.setProperty("currentIndex", currentIndex)
+        item.close()
         assert (
-            comboBox.property("currentText") == itemText
+            item.property("currentText") == itemText
         ), f'Could not set `currentText` to "{itemText}" (currentIndex: {currentIndex}) on {objectName}'
 
         # popup = item.findChildren(QQuickItem, 'popup')[0]

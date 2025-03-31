@@ -5,8 +5,9 @@ import pytest
 from pkdiagram.pyqt import QDateTime, QPointF
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Event, Marriage
-from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
 from pkdiagram.views import SearchDialog
+
+from tests.widgets import TestActiveListEdit
 
 
 pytestmark = [
@@ -90,8 +91,8 @@ def test_properties(tst, scene, model, qmlEngine):
     marriage = Marriage(Person(name="A"), Person(name="B"))
     scene.addItem(marriage)
     qmlEngine.sceneModel.onEditorMode(True)
-    tagsEdit = ActiveListEdit(tst, tst.rootProp("tagsEdit"))
-    emotionUnitsEdit = ActiveListEdit(tst, tst.rootProp("emotionalUnitsEdit"))
+    tagsEdit = TestActiveListEdit(tst, tst.rootProp("tagsEdit"))
+    emotionUnitsEdit = TestActiveListEdit(tst, tst.rootProp("emotionalUnitsEdit"))
 
     tst.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"

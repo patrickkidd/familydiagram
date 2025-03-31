@@ -6,7 +6,7 @@ from pkdiagram.widgets import QmlWidgetHelper
 _log = logging.getLogger(__name__)
 
 
-class ActiveListEdit:
+class TestActiveListEdit:
 
     def __init__(self, view: QmlWidgetHelper, item: QQuickItem):
         assert item is not None, "ActiveListEdit item is None"
