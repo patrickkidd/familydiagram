@@ -1,10 +1,6 @@
 import logging
 
-from pkdiagram.pyqt import (
-    QQuickItem,
-    QEventLoop,
-    QTimer,
-)
+from pkdiagram.pyqt import QQuickItem, QEventLoop, QTimer, QApplication
 from pkdiagram import util
 from pkdiagram.scene import Person
 from pkdiagram.widgets import QmlWidgetHelper
@@ -126,7 +122,7 @@ class TestPeoplePicker:
     def set_existing_people(self, people: list[Person]):
         itemAddDone = util.Condition(self.item.itemAddDone)
         self.item.setExistingPeople(people)
-        util.waitALittle()
+        QApplication.processEvents()
         while itemAddDone.callCount < len(people):
             _log.info(
                 f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
