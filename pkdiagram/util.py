@@ -1284,7 +1284,7 @@ def import_source(modname, filePath):
 
 
 def waitALittle(ms=10):
-    log.debug("Waiting a little...")
+    log.debug(f"Waiting a little ({ms}ms)...")
     # Added for qml components since init is deferred. Works better than
     # QApplication.processEvents()
     loop = QEventLoop()

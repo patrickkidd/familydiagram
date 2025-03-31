@@ -1,5 +1,6 @@
 import logging
 
+from pkdiagram import util
 from pkdiagram.pyqt import QQuickItem, QApplication
 from pkdiagram.widgets import QmlWidgetHelper
 
@@ -10,11 +11,11 @@ class TestActiveListEdit:
 
     def __init__(self, view: QmlWidgetHelper, item: QQuickItem):
         assert item is not None, "ActiveListEdit item is None"
-        self._view = view
+        self.view = view
         self._item = item
 
     def root(self) -> QQuickItem:
-        return self._view.qml.rootObject()
+        return self.view.qml.rootObject()
 
     def delegate(self, itemName: str, throw=True) -> QQuickItem:
         """
@@ -44,11 +45,11 @@ class TestActiveListEdit:
         return self.delegate(itemName).property("checkBox")
 
     def renameRow(self, oldName: str, newName: str):
-        self._view.mouseDClickItem(self.textEdit(oldName))
+        self.view.mouseDClickItem(self.textEdit(oldName))
         assert (
             self.textEdit(oldName).property("editMode") == True
         ), f"Could not double-click to edit tag '{oldName}'"
-        self._view.keyClicksItem(
+        self.view.keyClicksItem(
             self.textEdit(oldName),
             newName,
             returnToFinish=True,
@@ -61,12 +62,13 @@ class TestActiveListEdit:
         model = self._item.property("model")
         addButton = self._item.property("crudButtons").property("addButtonItem")
         wasTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
-        self._view.mouseClickItem(addButton)
+        self.view.mouseClickItem(addButton)
         nowTags = [model.data(model.index(0, 0)) for i in range(model.rowCount())]
         newTag = list(set(nowTags).difference(set(wasTags)))[0]
         self.renameRow(newTag, itemName)
 
     def clickActiveBox(self, itemName: str):
+        _log.debug(f"Clicking tag checkbox for '{itemName}'")
         model = self._item.property("model")
         assert (
             model.rowCount() > 0
@@ -85,8 +87,9 @@ class TestActiveListEdit:
         assert (
             checkBox.isEnabled() == True
         ), f"Cannot click tag checkbox for '{itemName}' if it isn't enabled."
-        self._view.mouseClickItem(checkBox)
         QApplication.processEvents()
+        self.view.mouseClickItem(checkBox)
+        now = model.data(model.index(iTag, 0), role=model.ActiveRole)
         assert (
-            model.data(model.index(iTag, 0), role=model.ActiveRole) != was
-        ), f"Checkbox for list item '{itemName}' did not change check state"
+            now != was
+        ), f"Checkbox for list item '{itemName}' did not change check state (was: {was}, is: {now})"

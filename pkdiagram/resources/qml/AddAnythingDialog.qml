@@ -238,7 +238,6 @@ PK.Drawer {
     }
     function initWithNoSelection() {
         kindBox.currentIndex = -1
-        print('initWithNoSelection')
         tagsEdit.isDirty = false
     }
 
@@ -897,11 +896,9 @@ PK.Drawer {
                                 scene: sceneModel ? sceneModel.scene : undefined
                                 items: eventModel.items
                                 onDataChanged: {
-                                    print('TagsModel::onDataChanged')
                                     tagsEditItem.isDirty = true
                                 }
                                 onModelReset: {
-                                    print('TagsModel::onModelReset')
                                     tagsEditItem.isDirty = true
                                 }
                             }
@@ -910,7 +907,6 @@ PK.Drawer {
                             property var firstTabItem: this
                             function clear() {
                                 model.resetToSceneTags()
-                                print('TagsEditItem::clear')
                                 isDirty = false
                             }
                         }

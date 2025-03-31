@@ -73,7 +73,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
-        log.info(f"Loading QML: {fpath}")
+        # log.info(f"Loading QML: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():
@@ -240,7 +240,7 @@ class QmlWidgetHelper(QObjectHelper):
 
     def resetFocusItem(self, item: QQuickItem):
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.resetFocus("{item}#{item.objectName()}")')
+            log.info(f"QmlWidgetHelper.resetFocus({self._itemString(item)})")
         item.setProperty("focus", False)
         if item.hasActiveFocus():
             self.qml.rootObject().forceActiveFocus()  # TextField?
@@ -270,13 +270,13 @@ class QmlWidgetHelper(QObjectHelper):
         self.focusItem(item)
         if self.DEBUG:
             log.info(
-                f'QmlWidgetHelper.keyClicks("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
+                f'QmlWidgetHelper.keyClicksItem("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
             )
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
             if self.DEBUG:
                 log.info(
-                    f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {s})'
+                    f'QmlWidgetHelper.keyClicksItem[returnToFinish]("{objectName}", {s})'
                 )
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
@@ -331,13 +331,7 @@ class QmlWidgetHelper(QObjectHelper):
             log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
         if not item.property("enabled"):
             log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
-        itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         if self.DEBUG:
-            if itemAtPos is not item:
-                log.warning(
-                    f"Item at position {pos}: {self._itemString(itemAtPos)} != {self._itemString(item)}"
-                )
-
             log.info(
                 f"QmlWidgetHelper.mouseClickItem('{self._itemString(item)}', {button}, {pos}) (rect: {rect})"
             )

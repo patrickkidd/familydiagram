@@ -23,7 +23,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 def view(qtbot, scene, qmlEngine):
     qmlEngine.setScene(scene)
     widget = AddAnythingDialog(qmlEngine)
-    widget.resize(600, 800)
+    widget.resize(600, 1000)
     widget.setScene(scene)
     widget.show()
     qtbot.addWidget(widget)
@@ -33,6 +33,7 @@ def view(qtbot, scene, qmlEngine):
 
     view = TestAddAnythingDialog(widget)
     view.initForSelection([])
+    view.item.property("addPage").setProperty("interactive", False)
 
     yield view
 

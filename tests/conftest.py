@@ -78,8 +78,6 @@ ENABLE_STRIPE = False
 
 log = logging.getLogger(__name__)
 
-util.init_logging()
-
 
 _componentStatus = {}
 _currentTestItem = None
@@ -110,10 +108,6 @@ def pytest_configure(config):
     config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
     config.addinivalue_line("markers", "integration: mark test as integration test.")
-
-
-def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -296,6 +290,10 @@ def _sendCustomRequest(
 @pytest.fixture(scope="session", autouse=True)
 def qApp():
     log.debug(f"Create qApp for familydiagram/tests")
+
+    # from PyQt5.QtCore import QLoggingCategory
+    # QLoggingCategory.setFilterRules("qt.quick.mouse.debug=true")
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
