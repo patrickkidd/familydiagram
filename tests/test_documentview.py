@@ -49,14 +49,21 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dv(test_session, test_activation, qtbot, scene):
+def dv(
+    test_session,
+    test_activation,
+    qtbot,
+    scene,
+    session,
+    localFileModel,
+    serverFileModel,
+):
     # A mainwindow that only has the ui elements and actions required for DocumentView and View.
     mw = QMainWindow()
     mw.ui = Ui_MainWindow()
     mw.ui.setupUi(mw)
 
-    session = Session()
-    w = DocumentView(mw, session)
+    w = DocumentView(mw, session, localFileModel, serverFileModel)
     w.init()
     w.__mw = mw
     mw.setCentralWidget(w)

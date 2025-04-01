@@ -8,7 +8,7 @@ from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.models import ServerFileManagerModel
 from pkdiagram.scene import Scene, Person
-from pkdiagram.app import Session as fe_Session
+from pkdiagram.app import Session as fd_Session
 
 from fdserver.extensions import db
 from fdserver.models import Diagram
@@ -21,7 +21,7 @@ def create_model(request):
 
     def _create_model(session=True):
         model = ServerFileManagerModel()
-        _session = fe_Session()
+        _session = fd_Session()
         if session:
             if session is True:
                 test_session = request.getfixturevalue("test_session")
@@ -35,6 +35,7 @@ def create_model(request):
 
         model.init()
         model.setSession(_session)
+        model.update()
         assert util.wait(model.updateFinished)
 
         created.append(model)
@@ -98,9 +99,12 @@ def test_disk_cache(test_user, test_user_diagrams, create_model):
     )
     model.write()
 
+    from pkdiagram.app import Session
+
     model2 = ServerFileManagerModel(dataPath=model.dataPath)
     model2.init()
     model2.setSession(model.session)
+    model2.update()
     updateFinished = util.Condition(model2.updateFinished)
     indexGETResponse2 = util.Condition(model2.indexGETResponse)
     diagramGETResponse2 = util.Condition(model2.diagramGETResponse)
@@ -239,11 +243,12 @@ def test_dont_clear_cache_on_restart(
     )
 
     model.deinit()
-    session = fe_Session()
+    session = fd_Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
     model2 = ServerFileManagerModel()
     model2.init()
     model2.setSession(session)
+    model2.update()
     assert util.wait(model2.updateFinished)
     assert (
         model2.rowCount()
@@ -254,11 +259,12 @@ def test_dont_clear_cache_on_restart(
 def test_save_free_diagram_persists(test_session):
     # Read free diagram 1
     model = ServerFileManagerModel()
-    session = fe_Session()
+    session = fd_Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
     assert session.hasFeature(vedana.LICENSE_FREE) == True
     model.init()
     model.setSession(session)
+    model.update()
     assert util.wait(model.updateFinished)
     assert model.rowCount() == 1
 

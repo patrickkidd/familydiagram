@@ -23,6 +23,10 @@ python_init.init_dev()
 for part in ("../_pkdiagram", ".."):
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), part))
 
+from fdserver.tests.conftest import *
+import flask_bcrypt
+
+
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
@@ -52,15 +56,11 @@ from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
 from pkdiagram.server_types import HTTPResponse, Server
 from pkdiagram.scene import Scene, Person, Marriage
-from pkdiagram.models import ServerFileManagerModel
+from pkdiagram.models import ServerFileManagerModel, LocalFileManagerModel
 from pkdiagram.widgets import QmlWidgetHelper
-from pkdiagram.mainwindow import MainWindow
+from pkdiagram.mainwindow import MainWindow, FileManager
 from pkdiagram.documentview import QmlEngine
-from pkdiagram.app import Application, AppController, Session as fe_Session
-
-from fdserver.tests.conftest import *
-from fdserver.models import User
-import flask_bcrypt
+from pkdiagram.app import Application, AppController, Session
 
 import appdirs
 
@@ -439,10 +439,34 @@ def watchdog(request, qApp):
 
 
 @pytest.fixture
-def qmlEngine(qApp):
+def session(qApp):
+    yield Session()
+
+
+@pytest.fixture
+def localFileModel():
+    """Local file model for testing."""
+    localFileModel = LocalFileManagerModel(None)
+    yield localFileModel
+
+
+@pytest.fixture
+def serverFileModel(session):
+    """Local file model for testing."""
+    serverFileModel = ServerFileManagerModel(None)
+    serverFileModel.setSession(Session())
+    yield serverFileModel
+    serverFileModel.deinit()
+
+
+@pytest.fixture
+def qmlEngine(qApp, session):
 
     qmlErrors = []
-    _qmlEngine = QmlEngine(fe_Session(), qApp)
+    serverFileModel = ServerFileManagerModel(None)
+    localFileModel = LocalFileManagerModel(None)
+    serverFileModel.setSession(session)
+    _qmlEngine = QmlEngine(session, localFileModel, serverFileModel, qApp)
 
     def _onWarnings(errors: list[QQmlError]):
         qmlErrors.extend(errors)
@@ -926,6 +950,18 @@ def scene(qApp):
     _scene.deinit()
 
 
+@pytest.fixture(autouse=True)
+def defer_filemanager(request):
+    init_filemanager = "init_filemanager" in [
+        m.name for m in request.node.iter_markers()
+    ]
+    with contextlib.ExitStack() as stack:
+        if not init_filemanager:
+            stack.enter_context(mock.patch.object(FileManager, "checkInitQml"))
+            stack.enter_context(mock.patch.object(FileManager, "onFileClosed"))
+        yield
+
+
 @pytest.fixture
 def create_ac_mw(request, qtbot, tmp_path):
     """
@@ -994,10 +1030,8 @@ def create_ac_mw(request, qtbot, tmp_path):
 
     for ac, mw in created:
         mw.deinit()
-        util.Condition(
-            condition=lambda: mw.fileManager.serverFileModel._indexReplies == []
-        ).wait()
-        assert mw.fileManager.serverFileModel._indexReplies == []
+        util.Condition(condition=lambda: mw.serverFileModel._indexReplies == []).wait()
+        assert mw.serverFileModel._indexReplies == []
         ac.deinit()
 
 

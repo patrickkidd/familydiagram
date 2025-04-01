@@ -62,6 +62,7 @@ def _numServerFileItems(mw):
     return ret
 
 
+@pytest.mark.init_filemanager
 @pytest.mark.parametrize("is_server_down", (True, False))
 def test_init_open_n_reopen_server_file(
     test_activation,
@@ -96,6 +97,7 @@ def test_init_open_n_reopen_server_file(
         mw2.deinit()
 
 
+@pytest.mark.init_filemanager
 def test_open_server_file_no_server(
     test_activation, test_user_diagrams, test_user, server_down, create_ac_mw
 ):
@@ -115,7 +117,6 @@ def test_open_server_file_no_server(
     with server_down(True):
         # Load a second window to see if it loads the same file from the server
         ac2, mw2 = create_ac_mw()
-        util.wait(mw2.serverFileModel.updateFinished)
         assert (
             util.waitForCondition(
                 lambda: _numServerFileItems(mw2) >= len(test_user.diagrams)
@@ -128,6 +129,7 @@ def test_open_server_file_no_server(
         mw2.deinit()
 
 
+@pytest.mark.init_filemanager
 def test_rw_edit_on_client_diagram(
     test_user, test_activation, test_user_2, create_ac_mw
 ):
@@ -229,13 +231,13 @@ def test_server_diagram_access(
         assert mw.documentView.sceneModel.readOnly == True
 
 
+@pytest.mark.init_filemanager
 @pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])
 def test_current_server_file_updated_elsewhere(
     qtbot, test_user, create_ac_mw, dontShowServerFileUpdated
 ):
     diagram_id = test_user.free_diagram_id
     ac, mw = create_ac_mw()
-    model = mw.fileManager.serverFileModel
     util.wait(mw.serverFileModel.updateFinished)
 
     mw.prefs.setValue("dontShowServerFileUpdated", dontShowServerFileUpdated)

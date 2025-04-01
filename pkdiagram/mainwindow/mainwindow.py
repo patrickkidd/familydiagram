@@ -54,6 +54,7 @@ from pkdiagram.server_types import Diagram, HTTPError
 from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
+from pkdiagram.models import LocalFileManagerModel, ServerFileManagerModel
 from pkdiagram.documentview import DocumentView
 from pkdiagram.mainwindow import FileManager, Preferences, Welcome
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
@@ -145,7 +146,6 @@ class MainWindow(QMainWindow):
 
         self.scene: Scene = None
         self.document = None
-        self.serverFileModel = None
         self.updateReply = None
         self.diagramShown = False
         self.savePending = False
@@ -166,9 +166,16 @@ class MainWindow(QMainWindow):
         self.undoView.hide()
         self.ui.actionShow_Undo_View.toggled.connect(self.onShowUndoView)
 
+        self.localFileModel = LocalFileManagerModel(self)
+        self.serverFileModel = ServerFileManagerModel(self)
+        self.serverFileModel.setSession(self.session)
+        self.serverFileModel.dataChanged.connect(self.onServerFileModelDataChanged)
+
         # Document View
 
-        self.documentView = DocumentView(self, self.session)
+        self.documentView = DocumentView(
+            self, self.session, self.localFileModel, self.serverFileModel
+        )
         self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
         self.view = self.documentView.view
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
@@ -315,8 +322,11 @@ class MainWindow(QMainWindow):
 
         ## File Manager View
 
+        self.serverFileModel.init()
+        if self.session.isLoggedIn():
+            self.serverFileModel.update()
+
         self.fileManager.init()
-        self.serverFileModel = None
         self.serverPollTimer = QTimer(self)
         self.serverPollTimer.setInterval(self.OPEN_DIAGRAM_SYNC_MS)
         self.serverPollTimer.timeout.connect(self.onServerPollTimer)
@@ -413,10 +423,6 @@ class MainWindow(QMainWindow):
         self.isInitialized = False
 
     def onFileManagerInit(self):
-        self.serverFileModel = self.fileManager.serverFileModel
-        self.fileManager.serverFileModel.dataChanged.connect(
-            self.onServerFileModelDataChanged
-        )
         was = self._blocked  # remove and retest
         self._blocked = True
         self.ui.actionShow_Local_Files.setChecked(
@@ -476,7 +482,7 @@ class MainWindow(QMainWindow):
             and self.serverFileModel.DiagramDataRole in roles
             and not self._isImportingToFreeDiagram
         ):
-            model = self.fileManager.serverFileModel
+            model = self.serverFileModel
             loadedRow = model.rowForDiagramId(diagram.id)
             if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
                 if not self.prefs.value(
@@ -931,7 +937,7 @@ class MainWindow(QMainWindow):
                         else:
                             newScene.selectAll()
                             items = Clipboard(newScene.selectedItems()).copy(self.scene)
-                            self.scene.push(ImportItems(items))
+                            self.scene.push(ImportItems(self.scene, items))
         else:
             CUtil.instance().openExistingFile(
                 QUrl.fromLocalFile(filePath)
@@ -1195,10 +1201,8 @@ class MainWindow(QMainWindow):
             self.documentView.setScene(self.scene)
             # various scenarios for delaying the view animation for aesthetics
             if self.isInitializing:  # loading last opened file stored in prefs
-                if not self.fileManager.localFileModel.isLoaded:
-                    self.fileManager.localFileModel.loaded.connect(
-                        lambda: self.showDiagram()
-                    )
+                if not self.localFileModel.isLoaded:
+                    self.localFileModel.loaded.connect(lambda: self.showDiagram())
                 else:
                     QTimer.singleShot(
                         900, lambda: self.showDiagram()
@@ -1417,7 +1421,7 @@ class MainWindow(QMainWindow):
         if self.documentView.x() == self.width():  # at home
             self.documentView.hide()
             self.ui.actionImport_Diagram.setEnabled(False)
-            self.fileManager.updateModTimes()
+            self.localFileModel.updateModTimes()
             self.documentView.controller.updateActions()
             if self.session.activeFeatures() and not self.session.hasFeature(
                 vedana.LICENSE_FREE

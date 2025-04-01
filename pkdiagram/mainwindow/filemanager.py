@@ -32,8 +32,6 @@ class FileManager(QWidget, QmlWidgetHelper):
             self.onLocalFilesShownChanged
         )
         self.clearSelection()
-        self.serverFileModel = self.rootProp("serverFileModel")
-        self.localFileModel = self.rootProp("localFileModel")
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
         Layout.addWidget(self.qml)
@@ -41,31 +39,23 @@ class FileManager(QWidget, QmlWidgetHelper):
     def init(self):
         pass
 
-    def deinit(self):
-        self.serverFileModel.deinit()
-        QmlWidgetHelper.deinit(self)
-
     def showEvent(self, e):
         super().showEvent(e)
         self.checkInitQml()
-        self.serverFileModel.init()
-        self.serverFileModel.setSession(self.qmlEngine().session)
 
     def onLocalFilesShownChanged(self):
         on = self.rootProp("localFilesShown")
         self.localFilesShownChanged.emit(on)
 
     def onServerFileClicked(self, fpath):
-        serverFileManagerModel = self.rootProp("serverFileModel")
-        diagram = serverFileManagerModel.serverDiagramForPath(fpath)
-        updatedDiagram = serverFileManagerModel.syncDiagramFromServer(diagram.id)
+        diagram = self.qmlEngine().serverFileModel.serverDiagramForPath(fpath)
+        updatedDiagram = self.qmlEngine().serverFileModel.syncDiagramFromServer(
+            diagram.id
+        )
         if updatedDiagram:
             self.serverFileClicked.emit(fpath, updatedDiagram)
         else:
             self.serverFileClicked.emit(fpath, diagram)
-
-    def updateModTimes(self):
-        self.localFileModel.updateModTimes()
 
     def onLocalUUIDUpdated(self, url, uuid):
         self.here("TODO:", url, uuid)

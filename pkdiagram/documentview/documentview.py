@@ -41,7 +41,7 @@ class DocumentView(QWidget):
     graphicalTimelineExpanded = pyqtSignal(bool)
     qmlSelectionChanged = pyqtSignal()
 
-    def __init__(self, parent: QMainWindow, session):
+    def __init__(self, parent: QMainWindow, session, localFileModel, serverFileModel):
         super().__init__(parent.centralWidget())
         self.session = session
         self.ui = parent.ui
@@ -51,7 +51,7 @@ class DocumentView(QWidget):
         self._isReloadingCurrentDiagram = False
         self._settingCurrentDrawer = False
 
-        self._qmlEngine = QmlEngine(session, parent)
+        self._qmlEngine = QmlEngine(session, localFileModel, serverFileModel, parent)
         self.sceneModel = self._qmlEngine.sceneModel
         self.searchModel = self._qmlEngine.searchModel
         self.timelineModel = self._qmlEngine.timelineModel
