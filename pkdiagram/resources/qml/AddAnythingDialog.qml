@@ -10,19 +10,19 @@ import "js/Underscore.js" as Underscore
 PK.Drawer {
 
     id: root
-    objectName: 'AddAnythingDialog'
 
     signal cancel
 
     property int margin: util.QML_MARGINS
     property var focusResetter: addPage
     property bool canInspect: false
-    property var selectedPeopleModel: ListModel {
-        objectName: 'selectedPeopleModel'
-    }
+    property var selectedPeopleModel: ListModel {}
+
     property var tagsEdit: tagsEditItem
     property var addPage: addPage
-    property var addButton: submitButton
+    property var addButton: addButton
+    property var clearButton: clearButton
+    property var cancelButton: cancelButton
 
     // Keys.onPressed: {
     //     // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -35,8 +35,10 @@ PK.Drawer {
     property var kind: null
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
+    property var startDateButtons: startDateButtons
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
+    property var endDateButtons: endDateButtons
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
     property var location: locationEdit.text
@@ -53,6 +55,32 @@ PK.Drawer {
     property var personBPicker: personBPicker
     property var moversPicker: moversPicker
     property var receiversPicker: receiversPicker
+
+    property var personLabel: personLabel
+    property var peopleLabel: peopleLabel
+    property var personALabel: personALabel
+    property var personBLabel: personBLabel
+    property var moversLabel: moversLabel
+    property var receiversLabel: receiversLabel
+    property var kindLabel: kindLabel
+    property var descriptionLabel: descriptionLabel
+    property var startDateTimeLabel: startDateTimeLabel
+    property var endDateTimeLabel: endDateTimeLabel
+    property var isDateRangeLabel: isDateRangeLabel
+
+    property var kindBox: kindBox
+    property var descriptionEdit: descriptionEdit
+    property var startDatePicker: startDatePicker
+    property var startTimePicker: startTimePicker
+    property var isDateRangeBox: isDateRangeBox
+    property var endDatePicker: endDatePicker
+    property var endTimePicker: endTimePicker
+    property var locationEdit: locationEdit
+    property var anxietyBox: anxietyBox
+    property var functioningBox: functioningBox
+    property var symptomBox: symptomBox
+    property var nodalBox: nodalBox
+    property var notesEdit: notesEdit
 
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
@@ -196,6 +224,7 @@ PK.Drawer {
         // print('initWithPairBond: ' + personA + ', ' + personB)
         personAPicker.setExistingPerson(personA)
         personBPicker.setExistingPerson(personB)
+        tagsEdit.isDirty = false
     }
     function initWithMultiplePeople(peopleIds) {
         var people = [];
@@ -205,6 +234,11 @@ PK.Drawer {
         kindBox.setCurrentValue(util.EventKind.CustomIndividual)
         // print('initWithMultiplePeople: ' + people.length)
         peoplePicker.setExistingPeople(people)
+        tagsEdit.isDirty = false
+    }
+    function initWithNoSelection() {
+        kindBox.currentIndex = -1
+        tagsEdit.isDirty = false
     }
 
     function setVariable(attr, x) {
@@ -250,15 +284,13 @@ PK.Drawer {
     header: PK.ToolBar {
         PK.ToolButton {
             id: cancelButton
-            objectName: 'cancelButton'
             text: 'Cancel'
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: cancel()
         }
         PK.ToolButton {
-            id: clearFormButton
-            objectName: 'clearFormButton'
+            id: clearButton
             text: "Clear"
             x: cancelButton.x + width + margin
             onClicked: root.clear()
@@ -268,13 +300,12 @@ PK.Drawer {
             anchors.centerIn: parent
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
-            width: (submitButton.x) - (cancelButton.x + cancelButton.width) - root.margin * 2
+            width: (addButton.x) - (cancelButton.x + cancelButton.width) - root.margin * 2
             font.family: util.FONT_FAMILY_TITLE
             font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
         }
         PK.ToolButton {
-            id: submitButton
-            objectName: 'AddEverything_submitButton'
+            id: addButton
             text: 'Add'
             anchors.right: parent.right
             anchors.rightMargin: margin
@@ -292,7 +323,6 @@ PK.Drawer {
     StackLayout {
 
         id: stack
-        objectName: 'stack'
         currentIndex: 0
         anchors.fill: parent
 
@@ -324,13 +354,11 @@ PK.Drawer {
 
                     PK.Text {
                         id: kindLabel
-                        objectName: "kindLabel"
                         text: "Event"
                     }
 
                     PK.ComboBox {
                         id: kindBox
-                        objectName: "kindBox"
                         model: util.eventKindLabels()
                         property var valuesForIndex: util.eventKindValues()
                         property var lastCurrentIndex: -1
@@ -376,7 +404,6 @@ PK.Drawer {
 
                     PK.HelpText {
                         id: kindHelpText
-                        objectName: "kindHelpText"
                         text: util.S_EVENT_KIND_HELP_TEXT
                         visible: text != ''
                         Layout.columnSpan: 2
@@ -392,14 +419,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: personLabel
-                        objectName: "personLabel"
                         text: 'Person'
                         visible: util.isMonadicEventKind(root.kind)
                     }
 
                     PK.FormField {
                         id: personField
-                        objectName: "personField"
                         visible: personLabel.visible
                         backTabItem: kindBox
                         tabItem: peopleField.firstTabItem
@@ -409,7 +434,6 @@ PK.Drawer {
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
                             id: personPicker
-                            objectName: "personPicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -423,14 +447,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: peopleLabel
-                        objectName: "peopleLabel"
                         text: 'People'
                         visible: root.kind == util.EventKind.CustomIndividual
                     }
 
                     PK.FormField {
                         id: peopleField
-                        objectName: "peopleField"
                         visible: peopleLabel.visible
                         backTabItem: personField.lastTabItem
                         tabItem: personAField.firstTabItem
@@ -440,7 +462,6 @@ PK.Drawer {
                         Layout.maximumHeight: peoplePicker.height
                         PK.PeoplePicker {
                             id: peoplePicker
-                            objectName: "peoplePicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             // width: peopleField.width - peopleField.clearButton.width
@@ -453,14 +474,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: personALabel
-                        objectName: "personALabel"
                         text: util.isChildEventKind(root.kind) ? 'Parent A' : 'Person A'
                         visible: util.isPairBondEventKind(root.kind) || util.isChildEventKind(root.kind)
                     }
 
                     PK.FormField {
                         id: personAField
-                        objectName: "personAField"
                         visible: personALabel.visible
                         backTabItem: peopleField.lastTabItem
                         tabItem: personBField.firstTabItem
@@ -470,7 +489,6 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
                             id: personAPicker
-                            objectName: "personAPicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -484,14 +502,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: personBLabel
-                        objectName: "personBLabel"
                         text: util.isChildEventKind(root.kind) ? 'Parent B' : 'Person B'
                         visible: personALabel.visible
                     }
 
                     PK.FormField {
                         id: personBField
-                        objectName: "personBField"
                         visible: personALabel.visible
                         backTabItem: personAField.lastTabItem
                         tabItem: moversField.firstTabItem
@@ -501,7 +517,6 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
                             id: personBPicker
-                            objectName: "personBPicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -515,14 +530,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: moversLabel
-                        objectName: "moversLabel"
                         text: 'Mover(s)'
                         visible: util.isDyadicEventKind(root.kind)
                     }
 
                     PK.FormField {
                         id: moversField
-                        objectName: "moversField"
                         visible: moversLabel.visible
                         backTabItem: personBField.lastTabItem
                         tabItem: receiversField.firstTabItem
@@ -532,7 +545,6 @@ PK.Drawer {
                         Layout.maximumHeight: moversPicker.height
                         PK.PeoplePicker {
                             id: moversPicker
-                            objectName: "moversPicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -544,14 +556,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: receiversLabel
-                        objectName: "receiversLabel"
                         visible: moversLabel.visible
                         text: 'Receiver(s)'
                     }
 
                     PK.FormField {
                         id: receiversField
-                        objectName: "receiversField"
                         visible: moversLabel.visible
                         backTabItem: moversField.lastTabItem
                         tabItem: descriptionField.firstTabItem
@@ -561,7 +571,6 @@ PK.Drawer {
                         Layout.maximumHeight: receiversPicker.height
                         PK.PeoplePicker {
                             id: receiversPicker
-                            objectName: "receiversPicker"
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -586,14 +595,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: descriptionLabel
-                        objectName: "descriptionLabel"
                         text: "Description"
                         visible: util.isCustomEventKind(root.kind)
                     }
 
                     PK.FormField {
                         id: descriptionField
-                        objectName: "descriptionField"
                         visible: descriptionLabel.visible
                         KeyNavigation.backtab: receiversPicker.lastTabItem
                         KeyNavigation.tab: startDateButtons.firstTabItem
@@ -604,7 +611,6 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.TextField {
                             id: descriptionEdit
-                            objectName: "descriptionEdit"
                             property Item firstTabItem: this
                             property Item lastTabItem: this
                             property bool isDirty: text != ''
@@ -626,7 +632,6 @@ PK.Drawer {
 
                     PK.Text {
                         id: startDateTimeLabel
-                        objectName: "startDateTimeLabel"
                         text: {
                             if(root.isDateRange) {
                                 return "Began"
@@ -638,7 +643,6 @@ PK.Drawer {
 
                     PK.DatePickerButtons {
                         id: startDateButtons
-                        objectName: 'startDateButtons'
                         datePicker: startDatePicker
                         timePicker: startTimePicker
                         // dateTime: root.startDateTime
@@ -658,7 +662,6 @@ PK.Drawer {
 
                     PK.DatePicker {
                         id: startDatePicker
-                        objectName: 'startDatePicker'
                         // dateTime: root.startDateTime                            
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
@@ -673,7 +676,6 @@ PK.Drawer {
 
                     PK.TimePicker {
                         id: startTimePicker
-                        objectName: 'startTimePicker'
                         // dateTime: root.startDateTime                            
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
@@ -688,14 +690,12 @@ PK.Drawer {
 
                     PK.Text {
                         id: endDateTimeLabel
-                        objectName: "endDateTimeLabel"
                         text: "Ended"
                         visible: root.isDateRange
                     }
 
                     PK.DatePickerButtons {
                         id: endDateButtons
-                        objectName: 'endDateButtons'
                         datePicker: endDatePicker
                         timePicker: endTimePicker
                         // dateTime: root.endDateTime
@@ -715,7 +715,6 @@ PK.Drawer {
 
                     PK.DatePicker {
                         id: endDatePicker
-                        objectName: 'endDatePicker'
                         // dateTime: root.endDateTime
                         visible: root.isDateRange
                         Layout.columnSpan: 2
@@ -731,7 +730,6 @@ PK.Drawer {
 
                     PK.TimePicker {
                         id: endTimePicker
-                        objectName: 'endTimePicker'
                         // dateTime: root.endDateTime
                         visible: root.isDateRange
                         Layout.columnSpan: 2
@@ -753,7 +751,6 @@ PK.Drawer {
 
                     PK.CheckBox {
                         id: isDateRangeBox
-                        objectName: 'isDateRangeBox'
                         text: "Is Date Range" 
                         visible: isDateRangeLabel.visible
                         KeyNavigation.backtab: endDateButtons.lastTabItem
@@ -769,13 +766,11 @@ PK.Drawer {
 
                     PK.Text {
                         id: locationLabel
-                        objectName: "locationLabel"
                         text: kindBox.valuesForIndex[kindBox.currentIndex] == util.EventKind.Moved ? "Destination" : "Location"
                     }
 
                     PK.FormField {
                         id: locationField
-                        objectName: "locationField"
                         Layout.maximumWidth: root.fieldWidth
                         Layout.minimumWidth: root.fieldWidth
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -784,7 +779,6 @@ PK.Drawer {
                         backTabItem: isDateRangeBox
                         PK.TextField {
                             id: locationEdit
-                            objectName: "locationEdit"
                             property bool isDirty: text != ''
                             property Item firstTabItem: this
                             property Item lastTabItem: this
@@ -814,7 +808,6 @@ PK.Drawer {
 
                     PK.VariableBox {
                         id: anxietyBox
-                        objectName: "anxietyBox"
                         visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         tabItem: functioningBox.firstTabItem
@@ -835,7 +828,6 @@ PK.Drawer {
 
                     PK.VariableBox {
                         id: functioningBox
-                        objectName: "functioningBox"
                         visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         backTabItem: anxietyBox.lastTabItem
@@ -855,7 +847,6 @@ PK.Drawer {
 
                     PK.VariableBox {
                         id: symptomBox
-                        objectName: "symptomBox"
                         visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         backTabItem: functioningBox.lastTabItem
@@ -898,14 +889,18 @@ PK.Drawer {
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
-                            objectName: "tagsEdit"
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             model: TagsModel {
+                                id: tagsModel
                                 scene: sceneModel ? sceneModel.scene : undefined
                                 items: eventModel.items
-                                onDataChanged: tagsEditItem.isDirty = true
-                                onModelReset: tagsEditItem.isDirty = true
+                                onDataChanged: {
+                                    tagsEditItem.isDirty = true
+                                }
+                                onModelReset: {
+                                    tagsEditItem.isDirty = true
+                                }
                             }
                             property var isDirty: false
                             property var lastTabItem: this
@@ -930,13 +925,11 @@ PK.Drawer {
 
                     PK.Text {
                         id: notesLabel
-                        objectName: "notesLabel"
                         text: "Details"
                     }
 
                     PK.FormField {
                         id: notesField
-                        objectName: "notesField"
                         height: notesFrame.height
                         tabItem: kindBox
                         backTabItem: symptomBox.lastTabItem
@@ -965,7 +958,6 @@ PK.Drawer {
 
                                 PK.TextEdit {
                                     id: notesEdit
-                                    objectName: "notesEdit"
                                     wrapMode: TextEdit.Wrap
                                     height: 400
                                     width: notesFrame.width - 2

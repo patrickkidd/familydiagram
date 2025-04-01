@@ -1,9 +1,11 @@
 import os.path
+
 import pytest
+import mock
 
 import vedana
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import QApplication, QTest
+from pkdiagram.pyqt import QApplication, QUrl
 from pkdiagram import util
 from pkdiagram.mainwindow import FileManager
 
@@ -47,9 +49,9 @@ def create_fm(qtbot, request, qmlEngine):
 
 def test_local_filter(tmp_path, create_fm):
 
-    CUtil.instance().forceDocsPath(str(tmp_path))
-
     NUM_FILES = 10
+
+    fpaths = []
     for i in range(NUM_FILES):
         if i % 2 == 0:
             name = f"Diagram {i}-even.fd"
@@ -57,10 +59,14 @@ def test_local_filter(tmp_path, create_fm):
             name = f"Diagram {i}-odd.fd"
         fpath = os.path.join(tmp_path, name)
         util.touchFD(fpath)
-    QTest.qSleep(1000)
-    QApplication.processEvents()
+        fpaths.append(fpath)
 
-    fm = create_fm()
+    with mock.patch.object(
+        CUtil.instance(),
+        "fileList",
+        return_value=[QUrl.fromLocalFile(x) for x in fpaths],
+    ):
+        fm = create_fm()
     assert fm.rootProp("localFilesShown") == True
 
     localFileModel = fm.rootProp("localFileModel")
@@ -70,6 +76,29 @@ def test_local_filter(tmp_path, create_fm):
     fm.itemProp("localSearchBar.searchBox", "text") == "-odd"
     assert localFileModel.searchText == "-odd"
     assert localFileModel.rowCount() == NUM_FILES / 2
+
+
+def test_local_onFileStatusChanged(tmp_path, create_fm):
+    name = f"Diagram-123.fd"
+    fpath = os.path.join(tmp_path, name)
+    util.touchFD(fpath)
+
+    with mock.patch.object(
+        CUtil.instance(),
+        "fileList",
+        return_value=[QUrl.fromLocalFile(fpath)],
+    ):
+        fm = create_fm()
+    assert fm.rootProp("localFilesShown") == True
+
+    localFileModel = fm.rootProp("localFileModel")
+    with mock.patch.object(localFileModel, "updateFileEntry") as updateFileEntry:
+        localFileModel.onFileStatusChanged(
+            QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent
+        )
+    assert updateFileEntry.call_args[1]["path"] == fpath
+    assert updateFileEntry.call_args[1]["status"] == CUtil.FileIsCurrent
+    assert updateFileEntry.call_args[1]["modified"] == os.stat(fpath).st_mtime
 
 
 def test_server_filter_owner(

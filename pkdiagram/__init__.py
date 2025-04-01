@@ -3,10 +3,6 @@ from . import pepper
 PEPPER = pepper.PEPPER
 
 from . import util
-
-util.init_logging()
-
-
 from .slugify import slugify
 from . import version
 from . import scene

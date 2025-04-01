@@ -8,7 +8,7 @@ from pkdiagram.views import AddAnythingDialog
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
 from .test_addanythingdialog import (
-    dlg,
+    view,
     START_DATETIME,
     END_DATETIME,
 )
@@ -21,91 +21,91 @@ pytestmark = [
 ]
 
 
-def test_required_field_kind(dlg):
-    dlg.expectedFieldLabel("kindLabel")
+def test_required_field_kind(view):
+    view.expectedFieldLabel(view.item.property("kindLabel"))
 
 
-def test_required_field_Monadic(dlg):
+def test_required_field_Monadic(view):
 
-    submitted = util.Condition(dlg.submitted)
+    submitted = util.Condition(view.view.submitted)
 
-    dlg.set_kind(EventKind.Birth)
+    view.set_kind(EventKind.Birth)
 
-    dlg.expectedFieldLabel("personLabel")
-    dlg.set_new_person("personPicker", "John Doe")
+    view.expectedFieldLabel(view.item.property("personLabel"))
+    view.personPicker.set_new_person("John Doe")
 
-    dlg.expectedFieldLabel("startDateTimeLabel")
-    dlg.set_startDateTime(START_DATETIME)
+    view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
+    view.set_startDateTime(START_DATETIME)
 
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickAddButton()
     assert submitted.wait() == True
 
 
-def test_required_field_CustomIndividual(dlg):
-    submitted = util.Condition(dlg.submitted)
+def test_required_field_CustomIndividual(view):
+    submitted = util.Condition(view.view.submitted)
 
-    dlg.set_kind(EventKind.CustomIndividual)
+    view.set_kind(EventKind.CustomIndividual)
 
-    dlg.expectedFieldLabel("peopleLabel")
-    dlg.add_new_person("peoplePicker", "John Doe")
+    view.expectedFieldLabel(view.item.property("peopleLabel"))
+    view.peoplePicker.add_new_person("John Doe")
 
-    dlg.expectedFieldLabel("descriptionLabel")
-    dlg.set_description("Some description")
+    view.expectedFieldLabel(view.item.property("descriptionLabel"))
+    view.set_description("Some description")
 
-    dlg.expectedFieldLabel("startDateTimeLabel")
-    dlg.set_startDateTime(START_DATETIME)
+    view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
+    view.set_startDateTime(START_DATETIME)
 
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickAddButton()
     assert submitted.wait() == True
 
 
 @pytest.mark.parametrize("endDateTime", [None, END_DATETIME])
-def test_required_field_Dyadic(dlg, endDateTime):
+def test_required_field_Dyadic(view, endDateTime):
 
-    submitted = util.Condition(dlg.submitted)
+    submitted = util.Condition(view.view.submitted)
 
-    dlg.set_kind(EventKind.Conflict)
+    view.set_kind(EventKind.Conflict)
 
-    dlg.expectedFieldLabel("moversLabel")
-    dlg.add_new_person("moversPicker", "John Doe")
+    view.expectedFieldLabel(view.item.property("moversLabel"))
+    view.moversPicker.add_new_person("John Doe")
 
-    dlg.expectedFieldLabel("receiversLabel")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
+    view.expectedFieldLabel(view.item.property("receiversLabel"))
+    view.receiversPicker.add_new_person("Jane Doe")
 
-    dlg.expectedFieldLabel("startDateTimeLabel")
-    dlg.set_startDateTime(START_DATETIME)
+    view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
+    view.set_startDateTime(START_DATETIME)
 
-    dlg.set_isDateRange(True)
+    view.set_isDateRange(True)
 
     if endDateTime:
-        dlg.set_endDateTime(endDateTime)
+        view.set_endDateTime(endDateTime)
 
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickAddButton()
     assert submitted.wait() == True
 
 
-def test_required_field_PairBond(dlg):
-    submitted = util.Condition(dlg.submitted)
+def test_required_field_PairBond(view):
+    submitted = util.Condition(view.view.submitted)
 
-    dlg.set_kind(EventKind.Married)
+    view.set_kind(EventKind.Married)
 
-    dlg.expectedFieldLabel("personALabel")
-    dlg.set_new_person("personAPicker", "John Doe")
+    view.expectedFieldLabel(view.item.property("personALabel"))
+    view.personAPicker.set_new_person("John Doe")
 
-    dlg.expectedFieldLabel("personBLabel")
-    dlg.set_new_person("personBPicker", "Jane Doe")
+    view.expectedFieldLabel(view.item.property("personBLabel"))
+    view.personBPicker.set_new_person("Jane Doe")
 
-    dlg.expectedFieldLabel("startDateTimeLabel")
-    dlg.set_startDateTime(START_DATETIME)
+    view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
+    view.set_startDateTime(START_DATETIME)
 
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickAddButton()
     assert submitted.wait() == True
 
 
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
-def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
+def test_confirm_replace_singular_events(qtbot, scene, view, kind):
     PRIOR_DATETIME = util.Date(2011, 1, 1)
-    submitted = util.Condition(dlg.submitted)
+    submitted = util.Condition(view.view.submitted)
     person = scene.addItem(Person(name="John", lastName="Doe"))
     if kind == EventKind.Birth:
         person.setBirthDateTime(PRIOR_DATETIME)
@@ -113,11 +113,11 @@ def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
         person.setAdoptedDateTime(PRIOR_DATETIME)
     elif kind == EventKind.Death:
         person.setDeceasedDateTime(PRIOR_DATETIME)
-    dlg.set_kind(kind)
-    dlg.set_existing_person("personPicker", person)
-    dlg.set_startDateTime(START_DATETIME)
+    view.set_kind(kind)
+    view.personPicker.set_existing_person(person)
+    view.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        lambda: view.clickAddButton(),
         text=AddAnythingDialog.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
     )
     assert submitted.callCount == 1
@@ -129,7 +129,7 @@ def test_confirm_replace_singular_events(qtbot, scene, dlg, kind):
         assert person.deceasedDateTime() == START_DATETIME
 
 
-def test_confirm_adding_many_dyadic_symbols(qtbot, scene, dlg):
+def test_confirm_adding_many_dyadic_symbols(qtbot, scene, view):
     peopleA = [
         Person(name="John", lastName="Doe"),
         Person(name="Jane", lastName="Doe"),
@@ -139,21 +139,21 @@ def test_confirm_adding_many_dyadic_symbols(qtbot, scene, dlg):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*(peopleA + peopleB))
-    dlg.set_kind(EventKind.Reciprocity)
-    dlg.add_existing_person("moversPicker", peopleA[0])
-    dlg.add_existing_person("moversPicker", peopleA[1])
-    dlg.add_existing_person("receiversPicker", peopleB[0])
-    dlg.add_existing_person("receiversPicker", peopleB[1])
-    dlg.set_startDateTime(START_DATETIME)
+    view.set_kind(EventKind.Reciprocity)
+    view.moversPicker.add_existing_person(peopleA[0])
+    view.moversPicker.add_existing_person(peopleA[1])
+    view.receiversPicker.add_existing_person(peopleB[0])
+    view.receiversPicker.add_existing_person(peopleB[1])
+    view.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        lambda: view.clickAddButton(),
         text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )
     assert len(scene.emotions()) == 4
     assert len(scene.people()) == 4
 
 
-def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
+def test_confirm_adding_many_individual_events(qtbot, scene, view):
     DESCRIPTION = "Something happened"
     people = [
         Person(name="John", lastName="Doe"),
@@ -162,15 +162,15 @@ def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*people)
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_existing_person("peoplePicker", people[0])
-    dlg.add_existing_person("peoplePicker", people[1])
-    dlg.add_existing_person("peoplePicker", people[2])
-    dlg.add_existing_person("peoplePicker", people[3])
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_description(DESCRIPTION)
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_existing_person(people[0])
+    view.peoplePicker.add_existing_person(people[1])
+    view.peoplePicker.add_existing_person(people[2])
+    view.peoplePicker.add_existing_person(people[3])
+    view.set_startDateTime(START_DATETIME)
+    view.set_description(DESCRIPTION)
     qtbot.clickYesAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        lambda: view.clickAddButton(),
         text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )
     for i, person in enumerate(people):
@@ -182,93 +182,91 @@ def test_confirm_adding_many_individual_events(qtbot, scene, dlg):
         ), f"Person {i} has the wrong description"
 
 
-def test_add_dyadic_event_with_one_person_selected(qtbot, scene, dlg):
+def test_add_dyadic_event_with_one_person_selected(qtbot, scene, view):
     person = scene.addItem(Person(name="John", lastName="Doe"))
-    dlg.set_kind(EventKind.Conflict)
-    dlg.add_existing_person("moversPicker", person)
-    name = dlg.itemProp("receiversLabel", "text")
-    expectedText = dlg.S_REQUIRED_FIELD_ERROR.format(name=name)
+    view.set_kind(EventKind.Conflict)
+    view.moversPicker.add_existing_person(person)
+    name = view.item.property("receiversLabel").property("text")
+    expectedText = AddAnythingDialog.S_REQUIRED_FIELD_ERROR.format(name=name)
     qtbot.clickOkAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
+        lambda: view.clickAddButton(),
         text=expectedText,
     )
 
 
-def test_add_dyadic_event_with_three_people_selected(qtbot, dlg):
-    dlg.set_kind(EventKind.Away)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("moversPicker", "Jane Doe")
-    dlg.add_new_person("receiversPicker", "Jack Doe")
-    dlg.add_new_person("receiversPicker", "Jill Doe")
-    dlg.set_startDateTime(START_DATETIME)
+def test_add_dyadic_event_with_three_people_selected(qtbot, view):
+    view.set_kind(EventKind.Away)
+    view.moversPicker.add_new_person("John Doe")
+    view.moversPicker.add_new_person("Jane Doe")
+    view.receiversPicker.add_new_person("Jack Doe")
+    view.receiversPicker.add_new_person("Jill Doe")
+    view.set_startDateTime(START_DATETIME)
     qtbot.clickYesAfter(
-        lambda: dlg.mouseClick("AddEverything_submitButton"),
-        text=dlg.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
+        lambda: view.clickAddButton(),
+        text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
     )
 
 
 # Unsubmitted - Birth
 
 
-def test_person_submitted_Birth_personPicker(dlg):
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person(
-        "personPicker", "John Doe", returnToFinish=False, resetFocus=True
-    )
-    dlg.pickerNotSubmitted("personLabel")
+def test_person_submitted_Birth_personPicker(view):
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe", returnToFinish=False, resetFocus=True)
+    view.pickerNotSubmitted(view.item.property("personLabel"))
 
 
-def test_person_submitted_Birth_personAPicker(dlg):
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_new_person("personAPicker", "Johnny Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("personALabel")
+def test_person_submitted_Birth_personAPicker(view):
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.personAPicker.set_new_person("Johnny Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("personALabel"))
 
 
-def test_person_submitted_Birth_personBPicker(dlg):
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_new_person("personAPicker", "Johnny Doe")
-    dlg.set_new_person("personBPicker", "Janet Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("personBLabel")
+def test_person_submitted_Birth_personBPicker(view):
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.personAPicker.set_new_person("Johnny Doe")
+    view.personBPicker.set_new_person("Janet Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("personBLabel"))
 
 
 # Unsubmitted - CustomIndividual
 
 
-def test_person_submitted_CustomIndividual_personPicker(dlg):
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_new_person("peoplePicker", "John Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("peopleLabel")
+def test_person_submitted_CustomIndividual_personPicker(view):
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_new_person("John Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("peopleLabel"))
 
 
 # Unsubmitted - Bonded
 
 
-def test_person_submitted_Bonded_personAPicker(dlg):
-    dlg.set_kind(EventKind.Bonded)
-    dlg.set_new_person("personAPicker", "John Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("personALabel")
+def test_person_submitted_Bonded_personAPicker(view):
+    view.set_kind(EventKind.Bonded)
+    view.personAPicker.set_new_person("John Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("personALabel"))
 
 
-def test_person_submitted_Bonded_personBPicker(dlg):
-    dlg.set_kind(EventKind.Bonded)
-    dlg.set_new_person("personAPicker", "John Doe")
-    dlg.set_new_person("personBPicker", "Jane Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("personBLabel")
+def test_person_submitted_Bonded_personBPicker(view):
+    view.set_kind(EventKind.Bonded)
+    view.personAPicker.set_new_person("John Doe")
+    view.personBPicker.set_new_person("Jane Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("personBLabel"))
 
 
 # Unsubmitted - Fusion
 
 
-def test_person_submitted_Fusion_moversPicker(dlg):
-    dlg.set_kind(EventKind.Fusion)
-    dlg.add_new_person("moversPicker", "John Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("moversLabel")
+def test_person_submitted_Fusion_moversPicker(view):
+    view.set_kind(EventKind.Fusion)
+    view.moversPicker.add_new_person("John Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("moversLabel"))
 
 
-def test_person_submitted_Fusion_receiversPicker(dlg):
-    dlg.set_kind(EventKind.Fusion)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe", returnToFinish=False)
-    dlg.pickerNotSubmitted("receiversLabel")
+def test_person_submitted_Fusion_receiversPicker(view):
+    view.set_kind(EventKind.Fusion)
+    view.moversPicker.add_new_person("John Doe")
+    view.receiversPicker.add_new_person("Jane Doe", returnToFinish=False)
+    view.pickerNotSubmitted(view.item.property("receiversLabel"))

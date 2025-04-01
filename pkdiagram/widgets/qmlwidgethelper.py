@@ -73,7 +73,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
-        log.info(f"Loading QML: {fpath}")
+        # log.info(f"Loading QML: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():
@@ -126,7 +126,7 @@ class QmlWidgetHelper(QObjectHelper):
             if ret:
                 return ret
 
-    def findItem(self, objectName: str, noerror=False):
+    def findItem(self, objectName: str, noerror=False) -> QQuickItem:
         if isinstance(objectName, QQuickItem):
             return objectName
         if objectName in self._qmlItemCache:
@@ -240,7 +240,7 @@ class QmlWidgetHelper(QObjectHelper):
 
     def resetFocusItem(self, item: QQuickItem):
         if self.DEBUG:
-            log.info(f'QmlWidgetHelper.resetFocus("{item}#{item.objectName()}")')
+            log.info(f"QmlWidgetHelper.resetFocus({self._itemString(item)})")
         item.setProperty("focus", False)
         if item.hasActiveFocus():
             self.qml.rootObject().forceActiveFocus()  # TextField?
@@ -270,13 +270,13 @@ class QmlWidgetHelper(QObjectHelper):
         self.focusItem(item)
         if self.DEBUG:
             log.info(
-                f'QmlWidgetHelper.keyClicks("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
+                f'QmlWidgetHelper.keyClicksItem("{objectName}", "{s}", resetFocus={resetFocus}, returnToFinish={returnToFinish})'
             )
         util.qtbot.keyClicks(self.qml, s)
         if returnToFinish:
             if self.DEBUG:
                 log.info(
-                    f'QmlWidgetHelper.keyClicks[returnToFinish]("{objectName}", {s})'
+                    f'QmlWidgetHelper.keyClicksItem[returnToFinish]("{objectName}", {s})'
                 )
             util.qtbot.keyClick(self.qml, Qt.Key_Return)  # only for TextInput?
         if resetFocus:
@@ -331,13 +331,7 @@ class QmlWidgetHelper(QObjectHelper):
             log.warning(f"Cannot click '{item.objectName()}' since it is not visible")
         if not item.property("enabled"):
             log.warning(f"Cannot click '{item.objectName()}' since it is not enabled")
-        itemAtPos = self.qml.rootObject().childAt(pos.x(), pos.y())
         if self.DEBUG:
-            if itemAtPos is not item:
-                log.warning(
-                    f"Item at position {pos}: {self._itemString(itemAtPos)} != {self._itemString(item)}"
-                )
-
             log.info(
                 f"QmlWidgetHelper.mouseClickItem('{self._itemString(item)}', {button}, {pos}) (rect: {rect})"
             )
@@ -489,19 +483,19 @@ class QmlWidgetHelper(QObjectHelper):
         newSelection = selModel.selectedRows()
         assert prevSelection != newSelection
 
-    def clickComboBoxItem(self, objectName, itemText, comboBox=None, force=True):
+    def clickComboBoxItem(self, objectName, itemText, force=True):
         if isinstance(objectName, str):
-            comboBox = self.findItem(objectName)
+            item = self.findItem(objectName)
         else:
-            comboBox = objectName
+            item = objectName
         self.mouseClick(objectName)  # for focus
-        model = comboBox.property("model")
+        model = item.property("model")
         if isinstance(model, list):
             itemTexts = model
         elif isinstance(model, QAbstractItemModel):
-            if not comboBox.property("textRole"):
-                raise TypeError(f"Expected a Qml ComboBox, got {comboBox.objectName()}")
-            textRole = comboBox.property("textRole").encode("utf-8")
+            if not item.property("textRole"):
+                raise TypeError(f"Expected a Qml ComboBox, got {item.objectName()}")
+            textRole = item.property("textRole").encode("utf-8")
             for role, roleName in model.roleNames().items():
                 if textRole == roleName:
                     break
@@ -519,11 +513,11 @@ class QmlWidgetHelper(QObjectHelper):
         if self.DEBUG:
             log.info(f"Clicking ComboBox item: '{itemText}' (index: {currentIndex})")
         if force:
-            comboBox.setProperty("currentIndex", -1)
-        comboBox.setProperty("currentIndex", currentIndex)
-        comboBox.close()
+            item.setProperty("currentIndex", -1)
+        item.setProperty("currentIndex", currentIndex)
+        item.close()
         assert (
-            comboBox.property("currentText") == itemText
+            item.property("currentText") == itemText
         ), f'Could not set `currentText` to "{itemText}" (currentIndex: {currentIndex}) on {objectName}'
 
         # popup = item.findChildren(QQuickItem, 'popup')[0]

@@ -9,7 +9,8 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.widgets import QmlWidgetHelper
-from pkdiagram.widgets.qml.activelistedit import ActiveListEdit
+
+from tests.widgets import TestActiveListEdit
 
 pytestmark = [
     pytest.mark.component("ActiveListView"),
@@ -93,7 +94,7 @@ def view(qtbot, qmlEngine, model):
     _view.resize(300, 300)
     qtbot.addWidget(_view)
     qtbot.waitActive(_view)
-    yield ActiveListEdit(_view, _view.qml.rootObject())
+    yield TestActiveListEdit(_view, _view.qml.rootObject())
     _view.deinit()
 
 

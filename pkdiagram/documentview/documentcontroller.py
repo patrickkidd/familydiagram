@@ -21,6 +21,9 @@ from pkdiagram.pyqt import (
     QPainter,
     QColor,
     QItemSelection,
+    QPrinter,
+    QPrintDialog,
+    QDialog,
 )
 from pkdiagram import util
 from pkdiagram.scene import Property, Person, Emotion, Event, LayerItem, Layer, ChildOf
@@ -68,6 +71,8 @@ class DocumentController(QObject):
         self.dv.qmlEngine().sceneModel.uploadToServer.connect(self.onUploadToServer)
         self.dv.qmlEngine().sceneModel.showSearch.connect(self.dv.showSearch)
 
+        # File
+        self.ui.actionPrint.triggered.connect(self.onPrint)
         # Edit
         self.ui.actionUndo.triggered.connect(self.onUndo)
         self.ui.actionRedo.triggered.connect(self.onRedo)
@@ -1144,3 +1149,27 @@ class DocumentController(QObject):
         # sdata = json.dumps(data, indent=4)
         # with open(filePath, 'w') as f:
         #     f.write(sdata)
+
+    def onPrint(self):
+        printer = QPrinter()
+        printer.setOrientation(QPrinter.Landscape)
+        if printer.outputFormat() != QPrinter.NativeFormat:
+            QMessageBox.information(
+                self.dv,
+                "No printers available",
+                "You need to set up a printer on your computer before you use this feature.",
+            )
+            return
+        dlg = QPrintDialog(printer, self.dv)
+        ret = dlg.exec()
+        if ret == QDialog.Accepted:
+            _isUIDarkMode = CUtil.instance().isUIDarkMode
+            CUtil.instance().isUIDarkMode = lambda: False
+            QApplication.instance().paletteChanged.emit(
+                QApplication.instance().palette()
+            )  # onSystemPaletteChanged()
+            self.writeJPG(printer=printer)
+            CUtil.instance().isUIDarkMode = _isUIDarkMode
+            QApplication.instance().paletteChanged.emit(
+                QApplication.instance().palette()
+            )  # .onSystemPaletteChanged()

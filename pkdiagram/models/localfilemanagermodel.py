@@ -71,7 +71,7 @@ class LocalFileManagerModel(FileManagerModel):
             modified = os.stat(url.toLocalFile()).st_mtime
         else:
             modified = None
-        self.updateFileEntry(path=url.toLocalFile, status=status, modified=modified)
+        self.updateFileEntry(path=url.toLocalFile(), status=status, modified=modified)
 
     def updateModTimes(self):
         docsPath = CUtil.instance().documentsFolderPath()

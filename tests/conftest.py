@@ -3,7 +3,6 @@ import time
 import contextlib
 import logging
 import tempfile
-import contextlib
 from typing import Optional
 
 import pytest, mock
@@ -46,17 +45,22 @@ from pkdiagram.pyqt import (
     QEventLoop,
     QSettings,
     QGraphicsView,
+    QVBoxLayout,
+    QUrl,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
 from pkdiagram.server_types import HTTPResponse, Server
 from pkdiagram.scene import Scene, Person, Marriage
-from pkdiagram.models import SceneModel, ServerFileManagerModel
+from pkdiagram.models import ServerFileManagerModel
+from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session
 
 from fdserver.tests.conftest import *
+from fdserver.models import User
+import flask_bcrypt
 
 import appdirs
 
@@ -73,8 +77,6 @@ DATA_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 ENABLE_STRIPE = False
 
 log = logging.getLogger(__name__)
-
-util.init_logging()
 
 
 _componentStatus = {}
@@ -106,10 +108,6 @@ def pytest_configure(config):
     config.watchdog_disabled = config.getoption("--disable-watchdog")
     config.dependency_disabled = config.getoption("--disable-dependencies")
     config.addinivalue_line("markers", "integration: mark test as integration test.")
-
-
-def pytest_generate_tests(metafunc):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -293,6 +291,10 @@ def _sendCustomRequest(
 def qApp():
     log.debug(f"Create qApp for familydiagram/tests")
 
+    # from PyQt5.QtCore import QLoggingCategory
+    # QLoggingCategory.setFilterRules("qt.quick.mouse.debug=true")
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
@@ -301,8 +303,10 @@ def qApp():
         return prefs
 
     with mock.patch.object(Application, "prefs", _prefs):
-
         app = Application(sys.argv)
+        CUtil.instance().forceDocsPath(
+            os.path.join(tempfile.mkdtemp(), "documents")
+        )  # to kill the file list query
 
     _orig_Server_deinit = Server.deinit
 
@@ -333,20 +337,40 @@ def qApp():
             mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )
         stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
-        stack.enter_context(mock.patch("fdserver.extensions.init_excepthook"))
+        # stack.enter_context(mock.patch("fdserver.extensions.init_excepthook"))
         yield app
 
     app.deinit()
 
 
 @pytest.fixture(autouse=True)
-def prefs(tmp_path):
+def prefs(request, tmp_path):
+    """
+    More than just "prefs" now
+    """
+
+    dont_mock_bcrypt = request.node.get_closest_marker("dont_mock_bcrypt")
+
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
-    with mock.patch("pkdiagram.app.Application.prefs", return_value=prefs):
-        with mock.patch.object(
-            CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
-        ):
-            yield prefs
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch("pkdiagram.app.Application.prefs", return_value=prefs)
+        )
+        # bcrypt was using 45s
+        stack.enter_context(
+            mock.patch.object(
+                CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                flask_bcrypt, "generate_password_hash", return_value=b"1234"
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(flask_bcrypt, "check_password_hash", return_value=True)
+        )
+        yield prefs
 
 
 @pytest.fixture(autouse=True)
@@ -977,12 +1001,38 @@ def create_ac_mw(request, qtbot, tmp_path):
         ac.deinit()
 
 
-def _scene_data(*items):
-    data = {}
-    scene = Scene()
-    scene.addItems(*items)
-    scene.write(data)
-    return data
+@pytest.fixture
+def create_qml(qtbot, scene, qmlEngine):
+
+    class QmlHelper(QWidget, QmlWidgetHelper):
+        pass
+
+    helpers = []
+
+    def _qmlParent(fpath: str) -> QmlWidgetHelper:
+
+        qmlEngine.setScene(scene)
+        helper = QmlHelper()
+        helper.initQmlWidgetHelper(qmlEngine, QUrl.fromLocalFile(fpath))
+        helper.checkInitQml()
+        Layout = QVBoxLayout(helper)
+        Layout.addWidget(helper.qml)
+
+        helper.resize(600, 800)
+        helper.show()
+        qtbot.addWidget(helper)
+        qtbot.waitActive(helper)
+        helpers.append(helper)
+
+        assert helper.isVisible()
+
+        return helper
+
+    yield _qmlParent
+
+    for helper in helpers:
+        helper.hide()
+        helper.deinit()
 
 
 # SIMPLE_SCENE_DATA = {
