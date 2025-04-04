@@ -13,6 +13,7 @@ class FileManager(QWidget, QmlWidgetHelper):
         [{"name": "clearSelection"}, {"name": "showLocalFiles"}]
     )
 
+    qmlInitialized = pyqtSignal()
     localFileClicked = pyqtSignal(str)
     serverFileClicked = pyqtSignal(str, Diagram)
     newButtonClicked = pyqtSignal()
@@ -21,7 +22,6 @@ class FileManager(QWidget, QmlWidgetHelper):
     def __init__(self, engine, parent=None):
         QWidget.__init__(self, parent)
         self.initQmlWidgetHelper(engine, "qml/FileManager.qml")
-        self.checkInitQml()
 
     def onInitQml(self):
         super().onInitQml()
@@ -32,38 +32,30 @@ class FileManager(QWidget, QmlWidgetHelper):
             self.onLocalFilesShownChanged
         )
         self.clearSelection()
-        self.serverFileModel = self.rootProp("serverFileModel")
-        self.localFileModel = self.rootProp("localFileModel")
         Layout = QVBoxLayout(self)
         Layout.setContentsMargins(0, 0, 0, 0)
         Layout.addWidget(self.qml)
 
     def init(self):
-        self.serverFileModel.init()
-        self.serverFileModel.setSession(self.qmlEngine().session)
-
-    def deinit(self):
-        self.serverFileModel.deinit()
-        QmlWidgetHelper.deinit(self)
+        pass
 
     def showEvent(self, e):
         super().showEvent(e)
+        self.checkInitQml()
 
     def onLocalFilesShownChanged(self):
         on = self.rootProp("localFilesShown")
         self.localFilesShownChanged.emit(on)
 
     def onServerFileClicked(self, fpath):
-        serverFileManagerModel = self.rootProp("serverFileModel")
-        diagram = serverFileManagerModel.serverDiagramForPath(fpath)
-        updatedDiagram = serverFileManagerModel.syncDiagramFromServer(diagram.id)
+        diagram = self.qmlEngine().serverFileModel.serverDiagramForPath(fpath)
+        updatedDiagram = self.qmlEngine().serverFileModel.syncDiagramFromServer(
+            diagram.id
+        )
         if updatedDiagram:
             self.serverFileClicked.emit(fpath, updatedDiagram)
         else:
             self.serverFileClicked.emit(fpath, diagram)
-
-    def updateModTimes(self):
-        self.localFileModel.updateModTimes()
 
     def onLocalUUIDUpdated(self, url, uuid):
         self.here("TODO:", url, uuid)

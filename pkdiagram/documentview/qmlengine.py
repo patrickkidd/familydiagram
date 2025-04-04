@@ -6,6 +6,8 @@ from pkdiagram.models import (
     TimelineModel,
     PeopleModel,
     AccessRightsModel,
+    LocalFileManagerModel,
+    ServerFileManagerModel,
 )
 from pkdiagram.views import QmlVedana
 from pkdiagram.models import CopilotEngine
@@ -22,7 +24,7 @@ class QmlEngine(QQmlEngine):
     instance.
     """
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session, localFileModel, serverFileModel, parent=None):
         super().__init__(parent)
         for path in util.QML_IMPORT_PATHS:
             self.addImportPath(path)
@@ -50,6 +52,9 @@ class QmlEngine(QQmlEngine):
         self.accessRightsModel = AccessRightsModel(self)
         self.accessRightsModel.setSession(self.session)
 
+        self.localFileModel = localFileModel
+        self.serverFileModel = serverFileModel
+
         self.rootContext().setContextProperty("engine", self)
         self.rootContext().setContextProperty("util", self.util)
         self.rootContext().setContextProperty("copilot", self.copilot)
@@ -65,9 +70,12 @@ class QmlEngine(QQmlEngine):
         self.rootContext().setContextProperty(
             "accessRightsModel", self.accessRightsModel
         )
+        self.rootContext().setContextProperty("localFileModel", self.localFileModel)
+        self.rootContext().setContextProperty("serverFileModel", self.serverFileModel)
 
     def deinit(self):
         self.session.deinit()
+        self.serverFileModel.deinit()
 
     def setScene(self, scene):
         self.sceneModel.scene = scene

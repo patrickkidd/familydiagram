@@ -402,12 +402,12 @@ class Session(QObject, QObjectHelper):
         from pkdiagram.app import DatadogLog
         from pkdiagram.extensions import AccumulativeLogHandler
 
-        log_txt = None
-        for handler in logging.getLogger().handlers:
-            if isinstance(handler, AccumulativeLogHandler):
-                handler.flush()
-                log_txt = handler.read()
-                break
+        # log_txt = None
+        # for handler in logging.getLogger().handlers:
+        #     if isinstance(handler, AccumulativeLogHandler):
+        #         handler.flush()
+        #         log_txt = handler.read()
+        #         break
 
         self._analytics.send(
             DatadogLog(
@@ -415,7 +415,7 @@ class Session(QObject, QObjectHelper):
                 time=time.time(),
                 user=self._user,
                 status=DatadogLogStatus.Error,
-                log_txt=log_txt,
+                # log_txt=log_txt,
             )
         )
 

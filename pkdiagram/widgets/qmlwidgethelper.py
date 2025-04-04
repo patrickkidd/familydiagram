@@ -73,7 +73,7 @@ class QmlWidgetHelper(QObjectHelper):
             fpath = QUrl(self._qmlSource)
         else:
             fpath = QUrl.fromLocalFile(self._qmlSource)
-        # log.info(f"Loading QML: {fpath}")
+        log.debug(f"Loading QML: {fpath}")
         self.qml.setSource(fpath)
         if self.qml.status() == QQuickWidget.Error:
             for error in self.qml.errors():

@@ -18,12 +18,6 @@ Rectangle {
     property int margin: util.QML_MARGINS
     property int cbMinWidth: 160
     property bool adminMode: session.isAdmin
-    property var localFileModel: LocalFileManagerModel {
-        searchText: localSearchBar.text
-    }
-    property var serverFileModel: ServerFileManagerModel {
-        searchText: serverSearchBar.text
-    }
     property bool localFilesShown: stack.currentIndex == 0
     property bool canShowServer: session.hash && session.hasFeature(vedana.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
 
@@ -206,6 +200,7 @@ Rectangle {
                 objectName: 'localSearchBar'
                 y: localFileList.itemHeight
                 width: parent.width
+                onTextChanged: localFileModel.searchText = text
             }
 
         }
@@ -356,6 +351,7 @@ Rectangle {
                 objectName: 'serverSearchBar'
                 y: serverFileList.itemHeight
                 width: parent.width
+                onTextChanged: serverFileModel.searchText = text
             }            
         }
     }

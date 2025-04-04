@@ -62,7 +62,7 @@ def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):
     assert len(mw.scene.people()) == len(scene.people())
 
 
-def test_appconfig_upgraded(qApp, tmp_path, data_root, create_ac_mw):
+def test_appconfig_upgraded(tmp_path, data_root, create_ac_mw):
 
     PREFS_NAME = "bleh"
 

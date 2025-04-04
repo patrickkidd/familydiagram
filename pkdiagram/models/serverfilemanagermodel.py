@@ -90,6 +90,12 @@ class ServerFileManagerModel(FileManagerModel):
         self.setSession(None)
         super().clear()
         self.write()
+        try:
+            util.waitForCondition(lambda: self._indexReplies == [])
+        except Exception as e:
+            log.warning(
+                "ServerFileManagerModel.deinit() timed out waiting for index replies to finish."
+            )
         self.initialized = False
 
     def pendingUrls(self):
@@ -104,12 +110,11 @@ class ServerFileManagerModel(FileManagerModel):
         self.session = session
         if self.session:
             self.session.changed.connect(self.update)
-            if self.session.isLoggedIn():
-                self.update()
 
     ## Verbs
 
     def clear(self):
+        os.makedirs(self.dataPath, exist_ok=True)
         for fname in os.listdir(self.dataPath):
             if not fname.startswith("."):
                 id = fname.replace(util.DOT_EXTENSION, "")

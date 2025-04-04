@@ -12,6 +12,9 @@ from pkdiagram.mainwindow import FileManager
 from fdserver.extensions import db
 
 
+pytestmark = pytest.mark.init_filemanager
+
+
 @pytest.fixture
 def create_fm(qtbot, request, qmlEngine):
 
@@ -30,6 +33,7 @@ def create_fm(qtbot, request, qmlEngine):
 
         fm = FileManager(qmlEngine, parent=None)
         fm.init()
+        fm.checkInitQml()
         fm.resize(800, 600)
         fm.show()
         qtbot.addWidget(fm)
@@ -47,11 +51,10 @@ def create_fm(qtbot, request, qmlEngine):
         fm.deinit()
 
 
-def test_local_filter(tmp_path, create_fm):
+def test_local_filter(tmp_path, qmlEngine, create_fm):
 
     NUM_FILES = 10
 
-    fpaths = []
     for i in range(NUM_FILES):
         if i % 2 == 0:
             name = f"Diagram {i}-even.fd"
@@ -59,41 +62,34 @@ def test_local_filter(tmp_path, create_fm):
             name = f"Diagram {i}-odd.fd"
         fpath = os.path.join(tmp_path, name)
         util.touchFD(fpath)
-        fpaths.append(fpath)
+        qmlEngine.localFileModel.onFileAdded(
+            QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent
+        )
 
-    with mock.patch.object(
-        CUtil.instance(),
-        "fileList",
-        return_value=[QUrl.fromLocalFile(x) for x in fpaths],
-    ):
-        fm = create_fm()
+    fm = create_fm()
     assert fm.rootProp("localFilesShown") == True
 
-    localFileModel = fm.rootProp("localFileModel")
-    assert localFileModel.rowCount() == NUM_FILES
+    assert qmlEngine.localFileModel.rowCount() == NUM_FILES
 
     fm.keyClicks("localSearchBar.searchBox", "-odd")
     fm.itemProp("localSearchBar.searchBox", "text") == "-odd"
-    assert localFileModel.searchText == "-odd"
-    assert localFileModel.rowCount() == NUM_FILES / 2
+    assert qmlEngine.localFileModel.searchText == "-odd"
+    assert qmlEngine.localFileModel.rowCount() == NUM_FILES / 2
 
 
-def test_local_onFileStatusChanged(tmp_path, create_fm):
+def test_local_onFileStatusChanged(tmp_path, qmlEngine, create_fm):
     name = f"Diagram-123.fd"
     fpath = os.path.join(tmp_path, name)
     util.touchFD(fpath)
+    qmlEngine.localFileModel.onFileAdded(QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent)
 
-    with mock.patch.object(
-        CUtil.instance(),
-        "fileList",
-        return_value=[QUrl.fromLocalFile(fpath)],
-    ):
-        fm = create_fm()
+    fm = create_fm()
     assert fm.rootProp("localFilesShown") == True
 
-    localFileModel = fm.rootProp("localFileModel")
-    with mock.patch.object(localFileModel, "updateFileEntry") as updateFileEntry:
-        localFileModel.onFileStatusChanged(
+    with mock.patch.object(
+        qmlEngine.localFileModel, "updateFileEntry"
+    ) as updateFileEntry:
+        qmlEngine.localFileModel.onFileStatusChanged(
             QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent
         )
     assert updateFileEntry.call_args[1]["path"] == fpath
@@ -116,21 +112,20 @@ def test_server_filter_owner(
     db.session.commit()
 
     fm = create_fm()
-    serverFileModel = fm.rootProp("serverFileModel")
-    updateFinished = util.Condition(serverFileModel.updateFinished)
+    qmlEngine.serverFileModel.update()
     qmlEngine.session.init(
         sessionData=test_session.account_editor_dict(), syncWithServer=False
     )
-    assert updateFinished.wait() == True
+    assert util.wait(qmlEngine.serverFileModel.updateFinished) == True
 
     assert fm.itemProp("tabBar", "visible") == True
     assert fm.itemProp("tabBar.serverViewButton", "visible") == True
     fm.mouseClick("tabBar.serverViewButton")
     assert fm.rootProp("localFilesShown") == False
-    assert serverFileModel.rowCount() == len(test_user_diagrams) + 1
+    assert qmlEngine.serverFileModel.rowCount() == len(test_user_diagrams) + 1
 
     fm.keyClicks("serverSearchBar.searchBox", "patrickkidd+unittest+2@gmail.com")
-    assert serverFileModel.rowCount() == len(test_user_diagrams) / 2
+    assert qmlEngine.serverFileModel.rowCount() == len(test_user_diagrams) / 2
 
 
 def test_server_doesnt_init_in_edit_mode_admin_user(
