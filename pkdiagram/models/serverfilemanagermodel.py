@@ -90,6 +90,12 @@ class ServerFileManagerModel(FileManagerModel):
         self.setSession(None)
         super().clear()
         self.write()
+        try:
+            util.waitForCondition(lambda: self._indexReplies == [])
+        except Exception as e:
+            log.warning(
+                "ServerFileManagerModel.deinit() timed out waiting for index replies to finish."
+            )
         self.initialized = False
 
     def pendingUrls(self):
