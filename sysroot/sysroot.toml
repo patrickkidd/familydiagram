@@ -124,6 +124,7 @@ installed_modules = [
 ]
 
 [PyQt.ios]
+disabled_features = [ "PyQt_Process" ]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
     "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
