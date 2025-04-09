@@ -213,6 +213,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
         return ret
 
     def setData(self, index, value, role=NameRole):
+        _log.debug(f"TagsModel.setData: {index}, {value}, {role}")
         success = False
         emit = True
         tag = self.tagAtRow(index.row())

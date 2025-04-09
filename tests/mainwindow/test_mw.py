@@ -41,21 +41,6 @@ def test_load_fd(test_session, test_activation, tmp_path, create_ac_mw):
     assert mw.scene.query1(name="Me")
 
 
-def test_exception_logging(test_session, test_activation, tmp_path, create_ac_mw):
-    ac, mw = create_ac_mw()
-    try:
-        raise ValueError("This is a simulated error for testing")
-    except ValueError as e:
-        # Capture the exception and its traceback
-        etype, value, tb = sys.exc_info()
-    with mock.patch("pkdiagram.app.Analytics.send") as send:
-        datadog_excepthook(etype, value, tb)
-    assert send.call_count == 1
-    assert send.call_args[0][0].message == "".join(
-        traceback.format_exception(etype, value, tb)
-    )
-
-
 def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):
 
     # Write file to import
@@ -91,6 +76,22 @@ def test_appconfig_upgraded(qApp, tmp_path, data_root, create_ac_mw):
     warning.assert_called_once_with(
         None, "Login required", AppController.S_APPCONFIG_UPGRADED_LOGIN_REQUIRED
     )
+
+
+from pkdiagram.documentview import DocumentView
+
+
+@pytest.fixture
+def no_DocumentView():
+    "Experimental"
+
+    documentView = mock.MagicMock()
+    documentView.init = mock.MagicMock()
+    documentView.deinit = mock.MagicMock()
+    documentView.ui = mock.MagicMock()
+
+    with mock.patch(MainWindow.__module__ + ".DocumentView", return_value=documentView):
+        yield
 
 
 def test_add_complex_fd_does_not_set_dirty(tmp_path, create_ac_mw):
@@ -151,42 +152,3 @@ def test_save_to_excel(tmp_path, create_ac_mw):
     assert writeExcel.call_count == 1
     assert writeExcel.call_args[0][0] == XLSX_PATH
     assert len(writeExcel.call_args[0]) == 1
-
-
-def test_print(tmp_path, create_ac_mw):
-    FD_PATH = os.path.join(tmp_path, "documents", "some_family.fd")
-    ac, mw = create_ac_mw()
-
-    # Prepare a mock QPrinter instance: native output.
-    printer = mock.MagicMock()
-    printer.outputFormat.return_value = QPrinter.NativeFormat
-    printer.NativeFormat = QPrinter.NativeFormat
-
-    # Patch QPrintDialog to return a dummy dialog with exec() returning QDialog.Accepted.
-    dialog = mock.MagicMock()
-    dialog.exec.return_value = QDialog.Accepted
-
-    scene = Scene(items=(Person(name="Hey"), Person(name="You")))
-    util.touchFD(FD_PATH, bdata=pickle.dumps(scene.data()))
-    mw.open(filePath=FD_PATH)
-
-    with contextlib.ExitStack() as stack:
-        stack.enter_context(
-            mock.patch(
-                MainWindow.__module__ + ".QPrinter",
-                return_value=printer,
-                NativeFormat=QPrinter.NativeFormat,
-            )
-        )
-        stack.enter_context(
-            mock.patch(
-                MainWindow.__module__ + ".QPrintDialog",
-                return_value=dialog,
-            )
-        )
-        stack.enter_context(
-            mock.patch.object(DocumentController, "writeJPG", return_value=None)
-        )
-
-        mw.onPrint()
-        mw.documentView.controller.writeJPG.assert_called_once_with(printer=printer)

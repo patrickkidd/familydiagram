@@ -7,6 +7,8 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, EventKind, PathItem
 from pkdiagram.views import AddAnythingDialog
 
+from tests.views import TestAddAnythingDialog
+
 _log = logging.getLogger(__name__)
 
 
@@ -17,169 +19,143 @@ END_DATETIME = util.Date(2002, 1, 1, 6, 7)
 DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 
 
-class TestAddAnythingDialog(AddAnythingDialog):
-
-    def test_initForSelection(self, selection: list[PathItem]):
-        if Marriage.marriageForSelection(selection):
-            self.initForSelection(selection)
-            # personAPickerItem = self.findItem("personAPicker")
-            # itemAddDoneA = util.Condition(personAPickerItem.itemAddDone)
-            # personBPickerItem = self.findItem("personBPicker")
-            # itemAddDoneB = util.Condition(personBPickerItem.itemAddDone)
-            # while itemAddDoneA.callCount < 1:
-            #     _log.info(f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals")
-            #     assert itemAddDoneA.wait() == True
-            # while itemAddDoneB.callCount < 1:
-            #     assert itemAddDoneB.wait() == True
-        else:
-            peoplePickerItem = self.findItem("peoplePicker")
-            itemAddDone = util.Condition(peoplePickerItem.itemAddDone)
-            self.initForSelection(selection)
-            while itemAddDone.callCount < len(selection):
-                _log.info(
-                    f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals"
-                )
-                assert (
-                    itemAddDone.wait() == True
-                ), f"itemAddDone signal not emitted, called {itemAddDone.callCount} times"
-
-
 @pytest.fixture
-def dlg(qtbot, scene, qmlEngine):
+def view(qtbot, scene, qmlEngine):
     qmlEngine.setScene(scene)
-    dlg = TestAddAnythingDialog(qmlEngine)
-    dlg.resize(600, 800)
-    dlg.setScene(scene)
-    dlg.show()
-    qtbot.addWidget(dlg)
-    qtbot.waitActive(dlg)
-    assert dlg.isShown()
-    assert dlg.itemProp("AddEverything_submitButton", "text") == "Add"
-    dlg.initForSelection([])
-    dlg.mouseClick("clearFormButton")
-    # dlg.adjustFlickableHack()
+    widget = AddAnythingDialog(qmlEngine)
+    widget.resize(600, 1000)
+    widget.setScene(scene)
+    widget.show()
+    qtbot.addWidget(widget)
+    qtbot.waitActive(widget)
+    assert widget.isShown()
+    # widget.adjustFlickableHack()
 
-    yield dlg
+    view = TestAddAnythingDialog(widget)
+    view.initForSelection([])
+    view.item.property("addPage").setProperty("interactive", False)
 
-    dlg.setScene(None)
-    dlg.hide()
-    dlg.deinit()
+    yield view
 
-
-def test_init(dlg):
-    assert dlg.rootProp("kind") == None
-    assert dlg.itemProp("kindBox", "currentIndex") == -1
-    assert dlg.rootProp("tagsEdit").property("isDirty") == False
+    widget.setScene(None)
+    widget.hide()
+    widget.deinit()
 
 
-def test_clear_CustomIndividual(dlg):
-    dlg.set_kind(EventKind.CustomIndividual)  # dyadic for end date
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_description("something")
-    dlg.set_notes("here are some notes")
-    dlg.set_anxiety(util.VAR_VALUE_UP)
-    dlg.set_symptom(util.VAR_VALUE_DOWN)
-    dlg.set_functioning(util.VAR_VALUE_SAME)
-    dlg.add_tag("tag1")
-    dlg.set_active_tags(["tag1"])
-    dlg.mouseClick("clearFormButton")
-    assert dlg.rootProp("startDateTime") == None
-    assert dlg.rootProp("endDateTime") == None
-    assert dlg.rootProp("description") == ""
-    assert dlg.rootProp("notes") == ""
-    assert dlg.rootProp("anxiety") == None
-    assert dlg.rootProp("symptom") == None
-    assert dlg.rootProp("functioning") == None
-    assert dlg.rootProp("eventModel").tags == []
+def test_init(view):
+    assert view.item.property("kind") == None
+    assert view.kindBox.property("currentIndex") == -1
+    assert view.tagsEdit.property("isDirty") == False
 
 
-def test_clear_Dyadic(dlg):
-    dlg.initForSelection([])
-    dlg.set_kind(EventKind.Cutoff)  # dyadic for end date
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_endDateTime(END_DATETIME)
-    dlg.set_notes("here are some notes")
-    dlg.set_anxiety(util.VAR_VALUE_UP)
-    dlg.set_symptom(util.VAR_VALUE_DOWN)
-    dlg.set_functioning(util.VAR_VALUE_SAME)
-    dlg.add_tag("tag1")
-    dlg.set_active_tags(["tag1"])
-    dlg.mouseClick("clearFormButton")
-    assert dlg.rootProp("startDateTime") == None
-    assert dlg.rootProp("endDateTime") == None
-    assert dlg.rootProp("notes") == ""
-    assert dlg.rootProp("anxiety") == None
-    assert dlg.rootProp("symptom") == None
-    assert dlg.rootProp("functioning") == None
-    assert dlg.rootProp("eventModel").tags == []
+def test_clear_CustomIndividual(view):
+    view.set_kind(EventKind.CustomIndividual)  # dyadic for end date
+    view.set_startDateTime(START_DATETIME)
+    view.set_description("something")
+    view.set_notes("here are some notes")
+    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_symptom(util.VAR_VALUE_DOWN)
+    view.set_functioning(util.VAR_VALUE_SAME)
+    view.add_tag("tag1")
+    view.set_active_tags(["tag1"])
+    view.clickClearButton()
+    assert view.item.property("startDateTime") == None
+    assert view.item.property("endDateTime") == None
+    assert view.item.property("description") == ""
+    assert view.item.property("notes") == ""
+    assert view.item.property("anxiety") == None
+    assert view.item.property("symptom") == None
+    assert view.item.property("functioning") == None
+    assert view.item.property("eventModel").tags == []
 
 
-def test_clear_birth(dlg):
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Done")
-    dlg.set_new_person("personAPicker", "Jon Done")
-    dlg.set_new_person("personBPicker", "Jane Done")
-    assert dlg.itemProp("personPicker", "isSubmitted") == True
-    assert dlg.itemProp("personAPicker", "isSubmitted") == True
-    assert dlg.itemProp("personBPicker", "isSubmitted") == True
-    dlg.mouseClick("clearFormButton")
-    assert dlg.itemProp("personPicker", "isSubmitted") == False
-    assert dlg.itemProp("personAPicker", "isSubmitted") == False
-    assert dlg.itemProp("personBPicker", "isSubmitted") == False
+def test_clear_Dyadic(view):
+    view.initForSelection([])
+    view.set_kind(EventKind.Cutoff)  # dyadic for end date
+    view.set_startDateTime(START_DATETIME)
+    view.set_endDateTime(END_DATETIME)
+    view.set_notes("here are some notes")
+    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_symptom(util.VAR_VALUE_DOWN)
+    view.set_functioning(util.VAR_VALUE_SAME)
+    view.add_tag("tag1")
+    view.set_active_tags(["tag1"])
+    view.clickClearButton()
+    assert view.item.property("startDateTime") == None
+    assert view.item.property("endDateTime") == None
+    assert view.item.property("notes") == ""
+    assert view.item.property("anxiety") == None
+    assert view.item.property("symptom") == None
+    assert view.item.property("functioning") == None
+    assert view.item.property("eventModel").tags == []
 
 
-def test_clear_monadic(dlg):
-    dlg.set_kind(EventKind.Adopted)
-    dlg.set_new_person("personPicker", "John Done")
-    assert dlg.itemProp("personPicker", "isSubmitted") == True
-    dlg.mouseClick("clearFormButton")
-    assert dlg.itemProp("personPicker", "isSubmitted") == False
+def test_clear_birth(view):
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Done")
+    view.personAPicker.set_new_person("Jon Done")
+    view.personBPicker.set_new_person("Jane Done")
+    assert view.personPicker.item.property("isSubmitted") == True
+    assert view.personAPicker.item.property("isSubmitted") == True
+    assert view.personBPicker.item.property("isSubmitted") == True
+    view.clickClearButton()
+    assert view.personPicker.item.property("isSubmitted") == False
+    assert view.personAPicker.item.property("isSubmitted") == False
+    assert view.personBPicker.item.property("isSubmitted") == False
 
 
-def test_clear_custom_individual(dlg):
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_new_person("peoplePicker", "John Done")
-    assert dlg.peopleEntries()
-    dlg.mouseClick("clearFormButton")
-    assert dlg.peopleEntries() == []
+def test_clear_monadic(view):
+    view.set_kind(EventKind.Adopted)
+    view.personPicker.set_new_person("John Done")
+    assert view.personPicker.item.property("isSubmitted") == True
+    view.clickClearButton()
+    assert view.personPicker.item.property("isSubmitted") == False
 
 
-def test_clear_pairbond(dlg):
-    dlg.set_kind(EventKind.Married)
-    dlg.set_new_person("personAPicker", "John Done")
-    dlg.set_new_person("personBPicker", "Jane Done")
-    assert dlg.itemProp("personAPicker", "isSubmitted")
-    assert dlg.itemProp("personBPicker", "isSubmitted")
-    dlg.mouseClick("clearFormButton")
-    assert not dlg.itemProp("personAPicker", "isSubmitted")
-    assert not dlg.itemProp("personBPicker", "isSubmitted")
+def test_clear_custom_individual(view):
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_new_person("John Done")
+    assert view.item.peopleEntries().toVariant()
+    view.clickClearButton()
+    assert view.item.peopleEntries().toVariant() == []
 
 
-def test_clear_dyadic(dlg):
-    dlg.set_kind(EventKind.Conflict)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("moversPicker", "Jane Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.add_new_person("receiversPicker", "Jane Done")
-    assert dlg.moverEntries()
-    assert dlg.receiverEntries()
-    dlg.mouseClick("clearFormButton")
-    assert dlg.moverEntries() == []
-    assert dlg.receiverEntries() == []
+def test_clear_pairbond(view):
+    view.set_kind(EventKind.Married)
+    view.personAPicker.set_new_person("John Done")
+    view.personBPicker.set_new_person("Jane Done")
+    assert view.personAPicker.item.property("isSubmitted")
+    assert view.personBPicker.item.property("isSubmitted")
+    view.clickClearButton()
+    assert not view.personAPicker.item.property("isSubmitted")
+    assert not view.personBPicker.item.property("isSubmitted")
 
 
-def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
+def test_clear_dyadic(view):
+    view.set_kind(EventKind.Conflict)
+    view.moversPicker.add_new_person("John Doe")
+    view.moversPicker.add_new_person("Jane Doe")
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.receiversPicker.add_new_person("Jane Done")
+    assert view.item.moverEntries().toVariant()
+    assert view.item.receiverEntries().toVariant()
+    view.clickClearButton()
+    assert view.item.moverEntries().toVariant() == []
+    assert view.item.receiverEntries().toVariant() == []
+
+
+def test_add_new_person_via_Birth(scene, view, qmlEngine):
     TAG_1, TAG_2 = "tag1", "tag2"
 
-    submitted = util.Condition(dlg.submitted)
-    dlg.initForSelection([])
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.add_tag(TAG_1)
-    dlg.add_tag(TAG_2)
-    dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.submit()
+    submitted = util.Condition(view.view.submitted)
+    view.initForSelection([])
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.add_tag(TAG_1)
+    view.add_tag(TAG_2)
+    view.set_active_tags([TAG_1, TAG_2])
+    view.clickAddButton()
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
     scene = qmlEngine.sceneModel.scene
@@ -193,17 +169,16 @@ def test_add_new_person_via_Birth(scene, dlg, qmlEngine):
     assert event.tags() == [TAG_1, TAG_2]
 
 
-def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_new_person(
-        "personAPicker",
+def test_add_new_person_via_Birth_with_one_parent(scene, view, qmlEngine):
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.personAPicker.set_new_person(
         "Joseph Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_MALE),
     )
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
     scene = qmlEngine.sceneModel.scene
@@ -222,44 +197,44 @@ def test_add_new_person_via_Birth_with_one_parent(scene, dlg, qmlEngine):
 
 
 @pytest.mark.parametrize("before", [True, False])
-def test_add_second_Birth_sets_currentDateTime(dlg, before):
-    dlg.initForSelection([])
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
-    assert dlg.scene.currentDateTime() == START_DATETIME
+def test_add_second_Birth_sets_currentDateTime(scene, view, before):
+    view.initForSelection([])
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
+    assert scene.currentDateTime() == START_DATETIME
 
     if before:
         second_dateTime = START_DATETIME.addDays(-10)
     else:
         second_dateTime = START_DATETIME.addDays(10)
 
-    dlg.initForSelection([])
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_startDateTime(second_dateTime)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.initForSelection([])
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("John Doe")
+    view.set_startDateTime(second_dateTime)
+    view.clickAddButton()
     if before:
-        assert dlg.scene.currentDateTime() == START_DATETIME
+        assert scene.currentDateTime() == START_DATETIME
     else:
-        assert dlg.scene.currentDateTime() == second_dateTime
+        assert scene.currentDateTime() == second_dateTime
 
 
 def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
-    scene, dlg, qmlEngine
+    scene, view, qmlEngine
 ):
     BIRTH_NOTES = """asd fd fgfg"""
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "Josephine Doe")
-    dlg.set_existing_person("personAPicker", parentA)
-    dlg.set_new_person("personBPicker", "Jane Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_notes(BIRTH_NOTES)
-    dlg.mouseClick("AddEverything_submitButton")
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("Josephine Doe")
+    view.personAPicker.set_existing_person(parentA)
+    view.personBPicker.set_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.set_notes(BIRTH_NOTES)
+    view.clickAddButton()
     assert submitted.callCount == 1, "submitted signal not emitted exactly once"
 
     scene = qmlEngine.sceneModel.scene
@@ -277,17 +252,17 @@ def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
     assert {x.id for x in child.parents().people} == {parentA.id, parentB.id}
 
 
-def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg, qmlEngine):
+def test_add_new_person_with_one_existing_parent_via_Birth(scene, view, qmlEngine):
     BIRTH_NOTES = "asd fd fgfg "
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_new_person("personPicker", "Josephine Doe")
-    dlg.set_existing_person("personAPicker", parentA)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_notes(BIRTH_NOTES)
-    dlg.mouseClick("AddEverything_submitButton")
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_new_person("Josephine Doe")
+    view.personAPicker.set_existing_person(parentA)
+    view.set_startDateTime(START_DATETIME)
+    view.set_notes(BIRTH_NOTES)
+    view.clickAddButton()
     assert submitted.callCount == 1, "submitted signal not emitted exactly once"
 
     scene = qmlEngine.sceneModel.scene
@@ -306,7 +281,7 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, dlg, qmlEngine
     assert parentB.fullNameOrAlias() == ""
 
 
-def test_add_new_person_via_CustomIndividual(dlg, scene, qmlEngine):
+def test_add_new_person_via_CustomIndividual(view, scene, qmlEngine):
     DESCRIPTION = "Something Happened"
     GENDER = util.PERSON_KIND_FEMALE
     NOTES = """Here is another
@@ -315,16 +290,16 @@ comment.
 """
     TAG_1, TAG_2 = "tag1", "tag2"
 
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_new_person("peoplePicker", "John Doe", gender=GENDER)
-    dlg.set_description(DESCRIPTION)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_notes(NOTES)
-    dlg.add_tag(TAG_1)
-    dlg.add_tag(TAG_2)
-    dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.mouseClick("AddEverything_submitButton")
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_new_person("John Doe", gender=GENDER)
+    view.set_description(DESCRIPTION)
+    view.set_startDateTime(START_DATETIME)
+    view.set_notes(NOTES)
+    view.add_tag(TAG_1)
+    view.add_tag(TAG_2)
+    view.set_active_tags([TAG_1, TAG_2])
+    view.clickAddButton()
     assert submitted.callCount == 1, "submitted signal emitted too many times"
 
     scene = qmlEngine.sceneModel.scene
@@ -339,12 +314,12 @@ comment.
     assert event.notes() == NOTES
 
 
-def test_add_new_person_adopted(scene, dlg):
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.Adopted)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+def test_add_new_person_adopted(scene, view):
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.Adopted)
+    view.personPicker.set_new_person("John Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     newPerson = scene.query1(name="John", lastName="Doe")
     assert submitted.callCount == 1
     assert len(scene.people()) == 1
@@ -352,14 +327,14 @@ def test_add_new_person_adopted(scene, dlg):
     assert newPerson.adoptedDateTime() == START_DATETIME
 
 
-def test_add_multiple_events_to_new_person(scene, dlg):
+def test_add_multiple_events_to_new_person(scene, view):
     DESCRIPTION = "Something happened"
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_new_person("peoplePicker", "John Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_description(DESCRIPTION)
-    dlg.mouseClick("AddEverything_submitButton")
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_new_person("John Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.set_description(DESCRIPTION)
+    view.clickAddButton()
     newPerson = scene.query1(name="John", lastName="Doe")
     assert submitted.callCount == 1
     assert len(scene.people()) == 1
@@ -367,11 +342,11 @@ def test_add_multiple_events_to_new_person(scene, dlg):
     assert newPerson.events()[0].description() == DESCRIPTION
     assert newPerson.events()[0].dateTime() == START_DATETIME
 
-    dlg.mouseClick("clearFormButton")
-    dlg.set_kind(EventKind.Birth)
-    dlg.set_existing_person("personPicker", newPerson)
-    dlg.set_startDateTime(START_DATETIME.addDays(15))
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickClearButton()
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_existing_person(newPerson)
+    view.set_startDateTime(START_DATETIME.addDays(15))
+    view.clickAddButton()
     newPerson = scene.query1(name="John", lastName="Doe")
     assert submitted.callCount == 2
     assert len(scene.people()) == 1
@@ -382,19 +357,19 @@ def test_add_multiple_events_to_new_person(scene, dlg):
     assert newPerson.events()[1].dateTime() == START_DATETIME
 
 
-def test_add_new_person_cutoff_with_date_range(scene, dlg):
+def test_add_new_person_cutoff_with_date_range(scene, view):
     NOTES = """
 Here are the
 notes
 for this event.
 """
-    submitted = util.Condition(dlg.submitted)
-    dlg.set_kind(EventKind.Cutoff)
-    dlg.set_new_person("personPicker", "John Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_endDateTime(END_DATETIME)
-    dlg.set_notes(NOTES)
-    dlg.mouseClick("AddEverything_submitButton")
+    submitted = util.Condition(view.view.submitted)
+    view.set_kind(EventKind.Cutoff)
+    view.personPicker.set_new_person("John Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.set_endDateTime(END_DATETIME)
+    view.set_notes(NOTES)
+    view.clickAddButton()
     newPerson = scene.query1(name="John", lastName="Doe")
     assert submitted.callCount == 1, "submitted signal emitted too many times"
     assert len(scene.people()) == 1
@@ -405,7 +380,7 @@ for this event.
 
 
 @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isDyadic(x)])
-def test_add_new_dyadic(scene, dlg, kind):
+def test_add_new_dyadic(scene, view, kind):
     NOTES = """
 Here are the
 notes
@@ -413,18 +388,18 @@ for this event.
 """
     TAG_1, TAG_2 = "tag1", "tag2"
 
-    dlg.set_kind(kind)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_notes(NOTES)
-    dlg.add_tag(TAG_1)
-    dlg.add_tag(TAG_2)
-    dlg.set_active_tags([TAG_1, TAG_2])
+    view.set_kind(kind)
+    view.moversPicker.add_new_person("John Doe")
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.set_notes(NOTES)
+    view.add_tag(TAG_1)
+    view.add_tag(TAG_2)
+    view.set_active_tags([TAG_1, TAG_2])
     with mock.patch(
         "pkdiagram.scene.ItemAnimationHelper.flash", autospec=True
     ) as flash:
-        dlg.submit()
+        view.clickAddButton()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     emotion = personA.emotions()[0]
@@ -444,20 +419,20 @@ for this event.
     assert personA.emotions()[0].endEvent.notes() == NOTES
 
 
-def test_add_new_dyadic_isDateRange(scene, dlg):
+def test_add_new_dyadic_isDateRange(scene, view):
     NOTES = """
 Here are the
 notes
 for this event.
 """
 
-    dlg.set_kind(EventKind.Away)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.set_endDateTime(END_DATETIME)
-    dlg.set_notes(NOTES)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(EventKind.Away)
+    view.moversPicker.add_new_person("John Doe")
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.set_endDateTime(END_DATETIME)
+    view.set_notes(NOTES)
+    view.clickAddButton()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     assert len(scene.people()) == 2
@@ -470,13 +445,13 @@ for this event.
     assert personA.emotions()[0].notes() == NOTES
 
 
-def test_add_existing_dyadic(scene, dlg):
+def test_add_existing_dyadic(scene, view):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    dlg.set_kind(EventKind.Conflict)
-    dlg.add_existing_person("moversPicker", personA)
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(EventKind.Conflict)
+    view.moversPicker.add_existing_person(personA)
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     personB = scene.query1(name="Jane", lastName="Doe")
     assert len(scene.people()) == 2
     assert len(personA.emotions()) == 1
@@ -487,14 +462,14 @@ def test_add_existing_dyadic(scene, dlg):
     assert personA.emotions()[0].endDateTime() == START_DATETIME
 
 
-def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
+def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, view):
     KIND_1 = EventKind.Conflict
 
-    dlg.set_kind(KIND_1)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(KIND_1)
+    view.moversPicker.add_new_person("John Doe")
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     assert len(scene.people()) == 2
@@ -507,11 +482,11 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
 
     KIND_2 = EventKind.Away
 
-    dlg.set_kind(KIND_2)
-    dlg.add_existing_person("moversPicker", personA)
-    dlg.add_new_person("receiversPicker", "Josephine Doe")
-    dlg.set_startDateTime(START_DATETIME.addDays(30))
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(KIND_2)
+    view.moversPicker.add_existing_person(personA)
+    view.receiversPicker.add_new_person("Josephine Doe")
+    view.set_startDateTime(START_DATETIME.addDays(30))
+    view.clickAddButton()
     personC = scene.query1(name="Josephine", lastName="Doe")
     assert len(scene.people()) == 3
     assert len(personA.emotions()) == 2
@@ -526,21 +501,21 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, dlg):
 
 
 # @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
-def test_add_existing_pairbond(scene, dlg):
+def test_add_existing_pairbond(scene, view):
     TAG_1, TAG_2 = "tag1", "tag2"
     KIND = EventKind.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Jane", lastName="Doe"))
     marriage = scene.addItem(Marriage(personA, personB))
-    dlg.set_kind(KIND)
-    dlg.set_existing_person("personAPicker", personA)
-    dlg.set_existing_person("personBPicker", personB)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.add_tag(TAG_1)
-    dlg.add_tag(TAG_2)
-    dlg.set_active_tags([TAG_1, TAG_2])
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(KIND)
+    view.personAPicker.set_existing_person(personA)
+    view.personBPicker.set_existing_person(personB)
+    view.set_startDateTime(START_DATETIME)
+    view.add_tag(TAG_1)
+    view.add_tag(TAG_2)
+    view.set_active_tags([TAG_1, TAG_2])
+    view.clickAddButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
@@ -548,19 +523,19 @@ def test_add_existing_pairbond(scene, dlg):
     assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND)
 
 
-def test_add_existing_pairbond_custom(scene, dlg):
+def test_add_existing_pairbond_custom(scene, view):
     kind = EventKind.CustomPairBond
     DESCRIPTION = "Something Happened"
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Jane", lastName="Doe"))
     marriage = scene.addItem(Marriage(personA, personB))
-    dlg.set_kind(kind)
-    dlg.set_existing_person("personAPicker", personA)
-    dlg.set_existing_person("personBPicker", personB)
-    dlg.set_description(DESCRIPTION)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(kind)
+    view.personAPicker.set_existing_person(personA)
+    view.personBPicker.set_existing_person(personB)
+    view.set_description(DESCRIPTION)
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
@@ -568,17 +543,17 @@ def test_add_existing_pairbond_custom(scene, dlg):
     assert marriage.events()[0].description() == DESCRIPTION
 
 
-def test_add_multiple_events_to_same_pairbond(scene, dlg):
+def test_add_multiple_events_to_same_pairbond(scene, view):
     KIND_1 = EventKind.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Jane", lastName="Doe"))
     marriage = scene.addItem(Marriage(personA, personB))
-    dlg.set_kind(KIND_1)
-    dlg.set_existing_person("personAPicker", personA)
-    dlg.set_existing_person("personBPicker", personB)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(KIND_1)
+    view.personAPicker.set_existing_person(personA)
+    view.personBPicker.set_existing_person(personB)
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
@@ -587,12 +562,12 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
 
     KIND_2 = EventKind.Bonded
 
-    dlg.mouseClick("clearFormButton")
-    dlg.set_kind(KIND_2)
-    dlg.set_existing_person("personAPicker", personA)
-    dlg.set_existing_person("personBPicker", personB)
-    dlg.set_startDateTime(START_DATETIME.addDays(-30))
-    dlg.mouseClick("AddEverything_submitButton")
+    view.clickClearButton()
+    view.set_kind(KIND_2)
+    view.personAPicker.set_existing_person(personA)
+    view.personBPicker.set_existing_person(personB)
+    view.set_startDateTime(START_DATETIME.addDays(-30))
+    view.clickAddButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 2
@@ -602,16 +577,16 @@ def test_add_multiple_events_to_same_pairbond(scene, dlg):
     assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_1)
 
 
-def test_add_new_variables_CustomIndividual(scene, dlg):
+def test_add_new_variables_CustomIndividual(scene, view):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    dlg.set_kind(EventKind.CustomIndividual)
-    dlg.add_existing_person("peoplePicker", personA)
-    dlg.set_anxiety(util.VAR_VALUE_UP)
-    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
-    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
-    dlg.set_description("Something happened")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+    view.set_kind(EventKind.CustomIndividual)
+    view.peoplePicker.add_existing_person(personA)
+    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    view.set_symptom(util.VAR_SYMPTOM_SAME)
+    view.set_description("Something happened")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
     assert dynamicPropertyNames == [
         util.ATTR_ANXIETY,
@@ -629,15 +604,15 @@ def test_add_new_variables_CustomIndividual(scene, dlg):
     assert personA.events()[0].dynamicProperty("symptom").get() == util.VAR_SYMPTOM_SAME
 
 
-def test_add_new_variables_PairBond(scene, dlg):
-    dlg.set_kind(EventKind.Bonded)
-    dlg.set_new_person("personAPicker", "John Doe")
-    dlg.set_new_person("personBPicker", "Jane Doe")
-    dlg.set_anxiety(util.VAR_VALUE_UP)
-    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
-    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+def test_add_new_variables_PairBond(scene, view):
+    view.set_kind(EventKind.Bonded)
+    view.personAPicker.set_new_person("John Doe")
+    view.personBPicker.set_new_person("Jane Doe")
+    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    view.set_symptom(util.VAR_SYMPTOM_SAME)
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     event = scene.events(onlyDated=True)[0]
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
     assert dynamicPropertyNames == [
@@ -652,16 +627,16 @@ def test_add_new_variables_PairBond(scene, dlg):
     assert event.dynamicProperty(util.ATTR_SYMPTOM).get() == util.VAR_SYMPTOM_SAME
 
 
-def test_add_new_variables_Dyadic(scene, dlg):
-    dlg.set_kind(EventKind.Conflict)
-    dlg.add_new_person("moversPicker", "John Doe")
-    dlg.add_new_person("receiversPicker", "Jane Doe")
-    dlg.set_anxiety(util.VAR_VALUE_UP)
-    dlg.set_functioning(util.VAR_FUNCTIONING_DOWN)
-    dlg.set_symptom(util.VAR_SYMPTOM_SAME)
-    dlg.set_description("Something happened")
-    dlg.set_startDateTime(START_DATETIME)
-    dlg.mouseClick("AddEverything_submitButton")
+def test_add_new_variables_Dyadic(scene, view):
+    view.set_kind(EventKind.Conflict)
+    view.moversPicker.add_new_person("John Doe")
+    view.receiversPicker.add_new_person("Jane Doe")
+    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_functioning(util.VAR_FUNCTIONING_DOWN)
+    view.set_symptom(util.VAR_SYMPTOM_SAME)
+    view.set_description("Something happened")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
     symbol = scene.emotions()[0]
     startEvent = symbol.startEvent
     assert symbol.kind() == EventKind.itemModeFor(EventKind.Conflict)

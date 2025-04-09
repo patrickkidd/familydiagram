@@ -486,7 +486,7 @@ class ServerFileManagerModel(FileManagerModel):
             except HTTPError as e:
                 reply.property("pk_callback")(reply.was)
                 return
-            entry = self.findDiagram(reply.propery("pk_id"))
+            entry = self.findDiagram(reply.property("pk_id"))
             entry["shown"] = reply.property("pk_shown")
             bdata = encryption.decryptBytes(reply.readAll())
             data = pickle.loads(bdata)

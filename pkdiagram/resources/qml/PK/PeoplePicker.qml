@@ -28,9 +28,7 @@ PK.GroupBox {
     property var model: ListModel {}
     // The list of people used for auto-complete
     property var scenePeopleModel: ListModel {}
-    property var selectedPeopleModel: ListModel {
-        objectName: 'selectedPeopleModel'
-    }
+    property var selectedPeopleModel: ListModel {}
     property int currentIndex: -1
     property int count: list.count
     property var currentEditingItemDelegate: null; // testing
@@ -131,7 +129,6 @@ PK.GroupBox {
 
         ListView {
             id: list
-            objectName: "list"
             clip: true
             model: root.model
             contentWidth: width
@@ -142,7 +139,6 @@ PK.GroupBox {
             delegate: PK.PersonPicker {
 
                 id: dRoot
-                objectName: 'dRoot'
 
                 // assign this PK.PersonPicker property `person` to the model's `person` property
                 // so that the model can be updated when the person is updated
@@ -209,7 +205,6 @@ PK.GroupBox {
 
         PK.CrudButtons {
             id: buttons
-            objectName: "buttons"
             Layout.fillWidth: true
             bottomBorder: false
             width: parent.width

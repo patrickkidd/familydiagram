@@ -70,6 +70,8 @@ def main():
 
     else:
 
+        util.init_logging()
+
         app = Application(sys.argv, prefsName=options.prefsName)
         controller = AppController(app, prefsName=options.prefsName)
         controller.init()

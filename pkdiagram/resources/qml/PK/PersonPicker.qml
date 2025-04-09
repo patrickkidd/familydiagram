@@ -31,14 +31,21 @@ Rectangle {
     property bool isDirty: false
     property var textEdit: pickerTextEdit // still need this one?
     property var popupListView: popupListView
+    property var genderBox: genderBox
+    property var isNewBox: isNewBox
+    property var checkImage: checkImage
 
     signal numVisibleAutoCompleteItemsUpdated(var numVisibleItems) // for testing
     signal submitted(var entry)
 
-    // The list of people already selected in the AddAnythingDialog
-    property var selectedPeopleModel: ListModel {
-        objectName: 'selectedPeopleModel'
+    // testing
+    function setPersonIdSelected(personId) {
+        var person = sceneModel.item(personId) // had trouble passing the Person directly
+        selectedPeopleModel.append({ person: person, isNewPerson: false })
     }
+
+    // The list of people already selected in the AddAnythingDialog
+    property var selectedPeopleModel: ListModel { }
 
     // The list of people used for auto-complete
     property var scenePeopleModel: ListModel {}
@@ -146,7 +153,6 @@ Rectangle {
         }
         PK.TextInput {
             id: pickerTextEdit
-            objectName: "textEdit"
             text: root.person ? root.person.listLabel() : root.personName
             clip: true
             width: contentWidth
@@ -238,7 +244,6 @@ Rectangle {
     // to the project to use the following image
     PK.Image {
         id: checkImage
-        objectName: "checkImage"
         source: "../checkbox-check.png"
         width: 15
         height: 15
@@ -253,7 +258,6 @@ Rectangle {
 
     Rectangle {
         id: isNewBox
-        objectName: "isNewBox"
         width: newText.width + 7
         height: newText.height + 3
         color: "transparent"
@@ -281,7 +285,6 @@ Rectangle {
 
     Popup {
         id: autoCompletePopup
-        objectName: "autoCompletePopup"
         x: -10
         y: util.QML_ITEM_HEIGHT // show just below the picker
         width: root.width + 20
@@ -289,7 +292,6 @@ Rectangle {
         padding: 0
         contentItem: ListView {
             id: popupListView
-            objectName: "popupListView"
             model: scenePeopleModel
             layer.enabled: true
             layer.effect: DropShadow {

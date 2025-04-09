@@ -35,8 +35,6 @@ from pkdiagram.pyqt import (
     QPalette,
     QPixmap,
     QPoint,
-    QPrinter,
-    QPrintDialog,
     QPropertyAnimation,
     QStandardPaths,
     QTimer,
@@ -145,7 +143,7 @@ class MainWindow(QMainWindow):
 
         self.profiler = None
 
-        self.scene = None
+        self.scene: Scene = None
         self.document = None
         self.serverFileModel = None
         self.updateReply = None
@@ -243,7 +241,6 @@ class MainWindow(QMainWindow):
         self.ui.actionSave.triggered.connect(self.save)
         self.ui.actionSave_As.triggered.connect(self.saveAs)
         self.ui.actionAbout.triggered.connect(self.showAbout)
-        self.ui.actionPrint.triggered.connect(self.onPrint)
         self.ui.actionView_Diagram.triggered.connect(self.showDiagram)
         self.ui.actionDocuments_Folder.triggered.connect(self.openDocumentsFolder)
         # Edit
@@ -1506,30 +1503,6 @@ class MainWindow(QMainWindow):
         release = QKeyEvent(QEvent.KeyRelease, Qt.Key_V, Qt.ControlModifier)
         QApplication.instance().sendEvent(QApplication.activeWindow(), press)
         QApplication.instance().sendEvent(QApplication.activeWindow(), release)
-
-    def onPrint(self):
-        printer = QPrinter()
-        printer.setOrientation(QPrinter.Landscape)
-        if printer.outputFormat() != QPrinter.NativeFormat:
-            QMessageBox.information(
-                self,
-                "No printers available",
-                "You need to set up a printer on your computer before you use this feature.",
-            )
-            return
-        dlg = QPrintDialog(printer, self)
-        ret = dlg.exec()
-        if ret == QDialog.Accepted:
-            _isUIDarkMode = CUtil.instance().isUIDarkMode
-            CUtil.instance().isUIDarkMode = lambda: False
-            QApplication.instance().paletteChanged.emit(
-                QApplication.instance().palette()
-            )  # onSystemPaletteChanged()
-            self.documentView.controller.writeJPG(printer=printer)
-            CUtil.instance().isUIDarkMode = _isUIDarkMode
-            QApplication.instance().paletteChanged.emit(
-                QApplication.instance().palette()
-            )  # .onSystemPaletteChanged()
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()

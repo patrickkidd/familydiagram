@@ -1,50 +1,16 @@
 import logging
+from pathlib import Path
 
 import pytest
 
 from pkdiagram import util
-from pkdiagram.pyqt import QVBoxLayout, QWidget, QQuickItem
-from pkdiagram.scene import Scene, Person
-from pkdiagram.widgets import QmlWidgetHelper
+from pkdiagram.pyqt import QQuickItem
+from pkdiagram.scene import Person
 from pkdiagram.models import SceneModel
-from pkdiagram.widgets.qml.peoplepicker import (
-    add_new_person,
-    add_existing_person,
-    delete_person,
-)
+
+from tests.widgets import TestPeoplePicker
 
 _log = logging.getLogger(__name__)
-
-
-class PeoplePickerTest(QWidget, QmlWidgetHelper):
-
-    QmlWidgetHelper.registerQmlMethods(
-        [
-            {"name": "setExistingPeople"},
-            {"name": "peopleEntries", "return": True},
-        ]
-    )
-
-    def __init__(self, engine, parent=None):
-        super().__init__(parent)
-        self.initQmlWidgetHelper(engine, "tests/qml/PeoplePickerTest.qml")
-        self.checkInitQml()
-
-        Layout = QVBoxLayout(self)
-        Layout.setContentsMargins(0, 0, 0, 0)
-        Layout.addWidget(self.qml)
-
-    def test_setExistingPeople(self, people):
-        peoplePicker = self.rootProp("peoplePicker")
-        itemAddDone = util.Condition(peoplePicker.itemAddDone)
-        self.setExistingPeople(people)
-        util.waitALittle()
-        while itemAddDone.callCount < len(people):
-            _log.info(
-                f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
-            )
-            assert itemAddDone.wait() == True
-        # _log.info(f"Got {itemAddDone.callCount} / {len(people)} itemAddDone signals")
 
 
 @pytest.fixture
@@ -56,25 +22,22 @@ def scene(scene):
 
 
 @pytest.fixture
-def picker(scene, qtbot, qmlEngine):
-    qmlEngine.setScene(scene)
-    dlg = PeoplePickerTest(qmlEngine)
-    dlg.resize(600, 800)
-    dlg.show()
-    dlg.rootProp("peoplePicker").clear()
-    qtbot.addWidget(dlg)
-    qtbot.waitActive(dlg)
-    assert dlg.isVisible()
+def picker(qmlEngine, create_qml):
+    SOURCE_FPATH = str(
+        Path(__file__).resolve().parent.parent.parent
+        / "pkdiagram"
+        / "resources"
+        / "qml"
+        / "PK"
+        / "PeoplePicker.qml"
+    )
 
-    yield dlg
+    _log.info(SOURCE_FPATH)
 
-    dlg.hide()
-    dlg.deinit()
-
-
-@pytest.fixture
-def model(picker):
-    yield picker.rootProp("peoplePicker").property("model")
+    helper = create_qml(SOURCE_FPATH)
+    _ret = TestPeoplePicker(helper, helper.qml.rootObject())
+    _ret.item.setProperty("scenePeopleModel", qmlEngine.peopleModel)
+    yield _ret
 
 
 def test_init_fields(scene, picker):
@@ -84,8 +47,8 @@ def test_init_fields(scene, picker):
     personB = scene.addItem(
         Person(name="Josephina", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
     )
-    picker.test_setExistingPeople([personA, personB])
-    entries = picker.peopleEntries()
+    picker.set_existing_people([personA, personB])
+    entries = picker.item.peopleEntries().toVariant()
     assert len(entries) == 2
     assert entries[0]["person"] == personA
     assert entries[0]["isNewPerson"] == False
@@ -95,10 +58,10 @@ def test_init_fields(scene, picker):
     assert entries[1]["gender"] == util.PERSON_KIND_FEMALE
 
 
-def test_one_existing_one_not(scene, picker, model):
+def test_one_existing_one_not(scene, picker):
     existingPerson = scene.addItem(Person(name="John", lastName="Doe"))
-    existingPersonDelegate = add_existing_person(
-        picker, existingPerson, autoCompleteInput="John"
+    existingPersonDelegate = picker.add_existing_person(
+        existingPerson, autoCompleteInput="John"
     )
     assert (
         existingPersonDelegate.findChild(QQuickItem, "genderBox").property(
@@ -106,25 +69,19 @@ def test_one_existing_one_not(scene, picker, model):
         )
         == 0
     )
-    assert (
-        existingPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible")
-        == False
-    )
-    assert (
-        existingPersonDelegate.findChild(QQuickItem, "checkImage").property("visible")
-        == True
-    )
-    peopleEntries = picker.peopleEntries()
+    assert existingPersonDelegate.property("isNewBox").property("visible") == False
+    assert existingPersonDelegate.property("checkImage").property("visible") == True
+    peopleEntries = picker.item.peopleEntries().toVariant()
     assert len(peopleEntries) == 1
     assert peopleEntries[0]["isNewPerson"] == False
     assert peopleEntries[0]["person"] == existingPerson
     assert peopleEntries[0]["personName"] == "John Doe"
     assert peopleEntries[0]["gender"] == util.PERSON_KIND_MALE
 
-    newPersonDelegate = add_new_person(
-        picker, "Someone new", gender=util.PERSON_KIND_FEMALE
+    newPersonDelegate = picker.add_new_person(
+        "Someone new", gender=util.PERSON_KIND_FEMALE
     )
-    peopleEntries = picker.peopleEntries()
+    peopleEntries = picker.item.peopleEntries().toVariant()
     assert len(peopleEntries) == 2
     assert peopleEntries[1]["isNewPerson"] == True
     assert peopleEntries[1]["person"] == None
@@ -136,31 +93,26 @@ def test_one_existing_one_not(scene, picker, model):
         )
         == 0
     )
-    assert (
-        newPersonDelegate.findChild(QQuickItem, "isNewBox").property("visible") == True
-    )
-    assert (
-        newPersonDelegate.findChild(QQuickItem, "checkImage").property("visible")
-        == False
-    )
+    assert newPersonDelegate.property("isNewBox").property("visible") == True
+    assert newPersonDelegate.property("checkImage").property("visible") == False
 
 
-def test_add_lots_of_mixed(scene, picker, model):
+def test_add_lots_of_mixed(scene, picker):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personC = scene.addItem(Person(name="Jane", lastName="Donner"))
-    add_existing_person(picker, personA, autoCompleteInput="Joh")
-    add_new_person(picker, "Someone new 1", gender=util.PERSON_KIND_FEMALE)
-    add_existing_person(
-        picker, personB, autoCompleteInput="Jose", gender=util.PERSON_KIND_UNKNOWN
+    picker.add_existing_person(personA, autoCompleteInput="Joh")
+    picker.add_new_person("Someone new 1", gender=util.PERSON_KIND_FEMALE)
+    picker.add_existing_person(
+        personB, autoCompleteInput="Jose", gender=util.PERSON_KIND_UNKNOWN
     )
-    add_existing_person(
-        picker, personC, autoCompleteInput="Jan", gender=util.PERSON_KIND_ABORTION
+    picker.add_existing_person(
+        personC, autoCompleteInput="Jan", gender=util.PERSON_KIND_ABORTION
     )
-    add_new_person(picker, "Someone new 2")
-    add_new_person(picker, "Someone new 3")
-    add_new_person(picker, "Someone new 4")
-    peopleEntries = picker.peopleEntries()
+    picker.add_new_person("Someone new 2")
+    picker.add_new_person("Someone new 3")
+    picker.add_new_person("Someone new 4")
+    peopleEntries = picker.item.peopleEntries().toVariant()
     newEntries = [x for x in peopleEntries if x["isNewPerson"] == True]
     existingEntries = [x for x in peopleEntries if x["isNewPerson"] == False]
     assert len(newEntries) == 4
@@ -172,25 +124,25 @@ def test_add_lots_of_mixed(scene, picker, model):
     assert personCEntry["gender"] == util.PERSON_KIND_ABORTION
 
 
-def test_add_then_delete_then_add(scene, picker, model):
+def test_add_then_delete_then_add(scene, picker):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Joseph", lastName="Donner"))
-    delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
-    assert model.rowCount() == 1
-    delete_person(picker, delegate)
-    assert model.rowCount() == 0
-    add_existing_person(picker, personB, autoCompleteInput="Jos")
-    assert model.rowCount() == 1
+    delegate = picker.add_existing_person(personA, autoCompleteInput="Joh")
+    assert picker.model.rowCount() == 1
+    picker.delete_person(delegate)
+    assert picker.model.rowCount() == 0
+    picker.add_existing_person(personB, autoCompleteInput="Jos")
+    assert picker.model.rowCount() == 1
 
 
-def test_maintain_selectedPeopleModel(scene, picker, model):
+def test_maintain_selectedPeopleModel(scene, picker):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    delegate = add_existing_person(picker, personA, autoCompleteInput="Joh")
-    assert model.rowCount() == 1
-    assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 1
-    delete_person(picker, delegate)
-    assert model.rowCount() == 0
-    assert picker.itemProp("peoplePicker.selectedPeopleModel", "count") == 0
+    delegate = picker.add_existing_person(personA, autoCompleteInput="Joh")
+    assert picker.model.rowCount() == 1
+    assert picker.item.property("selectedPeopleModel").property("count") == 1
+    picker.delete_person(delegate)
+    assert picker.model.rowCount() == 0
+    assert picker.item.property("selectedPeopleModel").property("count") == 0
 
 
 # test_one_existing_one_not
