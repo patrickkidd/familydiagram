@@ -88,8 +88,13 @@ NSURL *URLByDeletingTrailingSlash(NSURL *url) {
 @end
 
 
+#if TARGET_OS_IOS
+@interface FDApplication : UIApplication
+@end
+#else
 @interface FDApplication : NSApplication
 @end
+#endif
 
 @implementation FDApplication
 

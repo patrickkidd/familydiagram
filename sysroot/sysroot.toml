@@ -124,7 +124,8 @@ installed_modules = [
 ]
 
 [PyQt.ios]
-disabled_features = [ "PyQt_Process" ]
+extra_compile_args = ["-Wno-deprecated-declarations",]
+disabled_features = [ "PyQt_Process", "PyQt_Desktop_OpenGL", "PyQt_MacOSXOnly"]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
     "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
