@@ -107,6 +107,7 @@ configure_options = [
 ]
 
 [Qt.ios]
+version = "5.15.2"
 install_from_source = false
 ssl = "securetransport"
 
@@ -123,13 +124,6 @@ installed_modules = [
 ]
 
 [PyQt.ios]
-disabled_features = [
-    "PyQt_Desktop_OpenGL", "PyQt_MacOSXOnly",
-    "PyQt_MacCocoaViewContainer", "PyQt_Printer",
-    "PyQt_PrintDialog", "PyQt_PrintPreviewDialog",
-    "PyQt_PrintPreviewWidget", "PyQt_Process",
-    "PyQt_NotBootstrapped"
-]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
     "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"

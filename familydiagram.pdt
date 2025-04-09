@@ -510,12 +510,12 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "Helvetica65Medium_22443.ttf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "HelveticaNeueBold.otf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -575,7 +575,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "away.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -640,7 +640,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "inside.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -675,12 +675,12 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "next-view.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "outside.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -715,7 +715,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "previous-view.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -740,7 +740,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "search.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -750,7 +750,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "show-items-with-notes.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -765,7 +765,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "toward.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -1230,7 +1230,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"
-included = false
+included = true
 is_directory = false
 
 
@@ -1284,16 +1284,6 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "EventPropertiesTest.qml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "PeoplePickerTest.qml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "PersonPickerTest.qml"
 included = false
 is_directory = false
 
@@ -1593,31 +1583,6 @@ is_directory = false
 name = "popup.py"
 included = true
 is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "qml"
-included = true
-is_directory = true
-[[Application.Package.Content.Content.Content]]
-name = "__init__.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "activelistedit.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "peoplepicker.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "personpicker.py"
-included = true
-is_directory = false
-
 
 [[Application.Package.Content.Content]]
 name = "qmlwidgethelper.py"
