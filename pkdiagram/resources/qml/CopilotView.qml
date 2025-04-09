@@ -184,6 +184,7 @@ Page {
                     text: '' + dNumSources + ' Sources >'
                     font.underline: true
                     color: Qt.darker(util.QML_TEXT_COLOR, 1.2)
+                    visible: false
                     width: dRoot.width - dRoot.x * 2
                     bottomPadding: font.pixelSize
                     MouseArea {
@@ -198,6 +199,7 @@ Page {
                     color: Qt.darker(util.QML_TEXT_COLOR, 1.2)
                     width: dRoot.width - dRoot.x * 2
                     wrapMode: Text.WordWrap
+                    visible: false
                     clip: true
                     height: 0
                     opacity: height / implicitHeight
