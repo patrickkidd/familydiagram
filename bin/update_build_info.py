@@ -48,13 +48,13 @@ if platform.system() == "Darwin":
         # plutil -replace CFBundleVersion -string '0.1.0d1' build/osx-config/Info.plist && less build/osx-config/Info.plist
         cmd = "plutil -replace CFBundleVersion -string '%s' %s" % (
             version.VERSION,
-            osx_plist,
+            fpath,
         )
         print(cmd)
         os.system(cmd)
         cmd = "plutil -replace CFBundleShortVersionString -string '%s' %s" % (
             version.VERSION,
-            osx_plist,
+            fpath,
         )
         print(cmd)
         os.system(cmd)

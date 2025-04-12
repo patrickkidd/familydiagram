@@ -510,12 +510,12 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "Helvetica65Medium_22443.ttf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "HelveticaNeueBold.otf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -1230,7 +1230,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"
-included = false
+included = true
 is_directory = false
 
 

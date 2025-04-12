@@ -298,7 +298,8 @@ def test_edit_user(flask_app, test_user, create_dlg):
     assert user.last_name == ARGS["last_name"]
 
 
-def test_purchase(test_session, qtbot, create_dlg, qmlEngine):
+@pytest.mark.parametrize('ccv', ['4242', '012'])
+def test_purchase(test_session, qtbot, create_dlg, qmlEngine, ccv):
     p1 = Policy(
         code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
         product=vedana.LICENSE_PROFESSIONAL,
@@ -334,7 +335,7 @@ def test_purchase(test_session, qtbot, create_dlg, qmlEngine):
     dlg.keyClicks("ccNumField", "4242424242424242")
     dlg.keyClicks("ccExpMonthField", "12")
     dlg.keyClicks("ccExpYearField", str(datetime.datetime.now().year + 1))
-    dlg.keyClicks("ccCVCField", "4242")
+    dlg.keyClicks("ccCVCField", ccv)
     # dlg.keyClicks('ccZipField', '20016')
     qtbot.clickYesAfter(lambda: dlg.mouseClick("purchaseSubmitButton"))
     qtbot.clickOkAfter(lambda: purchasedLicense.assertWait(maxMS=4000))

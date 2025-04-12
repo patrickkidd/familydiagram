@@ -94,7 +94,7 @@
             "justMyCode": false,
         },
         {
-            "name": "pyqtdeploy-sysroot",
+            "name": "pyqtdeploy-sysroot ios-64",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
@@ -102,10 +102,12 @@
             "justMyCode": false,
             "args": [
                 "--verbose",
-                "--sysroots-dir",
-                "${workspaceFolder}/sysroot",
+                "--target", "ios-64",
                 "sysroot/sysroot.toml"
-            ]
+            ],
+            "env": {
+                "PATH": "${workspaceFolder}/../lib/Qt/5.15.2/ios/bin:${workspaceFolder}/.venv/bin:${env:PATH}",
+            }
         },
         {
             "name": "pyqtdeploy-build",
