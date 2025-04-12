@@ -18,6 +18,7 @@ if [[ $TARGET == osx* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-macos-64
 elif [[ $TARGET == ios* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-ios-64
+    export PATH="${ROOT}/../lib/Qt/5.15.2/ios/bin":$PATH
 else
     echo "PKS Unknown target: $TARGET"
     exit 1
@@ -67,8 +68,6 @@ echo "PKS Generating _pkdiagram sources"
     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 )
-
-echo "PKS Running pyqtdeploy-build (wipes out build/osx folder)"
 
 rsync -avzq build/common-config/* build/osx
 rsync -avzq build/osx-config/* build/osx
