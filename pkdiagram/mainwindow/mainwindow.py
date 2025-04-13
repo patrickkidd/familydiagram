@@ -992,6 +992,8 @@ class MainWindow(QMainWindow):
                         user_id, vedana.ACCESS_READ_ONLY
                     ):
                         readOnly = True
+                    elif self.session.user.hasRoles(vedana.ROLE_ADMIN):
+                        readOnly = True
                     else:
                         raise RuntimeError("Not access at all? Is that possible??")
                 else:

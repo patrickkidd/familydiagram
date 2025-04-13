@@ -7,9 +7,10 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 import time, pickle, logging
 from datetime import datetime
 import hashlib
-import urllib.error
+import urllib.parse
 import wsgiref.handlers
 from dataclasses import dataclass, InitVar
+from typing import Union
 
 import vedana
 from pkdiagram.pyqt import (
@@ -18,6 +19,7 @@ from pkdiagram.pyqt import (
     QNetworkReply,
     QEventLoop,
     QUrl,
+    QUrlQuery,
     QApplication,
     QTimer,
     pyqtSignal,
@@ -96,6 +98,12 @@ class User:
     def __post_init__(self):
         if self.licenses and isinstance(self.licenses[0], dict):
             self.licenses = [License(**x) for x in self.licenses]
+
+    def hasRoles(self, *roles) -> bool:
+        for role in roles:
+            if role in self.roles:
+                return True
+        return False
 
 
 @dataclass
@@ -279,14 +287,30 @@ class Server(QObject):
     ):
         if data and not bdata:
             bdata = pickle.dumps(data)
-        url = util.serverUrl(path)
+        full_url = util.serverUrl(path)
         ## Make a QNetworkRequest with the appropriate signature headers. """
+
+        parts = urllib.parse.urlparse(full_url)
+        if "?" in full_url:
+            full_path = parts.path + "?" + parts.query
+        else:
+            full_path = parts.path
+
+        if parts.query:
+            url = QUrl(parts.scheme + "://" + parts.netloc + full_path)
+            query = QUrlQuery()
+            for param in parts.query.split("&"):
+                key, value = param.split("=")
+                query.addQueryItem(key, value)
+            url.setQuery(query)
+        else:
+            url = QUrl(full_url)
 
         # Do this like AWS
         # http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
         content_md5 = hashlib.md5(bdata).hexdigest()
         content_type = "text/html"
-        request = QNetworkRequest(QUrl(url))
+        request = QNetworkRequest(url)
         request.setRawHeader(b"Content-Type", content_type.encode("utf-8"))
         request.setRawHeader(b"Content-MD5", content_md5.encode("utf-8"))
         date = wsgiref.handlers.format_date_time(
@@ -299,12 +323,9 @@ class Server(QObject):
         else:
             user = vedana.ANON_USER
             secret = vedana.ANON_SECRET
-        parts = urllib.parse.urlparse(url)
-        if "?" in url:
-            path = parts.path + "?" + parts.query
-        else:
-            path = parts.path
-        signature = vedana.sign(secret, verb, content_md5, content_type, date, path)
+        signature = vedana.sign(
+            secret, verb, content_md5, content_type, date, parts.path
+        )
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
         auth_header = vedana.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))

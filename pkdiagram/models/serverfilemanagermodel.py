@@ -12,11 +12,14 @@ from pkdiagram.pyqt import (
     QApplication,
     QDateTime,
     QMessageBox,
+    QNetworkRequest,
+    QUrl,
 )
 from pkdiagram.util import CUtil
 from pkdiagram import util
 from pkdiagram.server_types import Diagram, HTTPError
 from pkdiagram.models import FileManagerModel
+from .qobjecthelper import QObjectHelper
 
 
 log = logging.getLogger(__name__)
@@ -38,6 +41,8 @@ class ServerFileManagerModel(FileManagerModel):
     - Allow sort by `owner` field.
     """
 
+    QObjectHelper.registerQtProperties([{"attr": "userId", "default": -1}])
+
     SERVER_SYNC_MS = 1000 * 60 * 30  # 30 minutes
     S_CONFIRM_DELETE_SERVER_FILE = (
         "Are you sure you want to delete this file? This cannot be undone."
@@ -57,6 +62,7 @@ class ServerFileManagerModel(FileManagerModel):
         self.initialized = False
         self.diagramCache = {}
         self._indexReplies = []
+        self._userId = None
         self.prefs = QApplication.instance().prefs()
         self.session = None
         self.dataPath = dataPath
@@ -191,6 +197,10 @@ class ServerFileManagerModel(FileManagerModel):
                 self.modelReset.emit()
 
         def onIndexFinished(reply):
+            log.debug(
+                f"onIndexFinished {reply.request().url().toString()} "
+                f"status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)}"
+            )
             self.indexGETResponse.emit(reply)
             checkIndexRequestsComplete(reply)
 
@@ -199,11 +209,13 @@ class ServerFileManagerModel(FileManagerModel):
 
             def onSingleGETSuccess(data):
                 """Called for each file needing updating."""
-                # log.debug(f"GET /diagrams/{reply.request().url().toString()} SUCCESS.")
                 self._addOrUpdateDiagram(Diagram.create(data))
 
             def onSingleGETFinished(reply):
-                # log.debug(f"GET /diagrams/{reply.request().url().toString()} FINISHED.")
+                log.debug(
+                    f"GET {reply.request().url().toString()}, "
+                    f"status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)}"
+                )
                 self.diagramGETResponse.emit(reply)
                 checkIndexRequestsComplete(reply)
 
@@ -243,8 +255,15 @@ class ServerFileManagerModel(FileManagerModel):
                         )
                         self._indexReplies.append(getReply)
 
+        url = QUrl("/diagrams")
+        if self._userId:
+            url = f"/diagrams?user_id={self._userId}"
+        else:
+            url = "/diagrams"
+
+        log.debug(f"GET {url}")
         reply = self.session.server().nonBlockingRequest(
-            "GET", "/diagrams", b"", success=onIndexSuccess, finished=onIndexFinished
+            "GET", url, b"", success=onIndexSuccess, finished=onIndexFinished
         )
         self._indexReplies.append(reply)
 
@@ -422,13 +441,27 @@ class ServerFileManagerModel(FileManagerModel):
             if isinstance(ret, bytes):
                 ret = ret.decode()
             return ret
+        elif attr == "userId":
+            return self._userId
+        else:
+            return super().get(attr)
 
     def set(self, attr, x):
         if attr == "sortBy":
             self.sortByRoleName(x)
             self.prefs.setValue("FileManager/serverSortBy", x.encode())
+        elif attr == "userId":
+            self._userId = x
+            self.update()
         else:
             super().set(attr, x)
+
+    def reset(self, attr):
+        if attr == "userId":
+            self._userId = None
+            self.update()
+        else:
+            super().reset(attr)
 
     def data(self, index, role=Qt.DisplayRole):
         if role == self.DiagramDataRole:
