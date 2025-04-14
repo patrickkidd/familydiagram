@@ -1004,16 +1004,16 @@ class DocumentController(QObject):
                 targetRect = QRect(
                     printRect.x(),
                     printRect.y(),
-                    sourceRect.width() * scale,
-                    sourceRect.height() * scale,
+                    int(sourceRect.width() * scale),
+                    int(sourceRect.height() * scale),
                 )
             else:
                 scale = printRect.height() / sourceRect.height()
                 targetRect = QRect(
                     printRect.x(),
                     printRect.y(),
-                    sourceRect.width() * scale,
-                    sourceRect.height() * scale,
+                    int(sourceRect.width() * scale),
+                    int(sourceRect.height() * scale),
                 )
             p.drawImage(targetRect, image, sourceRect)
             p.end()
