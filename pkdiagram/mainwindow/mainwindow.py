@@ -1420,6 +1420,8 @@ class MainWindow(QMainWindow):
         self.session.trackApp("Close document")
         self.diagramShown = False
         self.setDocument(None)
+        if self.session.hasFeature(vedana.LICENSE_PROFESSIONAL):
+            self.fileManager.show()
         self.documentView.showDiagram()
         self.fileManager.onFileClosed()
         if animated:
