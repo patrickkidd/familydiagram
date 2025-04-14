@@ -48,6 +48,7 @@ from pkdiagram.pyqt import (
     QEvent,
     QKeyEvent,
     QQuickWidget,
+    QWidget,
 )
 from pkdiagram import version, util
 from pkdiagram.server_types import Diagram, HTTPError
@@ -127,16 +128,24 @@ class MainWindow(QMainWindow):
         if util.ENABLE_OPENGL:  # ios should already be OpenGL
             from pkdiagram.pyqt import QOpenGLWidget, QSurfaceFormat
 
+            self.ui.horizontalLayout = None
             self.ui.centralWidget = QOpenGLWidget(self)
             fmt = QSurfaceFormat.defaultFormat()
             fmt.setSamples(util.OPENGL_SAMPLES)
             self.ui.centralWidget.setFormat(fmt)
-            self.ui.centralWidget.setObjectName("centralWidget")
-            self.ui.horizontalLayout = QHBoxLayout(self.ui.centralWidget)
-            self.ui.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-            self.ui.horizontalLayout.setSpacing(6)
-            self.ui.horizontalLayout.setObjectName("horizontalLayout")
+            CentralWidgetLayout = QHBoxLayout(self.ui.centralWidget)
+            CentralWidgetLayout.setContentsMargins(0, 0, 0, 0)
+            CentralWidgetLayout.setSpacing(0)
+            self.centralWidgetContent = QWidget(self.ui.centralWidget)
+            self.centralWidgetContent.setAutoFillBackground(True)
+            CentralWidgetLayout.addWidget(self.centralWidgetContent)
             self.setCentralWidget(self.ui.centralWidget)
+            ContentLayout = QHBoxLayout(self.centralWidgetContent)
+            ContentLayout.setContentsMargins(0, 0, 0, 0)
+            ContentLayout.setSpacing(0)
+        else:
+            # No special background handling needed if not QOpenGLWidget
+            self.centralWidgetContent = self.centralWidget()
 
         self.ui.actionUndo.setEnabled(False)
         self.ui.actionRedo.setEnabled(False)
@@ -144,7 +153,7 @@ class MainWindow(QMainWindow):
         self.profiler = None
 
         self.scene: Scene = None
-        self.document = None
+        self.document: FDDocument = None
         self.serverFileModel = None
         self.updateReply = None
         self.diagramShown = False
@@ -200,7 +209,7 @@ class MainWindow(QMainWindow):
         self.fileManager.serverFileModel.dataChanged.connect(
             self.onServerFileModelDataChanged
         )
-        self.ui.centralWidget.layout().addWidget(self.fileManager)
+        self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
 
@@ -318,6 +327,8 @@ class MainWindow(QMainWindow):
         ## File Manager View
 
         self.fileManager.init()
+        if not self.session.isLoggedIn():
+            self.fileManager.hide()
         self.serverFileModel = self.fileManager.serverFileModel
         self.serverPollTimer = QTimer(self)
         self.serverPollTimer.setInterval(self.OPEN_DIAGRAM_SYNC_MS)
@@ -936,11 +947,11 @@ class MainWindow(QMainWindow):
 
     def openFreeLicenseDiagram(self):
         if self.session.hasFeature(vedana.LICENSE_FREE):
+            self.fileManager.hide()
             diagram = self.serverFileModel.findDiagram(
                 self.session.user.free_diagram_id
             )
             if diagram:
-                row = self.serverFileModel.rowForDiagramId(diagram.id)
                 fpath = self.serverFileModel.pathForDiagram(diagram)
                 self.onServerFileClicked(fpath, diagram)
             elif not diagram:
@@ -949,6 +960,17 @@ class MainWindow(QMainWindow):
                     "Must connect to internet and log in",
                     self.S_NO_FREE_DIAGRAM_NO_SERVER,
                 )
+
+    def isFreeDiagramOpen(self) -> bool:
+        if self.session.hasFeature(vedana.LICENSE_FREE):
+            diagram = self.serverFileModel.findDiagram(
+                self.session.user.free_diagram_id
+            )
+            if diagram:
+                fpath = self.serverFileModel.pathForDiagram(diagram)
+                if fpath == self.document.url().toLocalFile():
+                    return True
+        return False
 
     def openLastFile(self):
         lastFileWasOpen = self.prefs.value(
@@ -1397,7 +1419,6 @@ class MainWindow(QMainWindow):
         self.diagramShown = False
         self.setDocument(None)
         self.documentView.showDiagram()
-        self.fileManager.show()
         self.fileManager.onFileClosed()
         if animated:
             self.viewAnimation.setStartValue(QPoint(self.documentView.x(), 0))
@@ -1562,6 +1583,9 @@ class MainWindow(QMainWindow):
         p = self.palette()
         p.setColor(QPalette.Window, util.WINDOW_BG)
         self.setPalette(p)
+        self.centralWidgetContent.setStyleSheet(
+            f"background-color: {util.QML_WINDOW_BG};"
+        )
         if self.scene:
             self.scene.updateAll()
 

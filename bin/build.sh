@@ -14,6 +14,67 @@ ROOT=`cd "$BIN/.."; pwd`
 
 export PYTHONPATH=`pwd`/lib/site-packages
 
+if [[ $TARGET == osxxw* ]]; then
+    SYSROOT=$ROOT/sysroot/sysroot-macos-64
+elif [[ $TARGET == ios* ]]; then
+    SYSROOT=$ROOT/sysroot/sysroot-ios-64
+    export PATH="${ROOT}/../lib/Qt/5.15.2/ios/bin":$PATH
+else
+    echo "PKS Unknown target: $TARGET"
+    exit 1
+fi
+
+
+## Apple common
+
+# export CI=1 # prevent xcode from prompting anything?
+
+# rm -rf build/osx # emphemeral
+
+# if [ "$(which qmake)" == "" ]; then
+#     QMAKE=$SYSROOT/Qt/bin/qmake
+# else
+#     QMAKE=$(which qmake)
+# fi
+QMAKE=$SYSROOT/Qt/bin/qmake
+# PYTHON_VERSION=`python3 -c "import platform; print(platform.python_version())"`
+FAMILYDIAGRAM_VERSION=`python3 -m pkdiagram --version`
+if echo "$FAMILYDIAGRAM_VERSION" | grep -q "a"; then
+    echo "PKS Alpha version detected"
+    QT_EXTRA_CONFIG="CONFIG+=alpha"
+elif echo "$FAMILYDIAGRAM_VERSION" | grep -q "b"; then
+    echo "PKS Beta version detected"
+    QT_EXTRA_CONFIG="CONFIG+=beta"
+else
+    echo "PKS Full release version detected"
+fi
+echo "PEPPER = b\"$FD_BUILD_PEPPER\"" > pkdiagram/pepper.py
+
+echo "PKS Updating app pepper and version"
+if [ ! -f pkdiagram/build_uuid.py ] || \
+    [ pkdiagram/version.py -nt bin/update_build_info.py ] || \
+    [ pkdiagram/version.py -nt build/osx-config/Info.plist.py ] || \
+    [ pkdiagram/version.py -nt build/ios-config/Info.plist.py ]; then
+    python3 bin/update_build_info.py
+else
+    echo "PKS version and pepper are up to date"
+fi
+
+echo "PKS Generating _pkdiagram sources"
+(
+    set -e
+    cd _pkdiagram
+    sip-build --no-compile
+    moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+    moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+)
+
+rsync -avzq build/common-config/* build/osx
+rsync -avzq build/osx-config/* build/osx
+rsync -avzq build/ios-config/* build/osx
+
+
+# rsync -avzq resources/* build/osx/resources/resources
 
 
 if [[ $TARGET = osx* ]]; then

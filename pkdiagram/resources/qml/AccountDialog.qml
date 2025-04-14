@@ -68,6 +68,7 @@ Page {
     //
     /////////////////////////////////////////////////
 
+    Component.onCompleted: root.updateFromSession()
 
     Connections {
         target: root
@@ -84,104 +85,8 @@ Page {
     Connections {
         target: session
 
-        function onChanged(newFeatures, oldFeatures) {
-
-            if(newFeatures) {
-                root.activeFeatures = newFeatures
-            } else {
-                root.activeFeatures = []
-            }
-
-            //
-            // Licenses
-            //
-
-            function mockActivation() {
-                return {
-                    machine: {
-                        code: 'f2171278-e3a6-4a72-826a-ccb21209138e',
-                        name: '<AVAILABLE>',
-                    },
-                    updated_at: null,
-                    _mock: true
-                }
-            }
-
-            var sessionData = session.data()
-
-            // 1. Called on init when MainWindow pulls it from AppConfig.
-            // 2. Retrieves. 
-            var userLicenses = (sessionData && sessionData.session && sessionData.session.user) ? sessionData.session.user.licenses : []
-
-            // add all placeholder activations
-            for(var i=0; i < userLicenses.length; i++) {
-                var license = userLicenses[i];
-                for(var j=license.activations.length; j < license.policy.maxActivations; j++) {
-                    license.activations.push(mockActivation());
-                }
-            }
-
-            var grouped = { active: [], inactive: [], expired: [], mock: [] };
-            for(var i=0; i < userLicenses.length; i++) {
-                var x = userLicenses[i];
-                if(x._mock) { grouped.mock.push(x); continue }
-                if(x.active) { grouped.active.push(x); continue }
-                if(!x.active && !x.expired) { grouped.inactive.push(x); continue }
-                if(x.expired) { grouped.expired.push(x); continue }
-            }
-            userLicenses = grouped.active.concat(grouped.inactive).concat(grouped.mock).concat(grouped.expired)
-            root.userLicenses = null
-            root.userLicenses = userLicenses
-            root.publicPolicies = null
-            root.publicPolicies = (sessionData && sessionData.policies) ? sessionData.policies : null
-
-            //
-            // UI
-            //
-
-            if(session.isLoggedIn()) {
-
-                var sessionData = session.data()
-                var user = sessionData.session.user
-
-                if((user && user.licenses.length > 0) || util.IS_IOS) { // can't sell anything on iOS
-                    slideView.currentIndex = 2
-                } else {
-                    slideView.currentIndex = 1
-                }
-                authPage.enabled = true
-                creditCardForm.submitting = false // why not?
-                var args = {
-                    session: session.token,
-                }
-                // first get name from account
-                Global.server(util, session, 'GET', '/machines/' + util.HARDWARE_UUID, args, function(response) {
-                    if(response.status_code === 200) {
-                        machineNameField.text = response.data.name
-                    } else if(response.status_code == 404) {
-                        var args = {
-                            session: session.token,
-                            name: util.MACHINE_NAME
-                        }
-                        // create if doesn't exist
-                        Global.server(util, session, 'POST', '/machines/' + util.HARDWARE_UUID, args, function(response) {
-                            if(response.status_code === 200) {
-                                machineNameField.text = util.MACHINE_NAME
-                            } else {
-                                debug("Error creating machine entry on server.")
-                            }
-                        })
-                    }
-                })                
-
-            } else {
-
-                // Logged out
-
-                slideView.currentIndex = 0
-                authPage.enabled = true
-                authForm.reset()
-            }
+        function onChanged() {
+            root.updateFromSession()
         }
         function onLoginFailed() {
             authErrorMessage.text = 'Login failed'
@@ -191,6 +96,106 @@ Page {
         function onLogoutFailed() {
             authPage.enabled = true
         }
+    }
+
+    function updateFromSession() {
+
+        if(session.activeFeatures()) {
+            root.activeFeatures = session.activeFeatures()
+        } else {
+            root.activeFeatures = []
+        }
+
+        //
+        // Licenses
+        //
+
+        function mockActivation() {
+            return {
+                machine: {
+                    code: 'f2171278-e3a6-4a72-826a-ccb21209138e',
+                    name: '<AVAILABLE>',
+                },
+                updated_at: null,
+                _mock: true
+            }
+        }
+
+        var sessionData = session.data()
+
+        // 1. Called on init when MainWindow pulls it from AppConfig.
+        // 2. Retrieves. 
+        var userLicenses = (sessionData && sessionData.session && sessionData.session.user) ? sessionData.session.user.licenses : []
+
+        // add all placeholder activations
+        for(var i=0; i < userLicenses.length; i++) {
+            var license = userLicenses[i];
+            for(var j=license.activations.length; j < license.policy.maxActivations; j++) {
+                license.activations.push(mockActivation());
+            }
+        }
+
+        var grouped = { active: [], inactive: [], expired: [], mock: [] };
+        for(var i=0; i < userLicenses.length; i++) {
+            var x = userLicenses[i];
+            if(x._mock) { grouped.mock.push(x); continue }
+            if(x.active) { grouped.active.push(x); continue }
+            if(!x.active && !x.expired) { grouped.inactive.push(x); continue }
+            if(x.expired) { grouped.expired.push(x); continue }
+        }
+        userLicenses = grouped.active.concat(grouped.inactive).concat(grouped.mock).concat(grouped.expired)
+        root.userLicenses = null
+        root.userLicenses = userLicenses
+        root.publicPolicies = null
+        root.publicPolicies = (sessionData && sessionData.policies) ? sessionData.policies : null
+
+        //
+        // UI
+        //
+
+        if(session.isLoggedIn()) {
+
+            var sessionData = session.data()
+            var user = sessionData.session.user
+
+            if((user && user.licenses.length > 0) || util.IS_IOS) { // can't sell anything on iOS
+                slideView.currentIndex = 2
+            } else {
+                slideView.currentIndex = 1
+            }
+            authPage.enabled = true
+            creditCardForm.submitting = false // why not?
+            var args = {
+                session: session.token,
+            }
+            // first get name from account
+            Global.server(util, session, 'GET', '/machines/' + util.HARDWARE_UUID, args, function(response) {
+                if(response.status_code === 200) {
+                    machineNameField.text = response.data.name
+                } else if(response.status_code == 404) {
+                    var args = {
+                        session: session.token,
+                        name: util.MACHINE_NAME
+                    }
+                    // create if doesn't exist
+                    Global.server(util, session, 'POST', '/machines/' + util.HARDWARE_UUID, args, function(response) {
+                        if(response.status_code === 200) {
+                            machineNameField.text = util.MACHINE_NAME
+                        } else {
+                            debug("Error creating machine entry on server.")
+                        }
+                    })
+                }
+            })                
+
+        } else {
+
+            // Logged out
+
+            slideView.currentIndex = 0
+            authPage.enabled = true
+            authForm.reset()
+        }        
     }
 
     function cancelLicense(license) {
@@ -1191,10 +1196,13 @@ Page {
                             palette.base: acceptableInput ? greenColor : defaultBackgroundColor
                             maximumLength: 4
                             placeholderText: 'CVC'
-                            validator: IntValidator {
-                                bottom: 100
-                                top: 9999
+                            validator: RegExpValidator {
+                                regExp: /^[0-9]{3,4}$/
                             }
+                            // validator: IntValidator {
+                            //     bottom: 100
+                            //     top: 9999
+                            // }
                             // validator: IntValidator {
                             //     bottom: 0
                             //     top: 999
