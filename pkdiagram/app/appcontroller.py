@@ -261,6 +261,7 @@ class AppController(QObject):
             elif self.session.hasFeature(
                 vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA
             ):
+                self.mw.fileManager.show()
                 if vedana.any_license_match(oldFeatures, [vedana.LICENSE_FREE]):
                     if not self.session.isInitializing():
                         QMessageBox.information(
@@ -276,6 +277,7 @@ class AppController(QObject):
         else:
             # When the user logs out, already promted to confirm via Qml.
             self.appConfig.delete("lastSessionData")
+            self.mw.fileManager.hide()
         self.appConfig.write()
 
         if self.mw:

@@ -6,7 +6,6 @@ class AccountDialog(Dialog, QmlWidgetHelper):
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)
-        self._sizeHint = QSize()
         self.initQmlWidgetHelper(engine, "qml/AccountDialog.qml")
         self._sizeHint = QSize()
 
@@ -23,8 +22,8 @@ class AccountDialog(Dialog, QmlWidgetHelper):
         self.resize(self.sizeHint())
 
     def show(self):
-        super().show()
         self.checkInitQml()
+        super().show()
 
     def sizeHint(self):
         return self._sizeHint

@@ -13,19 +13,17 @@ pytestmark = [
 
 
 @pytest.mark.parametrize("is_server_down", [True, False])
-def test_show_account_when_no_session_no_license(
-    create_ac_mw, server_down, is_server_down
-):
+def test_init_not_logged_in(create_ac_mw, server_down, is_server_down):
     with server_down(is_server_down):
         ac, mw = create_ac_mw(session=False)
         assert mw.session.activeFeatures() == []
+        assert mw.fileManager.isVisible() == False
         assert mw.accountDialog.isShown() == True
+        assert mw.isFreeDiagramOpen() == False
 
 
 @pytest.mark.parametrize("is_server_down", [True, False])
-def test_dont_show_account_with_session_free_license(
-    qtbot, create_ac_mw, server_down, is_server_down
-):
+def test_init_with_free_license(qtbot, create_ac_mw, server_down, is_server_down):
     with server_down(is_server_down):
         ac, mw = create_ac_mw(init=False)
         if is_server_down:
@@ -37,6 +35,7 @@ def test_dont_show_account_with_session_free_license(
             ac._pre_event_loop(mw)
         assert mw.session.activeFeatures() == [vedana.LICENSE_FREE]
         assert mw.accountDialog.isShown() == False
+        assert mw.isFreeDiagramOpen() == (not is_server_down)  # just when not cached
 
 
 @pytest.mark.parametrize("is_server_down", [True, False])
@@ -69,6 +68,7 @@ def test_logout(
         assert changed.wait() == True
         assert mw.accountDialog.isShown() == True
         assert mw.session.activeFeatures() == []
+        assert mw.fileManager.isVisible() == False
 
 
 def test_dont_logout_when_show_account_with_session_pro_license(
