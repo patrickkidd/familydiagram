@@ -1,4 +1,26 @@
-from pkdiagram.pyqt import *
+from pkdiagram.pyqt import (
+    pyqtSignal,
+    Qt,
+    QTabWidget,
+    QTabBar,
+    QStatusBar,
+    QPlainTextEdit,
+    QStyleOption,
+    QSize,
+    QPainter,
+    QColor,
+    QRect,
+    QPen,
+    QUndoView,
+    QTableView,
+    QListView,
+    QListWidget,
+    QTableWidget,
+    QMimeData,
+    QUrl,
+    QWidget,
+    QStyle,
+)
 from pkdiagram import util
 
 
