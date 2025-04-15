@@ -144,7 +144,7 @@ class Jig:
                 #     showPoint(path, middle, "middle" + str(i))
                 break
             i += 1
-            if i > 350:
+            if i > 450:
                 log.warning("Prevented infinite loop")
                 break
         return points
