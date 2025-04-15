@@ -226,6 +226,40 @@ class NetworkReply(QNetworkReply):
             return QByteArray(b"")
 
 
+from typing import Union
+from dataclasses import dataclass
+
+from werkzeug.wrappers import Response
+
+
+@dataclass
+class MockedResponse:
+    resource: str
+    response: Response
+    method: str = "GET"
+
+
+_mockedFlaskResponsesStack: list[list[MockedResponse]] = []
+
+
+@pytest.fixture
+def server_response():
+
+    @contextlib.contextmanager
+    def _server_response(
+        resource, method: str = None, status_code: int = 200, body: bytes = b""
+    ):
+        _mockedFlaskResponsesStack.append(
+            MockedResponse(
+                resource=resource, method=method, response=Response(body, status_code)
+            )
+        )
+        yield
+        _mockedFlaskResponsesStack.pop()
+
+    return _server_response
+
+
 def _sendCustomRequest(
     request, verb, data=b"", client=None, noconnect=False, status_code=None
 ):
@@ -236,19 +270,27 @@ def _sendCustomRequest(
         key = bytes(name).decode("utf-8")
         value = bytes(request.rawHeader(name)).decode("utf-8")
         headers.append((key, value))
-    query_string = None
-    if request.url().hasQuery():
-        query_string = request.url().query()
     # method = request.attribute(QNetworkRequest.CustomVerbAttribute).decode('utf-8')
     # send
     if not noconnect and status_code is None:
-        response = flask.testing.FlaskClient.open(
-            client,
-            request.url().path(),
-            method=verb.decode("utf-8"),
-            headers=headers,
-            data=data,
-        )
+        if request.url().query():
+            resource = request.url().path() + "?" + request.url().query()
+        else:
+            resource = request.url().path()
+
+        response = None
+        for mapping in _mockedFlaskResponsesStack:
+            if mapping.resource == resource:
+                response = mapping.response
+                break
+        if not response:
+            response = flask.testing.FlaskClient.open(
+                client,
+                resource,
+                method=verb.decode("utf-8"),
+                headers=headers,
+                data=data,
+            )
 
     reply = NetworkReply()
     reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
@@ -362,14 +404,18 @@ def prefs(request, tmp_path):
                 CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
             )
         )
-        stack.enter_context(
-            mock.patch.object(
-                flask_bcrypt, "generate_password_hash", return_value=b"1234"
+        use_bcrypt = request.node.get_closest_marker("use_bcrypt")
+        if use_bcrypt is None:
+            stack.enter_context(
+                mock.patch.object(
+                    flask_bcrypt, "generate_password_hash", return_value=b"1234"
+                )
             )
-        )
-        stack.enter_context(
-            mock.patch.object(flask_bcrypt, "check_password_hash", return_value=True)
-        )
+            stack.enter_context(
+                mock.patch.object(
+                    flask_bcrypt, "check_password_hash", return_value=True
+                )
+            )
         yield prefs
 
 

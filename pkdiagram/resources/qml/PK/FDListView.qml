@@ -61,8 +61,10 @@ ListView {
         property bool current: ListView.isCurrentItem || mouseArea.containsPress
         property bool alternate: index % 2 == 1
         property color textColor: util.textColor(selected, current)
-        property bool isFileItem: true // for testing
+        property bool isFileItem: true
         property string dPath: path
+        property string dName: name
+
         function onClicked() {
             if(!editMode) {
                 root.currentIndex = index

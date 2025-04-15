@@ -1,4 +1,5 @@
 import os.path
+import pickle
 
 import pytest
 import mock
@@ -10,6 +11,7 @@ from pkdiagram import util
 from pkdiagram.mainwindow import FileManager
 
 from fdserver.extensions import db
+from fdserver.models import Diagram
 
 
 @pytest.fixture
@@ -131,6 +133,45 @@ def test_server_filter_owner(
 
     fm.keyClicks("serverSearchBar.searchBox", "patrickkidd+unittest+2@gmail.com")
     assert serverFileModel.rowCount() == len(test_user_diagrams) / 2
+
+
+def test_diagrams_get_others_diagrams(
+    flask_app, server_response, test_user, test_user_2, create_fm
+):
+    test_user.roles = "admin"
+    diagram_1 = Diagram(
+        data=pickle.dumps({}), name="first diagram", user_id=test_user_2.id
+    )
+    diagram_2 = Diagram(
+        data=pickle.dumps({}), name="second diagram", user_id=test_user_2.id
+    )
+    db.session.add_all([diagram_1, diagram_2])
+    db.session.commit()
+
+    fm = create_fm()
+    userIdEdit = fm.rootProp("userIdEdit")
+    serverFileList = fm.rootProp("serverFileList")
+    model = serverFileList.property("model")
+
+    with server_response(
+        f"/v1/diagrams?user_id={test_user_2.id}",
+        method="GET",
+        body=pickle.dumps(
+            [
+                diagram_1.as_dict(exclude="data", include="saved_at"),
+                diagram_2.as_dict(exclude="data", include="saved_at"),
+            ]
+        ),
+    ):
+
+        fm.mouseClick("tabBar.serverViewButton")
+        fm.keyClicksItem(userIdEdit, str(test_user_2.id))
+    assert util.wait(model.updateFinished) == True
+    assert serverFileList.property("count") == 3
+    delegates = serverFileList.property("itemDelegates").toVariant()
+    assert delegates[0].property("dName") == "Free Diagram"
+    assert delegates[1].property("dName") == diagram_1.name
+    assert delegates[2].property("dName") == diagram_2.name
 
 
 def test_server_doesnt_init_in_edit_mode_admin_user(

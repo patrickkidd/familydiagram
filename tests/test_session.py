@@ -118,6 +118,17 @@ def test_login_with_username_password(test_user, analytics):
     assert session.isLoggedIn() == True
 
 
+@pytest.mark.use_bcrypt
+def test_login_incorrect_password(test_user, analytics):
+    session = Session(analytics)
+    changed = util.Condition(session.changed)
+    session.init()
+    changed.wait()
+    changed.reset()
+    session.login(username=test_user.username, password="some-wrong pw")
+    assert session.isLoggedIn() == False
+
+
 def test_login_expired_session(test_session, analytics):
     sessionData = test_session.account_editor_dict()
     sessionData["session"]["token"] = "something-expired"

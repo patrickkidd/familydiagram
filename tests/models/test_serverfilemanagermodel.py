@@ -35,7 +35,7 @@ def create_model(request):
 
         model.init()
         model.setSession(_session)
-        assert util.wait(model.updateFinished)
+        assert util.wait(model.updateFinished) == True
 
         created.append(model)
         return model
@@ -60,32 +60,25 @@ def test_get_index(test_user_diagrams, test_user, create_model):
 
     db.session.add_all((test_user, *test_user_diagrams))
     _grant_ro_access(test_user_diagrams, test_user)
-    diagrams = Diagram.query.all()
     model.update()
     assert util.Condition(model.updateFinished).wait()
     assert model.rowCount() == len(test_user_diagrams) + 1
-    # assert model.data(model.index(0, 0), model.IDRole) == diagrams[0].id
-    # assert model.data(model.index(1, 0), model.IDRole) == diagrams[1].id
-    # assert model.data(model.index(2, 0), model.IDRole) == diagrams[2].id
-    # assert model.data(model.index(3, 0), model.IDRole) == diagrams[3].id
-    # assert model.data(model.index(4, 0), model.IDRole) == diagrams[4].id
-    # assert model.data(model.index(5, 0), model.IDRole) == diagrams[5].id
-    # assert model.data(model.index(6, 0), model.IDRole) == diagrams[6].id
-    # assert model.data(model.index(7, 0), model.IDRole) == diagrams[7].id
-    # assert model.data(model.index(8, 0), model.IDRole) == diagrams[8].id
-    # assert model.data(model.index(9, 0), model.IDRole) == diagrams[9].id
-    # assert model.data(model.index(0, 0), model.IDRole) == test_user.free_diagram.id
-    # assert model.data(model.index(0, 0), model.OwnerRole) == diagrams[0].user.username
-    # assert model.data(model.index(1, 0), model.OwnerRole) == diagrams[1].user.username
-    # assert model.data(model.index(2, 0), model.OwnerRole) == diagrams[2].user.username
-    # assert model.data(model.index(3, 0), model.OwnerRole) == diagrams[3].user.username
-    # assert model.data(model.index(4, 0), model.OwnerRole) == diagrams[4].user.username
-    # assert model.data(model.index(5, 0), model.OwnerRole) == diagrams[5].user.username
-    # assert model.data(model.index(6, 0), model.OwnerRole) == diagrams[6].user.username
-    # assert model.data(model.index(7, 0), model.OwnerRole) == diagrams[7].user.username
-    # assert model.data(model.index(8, 0), model.OwnerRole) == diagrams[8].user.username
-    # assert model.data(model.index(9, 0), model.OwnerRole) == diagrams[9].user.username
-    # assert model.data(model.index(10, 0), model.OwnerRole) == test_user.free_diagram.user.username
+
+
+def test_get_index_other_user(test_user, test_user_2, create_model):
+    test_user.roles = "admin"
+    diagram_1 = Diagram(data=pickle.dumps({}), user_id=test_user_2.id)
+    diagram_2 = Diagram(data=pickle.dumps({}), user_id=test_user_2.id)
+    db.session.add_all([diagram_1, diagram_2])
+    db.session.commit()
+
+    model = create_model()
+
+    model.userId = str(test_user_2.id)
+    assert model.userId == str(test_user_2.id)
+    updateFinished = util.Condition(model.updateFinished)
+    assert updateFinished.wait() == True
+    assert model.rowCount() == 2
 
 
 def test_disk_cache(test_user, test_user_diagrams, create_model):
