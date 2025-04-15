@@ -14,7 +14,7 @@ ROOT=`cd "$BIN/.."; pwd`
 
 export PYTHONPATH=`pwd`/lib/site-packages
 
-if [[ $TARGET == osxxw* ]]; then
+if [[ $TARGET == osx* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-macos-64
 elif [[ $TARGET == ios* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-ios-64

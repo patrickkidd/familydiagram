@@ -467,6 +467,8 @@ class Session(QObject, QObjectHelper):
             status = DatadogLogStatus.Error
         elif record.levelno == logging.WARNING:
             status = DatadogLogStatus.Warning
+        elif record.levelno == logging.INFO:
+            status = DatadogLogStatus.Info
         elif record.levelno == logging.DEBUG:
             status = DatadogLogStatus.Debug
         else:
