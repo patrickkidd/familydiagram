@@ -17,7 +17,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import User, License, Server, HTTPError
-from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus
+from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus, DatadogFDType
 
 
 log = logging.getLogger(__name__)
@@ -443,11 +443,42 @@ class Session(QObject, QObjectHelper):
             properties = {}
         self._analytics.send(
             DatadogLog(
+                fdtype=DatadogFDType.Action,
                 message=eventName,
                 user=properties.get("user", self._user),
                 status=DatadogLogStatus.Info,
                 session_id=session_id,
                 time=time.time(),
+            )
+        )
+
+    def handleLog(self, record: logging.LogRecord):
+        """
+        Handle logging from the main thread.
+        """
+        if not self._analytics:
+            # log.warning("Analytics not initialized on Session object.")
+            return
+
+        session_id = self._data["session"]["id"] if self._data else None
+        if record.levelno == logging.CRITICAL:
+            status = DatadogLogStatus.Critical
+        elif record.levelno == logging.ERROR:
+            status = DatadogLogStatus.Error
+        elif record.levelno == logging.WARNING:
+            status = DatadogLogStatus.Warning
+        elif record.levelno == logging.DEBUG:
+            status = DatadogLogStatus.Debug
+        else:
+            raise ValueError(f"Unknown python logging level: {record.levelno}")
+        self._analytics.send(
+            DatadogLog(
+                fdtype=DatadogFDType.Log,
+                message=record.getMessage(),
+                time=time.time(),
+                user=self._user,
+                status=status,
+                session_id=session_id,
             )
         )
 

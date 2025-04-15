@@ -163,7 +163,6 @@ def test_datadog_send_logs_api(analytics, user):
             "platform": "platform-123",
             "date": time_2_iso8601(123),
             "host": "",
-            "log_txt": "",
             "service": "desktop",
             "status": "info",
             "session_id": None,
@@ -176,6 +175,7 @@ def test_datadog_send_logs_api(analytics, user):
             },
             "device": "os_uname",
             "version": version.VERSION,
+            "fdtype": "log",
         }
     ]
 

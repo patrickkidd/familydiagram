@@ -25,18 +25,27 @@ log = logging.getLogger(__name__)
 
 
 class DatadogLogStatus(enum.Enum):
-    Info = "info"
+    Critical = "critical"
     Error = "error"
+    Warning = "warning"
+    Info = "info"
+    Debug = "debug"
+
+
+class DatadogFDType(enum.Enum):
+    Action = "action"
+    Log = "log"
 
 
 @dataclass
 class DatadogLog:
     time: float
     message: str
-    status: DatadogLogStatus
+    status: DatadogLogStatus = DatadogLogStatus.Info
     user: User = None
     session_id: str = None
     log_txt: str = ""
+    fdtype: DatadogFDType = DatadogFDType.Log
 
 
 def time_2_iso8601(x: float) -> str:
@@ -189,6 +198,7 @@ class Analytics(QObject):
                     "date": time_2_iso8601(x.time),
                     "message": x.message,
                     "status": x.status.value,
+                    "fdtype": x.fdtype.value,
                     "user": (
                         {
                             "id": x.user.id,
@@ -208,7 +218,7 @@ class Analytics(QObject):
                     "device": os.uname(),
                     "platform": sys.platform,
                     "version": version.VERSION,
-                    "log_txt": x.log_txt,
+                    # "log_txt": x.log_txt,
                 }
                 for x in chunk
             ]
@@ -253,6 +263,8 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
+        if util.IS_DEV and not util.IS_TEST:
+            return
         if not self._enabled:
             return
         self._logQueue.append(item)
