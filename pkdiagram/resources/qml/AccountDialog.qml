@@ -59,6 +59,8 @@ Page {
         // print(s)
     }
 
+    Component.onCompleted: root.updateFromSession()
+
     // for tests only
     Component.onDestruction: Global.deinit()
 
@@ -67,8 +69,6 @@ Page {
     //  Verbs
     //
     /////////////////////////////////////////////////
-
-    Component.onCompleted: root.updateFromSession()
 
     Connections {
         target: root
@@ -186,7 +186,7 @@ Page {
                         }
                     })
                 }
-            })                
+            })
 
         } else {
 

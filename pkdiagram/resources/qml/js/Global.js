@@ -146,7 +146,7 @@ var _serverRequests = {}
 
 function server(util, session, method, path, data, callback) {
 
-    function onHTTPFinished(id, response) {        
+    function onHTTPFinished(id, response) {
         var entry = _serverRequests[id];        
         if(!entry) {
             // called multiple times per request; once for each request still in progress
@@ -178,7 +178,7 @@ function server(util, session, method, path, data, callback) {
 }
 
 // for tests because requests were lingering after the QQmlWidget source was
-// cleare, causing reference errors on context properties (e.g. session, util)
+// cleared, causing reference errors on context properties (e.g. session, util)
 function deinit() {
     for (var key in _serverRequests) {
         if (_serverRequests.hasOwnProperty(key)) {

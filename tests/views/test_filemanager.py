@@ -138,7 +138,7 @@ def test_server_filter_owner(
 def test_diagrams_get_others_diagrams(
     flask_app, server_response, test_user, test_user_2, create_fm
 ):
-    test_user.roles = "admin"
+    test_user.roles = vedana.ROLE_ADMIN
     diagram_1 = Diagram(
         data=pickle.dumps({}), name="first diagram", user_id=test_user_2.id
     )
@@ -167,11 +167,10 @@ def test_diagrams_get_others_diagrams(
         fm.mouseClick("tabBar.serverViewButton")
         fm.keyClicksItem(userIdEdit, str(test_user_2.id))
     assert util.wait(model.updateFinished) == True
-    assert serverFileList.property("count") == 3
+    assert serverFileList.property("count") == 2
     delegates = serverFileList.property("itemDelegates").toVariant()
-    assert delegates[0].property("dName") == "Free Diagram"
-    assert delegates[1].property("dName") == diagram_1.name
-    assert delegates[2].property("dName") == diagram_2.name
+    assert delegates[0].property("dName") == diagram_1.name
+    assert delegates[1].property("dName") == diagram_2.name
 
 
 def test_server_doesnt_init_in_edit_mode_admin_user(

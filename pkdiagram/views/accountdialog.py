@@ -1,5 +1,9 @@
+import logging
+
 from pkdiagram.pyqt import Qt, QVBoxLayout, QSize
 from pkdiagram.widgets import Dialog, QmlWidgetHelper
+
+_log = logging.getLogger(__name__)
 
 
 class AccountDialog(Dialog, QmlWidgetHelper):
