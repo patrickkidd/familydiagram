@@ -372,9 +372,18 @@ class Session(QObject, QObjectHelper):
                 self.loginFailed.emit()
                 self.setData(None)
             else:
-                data = pickle.loads(response.body)
-                self.setData(data)
-                self.track("logged_in")
+                # Defesive programming, I think this is succeeding with a 401
+                # for some reason, so just add logging for now.
+                try:
+                    data = pickle.loads(response.body)
+                except Exception as e:
+                    log.error(e, exc_info=True)
+                    self.loginFailed.emit()
+                    self.setData(None)
+                    return
+                else:
+                    self.setData(data)
+                    self.track("logged_in")
 
     @pyqtSlot()
     def logout(self):

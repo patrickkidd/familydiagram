@@ -303,8 +303,10 @@ class Server(QObject):
                 key, value = param.split("=")
                 query.addQueryItem(key, value)
             url.setQuery(query)
+            resource = url.path() + "?" + url.query()
         else:
             url = QUrl(full_url)
+            resource = url.path()
 
         # Do this like AWS
         # http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
@@ -323,9 +325,7 @@ class Server(QObject):
         else:
             user = vedana.ANON_USER
             secret = vedana.ANON_SECRET
-        signature = vedana.sign(
-            secret, verb, content_md5, content_type, date, parts.path
-        )
+        signature = vedana.sign(secret, verb, content_md5, content_type, date, resource)
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
         auth_header = vedana.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))

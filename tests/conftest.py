@@ -404,14 +404,18 @@ def prefs(request, tmp_path):
                 CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
             )
         )
-        stack.enter_context(
-            mock.patch.object(
-                flask_bcrypt, "generate_password_hash", return_value=b"1234"
+        use_bcrypt = request.node.get_closest_marker("use_bcrypt")
+        if use_bcrypt is None:
+            stack.enter_context(
+                mock.patch.object(
+                    flask_bcrypt, "generate_password_hash", return_value=b"1234"
+                )
             )
-        )
-        stack.enter_context(
-            mock.patch.object(flask_bcrypt, "check_password_hash", return_value=True)
-        )
+            stack.enter_context(
+                mock.patch.object(
+                    flask_bcrypt, "check_password_hash", return_value=True
+                )
+            )
         yield prefs
 
 
