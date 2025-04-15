@@ -27,6 +27,11 @@ Rectangle {
     property bool localFilesShown: stack.currentIndex == 0
     property bool canShowServer: session.hash && session.hasFeature(vedana.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
 
+    property var userIdEdit
+    property var mine: 123
+
+    property var serverFileList: serverFileList
+
     // onAdminModeChanged: print('onAdminModeChanged:', adminMode)
 
     Universal.theme: Universal.Light
@@ -271,11 +276,12 @@ Rectangle {
                                         serverFileModel.sortBy = checked ? 'modified' : 'name'
                                     }
                                     font.pixelSize: util.TEXT_FONT_SIZE
+                                    Layout.alignment: Qt.AlignCenter
                                     palette.dark: util.QML_SELECTION_COLOR
                                     palette.midlight: util.QML_CONTROL_BG
                                     palette.windowText: util.QML_ACTIVE_TEXT_COLOR
                                 }
-                                // Rectangle { Layout.fillWidth: true }
+                                Rectangle { Layout.fillWidth: true }
                                 // PK.TextField {
                                 //     id: serverSearchTextEdit
                                 //     objectName: 'serverSearchTextEdit'
@@ -283,7 +289,16 @@ Rectangle {
                                 //     placeholderText: 'Search'
                                 //     onTextChanged: serverFileModel.searchText = text
                                 // }
-                                Rectangle { Layout.fillWidth: true }
+
+                                PK.TextField {
+                                    id: userIdEdit
+                                    visible: adminMode
+                                    placeholderText: 'user id (admin)'
+                                    Layout.alignment: Qt.AlignRight
+                                    Layout.maximumWidth: 350
+                                    Keys.onReturnPressed: serverFileModel.userId = text
+                                    Component.onCompleted: root.userIdEdit = this // WTF???
+                                }
                                 PK.ToolButton {
                                     text: serverFileList.editMode /* serverEditMode */ ? "Done" : "Edit"
                                     visible: root.adminMode
@@ -291,6 +306,7 @@ Rectangle {
                                     // palette.button: 'white'
                                     Layout.maximumWidth: 50
                                     Layout.maximumHeight: parent.height - 1 // don't overlap PK.ToolBar bottom border
+                                    Layout.alignment: Qt.AlignRight
                                     Layout.rightMargin: serverFileList.margins
                                 }
                             }
