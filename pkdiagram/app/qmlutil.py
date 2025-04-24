@@ -179,6 +179,9 @@ class QmlUtil(QObject, QObjectHelper):
         self._httpRequests = []
         self.initQObjectHelper()
 
+    def deinit(self):
+        pass  # mocked in testing
+
     def initColors(self):
         darkLightMode = (
             QApplication.instance()
@@ -470,6 +473,9 @@ class QmlUtil(QObject, QObjectHelper):
                     args.setProperty("user_message", user_message)
                 self.qmlUtil.jsServerHttpFinished.emit(self.jsId, args)
                 self.qmlUtil._httpRequests.remove(self)
+                for request in self.qmlUtil._httpRequests:
+                    if request is self:
+                        self.qmlUtil._httpRequests.remove(request)
 
         self._httpRequests.append(HTTPRequest(self, requestId, reply))
 

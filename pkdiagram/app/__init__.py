@@ -1,4 +1,4 @@
-from .analytics import Analytics, DatadogLog, DatadogLogStatus
+from .analytics import Analytics, DatadogLog, DatadogLogStatus, DatadogFDType
 from .session import Session
 from .qmlutil import QmlUtil
 from .appconfig import AppConfig

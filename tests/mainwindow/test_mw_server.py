@@ -1,4 +1,5 @@
 import os.path, pickle, logging
+import datetime
 
 import pytest
 import mock
@@ -227,6 +228,39 @@ def test_server_diagram_access(
         assert mw.documentView.sceneModel.readOnly == False
     else:
         assert mw.documentView.sceneModel.readOnly == True
+
+
+def test_server_admin_diagram_access_no_rights(
+    test_activation, test_user, test_user_2, create_ac_mw
+):
+    diagram = Diagram(
+        user_id=test_user_2.id,
+        data=pickle.dumps({}),
+        updated_at=datetime.datetime.now(),
+    )
+    db.session.add(diagram)
+    db.session.merge(diagram)
+
+    test_user.roles = vedana.ROLE_ADMIN
+    db.session.add(test_user)
+    db.session.commit()
+    diagram_id = diagram.id
+
+    ac, mw = create_ac_mw()
+    assert util.wait(mw.serverFileModel.updateFinished) == True
+
+    userIdEdit = mw.fileManager.rootProp("userIdEdit")
+    serverFileList = mw.fileManager.rootProp("serverFileList")
+    model = serverFileList.property("model")
+    mw.fileManager.mouseClick("tabBar.serverViewButton")
+    mw.fileManager.keyClicksItem(userIdEdit, str(test_user_2.id))
+    assert util.wait(mw.serverFileModel.updateFinished) == True
+
+    diagram = mw.serverFileModel.findDiagram(diagram_id)
+    fpath = mw.serverFileModel.pathForDiagram(diagram)
+    mw.onServerFileClicked(fpath, diagram)
+    assert mw.documentView.sceneModel.readOnly == True
+    assert mw.ui.actionSave_As.isEnabled() == True
 
 
 @pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])

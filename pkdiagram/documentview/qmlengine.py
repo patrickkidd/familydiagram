@@ -67,6 +67,7 @@ class QmlEngine(QQmlEngine):
         )
 
     def deinit(self):
+        self.util.deinit()
         self.session.deinit()
 
     def setScene(self, scene):

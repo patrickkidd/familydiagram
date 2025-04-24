@@ -71,10 +71,6 @@ def init_logging():
 
 
 def datadog_excepthook(etype, value, tb):
-    """
-    Installing an excepthook prevents a call to abort on exception from PyQt
-    """
-
     if issubclass(etype, KeyboardInterrupt):
         sys.__excepthook__(etype, value, tb)
         return
@@ -96,6 +92,7 @@ def init_app(app: QApplication):
     if sys.excepthook != sys.__excepthook__:
         # already a custom excepthook, so keep it
         _excepthooks.append(sys.excepthook)
+    # Installing an excepthook prevents a call to abort on exception from PyQt
     sys.excepthook = _excepthook
     init_logging()
     if not util.IS_DEV:

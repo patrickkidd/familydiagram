@@ -276,7 +276,7 @@ class ServerFileManagerModel(FileManagerModel):
                 "GET", f"/diagrams/{diagram_id}", statuses=[200, None]
             )
         except HTTPError as e:
-            log.error(
+            log.warning(
                 f"Status code {e.status_code} syncing diagram from server {e.url}."
             )
             return

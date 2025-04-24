@@ -379,7 +379,16 @@ class Person(PathItem):
     def read(self, chunk, byId):
         self.isInit = False
         super().read(chunk, byId)
-        self._layers = [byId(id) for id in self.layers()]
+        # Defensive, also done in onProperty
+        self._layers = []
+        for layerId in self.layers():
+            layer = byId(layerId)
+            if not layer:
+                _log.warning("Person.read: layer not found: %s" % layerId)
+                continue
+            self._layers.append(layer)
+        self.prop("layers").set([x.id for x in self._layers])
+        # self._layers = [byId(id) for id in self.layers()]
         # validate empty strings (maybe do for all properties?)
         if self.name() is not None and not self.name():
             self.setName(None, notify=False)
@@ -861,7 +870,16 @@ class Person(PathItem):
                     emotion.updateGeometry()
         elif prop.name() == "layers":
             if self.scene():
-                self._layers = [self.scene().find(id=x) for x in prop.get()]
+                # Defensive, some layers were disappearing. Emotional Units?
+                self._layers = []
+                for layerId in prop.get():
+                    layer = self.scene().find(id=layerId)
+                    if not layer:
+                        _log.warning(
+                            f"Person.onProperty[layers]: layer not found: {layerId}"
+                        )
+                        continue
+                    self._layers.append(layer)
                 self.onActiveLayersChanged()
             else:
                 self._layers = []
@@ -1277,18 +1295,18 @@ class Person(PathItem):
                 )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
-                    util.VAR_ANXIETY_DOWN,
-                    util.VAR_ANXIETY_SAME,
-                    util.VAR_ANXIETY_UP,
-                ):
-                    continue
-                if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
-                    util.VAR_FUNCTIONING_DOWN,
-                    util.VAR_FUNCTIONING_SAME,
-                    util.VAR_FUNCTIONING_UP,
-                ):
-                    continue
+                # if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
+                #     util.VAR_ANXIETY_DOWN,
+                #     util.VAR_ANXIETY_SAME,
+                #     util.VAR_ANXIETY_UP,
+                # ):
+                #     continue
+                # if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
+                #     util.VAR_FUNCTIONING_DOWN,
+                #     util.VAR_FUNCTIONING_SAME,
+                #     util.VAR_FUNCTIONING_UP,
+                # ):
+                #     continue
                 variableLines.append("%s: %s" % (entry["name"], value))
                 if isChange:
                     alpha = 1.0

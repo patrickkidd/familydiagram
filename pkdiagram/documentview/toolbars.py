@@ -877,7 +877,10 @@ class RightToolBar(ToolBar):
                 #     "pixmap": "family-timeline.png",
                 # },
             ),
-            Separator(objectName="sep1"),
+            Separator(
+                objectName="sep1",
+                visible=self.isNotReadOnly,
+            ),
             PushButton(
                 objectName="timelineButton",
                 pixmap="timeline-button.png",

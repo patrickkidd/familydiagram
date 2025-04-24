@@ -3,6 +3,7 @@ import time
 import contextlib
 import logging
 import tempfile
+import uuid
 from typing import Optional
 
 import pytest, mock
@@ -56,7 +57,7 @@ from pkdiagram.models import ServerFileManagerModel
 from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import QmlEngine
-from pkdiagram.app import Application, AppController, Session as fe_Session
+from pkdiagram.app import Application, AppController, Session as fe_Session, QmlUtil
 
 from fdserver.tests.conftest import *
 from fdserver.models import User
@@ -163,9 +164,14 @@ def pytest_collection_modifyitems(session, config, items):
     items[:] = ordered_items + non_component_items
 
 
+_test_case_name = None
+
+
 def pytest_runtest_setup(item):
     """Skip tests based on component dependency rules if dependencies failed."""
-    global _currentTestItem
+    global _currentTestItem, _test_case_name
+
+    _test_case_name = f"{item.fspath}::{item.name}"
 
     if item.config.dependency_disabled:
         return
@@ -321,11 +327,17 @@ def _sendCustomRequest(
 
     def doFinished():
         # log.info(
-        #     f"<<<<<<<<<<<<<<<<<<<< doFinished: {verb} {reply.request().url().toString()}, status code: {response.status_code}"
+        #     f"<<<<<<<<<<<<<<<<<<<< doFinished: {verb} {reply.request().url().toString()} _test_case_name: {reply._test_case_name}"
         # )
-        reply.finished.emit()
+        if reply._test_case_name == _test_case_name:
+            reply.finished.emit()
+        else:
+            log.warning(
+                f"Skipping reply.finished.emit() Test case name mismatch: {reply._test_case_name} != {_test_case_name}"
+            )
 
-    QTimer.singleShot(10, doFinished)  # after return
+    QTimer.singleShot(1, doFinished)  # after return
+    reply._test_case_name = _test_case_name
     return reply
 
 
@@ -368,6 +380,20 @@ def qApp():
                 util.wait(self.updateFinished, maxMS=2000) == True
             ), f"Did not complete ServerFileManager requests: {self.summarizePendingRequests()}"
 
+    _orig_QmlUtil_deinit = QmlUtil.deinit
+
+    def _QmlUtil_deinit(self):
+        _orig_QmlUtil_deinit(self)
+        if self._httpRequests:
+
+            def _summarize(requests):
+                return ", ".join(x.reply.request().url() for x in requests)
+
+            assert (
+                util.Condition(condition=lambda: self._httpRequests == []).wait()
+                == True
+            ), f"Did not complete QmlUtil requests: {_summarize(self._httpRequests)}"
+
     with contextlib.ExitStack() as stack:
         stack.enter_context(mock.patch.object(Server, "deinit", _Server_deinit))
         stack.enter_context(
@@ -375,6 +401,7 @@ def qApp():
                 ServerFileManagerModel, "deinit", _ServerFileManagerModel_deinit
             )
         )
+        stack.enter_context(mock.patch.object(QmlUtil, "deinit", _QmlUtil_deinit))
         stack.enter_context(
             mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )

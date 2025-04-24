@@ -459,6 +459,7 @@ class DocumentController(QObject):
         isReadOnly = self.scene and self.scene.readOnly()
 
         # License-dependent
+        isAdmin = session.user and session.user.hasRoles(vedana.ROLE_ADMIN)
 
         allActionsEnabled = session.activeFeatures() != []
         for attr, action in self.ui.__dict__.items():
@@ -475,7 +476,7 @@ class DocumentController(QObject):
             bool(
                 self.scene
                 and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT)
-                and not isReadOnly
+                and (isAdmin or not isReadOnly)
             )
         )
         self.ui.actionSave_Selection_As.setEnabled(
