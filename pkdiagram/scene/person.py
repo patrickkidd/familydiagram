@@ -1295,18 +1295,18 @@ class Person(PathItem):
                 )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
-                if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
-                    util.VAR_ANXIETY_DOWN,
-                    util.VAR_ANXIETY_SAME,
-                    util.VAR_ANXIETY_UP,
-                ):
-                    continue
-                if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
-                    util.VAR_FUNCTIONING_DOWN,
-                    util.VAR_FUNCTIONING_SAME,
-                    util.VAR_FUNCTIONING_UP,
-                ):
-                    continue
+                # if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
+                #     util.VAR_ANXIETY_DOWN,
+                #     util.VAR_ANXIETY_SAME,
+                #     util.VAR_ANXIETY_UP,
+                # ):
+                #     continue
+                # if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
+                #     util.VAR_FUNCTIONING_DOWN,
+                #     util.VAR_FUNCTIONING_SAME,
+                #     util.VAR_FUNCTIONING_UP,
+                # ):
+                #     continue
                 variableLines.append("%s: %s" % (entry["name"], value))
                 if isChange:
                     alpha = 1.0
