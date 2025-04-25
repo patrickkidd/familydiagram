@@ -160,7 +160,7 @@ public:
     virtual void dev_crash() const {}
     static void dev_printBacktrace();
     static bool dev_amIBeingDebugged();
-    static void dev_showDebugConsole()
+    static void dev_showDebugConsole();
     static bool isDev();
 
     
