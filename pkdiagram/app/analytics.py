@@ -6,6 +6,7 @@ import logging
 import pickle
 import enum
 import datetime
+import platform
 from typing import Callable
 from dataclasses import dataclass
 
@@ -187,6 +188,7 @@ class Analytics(QObject):
             TAGS = "env:prod"
 
         chunk = self._logQueue[: self.DATADOG_BATCH_MAX]
+        uname = platform.uname()
         try:
             data = [
                 {
@@ -215,7 +217,13 @@ class Analytics(QObject):
                         else None
                     ),
                     "session_id": x.session_id,
-                    "device": os.uname(),
+                    "uname": {
+                        "system": uname.system,
+                        "node": uname.node,
+                        "release": uname.release,
+                        "version": uname.version,
+                        "machine": uname.machine,
+                    },
                     "platform": sys.platform,
                     "version": version.VERSION,
                     # "log_txt": x.log_txt,

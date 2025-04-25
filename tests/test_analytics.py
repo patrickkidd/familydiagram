@@ -145,9 +145,20 @@ def test_datadog_send_logs_api(analytics, user):
         message="some log content", user=user, time=123, status=DatadogLogStatus.Info
     )
 
+    from platform import uname_result
+
     with mock.patch("time.time", return_value=123):
         with mockRequest(200) as sendCustomRequest:
-            with mock.patch("os.uname", return_value="os_uname"):
+            with mock.patch(
+                "platform.uname",
+                return_value=uname_result(
+                    system="Linux",
+                    node="node",
+                    release="release",
+                    version="version",
+                    machine="machine",
+                ),
+            ):
                 with mock.patch.object(sys, "platform", "platform-123"):
                     analytics.send(log)
     assert analytics.numLogsQueued() == 1
@@ -173,7 +184,13 @@ def test_datadog_send_logs_api(analytics, user):
                 "free_diagram_id": None,
                 "licenses": [],
             },
-            "device": "os_uname",
+            "uname": {
+                "system": "Linux",
+                "node": "node",
+                "release": "release",
+                "version": "version",
+                "machine": "machine",
+            },
             "version": version.VERSION,
             "fdtype": "log",
         }
