@@ -673,8 +673,10 @@ bool CUtil::dev_amIBeingDebugged() {
 
 
 void CUtil::dev_showDebugConsole() {
-    #ifdef PK_WIN32_BUILD
-    if (AllocConsole()) {
+    qDebug() << "dev_showDebugConsole 1"
+#ifdef PK_WIN32_BUILD
+    qDebug() << "dev_showDebugConsole PK_WIN32_BUILD"
+if (AllocConsole()) {
         // Redirect stdout/stderr to the new console
         FILE* fp;
         freopen_s(&fp, "CONOUT$", "w", stdout);
@@ -691,5 +693,5 @@ void CUtil::dev_showDebugConsole() {
     } else {
         OutputDebugStringW(L"Failed to attach debug console!\n");
     }
-    #endif
+#endif
 }
