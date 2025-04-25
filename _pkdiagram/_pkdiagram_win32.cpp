@@ -672,7 +672,7 @@ bool CUtil::dev_amIBeingDebugged() {
 }
 
 
-static void CUtil::dev_showDebugConsole() {
+void CUtil::dev_showDebugConsole() {
     #ifdef PK_WIN32_BUILD
     if (AllocConsole()) {
         // Redirect stdout/stderr to the new console
