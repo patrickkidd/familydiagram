@@ -36,6 +36,8 @@ if sys.version_info[1] > 7:
 
 
 def main():
+    import sys  # no idea
+
     parser = OptionParser()
     parser.add_option(
         "-v",
