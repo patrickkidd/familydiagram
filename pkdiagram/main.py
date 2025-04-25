@@ -67,7 +67,7 @@ def main():
         # Allocates a console and redirects stdout/stderr for Windows.
         from _pkdiagram import CUtil
 
-        _log.info("Opening windows debug console...")
+        log.info("Opening windows debug console...")
 
         CUtil.dev_showDebugConsole()
 
