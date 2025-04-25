@@ -63,10 +63,12 @@ def main():
     options, args = parser.parse_args(sys.argv)
     if sys.platform == "win32" and options.windows_console:
         # Allocates a console and redirects stdout/stderr for Windows.
-        import ctypes
+        from _pkdiagram import CUtil
 
-        kernel32 = ctypes.windll.kernel32
-        kernel32.AllocConsole()
+        CUtil.dev_showDebugConsole()
+
+        import sys
+
         # Reopen stdout/stderr in the new console
         sys.stdout = open("CONOUT$", "w")
         sys.stderr = open("CONOUT$", "w")
