@@ -108,6 +108,22 @@
             ]
         },
         {
+            "name": "pyqtdeploy-sysroot (iOS)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "--target",
+                "ios-64",
+                "sysroot/sysroot.toml",
+                "--qmake",
+                "/Users/patrick/dev/lib/Qt/5.15.2/ios/bin/qmake",
+            ]
+        },
+        {
             "name": "pyqtdeploy-build",
             "type": "debugpy",
             "request": "launch",

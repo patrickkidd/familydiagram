@@ -288,14 +288,13 @@ if [[ $TARGET = osx* ]]; then
 
 elif [[ $TARGET = ios* ]]; then
 
-    SYSROOT=`cd "$ROOT/sysroot-ios-64"; pwd`
-    QMAKE=~/dev/Qt/5.15.1/ios/bin/qmake
+    SYSROOT=`cd "$ROOT/sysroot/sysroot-ios-64"; pwd`
 
     if [[ ! -f Makefile ]]; then 
         qmake && make
     fi
 
-	python bin/update_plist_version.py
+	rm -rf build/ios
 
 	pyqtdeploy-build --verbose --resources 4 --target ios-64 --build-dir build/ios familydiagram.pdt
 	sed -e 's/printsupport//' build/ios/Family\ Diagram.pro > build/ios/Family\ Diagram.pro.2
@@ -309,7 +308,7 @@ elif [[ $TARGET = ios* ]]; then
 
 	rsync -avzq build/common-config/* build/ios
 	rsync -avzq build/ios-config/* build/ios
-	cd build/ios && $QMAKE CONFIG+=no_autoqmake
+	cd build/ios && qmake CONFIG+=no_autoqmake
 
     if [[ $TARGET == "ios" ]]; then
 

@@ -1,12 +1,15 @@
 {
 	"folders": [
 		{
+			"name": "familydiagram",
 			"path": "."
 		},
 		{
+			"name": "fdserver",
 			"path": "../fdserver"
 		},
 		{
+			"name": "btcopilot",
 			"path": "../btcopilot"
 		}
 	],
@@ -37,6 +40,10 @@
 		"python.analysis.typeCheckingMode": "off",
 		"files.exclude": {
 			"**/__pycache__": true
-		}
+		},
+		"logViewer.watch": [
+			"/Users/patrick/dev/fdserver/ai_log.txt",
+			"/Users/patrick/dev/fdserver/debug_log.txt"
+		]
 	}
 }
