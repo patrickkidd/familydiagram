@@ -18,6 +18,9 @@
             // "env": {
             //     "FD_LOG_LEVEL": "DEBUG",
             // }
+            "args": [
+                "--windows-console"
+            ]
         },
         {
             "name": "App (prefs: 'free')",

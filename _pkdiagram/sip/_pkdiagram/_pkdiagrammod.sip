@@ -116,6 +116,7 @@ public:
     void dev_crash() const;
     static void dev_printBacktrace();
     static bool dev_amIBeingDebugged();
+    static void dev_showDebugConsole();
     
     static QRect screenSize();
     static Qt::ScreenOrientation screenOrientation();

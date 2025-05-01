@@ -9,6 +9,9 @@
 #include <QMessageBox>
 
 #ifdef Q_OS_WINDOWS
+#include <windows.h>    // For AllocConsole()
+#include <fcntl.h>      // For _open_osfhandle()
+#include <io.h>         // For _fdopen(), write()
 #include <shlwapi.h>
 #include <QMessageBox>
 #include <QtGui/private/qzipreader_p.h>
@@ -668,3 +671,27 @@ bool CUtil::dev_amIBeingDebugged() {
     return false;
 }
 
+
+void CUtil::dev_showDebugConsole() {
+    qDebug() << "dev_showDebugConsole 1";
+#ifdef PK_WIN32_BUILD
+    qDebug() << "dev_showDebugConsole PK_WIN32_BUILD";
+    if (AllocConsole()) {
+        // Redirect stdout/stderr to the new console
+        FILE* fp;
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+        
+        // Also redirect Qt's debug output
+        qInstallMessageHandler([](QtMsgType type, const QMessageLogContext& context, const QString& msg) {
+            QByteArray localMsg = msg.toLocal8Bit();
+            fprintf(stderr, "%s\n", localMsg.constData());
+            fflush(stderr);
+        });
+        
+        qDebug() << "Debug console attached!";
+    } else {
+        OutputDebugStringW(L"Failed to attach debug console!\n");
+    }
+#endif
+}

@@ -36,6 +36,8 @@ if sys.version_info[1] > 7:
 
 
 def main():
+    import sys  # no idea
+
     parser = OptionParser()
     parser.add_option(
         "-v",
@@ -45,6 +47,15 @@ def main():
         help="Print the version",
         default=False,
     )
+    if sys.platform == "win32":
+        parser.add_option(
+            "-c",
+            "--windows-console",
+            dest="windows_console",
+            action="store_true",
+            help="Show the windows app console for troubleshooting",
+            default=False,
+        )
     parser.add_option(
         "-p",
         "--prefs-name",
@@ -52,6 +63,24 @@ def main():
         help="The preferences scope to use when testing",
     )
     options, args = parser.parse_args(sys.argv)
+    if sys.platform == "win32" and options.windows_console:
+        # Allocates a console and redirects stdout/stderr for Windows.
+        from _pkdiagram import CUtil
+
+        log.info("Opening windows debug console...")
+
+        CUtil.dev_showDebugConsole()
+
+        import sys
+
+        # Reopen stdout/stderr in the new console
+        sys.stdout = open("CONOUT$", "w")
+        sys.stderr = open("CONOUT$", "w")
+
+        import atexit
+
+        atexit.register(lambda: input("\nPress Enter to close..."))
+
     if options.version:
 
         # import os.path, importlib
