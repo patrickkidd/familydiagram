@@ -85,7 +85,7 @@ public:
         OS_Unknown =         0x00,
         OS_iPad =            0x02,
         OS_iPhone =          0x04,
-        OS_iPhoneSimulator = 0x08,  // also OSS_iPhone
+        OS_iPhoneSimulator = 0x08,  // also OS_iPhone
         OS_Mac =             0x10,
         OS_Windows =         0x20
     };

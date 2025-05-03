@@ -64,7 +64,7 @@ echo "PKS Generating _pkdiagram sources"
 (
     set -e
     cd _pkdiagram
-    sip-build --no-compile
+    sip-build --no-compile --no-make
     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 )
@@ -294,7 +294,7 @@ elif [[ $TARGET = ios* ]]; then
         qmake && make
     fi
 
-	rm -rf build/ios
+	# rm -rf build/ios
 
 	pyqtdeploy-build --verbose --resources 4 --target ios-64 --build-dir build/ios familydiagram.pdt
 	sed -e 's/printsupport//' build/ios/Family\ Diagram.pro > build/ios/Family\ Diagram.pro.2
@@ -313,7 +313,23 @@ elif [[ $TARGET = ios* ]]; then
     if [[ $TARGET == "ios" ]]; then
 
     	open Family\ Diagram.xcodeproj
-    
+
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -target "Qt Preprocess" \
+            -configuration Release \
+            -UseModernBuildSystem=YES \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig 
+
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -scheme "Family Diagram" \
+            -configuration Release \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig \
+            -UseModernBuildSystem=YES \
+            build
+
+
     elif [[ $TARGET == "osx-build" ]]; then
 
     	# xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination 'platform=iOS Simulator,name=iPhone Xʀ,OS=12.2' build

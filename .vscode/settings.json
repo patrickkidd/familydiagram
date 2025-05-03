@@ -9,6 +9,7 @@
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true
     },
+    "black-formatter.importStrategy": "fromEnvironment",
     // "black-formatter.interpreter": [
     //     ".venv/bin/python"
     // ]

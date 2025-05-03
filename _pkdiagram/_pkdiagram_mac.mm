@@ -2369,3 +2369,6 @@ bool CUtil::dev_amIBeingDebugged() {
     return AmIBeingDebugged();
 }
 
+
+void CUtil::dev_showDebugConsole() {
+}

@@ -44,6 +44,7 @@
 		"logViewer.watch": [
 			"/Users/patrick/dev/fdserver/ai_log.txt",
 			"/Users/patrick/dev/fdserver/debug_log.txt"
-		]
+		],
+		"black-formatter.importStrategy": "fromEnvironment",
 	}
 }

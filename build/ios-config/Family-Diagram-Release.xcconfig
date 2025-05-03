@@ -1,0 +1,24 @@
+#include "Family-Diagram.xcconfig"
+
+GCC_GENERATE_DEBUGGING_SYMBOLS = Yes
+GCC_DEBUGGING_SYMBOLS = full
+DWARF_DSYM_FILE_NAME = $(TARGET_NAME).dSYM
+DWARF_DSYM_FOLDER_PATH = $(CONFIGURATION_BUILD_DIR)
+STRIP_INSTALLED_PRODUCT = No
+DEPLOYMENT_POSTPROCESSING = Yes
+DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING = Yes
+ENABLE_HARDENED_RUNTIME = YES
+
+CODE_SIGN_STYLE = Manual
+// CODE_SIGN_ON_COPY = No
+
+// The certificate to be used
+CODE_SIGN_IDENTITY = Developer ID Application: Patrick Stinson (8KJB799CU7)
+
+// The provisioning profile to be used which should include the certificate from CODE_SIGN_IDENTITY
+PROVISIONING_PROFILE = cd1e72cc-1763-4f58-b46a-3f2714cbdd0f
+
+// // PROVISIONING_PROFILE_SPECIFIER = Family Diagram Distribution
+
+// The development team, which should match the developer ID
+DEVELOPMENT_TEAM = 8KJB799CU7

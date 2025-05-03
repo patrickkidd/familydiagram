@@ -19,7 +19,7 @@
             //     "FD_LOG_LEVEL": "DEBUG",
             // }
             "args": [
-                "--windows-console"
+                // "--windows-console"
             ]
         },
         {
@@ -111,6 +111,24 @@
             ]
         },
         {
+            "name": "pyqtdeploy-sysroot (iPhoneSimulator)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--target",
+                "ios-64",
+                "--force",
+                "--verbose",
+                "sysroot/sysroot.toml"
+            ],
+            "env": {
+                "PK_IPHONE_SIMULATOR": "1",
+            }
+        },
+        {
             "name": "pyqtdeploy-sysroot (iOS)",
             "type": "debugpy",
             "request": "launch",
@@ -121,9 +139,8 @@
                 "--verbose",
                 "--target",
                 "ios-64",
-                "sysroot/sysroot.toml",
-                "--qmake",
-                "/Users/patrick/dev/lib/Qt/5.15.2/ios/bin/qmake",
+                "--force",
+                "sysroot/sysroot.toml"
             ]
         },
         {
@@ -159,6 +176,7 @@
             "type": "debugpy",
             "purpose": "debug-test",
             "justMyCode": false,
+            "skipFiles": [],
             "args": [
                 "-svvx"
             ],

@@ -1,4 +1,8 @@
 import os
+import contextlib
+
+
+from mock import patch
 from pyqtdeploy.sysroot.plugins import Python
 
 
@@ -8,8 +12,6 @@ class PythonComponent(Python.PythonComponent):
         """Add multiprocessing to make."""
         qt = self.get_component("Qt")
 
-        was_ldflags = None
-
         _args = tuple(args)
         if args[0] == self.host_make:
             self.verbose("Adding args for concurrent build.")
@@ -17,31 +19,31 @@ class PythonComponent(Python.PythonComponent):
                 os.environ["CL"] = "/MP"
             else:
                 _args += ("-j16",)
-            if self.target_arch_name == "ios-64":
-                if "LDFLAGS" in os.environ:
-                    was_ldflags = os.environ["LDFLAGS"]
-                os.environ["LDFLAGS"] = os.environ["LDFLAGS"] + " -framework Security"
 
         elif args[0] == qt.host_qmake and self.target_arch_name == "macos-64":
             _args += ("QMAKE_CFLAGS=-Wno-implicit-function-declaration",)
         #     self.verbose('*********** Adding args for debug build.')
         #     _args += ('CONFIG+=debug', 'QMAKE_CFLAGS=-g')
-        elif args[0] == qt.host_qmake and self.target_arch_name == "ios-64":
-            _args += ("QMAKE_CFLAGS += -UHAVE_CHROOT -UHAVE_SENDFILE",)
-        ret = super().run(*_args, capture=capture)
 
-        if was_ldflags is not None:
-            # Prevent from propagating to all components beyond just python
-            os.environ["LDFLAGS"] = was_ldflags
+        with contextlib.ExitStack() as stack:
+            if args[0] == self.host_make and self.target_arch_name == "ios-64":
+                stack.enter_context(
+                    patch.dict(
+                        os.environ,
+                        {"LDFLAGS": os.environ["LDFLAGS"] + " -framework Security"},
+                    )
+                )
+            ret = super().run(*_args, capture=capture)
 
         return ret
 
     def unpack_archive(self, archive, chdir=True):
         archive_root = super().unpack_archive(archive, chdir)
 
+        self.patch_file("Python/bootstrap_hash.c", self._patch_boostrap_hash)
         if self.target_platform_name == "ios":
-            self.patch_file("Python/bootstrap_hash.c", self._patch_boostrap_hash)
-        # shutil.copyfile(
+            self.patch_file("Modules/posixmodule.c", self._patch_posixmodule_ios)
+            # shutil.copyfile(
         #     "../../../toolchain-macos-13.prf",
         #     "qtbase/mkspecs/features/toolchain.prf",
         # )
@@ -60,5 +62,25 @@ class PythonComponent(Python.PythonComponent):
             ).replace(
                 "getentropy(buffer, len)",
                 "SecRandomCopyBytes(kSecRandomDefault, size, buffer) == errSecSuccess ? 0 : -1",
+            )
+        )
+
+    # @staticmethod
+    # def _patch_posixmodule__arm64(line, patch_file):
+    #     patch_file.write(
+    #         line.replace("#ifdef HAVE_CHROOT", "#if !TARGET_OS_IPHONE")
+    #         .replace("#ifdef HAVE_SENDFILE", "#if !TARGET_OS_IPHONE")
+    #         .replace("defined(HAVE_SENDFILE)", "TARGET_OS_IPHONE")
+    #     )
+
+    @staticmethod
+    def _patch_posixmodule_ios(line, patch_file):
+        patch_file.write(
+            line.replace(
+                "#ifdef HAVE_CHROOT",
+                "#if HAVE_CHROOT\n\n int chroot(const char *path) {return 1;}\n\n",
+            ).replace(
+                "#ifdef HAVE_SENDFILE",
+                "#ifdef HAVE_SENDFILE\n\n int sendfile(int, int, off_t, off_t *, struct sf_hdtr *, int) {return -1;}",
             )
         )
