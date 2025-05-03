@@ -73,6 +73,7 @@ public:
     enum OperatingSystem {
         OS_iPad,
         OS_iPhone,
+        OS_iPhoneSimulator,
         OS_Mac,
         OS_Windows,
         OS_Unknown
