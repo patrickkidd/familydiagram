@@ -38,22 +38,36 @@ spec = importlib.util.spec_from_file_location("version", VERSION_PY_FPATH)
 version = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(version)
 
+
+def remove_after_substring(text, substring):
+    index = text.find(substring)
+    if index != -1:
+        return text[:index]
+    return text
+
+
 if platform.system() == "Darwin":
 
     osx_plist = os.path.join(ROOT, "build", "osx-config", "Info.plist")
     ios_plist = os.path.join(ROOT, "build", "ios-config", "Info.plist")
 
     for fpath in [osx_plist, ios_plist]:
-        print(f"Patching {fpath} to version {version.VERSION}")
+
+        if fpath == ios_plist:
+            VERSION = remove_after_substring(version.VERSION, "b")
+        else:
+            VERSION = version.VERSION
+
+        print(f"Patching {fpath} to version {VERSION}")
         # plutil -replace CFBundleVersion -string '0.1.0d1' build/osx-config/Info.plist && less build/osx-config/Info.plist
         cmd = "plutil -replace CFBundleVersion -string '%s' %s" % (
-            version.VERSION,
+            VERSION,
             fpath,
         )
         print(cmd)
         os.system(cmd)
         cmd = "plutil -replace CFBundleShortVersionString -string '%s' %s" % (
-            version.VERSION,
+            VERSION,
             fpath,
         )
         print(cmd)
@@ -62,8 +76,9 @@ if platform.system() == "Darwin":
 elif platform.system() == "Windows":
 
     win32_plist = os.path.join(ROOT, "build", "win32-config", "win32-config.prf")
+    VERSION = version.VERSION
 
     for fpath in [win32_plist]:
-        print(f"Patching {fpath} to version {version.VERSION}")
+        print(f"Patching {fpath} to version {VERSION}")
         with open(fpath, "w") as f:
-            f.write("VERSION = %s" % version.VERSION)
+            f.write("VERSION = %s" % VERSION)
