@@ -1193,6 +1193,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "TherapistView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "TimelineView.qml"
 included = true
 is_directory = false
@@ -1234,7 +1239,7 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "TherapistView.qml"
+name = "TherapistApplication.qml"
 included = true
 is_directory = false
 
@@ -1487,6 +1492,11 @@ is_directory = true
 [[Application.Package.Content.Content]]
 name = "__init__.py"
 included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "mainwindow.py"
+included = false
 is_directory = false
 
 [[Application.Package.Content.Content]]

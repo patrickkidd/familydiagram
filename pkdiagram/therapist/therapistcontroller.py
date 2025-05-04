@@ -1,5 +1,7 @@
-from pkdiagram.pyqt import QObject, QEvent, QApplication
+from _pkdiagram import CUtil
+from pkdiagram.pyqt import QObject, QEvent, QApplication, QQmlEngine
 from pkdiagram.app import Session
+from pkdiagram.therapist import Therapist
 
 
 class TherapistController(QObject):
@@ -8,8 +10,18 @@ class TherapistController(QObject):
 
         self.app = app
 
+        self.util = QApplication.instance().qmlUtil()  # should be local, not global
+
         self.session = Session()
         self.session.changed.connect(self.onSessionChanged)
+
+        self.therapist = Therapist(self.session)
+
+    def initEngine(self, engine: QQmlEngine):
+        engine.rootContext().setContextProperty("CUtil", CUtil.instance())
+        engine.rootContext().setContextProperty("util", self.util)
+        engine.rootContext().setContextProperty("session", self.session)
+        engine.rootContext().setContextProperty("therapist", self.therapist)
 
     def init(self):
         pass

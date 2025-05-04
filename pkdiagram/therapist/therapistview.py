@@ -28,37 +28,33 @@ class TherapistView(QQuickWidget):
         super().__init__(self.qmlEngine, parent)
 
         self.session = session
-        self.therapist = Therapist(self)
+        self.therapist = Therapist(self.session)
 
         for path in util.QML_IMPORT_PATHS:
             self.qmlEngine.addImportPath(path)
 
-        CUtil.instance().safeAreaMarginsChanged[QMargins].connect(
-            self.onSafeAreaMarginsChanged
-        )
+        # CUtil.instance().safeAreaMarginsChanged[QMargins].connect(
+        #     self.onSafeAreaMarginsChanged
+        # )
 
         # Init
 
-        self.onSafeAreaMarginsChanged(CUtil.instance().safeAreaMargins())
+        # self.onSafeAreaMarginsChanged(CUtil.instance().safeAreaMargins())
 
     def init(self):
         from _pkdiagram import CUtil
 
-        self.util = QApplication.instance().qmlUtil()  # should be local, not global
-        self.qmlEngine.rootContext().setContextProperty("util", self.util)
-        self.qmlEngine.rootContext().setContextProperty("session", self.session)
-        self.qmlEngine.rootContext().setContextProperty("therapist", self.therapist)
         self.setFormat(util.SURFACE_FORMAT)
         self.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        self.setSource(QUrl("resources:qml/TherapistView.qml"))
+        self.setSource(QUrl("resources:qml/TherapistApplication.qml"))
 
     def deinit(self):
         self.setSource(QUrl(""))
 
-    def onSafeAreaMarginsChanged(self, margins: QMargins):
-        # _log.info(
-        #     f"onSafeAreaMarginsChanged: left: {margins.left()}, top: {margins.top()}, right: {margins.right()}, bottom: {margins.bottom()}"
-        # )
-        self.setContentsMargins(
-            margins.left(), margins.top(), margins.right(), margins.bottom()
-        )
+    # def onSafeAreaMarginsChanged(self, margins: QMargins):
+    #     # _log.info(
+    #     #     f"onSafeAreaMarginsChanged: left: {margins.left()}, top: {margins.top()}, right: {margins.right()}, bottom: {margins.bottom()}"
+    #     # )
+    #     self.setContentsMargins(
+    #         margins.left(), margins.top(), margins.right(), margins.bottom()
+    #     )

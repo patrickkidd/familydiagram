@@ -2,12 +2,8 @@ import QtQuick 2.12
 import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "./PK" 1.0 as PK
-import PK.Models 1.0
-import "js/Global.js" as Global
-import "js/Underscore.js" as Underscore
+import "./" 1.0 as PK
 
-//import QtQuick.Controls.iOS 2.15
 
 Page {
 
@@ -20,7 +16,7 @@ Page {
     signal aiBubbleRemoved(Item item)
 
     property var chatModel: chatModel
-    property var textInput: textInput
+    property var textEdit: textEdit
     property var noChatLabel: noChatLabel
 
     property var chatMargin: util.QML_MARGINS * 1.5
@@ -148,7 +144,6 @@ Page {
                 x: root.chatMargin
 
                 property var responseText: responseText.text
-                property var sourcesText: sourcesText.text
 
                 Component.onCompleted: {
                     root.aiBubbleAdded(dRoot)
@@ -177,16 +172,55 @@ Page {
             }    
         }
 
-        PK.TextField {
-            id: textInput
-            placeholderText: "Type your message..."
+        // Text input field at the bottom (respects iOS keyboard)
+        Rectangle {
+            id: inputField
+            color: util.QML_ITEM_BG
             Layout.fillWidth: true
-            onAccepted: {
-                if (text.trim().length > 0) {
-                    therapist.sendMessage(text);
-                    text = ''
+            implicitHeight: textEdit.height + 20
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: textEdit.focus()
+            }
+
+            PK.TextEdit {
+                id: textEdit
+                anchors {
+                    left: parent.left
+                    right: sendButton.left
+                    verticalCenter: parent.verticalCenter
+                    margins: 10
+                }
+
+                background: Rectangle {
+                    color: "transparent"
+                    border.width: 0
+                }
+
+                focus: true
+                // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                selectByMouse: true
+                selectionColor: util.QML_HIGHLIGHT_COLOR
+                selectedTextColor: 'black'
+            }
+
+            Button {
+                id: sendButton
+                text: "Send"
+                anchors {
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                    margins: 10
+                }
+                onClicked: {
+                    if (textEdit.text.trim().length > 0) {
+                        therapist.sendMessage(textEdit.text);
+                        textEdit.text = ''
+                    }
                 }
             }
+            
         }
     }
 }

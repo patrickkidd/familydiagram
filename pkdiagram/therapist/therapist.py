@@ -24,7 +24,7 @@ class Therapist(QObject):
     def setScene(self, scene):
         self._scene = scene
 
-    @pyqtSlot(str, bool)
+    @pyqtSlot(str)
     def sendMessage(self, message: str):
         self._sendMessage(message)
 

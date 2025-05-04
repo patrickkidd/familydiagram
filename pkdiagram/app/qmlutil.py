@@ -298,6 +298,16 @@ class QmlUtil(QObject, QObjectHelper):
         else:
             return super().get(attr)
 
+    @pyqtSlot(result=QVariant)
+    def safeAreaMargins(self):
+        margins = CUtil.instance().safeAreaMargins()
+        return {
+            "left": margins.left(),
+            "top": margins.top(),
+            "right": margins.right(),
+            "bottom": margins.bottom(),
+        }
+
     # If no time zone is entered, js Date parses a string as if it were UTC,
     # then adjusts it to local time. So '1/1/2018' becomes 1/1/2018 0:00 GMT, then
     # the returned Date object is 12/31/2017 16:00 GMT-8 for Alaska. All we need is

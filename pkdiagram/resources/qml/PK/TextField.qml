@@ -8,10 +8,10 @@ TextField {
 
     id: root
 
-    LineEditBackEnd { id: backend }
+    // LineEditBackEnd { id: backend }
 
     property bool syncing: false
-    property bool ios: Qt.platform.os == 'ios'
+    // property bool ios: Qt.platform.os == 'ios'
     property bool givenFocus: false
     property color defaultTextColor: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
     property color defaultBackgroundColor: util.QML_ITEM_BG
@@ -26,15 +26,15 @@ TextField {
     font.pixelSize: util.TEXT_FONT_SIZE
 
     onFocusChanged: {
-        if(ios && !syncing && focus) {
-            syncing = true
-            backend.beginFocus(text, root, cursorPosition, selectionStart, selectionEnd)
-            givenFocus = true
-            syncing = false
-        } else if(ios && givenFocus && !focus) {
-            backend.endFocus()
-            givenFocus = false
-        }
+        // if(ios && !syncing && focus) {
+        //     syncing = true
+        //     backend.beginFocus(text, root, cursorPosition, selectionStart, selectionEnd)
+        //     givenFocus = true
+        //     syncing = false
+        // } else if(ios && givenFocus && !focus) {
+        //     backend.endFocus()
+        //     givenFocus = false
+        // }
         if(focus) {
             selectAll()
 //            background.border.color = util.QML_HIGHLIGHT_COLOR
@@ -43,57 +43,57 @@ TextField {
         }
     }
 
-    onSelectionStartChanged: {
-        if(ios && !syncing) {
-            syncing = true
-            backend.do_setSelection(text, selectionStart, selectionEnd)
-            syncing = false
-        }
-    }
-    onSelectionEndChanged: {
-        if(ios && !syncing) {
-            syncing = true
-            backend.do_setSelection(text, selectionStart, selectionEnd)
-            syncing = false
-        }
-    }
+    // onSelectionStartChanged: {
+    //     if(ios && !syncing) {
+    //         syncing = true
+    //         backend.do_setSelection(text, selectionStart, selectionEnd)
+    //         syncing = false
+    //     }
+    // }
+    // onSelectionEndChanged: {
+    //     if(ios && !syncing) {
+    //         syncing = true
+    //         backend.do_setSelection(text, selectionStart, selectionEnd)
+    //         syncing = false
+    //     }
+    // }
 
     
-    onCursorPositionChanged: {
-        if(ios && !syncing) {
-            syncing = true
-            backend.do_setCursorPosition(cursorPosition, selectionStart, selectionEnd)
-            syncing = false
-        }
-    }
+    // onCursorPositionChanged: {
+    //     if(ios && !syncing) {
+    //         syncing = true
+    //         backend.do_setCursorPosition(cursorPosition, selectionStart, selectionEnd)
+    //         syncing = false
+    //     }
+    // }
 
-    Connections {
-        target: backend
-        function onTextChanged() {
-            if(ios && !syncing) {
-                syncing = true
-                root.text = backend.getText()
-                root.cursorPosition = backend.getCursorPosition()
-                syncing = false
-            }
-        }
-        function onCursorPositionChanged(_old, _new) {
-            if(ios && !syncing) {
-                syncing = true
-                cursorPosition = _new
-                syncing = false
-            }
-        }
-        function onSelectionChanged() {
-            if(ios && !syncing) {
-                syncing = true
-                select(backend.selectionStart(), backend.selectionEnd())
-                syncing = false
-            }
-        }
+    // Connections {
+    //     target: backend
+    //     function onTextChanged() {
+    //         if(ios && !syncing) {
+    //             syncing = true
+    //             root.text = backend.getText()
+    //             root.cursorPosition = backend.getCursorPosition()
+    //             syncing = false
+    //         }
+    //     }
+    //     function onCursorPositionChanged(_old, _new) {
+    //         if(ios && !syncing) {
+    //             syncing = true
+    //             cursorPosition = _new
+    //             syncing = false
+    //         }
+    //     }
+    //     function onSelectionChanged() {
+    //         if(ios && !syncing) {
+    //             syncing = true
+    //             select(backend.selectionStart(), backend.selectionEnd())
+    //             syncing = false
+    //         }
+    //     }
         
-        function onEditingFinished() { root.parent.forceActiveFocus() }
-    }
+    //     function onEditingFinished() { root.parent.forceActiveFocus() }
+    // }
     
 }    
 
