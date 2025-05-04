@@ -30,6 +30,7 @@ from pkdiagram.documentview import RightDrawerView
 
 if not util.IS_IOS:
     import xlsxwriter
+    from pkdiagram.pyqt import QPrinter, QPrintDialog
 
 
 log = logging.getLogger(__name__)
@@ -945,8 +946,6 @@ class DocumentController(QObject):
         self.uploadToServer.emit()
 
     def __writePDF(self, filePath=None, printer=None):
-        from pkdiagram.pyqt import QPrinter, QPrintDialog
-
         rect = self.printRect()
         sourceRect = rect.size()
         if printer is None:
@@ -979,8 +978,6 @@ class DocumentController(QObject):
         painter = None  # control dtor order, before printer
 
     def writeJPG(self, filePath=None, printer=None):
-        from pkdiagram.pyqt import QPrinter, QPrintDialog
-
         rect = self.scene.printRect()
         size = rect.size().toSize() * util.PRINT_DEVICE_PIXEL_RATIO
         image = QImage(size, QImage.Format_RGB32)
@@ -1153,8 +1150,6 @@ class DocumentController(QObject):
         #     f.write(sdata)
 
     def onPrint(self):
-        from pkdiagram.pyqt import QPrinter, QPrintDialog
-
         printer = QPrinter()
         printer.setOrientation(QPrinter.Landscape)
         if printer.outputFormat() != QPrinter.NativeFormat:

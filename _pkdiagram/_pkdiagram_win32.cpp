@@ -658,6 +658,10 @@ Qt::ScreenOrientation CUtil::screenOrientation() {
     return Qt::PrimaryOrientation;
 }
 
+QMargins CUtil::safeAreaMargins() {
+    return QMargins(0, 0, 0, 0);  
+}
+
 
 
 CUtil *CUtil_create(QObject *parent) {

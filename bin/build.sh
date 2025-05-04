@@ -308,11 +308,13 @@ elif [[ $TARGET = ios* ]]; then
 
 	rsync -avzq build/common-config/* build/ios
 	rsync -avzq build/ios-config/* build/ios
-	cd build/ios && qmake CONFIG+=no_autoqmake
+    (
+    	cd build/ios && qmake CONFIG+=no_autoqmake
+    )
 
     if [[ $TARGET == "ios" ]]; then
 
-    	open Family\ Diagram.xcodeproj
+    	open build/ios/Family\ Diagram.xcodeproj
 
         xcodebuild \
             -project build/ios/Family\ Diagram.xcodeproj \
@@ -321,13 +323,13 @@ elif [[ $TARGET = ios* ]]; then
             -UseModernBuildSystem=YES \
             -xcconfig build/ios/Family-Diagram-Release.xcconfig 
 
-        xcodebuild \
-            -project build/ios/Family\ Diagram.xcodeproj \
-            -scheme "Family Diagram" \
-            -configuration Release \
-            -xcconfig build/ios/Family-Diagram-Release.xcconfig \
-            -UseModernBuildSystem=YES \
-            build
+        # xcodebuild \
+        #     -project build/ios/Family\ Diagram.xcodeproj \
+        #     -scheme "Family Diagram" \
+        #     -configuration Release \
+        #     -xcconfig build/ios/Family-Diagram-Release.xcconfig \
+        #     -UseModernBuildSystem=YES \
+        #     build
 
 
     elif [[ $TARGET == "osx-build" ]]; then

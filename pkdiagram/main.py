@@ -1,12 +1,19 @@
 import sys, os.path, logging
 from optparse import OptionParser
 
-from pkdiagram.pyqt import QSettings
+from pkdiagram.pyqt import (
+    Qt,
+    QSettings,
+    QWidget,
+    QVBoxLayout,
+    QOpenGLWidget,
+    QSurfaceFormat,
+)
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import Application, AppController
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 import sysconfig
 
@@ -30,9 +37,9 @@ def _init_non_posix_pyqtdeploy(vars):
 if sys.version_info[1] > 7:
     sysconfig._init_non_posix = _init_non_posix_pyqtdeploy
 
-# log.info(_imp.extension_suffixes())
+# _log.info(_imp.extension_suffixes())
 
-# log.info(sysconfig.get_path('purelib'))
+# _log.info(sysconfig.get_path('purelib'))
 
 
 def main():
@@ -47,6 +54,14 @@ def main():
         help="Print the version",
         default=False,
     )
+    if util.IS_DEV or util.IS_IOS:
+        parser.add_option(
+            "-t",
+            "--therapist",
+            dest="therapist",
+            action="store_true",
+            help="Run the therapist UI",
+        )
     if sys.platform == "win32":
         parser.add_option(
             "-c",
@@ -63,11 +78,15 @@ def main():
         help="The preferences scope to use when testing",
     )
     options, args = parser.parse_args(sys.argv)
+
+    if util.IS_IOS:
+        options.therapist = True
+
     if sys.platform == "win32" and options.windows_console:
         # Allocates a console and redirects stdout/stderr for Windows.
         from _pkdiagram import CUtil
 
-        log.info("Opening windows debug console...")
+        _log.info("Opening windows debug console...")
 
         CUtil.dev_showDebugConsole()
 
@@ -89,16 +108,41 @@ def main():
 
         print(version.VERSION)
 
-        # PKDIAGRAM = os.path.realpath(os.path.dirname(__file__))
-        # spec = importlib.util.spec_from_file_location(
-        #     "version", os.path.join(PKDIAGRAM, "version.py")
-        # )
-        # version = importlib.util.module_from_spec(spec)
-        # spec.loader.exec_module(version)
-        # print(version.VERSION)
+    elif options.therapist:
+        from pkdiagram.therapist import TherapistView, TherapistController
+
+        util.init_logging()
+        app = Application(sys.argv, prefsName=options.prefsName)
+
+        controller = TherapistController(app)
+        controller.init()
+
+        mainWindow = QOpenGLWidget()
+        fmt = QSurfaceFormat.defaultFormat()
+        fmt.setSamples(util.OPENGL_SAMPLES)
+        mainWindow.setFormat(fmt)
+        mainWindow.setAttribute(
+            Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, True
+        )
+
+        w = TherapistView(controller.session, mainWindow)
+        w.init()
+
+        Layout = QVBoxLayout(mainWindow)
+        Layout.setContentsMargins(0, 0, 0, 0)
+        Layout.addWidget(w)
+
+        mainWindow.show()
+        if not util.IS_IOS:
+            mainWindow.setGeometry(400, 400, 400, 600)
+
+        controller.exec(mainWindow)
+
+        w.deinit()
+        controller.deinit()
+        app.deinit()
 
     else:
-
         util.init_logging()
 
         app = Application(sys.argv, prefsName=options.prefsName)

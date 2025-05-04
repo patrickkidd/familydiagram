@@ -70,6 +70,8 @@ class Application(QApplication):
         # )
         super().__init__(*args, **kwargs)
 
+        self.setQuitOnLastWindowClosed(True)
+
         self._prefsName = prefsName
         self._prefs = None
         # prefsPath = QFileInfo(self.prefs().fileName()).filePath()

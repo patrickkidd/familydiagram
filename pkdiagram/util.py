@@ -566,8 +566,19 @@ S_SERVER_IS_DOWN = "The server is down. Please try again later."
 S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
 
 
+# Therapist
+
+S_THERAPIST_NO_CHAT_TEXT = "What's on your mind?"
+
+#
+
+
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
+
+from PyQt5.QtCore import QDir
+
+QDir.addSearchPath("resources", os.path.join(os.path.dirname(__file__), "resources"))
 
 
 def personKindIndexFromName(name):

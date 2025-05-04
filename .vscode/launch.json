@@ -23,6 +23,21 @@
             ]
         },
         {
+            "name": "Therapist",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pkdiagram",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            },
+            "args": [
+                "--therapist"
+            ]
+        },
+        {
             "name": "App (prefs: 'free')",
             "type": "debugpy",
             "request": "launch",

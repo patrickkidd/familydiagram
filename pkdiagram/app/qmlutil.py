@@ -155,6 +155,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_SERVER_ERROR",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
+        "S_THERAPIST_NO_CHAT_TEXT",
     ]
     QObjectHelper.registerQtProperties(
         [

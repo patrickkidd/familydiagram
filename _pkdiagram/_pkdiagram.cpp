@@ -631,7 +631,7 @@ void CUtil::onScreenOrientationChanged() {
         return;
     }
     QRect rect = screenSize();
-//    qDebug() << "orientationChanged:" << rect;
+    qDebug() << "orientationChanged:" << rect;
     m_unsafeArea->configureDevice(rect.width(), rect.height(), devicePixelRatio());
     m_unsafeArea->orientationChanged(screenOrientation());
     QMargins margins = QMargins(m_unsafeArea->unsafeLeftMargin(),

@@ -1233,6 +1233,11 @@ name = "TestDialog.qml"
 included = false
 is_directory = false
 
+[[Application.Package.Content.Content.Content]]
+name = "TherapistView.qml"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content.Content]]
 name = "reciprocity.png"
@@ -1476,6 +1481,31 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "therapist"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapist.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapistcontroller.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapistview.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "util.py"
 included = true
 is_directory = false
@@ -1521,6 +1551,11 @@ is_directory = false
 [[Application.Package.Content.Content.Content]]
 name = "copilotview.py"
 included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "therapistview.py"
+included = false
 is_directory = false
 
 

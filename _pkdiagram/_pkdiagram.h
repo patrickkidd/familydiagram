@@ -142,7 +142,7 @@ public:
 	static QRect screenSize();
     static float devicePixelRatio();
     static Qt::ScreenOrientation screenOrientation();
-    QMargins safeAreaMargins() { return m_unsafeAreaMargins; }
+    QMargins safeAreaMargins(); // { return m_unsafeAreaMargins; }
 	static QString getMachineModel();
 
     static qreal distance(const QPointF &p1, const QPointF &p2);
