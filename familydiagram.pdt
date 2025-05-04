@@ -1158,6 +1158,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "Style.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "TabBar.qml"
 included = true
 is_directory = false
@@ -1330,6 +1335,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "up-submit-arrow.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "update-available-button.png"
 included = true
 is_directory = false
@@ -1492,11 +1502,6 @@ is_directory = true
 [[Application.Package.Content.Content]]
 name = "__init__.py"
 included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "mainwindow.py"
-included = false
 is_directory = false
 
 [[Application.Package.Content.Content]]

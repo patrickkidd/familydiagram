@@ -47,7 +47,7 @@ class Therapist(QObject):
             "message": message,
         }
         reply = self._session.server().nonBlockingRequest(
-            "POST", "/copilot/chat", data=args, error=onError, success=onSuccess
+            "POST", "/therapist/chat", data=args, error=onError, success=onSuccess
         )
         self._session.track(f"therapist.Engine.sendMessage: {message}")
         self.requestSent.emit(message)

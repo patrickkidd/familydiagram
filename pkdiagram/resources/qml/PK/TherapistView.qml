@@ -181,7 +181,7 @@ Page {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: textEdit.focus()
+                onClicked: textEdit.forceActiveFocus()
             }
 
             PK.TextEdit {
@@ -205,14 +205,26 @@ Page {
                 selectedTextColor: 'black'
             }
 
-            Button {
+            PK.Button {
                 id: sendButton
-                text: "Send"
+                source: '../../up-submit-arrow.png'
+                width: 18
+                height: 20
+                onWidthChanged: print(width)
+                onHeightChanged: print(height)
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                     margins: 10
                 }
+
+                background: Rectangle {
+                    color: 'transparent' // util.QML_CONTROL_BG
+                    // border.color: root.palette.highlight
+                    // border.width: root.activeFocus ? 2 : 0
+                    // radius: sendButton.width / 2
+                }
+
                 onClicked: {
                     if (textEdit.text.trim().length > 0) {
                         therapist.sendMessage(textEdit.text);
