@@ -1,0 +1,6 @@
+module Therapist
+LearnView 1.0 LearnView.qml
+PlanView 1.0 PlanView.qml
+MainContainer 1.0 MainContainer.qml
+singleton Style 1.0 Style.qml
+TherapistView 1.0 TherapistView.qml

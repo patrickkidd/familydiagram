@@ -1,9 +1,11 @@
-import QtQuick 2.12
+/*
+Manages the safe areas and any application-level handlers and logic.
+*/
 
+import QtQuick 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
-
-import "./PK" 1.0 as PK
+import "./Therapist" 1.0 as Therapist
 
 ApplicationWindow {
     visible: true
@@ -13,24 +15,29 @@ ApplicationWindow {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     color: util.QML_WINDOW_BG
 
+    property var safeAreaMargins_left: 0
+    property var safeAreaMargins_right: 0
+    property var safeAreaMargins_top: 0
+    property var safeAreaMargins_bottom: 0
+
     Rectangle {
         id: contentArea
         anchors {
             fill: parent
-            leftMargin: 0
-            rightMargin: 0
-            topMargin: 0
-            bottomMargin: 0
+            leftMargin: safeAreaMargins_left
+            rightMargin: safeAreaMargins_right
+            topMargin: safeAreaMargins_top
+            bottomMargin: Qt.inputMethod.visible ? 0 : safeAreaMargins_bottom
         }
 
         function adjustScreenMargins() {
             var safeAreaMargins = util.safeAreaMargins()
             // print('left:', safeAreaMargins.left, 'right:', safeAreaMargins.right, 'top:', safeAreaMargins.top, 'bottom:', safeAreaMargins.bottom)
 
-            anchors.leftMargin = safeAreaMargins.left
-            anchors.rightMargin = safeAreaMargins.right
-            anchors.topMargin = safeAreaMargins.top
-            anchors.bottomMargin = safeAreaMargins.bottom
+            safeAreaMargins_left = safeAreaMargins.left
+            safeAreaMargins_right = safeAreaMargins.right
+            safeAreaMargins_top = safeAreaMargins.top
+            safeAreaMargins_bottom = safeAreaMargins.bottom
         }
 
         Component.onCompleted: adjustScreenMargins()
@@ -42,8 +49,7 @@ ApplicationWindow {
             }
         }
 
-
-        PK.TherapistView {
+        Therapist.MainContainer {
             id: therapistView
             anchors.fill: parent
         }

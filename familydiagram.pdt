@@ -1158,11 +1158,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "Style.qml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "TabBar.qml"
 included = true
 is_directory = false
@@ -1194,11 +1189,6 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "TextInput.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "TherapistView.qml"
 included = true
 is_directory = false
 
@@ -1242,6 +1232,41 @@ is_directory = false
 name = "TestDialog.qml"
 included = false
 is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "Therapist"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "DiscussView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "LearnView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "MainContainer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PlanView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "qmldir"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Style.qml"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content.Content.Content]]
 name = "TherapistApplication.qml"
