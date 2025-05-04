@@ -10,12 +10,43 @@ ApplicationWindow {
     width: 400
     height: 600
 
-    // Material.theme: Material.Light // Use light theme for iOS-like look
-    // Material.accent: "#007AFF" // iOS blue for accents
-    // Material.primary: "#F2F2F7" // iOS-like background color
+    flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
+    color: util.QML_WINDOW_BG
 
-    PK.TherapistView {
-        id: therapistView
-        anchors.fill: parent
+    Rectangle {
+        id: contentArea
+        anchors {
+            fill: parent
+            leftMargin: 0
+            rightMargin: 0
+            topMargin: 0
+            bottomMargin: 0
+        }
+
+        function adjustScreenMargins() {
+            var safeAreaMargins = util.safeAreaMargins()
+            // print('left:', safeAreaMargins.left, 'right:', safeAreaMargins.right, 'top:', safeAreaMargins.top, 'bottom:', safeAreaMargins.bottom)
+
+            anchors.leftMargin = safeAreaMargins.left
+            anchors.rightMargin = safeAreaMargins.right
+            anchors.topMargin = safeAreaMargins.top
+            anchors.bottomMargin = safeAreaMargins.bottom
+        }
+
+        Component.onCompleted: adjustScreenMargins()
+
+        Connections {
+            target: CUtil
+            function onSafeAreaMarginsChanged() {
+                contentArea.adjustScreenMargins()
+            }
+        }
+
+
+        PK.TherapistView {
+            id: therapistView
+            anchors.fill: parent
+        }
+
     }
 }

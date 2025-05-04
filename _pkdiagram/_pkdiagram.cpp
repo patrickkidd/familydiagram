@@ -622,6 +622,11 @@ bool CUtil::copyRecursively(QString sourceFolder, QString destFolder)
 }
 
 
+void CUtil::onSafeAreaMarginsChanged() {
+    QMargins margins = this->safeAreaMargins();
+    emit safeAreaMarginsChanged(margins);
+}
+
 
 //#include <QtGui/5.12.0/QtGui/qpa/qplatformwindow.h>
 // https://github.com/ekke/c2gQtWS_x/blob/master/qml/main.qml
@@ -630,18 +635,26 @@ void CUtil::onScreenOrientationChanged() {
         qDebug() << "onScreenOrientationChanged() _instance is NULL!!!";
         return;
     }
-    QRect rect = screenSize();
-    qDebug() << "orientationChanged:" << rect;
-    m_unsafeArea->configureDevice(rect.width(), rect.height(), devicePixelRatio());
-    m_unsafeArea->orientationChanged(screenOrientation());
-    QMargins margins = QMargins(m_unsafeArea->unsafeLeftMargin(),
-                                m_unsafeArea->unsafeTopMargin(),
-                                m_unsafeArea->unsafeRightMargin(),
-                                m_unsafeArea->unsafeBottomMargin());
-    if(margins != m_unsafeAreaMargins) {
-        m_unsafeAreaMargins = margins;
-        emit safeAreaMarginsChanged(margins);
-    } 
+    // QRect rect = screenSize();
+    // qDebug() << "orientationChanged:" << rect;
+    // m_unsafeArea->configureDevice(rect.width(), rect.height(), devicePixelRatio());
+    // m_unsafeArea->orientationChanged(screenOrientation());
+    // QMargins margins = QMargins(m_unsafeArea->unsafeLeftMargin(),
+    //                             m_unsafeArea->unsafeTopMargin(),
+    //                             m_unsafeArea->unsafeRightMargin(),
+    //                             m_unsafeArea->unsafeBottomMargin());
+
+    // // Apparently you can't update this right when the orientation changes, you have to 
+    // QTimer::singleShot(100, this, [this]() {
+    //     // qDebug() << "onScreenOrientationChanged::singleShot";
+    //     QMargins margins = this->safeAreaMargins();
+    //     if(margins != m_unsafeAreaMargins) {
+    //         m_unsafeAreaMargins = margins;
+    //         qDebug() << "emit safeAreaMarginsChanged(" << margins << ")";
+    //         emit safeAreaMarginsChanged(margins);
+    //     }     
+    // });
+
     Qt::ScreenOrientation orientation = CUtil::screenOrientation();
     emit CUtil::instance()->screenOrientationChanged(orientation);
 }

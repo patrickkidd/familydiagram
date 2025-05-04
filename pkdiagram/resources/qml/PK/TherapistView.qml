@@ -179,6 +179,13 @@ Page {
             Layout.fillWidth: true
             implicitHeight: textEdit.height + 20
 
+            Rectangle {
+                anchors.top: parent.top
+                height: 1
+                width: parent.width
+                color: util.QML_ITEM_BORDER_COLOR
+            }
+
             MouseArea {
                 anchors.fill: parent
                 onClicked: textEdit.forceActiveFocus()
@@ -198,7 +205,6 @@ Page {
                     border.width: 0
                 }
 
-                focus: true
                 // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 selectByMouse: true
                 selectionColor: util.QML_HIGHLIGHT_COLOR
@@ -229,6 +235,8 @@ Page {
                     if (textEdit.text.trim().length > 0) {
                         therapist.sendMessage(textEdit.text);
                         textEdit.text = ''
+                        textEdit.focus = false
+                        Qt.inputMethod.hide
                     }
                 }
             }
