@@ -76,6 +76,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "condition.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
 name = "documentview"
 included = true
 is_directory = true

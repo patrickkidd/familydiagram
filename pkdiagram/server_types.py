@@ -5,6 +5,7 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 """
 
 import time, pickle, logging
+import json
 from datetime import datetime
 import hashlib
 import urllib.parse
@@ -280,14 +281,21 @@ class Server(QObject):
         path,
         bdata=b"",
         data=None,
+        headers=None,
         anonymous=False,
         success=None,
         error=None,
         finished=None,
+        from_root=False,
     ):
-        if data and not bdata:
+        _headers = {"Content-Type": "application/x-python-pickle"}
+        _headers.update(headers or {})
+
+        if _headers["Content-Type"] == "application/json":
+            bdata = json.dumps(data).encode("utf-8")
+        elif data and not bdata:
             bdata = pickle.dumps(data)
-        full_url = util.serverUrl(path)
+        full_url = util.serverUrl(path, from_root=from_root)
         ## Make a QNetworkRequest with the appropriate signature headers. """
 
         parts = urllib.parse.urlparse(full_url)
@@ -311,9 +319,12 @@ class Server(QObject):
         # Do this like AWS
         # http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
         content_md5 = hashlib.md5(bdata).hexdigest()
-        content_type = "text/html"
+        # content_type = "text/html"
         request = QNetworkRequest(url)
-        request.setRawHeader(b"Content-Type", content_type.encode("utf-8"))
+
+        for key, value in _headers.items():
+            request.setRawHeader(key.encode("utf-8"), value.encode("utf-8"))
+        # This one can't be overridden
         request.setRawHeader(b"Content-MD5", content_md5.encode("utf-8"))
         date = wsgiref.handlers.format_date_time(
             time.mktime(datetime.now().timetuple())
@@ -325,7 +336,9 @@ class Server(QObject):
         else:
             user = vedana.ANON_USER
             secret = vedana.ANON_SECRET
-        signature = vedana.sign(secret, verb, content_md5, content_type, date, resource)
+        signature = vedana.sign(
+            secret, verb, content_md5, _headers["Content-Type"], date, resource
+        )
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
         auth_header = vedana.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
@@ -353,10 +366,13 @@ class Server(QObject):
                 # lazy hack to only read once since QNetworkReply is a
                 # sequential QIODevice
                 bdata = reply._pk_body = reply.readAll()
-                try:
-                    data = pickle.loads(bdata)
-                except pickle.UnpicklingError as e:
-                    data = None
+                if reply.request().rawHeader(b"Content-Type") == b"application/json":
+                    data = json.loads(bytes(bdata).decode("utf-8"))
+                else:
+                    try:
+                        data = pickle.loads(bdata)
+                    except pickle.UnpicklingError as e:
+                        data = None
                 if success:
                     success(data)
             finally:

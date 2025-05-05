@@ -21,6 +21,7 @@ Page {
 
     property var chatModel: chatModel
     property var textEdit: textEdit
+    property var submitButton: submitButton
     property var noChatLabel: noChatLabel
 
     property var chatMargin: util.QML_MARGINS * 1.5
@@ -35,9 +36,10 @@ Page {
         function onRequestSent(message) {
             chatModel.append({ "message": message, "fromUser": true });
         }
-        function onResponseReceived(responseText) {
+        function onResponseReceived(message, added, removed, guidance) {
+            print('onResponseReceived:', message, added, removed, guidance)
             chatModel.append({
-                "message": responseText,
+                "message": message,
                 "fromUser": false
             });
         }
@@ -183,6 +185,15 @@ Page {
             Layout.fillWidth: true
             implicitHeight: textEdit.height + 20
 
+            function submit() {
+                if (textEdit.text.trim().length > 0) {
+                    therapist.sendMessage(textEdit.text);
+                    textEdit.text = ''
+                    textEdit.focus = false
+                    // Qt.inputMethod.hide()
+                }
+            }
+
             Rectangle {
                 anchors.top: parent.top
                 height: 1
@@ -199,7 +210,7 @@ Page {
                 id: textEdit
                 anchors {
                     left: parent.left
-                    right: sendButton.left
+                    right: submitButton.left
                     verticalCenter: parent.verticalCenter
                     margins: 10
                 }
@@ -209,6 +220,15 @@ Page {
                     border.width: 0
                 }
 
+                Keys.onReturnPressed: {
+                    if (event.modifiers & Qt.ControlModifier || event.modifiers & Qt.MetaModifier) {                        
+                        inputField.submit()
+                        event.accepted = true;
+                    } else {
+                        event.accepted = false;
+                    }
+                }
+
                 // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 selectByMouse: true
                 selectionColor: util.QML_HIGHLIGHT_COLOR
@@ -216,7 +236,7 @@ Page {
             }
 
             PK.Button {
-                id: sendButton
+                id: submitButton
                 source: '../../up-submit-arrow.png'
                 width: 18
                 height: 20
@@ -228,21 +248,14 @@ Page {
                     margins: 10
                 }
 
-                background: Rectangle {
-                    color: 'transparent' // util.QML_CONTROL_BG
-                    // border.color: root.palette.highlight
-                    // border.width: root.activeFocus ? 2 : 0
-                    // radius: sendButton.width / 2
-                }
+                // background: Rectangle {
+                //     color: 'transparent' // util.QML_CONTROL_BG
+                //     // border.color: root.palette.highlight
+                //     // border.width: root.activeFocus ? 2 : 0
+                //     // radius: submitButton.width / 2
+                // }
 
-                onClicked: {
-                    if (textEdit.text.trim().length > 0) {
-                        therapist.sendMessage(textEdit.text);
-                        textEdit.text = ''
-                        textEdit.focus = false
-                        Qt.inputMethod.hide
-                    }
-                }
+                onClicked: inputField.submit()
             }
             
         }
