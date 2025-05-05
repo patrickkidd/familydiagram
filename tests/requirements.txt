@@ -1,8 +1,0 @@
-coverage
-mock
-pytest
-pytest-cov
-pytest-qt
-pytest-mock
-pytest-xdist
-snapshottest

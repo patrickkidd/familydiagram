@@ -14,7 +14,8 @@ from pkdiagram import util
 from pkdiagram.therapist import Therapist, TherapistController
 from pkdiagram.therapist.therapist import Response
 from pkdiagram.app import Session
-from pkdiagram.widgets.qmlwidgethelper import keyClicks, mouseClick
+
+from tests.widgets.qmlwidgets import QmlHelper
 
 
 _log = logging.getLogger(__name__)
@@ -78,14 +79,16 @@ def test_ask(view, therapist):
         guidance=[],
     )
 
+    qml = QmlHelper(view)
+
     textEdit = view.rootObject().property("textEdit")
     submitButton = view.rootObject().property("submitButton")
     aiBubbleAdded = util.Condition(view.rootObject().aiBubbleAdded)
     noChatLabel = view.rootObject().property("noChatLabel")
 
-    keyClicks(textEdit, MESSAGE)
+    qml.keyClicks(textEdit, MESSAGE)
     with patch("pkdiagram.therapist.Therapist._sendMessage") as _sendMessage:
-        mouseClick(submitButton)
+        qml.mouseClick(submitButton)
     assert _sendMessage.call_count == 1
     therapist.responseReceived.emit(RESPONSE.message, [], [], [])
 
