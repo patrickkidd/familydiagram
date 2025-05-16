@@ -67,7 +67,7 @@ def test_sendMessage(chat_thread, therapist: Therapist):
     assert serverDown.callCount == 0
 
 
-def test_server_errror(chat_thread, server_error, therapist: Therapist):
+def test_server_error(chat_thread, server_error, therapist: Therapist):
     requestSent = util.Condition(therapist.requestSent)
     responseReceived = util.Condition(therapist.responseReceived)
     serverError = util.Condition(therapist.serverError)

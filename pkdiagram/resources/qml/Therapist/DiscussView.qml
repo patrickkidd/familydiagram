@@ -23,6 +23,7 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
+    property var threadsDrawer: threadsDrawer
     property var threadList: threadList
 
     property var chatMargin: util.QML_MARGINS * 1.5
@@ -62,6 +63,10 @@ Page {
         chatModel.clear()
     }
 
+    function showThreads() {
+        threadsDrawer.visible = true        
+    }
+
     PK.Button {
         id: threadButton
         source: '../../layers-button.png'
@@ -71,7 +76,7 @@ Page {
         anchors.top: parent.top
         anchors.leftMargin: 20 
         anchors.topMargin: 20
-        onClicked: threadsDrawer.visible = true
+        onClicked: root.showThreads()
     }
 
     Drawer {
@@ -80,6 +85,9 @@ Page {
         height: root.height
         dragMargin: 0
         edge: Qt.LeftEdge
+        onOpened: {
+            print('opened')
+        }
         ListView {
             id: threadList
 
@@ -89,16 +97,23 @@ Page {
             anchors.fill: parent
             model: therapist ? therapist.threads : undefined
             clip: true
+            // property var delegates: []
             delegate: ItemDelegate {
                 id: dRoot
-                text: 'Thread id: ' + modelData.id
-                width: parent ? parent.width : undefined
+                property int dId: modelData.id
+                
+                text: 'Thread id: ' + modelData.user_id
+                width: threadList.width
                 palette.text: util.QML_TEXT_COLOR
+
                 Component.onCompleted: {
+                    print('thread delegate onCompleted: ' + modelData)
                     threadList.rowAdded(dRoot)
+                    // threadList.delegates.push(this)
                 }
                 Component.onDestruction: {
                     threadList.rowRemoved(dRoot)
+                    // threadList.delegates.splice(threadList.delegateList.indexOf(this), 1)
                 }
             }
         }
@@ -117,9 +132,9 @@ Page {
         }
     }
 
-    Component.onCompleted: {
-        print(therapist.threads)
-    }
+    // Component.onCompleted: {
+    //     print(therapist.threads)
+    // }
 
     ColumnLayout {
         anchors.fill: parent

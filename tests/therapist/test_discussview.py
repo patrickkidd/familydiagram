@@ -9,11 +9,10 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.models import ChatThread
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication, QQmlEngine
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Response
+from pkdiagram.therapist.therapist import Response, Therapist, ChatThread
 from pkdiagram.app import Session
 
 from tests.widgets.qmlwidgets import QmlHelper
@@ -25,14 +24,22 @@ _log = logging.getLogger(__name__)
 @pytest.fixture
 def controller(qmlEngine):
     controller = TherapistAppController(QApplication.instance())
-    controller.init(qmlEngine)
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch.object(
+                controller.therapist,
+                "_threads",
+                [
+                    ChatThread(id=1, summary="my dog flew away", user_id=123),
+                    ChatThread(id=2, summary="clouds ate my cake", user_id=123),
+                ],
+            )
+        )
+        stack.enter_context(patch.object(controller.therapist, "_refreshThreads"))
 
-    yield controller
+        controller.init(qmlEngine)
 
-
-@pytest.fixture
-def therapist(controller: TherapistAppController):
-    return controller.therapist
+        yield controller
 
 
 @pytest.fixture
@@ -72,26 +79,16 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
 
 def test_init_threads(server_response, view, controller: TherapistAppController):
 
-    USER_ID = 123
-
+    threadsDrawer = view.rootObject().property("threadsDrawer")
     threadList = view.rootObject().property("threadList")
     rowAdded = util.Condition(threadList.rowAdded)
-    # rowRemoved = util.Condition(threadList.rowRemoved)
-
-    # assert threadList.count() == 0
-
-    with server_response(
-        f"/therapist/threads",
-        method="GET",
-        body=json.dumps(
-            [
-                ChatThread(id=i, summary="test 123", user_id=USER_ID).as_dict()
-                for i in range(3)
-            ]
-        ),
-    ):
-        controller.therapist.refreshThreads()
-    assert rowAdded.waitForCallCount(3) == True
+    controller.therapist.threadsChanged.emit()
+    view.rootObject().showThreads()
+    assert util.wait(threadsDrawer.opened) == True
+    # delegates = threadList.property("delegates")
+    QApplication.processEvents()
+    assert rowAdded.waitForCallCount(len(controller.therapist.threads)) == True
+    x = 333
 
 
 def test_ask(view, therapist):

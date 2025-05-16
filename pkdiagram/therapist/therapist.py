@@ -52,10 +52,6 @@ class ChatThread(QObject):
     For clean exposure to Qml
     """
 
-    # idChanged = pyqtSignal()
-    # userIdChanged = pyqtSignal()
-    # summaryChanged = pyqtSignal()
-
     def __init__(
         self,
         id: int,
@@ -145,6 +141,9 @@ class Therapist(QObject):
 
     @pyqtSlot()
     def refreshThreads(self):
+        self._refreshThreads()
+
+    def _refreshThreads(self):
 
         def onSuccess(data):
             self._threads = [make_thread(x) for x in data]

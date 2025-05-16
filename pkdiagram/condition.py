@@ -52,6 +52,7 @@ class Condition(QObject):
         # self.senders.append(QObject().sender())
         self.lastCallArgs = args
         self.callArgs.append(args)
+        _log.debug(f"Condition[{self.signal}].set() called with {args}")
 
     def __call__(self, *args):
         """Called by whatever signal that triggers the condition."""
@@ -88,25 +89,25 @@ class Condition(QObject):
         return ret
 
     def waitForCallCount(self, callCount, maxMS=1000):
-        _log.info(f"Waiting for {callCount} calls to {self.signal}")
+        _log.debug(f"Waiting for {callCount} calls to {self.signal}")
         start_time = time.time()
         ret = None
         while self.callCount < callCount:
             if time.time() - start_time > maxMS / 1000:
                 ret = False
-                _log.info(
+                _log.debug(
                     f"Time elapsed on Condition[{self.signal}].wait() (callCount={self.callCount})"
                 )
                 break
             ret = self.wait(maxMS=maxMS)
             if not ret:
-                _log.info(
+                _log.debug(
                     f"Inner wait() returned False on Condition[{self.signal}].wait()  (callCount={self.callCount})"
                 )
                 break
         if ret is None:
             ret = self.callCount == callCount
-            _log.info(
+            _log.debug(
                 f"Returning {ret} with {self.callCount}/{callCount} calls to {self.signal}"
             )
         return ret
