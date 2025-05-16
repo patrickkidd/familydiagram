@@ -1,3 +1,3 @@
 from .therapist import Therapist
-from .therapistcontroller import TherapistController
+from .therapistappcontroller import TherapistAppController
 from .therapistview import TherapistView

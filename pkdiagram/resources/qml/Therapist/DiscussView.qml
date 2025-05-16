@@ -23,6 +23,7 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
+    property var threadList: threadList
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -61,6 +62,65 @@ Page {
         chatModel.clear()
     }
 
+    PK.Button {
+        id: threadButton
+        source: '../../layers-button.png'
+        width: 25
+        height: 25
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 20 
+        anchors.topMargin: 20
+        onClicked: threadsDrawer.visible = true
+    }
+
+    Drawer {
+        id: threadsDrawer
+        width: root.width - 20
+        height: root.height
+        dragMargin: 0
+        edge: Qt.LeftEdge
+        ListView {
+            id: threadList
+
+            signal rowAdded(Item item)
+            signal rowRemoved(Item item)
+
+            anchors.fill: parent
+            model: therapist ? therapist.threads : undefined
+            clip: true
+            delegate: ItemDelegate {
+                id: dRoot
+                text: 'Thread id: ' + modelData.id
+                width: parent ? parent.width : undefined
+                palette.text: util.QML_TEXT_COLOR
+                Component.onCompleted: {
+                    threadList.rowAdded(dRoot)
+                }
+                Component.onDestruction: {
+                    threadList.rowRemoved(dRoot)
+                }
+            }
+        }
+        background: Rectangle {
+            color: util.QML_WINDOW_BG
+            Rectangle {
+                x: parent.width - 1
+                height: parent.height
+                width: 1
+                color: util.QML_ITEM_BORDER_COLOR
+            }
+        }
+        function hide() {
+            position = 0
+            visible = false
+        }
+    }
+
+    Component.onCompleted: {
+        print(therapist.threads)
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
@@ -77,7 +137,6 @@ Page {
             }
         }
 
-        // Chat message list
         ListView {
             id: chatListView
             visible: chatModel.count > 0
@@ -90,8 +149,6 @@ Page {
             delegate: Loader {
                 width: chatListView.width
                 property var dMessage: model.message
-                property var dSources: model.sources
-                property var dNumSources: model.numSources
                 sourceComponent: model.fromUser ? humanQuestion : aiResponse
             }
         }
@@ -178,7 +235,6 @@ Page {
             }    
         }
 
-        // Text input field at the bottom (respects iOS keyboard)
         Rectangle {
             id: inputField
             color: util.QML_ITEM_BG

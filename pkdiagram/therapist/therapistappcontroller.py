@@ -4,7 +4,11 @@ from pkdiagram.app import Session
 from pkdiagram.therapist import Therapist
 
 
-class TherapistController(QObject):
+class TherapistAppController(QObject):
+    """
+    App controller for the therapist app.
+    """
+
     def __init__(self, app: QApplication, parent=None):
         super().__init__(parent)
 
@@ -17,14 +21,12 @@ class TherapistController(QObject):
 
         self.therapist = Therapist(self.session)
 
-    def initEngine(self, engine: QQmlEngine):
+    def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())
         engine.rootContext().setContextProperty("util", self.util)
         engine.rootContext().setContextProperty("session", self.session)
         engine.rootContext().setContextProperty("therapist", self.therapist)
-
-    def init(self):
-        pass
+        self.therapist.init()
 
     def deinit(self):
         pass

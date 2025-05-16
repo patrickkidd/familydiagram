@@ -7,7 +7,7 @@ from pkdiagram.therapist.therapist import Response
 from pkdiagram import util
 
 from fdserver.extensions import db
-from fdserver.models import User, ChatThread
+from fdserver.models import User, ChatThread, ChatMessage
 
 
 pytestmark = [
@@ -25,10 +25,23 @@ def chat_thread(test_user):
 @pytest.fixture
 def therapist(test_session):
     session = Session()
-    session.init(sessionData=test_session.account_editor_dict())
+    session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
     _therapist = Therapist(session)
 
     yield _therapist
+
+
+def test_refreshThreads(test_user, therapist: Therapist):
+    threadsChanged = util.Condition(therapist.threadsChanged)
+    threads = [
+        ChatThread(user_id=test_user.id, messages=[ChatMessage(text="blah")]),
+        ChatThread(user_id=test_user.id, messages=[ChatMessage(text="blah")]),
+    ]
+    db.session.add_all(threads)
+    db.session.commit()
+    therapist.refreshThreads()
+    assert threadsChanged.wait() == True
+    assert set(x.id for x in therapist.threads) == set(x.id for x in threads)
 
 
 def test_sendMessage(chat_thread, therapist: Therapist):

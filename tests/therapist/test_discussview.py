@@ -1,4 +1,5 @@
 import os.path
+import json
 import logging
 import contextlib
 from dataclasses import asdict
@@ -8,10 +9,10 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver import therapist
+from fdserver.models import ChatThread
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication, QQmlEngine
 from pkdiagram import util
-from pkdiagram.therapist import Therapist, TherapistController
+from pkdiagram.therapist import TherapistAppController
 from pkdiagram.therapist.therapist import Response
 from pkdiagram.app import Session
 
@@ -22,20 +23,20 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def therapistController(qmlEngine):
-    controller = TherapistController(QApplication.instance())
-    controller.initEngine(qmlEngine)
+def controller(qmlEngine):
+    controller = TherapistAppController(QApplication.instance())
+    controller.init(qmlEngine)
 
     yield controller
 
 
 @pytest.fixture
-def therapist(therapistController: TherapistController):
-    return therapistController.therapist
+def therapist(controller: TherapistAppController):
+    return controller.therapist
 
 
 @pytest.fixture
-def view(qtbot, qmlEngine, therapistController):
+def view(qtbot, qmlEngine, controller: TherapistAppController):
     # session.init(sessionData=test_session.account_editor_dict())
 
     FPATH = os.path.join(
@@ -67,6 +68,30 @@ def view(qtbot, qmlEngine, therapistController):
 
     _view.hide()
     _view.setSource(QUrl(""))
+
+
+def test_init_threads(server_response, view, controller: TherapistAppController):
+
+    USER_ID = 123
+
+    threadList = view.rootObject().property("threadList")
+    rowAdded = util.Condition(threadList.rowAdded)
+    # rowRemoved = util.Condition(threadList.rowRemoved)
+
+    # assert threadList.count() == 0
+
+    with server_response(
+        f"/therapist/threads",
+        method="GET",
+        body=json.dumps(
+            [
+                ChatThread(id=i, summary="test 123", user_id=USER_ID).as_dict()
+                for i in range(3)
+            ]
+        ),
+    ):
+        controller.therapist.refreshThreads()
+    assert rowAdded.waitForCallCount(3) == True
 
 
 def test_ask(view, therapist):

@@ -109,24 +109,25 @@ def main():
         print(version.VERSION)
 
     elif options.therapist:
-        from pkdiagram.therapist import TherapistController
+        from pkdiagram.therapist import TherapistAppController
 
         util.SERVER_URL_ROOT = "http://127.0.0.1:8888"
         util.init_logging()
 
         app = Application(sys.argv, prefsName=options.prefsName)
-        controller = TherapistController(app)
+        controller = TherapistAppController(app)
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine
 
         engine = QQmlApplicationEngine()
         engine.addImportPath("resources:")
-        controller.initEngine(engine)
+        controller.init(engine)
 
         engine.load("resources:qml/TherapistApplication.qml")
 
-        sys.exit(app.exec_())
+        ret = app.exec_()
+        sys.exit(ret)
 
     else:
         util.init_logging()

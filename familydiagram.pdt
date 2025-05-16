@@ -1540,7 +1540,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "therapistcontroller.py"
+name = "therapistappcontroller.py"
 included = true
 is_directory = false
 

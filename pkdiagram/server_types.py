@@ -82,19 +82,27 @@ class License:
 
 
 @dataclass
+class ChatThread:
+    id: int
+    user_id: int
+    summary: str
+
+
+@dataclass
 class User:
     id: int
     username: str
     first_name: str
     last_name: str
     roles: list[str]
-    created_at: datetime = None
-    updated_at: datetime = None
-    secret: bytes = None
-    licenses: list[License] = None
-    free_diagram_id: int = None
-    active: bool = None
-    status: str = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    secret: bytes | None = None
+    licenses: list[License] | None = None
+    chat_threads: list[ChatThread] | None = None
+    free_diagram_id: int | None = None
+    active: bool | None = None
+    status: str | None = None
 
     def __post_init__(self):
         if self.licenses and isinstance(self.licenses[0], dict):
