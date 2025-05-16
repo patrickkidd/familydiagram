@@ -60,10 +60,17 @@ if IS_IOS:
 elif "nt" in os.name:
     # s = subprocess.check_output('wmic csproduct get uid')
     # self.hardwareUUID = s.split('\n')[1].strip().decode('utf-8').strip()
+    # HARDWARE_UUID = (
+    #     subprocess.check_output("wmic csproduct get uuid")
+    #     .decode("utf-8").split()[1]
+    # )
     HARDWARE_UUID = (
-        subprocess.check_output("wmic csproduct get name,identifyingnumber,uuid")
-        .decode("utf-8")
-        .split()[-1]
+        subprocess.check_output(
+            ["powershell", "(Get-CimInstance Win32_ComputerSystemProduct).UUID"],
+            stderr=subprocess.PIPE,
+        )
+        .decode("utf-8", errors="ignore")
+        .strip()
     )
 elif os.uname()[0] == "Darwin":
     HARDWARE_UUID = (
