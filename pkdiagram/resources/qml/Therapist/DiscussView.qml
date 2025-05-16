@@ -97,6 +97,7 @@ Page {
             anchors.fill: parent
             model: therapist ? therapist.threads : undefined
             clip: true
+            property int numDelegates: 0
             // property var delegates: []
             delegate: ItemDelegate {
                 id: dRoot
@@ -109,10 +110,12 @@ Page {
                 Component.onCompleted: {
                     print('thread delegate onCompleted: ' + modelData)
                     threadList.rowAdded(dRoot)
+                    threadList.numDelegates += 1
                     // threadList.delegates.push(this)
                 }
                 Component.onDestruction: {
                     threadList.rowRemoved(dRoot)
+                    threadList.numDelegates -= 1
                     // threadList.delegates.splice(threadList.delegateList.indexOf(this), 1)
                 }
             }

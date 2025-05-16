@@ -77,17 +77,20 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
     _view.setSource(QUrl(""))
 
 
-def test_init_threads(server_response, view, controller: TherapistAppController):
+def test_init_threads(view, controller: TherapistAppController):
+    NUM_THREADS = len(controller.therapist.threads)
 
     threadsDrawer = view.rootObject().property("threadsDrawer")
     threadList = view.rootObject().property("threadList")
-    rowAdded = util.Condition(threadList.rowAdded)
     controller.therapist.threadsChanged.emit()
     view.rootObject().showThreads()
     assert util.wait(threadsDrawer.opened) == True
-    # delegates = threadList.property("delegates")
-    QApplication.processEvents()
-    assert rowAdded.waitForCallCount(len(controller.therapist.threads)) == True
+    assert (
+        util.waitForCondition(
+            lambda: threadList.property("numDelegates") == NUM_THREADS
+        )
+        == True
+    )
     x = 333
 
 
