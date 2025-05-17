@@ -83,32 +83,36 @@ def test_init_threads_then_select_thread(view, controller: TherapistAppControlle
     """
     NUM_THREADS = len(controller.therapist.threads)
 
-    threadList = view.rootObject().property("threadList")
-    controller.therapist.threadsChanged.emit()
-    view.rootObject().showThreads()
-    assert (
-        util.waitForCondition(
-            lambda: threadList.property("numDelegates") == NUM_THREADS
+    with patch.object(Therapist, "_refreshMessages"):
+
+        threadList = view.rootObject().property("threadList")
+        controller.therapist.threadsChanged.emit()
+        view.rootObject().showThreads()
+        assert (
+            util.waitForCondition(
+                lambda: threadList.property("numDelegates") == NUM_THREADS
+            )
+            == True
         )
-        == True
-    )
 
-    NEW_MESSAGES = [
-        ChatMessage(id=1, text="hello 1", origin=ChatMessageOrigin.AI.value),
-        ChatMessage(id=2, text="hello 2", origin=ChatMessageOrigin.User.value),
-        ChatMessage(id=3, text="hello 3", origin=ChatMessageOrigin.AI.value),
-        ChatMessage(id=4, text="hello 4", origin=ChatMessageOrigin.User.value),
-    ]
+        NEW_MESSAGES = [
+            ChatMessage(id=1, text="hello 1", origin=ChatMessageOrigin.AI.value),
+            ChatMessage(id=2, text="hello 2", origin=ChatMessageOrigin.User.value),
+            ChatMessage(id=3, text="hello 3", origin=ChatMessageOrigin.AI.value),
+            ChatMessage(id=4, text="hello 4", origin=ChatMessageOrigin.User.value),
+        ]
 
-    NEW_THREAD = controller.therapist.threads[1]
+        NEW_THREAD = controller.therapist.threads[1]
 
-    qml = QmlHelper(view)
-    secondDelegate = threadList.property("delegates").toVariant()[1]
-    orig_setCurrentThread = Therapist._setCurrentThread
-    with patch.object(
-        Therapist, "_setCurrentThread", side_effect=orig_setCurrentThread, autospec=True
-    ) as _setCurrentThread:
-        with patch.object(Therapist, "_refreshMessages"):
+        qml = QmlHelper(view)
+        secondDelegate = threadList.property("delegates").toVariant()[1]
+        orig_setCurrentThread = Therapist._setCurrentThread
+        with patch.object(
+            Therapist,
+            "_setCurrentThread",
+            side_effect=orig_setCurrentThread,
+            autospec=True,
+        ):
             qml.mouseClick(secondDelegate)
             with patch.object(controller.therapist, "_messages", NEW_MESSAGES):
                 assert util.waitForCallCount(view.rootObject().aiBubbleAdded, 2) == True
@@ -119,7 +123,7 @@ def test_init_threads_then_select_thread(view, controller: TherapistAppControlle
     # assert _setCurrentThread.call_args[0][1] == NEW_THREAD.id
 
 
-def test_ask(view, therapist):
+def test_ask(view, controller):
 
     MESSAGE = "hello there"
     RESPONSE = Response(
@@ -140,7 +144,7 @@ def test_ask(view, therapist):
     with patch("pkdiagram.therapist.Therapist._sendMessage") as _sendMessage:
         qml.mouseClick(submitButton)
     assert _sendMessage.call_count == 1
-    therapist.responseReceived.emit(RESPONSE.message, [], [], [])
+    controller.therapist.responseReceived.emit(RESPONSE.message, [], [], [])
 
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True

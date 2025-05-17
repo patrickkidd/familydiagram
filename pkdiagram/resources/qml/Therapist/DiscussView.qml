@@ -110,6 +110,22 @@ Page {
             property int numDelegates: 0
             property var delegates: []
 
+
+            PK.Button {
+                id: createThreadButton
+                source: '../../plus-button.png'
+                width: 20
+                height: 20
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    margins: 20
+                }
+                onClicked: {
+                    therapist.createThread()
+                }
+            }
+
             delegate: ItemDelegate {
                 id: dRoot
                 property int dId: modelData.id
@@ -324,8 +340,6 @@ Page {
                 source: '../../up-submit-arrow.png'
                 width: 18
                 height: 20
-                onWidthChanged: print(width)
-                onHeightChanged: print(height)
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter

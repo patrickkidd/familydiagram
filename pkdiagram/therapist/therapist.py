@@ -178,6 +178,10 @@ class Therapist(QObject):
     def setCurrentThread(self, thread_id: int):
         self._setCurrentThread(thread_id)
 
+    @pyqtSlot()
+    def createThread(self):
+        self._createThread()
+
     def _createThread(self):
 
         def onSuccess(data):
