@@ -32,19 +32,35 @@ class Response:
 class ChatMessage(QObject):
 
     def __init__(
-        self, id: int, user_id: int, message: str, parent: QObject | None = None
+        self,
+        id: int,
+        text: str,
+        origin: str,
+        parent: QObject | None = None,
     ):
         super().__init__(parent)
         self._id = id
-        self._user_id = user_id
-        self._message = message
+        self._text = text
+        self._origin = origin
 
     def as_dict(self) -> dict:
         return {
             "id": self._id,
-            "user_id": self._user_id,
-            "message": self._message,
+            "text": self._text,
+            "origin": self._origin,
         }
+
+    @pyqtProperty(int, constant=True)
+    def id(self) -> int:
+        return self._id
+
+    @pyqtProperty(str, constant=True)
+    def text(self) -> str:
+        return self._text
+
+    @pyqtProperty(str, constant=True)
+    def origin(self) -> str:
+        return self._origin
 
 
 class ChatThread(QObject):
@@ -86,7 +102,8 @@ class ChatThread(QObject):
     def summary(self) -> str:
         return self._summary if self._summary else ""
 
-    # def setMessages(self, messages: list[ChatMessage]):
+    def messages(self) -> list[ChatMessage]:
+        return list(self._messages)
 
 
 def make_thread(data: dict) -> ChatThread:
@@ -95,6 +112,14 @@ def make_thread(data: dict) -> ChatThread:
         user_id=data["user_id"],
         summary=data["summary"],
         messages=data.get("messages", []),
+    )
+
+
+def make_message(data: dict) -> ChatMessage:
+    return ChatMessage(
+        id=data["id"],
+        text=data["text"],
+        origin=data["origin"],
     )
 
 
@@ -115,12 +140,15 @@ class Therapist(QObject):
     serverDown = pyqtSignal()
 
     threadsChanged = pyqtSignal()
+    messagesChanged = pyqtSignal()
 
     def __init__(self, session):
         super().__init__()
         self._session = session
         self._session.changed.connect(self.onSessionChanged)
         self._threads = []
+        self._currentThread: ChatThread | None = None
+        self._messages: list[ChatMessage] = []
 
     def init(self):
         self.refreshThreads()
@@ -128,10 +156,7 @@ class Therapist(QObject):
     def onSessionChanged(self):
         self._threads = [make_thread(x) for x in self._session.user.chat_threads]
         self.threadsChanged.emit()
-
-    @pyqtProperty("QVariantList", notify=threadsChanged)
-    def threads(self):
-        return self._threads
+        self.messagesChanged.emit()
 
     def onError(self, reply: QNetworkReply):
         if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) == 0:
@@ -139,19 +164,76 @@ class Therapist(QObject):
         else:
             self.serverError.emit(reply.errorString())
 
+    ## Threads
+
+    @pyqtProperty("QVariantList", notify=threadsChanged)
+    def threads(self):
+        return list(self._threads)
+
+    def _setCurrentThread(self, thread_id: int):
+        self._currentThread = next(x for x in self._threads if x.id == thread_id)
+        self._refreshMessages()
+
+    @pyqtSlot(int)
+    def setCurrentThread(self, thread_id: int):
+        self._setCurrentThread(thread_id)
+
+    def _createThread(self):
+
+        def onSuccess(data):
+            thread = make_thread(data)
+            self._threads.append(thread)
+            self.threadsChanged.emit()
+            self._setCurrentThread(thread.id)
+
+        reply = self._session.server().nonBlockingRequest(
+            "POST",
+            "/therapist/threads",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
     @pyqtSlot()
     def refreshThreads(self):
         self._refreshThreads()
 
     def _refreshThreads(self):
-
         def onSuccess(data):
             self._threads = [make_thread(x) for x in data]
-            self.threadsChanged.emit()
+            if not self._threads:
+                self._createThread()
+            else:
+                self.threadsChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(
             "GET",
             "/therapist/threads",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    ## Messages
+
+    @pyqtProperty("QVariantList", notify=messagesChanged)
+    def messages(self):
+        return list(self._messages)
+
+    def _refreshMessages(self):
+
+        def onSuccess(data):
+            self._messages = [make_message(x) for x in data]
+            _log.info(f"messagesChanged.emit(): {len(self._messages)} messages")
+            self.messagesChanged.emit()
+
+        reply = self._session.server().nonBlockingRequest(
+            "GET",
+            f"/therapist/threads/{self._currentThread.id}/messages",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -184,6 +266,7 @@ class Therapist(QObject):
             )
 
         args = {
+            "thread_id": self._currentThread.id,
             "message": message,
         }
         reply = self._session.server().nonBlockingRequest(

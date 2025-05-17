@@ -48,7 +48,7 @@ def __quickWidget(item: QQuickItem) -> QQuickWidget:
 
 def itemString(item: QQuickItem) -> str:
     if item:
-        return f'{item.metaObject().className()}["{item.objectName()}"], parent: {item.parent().metaObject().className()}]'
+        return f'{item.metaObject().className()}["{item.objectName()}"], parent: {item.parent().metaObject().className() if item.parent() else "None"}'
     else:
         return "None"
 

@@ -33,15 +33,39 @@ Page {
         anchors.fill: parent
     }
 
+    property bool initSelectedThread: false
+
     Connections {
         target: therapist
-        function onRequestSent(message) {
-            chatModel.append({ "message": message, "fromUser": true });
+        function onThreadsChanged() {
+            if(!initSelectedThread) {
+                initSelectedThread = true
+                var lastThread = therapist.threads[therapist.threads.length-1]
+                print('initSelectedThread: ' + lastThread)
+                if(lastThread !== undefined) {
+                    therapist.setCurrentThread(lastThread.id)
+                }
+            }
         }
-        function onResponseReceived(message, added, removed, guidance) {
-            print('onResponseReceived:', message, added, removed, guidance)
+        function onMessagesChanged() {
+            print('onMessagesChanged: ' + therapist.messages.length + ' messages')
+            chatModel.clear()
+            for(var i=0; i < therapist.messages.length; i++) {
+                var message = therapist.messages[i];
+                print('    message[' + i + '] (' + message.origin + '):', message.text)
+                var fromUser = message.origin == 'user' ? true : false
+                chatModel.append({ "message": message.text, "fromUser": fromUser })
+            } 
+            messagesList.positionViewAtEnd()
+        }
+        function onRequestSent(text) {
+            print('onRequestSent:', text)
+            chatModel.append({ "message": text, "fromUser": true });
+        }
+        function onResponseReceived(text, added, removed, guidance) {
+            print('onResponseReceived:', text, added, removed, guidance)
             chatModel.append({
-                "message": message,
+                "message": text,
                 "fromUser": false
             });
         }
@@ -67,17 +91,6 @@ Page {
         threadsDrawer.visible = true        
     }
 
-    PK.Button {
-        id: threadButton
-        source: '../../layers-button.png'
-        width: 25
-        height: 25
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: 20 
-        anchors.topMargin: 20
-        onClicked: root.showThreads()
-    }
 
     Drawer {
         id: threadsDrawer
@@ -85,9 +98,6 @@ Page {
         height: root.height
         dragMargin: 0
         edge: Qt.LeftEdge
-        onOpened: {
-            print('opened')
-        }
         ListView {
             id: threadList
 
@@ -98,25 +108,29 @@ Page {
             model: therapist ? therapist.threads : undefined
             clip: true
             property int numDelegates: 0
-            // property var delegates: []
+            property var delegates: []
+
             delegate: ItemDelegate {
                 id: dRoot
                 property int dId: modelData.id
                 
-                text: 'Thread id: ' + modelData.user_id
+                text: 'Thread id: ' + modelData.id
                 width: threadList.width
                 palette.text: util.QML_TEXT_COLOR
 
                 Component.onCompleted: {
-                    print('thread delegate onCompleted: ' + modelData)
                     threadList.rowAdded(dRoot)
                     threadList.numDelegates += 1
-                    // threadList.delegates.push(this)
+                    threadList.delegates.push(this)
                 }
                 Component.onDestruction: {
                     threadList.rowRemoved(dRoot)
                     threadList.numDelegates -= 1
-                    // threadList.delegates.splice(threadList.delegateList.indexOf(this), 1)
+                    threadList.delegates.splice(threadList.delegates.indexOf(this), 1)
+                }
+                onClicked: {
+                    therapist.setCurrentThread(modelData.id)
+                    threadsDrawer.visible = false
                 }
             }
         }
@@ -135,10 +149,6 @@ Page {
         }
     }
 
-    // Component.onCompleted: {
-    //     print(therapist.threads)
-    // }
-
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
@@ -156,7 +166,7 @@ Page {
         }
 
         ListView {
-            id: chatListView
+            id: messagesList
             visible: chatModel.count > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -165,7 +175,7 @@ Page {
             }
             clip: true
             delegate: Loader {
-                width: chatListView.width
+                width: messagesList.width
                 property var dMessage: model.message
                 sourceComponent: model.fromUser ? humanQuestion : aiResponse
             }
@@ -197,7 +207,7 @@ Page {
                     color: util.QML_ITEM_ALTERNATE_BG
                     border.color: "#ccc"
                     radius: 8
-                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, chatListView.width - util.QML_MARGINS * 6)
+                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, messagesList.width - util.QML_MARGINS * 6)
                     implicitHeight: questionText.implicitHeight + 20
                     anchors.right: parent.right
                     anchors.rightMargin: root.chatMargin
@@ -334,4 +344,16 @@ Page {
             
         }
     }
+
+    PK.Button {
+        id: threadButton
+        source: '../../layers-button.png'
+        width: 25
+        height: 25
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 20 
+        anchors.topMargin: 20
+        onClicked: root.showThreads()
+    }    
 }

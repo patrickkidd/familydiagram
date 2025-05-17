@@ -9,11 +9,11 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication, QQmlEngine
+from fdserver.models import ChatMessageOrigin
+from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Response, Therapist, ChatThread
-from pkdiagram.app import Session
+from pkdiagram.therapist.therapist import Response, Therapist, ChatThread, ChatMessage
 
 from tests.widgets.qmlwidgets import QmlHelper
 
@@ -77,21 +77,46 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
     _view.setSource(QUrl(""))
 
 
-def test_init_threads(view, controller: TherapistAppController):
+def test_init_threads_then_select_thread(view, controller: TherapistAppController):
+    """
+    Threads list isn't loaded until it's init'ed so have to make this one test.
+    """
     NUM_THREADS = len(controller.therapist.threads)
 
-    threadsDrawer = view.rootObject().property("threadsDrawer")
     threadList = view.rootObject().property("threadList")
     controller.therapist.threadsChanged.emit()
     view.rootObject().showThreads()
-    assert util.wait(threadsDrawer.opened) == True
     assert (
         util.waitForCondition(
             lambda: threadList.property("numDelegates") == NUM_THREADS
         )
         == True
     )
-    x = 333
+
+    NEW_MESSAGES = [
+        ChatMessage(id=1, text="hello 1", origin=ChatMessageOrigin.AI.value),
+        ChatMessage(id=2, text="hello 2", origin=ChatMessageOrigin.User.value),
+        ChatMessage(id=3, text="hello 3", origin=ChatMessageOrigin.AI.value),
+        ChatMessage(id=4, text="hello 4", origin=ChatMessageOrigin.User.value),
+    ]
+
+    NEW_THREAD = controller.therapist.threads[1]
+
+    qml = QmlHelper(view)
+    secondDelegate = threadList.property("delegates").toVariant()[1]
+    orig_setCurrentThread = Therapist._setCurrentThread
+    with patch.object(
+        Therapist, "_setCurrentThread", side_effect=orig_setCurrentThread, autospec=True
+    ) as _setCurrentThread:
+        with patch.object(Therapist, "_refreshMessages"):
+            qml.mouseClick(secondDelegate)
+            with patch.object(controller.therapist, "_messages", NEW_MESSAGES):
+                assert util.waitForCallCount(view.rootObject().aiBubbleAdded, 2) == True
+                assert (
+                    util.waitForCallCount(view.rootObject().humanBubbleAdded, 2) == True
+                )
+    # assert _setCurrentThread.call_count == 1
+    # assert _setCurrentThread.call_args[0][1] == NEW_THREAD.id
 
 
 def test_ask(view, therapist):
