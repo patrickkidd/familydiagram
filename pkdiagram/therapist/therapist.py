@@ -232,7 +232,7 @@ class Therapist(QObject):
 
         def onSuccess(data):
             self._messages = [make_message(x) for x in data]
-            _log.info(f"messagesChanged.emit(): {len(self._messages)} messages")
+            # _log.info(f"messagesChanged.emit(): {len(self._messages)} messages")
             self.messagesChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(

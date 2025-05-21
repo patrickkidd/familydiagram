@@ -10,6 +10,9 @@
         "editor.formatOnSave": true
     },
     "black-formatter.importStrategy": "fromEnvironment",
+    "search.exclude": {
+        "lib/": true
+    },
     // "black-formatter.interpreter": [
     //     ".venv/bin/python"
     // ]

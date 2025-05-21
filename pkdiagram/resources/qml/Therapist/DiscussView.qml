@@ -48,15 +48,15 @@ Page {
             }
         }
         function onMessagesChanged() {
-            print('onMessagesChanged: ' + therapist.messages.length + ' messages')
+            // print('onMessagesChanged: ' + therapist.messages.length + ' messages')
             chatModel.clear()
             for(var i=0; i < therapist.messages.length; i++) {
                 var message = therapist.messages[i];
-                print('    message[' + i + '] (' + message.origin + '):', message.text)
+                // print('    message[' + i + '] (' + message.origin + '):', message.text)
                 var fromUser = message.origin == 'user' ? true : false
                 chatModel.append({ "message": message.text, "fromUser": fromUser })
             } 
-            messagesList.positionViewAtEnd()
+            messagesList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
             print('onRequestSent:', text)
@@ -68,18 +68,21 @@ Page {
                 "message": text,
                 "fromUser": false
             });
+            messagesList.delayedScrollToBottom()
         }
         function onServerDown() {
             chatModel.append({
                 "message": util.S_SERVER_IS_DOWN,
                 "fromUser": false
             });
+            messagesList.delayedScrollToBottom()
         }
         function onServerError() {
             chatModel.append({
                 "message": util.S_SERVER_ERROR,
                 "fromUser": false
             });
+            messagesList.delayedScrollToBottom()
         }
     }
 
@@ -110,27 +113,11 @@ Page {
             property int numDelegates: 0
             property var delegates: []
 
-
-            PK.Button {
-                id: createThreadButton
-                source: '../../plus-button.png'
-                width: 20
-                height: 20
-                anchors {
-                    top: parent.top
-                    right: parent.right
-                    margins: 20
-                }
-                onClicked: {
-                    therapist.createThread()
-                }
-            }
-
             delegate: ItemDelegate {
                 id: dRoot
                 property int dId: modelData.id
                 
-                text: 'Thread id: ' + modelData.id
+                text: 'Discussion id: ' + modelData.id
                 width: threadList.width
                 palette.text: util.QML_TEXT_COLOR
 
@@ -165,6 +152,29 @@ Page {
         }
     }
 
+
+    header: PK.ToolBar {
+
+        PK.ToolButton {
+            id: resizeButton
+            text: "Discussions"
+            anchors.left: parent.left
+            anchors.leftMargin: util.QML_MARGINS
+            onClicked: root.showThreads()
+        }
+
+        PK.ToolButton {
+            text: 'New'
+            anchors {
+                right: parent.right
+                margins: util.QML_MARGINS
+            }
+            onClicked: therapist.createThread()
+        }
+    }
+
+
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
@@ -194,6 +204,19 @@ Page {
                 width: messagesList.width
                 property var dMessage: model.message
                 sourceComponent: model.fromUser ? humanQuestion : aiResponse
+            }
+
+            function delayedScrollToBottom() {
+                delayedScrollToEndTimer.running = true
+            }
+
+            // contentY was being reset on first scroll to bottom
+            Timer {
+                id: delayedScrollToEndTimer
+                repeat: false
+                running: false
+                interval: 100
+                onTriggered: messagesList.positionViewAtEnd()
             }
         }
 
@@ -283,7 +306,7 @@ Page {
             id: inputField
             color: util.QML_ITEM_BG
             Layout.fillWidth: true
-            implicitHeight: textEdit.height + 20
+            implicitHeight: inputFlickable.height + 20
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
@@ -306,33 +329,67 @@ Page {
                 onClicked: textEdit.forceActiveFocus()
             }
 
-            PK.TextEdit {
-                id: textEdit
+            Flickable {
+
+                id: inputFlickable
+
                 anchors {
                     left: parent.left
                     right: submitButton.left
                     verticalCenter: parent.verticalCenter
                     margins: 10
                 }
+                height: Math.min(textEdit.height + 10, 120)  // Cap at 120 px
+                contentWidth: textEdit.width
+                contentHeight: textEdit.height
+                clip: true
 
-                background: Rectangle {
-                    color: "transparent"
-                    border.width: 0
-                }
-
-                Keys.onReturnPressed: {
-                    if (event.modifiers & Qt.ControlModifier || event.modifiers & Qt.MetaModifier) {                        
-                        inputField.submit()
-                        event.accepted = true;
-                    } else {
-                        event.accepted = false;
+                function positionViewAtEnd() {
+                    if (contentHeight > height) {
+                        contentY = contentHeight - height
                     }
                 }
 
-                // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
-                selectByMouse: true
-                selectionColor: util.QML_HIGHLIGHT_COLOR
-                selectedTextColor: 'black'
+                PK.TextEdit {
+                    id: textEdit
+                    width: inputFlickable.width
+                    // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+                    selectByMouse: true
+                    selectionColor: util.QML_HIGHLIGHT_COLOR
+                    selectedTextColor: 'black'
+                    wrapMode: TextEdit.WordWrap
+                    textFormat: TextEdit.PlainText
+                    cursorVisible: focus
+
+                    background: Rectangle {
+                        color: "transparent"
+                        border.width: 0
+                    }
+
+                    onCursorRectangleChanged: {
+                        if (cursorRectangle) {
+                            var topLeft = Qt.point(cursorRectangle.x, cursorRectangle.y)
+                            var mappedPos = mapToItem(inputFlickable, topLeft);
+                            if (mappedPos.y < 0) {
+                                inputFlickable.contentY += mappedPos.y;
+                            } else if (mappedPos.y + cursorRectangle.height > inputFlickable.height) {
+                                inputFlickable.contentY += (mappedPos.y + cursorRectangle.height - inputFlickable.height);
+                            }
+                        }
+                    }
+
+                    Keys.onReturnPressed: {
+                        inputField.submit()
+                        event.accepted = true
+                        // if (event.modifiers & Qt.ControlModifier || event.modifiers & Qt.MetaModifier) {                        
+                        //     inputField.submit()
+                        //     event.accepted = true;
+                        // } else {
+                        //     event.accepted = false;
+                        // }
+                    }
+
+                }
             }
 
             PK.Button {
@@ -358,16 +415,4 @@ Page {
             
         }
     }
-
-    PK.Button {
-        id: threadButton
-        source: '../../layers-button.png'
-        width: 25
-        height: 25
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: 20 
-        anchors.topMargin: 20
-        onClicked: root.showThreads()
-    }    
 }
