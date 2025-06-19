@@ -19,6 +19,7 @@ PK.Drawer {
     property var selectedPeopleModel: ListModel {}
 
     property var tagsEdit: tagsEditItem
+    property var tagsLabel: tagsLabel
     property var addPage: addPage
     property var addButton: addButton
     property var clearButton: clearButton
@@ -874,9 +875,13 @@ PK.Drawer {
                         function clear() { checked = false }
                     }
 
-                    PK.FormDivider { Layout.columnSpan: 2 }
+                    PK.FormDivider { Layout.columnSpan: 2; visible: sceneModel.isInEditorMode}
                     
-                    PK.Text { id: tagsLabel; text: "Tags" }
+                    PK.Text {
+                        id: tagsLabel
+                        text: "Tags"
+                        visible: sceneModel.isInEditorMode
+                    }
 
                     PK.FormField {
 
@@ -886,6 +891,8 @@ PK.Drawer {
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
                         backTabItem: nodalBox
+                        visible: sceneModel.isInEditorMode
+                        onVisibleChanged: print('tagsField visible: ' + visible)
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -917,6 +924,7 @@ PK.Drawer {
                         text: util.S_TAGS_HELP_TEXT
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
+                        visible: sceneModel.isInEditorMode
                     }
 
                     PK.FormDivider {
