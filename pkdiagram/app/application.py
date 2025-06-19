@@ -70,6 +70,8 @@ class Application(QApplication):
         # )
         super().__init__(*args, **kwargs)
 
+        self.setQuitOnLastWindowClosed(True)
+
         self._prefsName = prefsName
         self._prefs = None
         # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
@@ -164,7 +166,7 @@ class Application(QApplication):
             if self._prefsName is None:
                 if util.IS_IOS or util.IS_WINDOWS:
                     self._prefsName = "familydiagram"
-                elif util.IS_APPLE:
+                elif util.IS_MAC:
                     self._prefsName = "familydiagrammac"
             self._prefs = QSettings("vedanamedia", self._prefsName)
         return self._prefs

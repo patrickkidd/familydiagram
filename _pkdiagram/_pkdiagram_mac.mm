@@ -88,8 +88,13 @@ NSURL *URLByDeletingTrailingSlash(NSURL *url) {
 @end
 
 
+#if TARGET_OS_IOS
+@interface FDApplication : UIApplication
+@end
+#else
 @interface FDApplication : NSApplication
 @end
+#endif
 
 @implementation FDApplication
 
@@ -2059,6 +2064,19 @@ Qt::ScreenOrientation CUtil::screenOrientation() {
 }
     
 
+QMargins CUtil::safeAreaMargins() {
+#if TARGET_OS_IOS
+    UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+    if (@available(iOS 11.0, *)) {
+        UIEdgeInsets insets = window.safeAreaInsets;
+        return QMargins(insets.left, insets.top, insets.right, insets.bottom);
+    }
+    return QMargins(0, 20, 0, 0); // Fallback for pre-iOS 11 (status bar only)    
+#else
+    return QMargins(0, 0, 0, 0);
+#endif
+}
+
 
 CUtil *CUtil_create(QObject *parent) {
     return new CUtilApple(parent);
@@ -2364,3 +2382,6 @@ bool CUtil::dev_amIBeingDebugged() {
     return AmIBeingDebugged();
 }
 
+
+void CUtil::dev_showDebugConsole() {
+}

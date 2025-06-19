@@ -24,18 +24,40 @@ from _pkdiagram import CUtil
 from PyQt5.QtCore import QSysInfo
 from pkdiagram.pyqt import pyqtProperty
 
-if not hasattr(QSysInfo, "macVersion") or not QSysInfo.macVersion() & QSysInfo.MV_IOS:
-    IS_IOS = False
-else:
-    IS_IOS = True
-
 IS_DEBUGGER = bool(sys.gettrace() is not None)
 IS_TEST = "pytest" in sys.modules
-IS_APPLE = bool(CUtil.operatingSystem() & CUtil.OS_Mac)
-IS_WINDOWS = bool(CUtil.operatingSystem() & CUtil.OS_Windows)
-IS_IPHONE = bool(CUtil.operatingSystem() & CUtil.OS_iPhone)
+IS_WINDOWS = bool(
+    CUtil.operatingSystem() & CUtil.OperatingSystem.OS_Windows
+    == CUtil.OperatingSystem.OS_Windows
+)
+IS_MAC = bool(
+    CUtil.operatingSystem() & CUtil.OperatingSystem.OS_Mac
+    == CUtil.OperatingSystem.OS_Mac
+)
+IS_IPAD = bool(
+    CUtil.operatingSystem() & CUtil.OperatingSystem.OS_iPad
+    == CUtil.OperatingSystem.OS_iPad
+)
+IS_IPHONE = bool(
+    CUtil.operatingSystem() & CUtil.OperatingSystem.OS_iPhone
+    == CUtil.OperatingSystem.OS_iPhone
+)
+IS_IPHONE_SIMULATOR = bool(
+    CUtil.operatingSystem() & CUtil.OperatingSystem.OS_iPhoneSimulator
+    == CUtil.OperatingSystem.OS_iPhoneSimulator
+)
+IS_IOS = bool(IS_IPHONE or IS_IPAD)  # Separate into IS_IOS and IS_IPADOS
+IS_APPLE = bool(IS_MAC or IS_IPHONE or IS_IPAD)
 IS_DEV = CUtil.isDev()
 IS_UI_DARK_MODE = False
+
+# print(
+#     f"IS_WINDOWS: {IS_WINDOWS}, IS_MAC: {IS_MAC}, IS_IPAD: {IS_IPAD}, IS_IPHONE: {IS_IPHONE}, IS_IPHONE_SIMULATOR: {IS_IPHONE_SIMULATOR}, IS_IOS: {IS_IOS}"
+# )
+# print(
+#     f"IS_DEV: {IS_DEV}, IS_DEBUGGER: {IS_DEBUGGER}, IS_TEST: {IS_TEST}, IS_BUNDLE: {IS_BUNDLE}"
+# )
+
 BUNDLE_ID = None
 if IS_BUNDLE:
     if IS_IOS:
@@ -153,22 +175,27 @@ def init_logging():
         )
         sys.exit(1)
 
+    handlers = []
+
     consoleHandler = logging.StreamHandler(sys.stdout)
     consoleHandler.addFilter(logging_allFilter)
     consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
     consoleHandler.setLevel(getattr(logging, FD_LOG_LEVEL))
+    handlers.append(consoleHandler)
 
-    appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
-    if not os.path.isdir(appDataDir):
-        Path(appDataDir).mkdir()
-    fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
-    filePath = os.path.join(appDataDir, fileName)
-    if not os.path.isfile(filePath):
-        Path(filePath).touch()
-    fileHandler = logging.FileHandler(filePath, mode="a+")
-    fileHandler.addFilter(logging_allFilter)
-    fileHandler.setLevel(logging.DEBUG)
-    fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+    if not IS_IOS:
+        appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
+        if not os.path.isdir(appDataDir):
+            Path(appDataDir).mkdir()
+        fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
+        filePath = os.path.join(appDataDir, fileName)
+        if not os.path.isfile(filePath):
+            Path(filePath).touch()
+        fileHandler = logging.FileHandler(filePath, mode="a+")
+        fileHandler.addFilter(logging_allFilter)
+        fileHandler.setLevel(logging.DEBUG)
+        fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+        handlers.append(fileHandler)
 
     def findTheMainWindow():
         app = QApplication.instance()
@@ -193,11 +220,9 @@ def init_logging():
             mainwindow.session.handleLog(record)
 
     datadogHandler = DatadogHandler()
+    handlers.append(datadogHandler)
 
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=[consoleHandler, fileHandler, datadogHandler],
-    )
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
 
 
 ##
@@ -541,8 +566,19 @@ S_SERVER_IS_DOWN = "The server is down. Please try again later."
 S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
 
 
+# Therapist
+
+S_THERAPIST_NO_CHAT_TEXT = "What's on your mind?"
+
+#
+
+
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
+
+from PyQt5.QtCore import QDir
+
+QDir.addSearchPath("resources", os.path.join(os.path.dirname(__file__), "resources"))
 
 
 def personKindIndexFromName(name):

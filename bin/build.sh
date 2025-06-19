@@ -64,7 +64,7 @@ echo "PKS Generating _pkdiagram sources"
 (
     set -e
     cd _pkdiagram
-    sip-build --no-compile
+    sip-build --no-compile --no-make
     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 )
@@ -288,14 +288,13 @@ if [[ $TARGET = osx* ]]; then
 
 elif [[ $TARGET = ios* ]]; then
 
-    SYSROOT=`cd "$ROOT/sysroot-ios-64"; pwd`
-    QMAKE=~/dev/Qt/5.15.1/ios/bin/qmake
+    SYSROOT=`cd "$ROOT/sysroot/sysroot-ios-64"; pwd`
 
     if [[ ! -f Makefile ]]; then 
         qmake && make
     fi
 
-	python bin/update_plist_version.py
+	# rm -rf build/ios
 
 	pyqtdeploy-build --verbose --resources 4 --target ios-64 --build-dir build/ios familydiagram.pdt
 	sed -e 's/printsupport//' build/ios/Family\ Diagram.pro > build/ios/Family\ Diagram.pro.2
@@ -309,12 +308,30 @@ elif [[ $TARGET = ios* ]]; then
 
 	rsync -avzq build/common-config/* build/ios
 	rsync -avzq build/ios-config/* build/ios
-	cd build/ios && $QMAKE CONFIG+=no_autoqmake
+    (
+    	cd build/ios && qmake CONFIG+=no_autoqmake
+    )
 
     if [[ $TARGET == "ios" ]]; then
 
-    	open Family\ Diagram.xcodeproj
-    
+    	open build/ios/Family\ Diagram.xcodeproj
+
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -target "Qt Preprocess" \
+            -configuration Release \
+            -UseModernBuildSystem=YES \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig 
+
+        # xcodebuild \
+        #     -project build/ios/Family\ Diagram.xcodeproj \
+        #     -scheme "Family Diagram" \
+        #     -configuration Release \
+        #     -xcconfig build/ios/Family-Diagram-Release.xcconfig \
+        #     -UseModernBuildSystem=YES \
+        #     build
+
+
     elif [[ $TARGET == "osx-build" ]]; then
 
     	# xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination 'platform=iOS Simulator,name=iPhone Xʀ,OS=12.2' build

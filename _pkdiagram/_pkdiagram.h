@@ -85,7 +85,7 @@ public:
         OS_Unknown =         0x00,
         OS_iPad =            0x02,
         OS_iPhone =          0x04,
-        OS_iPhoneSimulator = 0x08,  // also OSS_iPhone
+        OS_iPhoneSimulator = 0x08,  // also OS_iPhone
         OS_Mac =             0x10,
         OS_Windows =         0x20
     };
@@ -142,7 +142,7 @@ public:
 	static QRect screenSize();
     static float devicePixelRatio();
     static Qt::ScreenOrientation screenOrientation();
-    QMargins safeAreaMargins() { return m_unsafeAreaMargins; }
+    QMargins safeAreaMargins(); // { return m_unsafeAreaMargins; }
 	static QString getMachineModel();
 
     static qreal distance(const QPointF &p1, const QPointF &p2);
@@ -160,6 +160,7 @@ public:
     virtual void dev_crash() const {}
     static void dev_printBacktrace();
     static bool dev_amIBeingDebugged();
+    static void dev_showDebugConsole();
     static bool isDev();
 
     

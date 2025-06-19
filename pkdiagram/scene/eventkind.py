@@ -12,7 +12,7 @@ class EventKind(enum.Enum):
     specific visual representation somewhere in the app, usually the diagram.
     """
 
-    # Indibvidual
+    # Individual
     Birth = "birth"
     Adopted = "adopted"
     Death = "death"

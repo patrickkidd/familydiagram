@@ -1158,6 +1158,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "Style.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "TabBar.qml"
 included = true
 is_directory = false
@@ -1189,6 +1194,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "TextInput.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TherapistView.qml"
 included = true
 is_directory = false
 
@@ -1231,6 +1241,11 @@ is_directory = false
 [[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"
 included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "TherapistApplication.qml"
+included = true
 is_directory = false
 
 
@@ -1316,6 +1331,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "up-arrow.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "up-submit-arrow.png"
 included = true
 is_directory = false
 
@@ -1476,6 +1496,31 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "therapist"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapist.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapistcontroller.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "therapistview.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "util.py"
 included = true
 is_directory = false
@@ -1521,6 +1566,11 @@ is_directory = false
 [[Application.Package.Content.Content.Content]]
 name = "copilotview.py"
 included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "therapistview.py"
+included = false
 is_directory = false
 
 

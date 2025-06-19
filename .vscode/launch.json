@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "App",
+            "name": "Family Diagram",
             "type": "debugpy",
             "request": "launch",
             "module": "pkdiagram",
@@ -18,6 +18,24 @@
             // "env": {
             //     "FD_LOG_LEVEL": "DEBUG",
             // }
+            "args": [
+                // "--windows-console"
+            ]
+        },
+        {
+            "name": "Therapist",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pkdiagram",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            },
+            "args": [
+                "--therapist"
+            ]
         },
         {
             "name": "App (prefs: 'free')",
@@ -108,6 +126,39 @@
             ]
         },
         {
+            "name": "pyqtdeploy-sysroot (iPhoneSimulator)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--target",
+                "ios-64",
+                "--force",
+                "--verbose",
+                "sysroot/sysroot.toml"
+            ],
+            "env": {
+                "PK_IPHONE_SIMULATOR": "1",
+            }
+        },
+        {
+            "name": "pyqtdeploy-sysroot (iOS)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/pyqtdeploy-sysroot-debuggable.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "--target",
+                "ios-64",
+                "--force",
+                "sysroot/sysroot.toml"
+            ]
+        },
+        {
             "name": "pyqtdeploy-build",
             "type": "debugpy",
             "request": "launch",
@@ -140,6 +191,7 @@
             "type": "debugpy",
             "purpose": "debug-test",
             "justMyCode": false,
+            "skipFiles": [],
             "args": [
                 "-svvx"
             ],

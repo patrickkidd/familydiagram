@@ -7,6 +7,12 @@ on:
         description: "Enter release notes for appcast (multi-line supported)"
         required: false
         type: string
+      skip_release:
+        description: "Skip the release stage (only build)"
+        required: false
+        type: boolean
+        default: false
+
   # push:
   #   branches:
   #     - master
@@ -408,6 +414,7 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     needs: [setup, build-osx, build-windows]
+    if: ${{ !inputs.skip_release }}
     permissions:
       contents: write
     steps:
@@ -451,6 +458,7 @@ jobs:
   update-appcast:
     runs-on: ubuntu-24.04
     needs: publish
+    if: ${{ !inputs.skip_release }}
       
     steps:
 

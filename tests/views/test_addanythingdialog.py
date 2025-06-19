@@ -21,6 +21,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 
 @pytest.fixture
 def view(qtbot, scene, qmlEngine):
+    qmlEngine.sceneModel.onEditorMode(True)
     qmlEngine.setScene(scene)
     widget = AddAnythingDialog(qmlEngine)
     widget.resize(600, 1000)
@@ -29,6 +30,7 @@ def view(qtbot, scene, qmlEngine):
     qtbot.addWidget(widget)
     qtbot.waitActive(widget)
     assert widget.isShown()
+
     # widget.adjustFlickableHack()
 
     view = TestAddAnythingDialog(widget)
@@ -42,10 +44,14 @@ def view(qtbot, scene, qmlEngine):
     widget.deinit()
 
 
-def test_init(view):
+@pytest.mark.parametrize("editorMode", [True, False])
+def test_init(qmlEngine, view, editorMode):
+    qmlEngine.sceneModel.onEditorMode(editorMode)
     assert view.item.property("kind") == None
     assert view.kindBox.property("currentIndex") == -1
     assert view.tagsEdit.property("isDirty") == False
+    assert view.tagsEdit.property("visible") == editorMode
+    assert view.rootProp("tagsLabel").property("visible") == editorMode
 
 
 def test_clear_CustomIndividual(view):

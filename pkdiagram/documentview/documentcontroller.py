@@ -17,12 +17,9 @@ from pkdiagram.pyqt import (
     QItemSelectionModel,
     QMessageBox,
     QImage,
-    QPrinter,
     QPainter,
     QColor,
     QItemSelection,
-    QPrinter,
-    QPrintDialog,
     QDialog,
 )
 from pkdiagram import util
@@ -33,6 +30,7 @@ from pkdiagram.documentview import RightDrawerView
 
 if not util.IS_IOS:
     import xlsxwriter
+    from pkdiagram.pyqt import QPrinter, QPrintDialog
 
 
 log = logging.getLogger(__name__)

@@ -155,6 +155,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_SERVER_ERROR",
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
+        "S_THERAPIST_NO_CHAT_TEXT",
     ]
     QObjectHelper.registerQtProperties(
         [
@@ -296,6 +297,16 @@ class QmlUtil(QObject, QObjectHelper):
             return {k.name: k.value for k in EventKind}
         else:
             return super().get(attr)
+
+    @pyqtSlot(result=QVariant)
+    def safeAreaMargins(self):
+        margins = CUtil.instance().safeAreaMargins()
+        return {
+            "left": margins.left(),
+            "top": margins.top(),
+            "right": margins.right(),
+            "bottom": margins.bottom(),
+        }
 
     # If no time zone is entered, js Date parses a string as if it were UTC,
     # then adjusts it to local time. So '1/1/2018' becomes 1/1/2018 0:00 GMT, then

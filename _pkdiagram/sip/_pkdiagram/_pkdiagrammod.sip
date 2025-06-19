@@ -73,6 +73,7 @@ public:
     enum OperatingSystem {
         OS_iPad,
         OS_iPhone,
+        OS_iPhoneSimulator,
         OS_Mac,
         OS_Windows,
         OS_Unknown
@@ -116,6 +117,7 @@ public:
     void dev_crash() const;
     static void dev_printBacktrace();
     static bool dev_amIBeingDebugged();
+    static void dev_showDebugConsole();
     
     static QRect screenSize();
     static Qt::ScreenOrientation screenOrientation();
