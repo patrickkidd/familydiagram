@@ -21,6 +21,7 @@ HelpText 1.0 HelpText.qml
 Image 1.0 Image.qml
 ItemLayerList 1.0 ItemLayerList.qml
 Label 1.0 Label.qml
+ListView 1.0 ListView.qml
 ListPicker 1.0 ListPicker.qml
 NoDataText 1.0 NoDataText.qml
 PeoplePicker 1.0 PeoplePicker.qml

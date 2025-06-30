@@ -21,9 +21,7 @@ _log = logging.getLogger(__name__)
 @dataclass
 class Response:
     message: str
-    added_data_points: list
-    removed_data_points: list
-    guidance: list[str]  # comprehensive list
+    pdp: dict
 
 
 # qmlRegisterType(Response, "PK.Models", 1, 0, "Response")
@@ -131,15 +129,14 @@ class Therapist(QObject):
     requestSent = pyqtSignal(str)
     responseReceived = pyqtSignal(
         str,
-        list,
-        list,
-        list,
-        arguments=["message", "added", "removed", "guidance"],
+        dict,
+        arguments=["message", "pdp"],
     )
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
     threadsChanged = pyqtSignal()
+    pdpChanged = pyqtSignal()
     messagesChanged = pyqtSignal()
 
     def __init__(self, session):
@@ -147,16 +144,20 @@ class Therapist(QObject):
         self._session = session
         self._session.changed.connect(self.onSessionChanged)
         self._threads = []
+        self._pdp = None  # type: dict | None
         self._currentThread: ChatThread | None = None
         self._messages: list[ChatMessage] = []
 
     def init(self):
         self.refreshThreads()
+        self.refreshPDP()
 
     def onSessionChanged(self):
         self._threads = [make_thread(x) for x in self._session.user.chat_threads]
+        self._pdp = self._session.user.pdp
         self.threadsChanged.emit()
         self.messagesChanged.emit()
+        self.pdpChanged.emit()
 
     def onError(self, reply: QNetworkReply):
         if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) == 0:
@@ -169,6 +170,15 @@ class Therapist(QObject):
     @pyqtProperty("QVariantList", notify=threadsChanged)
     def threads(self):
         return list(self._threads)
+
+    @pyqtProperty("QVariantMap", notify=pdpChanged)
+    def pdp(self):
+        return self._pdp if self._pdp is not None else {}
+
+    def setPDP(self, pdp: dict):
+        self._pdp = pdp
+        _log.debug(f"pdpChanged.emit(): {self._pdp}")
+        self.pdpChanged.emit()
 
     def _setCurrentThread(self, thread_id: int):
         self._currentThread = next(x for x in self._threads if x.id == thread_id)
@@ -222,6 +232,23 @@ class Therapist(QObject):
             from_root=True,
         )
 
+    @pyqtSlot()
+    def refreshPDP(self):
+        def onSuccess(data):
+            self.setPDP(data)
+            # _log.info(f"pdpChanged.emit(): {self._pdp}")
+            self.pdpChanged.emit()
+
+        reply = self._session.server().nonBlockingRequest(
+            "GET",
+            "/therapist/pdp",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
     ## Messages
 
     @pyqtProperty("QVariantList", notify=messagesChanged)
@@ -262,11 +289,10 @@ class Therapist(QObject):
             #     removed_data_points=data["removed_data_points"],
             #     guidance=data["guidance"],
             # )
+            self.setPDP(data["pdp"])
             self.responseReceived.emit(
                 data["message"],
-                data["added_data_points"],
-                data["removed_data_points"],
-                data["guidance"],
+                data["pdp"],
             )
 
         args = {
@@ -284,3 +310,29 @@ class Therapist(QObject):
         )
         self._session.track(f"therapist.Engine.sendMessage: {message}")
         self.requestSent.emit(message)
+
+    @pyqtSlot(int)
+    def acceptPDPItem(self, id: int):
+        _log.info(f"Accepting PDP item with id: {id}")
+        reply = self._session.server().nonBlockingRequest(
+            "POST",
+            f"/therapist/pdp/accept/{id}",
+            data={},
+            error=lambda: self.onError(reply),
+            success=lambda data: _log.info(f"Accepted PDP item: {data}"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    @pyqtSlot(int)
+    def rejectPDPItem(self, id: int):
+        _log.info(f"Rejecting PDP item with id: {id}")
+        reply = self._session.server().nonBlockingRequest(
+            "POST",
+            f"/therapist/pdp/reject/{id}",
+            data={},
+            error=lambda: self.onError(reply),
+            success=lambda data: _log.info(f"Rejected PDP item: {data}"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )

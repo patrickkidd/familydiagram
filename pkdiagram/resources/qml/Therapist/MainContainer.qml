@@ -53,4 +53,20 @@ Page {
         PK.TabButton { text: "Plan" }
     }
 
+    // Keys.onPressed: {
+    //     if (event.modifiers & Qt.MetaModifier) {
+    //         if (event.key === Qt.Key_1) {
+    //             tabBar.currentIndex = 0;
+    //             event.accepted = true;
+    //         } else if (event.key === Qt.Key_2) {
+    //             tabBar.currentIndex = 1;
+    //             event.accepted = true;
+    //         } else if (event.key === Qt.Key_3) {
+    //             tabBar.currentIndex = 2;
+    //             event.accepted = true;
+    //         }
+    //     }
+    // }
+    focus: true
+
 }
