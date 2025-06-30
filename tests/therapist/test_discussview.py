@@ -13,7 +13,13 @@ from fdserver.models import ChatMessageOrigin
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Response, Therapist, ChatThread, ChatMessage
+from pkdiagram.therapist.therapist import (
+    Response,
+    Therapist,
+    ChatThread,
+    ChatMessage,
+    make_thread,
+)
 
 from tests.widgets.qmlwidgets import QmlHelper
 
@@ -36,6 +42,7 @@ def controller(qmlEngine):
             )
         )
         stack.enter_context(patch.object(controller.therapist, "_refreshThreads"))
+        stack.enter_context(patch.object(controller.therapist, "_refreshPDP"))
 
         controller.init(qmlEngine)
 
@@ -57,10 +64,6 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
         "DiscussView.qml",
     )
 
-    # class DiscussView(QQuickWidget, QmlWidgetHelper):
-    #     def __init__(self, parent=None):
-    #         super().__init__(qmlEngine, parent)
-
     _view = QQuickWidget(qmlEngine, None)
     _view.setSource(QUrl.fromLocalFile(FPATH))
     _view.setFormat(util.SURFACE_FORMAT)
@@ -75,6 +78,11 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
 
     _view.hide()
     _view.setSource(QUrl(""))
+
+
+@pytest.fixture
+def therapist(view, controller):
+    return controller.therapist
 
 
 def test_init_threads_then_select_thread(view, controller: TherapistAppController):
@@ -123,15 +131,10 @@ def test_init_threads_then_select_thread(view, controller: TherapistAppControlle
     # assert _setCurrentThread.call_args[0][1] == NEW_THREAD.id
 
 
-def test_ask(view, controller):
+def test_ask(view, therapist):
 
     MESSAGE = "hello there"
-    RESPONSE = Response(
-        message="some response",
-        added_data_points=[],
-        removed_data_points=[],
-        guidance=[],
-    )
+    RESPONSE = Response(message="some response", pdp={})
 
     qml = QmlHelper(view)
 
@@ -140,11 +143,19 @@ def test_ask(view, controller):
     aiBubbleAdded = util.Condition(view.rootObject().aiBubbleAdded)
     noChatLabel = view.rootObject().property("noChatLabel")
 
-    qml.keyClicks(textEdit, MESSAGE)
-    with patch("pkdiagram.therapist.Therapist._sendMessage") as _sendMessage:
-        qml.mouseClick(submitButton)
+    qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
+    _orig_sendMessage = therapist._sendMessage
+    with patch.object(
+        therapist,
+        "_currentThread",
+        new=ChatThread(id=1, summary="test thread", user_id=123),
+    ):
+        with patch.object(therapist, "_sendMessage", autospec=True) as _sendMessage:
+            _sendMessage.return_value = RESPONSE
+            qml.mouseClick(submitButton)
+    util.waitALittle()
     assert _sendMessage.call_count == 1
-    controller.therapist.responseReceived.emit(RESPONSE.message, [], [], [])
+    therapist.responseReceived.emit(RESPONSE.message, {})
 
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True

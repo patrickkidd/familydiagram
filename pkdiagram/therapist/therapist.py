@@ -234,6 +234,9 @@ class Therapist(QObject):
 
     @pyqtSlot()
     def refreshPDP(self):
+        self._refreshPDP()
+
+    def _refreshPDP(self):
         def onSuccess(data):
             self.setPDP(data)
             # _log.info(f"pdpChanged.emit(): {self._pdp}")
@@ -290,10 +293,7 @@ class Therapist(QObject):
             #     guidance=data["guidance"],
             # )
             self.setPDP(data["pdp"])
-            self.responseReceived.emit(
-                data["message"],
-                data["pdp"],
-            )
+            self.responseReceived.emit(data["message"], data["pdp"])
 
         args = {
             "thread_id": self._currentThread.id,
@@ -316,7 +316,7 @@ class Therapist(QObject):
         _log.info(f"Accepting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/pdp/accept/{id}",
+            f"/therapist/pdp/accept/{-id}",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Accepted PDP item: {data}"),
@@ -329,7 +329,7 @@ class Therapist(QObject):
         _log.info(f"Rejecting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/pdp/reject/{id}",
+            f"/therapist/pdp/reject/{-id}",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Rejected PDP item: {data}"),

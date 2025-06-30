@@ -15,28 +15,29 @@ Page {
         pdpModel.clear()
         for(var i=0; i < pdp.people.length; i++) {
             var person = pdp.people[i];
-            console.log('Person:', JSON.stringify(person) );
-            pdpModel.append({ "kind": "Person", "data": JSON.stringify(person) });
+            console.log('Person:', JSON.stringify(person));
+            pdpModel.append({ "kind": "Person", "text": person.name, "id": person.id });
         }
         for(var i=0; i < pdp.events.length; i++) {
             var event = pdp.events[i];
             console.log('Event:', JSON.stringify(event));
-            pdpModel.append({ "kind": "Event", "data": JSON.stringify(event) });
+            pdpModel.append({ "kind": "Event", "text": event.description, "id": event.id });
         }
     }
 
     Connections {
         target: therapist
-
-        // function onResponseReceived(text, pdp) {
-        //     print('onResponseReceived:', text, pdp)
-        //     root.updatePDP(pdp)
-        // }
         function onPdpChanged() {
             console.log('onPdpChanged:', therapist.pdp);
             root.updatePDP(therapist.pdp);
         }
     }
+
+    background: Rectangle {
+        color: util.QML_WINDOW_BG
+        anchors.fill: parent
+    }
+
 
     ColumnLayout {
         anchors.fill: parent
@@ -63,48 +64,41 @@ Page {
             model: ListModel {
                 id: pdpModel
             }
-            delegate: Item {
-                width: pdpList.width
+            delegate: RowLayout {
                 height: util.QML_ITEM_HEIGHT
                 clip: true
-                ColumnLayout {
-                    anchors.fill: parent
 
-                        Text {
-                            text: model.data
-                            wrapMode: Text.Wrap
-                            Layout.fillWidth: true
-                        }
-
-                    // RowLayout {
-                    //     Layout.fillWidth: true
-                    //     Layout.preferredHeight: util.QML_ITEM_HEIGHT
-                    //     Layout.alignment: Qt.AlignVCenter
-                    //     spacing: 5
-                    //     Text {
-                    //         text: model.kind
-                    //         width: 20
-                    //     }
-                    //     Text {
-                    //         text: model.data
-                    //         wrapMode: Text.Wrap
-                    //         Layout.fillWidth: true
-                    //     }
-                    // }
-                    // PK.Button {
-                    //     text: "Accept"
-                    //     onClicked: {
-                    //         pdpModel.remove(index)
-                    //         therapist.acceptPDPItem(model.id)
-                    //     }
-                    // }
-                    // PK.Button {
-                    //     text: "Reject"
-                    //     onClicked: {
-                    //         pdpModel.remove(index)
-                    //         therapist.rejectPDPItem(model.id)
-                    //     }
-                    // }
+                Text {
+                    text: model.text
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    color: util.QML_TEXT_COLOR
+                    // Ensure text does not take space reserved for buttons
+                    Layout.preferredWidth: Math.max(0, pdpList.width - (acceptButton.width + rejectButton.width + 16))
+                }
+                PK.Button {
+                    id: acceptButton
+                    source: '../../plus-button-green.png'
+                    Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                    Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
+                    onClicked: {
+                        print('onClicked: Accepting item:', model.id);
+                        therapist.acceptPDPItem(model.id)
+                        pdpModel.remove(index)
+                    }
+                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                }
+                PK.Button {
+                    id: rejectButton
+                    source: '../../clear-button.png'
+                    Layout.maximumHeight: util.QML_MICRO_BUTTON_WIDTH
+                    Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
+                    onClicked: {
+                        print('onClicked: Rejecting item:', model.id);
+                        therapist.rejectPDPItem(model.id)
+                        pdpModel.remove(index)
+                    }
+                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 }
             }
         }

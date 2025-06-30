@@ -8,6 +8,7 @@ from pkdiagram import util
 
 from fdserver.extensions import db
 from fdserver.models import User, ChatThread, ChatMessage
+from fdserver.therapist.database import Database, PDP, Person
 
 
 pytestmark = [
@@ -42,6 +43,17 @@ def test_refreshThreads(test_user, therapist: Therapist):
     therapist.refreshThreads()
     assert threadsChanged.wait() == True
     assert set(x.id for x in therapist.threads) == set(x.id for x in threads)
+
+
+def test_refreshPDP(test_user, therapist: Therapist):
+    pdpChanged = util.Condition(therapist.pdpChanged)
+    test_user.database = Database(
+        pdp=PDP(people=[Person(name="Test Person")])
+    ).model_dump()
+    db.session.commit()
+    therapist.refreshPDP()
+    assert pdpChanged.wait() == True
+    assert therapist.pdp == test_user.database["pdp"]
 
 
 def test_sendMessage(chat_thread, therapist: Therapist):

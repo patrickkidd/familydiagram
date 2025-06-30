@@ -38,7 +38,10 @@ ListView {
         Loader {
             id: userDelegateLoader
             sourceComponent: root.delegate
-            onItemChanged: if (item) item.parent = delegateItem
+            onItemChanged: if (item) {
+                item.parent = delegateItem
+                // item.anchors.fill = delegateItem
+            }
         }
 
         Component.onCompleted: internal.handleDelegateCompleted(delegateItem)

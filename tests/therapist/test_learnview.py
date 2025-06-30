@@ -36,6 +36,7 @@ def controller(qmlEngine):
         #     )
         # )
         stack.enter_context(patch.object(controller.therapist, "_refreshThreads"))
+        stack.enter_context(patch.object(controller.therapist, "_refreshPDP"))
 
         controller.init(qmlEngine)
 
@@ -43,8 +44,7 @@ def controller(qmlEngine):
 
 
 @pytest.fixture
-def view(qtbot, qmlEngine, controller: TherapistAppController):
-    # session.init(sessionData=test_session.account_editor_dict())
+def view(qtbot, test_session, qmlEngine, controller: TherapistAppController):
 
     FPATH = os.path.join(
         os.path.dirname(__file__),
@@ -87,3 +87,11 @@ def test_init_with_pdp(view: QQuickWidget, controller: TherapistAppController):
         }
     )
     assert util.waitForCondition(lambda: pdpList.property("numDelegates") == 4) == True
+
+
+def test_accept(view: QQuickWidget, controller: TherapistAppController):
+    assert False
+
+
+def test_reject(view: QQuickWidget, controller: TherapistAppController):
+    assert False
