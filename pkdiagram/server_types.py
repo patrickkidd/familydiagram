@@ -82,10 +82,17 @@ class License:
 
 
 @dataclass
-class ChatThread:
+class Discussion:
     id: int
     user_id: int
+    diagram_id: int
     summary: str
+    last_topic: str
+    extracting: bool
+    chat_user_speaker_id: int | None = None
+    chat_ai_speaker_id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -95,11 +102,12 @@ class User:
     first_name: str
     last_name: str
     roles: list[str]
+    discussions: list[Discussion] | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     secret: bytes | None = None
     licenses: list[License] | None = None
-    chat_threads: list[ChatThread] | None = None
+    chat_threads: list[Discussion] | None = None
     free_diagram_id: int | None = None
     active: bool | None = None
     status: str | None = None
@@ -126,6 +134,23 @@ class AccessRight:
 
 
 @dataclass
+class Database:
+    id: int
+    name: str
+    user_id: int
+    created_at: datetime = None
+    updated_at: datetime = None
+
+    def __post_init__(self):
+        if isinstance(self.user_id, dict):
+            self.user_id = User(**self.user_id)
+        if isinstance(self.created_at, str):
+            self.created_at = datetime.fromisoformat(self.created_at)
+        if isinstance(self.updated_at, str):
+            self.updated_at = datetime.fromisoformat(self.updated_at)
+
+
+@dataclass
 class Diagram:
     id: int
     user_id: int
@@ -139,6 +164,7 @@ class Diagram:
     data: bytes = None
     status: int = None
     alias: str = None
+    database: Database | None = None
 
     def __post_init__(self, *args, **kwargs):
         if isinstance(self.user, dict):

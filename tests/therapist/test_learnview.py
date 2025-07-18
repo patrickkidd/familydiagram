@@ -9,11 +9,11 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.models import ChatMessageOrigin
+from fdserver.models import StatementOrigin
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Response, Therapist, ChatThread, ChatMessage
+from pkdiagram.therapist.therapist import Response, Therapist, Discussion, Statement
 
 from tests.widgets.qmlwidgets import QmlHelper
 
@@ -30,8 +30,8 @@ def controller(qmlEngine):
         #         controller.therapist,
         #         "_threads",
         #         [
-        #             ChatThread(id=1, summary="my dog flew away", user_id=123),
-        #             ChatThread(id=2, summary="clouds ate my cake", user_id=123),
+        #             Discussion(id=1, summary="my dog flew away", user_id=123),
+        #             Discussion(id=2, summary="clouds ate my cake", user_id=123),
         #         ],
         #     )
         # )

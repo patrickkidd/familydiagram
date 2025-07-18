@@ -9,15 +9,15 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.models import ChatMessageOrigin
+from fdserver.models import StatementOrigin
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
 from pkdiagram.therapist.therapist import (
     Response,
     Therapist,
-    ChatThread,
-    ChatMessage,
+    Discussion,
+    Statement,
     make_thread,
 )
 
@@ -36,8 +36,8 @@ def controller(qmlEngine):
                 controller.therapist,
                 "_threads",
                 [
-                    ChatThread(id=1, summary="my dog flew away", user_id=123),
-                    ChatThread(id=2, summary="clouds ate my cake", user_id=123),
+                    Discussion(id=1, summary="my dog flew away", user_id=123),
+                    Discussion(id=2, summary="clouds ate my cake", user_id=123),
                 ],
             )
         )
@@ -104,10 +104,10 @@ def test_init_threads_then_select_thread(view, controller: TherapistAppControlle
         )
 
         NEW_MESSAGES = [
-            ChatMessage(id=1, text="hello 1", origin=ChatMessageOrigin.AI.value),
-            ChatMessage(id=2, text="hello 2", origin=ChatMessageOrigin.User.value),
-            ChatMessage(id=3, text="hello 3", origin=ChatMessageOrigin.AI.value),
-            ChatMessage(id=4, text="hello 4", origin=ChatMessageOrigin.User.value),
+            Statement(id=1, text="hello 1", origin=StatementOrigin.AI.value),
+            Statement(id=2, text="hello 2", origin=StatementOrigin.User.value),
+            Statement(id=3, text="hello 3", origin=StatementOrigin.AI.value),
+            Statement(id=4, text="hello 4", origin=StatementOrigin.User.value),
         ]
 
         NEW_THREAD = controller.therapist.threads[1]
@@ -148,7 +148,7 @@ def test_ask(view, therapist):
     with patch.object(
         therapist,
         "_currentThread",
-        new=ChatThread(id=1, summary="test thread", user_id=123),
+        new=Discussion(id=1, summary="test thread", user_id=123),
     ):
         with patch.object(therapist, "_sendMessage", autospec=True) as _sendMessage:
             _sendMessage.return_value = RESPONSE

@@ -16,7 +16,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
-from pkdiagram.server_types import User, License, Server, HTTPError, ChatThread
+from pkdiagram.server_types import User, License, Server, HTTPError, Discussion
 from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus, DatadogFDType
 
 
@@ -214,13 +214,20 @@ class Session(QObject, QObjectHelper):
                         )
                         for x in userData["licenses"]
                     ],
-                    chat_threads=[
-                        ChatThread(
+                    discussions=[
+                        Discussion(
                             id=x["id"],
                             user_id=x["user_id"],
+                            diagram_id=x["diagram_id"],
                             summary=x["summary"],
+                            last_topic=x["last_topic"],
+                            extracting=x["extracting"],
+                            chat_user_speaker_id=x["chat_user_speaker_id"],
+                            chat_ai_speaker_id=x["chat_ai_speaker_id"],
+                            created_at=x["created_at"],
+                            updated_at=x["updated_at"],
                         )
-                        for x in userData["chat_threads"]
+                        for x in userData["discussions"]
                     ],
                 )
                 self._userDict = dataclasses.asdict(self._user)

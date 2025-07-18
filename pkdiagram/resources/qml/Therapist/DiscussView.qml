@@ -23,8 +23,8 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
-    property var threadsDrawer: threadsDrawer
-    property var threadList: threadList
+    property var discussionsDrawer: discussionsDrawer
+    property var discussionList: discussionList
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -33,56 +33,56 @@ Page {
         anchors.fill: parent
     }
 
-    property bool initSelectedThread: false
+    property bool initSelectedDiscussion: false
 
     Connections {
         target: therapist
-        function onThreadsChanged() {
-            if(!initSelectedThread) {
-                initSelectedThread = true
-                var lastThread = therapist.threads[therapist.threads.length-1]
-                print('initSelectedThread: ' + lastThread)
-                if(lastThread !== undefined) {
-                    therapist.setCurrentThread(lastThread.id)
+        function onDiscussionsChanged() {
+            if(!initSelectedDiscussion) {
+                initSelectedDiscussion = true
+                var lastDiscussion = therapist.discussions[therapist.discussions.length-1]
+                print('initSelectedDiscussion: ' + lastDiscussion)
+                if(lastDiscussion !== undefined) {
+                    therapist.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
-        function onMessagesChanged() {
-            // print('onMessagesChanged: ' + therapist.messages.length + ' messages')
+        function onStatementsChanged() {
+            // print('onStatementsChanged: ' + therapist.statements.length + ' statements')
             chatModel.clear()
-            for(var i=0; i < therapist.messages.length; i++) {
-                var message = therapist.messages[i];
-                // print('    message[' + i + '] (' + message.origin + '):', message.text)
-                var fromUser = message.origin == 'user' ? true : false
-                chatModel.append({ "message": message.text, "fromUser": fromUser })
+            for(var i=0; i < therapist.statements.length; i++) {
+                var statement = therapist.statements[i];
+                // print('    statement[' + i + '] (' + statement.origin + '):', statement.text)
+                var fromUser = statement.origin == 'user' ? true : false
+                chatModel.append({ "statement": statement.text, "fromUser": fromUser })
             } 
-            messagesList.delayedScrollToBottom()
+            statementsList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
             print('onRequestSent:', text)
-            chatModel.append({ "message": text, "fromUser": true });
+            chatModel.append({ "statement": text, "fromUser": true });
         }
         function onResponseReceived(text, added, removed, guidance) {
             print('onResponseReceived:', text, added, removed, guidance)
             chatModel.append({
-                "message": text,
+                "statement": text,
                 "fromUser": false
             });
-            messagesList.delayedScrollToBottom()
+            statementsList.delayedScrollToBottom()
         }
         function onServerDown() {
             chatModel.append({
-                "message": util.S_SERVER_IS_DOWN,
+                "statement": util.S_SERVER_IS_DOWN,
                 "fromUser": false
             });
-            messagesList.delayedScrollToBottom()
+            statementsList.delayedScrollToBottom()
         }
         function onServerError() {
             chatModel.append({
-                "message": util.S_SERVER_ERROR,
+                "statement": util.S_SERVER_ERROR,
                 "fromUser": false
             });
-            messagesList.delayedScrollToBottom()
+            statementsList.delayedScrollToBottom()
         }
     }
 
@@ -90,25 +90,25 @@ Page {
         chatModel.clear()
     }
 
-    function showThreads() {
-        threadsDrawer.visible = true        
+    function showDiscussions() {
+        discussionsDrawer.visible = true        
     }
 
 
     Drawer {
-        id: threadsDrawer
+        id: discussionsDrawer
         width: root.width - 20
         height: root.height
         dragMargin: 0
         edge: Qt.LeftEdge
         ListView {
-            id: threadList
+            id: discussionList
 
             signal rowAdded(Item item)
             signal rowRemoved(Item item)
 
             anchors.fill: parent
-            model: therapist ? therapist.threads : undefined
+            model: therapist ? therapist.discussions : undefined
             clip: true
             property int numDelegates: 0
             property var delegates: []
@@ -118,22 +118,22 @@ Page {
                 property int dId: modelData.id
                 
                 text: 'Discussion id: ' + modelData.id
-                width: threadList.width
+                width: discussionList.width
                 palette.text: util.QML_TEXT_COLOR
 
                 Component.onCompleted: {
-                    threadList.rowAdded(dRoot)
-                    threadList.numDelegates += 1
-                    threadList.delegates.push(this)
+                    discussionList.rowAdded(dRoot)
+                    discussionList.numDelegates += 1
+                    discussionList.delegates.push(this)
                 }
                 Component.onDestruction: {
-                    threadList.rowRemoved(dRoot)
-                    threadList.numDelegates -= 1
-                    threadList.delegates.splice(threadList.delegates.indexOf(this), 1)
+                    discussionList.rowRemoved(dRoot)
+                    discussionList.numDelegates -= 1
+                    discussionList.delegates.splice(discussionList.delegates.indexOf(this), 1)
                 }
                 onClicked: {
-                    therapist.setCurrentThread(modelData.id)
-                    threadsDrawer.visible = false
+                    therapist.setCurrentDiscussion(modelData.id)
+                    discussionsDrawer.visible = false
                 }
             }
         }
@@ -160,7 +160,7 @@ Page {
             text: "Discussions"
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
-            onClicked: root.showThreads()
+            onClicked: root.showDiscussions()
         }
 
         PK.ToolButton {
@@ -169,7 +169,7 @@ Page {
                 right: parent.right
                 margins: util.QML_MARGINS
             }
-            onClicked: therapist.createThread()
+            onClicked: therapist.createDiscussion()
         }
     }
 
@@ -192,7 +192,7 @@ Page {
         }
 
         ListView {
-            id: messagesList
+            id: statementsList
             visible: chatModel.count > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -201,8 +201,8 @@ Page {
             }
             clip: true
             delegate: Loader {
-                width: messagesList.width
-                property var dMessage: model.message
+                width: statementsList.width
+                property var dStatement: model.statement
                 sourceComponent: model.fromUser ? humanQuestion : aiResponse
             }
 
@@ -216,7 +216,7 @@ Page {
                 repeat: false
                 running: false
                 interval: 100
-                onTriggered: messagesList.positionViewAtEnd()
+                onTriggered: statementsList.positionViewAtEnd()
             }
         }
 
@@ -246,14 +246,14 @@ Page {
                     color: util.QML_ITEM_ALTERNATE_BG
                     border.color: "#ccc"
                     radius: 8
-                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, messagesList.width - util.QML_MARGINS * 6)
+                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, statementsList.width - util.QML_MARGINS * 6)
                     implicitHeight: questionText.implicitHeight + 20
                     anchors.right: parent.right
                     anchors.rightMargin: root.chatMargin
 
                     TextEdit {
                         id: questionText
-                        text: dMessage
+                        text: dStatement
                         color: util.QML_TEXT_COLOR
                         readOnly: true
                         selectByMouse: true
@@ -291,7 +291,7 @@ Page {
 
                 TextEdit {
                     id: responseText
-                    text: dMessage
+                    text: dStatement
                     color: util.QML_TEXT_COLOR
                     readOnly: true
                     selectByMouse: true
@@ -311,7 +311,7 @@ Page {
             function submit() {
                 if (textEdit.text.trim().length > 0) {
                     print('>>> submit(): >>>' + textEdit.text + '<<<')
-                    therapist.sendMessage(textEdit.text);
+                    therapist.sendStatement(textEdit.text);
                     print('<<< submit()')
                     textEdit.text = ''
                     textEdit.focus = false

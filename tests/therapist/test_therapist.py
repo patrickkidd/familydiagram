@@ -7,7 +7,7 @@ from pkdiagram.therapist.therapist import Response
 from pkdiagram import util
 
 from fdserver.extensions import db
-from fdserver.models import User, ChatThread, ChatMessage
+from fdserver.models import User, Discussion, Statement
 from fdserver.therapist.database import Database, PDP, Person
 
 
@@ -19,7 +19,7 @@ pytestmark = [
 
 @pytest.fixture
 def chat_thread(test_user):
-    chat_thread = ChatThread(user_id=test_user.id)
+    chat_thread = Discussion(user_id=test_user.id)
     db.session.add(chat_thread)
 
 
@@ -35,8 +35,8 @@ def therapist(test_session):
 def test_refreshThreads(test_user, therapist: Therapist):
     threadsChanged = util.Condition(therapist.threadsChanged)
     threads = [
-        ChatThread(user_id=test_user.id, messages=[ChatMessage(text="blah")]),
-        ChatThread(user_id=test_user.id, messages=[ChatMessage(text="blah")]),
+        Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
+        Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
     ]
     db.session.add_all(threads)
     db.session.commit()

@@ -27,7 +27,7 @@ class Response:
 # qmlRegisterType(Response, "PK.Models", 1, 0, "Response")
 
 
-class ChatMessage(QObject):
+class Statement(QObject):
 
     def __init__(
         self,
@@ -61,7 +61,7 @@ class ChatMessage(QObject):
         return self._origin
 
 
-class ChatThread(QObject):
+class Discussion(QObject):
     """
     For clean exposure to Qml
     """
@@ -71,21 +71,21 @@ class ChatThread(QObject):
         id: int,
         user_id: int,
         summary: str | None = None,
-        messages: list[ChatMessage] = [],
+        statements: list[Statement] = [],
         parent: QObject | None = None,
     ):
         super().__init__(parent)
         self._id = id
         self._user_id = user_id
         self._summary = summary
-        self._messages = messages
+        self._statements = statements
 
     def as_dict(self) -> dict:
         return {
             "id": self._id,
             "user_id": self._user_id,
             "summary": self._summary,
-            "messages": [x.as_dict() for x in self._messages],
+            "statements": [x.as_dict() for x in self._statements],
         }
 
     @pyqtProperty(int, constant=True)
@@ -100,21 +100,21 @@ class ChatThread(QObject):
     def summary(self) -> str:
         return self._summary if self._summary else ""
 
-    def messages(self) -> list[ChatMessage]:
-        return list(self._messages)
+    def statements(self) -> list[Statement]:
+        return list(self._statements)
 
 
-def make_thread(data: dict) -> ChatThread:
-    return ChatThread(
+def make_discussion(data: dict) -> Discussion:
+    return Discussion(
         id=data["id"],
         user_id=data["user_id"],
         summary=data["summary"],
-        messages=data.get("messages", []),
+        statements=data.get("statements", []),
     )
 
 
-def make_message(data: dict) -> ChatMessage:
-    return ChatMessage(
+def make_statement(data: dict) -> Statement:
+    return Statement(
         id=data["id"],
         text=data["text"],
         origin=data["origin"],
@@ -130,14 +130,14 @@ class Therapist(QObject):
     responseReceived = pyqtSignal(
         str,
         dict,
-        arguments=["message", "pdp"],
+        arguments=["statement", "pdp"],
     )
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
     threadsChanged = pyqtSignal()
     pdpChanged = pyqtSignal()
-    messagesChanged = pyqtSignal()
+    statementsChanged = pyqtSignal()
 
     def __init__(self, session):
         super().__init__()
@@ -145,18 +145,18 @@ class Therapist(QObject):
         self._session.changed.connect(self.onSessionChanged)
         self._threads = []
         self._pdp = None  # type: dict | None
-        self._currentThread: ChatThread | None = None
-        self._messages: list[ChatMessage] = []
+        self._currentThread: Discussion | None = None
+        self._statements: list[Statement] = []
 
     def init(self):
         self.refreshThreads()
         self.refreshPDP()
 
     def onSessionChanged(self):
-        self._threads = [make_thread(x) for x in self._session.user.chat_threads]
+        self._threads = [make_discussion(x) for x in self._session.user.discussions]
         self._pdp = self._session.user.pdp
         self.threadsChanged.emit()
-        self.messagesChanged.emit()
+        self.statementsChanged.emit()
         self.pdpChanged.emit()
 
     def onError(self, reply: QNetworkReply):
@@ -182,7 +182,7 @@ class Therapist(QObject):
 
     def _setCurrentThread(self, thread_id: int):
         self._currentThread = next(x for x in self._threads if x.id == thread_id)
-        self._refreshMessages()
+        self._refreshStatements()
 
     @pyqtSlot(int)
     def setCurrentThread(self, thread_id: int):
@@ -195,7 +195,7 @@ class Therapist(QObject):
     def _createThread(self):
 
         def onSuccess(data):
-            thread = make_thread(data)
+            thread = make_discussion(data)
             self._threads.append(thread)
             self.threadsChanged.emit()
             self._setCurrentThread(thread.id)
@@ -216,7 +216,7 @@ class Therapist(QObject):
 
     def _refreshThreads(self):
         def onSuccess(data):
-            self._threads = [make_thread(x) for x in data]
+            self._threads = [make_discussion(x) for x in data]
             if not self._threads:
                 self._createThread()
             else:
@@ -252,22 +252,22 @@ class Therapist(QObject):
             from_root=True,
         )
 
-    ## Messages
+    ## Statements
 
-    @pyqtProperty("QVariantList", notify=messagesChanged)
-    def messages(self):
-        return list(self._messages)
+    @pyqtProperty("QVariantList", notify=statementsChanged)
+    def statements(self):
+        return list(self._statements)
 
-    def _refreshMessages(self):
+    def _refreshStatements(self):
 
         def onSuccess(data):
-            self._messages = [make_message(x) for x in data]
-            # _log.info(f"messagesChanged.emit(): {len(self._messages)} messages")
-            self.messagesChanged.emit()
+            self._statements = [make_statement(x) for x in data]
+            # _log.info(f"statementsChanged.emit(): {len(self._statements)} statements")
+            self.statementsChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(
             "GET",
-            f"/therapist/threads/{self._currentThread.id}/messages",
+            f"/therapist/discussions/{self._currentThread.id}/statements",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -276,10 +276,10 @@ class Therapist(QObject):
         )
 
     @pyqtSlot(str)
-    def sendMessage(self, message: str):
-        self._sendMessage(message)
+    def sendStatement(self, statement: str):
+        self._sendStatement(statement)
 
-    def _sendMessage(self, message: str):
+    def _sendStatement(self, statement: str):
         """
         Mockable because qml latches on to slots at init time.
         """
@@ -287,17 +287,17 @@ class Therapist(QObject):
         def onSuccess(data):
             # added_data_points = data["added_data_points"]
             # response = Response(
-            #     message=data["message"],
+            #     statement=data["statement"],
             #     added_data_points=data["added_data_points"],
             #     removed_data_points=data["removed_data_points"],
             #     guidance=data["guidance"],
             # )
             self.setPDP(data["pdp"])
-            self.responseReceived.emit(data["message"], data["pdp"])
+            self.responseReceived.emit(data["statement"], data["pdp"])
 
         args = {
             "thread_id": self._currentThread.id,
-            "message": message,
+            "statement": statement,
         }
         reply = self._session.server().nonBlockingRequest(
             "POST",
@@ -308,8 +308,8 @@ class Therapist(QObject):
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
-        self._session.track(f"therapist.Engine.sendMessage: {message}")
-        self.requestSent.emit(message)
+        self._session.track(f"therapist.Engine.sendStatement: {statement}")
+        self.requestSent.emit(statement)
 
     @pyqtSlot(int)
     def acceptPDPItem(self, id: int):
