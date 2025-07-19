@@ -30,6 +30,11 @@ class TherapistAppController(QObject):
         engine.rootContext().setContextProperty("therapist", self.therapist)
         self.appConfig.init()
         self.session.setQmlEngine(engine)
+        lastSessionData = self.appConfig.get("lastSessionData", pickled=True)
+        if lastSessionData and not self.appConfig.wasTamperedWith:
+            self.session.init(sessionData=lastSessionData)
+        else:
+            self.session.init()
         self.therapist.init()
 
     def deinit(self):

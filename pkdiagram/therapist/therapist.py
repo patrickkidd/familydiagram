@@ -127,11 +127,7 @@ class Therapist(QObject):
     """
 
     requestSent = pyqtSignal(str)
-    responseReceived = pyqtSignal(
-        str,
-        dict,
-        arguments=["statement", "pdp"],
-    )
+    responseReceived = pyqtSignal(str, dict, arguments=["statement", "pdp"])
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
