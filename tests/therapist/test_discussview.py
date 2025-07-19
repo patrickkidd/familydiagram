@@ -94,7 +94,7 @@ def test_init_threads_then_select_thread(view, controller: TherapistAppControlle
     with patch.object(Therapist, "_refreshMessages"):
 
         threadList = view.rootObject().property("threadList")
-        controller.therapist.threadsChanged.emit()
+        controller.therapist.discussionsChanged.emit()
         view.rootObject().showThreads()
         assert (
             util.waitForCondition(

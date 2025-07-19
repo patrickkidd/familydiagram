@@ -135,7 +135,7 @@ class Therapist(QObject):
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
-    threadsChanged = pyqtSignal()
+    discussionsChanged = pyqtSignal()
     pdpChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
@@ -155,7 +155,7 @@ class Therapist(QObject):
     def onSessionChanged(self):
         self._threads = [make_discussion(x) for x in self._session.user.discussions]
         self._pdp = self._session.user.pdp
-        self.threadsChanged.emit()
+        self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
 
@@ -167,7 +167,7 @@ class Therapist(QObject):
 
     ## Threads
 
-    @pyqtProperty("QVariantList", notify=threadsChanged)
+    @pyqtProperty("QVariantList", notify=discussionsChanged)
     def threads(self):
         return list(self._threads)
 
@@ -197,12 +197,12 @@ class Therapist(QObject):
         def onSuccess(data):
             thread = make_discussion(data)
             self._threads.append(thread)
-            self.threadsChanged.emit()
+            self.discussionsChanged.emit()
             self._setCurrentThread(thread.id)
 
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            "/therapist/threads",
+            "/therapist/discussions",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -220,11 +220,11 @@ class Therapist(QObject):
             if not self._threads:
                 self._createThread()
             else:
-                self.threadsChanged.emit()
+                self.discussionsChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(
             "GET",
-            "/therapist/threads",
+            "/therapist/discussions",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,

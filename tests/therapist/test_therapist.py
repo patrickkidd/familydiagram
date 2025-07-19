@@ -33,7 +33,7 @@ def therapist(test_session):
 
 
 def test_refreshThreads(test_user, therapist: Therapist):
-    threadsChanged = util.Condition(therapist.threadsChanged)
+    discussionsChanged = util.Condition(therapist.discussionsChanged)
     threads = [
         Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
         Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
@@ -41,7 +41,7 @@ def test_refreshThreads(test_user, therapist: Therapist):
     db.session.add_all(threads)
     db.session.commit()
     therapist.refreshThreads()
-    assert threadsChanged.wait() == True
+    assert discussionsChanged.wait() == True
     assert set(x.id for x in therapist.threads) == set(x.id for x in threads)
 
 

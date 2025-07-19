@@ -107,7 +107,6 @@ class User:
     updated_at: datetime | None = None
     secret: bytes | None = None
     licenses: list[License] | None = None
-    chat_threads: list[Discussion] | None = None
     free_diagram_id: int | None = None
     active: bool | None = None
     status: str | None = None
@@ -289,7 +288,7 @@ class Server(QObject):
         elif error == QNetworkReply.ConnectionRefusedError and not None in statuses:
             failMessage = f"Connection refused: {reply.url().toString()}"
         elif error == QNetworkReply.ContentAccessDenied:
-            log.info("Access Denied:", reply.url().toString())
+            failMessage = f"Access Denied: {reply.url().toString()}"
         elif error == QNetworkReply.AuthenticationRequiredError:
             pass
         elif error == QNetworkReply.ContentNotFoundError:
