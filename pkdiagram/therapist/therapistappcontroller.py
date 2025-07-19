@@ -1,4 +1,5 @@
 from _pkdiagram import CUtil
+from pkdiagram.app import AppConfig
 from pkdiagram.pyqt import QObject, QEvent, QApplication, QQmlEngine
 from pkdiagram.app import Session
 from pkdiagram.therapist import Therapist
@@ -19,6 +20,7 @@ class TherapistAppController(QObject):
         self.session = Session()
         self.session.changed.connect(self.onSessionChanged)
 
+        self.appConfig = AppConfig(self, prefsName="therapist.alaskafamilysystems.com")
         self.therapist = Therapist(self.session)
 
     def init(self, engine: QQmlEngine):
@@ -26,12 +28,11 @@ class TherapistAppController(QObject):
         engine.rootContext().setContextProperty("util", self.util)
         engine.rootContext().setContextProperty("session", self.session)
         engine.rootContext().setContextProperty("therapist", self.therapist)
+        self.appConfig.init()
+        self.session.setQmlEngine(engine)
         self.therapist.init()
 
     def deinit(self):
-        pass
-
-    def onSessionChanged(self):
         pass
 
     def exec(self, mw):
@@ -41,3 +42,12 @@ class TherapistAppController(QObject):
         and ready for app-level verbs.
         """
         self.app.exec()
+
+    def onSessionChanged(self, oldFeatures, newFeatures):
+        """Called on login, logout, invalidated token."""
+
+        if self.session.isLoggedIn():
+            self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
+        else:
+            self.appConfig.delete("lastSessionData")
+        self.appConfig.write()

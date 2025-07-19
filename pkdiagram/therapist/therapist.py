@@ -143,7 +143,7 @@ class Therapist(QObject):
         super().__init__()
         self._session = session
         self._session.changed.connect(self.onSessionChanged)
-        self._threads = []
+        self._discussions = []
         self._pdp = None  # type: dict | None
         self._currentThread: Discussion | None = None
         self._statements: list[Statement] = []
@@ -153,7 +153,7 @@ class Therapist(QObject):
         self.refreshPDP()
 
     def onSessionChanged(self):
-        self._threads = [make_discussion(x) for x in self._session.user.discussions]
+        self._discussions = [x for x in self._session.user.discussions]
         self._pdp = self._session.user.pdp
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
@@ -169,7 +169,7 @@ class Therapist(QObject):
 
     @pyqtProperty("QVariantList", notify=discussionsChanged)
     def threads(self):
-        return list(self._threads)
+        return list(self._discussions)
 
     @pyqtProperty("QVariantMap", notify=pdpChanged)
     def pdp(self):
@@ -181,7 +181,7 @@ class Therapist(QObject):
         self.pdpChanged.emit()
 
     def _setCurrentThread(self, thread_id: int):
-        self._currentThread = next(x for x in self._threads if x.id == thread_id)
+        self._currentThread = next(x for x in self._discussions if x.id == thread_id)
         self._refreshStatements()
 
     @pyqtSlot(int)
@@ -196,7 +196,7 @@ class Therapist(QObject):
 
         def onSuccess(data):
             thread = make_discussion(data)
-            self._threads.append(thread)
+            self._discussions.append(thread)
             self.discussionsChanged.emit()
             self._setCurrentThread(thread.id)
 
@@ -216,8 +216,8 @@ class Therapist(QObject):
 
     def _refreshThreads(self):
         def onSuccess(data):
-            self._threads = [make_discussion(x) for x in data]
-            if not self._threads:
+            self._discussions = [make_discussion(x) for x in data]
+            if not self._discussions:
                 self._createThread()
             else:
                 self.discussionsChanged.emit()

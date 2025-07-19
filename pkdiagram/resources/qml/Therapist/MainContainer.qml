@@ -19,11 +19,13 @@ Page {
     property var learnView: learnView
     property var planView: planView
 
+    // Main content - only visible when logged in
     StackLayout {
 
         id: stack
         currentIndex: tabBar.currentIndex
         anchors.fill: parent
+        visible: session.isLoggedIn()
 
         Therapist.DiscussView {
             id: discussView
@@ -48,9 +50,27 @@ Page {
     footer: PK.TabBar {
         id: tabBar
         currentIndex: stack.currentIndex
+        visible: session.isLoggedIn()
         PK.TabButton { text: "Discuss" }
         PK.TabButton { text: "Learn" }
         PK.TabButton { text: "Plan" }
+    }
+
+    // Account Dialog overlay - shown when not logged in
+    Loader {
+        id: accountDialogLoader
+        anchors.fill: parent
+        active: !session.isLoggedIn()
+        source: "../AccountDialog.qml"
+        
+        onLoaded: {
+            if (item) {
+                item.done.connect(function() {
+                    // Force refresh of session state
+                    session.changed()
+                })
+            }
+        }
     }
 
     // Keys.onPressed: {
