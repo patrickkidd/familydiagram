@@ -14,5 +14,9 @@
 
   "ignore": [
     "src/oldstuff"
+  ],
+
+  "extraPaths": [
+    ".", "../fdserver", "../vedana", "../btcopilot"
   ]
 }

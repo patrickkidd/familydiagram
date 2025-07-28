@@ -931,6 +931,10 @@ def validatedDateTimeText(dateText, timeText=None):
 
 
 def pyDateTimeString(dateTime: datetime) -> str:
+    if isinstance(dateTime, str):
+        import dateutil.parser
+
+        dateTime = dateutil.parser.parse(dateTime)
     # .strftime("%a %B %d, %I:%M%p")
     # .replace("AM", "am")
     # .replace("PM", "pm")

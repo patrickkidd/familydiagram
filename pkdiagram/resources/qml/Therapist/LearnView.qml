@@ -69,7 +69,7 @@ Page {
                 clip: true
 
                 Text {
-                    text: model.text
+                    text: 'asdasd' // model.text
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     color: util.QML_TEXT_COLOR

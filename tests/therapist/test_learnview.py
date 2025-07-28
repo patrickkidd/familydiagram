@@ -9,7 +9,6 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.models import StatementOrigin
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.therapist import TherapistAppController
@@ -35,7 +34,7 @@ def controller(qmlEngine):
         #         ],
         #     )
         # )
-        stack.enter_context(patch.object(controller.therapist, "_refreshThreads"))
+        stack.enter_context(patch.object(controller.therapist, "_refreshDiscussion"))
         stack.enter_context(patch.object(controller.therapist, "_refreshPDP"))
 
         controller.init(qmlEngine)

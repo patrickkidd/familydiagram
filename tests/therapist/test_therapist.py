@@ -7,7 +7,8 @@ from pkdiagram.therapist.therapist import Response
 from pkdiagram import util
 
 from fdserver.extensions import db
-from fdserver.models import User, Discussion, Statement
+from fdserver.models import User
+from fdserver.therapist.models import Discussion, Statement
 from fdserver.therapist.database import Database, PDP, Person
 
 
@@ -32,7 +33,7 @@ def therapist(test_session):
     yield _therapist
 
 
-def test_refreshThreads(test_user, therapist: Therapist):
+def test_refreshDiscussion(test_user, therapist: Therapist):
     discussionsChanged = util.Condition(therapist.discussionsChanged)
     threads = [
         Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
@@ -40,7 +41,7 @@ def test_refreshThreads(test_user, therapist: Therapist):
     ]
     db.session.add_all(threads)
     db.session.commit()
-    therapist.refreshThreads()
+    therapist.refreshDiscussion()
     assert discussionsChanged.wait() == True
     assert set(x.id for x in therapist.threads) == set(x.id for x in threads)
 

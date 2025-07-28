@@ -9,12 +9,14 @@ ListView {
 
     property int numDelegates: 0
     property var delegates: []
+    property Component userDelegate
 
     clip: true
 
     function handleDelegateCompleted(delegateItem) {
         root.numDelegates += 1
         root.delegates.push(delegateItem)
+        // print('PK.ListView.rowAdded: ' + delegateItem)
         root.rowAdded(delegateItem)
     }
 
@@ -24,32 +26,30 @@ ListView {
         if (index !== -1) {
             root.delegates.splice(index, 1)
         }
+        // print('PK.ListView.rowRemoved: ' + delegateItem)
         root.rowRemoved(delegateItem)
     }
 
-
-    // The actual delegate - this will be combined with user-provided delegate
-    property Component _delegate: Item {
-        id: delegateItem
-
-        // This will hold the user's delegate content
-        property Item contentItem: userDelegateLoader.item
-
-        Loader {
-            id: userDelegateLoader
-            sourceComponent: root.delegate
-            onItemChanged: if (item) {
-                item.parent = delegateItem
-                // item.anchors.fill = delegateItem
-            }
+    // Enhanced delegate that preserves model context
+    property Component _delegate: Loader {
+        id: delegateLoader
+        sourceComponent: root.userDelegate
+        
+        Component.onCompleted: {
+            // print('PK.ListView._delegate.onCompleted: ' + delegateLoader)
+            root.handleDelegateCompleted(delegateLoader)
         }
-
-        Component.onCompleted: internal.handleDelegateCompleted(delegateItem)
-        Component.onDestruction: internal.handleDelegateDestruction(delegateItem)
+        Component.onDestruction: {
+            // print('PK.ListView._delegate.onDestruction: ' + delegateLoader)
+            root.handleDelegateDestruction(delegateLoader)
+        }
     }
 
-    // Override the delegate property to use our enhanced delegate
-    delegate: _delegate
-
+    // Capture user's delegate and use our enhanced one
+    onDelegateChanged: {
+        if (delegate !== _delegate) {
+            userDelegate = delegate
+            delegate = _delegate
+        }
+    }
 }
-

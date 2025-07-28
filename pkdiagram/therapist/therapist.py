@@ -1,3 +1,4 @@
+import enum
 import logging
 from dataclasses import dataclass
 
@@ -10,6 +11,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QNetworkReply,
 )
+from pkdiagram.server_types import User, Diagram
 
 # from pkdiagram import util
 # from pkdiagram.models.qobjecthelper import qobject_dataclass
@@ -27,25 +29,58 @@ class Response:
 # qmlRegisterType(Response, "PK.Models", 1, 0, "Response")
 
 
+class SpeakerType(enum.StrEnum):
+    Expert = "expert"
+    Subject = "subject"
+
+
+class Speaker(QObject):
+    def __init__(self, id: int, person_id: int, name: str, type: SpeakerType):
+        super().__init__()
+        self._id = id
+        self._person_id = person_id
+        self._name = name
+        self._type = type
+
+    def as_dict(self) -> dict:
+        return {
+            "person_id": self._person_id,
+            "name": self._name,
+            "type": self._type.value,
+        }
+
+    @pyqtProperty(int, constant=True)
+    def id(self) -> int:
+        return self._id
+
+    @pyqtProperty(str, constant=True)
+    def name(self) -> str:
+        return self._name
+
+    @pyqtProperty(str, constant=True)
+    def type(self) -> str:
+        return self._type
+
+
 class Statement(QObject):
 
     def __init__(
         self,
         id: int,
         text: str,
-        origin: str,
+        speaker: Speaker,
         parent: QObject | None = None,
     ):
         super().__init__(parent)
         self._id = id
         self._text = text
-        self._origin = origin
+        self._speaker = speaker
 
     def as_dict(self) -> dict:
         return {
             "id": self._id,
             "text": self._text,
-            "origin": self._origin,
+            "speaker": self._speaker.as_dict() if self._speaker else None,
         }
 
     @pyqtProperty(int, constant=True)
@@ -56,9 +91,9 @@ class Statement(QObject):
     def text(self) -> str:
         return self._text
 
-    @pyqtProperty(str, constant=True)
-    def origin(self) -> str:
-        return self._origin
+    @pyqtProperty(Speaker, constant=True)
+    def speaker(self) -> Speaker:
+        return self._speaker
 
 
 class Discussion(QObject):
@@ -70,8 +105,10 @@ class Discussion(QObject):
         self,
         id: int,
         user_id: int,
+        diagram_id: int,
         summary: str | None = None,
         statements: list[Statement] = [],
+        speakers: list[Speaker] = [],
         parent: QObject | None = None,
     ):
         super().__init__(parent)
@@ -79,6 +116,8 @@ class Discussion(QObject):
         self._user_id = user_id
         self._summary = summary
         self._statements = statements
+        self._diagram_id = diagram_id
+        self._speakers = speakers
 
     def as_dict(self) -> dict:
         return {
@@ -103,22 +142,32 @@ class Discussion(QObject):
     def statements(self) -> list[Statement]:
         return list(self._statements)
 
-
-def make_discussion(data: dict) -> Discussion:
-    return Discussion(
-        id=data["id"],
-        user_id=data["user_id"],
-        summary=data["summary"],
-        statements=data.get("statements", []),
-    )
-
-
-def make_statement(data: dict) -> Statement:
-    return Statement(
-        id=data["id"],
-        text=data["text"],
-        origin=data["origin"],
-    )
+    @staticmethod
+    def create(data: dict):
+        speakers = [
+            Speaker(
+                id=x["id"],
+                person_id=x["person_id"],
+                name=x["name"],
+                type=SpeakerType(x["type"]),
+            )
+            for x in data["speakers"]
+        ]
+        return Discussion(
+            id=data["id"],
+            diagram_id=data["diagram_id"],
+            user_id=data["user_id"],
+            summary=data["summary"],
+            statements=[
+                Statement(
+                    id=x["id"],
+                    text=x["text"],
+                    speaker=next(y for y in speakers if y.id == x["speaker_id"]),
+                )
+                for x in data.get("statements", [])
+            ],
+            speakers=speakers,
+        )
 
 
 class Therapist(QObject):
@@ -133,27 +182,32 @@ class Therapist(QObject):
 
     discussionsChanged = pyqtSignal()
     pdpChanged = pyqtSignal()
+    diagramChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
     def __init__(self, session):
         super().__init__()
         self._session = session
         self._session.changed.connect(self.onSessionChanged)
+        self._diagram: Diagram | None = None
         self._discussions = []
-        self._pdp = None  # type: dict | None
-        self._currentThread: Discussion | None = None
-        self._statements: list[Statement] = []
+        self._currentDiscussion: Discussion | None = None
+        self._pdp: dict | None = None
 
     def init(self):
-        self.refreshThreads()
+        self._refreshDiagram()
         self.refreshPDP()
 
     def onSessionChanged(self):
-        self._discussions = [x for x in self._session.user.discussions]
-        self._pdp = self._session.user.pdp
+        if not self._session.user:
+            self._diagram = None
+            self._discussions = []
+            self._pdp = None
+            self._currentDiscussion = None
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
+        self.diagramChanged.emit()
 
     def onError(self, reply: QNetworkReply):
         if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) == 0:
@@ -161,44 +215,34 @@ class Therapist(QObject):
         else:
             self.serverError.emit(reply.errorString())
 
-    ## Threads
+    ## Discussions
 
     @pyqtProperty("QVariantList", notify=discussionsChanged)
-    def threads(self):
+    def discussions(self):
         return list(self._discussions)
 
-    @pyqtProperty("QVariantMap", notify=pdpChanged)
-    def pdp(self):
-        return self._pdp if self._pdp is not None else {}
+    @pyqtProperty("QVariantMap", notify=diagramChanged)
+    def diagram(self):
+        return self._diagram if self._diagram is not None else {}
 
-    def setPDP(self, pdp: dict):
-        self._pdp = pdp
-        _log.debug(f"pdpChanged.emit(): {self._pdp}")
-        self.pdpChanged.emit()
-
-    def _setCurrentThread(self, thread_id: int):
-        self._currentThread = next(x for x in self._discussions if x.id == thread_id)
-        self._refreshStatements()
-
-    @pyqtSlot(int)
-    def setCurrentThread(self, thread_id: int):
-        self._setCurrentThread(thread_id)
+    # Discussions
 
     @pyqtSlot()
-    def createThread(self):
-        self._createThread()
+    def createDiscussion(self):
+        self._createDiscussion()
 
-    def _createThread(self):
+    def _createDiscussion(self):
 
         def onSuccess(data):
-            thread = make_discussion(data)
-            self._discussions.append(thread)
+            discussion = Discussion.create(data)
+            self._discussions.append(discussion)
             self.discussionsChanged.emit()
-            self._setCurrentThread(thread.id)
+            self._setCurrentDiscussion(discussion.id)
 
-        reply = self._session.server().nonBlockingRequest(
+        server = self._session.server()
+        reply = server.nonBlockingRequest(
             "POST",
-            "/therapist/discussions",
+            f"/therapist/diagrams/{self._diagram.id}/discussions",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -206,21 +250,21 @@ class Therapist(QObject):
             from_root=True,
         )
 
-    @pyqtSlot()
-    def refreshThreads(self):
-        self._refreshThreads()
-
-    def _refreshThreads(self):
+    def _refreshDiagram(self):
         def onSuccess(data):
-            self._discussions = [make_discussion(x) for x in data]
+            self._diagram = Diagram(**data)
+            self._discussions = [Discussion.create(x) for x in data["discussions"]]
             if not self._discussions:
-                self._createThread()
+                self._createDiscussion()
             else:
                 self.discussionsChanged.emit()
+                self.statementsChanged.emit()
+                self.pdpChanged.emit()
 
-        reply = self._session.server().nonBlockingRequest(
+        server = self._session.server()
+        reply = server.nonBlockingRequest(
             "GET",
-            "/therapist/discussions",
+            f"/therapist/diagrams/{self._session.user.free_diagram_id}",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -228,48 +272,25 @@ class Therapist(QObject):
             from_root=True,
         )
 
-    @pyqtSlot()
-    def refreshPDP(self):
-        self._refreshPDP()
-
-    def _refreshPDP(self):
-        def onSuccess(data):
-            self.setPDP(data)
-            # _log.info(f"pdpChanged.emit(): {self._pdp}")
-            self.pdpChanged.emit()
-
-        reply = self._session.server().nonBlockingRequest(
-            "GET",
-            "/therapist/pdp",
-            data={},
-            error=lambda: self.onError(reply),
-            success=onSuccess,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
+    def _setCurrentDiscussion(self, discussion_id: int):
+        self._currentDiscussion = next(
+            x for x in self._discussions if x.id == discussion_id
         )
+        self.statementsChanged.emit()
+        self.pdpChanged.emit()
+
+    @pyqtSlot(int)
+    def setCurrentDiscussion(self, discussion_id: int):
+        self._setCurrentDiscussion(discussion_id)
 
     ## Statements
 
     @pyqtProperty("QVariantList", notify=statementsChanged)
     def statements(self):
-        return list(self._statements)
-
-    def _refreshStatements(self):
-
-        def onSuccess(data):
-            self._statements = [make_statement(x) for x in data]
-            # _log.info(f"statementsChanged.emit(): {len(self._statements)} statements")
-            self.statementsChanged.emit()
-
-        reply = self._session.server().nonBlockingRequest(
-            "GET",
-            f"/therapist/discussions/{self._currentThread.id}/statements",
-            data={},
-            error=lambda: self.onError(reply),
-            success=onSuccess,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
-        )
+        if self._currentDiscussion:
+            return list(self._currentDiscussion.statements())
+        else:
+            return []
 
     @pyqtSlot(str)
     def sendStatement(self, statement: str):
@@ -292,12 +313,11 @@ class Therapist(QObject):
             self.responseReceived.emit(data["statement"], data["pdp"])
 
         args = {
-            "thread_id": self._currentThread.id,
             "statement": statement,
         }
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            "/therapist/chat",
+            f"/therapist/discussions/{self._currentDiscussion.id}/statements",
             data=args,
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -306,6 +326,28 @@ class Therapist(QObject):
         )
         self._session.track(f"therapist.Engine.sendStatement: {statement}")
         self.requestSent.emit(statement)
+
+    ## PDP
+
+    @pyqtSlot()
+    def refreshPDP(self):
+        self._refreshPDP()
+
+    def _refreshPDP(self):
+        def onSuccess(data):
+            self.setPDP(data)
+            # _log.info(f"pdpChanged.emit(): {self._pdp}")
+            self.pdpChanged.emit()
+
+        reply = self._session.server().nonBlockingRequest(
+            "GET",
+            "/therapist/pdp",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
 
     @pyqtSlot(int)
     def acceptPDPItem(self, id: int):
@@ -332,3 +374,17 @@ class Therapist(QObject):
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
+
+    @pyqtProperty("QVariantMap", notify=diagramChanged)
+    def pdp(self):
+        return self._pdp if self._pdp is not None else {}
+
+    def setPDP(self, pdp: dict):
+        self._pdp = pdp
+        _log.debug(f"diagramChanged.emit(): {self._pdp}")
+        self.diagramChanged.emit()
+
+
+qmlRegisterType(Discussion, "Therapist", 1, 0, "Discussion")
+qmlRegisterType(Statement, "Therapist", 1, 0, "Statement")
+qmlRegisterType(Speaker, "Therapist", 1, 0, "Speaker")

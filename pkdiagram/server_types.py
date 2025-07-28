@@ -6,11 +6,12 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 
 import time, pickle, logging
 import json
+import enum
 from datetime import datetime
 import hashlib
 import urllib.parse
 import wsgiref.handlers
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, InitVar, field
 from typing import Union
 
 import vedana
@@ -81,14 +82,35 @@ class License:
             self.activations = [Activation(**x) for x in self.activations]
 
 
+class SpeakerType(enum.StrEnum):
+    Expert = "expert"
+    Subject = "subject"
+
+
+@dataclass
+class Speaker:
+    id: int
+    name: str
+    person_id: int
+    type: SpeakerType
+
+
+@dataclass
+class Statement:
+    id: int
+    text: str
+    speaker: Speaker
+
+
 @dataclass
 class Discussion:
     id: int
     user_id: int
     diagram_id: int
     summary: str
-    last_topic: str
-    extracting: bool
+    extracting: bool = False
+    statements: list[Statement] = field(default_factory=list)
+    speakers: list[Speaker] = field(default_factory=list)
     chat_user_speaker_id: int | None = None
     chat_ai_speaker_id: int | None = None
     created_at: datetime | None = None
@@ -102,12 +124,12 @@ class User:
     first_name: str
     last_name: str
     roles: list[str]
-    discussions: list[Discussion] | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     secret: bytes | None = None
     licenses: list[License] | None = None
     free_diagram_id: int | None = None
+    free_diagram: Union["Diagram", None] = None
     active: bool | None = None
     status: str | None = None
 
@@ -126,10 +148,10 @@ class User:
 class AccessRight:
     user_id: int
     right: str
-    id: int = None
-    diagram_id: int = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    id: int | None = None
+    diagram_id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -137,8 +159,8 @@ class Database:
     id: int
     name: str
     user_id: int
-    created_at: datetime = None
-    updated_at: datetime = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     def __post_init__(self):
         if isinstance(self.user_id, dict):
@@ -155,15 +177,17 @@ class Diagram:
     user_id: int
     access_rights: list[AccessRight]
     created_at: datetime
-    updated_at: datetime = None
-    name: str = None
-    user: User = None
-    use_real_names: bool = None
-    require_password_for_real_names: bool = None
-    data: bytes = None
-    status: int = None
-    alias: str = None
+    updated_at: datetime | None = None
+    name: str | None = None
+    user: User | None = None
+    use_real_names: bool | None = None
+    require_password_for_real_names: bool | None = None
+    data: bytes | None = None
+    status: int | None = None
+    alias: str | None = None
     database: Database | None = None
+    discussions: list[Discussion] = field(default_factory=list)
+    pdp: dict | None = None
 
     def __post_init__(self, *args, **kwargs):
         if isinstance(self.user, dict):

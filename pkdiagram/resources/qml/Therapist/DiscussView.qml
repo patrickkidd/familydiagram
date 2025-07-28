@@ -25,6 +25,8 @@ Page {
     property var noChatLabel: noChatLabel
     property var discussionsDrawer: discussionsDrawer
     property var discussionList: discussionList
+    property var statementsList: statementsList
+
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -41,7 +43,7 @@ Page {
             if(!initSelectedDiscussion) {
                 initSelectedDiscussion = true
                 var lastDiscussion = therapist.discussions[therapist.discussions.length-1]
-                print('initSelectedDiscussion: ' + lastDiscussion)
+                // print('initSelectedDiscussion: ' + lastDiscussion)
                 if(lastDiscussion !== undefined) {
                     therapist.setCurrentDiscussion(lastDiscussion.id)
                 }
@@ -52,35 +54,35 @@ Page {
             chatModel.clear()
             for(var i=0; i < therapist.statements.length; i++) {
                 var statement = therapist.statements[i];
-                // print('    statement[' + i + '] (' + statement.origin + '):', statement.text)
-                var fromUser = statement.origin == 'user' ? true : false
-                chatModel.append({ "statement": statement.text, "fromUser": fromUser })
+                // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
+                var statementType = statement.speaker.type
+                chatModel.append({ "text": statement.text, "statementType": statementType })
             } 
             statementsList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
             print('onRequestSent:', text)
-            chatModel.append({ "statement": text, "fromUser": true });
+            chatModel.append({ "text": text, "statementType": 'subject' });
         }
-        function onResponseReceived(text, added, removed, guidance) {
-            print('onResponseReceived:', text, added, removed, guidance)
+        function onResponseReceived(text, added) {
+            print('onResponseReceived:', text, added)
             chatModel.append({
-                "statement": text,
-                "fromUser": false
+                "text": text,
+                "statementType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
         function onServerDown() {
             chatModel.append({
-                "statement": util.S_SERVER_IS_DOWN,
-                "fromUser": false
+                "text": util.S_SERVER_IS_DOWN,
+                "statementType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
         function onServerError() {
             chatModel.append({
-                "statement": util.S_SERVER_ERROR,
-                "fromUser": false
+                "text": util.S_SERVER_ERROR,
+                "statementType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
@@ -104,14 +106,9 @@ Page {
         ListView {
             id: discussionList
 
-            signal rowAdded(Item item)
-            signal rowRemoved(Item item)
-
             anchors.fill: parent
             model: therapist ? therapist.discussions : undefined
             clip: true
-            property int numDelegates: 0
-            property var delegates: []
 
             delegate: ItemDelegate {
                 id: dRoot
@@ -121,16 +118,6 @@ Page {
                 width: discussionList.width
                 palette.text: util.QML_TEXT_COLOR
 
-                Component.onCompleted: {
-                    discussionList.rowAdded(dRoot)
-                    discussionList.numDelegates += 1
-                    discussionList.delegates.push(this)
-                }
-                Component.onDestruction: {
-                    discussionList.rowRemoved(dRoot)
-                    discussionList.numDelegates -= 1
-                    discussionList.delegates.splice(discussionList.delegates.indexOf(this), 1)
-                }
                 onClicked: {
                     therapist.setCurrentDiscussion(modelData.id)
                     discussionsDrawer.visible = false
@@ -193,7 +180,7 @@ Page {
 
         ListView {
             id: statementsList
-            visible: chatModel.count > 0
+            visible: model.count > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: ListModel {
@@ -202,8 +189,8 @@ Page {
             clip: true
             delegate: Loader {
                 width: statementsList.width
-                property var dStatement: model.statement
-                sourceComponent: model.fromUser ? humanQuestion : aiResponse
+                property var dText: model.text
+                sourceComponent: model.statementType == 'subject' ? humanQuestion : aiResponse
             }
 
             function delayedScrollToBottom() {
@@ -253,7 +240,7 @@ Page {
 
                     TextEdit {
                         id: questionText
-                        text: dStatement
+                        text: dText
                         color: util.QML_TEXT_COLOR
                         readOnly: true
                         selectByMouse: true
@@ -291,7 +278,7 @@ Page {
 
                 TextEdit {
                     id: responseText
-                    text: dStatement
+                    text: dText
                     color: util.QML_TEXT_COLOR
                     readOnly: true
                     selectByMouse: true

@@ -18,6 +18,7 @@ Page {
     property var discussView: discussView
     property var learnView: learnView
     property var planView: planView
+    property var accountDialog: accountDialogLoader.item
 
     // Main content - only visible when logged in
     StackLayout {
@@ -67,7 +68,7 @@ Page {
             if (item) {
                 item.done.connect(function() {
                     // Force refresh of session state
-                    session.changed()
+                    // session.changed()
                 })
             }
         }

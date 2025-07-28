@@ -156,3 +156,96 @@ class QmlHelper:
         if resetFocus:
             self.resetFocus(item)
         QApplication.processEvents()
+
+
+import time
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt
+from PyQt5.QtQuick import QQuickItem
+
+
+def waitForListViewDelegates(listView: QQuickItem, numDelegates: int):
+    assert listView.property("enabled"), "ListView must be enabled"
+    assert listView.property("visible"), "ListView must be visible"
+
+    QApplication.processEvents()
+    model_count = listView.property("count")
+    _log.info(f"Waiting for ListView to populate (model count: {model_count})")
+
+    if model_count == 0:
+        return []
+
+    # Store original properties to restore later
+    original_clip = listView.property("clip")
+    original_cache_buffer = listView.property("cacheBuffer")
+
+    try:
+        # Disable clipping and increase cache buffer to force all delegates to be created
+        listView.setProperty("clip", False)
+        listView.setProperty("cacheBuffer", 10000)  # Large buffer to keep all items
+
+        QApplication.processEvents()
+
+        # Force ListView to create all delegates by positioning at each index
+        for i in range(model_count):
+            listView.positionViewAtIndex(i, 0)  # ListView.Contain = 0
+            QApplication.processEvents()
+
+        # Collect all instantiated delegates
+        delegates = []
+        all_delegates_ready = True
+
+        for i in range(model_count):
+            delegate = listView.itemAtIndex(i)
+            if delegate is None:
+                all_delegates_ready = False
+                break
+
+            # Check if delegate is clickable (enabled, visible, and has geometry)
+            if not delegate.property("enabled"):
+                all_delegates_ready = False
+                break
+
+            if not delegate.property("visible"):
+                all_delegates_ready = False
+                break
+
+            # Check if delegate has valid geometry (width > 0, height > 0)
+            width = delegate.property("width")
+            height = delegate.property("height")
+            if not width or width <= 0 or not height or height <= 0:
+                all_delegates_ready = False
+                break
+
+            delegates.append(delegate)
+
+        if all_delegates_ready and len(delegates) == model_count:
+            # Final check: ensure all delegates are actually clickable by testing mouse areas
+            all_clickable = True
+            for delegate in delegates:
+                # Force one more event processing to ensure mouse areas are ready
+                QApplication.processEvents()
+
+                # Verify the delegate is still valid and has proper geometry
+                if (
+                    delegate.property("width") <= 0
+                    or delegate.property("height") <= 0
+                    or not delegate.property("enabled")
+                    or not delegate.property("visible")
+                ):
+                    all_clickable = False
+                    break
+
+            if all_clickable:
+                return delegates
+
+    finally:
+        # Restore original properties
+        listView.setProperty("clip", original_clip)
+        listView.setProperty("cacheBuffer", original_cache_buffer)
+        QApplication.processEvents()
+
+    raise TimeoutError(
+        f"ListView delegates were not ready within {timeout_ms}ms. "
+        f"Expected {model_count} delegates, got {len(delegates) if 'delegates' in locals() else 0}"
+    )
