@@ -23,10 +23,11 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
+    property var newButton: newButton
+    property var discussionsButton: discussionsButton
     property var discussionsDrawer: discussionsDrawer
     property var discussionList: discussionList
     property var statementsList: statementsList
-
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -50,39 +51,39 @@ Page {
             }
         }
         function onStatementsChanged() {
-            // print('onStatementsChanged: ' + therapist.statements.length + ' statements')
+            print('onStatementsChanged: ' + therapist.statements.length + ' statements')
             chatModel.clear()
             for(var i=0; i < therapist.statements.length; i++) {
                 var statement = therapist.statements[i];
-                // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
-                var statementType = statement.speaker.type
-                chatModel.append({ "text": statement.text, "statementType": statementType })
+                print('    statement[' + i + '] (' + statement.speaker.type.value + '):', statement.text)
+                var speakerType = statement.speaker.type.value
+                chatModel.append({ "text": statement.text, "speakerType": speakerType })
             } 
             statementsList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
             print('onRequestSent:', text)
-            chatModel.append({ "text": text, "statementType": 'subject' });
+            chatModel.append({ "text": text, "speakerType": 'subject' });
         }
         function onResponseReceived(text, added) {
             print('onResponseReceived:', text, added)
             chatModel.append({
                 "text": text,
-                "statementType": 'expert'
+                "speakerType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
         function onServerDown() {
             chatModel.append({
                 "text": util.S_SERVER_IS_DOWN,
-                "statementType": 'expert'
+                "speakerType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
         function onServerError() {
             chatModel.append({
                 "text": util.S_SERVER_ERROR,
-                "statementType": 'expert'
+                "speakerType": 'expert'
             });
             statementsList.delayedScrollToBottom()
         }
@@ -143,7 +144,7 @@ Page {
     header: PK.ToolBar {
 
         PK.ToolButton {
-            id: resizeButton
+            id: discussionsButton
             text: "Discussions"
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
@@ -151,6 +152,7 @@ Page {
         }
 
         PK.ToolButton {
+            id: newButton
             text: 'New'
             anchors {
                 right: parent.right
@@ -190,7 +192,8 @@ Page {
             delegate: Loader {
                 width: statementsList.width
                 property var dText: model.text
-                sourceComponent: model.statementType == 'subject' ? humanQuestion : aiResponse
+                property var dSpeakerType: model.speakerType
+                sourceComponent: model.speakerType == 'subject' ? humanQuestion : aiResponse
             }
 
             function delayedScrollToBottom() {

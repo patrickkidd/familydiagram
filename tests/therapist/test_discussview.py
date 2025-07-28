@@ -152,6 +152,12 @@ def test_refresh_diagram(
         assert controller.therapist._discussions[1].summary == "clouds ate my cake"
 
 
+# def test_create_discussion(view):
+#     newButton = view.rootObject().property("newButton")
+#     qml = QmlHelper(view)
+#     qml.mouseClick(newButton)
+
+
 @pytest.fixture
 def statements():
     expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
@@ -189,7 +195,7 @@ def test_show_discussion(view, controller: TherapistAppController, discussions):
     ):
         statementsList = view.rootObject().property("statementsList")
         controller.therapist.statementsChanged.emit()
-        delegates = waitForListViewDelegates(statementsList)
+        delegates = waitForListViewDelegates(statementsList, 2)
         assert len(delegates) == len(discussions[1].statements())
 
 
@@ -206,13 +212,12 @@ def test_select_discussion(
 
         controller.therapist.discussionsChanged.emit()
         view.rootObject().showDiscussions()
-        delegates = waitForListViewDelegates(discussionList)
-        assert len(delegates) == len(discussions)
+        delegates = waitForListViewDelegates(discussionList, len(discussions))
 
         qml = QmlHelper(view)
         secondDelegate = discussionList.itemAtIndex(1)
         qml.mouseClick(secondDelegate)
-        delegates = waitForListViewDelegates(statementsList)
+        delegates = waitForListViewDelegates(statementsList, len(statements))
 
     assert set(x.property("dText") for x in delegates) == set(
         x.text for x in statements
@@ -239,18 +244,18 @@ def test_ask(view, controller, therapist, discussions):
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
         therapist.requestSent.emit(MESSAGE)
-        delegates = waitForListViewDelegates(statementsList)
-        assert len(delegates) == 1
+        delegates = waitForListViewDelegates(statementsList, 1)
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
     therapist.responseReceived.emit(RESPONSE.message, {})
-    delegates = waitForListViewDelegates(statementsList)
-    assert len(delegates) == 2
+    delegates = waitForListViewDelegates(statementsList, 2)
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True
     assert aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE.message
     assert noChatLabel.property("visible") == False
+    assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
+    assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
 
 
 @pytest.mark.chat_flow
@@ -323,11 +328,11 @@ def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask
         therapist.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
-        _log.info(f">>> waitForListViewDelegates(statementsList)")
         delegates = waitForListViewDelegates(statementsList, 2)
-        _log.info(f"<<< waitForListViewDelegates(statementsList)")
     assert delegates[0].property("dText") == MESSAGE
+    assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
     assert delegates[1].property("dText") == chat_flow["response"]
+    assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
 
     # delegates = waitForListViewDelegates(statementsList)
     # assert len(delegates) == 2
