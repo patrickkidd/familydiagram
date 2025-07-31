@@ -19,6 +19,7 @@ Page {
     property var learnView: learnView
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
+    property var showingAccount: false
 
     // Main content - only visible when logged in
     StackLayout {
@@ -46,6 +47,12 @@ Page {
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
+        Rectangle {
+            Button {
+                text: "Show Account"
+                onClicked: showingAccount = true
+            }
+        }
     }
 
     footer: PK.TabBar {
@@ -55,19 +62,20 @@ Page {
         PK.TabButton { text: "Discuss" }
         PK.TabButton { text: "Learn" }
         PK.TabButton { text: "Plan" }
-        // PK.TabButton { text: "*"; Layout.maximumWidth: 25 }
+        PK.TabButton { icon.source: "../../settings-button.png"; Layout.maximumWidth: 25 }
     }
 
     // Account Dialog overlay - shown when not logged in
     Loader {
         id: accountDialogLoader
         anchors.fill: parent
-        active: !session.isLoggedIn()
+        active: !session.isLoggedIn() || showingAccount
         source: "../AccountDialog.qml"
         
         onLoaded: {
             if (item) {
                 item.done.connect(function() {
+                    showingAccount = false
                     // Force refresh of session state
                     // session.changed()
                 })

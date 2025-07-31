@@ -242,7 +242,7 @@ class Therapist(QObject):
         server = self._session.server()
         reply = server.nonBlockingRequest(
             "POST",
-            "/therapist/discussions",
+            "/therapist/discussions/",
             data={"diagram_id": self._diagram.id},
             error=lambda: self.onError(reply),
             success=onSuccess,
