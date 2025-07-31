@@ -195,7 +195,7 @@ def test_show_discussion(view, controller: TherapistAppController, discussions):
     ):
         statementsList = view.rootObject().property("statementsList")
         controller.therapist.statementsChanged.emit()
-        delegates = waitForListViewDelegates(statementsList, 2)
+        delegates = waitForListViewDelegates(statementsList, 4)
         assert len(delegates) == len(discussions[1].statements())
 
 
@@ -224,7 +224,7 @@ def test_select_discussion(
     )
 
 
-def test_ask(view, controller, therapist, discussions):
+def test_ask(qtbot, view, controller, therapist, discussions):
 
     MESSAGE = "hello there"
     RESPONSE = Response(message="some response", pdp={})

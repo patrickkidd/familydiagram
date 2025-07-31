@@ -524,6 +524,8 @@ def qmlEngine(qApp):
 
     yield _qmlEngine
 
+    # Clear QML component cache to prevent test isolation issues
+    _qmlEngine.clearComponentCache()
     _qmlEngine.deinit()
 
     # Ignore errors after teardown and before the next test case, they don't

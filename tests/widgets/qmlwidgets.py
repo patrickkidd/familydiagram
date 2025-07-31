@@ -191,9 +191,9 @@ def get_caller_info():
 def waitForListViewDelegates(listView: QQuickItem, numDelegates: int):
     assert listView.property("enabled"), "ListView must be enabled"
     assert listView.property("visible"), "ListView must be visible"
-    _log.info(
-        f">>> waitForListViewDelegates({numDelegates}), caller: {get_caller_info()}"
-    )
+    # _log.info(
+    #     f">>> waitForListViewDelegates({numDelegates}), caller: {get_caller_info()}"
+    # )
 
     QApplication.processEvents()
     model_count = listView.property("count")
@@ -261,7 +261,7 @@ def waitForListViewDelegates(listView: QQuickItem, numDelegates: int):
                     break
 
             if all_clickable:
-                _log.info(f"<<< waitForListViewDelegates({numDelegates})")
+                # _log.info(f"<<< waitForListViewDelegates({numDelegates})")
                 return delegates
 
     finally:
