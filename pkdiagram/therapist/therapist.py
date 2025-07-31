@@ -242,8 +242,8 @@ class Therapist(QObject):
         server = self._session.server()
         reply = server.nonBlockingRequest(
             "POST",
-            f"/therapist/diagrams/{self._diagram.id}/discussions",
-            data={},
+            "/therapist/discussions",
+            data={"diagram_id": self._diagram.id},
             error=lambda: self.onError(reply),
             success=onSuccess,
             headers={"Content-Type": "application/json", "Accept": "application/json"},

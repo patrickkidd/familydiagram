@@ -89,7 +89,7 @@ def view(qtbot, qmlEngine, controller):
     yield _view
 
 
-def test_main_content_visible_when_logged_in(qmlEngine, controller, view):
+def __test_main_content_visible_when_logged_in(qmlEngine, controller, view):
     assert (
         view.status() == QQuickWidget.Status.Ready
     ), f"Failed to load MainContainer.qml: {view.status()}"

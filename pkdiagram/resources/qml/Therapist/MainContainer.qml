@@ -55,6 +55,7 @@ Page {
         PK.TabButton { text: "Discuss" }
         PK.TabButton { text: "Learn" }
         PK.TabButton { text: "Plan" }
+        // PK.TabButton { text: "*"; Layout.maximumWidth: 25 }
     }
 
     // Account Dialog overlay - shown when not logged in

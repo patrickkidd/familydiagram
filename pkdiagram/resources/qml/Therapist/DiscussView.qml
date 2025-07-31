@@ -114,8 +114,9 @@ Page {
             delegate: ItemDelegate {
                 id: dRoot
                 property int dId: modelData.id
+                property var dText: modelData.summary
                 
-                text: 'Discussion id: ' + modelData.id
+                text: dText
                 width: discussionList.width
                 palette.text: util.QML_TEXT_COLOR
 

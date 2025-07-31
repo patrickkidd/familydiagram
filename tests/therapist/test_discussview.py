@@ -1,5 +1,6 @@
 import os.path
 import logging
+import json
 import contextlib
 from dataclasses import asdict
 
@@ -187,8 +188,49 @@ def discussions(statements):
     ]
 
 
-def test_show_discussion(view, controller: TherapistAppController, discussions):
+def test_create_discussion(
+    test_user, server_response, view, controller: TherapistAppController
+):
+    from fdserver.therapist.models import Discussion, Speaker, SpeakerType
 
+    qml = QmlHelper(view)
+    newButton = view.rootObject().property("newButton")
+    discussionList = view.rootObject().property("discussionList")
+    discussionsButton = view.rootObject().property("discussionsButton")
+    assert discussionList.property("count") == 0
+
+    with (
+        patch.object(controller.therapist, "_diagram", Diagram(user_id=test_user.id)),
+        server_response(
+            resource="/therapist/discussions",
+            method="POST",
+            headers={b"Content-Type": b"application/json"},
+            body=json.dumps(
+                Discussion(
+                    id=1,
+                    diagram_id=123,
+                    summary="my dog flew away",
+                    user_id=123,
+                    speakers=[
+                        Speaker(
+                            id=1, person_id=4, name="Alice", type=SpeakerType.Expert
+                        ),
+                        Speaker(
+                            id=2, person_id=5, name="Bob", type=SpeakerType.Subject
+                        ),
+                    ],
+                ).as_dict(include="speakers"),
+            ),
+        ),
+    ):
+        qml.mouseClick(newButton)
+    qml.mouseClick(discussionsButton)
+    delegates = waitForListViewDelegates(discussionList, 1)
+    assert discussionList.property("count") == 1
+    assert delegates[0].property("dText") == controller.therapist.discussions[0].summary
+
+
+def test_show_discussion(view, controller: TherapistAppController, discussions):
     with (
         patch("pkdiagram.therapist.Therapist._refreshDiagram"),
         patch.object(controller.therapist, "_currentDiscussion", discussions[1]),
@@ -214,9 +256,8 @@ def test_select_discussion(
         view.rootObject().showDiscussions()
         delegates = waitForListViewDelegates(discussionList, len(discussions))
 
-        qml = QmlHelper(view)
         secondDelegate = discussionList.itemAtIndex(1)
-        qml.mouseClick(secondDelegate)
+        QmlHelper(view).mouseClick(secondDelegate)
         delegates = waitForListViewDelegates(statementsList, len(statements))
 
     assert set(x.property("dText") for x in delegates) == set(

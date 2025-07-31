@@ -4,9 +4,10 @@ import contextlib
 import logging
 import tempfile
 import uuid
-from typing import Optional
+from typing import Optional, Union
 
 import pytest, mock
+from mock import patch
 import flask.testing
 
 # Load python init by path since it doesn't exist in a package.
@@ -201,14 +202,6 @@ def pytest_report_teststatus(report, config):
             _componentStatus[component] = "failed"
 
 
-@pytest.fixture
-def blockingRequest_200(monkeypatch):
-    def _blockingRequest(*args, **kwargs):
-        return HTTPResponse(body=b"", status_code=200, headers={})
-
-    monkeypatch.setattr(Server, "blockingRequest", _blockingRequest)
-
-
 # Flask -> Qt
 class NetworkReply(QNetworkReply):
     def abort(self):
@@ -243,6 +236,7 @@ class MockedResponse:
     resource: str
     response: Response
     method: str = "GET"
+    headers: dict[bytes, bytes] | None = (None,)
 
 
 _mockedFlaskResponsesStack: list[list[MockedResponse]] = []
@@ -253,17 +247,94 @@ def server_response():
 
     @contextlib.contextmanager
     def _server_response(
-        resource, method: str = None, status_code: int = 200, body: bytes = b""
+        resource,
+        method: str = None,
+        status_code: int = 200,
+        body: Union[bytes, dict, None] = None,
+        headers: dict[bytes, bytes] | None = None,
     ):
         _mockedFlaskResponsesStack.append(
             MockedResponse(
-                resource=resource, method=method, response=Response(body, status_code)
+                resource=resource,
+                method=method,
+                response=Response(body, status_code),
+                headers=headers,
             )
         )
         yield
         _mockedFlaskResponsesStack.pop()
 
     return _server_response
+
+
+@pytest.fixture
+def blockingRequest_200(monkeypatch):
+    def _blockingRequest(*args, **kwargs):
+        return HTTPResponse(body=b"", status_code=200, headers={})
+
+    monkeypatch.setattr(Server, "blockingRequest", _blockingRequest)
+
+
+def __make_reply(
+    request: QNetworkRequest,
+    verb: bytes,
+    status_code: int,
+    headers: dict[bytes, bytes] | None = None,
+    body: Union[bytes, dict, None] = None,
+) -> NetworkReply:
+    if headers is None:
+        headers = {}
+    if body is None:
+        body = b""
+    reply = NetworkReply()
+    reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
+    reply.setAttribute(QNetworkRequest.HttpStatusCodeAttribute, status_code)
+    for key, value in headers:
+        reply.setRawHeader(key.encode("utf-8"), value.encode("utf-8"))
+    reply.open(QIODevice.ReadWrite)
+    reply.write(body)
+    reply.setRequest(request)
+    reply.setOperation(
+        (
+            {
+                "HEAD": QNetworkAccessManager.HeadOperation,
+                "GET": QNetworkAccessManager.GetOperation,
+                "PUT": QNetworkAccessManager.PutOperation,
+                "POST": QNetworkAccessManager.PostOperation,
+                "DELETE": QNetworkAccessManager.DeleteOperation,
+            }
+        ).get(verb.decode(), QNetworkAccessManager.CustomOperation)
+    )
+    return reply
+
+
+@pytest.fixture
+def __nonBlockingRequest():
+
+    @contextlib.contextmanager
+    def _go(status_code: int, content_type: str, body: Union[bytes, dict, list]):
+
+        properties = {}
+
+        def _setProperty(name: str, value):
+            properties[name] = value
+
+        def _property(name: str):
+            return properties[name]
+
+        def _sendCustomRequest(qt_request, verb, data=b"", status_code=status_code):
+
+            reply = mock.MagicMock()
+            reply.property = _property
+            reply.setProperty = _setProperty
+            reply.readAll.return_value = body
+            reply.request.rawHeader.return_value = content_type
+            return reply
+
+        with patch.object(QNAM.instance(), "sendCustomRequest", _sendCustomRequest):
+            yield
+
+    return _go
 
 
 def _sendCustomRequest(
@@ -297,6 +368,10 @@ def _sendCustomRequest(
                 headers=headers,
                 data=data,
             )
+
+    # reply = make_reply(
+    #     request, verb=verb, status_code=status_code, headers=response.headers
+    # )
 
     reply = NetworkReply()
     reply.setAttribute(QNetworkRequest.CustomVerbAttribute, verb)
