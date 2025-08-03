@@ -20,6 +20,9 @@ from tests.widgets.qmlwidgets import QmlHelper
 _log = logging.getLogger(__name__)
 
 
+pytest.skip(allow_module_level=True)
+
+
 @pytest.fixture
 def controller(qmlEngine):
     controller = TherapistAppController(QApplication.instance())

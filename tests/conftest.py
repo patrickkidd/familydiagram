@@ -243,7 +243,7 @@ _mockedFlaskResponsesStack: list[list[MockedResponse]] = []
 
 
 @pytest.fixture
-def server_response():
+def server_response(flask_app):
 
     @contextlib.contextmanager
     def _server_response(
@@ -261,7 +261,8 @@ def server_response():
                 headers=headers,
             )
         )
-        yield
+        with flask_app.app_context():
+            yield
         _mockedFlaskResponsesStack.pop()
 
     return _server_response

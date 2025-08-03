@@ -191,22 +191,24 @@ def get_caller_info():
     return f"{os.path.basename(filename)}:{lineno}:{function_name}"
 
 
-def waitForListViewDelegates(listView: QQuickItem, numDelegates: int, timeout_ms: int = 5000):
+def waitForListViewDelegates(
+    listView: QQuickItem, numDelegates: int, timeout_ms: int = 5000
+):
     """
     Wait for ListView delegates to be created and ready.
     Uses QEventLoop with QTimer for deterministic waiting.
     """
     assert listView.property("enabled"), "ListView must be enabled"
     assert listView.property("visible"), "ListView must be visible"
-    
+
     # Store original properties
     original_clip = listView.property("clip")
     original_cache_buffer = listView.property("cacheBuffer")
-    
+
     # Force all delegates to be created
     listView.setProperty("clip", False)
     listView.setProperty("cacheBuffer", 10000)
-    
+
     def _isDelegateReady(delegate):
         """Check if a delegate is ready for interaction"""
         if delegate is None:
@@ -216,68 +218,80 @@ def waitForListViewDelegates(listView: QQuickItem, numDelegates: int, timeout_ms
         width = delegate.property("width")
         height = delegate.property("height")
         return width and width > 0 and height and height > 0
-    
+
     def _checkDelegates():
         """Check if all expected delegates are ready"""
         model_count = listView.property("count")
         if model_count == 0:
             return [] if numDelegates == 0 else None
-            
+
         # Force ListView to update by positioning at each index
         for i in range(model_count):
             listView.positionViewAtIndex(i, 0)
-            
-        # Process events to allow delegate creation
+
+        # Force Qt to process all pending events
+        QApplication.sendPostedEvents()
+        QApplication.processEvents(QEventLoop.AllEvents)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
+        # Use Qt's invokeMethod to force layout completion
+        try:
+            QMetaObject.invokeMethod(listView, "forceLayout", Qt.DirectConnection)
+        except RuntimeError:
+            pass  # forceLayout may not exist on all ListView versions
+
         QApplication.processEvents()
-        
+
         # Collect ready delegates
         ready_delegates = []
         for i in range(model_count):
             delegate = listView.itemAtIndex(i)
             if _isDelegateReady(delegate):
                 ready_delegates.append(delegate)
-        
+
         # Debug logging
-        _log.debug(f"waitForListViewDelegates: model_count={model_count}, "
-                  f"ready_delegates={len(ready_delegates)}, expected={numDelegates}")
-                
+        _log.debug(
+            f"waitForListViewDelegates: model_count={model_count}, "
+            f"ready_delegates={len(ready_delegates)}, expected={numDelegates}"
+        )
+
         # Return delegates if we have the expected number
         if len(ready_delegates) == numDelegates:
             return ready_delegates
         return None
-    
+
     # Try immediate check first
     delegates = _checkDelegates()
     if delegates is not None:
         listView.setProperty("clip", original_clip)
         listView.setProperty("cacheBuffer", original_cache_buffer)
         return delegates
-    
+
     # Set up event loop with timer for polling
     loop = QEventLoop()
     timer = QTimer()
     timer.setInterval(10)  # Check every 10ms
-    
+
     delegates_result = []
-    
+
     def onTimeout():
         nonlocal delegates_result
         result = _checkDelegates()
         if result is not None:
             delegates_result = result
             loop.quit()
-    
+
     timer.timeout.connect(onTimeout)
-    
+
     # Set up timeout timer
     timeout_timer = QTimer()
     timeout_timer.setSingleShot(True)
     timeout_timer.timeout.connect(loop.quit)
     timeout_timer.start(timeout_ms)
-    
+
     # Start polling timer
     timer.start()
-    
+
     # Run event loop
     try:
         loop.exec()
@@ -287,10 +301,10 @@ def waitForListViewDelegates(listView: QQuickItem, numDelegates: int, timeout_ms
         # Restore original properties
         listView.setProperty("clip", original_clip)
         listView.setProperty("cacheBuffer", original_cache_buffer)
-    
+
     if delegates_result:
         return delegates_result
-    
+
     # Timeout - provide detailed error
     model_count = listView.property("count")
     actual_delegates = []
@@ -298,7 +312,7 @@ def waitForListViewDelegates(listView: QQuickItem, numDelegates: int, timeout_ms
         delegate = listView.itemAtIndex(i)
         if delegate:
             actual_delegates.append(delegate)
-    
+
     raise TimeoutError(
         f"Expected {numDelegates} ListView delegates, got {len(actual_delegates)} "
         f"(model count: {model_count})"

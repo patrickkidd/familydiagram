@@ -1,8 +1,8 @@
 {
   "include": [
-    "pkdiagram"
+    "pkdiagram",
+    "tests"
   ],
-
   "exclude": [
     "**/__pycache__",
     "lib",
@@ -11,12 +11,15 @@
     "_pkdiagram",
     "sysroot/sysroot-*"
   ],
-
   "ignore": [
     "src/oldstuff"
   ],
-
   "extraPaths": [
-    ".", "../fdserver", "../vedana", "../btcopilot"
-  ]
+    "/Users/patrick/dev/familydiagram",
+    "/Users/patrick/dev/btcopilot",
+    "/Users/patrick/dev/fdserver",
+    "/Users/patrick/dev/vedana"
+  ],
+  "venvPath": "/Users/patrick/dev/familydiagram",
+  "venv": ".venv"
 }

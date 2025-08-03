@@ -1,3 +1,5 @@
+import contextlib
+
 import pytest
 from mock import patch
 
@@ -8,7 +10,7 @@ from pkdiagram import util
 
 from fdserver.extensions import db
 from fdserver.models import User
-from fdserver.therapist.models import Discussion, Statement
+from fdserver.therapist.models import Discussion, Statement, Speaker, SpeakerType
 from fdserver.therapist.database import Database, PDP, Person
 
 
@@ -19,9 +21,10 @@ pytestmark = [
 
 
 @pytest.fixture
-def chat_thread(test_user):
-    chat_thread = Discussion(user_id=test_user.id)
-    db.session.add(chat_thread)
+def discussion(test_user):
+    discussion = Discussion(user_id=test_user.id)
+    db.session.add(discussion)
+    return discussion
 
 
 @pytest.fixture
@@ -33,63 +36,66 @@ def therapist(test_session):
     yield _therapist
 
 
-def test_refreshDiscussion(test_user, therapist: Therapist):
+from fdserver.tests.therapist.conftest import discussion
+
+
+def test_refreshDiagram(flask_app, test_user, discussion, therapist: Therapist):
     discussionsChanged = util.Condition(therapist.discussionsChanged)
-    threads = [
-        Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
-        Discussion(user_id=test_user.id, messages=[Statement(text="blah")]),
-    ]
-    db.session.add_all(threads)
-    db.session.commit()
-    therapist.refreshDiscussion()
+    with flask_app.app_context():
+        therapist._refreshDiagram()
     assert discussionsChanged.wait() == True
-    assert set(x.id for x in therapist.threads) == set(x.id for x in threads)
+    assert set(x.id for x in therapist.discussions) == {discussion.id}
 
 
 def test_refreshPDP(test_user, therapist: Therapist):
     pdpChanged = util.Condition(therapist.pdpChanged)
-    test_user.database = Database(
-        pdp=PDP(people=[Person(name="Test Person")])
-    ).model_dump()
+    diagram = test_user.free_diagram
+    diagram.set_database(Database(pdp=PDP(people=[Person(name="Test Person")])))
+    db.session.add(diagram)
     db.session.commit()
     therapist.refreshPDP()
     assert pdpChanged.wait() == True
-    assert therapist.pdp == test_user.database["pdp"]
+    assert therapist.pdp == test_user.free_diagram.get_database().pdp.model_dump()
 
 
-def test_sendMessage(chat_thread, therapist: Therapist):
+@pytest.mark.parametrize("success", [True, False])
+def test_sendStatement(
+    server_error, test_user, discussion, therapist: Therapist, success
+):
 
-    RESPONSE = Response(
-        message="some response",
-        added_data_points=[],
-        removed_data_points=[],
-        guidance=[],
-    )
+    from fdserver.therapist.chat import Response, PDP
+
+    RESPONSE = Response(statement="some response", pdp=PDP())
 
     requestSent = util.Condition(therapist.requestSent)
     responseReceived = util.Condition(therapist.responseReceived)
     serverError = util.Condition(therapist.serverError)
     serverDown = util.Condition(therapist.serverDown)
 
-    with patch("fdserver.therapist.ask", return_value=RESPONSE):
-        therapist.sendMessage("test message")
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch("fdserver.therapist.routes.discussions.ask", return_value=RESPONSE)
+        )
+        stack.enter_context(
+            patch.object(
+                therapist,
+                "_currentDiscussion",
+                Discussion(
+                    id=discussion.id,
+                    user_id=test_user.id,
+                    statements=[Statement(text="blah")],
+                ),
+            )
+        )
+        if not success:
+            stack.enter_context(server_error())
+        therapist.sendStatement("test message")
     assert requestSent.callCount == 1
-    assert responseReceived.wait() == True
-    assert responseReceived.callArgs[0][0] == RESPONSE.message
-    assert serverError.callCount == 0
-    assert serverDown.callCount == 0
-
-
-def test_server_error(chat_thread, server_error, therapist: Therapist):
-    requestSent = util.Condition(therapist.requestSent)
-    responseReceived = util.Condition(therapist.responseReceived)
-    serverError = util.Condition(therapist.serverError)
-    serverDown = util.Condition(therapist.serverDown)
-
-    with server_error():
-        with patch("fdserver.therapist.ask"):
-            therapist.sendMessage("test message")
-    assert requestSent.callCount == 1
-    assert serverError.wait() == True
-    assert responseReceived.callCount == 0
+    if success:
+        assert responseReceived.wait() == True
+        assert responseReceived.callArgs[0][0] == RESPONSE.statement
+        assert serverError.callCount == 0
+    else:
+        assert serverError.wait() == True
+        assert responseReceived.callCount == 0
     assert serverDown.callCount == 0

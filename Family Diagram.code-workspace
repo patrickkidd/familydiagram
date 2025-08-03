@@ -18,11 +18,6 @@
 		"debug.terminal.clearBeforeReusing": true,
 		"explorer.autoReveal": false,
 		"terminal.integrated.scrollback": 100000,
-		"python.testing.pytestEnabled": false,
-		"[python]": {
-			"editor.formatOnSave": true,
-			"editor.defaultFormatter": "ms-python.black-formatter",
-		},
 		"[javascript]": {
 			"editor.formatOnSave": true,
 			"editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -36,8 +31,20 @@
 			"editor.defaultFormatter": "redhat.vscode-xml"
 		},
 		"makefile.configureOnOpen": false,
-		"python.languageServer": "Pylance",
+		// "python.languageServer": "Pylance",
 		"python.analysis.typeCheckingMode": "off",
+		"python.testing.pytestEnabled": false,
+		"python.analysis.extraPaths": [
+			".", 
+			"../fdserver", 
+			"../vedana", 
+			"../btcopilot",
+			"lib/site-packages"
+		],
+		"[python]": {
+			"editor.formatOnSave": true,
+			"editor.defaultFormatter": "ms-python.black-formatter",
+		},
 		"files.exclude": {
 			"**/__pycache__": true
 		},
@@ -46,5 +53,6 @@
 			"/Users/patrick/dev/fdserver/debug_log.txt"
 		],
 		"black-formatter.importStrategy": "fromEnvironment",
+		"python.languageServer": "Pylance",
 	}
 }

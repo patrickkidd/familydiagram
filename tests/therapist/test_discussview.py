@@ -200,7 +200,9 @@ def test_create_discussion(
     assert discussionList.property("count") == 0
 
     with (
-        patch.object(controller.therapist, "_diagram", Diagram(user_id=test_user.id)),
+        patch.object(
+            controller.therapist, "_diagram", Diagram(id=123, user_id=test_user.id)
+        ),
         server_response(
             resource="/therapist/discussions",
             method="POST",
