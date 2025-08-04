@@ -3,11 +3,13 @@ from optparse import OptionParser
 
 from pkdiagram.pyqt import (
     Qt,
+    QUrl,
     QSettings,
     QWidget,
     QVBoxLayout,
     QOpenGLWidget,
     QSurfaceFormat,
+    QEventLoop,
 )
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
@@ -127,6 +129,10 @@ def main():
         engine.load("resources:qml/TherapistApplication.qml")
 
         ret = app.exec_()
+
+        controller.deinit()
+        app.sendPostedEvents()
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents)
         sys.exit(ret)
 
     else:

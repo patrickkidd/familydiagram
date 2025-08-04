@@ -13,15 +13,23 @@ Page {
 
     function updatePDP(pdp) {
         pdpModel.clear()
-        for(var i=0; i < pdp.people.length; i++) {
-            var person = pdp.people[i];
-            console.log('Person:', JSON.stringify(person));
-            pdpModel.append({ "kind": "Person", "text": person.name, "id": person.id });
+        if(!pdp) {
+            return
         }
-        for(var i=0; i < pdp.events.length; i++) {
-            var event = pdp.events[i];
-            console.log('Event:', JSON.stringify(event));
-            pdpModel.append({ "kind": "Event", "text": event.description, "id": event.id });
+        print(pdp, 'people:', pdp.people, 'events:', pdp.events)
+        if(pdp.people && pdp.people.length > 0) {
+            for(var i=0; i < pdp.people.length; i++) {
+                var person = pdp.people[i];
+                console.log('Person:', JSON.stringify(person));
+                pdpModel.append({ "kind": "Person", "text": person.name, "id": person.id });
+            }
+        }
+        if(pdp.events && pdp.events.length > 0) {
+            for(var i=0; i < pdp.events.length; i++) {
+                var event = pdp.events[i];
+                console.log('Event:', JSON.stringify(event));
+                pdpModel.append({ "kind": "Event", "text": event.description, "id": event.id });
+            }
         }
     }
 

@@ -19,7 +19,6 @@ Page {
     property var learnView: learnView
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
-    property var showingAccount: false
 
     // Main content - only visible when logged in
     StackLayout {
@@ -27,13 +26,12 @@ Page {
         id: stack
         currentIndex: tabBar.currentIndex
         anchors.fill: parent
-        visible: session.isLoggedIn()
+        visible: session.loggedIn
 
         Therapist.DiscussView {
             id: discussView
             Layout.fillHeight: true
             Layout.fillWidth: true
-
         }
 
         Therapist.LearnView {
@@ -47,35 +45,28 @@ Page {
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
-        Rectangle {
-            Button {
-                text: "Show Account"
-                onClicked: showingAccount = true
-            }
-        }
     }
 
     footer: PK.TabBar {
         id: tabBar
         currentIndex: stack.currentIndex
-        visible: session.isLoggedIn()
+        visible: session.loggedIn
         PK.TabButton { text: "Discuss" }
         PK.TabButton { text: "Learn" }
         PK.TabButton { text: "Plan" }
-        PK.TabButton { icon.source: "../../settings-button.png"; Layout.maximumWidth: 25 }
     }
 
     // Account Dialog overlay - shown when not logged in
     Loader {
         id: accountDialogLoader
         anchors.fill: parent
-        active: !session.isLoggedIn() || showingAccount
+        active: ! session.loggedIn
         source: "../AccountDialog.qml"
+        onActiveChanged: print("onActiveChanged: " + active)
         
         onLoaded: {
             if (item) {
                 item.done.connect(function() {
-                    showingAccount = false
                     // Force refresh of session state
                     // session.changed()
                 })

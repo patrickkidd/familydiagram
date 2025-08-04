@@ -143,6 +143,12 @@ Page {
 
 
     header: PK.ToolBar {
+        PK.ToolButton {
+            text: "Logout"
+            Layout.maximumWidth: 25
+            anchors.centerIn: parent
+            onClicked: session.logout()
+        }
 
         PK.ToolButton {
             id: discussionsButton

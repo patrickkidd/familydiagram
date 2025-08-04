@@ -2,6 +2,7 @@ import os
 import time
 import uuid, pickle, logging, copy
 import dataclasses
+import logging
 
 import vedana
 
@@ -297,7 +298,13 @@ class Session(QObject, QObjectHelper):
 
     @pyqtSlot(result=bool)
     def isLoggedIn(self):
-        return bool(self._user)
+        ret = bool(self._user)
+        log.info(f"isLoggedIn: {ret}")
+        return ret
+
+    @pyqtProperty(bool, notify=changed)
+    def loggedIn(self):
+        return self.isLoggedIn()
 
     @pyqtSlot(result=list)
     def activeFeatures(self):

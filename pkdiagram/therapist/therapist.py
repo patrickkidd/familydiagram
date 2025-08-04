@@ -202,7 +202,7 @@ class Therapist(QObject):
         if not self._session.user:
             self._diagram = None
             self._discussions = []
-            self._pdp = None
+            self._pdp = {}
             self._currentDiscussion = None
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
@@ -232,12 +232,15 @@ class Therapist(QObject):
         self._createDiscussion()
 
     def _createDiscussion(self):
+        if not self._diagram:
+            _log.warning("Cannot create discussion without diagram")
+            return
 
         def onSuccess(data):
             discussion = Discussion.create(data)
             self._discussions.append(discussion)
             self.discussionsChanged.emit()
-            self._setCurrentDiscussion(discussion.id)
+            self._setCurrentDiscussion(discussion.id())
 
         server = self._session.server()
         reply = server.nonBlockingRequest(
@@ -251,6 +254,9 @@ class Therapist(QObject):
         )
 
     def _refreshDiagram(self):
+        if not self._session.user:
+            return
+
         def onSuccess(data):
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
@@ -300,6 +306,9 @@ class Therapist(QObject):
         """
         Mockable because qml latches on to slots at init time.
         """
+        if not self._currentDiscussion:
+            _log.warning("Cannot send statement without current discussion")
+            return
 
         def onSuccess(data):
             # added_data_points = data["added_data_points"]
@@ -336,7 +345,7 @@ class Therapist(QObject):
     def _refreshPDP(self):
         def onSuccess(data):
             self.setPDP(data)
-            # _log.info(f"pdpChanged.emit(): {self._pdp}")
+            _log.info(f"pdpChanged.emit(): {self._pdp}")
             self.pdpChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(
@@ -351,6 +360,9 @@ class Therapist(QObject):
 
     @pyqtSlot(int)
     def acceptPDPItem(self, id: int):
+        if not self._diagram:
+            _log.warning("Cannot accept PDP item without diagram")
+            return
         _log.info(f"Accepting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
@@ -364,10 +376,13 @@ class Therapist(QObject):
 
     @pyqtSlot(int)
     def rejectPDPItem(self, id: int):
+        if not self._diagram:
+            _log.warning("Cannot reject PDP item without diagram")
+            return
         _log.info(f"Rejecting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/diagrams{self._diagram.id}/pdp/{-id}/reject",
+            f"/therapist/diagrams/{self._diagram.id}/pdp/{-id}/reject",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Rejected PDP item: {data}"),

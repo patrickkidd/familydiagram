@@ -1,5 +1,7 @@
 import inspect
 import enum
+import logging
+
 from pkdiagram.pyqt import (
     pyqtProperty,
     pyqtSignal,
@@ -15,13 +17,14 @@ from pkdiagram.pyqt import (
 from pkdiagram import scene
 
 
+_log = logging.getLogger(__name__)
+
 CLASS_PROPERTIES = {}
 
 
 class QObjectHelper:
     """Add QObject properties via python dict."""
 
-    PRINT_EMITS = False
     DEBUG = True
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
@@ -218,8 +221,7 @@ class QObjectHelper:
         """Provides a way to capture signal emissions in a specific subclass
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
-        if self.PRINT_EMITS:
-            print(f"{attr}Changed[{x}]")
+        _log.debug(f"{attr}Changed[{x}]")
         getattr(self, attr + "Changed").emit(x)
         self.onQObjectHelperPropertyChanged(attr, x)
 

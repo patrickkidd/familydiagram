@@ -31,7 +31,7 @@ Page {
     signal authStateChanged(string state) // testing
 
     property var user: (function(hash) {
-        if(session.hash && session.isLoggedIn())
+        if(session.loggedIn)
             return session.userDict
         else
             return null
@@ -153,7 +153,7 @@ Page {
         // UI
         //
 
-        if(session.isLoggedIn()) {
+        if(session.loggedIn) {
 
             var sessionData = session.data()
             var user = sessionData.session.user
@@ -732,7 +732,7 @@ Page {
                                 })
                             } else if(authForm.state == 'update') {
 
-                                if(! (session.hash && session.isLoggedIn())) {
+                                if(! session.loggedIn) {
                                     // creating user, so passwords are required
                                     if(! authNewPasswordField.text || !authConfirmPasswordField.text) {
                                         util.informationBox("Passwords are required", "The password fields are required.")
@@ -755,7 +755,7 @@ Page {
                                     first_name: authFirstNameField.text,
                                     last_name: authLastNameField.text
                                 }
-                                if(session.hash && session.isLoggedIn()) {
+                                if(session.loggedIn) {
                                     args.session = session.token
                                 } else {
                                     args.reset_password_code = authCodeField.text
@@ -766,7 +766,7 @@ Page {
                                     authForm.enabled = true
                                     if(response.status_code === 200) {
                                         authForm.entered_user_id = -1
-                                        if(session.hash && session.isLoggedIn()) {
+                                        if(session.loggedIn) {
                                             session.update()
                                             slideView.currentIndex = 2
                                             authForm.reset()
@@ -1638,12 +1638,12 @@ Page {
     footer: PK.ToolBar {
         id: toolBar
         Layout.fillWidth: true
-        visible: (session.hash && session.isLoggedIn()) || root.activeFeatures.length > 0
+        visible: session.loggedIn || root.activeFeatures.length > 0
         PK.ToolButton {
             id: logoutButton
             objectName: 'logoutButton'
             text: "Logout"
-            enabled: (session.hash && session.isLoggedIn()) || root.activeFeatures.length > 0
+            enabled: session.loggedIn || root.activeFeatures.length > 0
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
             onClicked: {
@@ -1657,7 +1657,7 @@ Page {
             id: accountOrPurchaseButton
             objectName: 'accountOrPurchaseButton'
             text: slideView.currentIndex == 1 ? 'Account' : 'Purchase'
-            visible: (session.hash && session.isLoggedIn()) && ! util.IS_IOS
+            visible: session.loggedIn && ! util.IS_IOS
             anchors.left: logoutButton.right
             anchors.leftMargin: util.QML_MARGINS / 2
             onClicked: {
