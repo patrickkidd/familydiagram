@@ -225,7 +225,7 @@ def init_logging():
     datadogHandler = DatadogHandler()
     handlers.append(datadogHandler)
 
-    logging.basicConfig(level=logging.DEBUG, handlers=handlers)
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
 
 
 ##

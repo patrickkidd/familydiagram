@@ -307,9 +307,7 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    print('>>> submit(): >>>' + textEdit.text + '<<<')
                     therapist.sendStatement(textEdit.text);
-                    print('<<< submit()')
                     textEdit.text = ''
                     textEdit.focus = false
                     // Qt.inputMethod.hide()

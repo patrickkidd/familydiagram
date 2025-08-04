@@ -25,8 +25,6 @@ CLASS_PROPERTIES = {}
 class QObjectHelper:
     """Add QObject properties via python dict."""
 
-    DEBUG = True
-
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
         """
         Dynamically add Qt properties, signals, and slots to match

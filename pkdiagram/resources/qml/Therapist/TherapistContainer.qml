@@ -26,7 +26,7 @@ Page {
         id: stack
         currentIndex: tabBar.currentIndex
         anchors.fill: parent
-        visible: session.loggedIn
+        visible: session && session.loggedIn
 
         Therapist.DiscussView {
             id: discussView
@@ -50,7 +50,7 @@ Page {
     footer: PK.TabBar {
         id: tabBar
         currentIndex: stack.currentIndex
-        visible: session.loggedIn
+        visible: session && session.loggedIn
         PK.TabButton { text: "Discuss" }
         PK.TabButton { text: "Learn" }
         PK.TabButton { text: "Plan" }
@@ -60,7 +60,7 @@ Page {
     Loader {
         id: accountDialogLoader
         anchors.fill: parent
-        active: ! session.loggedIn
+        active: session && ! session.loggedIn
         source: "../AccountDialog.qml"
         onActiveChanged: print("onActiveChanged: " + active)
         
