@@ -49,7 +49,7 @@ ApplicationWindow {
             }
         }
 
-        Therapist.MainContainer {
+        Therapist.TherapistContainer {
             id: therapistView
             anchors.fill: parent
         }

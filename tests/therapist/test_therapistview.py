@@ -82,7 +82,7 @@ def controller(test_user, test_session, qmlEngine):
 def view(qtbot, qmlEngine, controller):
     _view = QQuickView(qmlEngine, None)
     statusChanged = Condition(_view.statusChanged)
-    _view.setSource(QUrl("resources:/qml/Therapist/MainContainer.qml"))
+    _view.setSource(QUrl("resources:/qml/Therapist/TherapistContainer.qml"))
     _view.show()
     _view.resize(600, 800)
     assert statusChanged.wait() == True
@@ -92,7 +92,7 @@ def view(qtbot, qmlEngine, controller):
 def __test_main_content_visible_when_logged_in(qmlEngine, controller, view):
     assert (
         view.status() == QQuickWidget.Status.Ready
-    ), f"Failed to load MainContainer.qml: {view.status()}"
+    ), f"Failed to load TherapistContainer.qml: {view.status()}"
 
     mainContainer = view.rootObject()
     stack = mainContainer.property("stack")

@@ -1253,7 +1253,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "MainContainer.qml"
+name = "TherapistContainer.qml"
 included = true
 is_directory = false
 
