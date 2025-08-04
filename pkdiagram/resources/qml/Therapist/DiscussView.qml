@@ -51,22 +51,22 @@ Page {
             }
         }
         function onStatementsChanged() {
-            print('onStatementsChanged: ' + therapist.statements.length + ' statements')
+            // print('onStatementsChanged: ' + therapist.statements.length + ' statements')
             chatModel.clear()
             for(var i=0; i < therapist.statements.length; i++) {
                 var statement = therapist.statements[i];
-                print('    statement[' + i + '] (' + statement.speaker.type.value + '):', statement.text)
-                var speakerType = statement.speaker.type.value
+                // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
+                var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
             } 
             statementsList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
-            print('onRequestSent:', text)
+            // print('onRequestSent:', text)
             chatModel.append({ "text": text, "speakerType": 'subject' });
         }
         function onResponseReceived(text, added) {
-            print('onResponseReceived:', text, added)
+            // print('onResponseReceived:', text, added)
             chatModel.append({
                 "text": text,
                 "speakerType": 'expert'

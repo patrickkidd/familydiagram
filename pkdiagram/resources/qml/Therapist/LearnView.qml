@@ -55,7 +55,7 @@ Page {
             }
         }
 
-        PK.ListView {
+        ListView {
             id: pdpList
             visible: pdpModel.count > 0
             clip: true
@@ -68,8 +68,10 @@ Page {
                 height: util.QML_ITEM_HEIGHT
                 clip: true
 
+                property var dText: model.text
+
                 Text {
-                    text: 'asdasd' // model.text
+                    text: dText
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     color: util.QML_TEXT_COLOR

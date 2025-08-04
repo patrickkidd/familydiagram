@@ -354,7 +354,7 @@ class Therapist(QObject):
         _log.info(f"Accepting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/pdp/accept/{-id}",
+            f"/therapist/diagrams/{self._diagram.id}/pdp/{-id}/accept",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Accepted PDP item: {data}"),
@@ -367,7 +367,7 @@ class Therapist(QObject):
         _log.info(f"Rejecting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/pdp/reject/{-id}",
+            f"/therapist/diagrams{self._diagram.id}/pdp/{-id}/reject",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Rejected PDP item: {data}"),
