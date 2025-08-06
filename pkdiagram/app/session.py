@@ -299,7 +299,6 @@ class Session(QObject, QObjectHelper):
     @pyqtSlot(result=bool)
     def isLoggedIn(self):
         ret = bool(self._user)
-        log.info(f"isLoggedIn: {ret}")
         return ret
 
     @pyqtProperty(bool, notify=changed)

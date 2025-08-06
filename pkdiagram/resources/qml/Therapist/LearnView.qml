@@ -13,21 +13,22 @@ Page {
 
     function updatePDP(pdp) {
         pdpModel.clear()
+        // print('clear()')
         if(!pdp) {
             return
         }
-        print(pdp, 'people:', pdp.people, 'events:', pdp.events)
+        // print(pdp, 'people:', pdp.people, 'events:', pdp.events)
         if(pdp.people && pdp.people.length > 0) {
             for(var i=0; i < pdp.people.length; i++) {
                 var person = pdp.people[i];
-                console.log('Person:', JSON.stringify(person));
+                // console.log('Person:', JSON.stringify(person));
                 pdpModel.append({ "kind": "Person", "text": person.name, "id": person.id });
             }
         }
         if(pdp.events && pdp.events.length > 0) {
             for(var i=0; i < pdp.events.length; i++) {
                 var event = pdp.events[i];
-                console.log('Event:', JSON.stringify(event));
+                // console.log('Event:', JSON.stringify(event), 'text:', event.description, 'id:', event.id )
                 pdpModel.append({ "kind": "Event", "text": event.description, "id": event.id });
             }
         }
@@ -36,7 +37,7 @@ Page {
     Connections {
         target: therapist
         function onPdpChanged() {
-            console.log('onPdpChanged:', therapist.pdp);
+            // console.log('onPdpChanged:', therapist.pdp);
             root.updatePDP(therapist.pdp);
         }
     }
@@ -79,7 +80,7 @@ Page {
                 property var dText: model.text
 
                 Text {
-                    text: dText
+                    text: dText ? dText : ''
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     color: util.QML_TEXT_COLOR

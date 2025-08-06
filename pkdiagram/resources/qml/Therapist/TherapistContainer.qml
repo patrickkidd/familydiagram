@@ -62,7 +62,7 @@ Page {
         anchors.fill: parent
         active: session && ! session.loggedIn
         source: "../AccountDialog.qml"
-        onActiveChanged: print("onActiveChanged: " + active)
+        // onActiveChanged: print("onActiveChanged: " + active)
         
         onLoaded: {
             if (item) {

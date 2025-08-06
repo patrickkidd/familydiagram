@@ -345,7 +345,7 @@ class Therapist(QObject):
     def _refreshPDP(self):
         def onSuccess(data):
             self.setPDP(data)
-            _log.info(f"pdpChanged.emit(): {self._pdp}")
+            # _log.info(f"pdpChanged.emit(): {self._pdp}")
             self.pdpChanged.emit()
 
         reply = self._session.server().nonBlockingRequest(
