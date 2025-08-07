@@ -226,7 +226,7 @@ class AppController(QObject):
     def onSessionChanged(self, oldFeatures, newFeatures):
         """Called on login, logout, invalidated token."""
 
-        if self.session.isLoggedIn:
+        if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
 
             # If logged in, activeFeatures will always be at least vedana.LICENSE_FREE

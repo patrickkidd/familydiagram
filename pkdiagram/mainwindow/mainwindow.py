@@ -327,7 +327,7 @@ class MainWindow(QMainWindow):
         ## File Manager View
 
         self.fileManager.init()
-        if not self.session.isLoggedIn:
+        if not self.session.isLoggedIn():
             self.fileManager.hide()
         self.serverFileModel = self.fileManager.serverFileModel
         self.serverPollTimer = QTimer(self)
