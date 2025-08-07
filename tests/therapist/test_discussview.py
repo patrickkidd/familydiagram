@@ -41,7 +41,6 @@ def controller(test_session, flask_app, qmlEngine):
     with (
         patch.object(controller.therapist, "init"),
         patch.object(controller.therapist, "_refreshPDP"),
-        flask_app.app_context(),
     ):
 
         controller.init(qmlEngine)
@@ -355,18 +354,15 @@ def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask
     submitButton = view.rootObject().property("submitButton")
     statementsList = view.rootObject().property("statementsList")
 
-    with (
-        patch.object(
-            therapist,
-            "_currentDiscussion",
-            new=MobileDiscussion(
-                id=1,
-                diagram_id=test_user.free_diagram_id,
-                summary="my dog flew away",
-                user_id=123,
-            ),
+    with patch.object(
+        therapist,
+        "_currentDiscussion",
+        new=MobileDiscussion(
+            id=1,
+            diagram_id=test_user.free_diagram_id,
+            summary="my dog flew away",
+            user_id=123,
         ),
-        flask_app.app_context(),
     ):
         therapist.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)

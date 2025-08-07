@@ -194,6 +194,10 @@ class Diagram:
             self.user = User(**self.user)
         if self.access_rights and isinstance(self.access_rights[0], dict):
             self.access_rights = [AccessRight(**x) for x in self.access_rights]
+        if isinstance(self.created_at, str):
+            self.created_at = datetime.fromisoformat(self.created_at)
+        if isinstance(self.updated_at, str):
+            self.updated_at = datetime.fromisoformat(self.updated_at)
 
     # sometimes passed in
     saved_at: InitVar[datetime] = None

@@ -626,7 +626,7 @@ def flask_qnam(tmp_path, request):
         # on demand, not every test
         flask_app = request.getfixturevalue("flask_app")
 
-        with flask_app.test_client() as client:
+        with flask_app.test_client() as client, flask_app.app_context():
             ret = _sendCustomRequest(qt_request, verb, data=data, client=client)
             return ret
 

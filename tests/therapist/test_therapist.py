@@ -41,8 +41,7 @@ from fdserver.tests.therapist.conftest import discussion
 
 def test_refreshDiagram(flask_app, test_user, discussion, therapist: Therapist):
     discussionsChanged = util.Condition(therapist.discussionsChanged)
-    with flask_app.app_context():
-        therapist._refreshDiagram()
+    therapist._refreshDiagram()
     assert discussionsChanged.wait() == True
     assert set(x.id for x in therapist.discussions) == {discussion.id}
 
