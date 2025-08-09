@@ -362,13 +362,16 @@ def _sendCustomRequest(
                 response = mapping.response
                 break
         if not response:
-            response = flask.testing.FlaskClient.open(
-                client,
-                resource,
-                method=verb.decode("utf-8"),
-                headers=headers,
-                data=data,
-            )
+            from flask import current_app
+
+            with current_app.app_context():
+                response = flask.testing.FlaskClient.open(
+                    client,
+                    resource,
+                    method=verb.decode("utf-8"),
+                    headers=headers,
+                    data=data,
+                )
 
     # reply = make_reply(
     #     request, verb=verb, status_code=status_code, headers=response.headers
@@ -626,7 +629,7 @@ def flask_qnam(tmp_path, request):
         # on demand, not every test
         flask_app = request.getfixturevalue("flask_app")
 
-        with flask_app.test_client() as client, flask_app.app_context():
+        with flask_app.test_client() as client:
             ret = _sendCustomRequest(qt_request, verb, data=data, client=client)
             return ret
 

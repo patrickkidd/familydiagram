@@ -91,11 +91,13 @@ def test_serverBox_disabled_free(create_cp):
 def test_add_access_right_as_client(
     test_user, test_user_2, test_client_activation, create_cp, qmlEngine
 ):
+    dataChanged = util.Condition(qmlEngine.accessRightsModel.dataChanged)
     db.session.add(test_user.free_diagram)
     cp = create_cp(loadFreeDiagram=True)
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
+    assert dataChanged.wait() == True
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY

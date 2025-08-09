@@ -54,5 +54,8 @@
 		],
 		"black-formatter.importStrategy": "fromEnvironment",
 		"python.languageServer": "Pylance",
+		"python.testing.pytestArgs": [
+			"--log-cli-level=DEBUG"
+		],
 	}
 }
