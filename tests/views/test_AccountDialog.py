@@ -148,6 +148,8 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
     # assert dlg.itemProp('authForm', 'state') == 'email'  # Doesn't really make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 1
     assert qmlEngine.session.isLoggedIn() == True
+    # Refresh the session to see changes made by the HTTP request
+    db.session.expire_all()
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
     assert user.check_password(ARGS["password"])
@@ -209,6 +211,8 @@ def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 1
     assert qmlEngine.session.isLoggedIn() == True
+    # Refresh the session to see changes made by the HTTP request
+    db.session.expire_all()
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user != None
     assert user.check_password(ARGS["password"])
@@ -299,6 +303,7 @@ def test_edit_user(flask_app, test_user, create_dlg):
     assert userUpdated.wait(4000) == True
     # assert dlg.itemProp('authForm', 'state') == 'email' # Doesn't make sense any more?
     assert dlg.itemProp("slideView", "currentIndex") == 2
+    db.session.expire_all()
     user = User.query.filter_by(username=ARGS["username"]).first()
     assert user.first_name == ARGS["first_name"]
     assert user.last_name == ARGS["last_name"]

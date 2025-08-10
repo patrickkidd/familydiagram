@@ -106,8 +106,7 @@ def test_add_access_right_as_client(
     # Test the UI interaction
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
     
-    # Refresh the session to see changes made by the HTTP request
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -138,8 +137,7 @@ def test_add_only_one_access_right_as_client(
     qmlEngine.sceneModel.scene.read(data)
 
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    # Check that the change was persisted to the database
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -151,7 +149,6 @@ def test_add_only_one_access_right_as_client(
         contains=AccessRightsModel.S_CLIENT_ONLY_ALLOWED_ONE_RIGHT,
     )
     # Check that no additional access right was created
-    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert (
         len(diagram.access_rights) == 1
@@ -173,8 +170,7 @@ def test_add_one_access_right_for_free_as_client(
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    # Check that the change was persisted to the database
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -186,7 +182,7 @@ def test_add_one_access_right_for_free_as_client(
         text="already exists.",
     )
     # Check that no duplicate access right was created
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
 
@@ -201,7 +197,7 @@ def test_edit_access_right(test_user, test_user_2, test_client_activation, creat
     accessRightBox = accessRightItems[0].findChild(QObject, "rightBox")
     cp.clickComboBoxItem(accessRightBox, "Read Only")
     # Check that the change was persisted to the database
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram_id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -216,7 +212,7 @@ def test_delete_access_right(test_user, test_user_2, test_client_activation, cre
     cp.clickListViewItem("accessRightsBox", 0)
     cp.findItem("accessRightsCrudButtons_removeButton").clicked.emit()
     # Check that the access right was deleted from the database
-    db.session.refresh(test_user.free_diagram)
+    db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram_id)
     assert len(diagram.access_rights) == 0
 
