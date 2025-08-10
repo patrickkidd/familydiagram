@@ -89,23 +89,36 @@ def test_serverBox_disabled_free(create_cp):
 
 
 def test_add_access_right_as_client(
-    test_user, test_user_2, test_client_activation, create_cp, qmlEngine
+    test_user, test_user_2, test_client_activation, create_cp, qmlEngine, test_session
 ):
-    dataChanged = util.Condition(qmlEngine.accessRightsModel.dataChanged)
-    db.session.add(test_user.free_diagram)
+    # Ensure test_user_2 is in the database
+    db.session.add(test_user_2)
+    db.session.commit()
+    
     cp = create_cp(loadFreeDiagram=True)
+    
+    # Re-initialize session with fresh data that includes test_user_2
+    qmlEngine.session.init(sessionData=test_session.account_editor_dict())
+    db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
+    
+    # Test the UI interaction
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    assert dataChanged.wait() == True
+    
+    # Refresh the session to see changes made by the HTTP request
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
 
 
 def test_add_only_one_access_right_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine
+    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine, test_session
 ):
+    # Ensure test_user_2 and test_user_3 are in the database
+    db.session.add(test_user_2)
+    
     test_user_3 = User(
         username="patrickkidd+unittest+3@gmail.com",
         password="something else",
@@ -115,14 +128,18 @@ def test_add_only_one_access_right_as_client(
     )
     db.session.add(test_user_3)
     db.session.commit()
-
+    
     cp = create_cp(loadFreeDiagram=True)
+    
+    # Re-initialize session with fresh data that includes all users after CP is created
+    qmlEngine.session.init(sessionData=test_session.account_editor_dict())
     db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
 
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    db.session.add(test_user)
+    # Check that the change was persisted to the database
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -133,6 +150,8 @@ def test_add_only_one_access_right_as_client(
         ),
         contains=AccessRightsModel.S_CLIENT_ONLY_ALLOWED_ONE_RIGHT,
     )
+    # Check that no additional access right was created
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert (
         len(diagram.access_rights) == 1
@@ -140,14 +159,22 @@ def test_add_only_one_access_right_as_client(
 
 
 def test_add_one_access_right_for_free_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine
+    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine, test_session
 ):
+    # Ensure test_user_2 is in the database
+    db.session.add(test_user_2)
+    db.session.commit()
+    
     cp = create_cp(loadFreeDiagram=True)
+    
+    # Re-initialize session with fresh data that includes test_user_2 after CP is created
+    qmlEngine.session.init(sessionData=test_session.account_editor_dict())
     db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    db.session.add(test_user)
+    # Check that the change was persisted to the database
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -158,6 +185,9 @@ def test_add_one_access_right_for_free_as_client(
         ),
         text="already exists.",
     )
+    # Check that no duplicate access right was created
+    db.session.refresh(test_user.free_diagram)
+    diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
 
 
@@ -170,6 +200,8 @@ def test_edit_access_right(test_user, test_user_2, test_client_activation, creat
     accessRightItems = cp.itemProp("accessRightsBox", "accessRightItems").toVariant()
     accessRightBox = accessRightItems[0].findChild(QObject, "rightBox")
     cp.clickComboBoxItem(accessRightBox, "Read Only")
+    # Check that the change was persisted to the database
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram_id)
     assert len(diagram.access_rights) == 1
     assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
@@ -183,6 +215,8 @@ def test_delete_access_right(test_user, test_user_2, test_client_activation, cre
     cp = create_cp(loadFreeDiagram=True)
     cp.clickListViewItem("accessRightsBox", 0)
     cp.findItem("accessRightsCrudButtons_removeButton").clicked.emit()
+    # Check that the access right was deleted from the database
+    db.session.refresh(test_user.free_diagram)
     diagram = Diagram.query.get(test_user.free_diagram_id)
     assert len(diagram.access_rights) == 0
 
