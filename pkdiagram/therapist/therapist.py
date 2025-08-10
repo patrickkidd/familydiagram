@@ -240,7 +240,7 @@ class Therapist(QObject):
             discussion = Discussion.create(data)
             self._discussions.append(discussion)
             self.discussionsChanged.emit()
-            self._setCurrentDiscussion(discussion.id())
+            self._setCurrentDiscussion(discussion.id)
 
         server = self._session.server()
         reply = server.nonBlockingRequest(
