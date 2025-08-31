@@ -10,6 +10,7 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
     qmlRegisterType,
     QNetworkReply,
+    QMessageBox,
 )
 from pkdiagram.server_types import User, Diagram
 
@@ -307,7 +308,7 @@ class Therapist(QObject):
         Mockable because qml latches on to slots at init time.
         """
         if not self._currentDiscussion:
-            _log.warning("Cannot send statement without current discussion")
+            QMessageBox.information("Cannot send statement without current discussion")
             return
 
         def onSuccess(data):

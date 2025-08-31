@@ -217,7 +217,7 @@ class Session(QObject, QObjectHelper):
                     ],
                     free_diagram=(
                         Diagram(access_rights=[], **userData["free_diagram"])
-                        if "free_diagram" in userData
+                        if userData.get("free_diagram")
                         else None
                     ),
                 )

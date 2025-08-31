@@ -11,6 +11,9 @@
 		{
 			"name": "btcopilot",
 			"path": "../btcopilot"
+		},
+		{
+			"path": "../vedana"
 		}
 	],
 	"settings": {
