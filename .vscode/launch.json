@@ -35,7 +35,10 @@
             },
             "args": [
                 "--therapist"
-            ]
+            ],
+            "env": {
+                "FD_SERVER_URL": "http://127.0.0.1:8888",
+            }
         },
         {
             "name": "App (prefs: 'free')",

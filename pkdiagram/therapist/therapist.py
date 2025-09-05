@@ -1,6 +1,7 @@
 import enum
 import logging
 from dataclasses import dataclass
+from typing import Callable
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -232,7 +233,7 @@ class Therapist(QObject):
     def createDiscussion(self):
         self._createDiscussion()
 
-    def _createDiscussion(self):
+    def _createDiscussion(self, callback: Callable | None = None):
         if not self._diagram:
             _log.warning("Cannot create discussion without diagram")
             return
@@ -242,6 +243,8 @@ class Therapist(QObject):
             self._discussions.append(discussion)
             self.discussionsChanged.emit()
             self._setCurrentDiscussion(discussion.id)
+            if callback:
+                callback()
 
         server = self._session.server()
         reply = server.nonBlockingRequest(
@@ -307,35 +310,47 @@ class Therapist(QObject):
         """
         Mockable because qml latches on to slots at init time.
         """
-        if not self._currentDiscussion:
-            QMessageBox.information("Cannot send statement without current discussion")
-            return
 
-        def onSuccess(data):
-            # added_data_points = data["added_data_points"]
-            # response = Response(
-            #     statement=data["statement"],
-            #     added_data_points=data["added_data_points"],
-            #     removed_data_points=data["removed_data_points"],
-            #     guidance=data["guidance"],
-            # )
-            self.setPDP(data["pdp"])
-            self.responseReceived.emit(data["statement"], data["pdp"])
+        def _doSendStatement():
+            if not self._currentDiscussion:
+                QMessageBox.information(
+                    "Cannot send statement without current discussion"
+                )
+                return
 
-        args = {
-            "statement": statement,
-        }
-        reply = self._session.server().nonBlockingRequest(
-            "POST",
-            f"/therapist/discussions/{self._currentDiscussion.id}/statements",
-            data=args,
-            error=lambda: self.onError(reply),
-            success=onSuccess,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
-        )
-        self._session.track(f"therapist.Engine.sendStatement: {statement}")
-        self.requestSent.emit(statement)
+            def onSuccess(data):
+                # added_data_points = data["added_data_points"]
+                # response = Response(
+                #     statement=data["statement"],
+                #     added_data_points=data["added_data_points"],
+                #     removed_data_points=data["removed_data_points"],
+                #     guidance=data["guidance"],
+                # )
+                self.setPDP(data["pdp"])
+                self.responseReceived.emit(data["statement"], data["pdp"])
+
+            args = {
+                "statement": statement,
+            }
+            reply = self._session.server().nonBlockingRequest(
+                "POST",
+                f"/therapist/discussions/{self._currentDiscussion.id}/statements",
+                data=args,
+                error=lambda: self.onError(reply),
+                success=onSuccess,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                from_root=True,
+            )
+            self._session.track(f"therapist.Engine.sendStatement: {statement}")
+            self.requestSent.emit(statement)
+
+        if self._currentDiscussion:
+            _doSendStatement()
+        else:
+            self._createDiscussion(callback=_doSendStatement)
 
     ## PDP
 

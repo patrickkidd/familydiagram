@@ -153,6 +153,7 @@ Page {
         PK.ToolButton {
             id: discussionsButton
             text: "Discussions"
+            visible: therapist && therapist.discussions.length > 0
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
             onClicked: root.showDiscussions()
