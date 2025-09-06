@@ -273,7 +273,10 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
-        if util.IS_DEV and not util.IS_TEST:
+        log.debug(
+            f"Analytics.send: util.IS_BUNDLE: {util.IS_BUNDLE}, util.IS_TEST: {util.IS_TEST}, item: {item}"
+        )
+        if (not util.IS_BUNDLE) or util.IS_TEST:
             return
         if not self._enabled:
             return

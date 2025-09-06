@@ -446,7 +446,7 @@ class Session(QObject, QObjectHelper):
         as a manual edge case.
         """
         if not self._analytics:
-            # log.warning("Analytics not initialized on Session object.")
+            log.warning("Analytics not initialized on Session object.")
             return
 
         session_id = self._data["session"]["id"] if self._data else None
