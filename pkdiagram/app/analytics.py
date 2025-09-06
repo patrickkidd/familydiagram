@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pkdiagram.pyqt import (
     pyqtSignal,
     QObject,
+    QApplication,
     QNetworkRequest,
     QNetworkReply,
     QUrl,
@@ -80,6 +81,7 @@ class Analytics(QObject):
         self._numLogsSent = 0
         self._currentRequest = None
         self._timer = None
+        self._service = QApplication.instance().appType()
 
     def filePath(self) -> str:
         return os.path.join(util.appDataDir(), "analytics.pickle")
@@ -195,7 +197,7 @@ class Analytics(QObject):
                     "ddsource": "python",
                     "ddtags": TAGS,
                     "host": "",
-                    "service": "desktop",
+                    "service": self._service,
                     #
                     "date": time_2_iso8601(x.time),
                     "message": x.message,

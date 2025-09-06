@@ -11,9 +11,10 @@ from pkdiagram.pyqt import (
     QSurfaceFormat,
     QEventLoop,
 )
-from pkdiagram import util
+from pkdiagram import util, extensions
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import Application, AppController
+
 
 _log = logging.getLogger(__name__)
 
@@ -115,7 +116,9 @@ def main():
 
         util.init_logging()
 
-        app = Application(sys.argv, prefsName=options.prefsName)
+        app = Application(
+            sys.argv, Application.Type.Mobile, prefsName=options.prefsName
+        )
         controller = TherapistAppController(app)
 
         import sys
@@ -126,6 +129,7 @@ def main():
         controller.init(engine)
 
         engine.load("resources:qml/TherapistApplication.qml")
+        extensions.setActiveSession(session=controller.session)
 
         ret = app.exec_()
 
@@ -137,7 +141,9 @@ def main():
     else:
         util.init_logging()
 
-        app = Application(sys.argv, prefsName=options.prefsName)
+        app = Application(
+            sys.argv, Application.Type.Desktop, prefsName=options.prefsName
+        )
         controller = AppController(app, prefsName=options.prefsName)
         controller.init()
 
@@ -146,6 +152,7 @@ def main():
         )
         mainWindow.init()
 
+        extensions.setActiveSession(session=controller.session)
         controller.exec(mainWindow)
 
         mainWindow.deinit()

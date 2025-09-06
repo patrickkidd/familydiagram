@@ -199,30 +199,18 @@ def init_logging():
         fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
         handlers.append(fileHandler)
 
-    def findTheMainWindow():
-        app = QApplication.instance()
-        if not app:
-            return
-        windows = app.topLevelWidgets()
-        if len(windows) == 1:
-            window = windows[0]
-        else:
-            window = app.activeWindow()
-        if window and hasattr(window, "session"):
-            return window
+    # class DatadogHandler(logging.Handler):
 
-    class DatadogHandler(logging.Handler):
+    #     def emit(self, record):
 
-        def emit(self, record):
+    #         mainwindow = findTheMainWindow()
+    #         if not mainwindow:
+    #             return
 
-            mainwindow = findTheMainWindow()
-            if not mainwindow:
-                return
+    #         mainwindow.session.handleLog(record)
 
-            mainwindow.session.handleLog(record)
-
-    datadogHandler = DatadogHandler()
-    handlers.append(datadogHandler)
+    # datadogHandler = DatadogHandler()
+    # handlers.append(datadogHandler)
 
     logging.basicConfig(level=logging.INFO, handlers=handlers)
 

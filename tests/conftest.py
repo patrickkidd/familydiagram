@@ -436,7 +436,7 @@ def qApp():
         return prefs
 
     with mock.patch.object(Application, "prefs", _prefs):
-        app = Application(sys.argv)
+        app = Application(sys.argv, Application.Type.Test)
         CUtil.instance().forceDocsPath(
             os.path.join(tempfile.mkdtemp(), "documents")
         )  # to kill the file list query
