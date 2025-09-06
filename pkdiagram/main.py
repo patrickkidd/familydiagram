@@ -113,7 +113,6 @@ def main():
     elif options.therapist:
         from pkdiagram.therapist import TherapistAppController
 
-        util.SERVER_URL_ROOT = "http://127.0.0.1:8888"
         util.init_logging()
 
         app = Application(sys.argv, prefsName=options.prefsName)

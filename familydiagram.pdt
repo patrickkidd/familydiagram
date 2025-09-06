@@ -1133,6 +1133,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "ListView.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "NoDataText.qml"
 included = true
 is_directory = false
@@ -1253,11 +1258,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "TherapistContainer.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "PlanView.qml"
 included = true
 is_directory = false
@@ -1269,6 +1269,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "Style.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "TherapistContainer.qml"
 included = true
 is_directory = false
 
@@ -1541,11 +1546,6 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "therapistappcontroller.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "therapistview.py"
 included = true
 is_directory = false
 
