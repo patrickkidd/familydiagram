@@ -5,7 +5,7 @@ parts = [ "Python:time", "Python:pickle", "Python:queue", "Python:datetime", "Py
 
 [Application]
 entry_point = "pkdiagram.main:main"
-is_console = false
+is_console = true
 is_bundle = true
 name = "Family Diagram"
 qmake_configuration = "include($$PWD/../../build/common-config/common.pri)\n"
