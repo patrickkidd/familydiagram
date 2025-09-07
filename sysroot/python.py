@@ -40,7 +40,8 @@ class PythonComponent(Python.PythonComponent):
     def unpack_archive(self, archive, chdir=True):
         archive_root = super().unpack_archive(archive, chdir)
 
-        self.patch_file("Python/bootstrap_hash.c", self._patch_boostrap_hash)
+        if self.target_platform_name in ("macos", "ios"):
+            self.patch_file("Python/bootstrap_hash.c", self._patch_boostrap_hash)
         if self.target_platform_name == "ios":
             self.patch_file("Modules/posixmodule.c", self._patch_posixmodule_ios)
             # shutil.copyfile(

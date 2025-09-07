@@ -13,9 +13,9 @@ on:
         type: boolean
         default: false
 
-  # push:
-  #   branches:
-  #     - master
+  push:
+    branches:
+      - windows-build
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
