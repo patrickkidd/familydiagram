@@ -302,22 +302,36 @@ jobs:
       - name: Check for v142 toolset availability
         id: check-v142
         run: |
-          $toolsetPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"
           $v142Available = $false
+          $vs2019Available = $false
+          
+          # Check for VS 2019 Community installation
+          $vs2019Path = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+          if (Test-Path $vs2019Path) {
+            $vs2019Available = $true
+            Write-Output "Found VS 2019 Community installation"
+          } else {
+            Write-Output "VS 2019 Community not found"
+          }
+          
+          # Check for v142 toolset in VS 2022
+          $toolsetPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"
           if (Test-Path $toolsetPath) {
             $versions = Get-ChildItem $toolsetPath | Where-Object { $_.Name -like "14.29*" }
             if ($versions.Count -gt 0) {
               $v142Available = $true
-              Write-Output "Found v142 toolset: $($versions[0].Name)"
+              Write-Output "Found v142 toolset in VS 2022: $($versions[0].Name)"
             }
           }
+          
           echo "v142_available=$v142Available" >> $env:GITHUB_OUTPUT
+          echo "vs2019_available=$vs2019Available" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
       - name: Install v142 Build Tools if not available
-        if: steps.check-v142.outputs.v142_available == 'False'
+        if: steps.check-v142.outputs.v142_available == 'False' && steps.check-v142.outputs.vs2019_available == 'False'
         run: |
-          Write-Output "v142 toolset not found, installing..."
+          Write-Output "v142 toolset not found and VS 2019 not available, installing v142 into VS 2022..."
           & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify `
             --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" `
             --add Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 `
@@ -329,16 +343,38 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+          vsversion: ${{ steps.check-v142.outputs.vs2019_available == 'True' && '2019' || '2022' }}
           toolset: 14.29
 
-      - name: Verify v142 compiler setup
+      - name: Override VisualStudioVersion for pyqtdeploy compatibility
         run: |
+          Write-Output "Current VisualStudioVersion: $env:VisualStudioVersion"
+          $vs2019Available = "${{ steps.check-v142.outputs.vs2019_available }}"
+          if ($vs2019Available -eq "True") {
+            Write-Output "Using VS 2019 - VisualStudioVersion should already be 16.0"
+          } else {
+            Write-Output "Using VS 2022 - overriding VisualStudioVersion to 16.0 for pyqtdeploy compatibility"
+            echo "VisualStudioVersion=16.0" >> $env:GITHUB_ENV
+            $env:VisualStudioVersion = "16.0"
+          }
+          Write-Output "Final VisualStudioVersion: $env:VisualStudioVersion"
+        shell: pwsh
+
+      - name: Verify v142 compiler and environment setup
+        run: |
+          Write-Output "=== Compiler Version ==="
           cl.exe 2>&1 | findstr "Version"
           if ($LASTEXITCODE -ne 0) {
             Write-Error "MSVC compiler not found or not working"
             exit 1
           }
-          Write-Output "MSVC compiler setup successful"
+          Write-Output ""
+          Write-Output "=== Environment Variables ==="
+          Write-Output "VisualStudioVersion: $env:VisualStudioVersion"
+          Write-Output "VCToolsVersion: $env:VCToolsVersion"
+          Write-Output "VSCMD_ARG_TGT_ARCH: $env:VSCMD_ARG_TGT_ARCH"
+          Write-Output ""
+          Write-Output "MSVC v142 environment setup successful for pyqtdeploy"
         shell: pwsh
 
       - name: Setup _pkdiagram caching
