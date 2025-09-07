@@ -283,6 +283,7 @@ jobs:
           pip install pipenv
           mkdir .venv
           pipenv --clear
+          mkdir .\pipenv_cache
           set PIPENV_CACHE_DIR=.\pipenv_cache
           pipenv install --dev
         shell: cmd
