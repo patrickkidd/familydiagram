@@ -13,9 +13,9 @@ on:
         type: boolean
         default: false
 
-  # push:
-  #   branches:
-  #     - master
+  push:
+    branches:
+      - windows-build
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
@@ -60,6 +60,7 @@ jobs:
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
     runs-on: macos-13
     needs: [setup]
+    if: false
 
     steps:
 
