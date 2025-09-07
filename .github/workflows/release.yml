@@ -326,6 +326,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          cl.exe /? || echo "MSVC compiler not found"
           echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
           curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
 
@@ -394,6 +395,7 @@ jobs:
       - name: Build
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl.exe /? || echo "MSVC compiler not found"
           echo on
           cd build\win32
           msbuild /p:Configuration=Release "Family Diagram.vcxproj"
