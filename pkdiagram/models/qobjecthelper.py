@@ -1,5 +1,7 @@
 import inspect
 import enum
+import logging
+
 from pkdiagram.pyqt import (
     pyqtProperty,
     pyqtSignal,
@@ -15,14 +17,13 @@ from pkdiagram.pyqt import (
 from pkdiagram import scene
 
 
+_log = logging.getLogger(__name__)
+
 CLASS_PROPERTIES = {}
 
 
 class QObjectHelper:
     """Add QObject properties via python dict."""
-
-    PRINT_EMITS = False
-    DEBUG = True
 
     def registerQtProperties(attrEntries=None, itemType=None, globalContext={}):
         """
@@ -218,8 +219,7 @@ class QObjectHelper:
         """Provides a way to capture signal emissions in a specific subclass
         when debugging, and also provide a way to force emission for certain
         strange property instances."""
-        if self.PRINT_EMITS:
-            print(f"{attr}Changed[{x}]")
+        _log.debug(f"{attr}Changed[{x}]")
         getattr(self, attr + "Changed").emit(x)
         self.onQObjectHelperPropertyChanged(attr, x)
 
@@ -394,3 +394,102 @@ class QObjectHelper:
                 raise RuntimeError(
                     "The property `%s` does not exist on %s" % (attr, self)
                 )
+
+
+# from dataclasses import dataclass, fields
+# from PyQt5.QtCore import QObject, pyqtProperty, pyqtSignal
+
+
+# def qobject_dataclass(cls):
+#     """Decorator to automatically generate QObject properties from dataclass fields"""
+#     cls = dataclass(cls)
+
+#     # Generate QML properties for each field
+#     for field in fields(cls):
+#         name = field.name
+#         type_map = {int: "int", str: "str", bool: "bool", float: "float"}
+
+#         # Create getter
+#         def getter(self, name=name):
+#             return getattr(self, name)
+
+#         # Create setter
+#         def setter(self, value, name=name):
+#             if getattr(self, name) != value:
+#                 setattr(self, name, value)
+#                 self.dataChanged.emit()
+
+#         # Add property
+#         setattr(
+#             cls,
+#             name,
+#             pyqtProperty(
+#                 type_map.get(field.type, "QVariant"),
+#                 fget=getter,
+#                 fset=setter,
+#                 notify=cls.dataChanged,
+#             ),
+#         )
+
+#     return cls
+
+from dataclasses import dataclass
+from PyQt5.QtCore import QObject, pyqtProperty, pyqtSignal
+import inspect
+import types
+
+
+def qobject_dataclass(cls):
+    # Apply dataclass decorator
+    cls = dataclass(cls)
+
+    # Create signals for each property
+    for field_name, field_type in cls.__annotations__.items():
+        # Create signal for property changes
+        signal_name = f"{field_name}Changed"
+        setattr(cls, signal_name, pyqtSignal())
+
+        # Store the actual value in a private attribute
+        private_attr = f"_{field_name}"
+
+        # Create getter
+        def make_getter(name, private_name):
+            def getter(self):
+                return getattr(self, private_name)
+
+            return getter
+
+        # Create setter
+        def make_setter(name, private_name, signal_name):
+            def setter(self, value):
+                old_value = getattr(self, private_name)
+                if old_value != value:
+                    setattr(self, private_name, value)
+                    getattr(self, signal_name).emit()
+
+            return setter
+
+        # Register getter and setter
+        getter = make_getter(field_name, private_attr)
+        setter = make_setter(field_name, private_attr, signal_name)
+
+        # Define pyqtProperty
+        setattr(
+            cls,
+            field_name,
+            pyqtProperty(field_type, getter, setter, notify=getattr(cls, signal_name)),
+        )
+
+        # Initialize default value in __post_init__
+        original_post_init = getattr(cls, "__post_init__", lambda self: None)
+
+        def new_post_init(self, original=original_post_init):
+            original(self)
+            for fname in self.__annotations__:
+                private_fname = f"_{fname}"
+                if not hasattr(self, private_fname):
+                    setattr(self, private_fname, getattr(self, fname))
+
+        cls.__post_init__ = new_post_init
+
+    return cls

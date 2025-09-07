@@ -21,12 +21,12 @@ HelpText 1.0 HelpText.qml
 Image 1.0 Image.qml
 ItemLayerList 1.0 ItemLayerList.qml
 Label 1.0 Label.qml
+ListView 1.0 ListView.qml
 ListPicker 1.0 ListPicker.qml
 NoDataText 1.0 NoDataText.qml
 PeoplePicker 1.0 PeoplePicker.qml
 SceneLayerView 1.0 SceneLayerView.qml
 SearchBar 1.0 SearchBar.qml
-singleton Style 1.0 Style.qml
 TabBar 1.0 TabBar.qml
 TabButton 1.0 TabButton.qml
 TableView 1.0 TableView.qml
@@ -34,7 +34,6 @@ Text 1.0 Text.qml
 TextEdit 1.0 TextEdit.qml
 TextField 1.0 TextField.qml
 TextInput 1.0 TextInput.qml
-TherapistView 1.0 TherapistView.qml
 TimePicker 1.0 TimePicker.qml
 ToolBar 1.0 ToolBar.qml
 ToolButton 1.0 ToolButton.qml

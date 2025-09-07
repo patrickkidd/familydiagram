@@ -768,10 +768,17 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     if (self) {
 #if TARGET_OS_IOS
         [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
+
         [[NSNotificationCenter defaultCenter]
             addObserver:self
             selector:@selector(orientationChanged:)
             name:@"UIDeviceOrientationDidChangeNotification" object:nil];
+
+        [[NSNotificationCenter defaultCenter] 
+            addObserver:self
+            selector:@selector(safeAreaChanged:)
+            name:UIApplicationDidChangeStatusBarFrameNotification
+            object:nil];
 #endif
     }
     return self;
@@ -798,6 +805,17 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     Q_UNUSED(notification);
     CUtil::instance()->onScreenOrientationChanged();
 }
+
+
+#if TARGET_OS_IOS
+- (void)safeAreaChanged:(NSNotification*)notification {
+    UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
+    UIEdgeInsets insets = window.safeAreaInsets;
+    QMargins margins(insets.left, insets.top, insets.right, insets.bottom);
+    
+    CUtil::instance()->onSafeAreaMarginsChanged();
+}
+#endif
 
 @end
 

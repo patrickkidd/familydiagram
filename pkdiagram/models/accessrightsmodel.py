@@ -93,6 +93,7 @@ class AccessRightsModel(QAbstractListModel):
                 )
                 access_right.right = value
                 ret = True
+                self.dataChanged.emit(index, index, [role])
         return ret
 
     # Other Verbs

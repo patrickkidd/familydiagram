@@ -11,7 +11,6 @@ from pkdiagram.pyqt import (
     QApplication,
     QQuickWidget,
     QQuickItem,
-    QQmlComponent,
     QUrl,
     QRectF,
     QMetaObject,

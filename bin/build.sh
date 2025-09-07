@@ -314,14 +314,43 @@ elif [[ $TARGET = ios* ]]; then
 
     if [[ $TARGET == "ios" ]]; then
 
-    	open build/ios/Family\ Diagram.xcodeproj
-
         xcodebuild \
             -project build/ios/Family\ Diagram.xcodeproj \
             -target "Qt Preprocess" \
             -configuration Release \
             -UseModernBuildSystem=YES \
             -xcconfig build/ios/Family-Diagram-Release.xcconfig 
+
+    	open build/ios/Family\ Diagram.xcodeproj
+
+
+        # # Patrick Stinson’s iPhone (18.4.1) (00008120-001C409911A3601E)
+        # xcodebuild \
+        #     -project "build/ios/Family Diagram.xcodeproj" \
+        #     -scheme "Family Diagram" \
+        #     -destination 'id=00008120-001C409911A3601E' \
+        #     -configuration Release \
+        #     CODE_SIGN_IDENTITY="Apple Development: Patrick Stinson (J5VYQMUDH6)" \
+        #     PROVISIONING_PROFILE_SPECIFIER=0927c054-b2a0-4d94-9784-268c2e0d2b27 \
+        #     DEVELOPMENT_TEAM=8KJB799CU7 \
+        #     install
+
+        # lldb -o "platform connect connect://00008120-001C409911A3601E" -o "process launch -X true com.vedanamedia.familydiagram"
+
+        # # iPhone 14 Pro Simulator (18.4) (83554F3A-A6D6-4197-929F-1C1E202FEA81)
+        # xcodebuild \
+        #     -project "build/ios/Family Diagram.xcodeproj" \
+        #     -scheme "Family Diagram" \
+        #     -destination 'id=83554F3A-A6D6-4197-929F-1C1E202FEA81' \
+        #     -configuration Release \
+        #     CODE_SIGN_IDENTITY="Apple Development: Patrick Stinson (J5VYQMUDH6)" \
+        #     PROVISIONING_PROFILE_SPECIFIER=0927c054-b2a0-4d94-9784-268c2e0d2b27 \
+        #     DEVELOPMENT_TEAM=8KJB799CU7 \
+        #     install
+
+        # # iPhone 14 Pro Simulator (18.4) (83554F3A-A6D6-4197-929F-1C1E202FEA81)
+        # xcrun simctl install 83554F3A-A6D6-4197-929F-1C1E202FEA81 "build/ios/Release-iphoneos/Family Diagram.app" && \
+        # xcrun simctl launch 83554F3A-A6D6-4197-929F-1C1E202FEA81 "com.vedanamedia.familydiagram"
 
         # xcodebuild \
         #     -project build/ios/Family\ Diagram.xcodeproj \

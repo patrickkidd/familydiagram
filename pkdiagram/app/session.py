@@ -2,6 +2,7 @@ import os
 import time
 import uuid, pickle, logging, copy
 import dataclasses
+import logging
 
 import vedana
 
@@ -16,7 +17,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
-from pkdiagram.server_types import User, License, Server, HTTPError
+from pkdiagram.server_types import User, Diagram, License, Server, HTTPError, Discussion
 from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus, DatadogFDType
 
 
@@ -42,7 +43,7 @@ class Session(QObject, QObjectHelper):
         ]
     )
 
-    def __init__(self, analytics: Analytics = None, parent=None):
+    def __init__(self, analytics: Analytics | None = None, parent=None):
         super().__init__(parent)
         self._analytics = analytics
         self._qmlEngine = (
@@ -189,7 +190,7 @@ class Session(QObject, QObjectHelper):
                     roles=x["roles"],
                     free_diagram_id=x["free_diagram_id"],
                     licenses=[],
-                    created_at=x["created_at"],
+                    created_at=x.get("created_at"),
                 )
                 for x in data["users"]
             ]
@@ -214,6 +215,11 @@ class Session(QObject, QObjectHelper):
                         )
                         for x in userData["licenses"]
                     ],
+                    free_diagram=(
+                        Diagram(access_rights=[], **userData["free_diagram"])
+                        if userData.get("free_diagram")
+                        else None
+                    ),
                 )
                 self._userDict = dataclasses.asdict(self._user)
             else:
@@ -292,7 +298,12 @@ class Session(QObject, QObjectHelper):
 
     @pyqtSlot(result=bool)
     def isLoggedIn(self):
-        return bool(self._user)
+        ret = bool(self._user)
+        return ret
+
+    @pyqtProperty(bool, notify=changed)
+    def loggedIn(self):
+        return self.isLoggedIn()
 
     @pyqtSlot(result=list)
     def activeFeatures(self):
@@ -435,7 +446,7 @@ class Session(QObject, QObjectHelper):
         as a manual edge case.
         """
         if not self._analytics:
-            # log.warning("Analytics not initialized on Session object.")
+            log.warning("Analytics not initialized on Session object.")
             return
 
         session_id = self._data["session"]["id"] if self._data else None

@@ -20,7 +20,10 @@
             // }
             "args": [
                 // "--windows-console"
-            ]
+            ],
+            "env": {
+                "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+            }
         },
         {
             "name": "Therapist",
@@ -35,7 +38,10 @@
             },
             "args": [
                 "--therapist"
-            ]
+            ],
+            "env": {
+                // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+            }
         },
         {
             "name": "App (prefs: 'free')",
@@ -176,6 +182,15 @@
                 "build/osx",
                 "familydiagram.pdt"
             ]
+        },
+        {
+            "name": "update_build_info.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/update_build_info.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
         },
         {
             "name": "sip-build (_pkdiagram)",

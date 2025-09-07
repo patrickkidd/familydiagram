@@ -41,20 +41,27 @@
 	<string>Family Diagram</string>
 	<key>CFBundleGetInfoString</key>
 	<string>Created by Vedanā Media</string>
-	<key>CFBundleIconFile</key>
-	<string>PKDiagram.png</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.vedanamedia.familydiagram</string>
 	<key>CFBundleName</key>
 	<string>Family Diagram</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundlePrimaryIcon</key>
+	<dict>
+		<key>CFBundleIconFiles</key>
+		<array/>
+		<key>CFBundleIconName</key>
+		<string>AppIcon</string>
+	</dict>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.10b0</string>
+	<string>2.0.11</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>2.0.10b0</string>
+	<string>2.0.11</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSUbiquitousContainers</key>

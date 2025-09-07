@@ -167,6 +167,7 @@ public:
 public Q_SLOTS: // qslots n windows
     
     virtual void updateLocalFileList() {}
+    void onSafeAreaMarginsChanged();
     void onScreenOrientationChanged();
     void showCriticalMessageBox(QString);
     

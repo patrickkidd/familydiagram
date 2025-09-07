@@ -240,10 +240,12 @@ class ServerFileManagerModel(FileManagerModel):
 
                 # Pull new entries asyncronously
                 for entry in data:
+                    saved_at = entry["saved_at"]
+                    if isinstance(saved_at, str):
+                        saved_at = datetime.datetime.fromisoformat(saved_at)
                     if (
                         not self.diagramCache.get(entry["id"])
-                        or entry["saved_at"]
-                        > self.diagramCache.get(entry["id"]).saved_at()
+                        or saved_at > self.diagramCache.get(entry["id"]).saved_at()
                     ):
                         url = self._serverDiagramUrl(entry["id"])
                         getReply = self.session.server().nonBlockingRequest(

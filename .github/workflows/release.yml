@@ -263,7 +263,7 @@ jobs:
         path: build/osx/Release/Family Diagram.dmg
 
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     needs: [setup]
   
     steps:
@@ -278,18 +278,105 @@ jobs:
         with:
           python-version: 3.11.6
           
-      - run: |
+      - name: Set up virtual env
+        run: |
           pip install pipenv
           mkdir .venv
           pipenv --clear
-          set PIPENV_CACHE_DIR=.\pipenv_cache
+          mkdir .\pipenv_cache
+          set PIPENV_CACHE_DIR=%GITHUB_WORKSPACE%\pipenv_cache
           pipenv install --dev
+        shell: cmd
   
       - name: Install Qt
         run: |
           pipenv install aqtinstall
           pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+        shell: cmd
         
+      - name: Setup MSVC (x64)
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: Check for v142 toolset availability
+        id: check-v142
+        run: |
+          $v142Available = $false
+          $vs2019Available = $false
+          
+          # Check for VS 2019 Community installation
+          $vs2019Path = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+          if (Test-Path $vs2019Path) {
+            $vs2019Available = $true
+            Write-Output "Found VS 2019 Community installation"
+          } else {
+            Write-Output "VS 2019 Community not found"
+          }
+          
+          # Check for v142 toolset in VS 2022
+          $toolsetPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"
+          if (Test-Path $toolsetPath) {
+            $versions = Get-ChildItem $toolsetPath | Where-Object { $_.Name -like "14.29*" }
+            if ($versions.Count -gt 0) {
+              $v142Available = $true
+              Write-Output "Found v142 toolset in VS 2022: $($versions[0].Name)"
+            }
+          }
+          
+          echo "v142_available=$v142Available" >> $env:GITHUB_OUTPUT
+          echo "vs2019_available=$vs2019Available" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Install v142 Build Tools if not available
+        if: steps.check-v142.outputs.v142_available == 'False' && steps.check-v142.outputs.vs2019_available == 'False'
+        run: |
+          Write-Output "v142 toolset not found and VS 2019 not available, installing v142 into VS 2022..."
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify `
+            --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" `
+            --add Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 `
+            --add Microsoft.VisualStudio.Component.VC.14.29.16.11.MFC `
+            --quiet --norestart --wait
+        shell: pwsh
+
+      - name: Setup VS Developer Command Prompt with v142 Toolset (MSVC 19.2x)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: ${{ steps.check-v142.outputs.vs2019_available == 'True' && '2019' || '2022' }}
+          toolset: 14.29
+
+      - name: Override VisualStudioVersion for pyqtdeploy compatibility
+        run: |
+          Write-Output "Current VisualStudioVersion: $env:VisualStudioVersion"
+          $vs2019Available = "${{ steps.check-v142.outputs.vs2019_available }}"
+          if ($vs2019Available -eq "True") {
+            Write-Output "Using VS 2019 - VisualStudioVersion should already be 16.0"
+          } else {
+            Write-Output "Using VS 2022 - overriding VisualStudioVersion to 16.0 for pyqtdeploy compatibility"
+            echo "VisualStudioVersion=16.0" >> $env:GITHUB_ENV
+            $env:VisualStudioVersion = "16.0"
+          }
+          Write-Output "Final VisualStudioVersion: $env:VisualStudioVersion"
+        shell: pwsh
+
+      - name: Verify v142 compiler and environment setup
+        run: |
+          Write-Output "=== Compiler Version ==="
+          cl.exe 2>&1 | findstr "Version"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "MSVC compiler not found or not working"
+            exit 1
+          }
+          Write-Output ""
+          Write-Output "=== Environment Variables ==="
+          Write-Output "VisualStudioVersion: $env:VisualStudioVersion"
+          Write-Output "VCToolsVersion: $env:VCToolsVersion"
+          Write-Output "VSCMD_ARG_TGT_ARCH: $env:VSCMD_ARG_TGT_ARCH"
+          Write-Output ""
+          Write-Output "MSVC v142 environment setup successful for pyqtdeploy"
+        shell: pwsh
+
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
         uses: actions/cache@v4
@@ -301,7 +388,6 @@ jobs:
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
@@ -311,7 +397,7 @@ jobs:
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
         shell: cmd
-  
+      
       - name: Setup sysroot caching
         id: cache-sysroot
         uses: actions/cache@v4
@@ -324,8 +410,8 @@ jobs:
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          cl.exe /? || echo "MSVC compiler not found"
           echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
           curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
 
@@ -353,16 +439,14 @@ jobs:
   
       - name: Write build config
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pipenv run python bin\update_build_info.py
         shell: cmd
 
       # Write these in case sysroot-build did not run
       - name: (Re-)write _pkdiagram moc files
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cd _pkdiagram
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          cd _pkdiagram
           REM if not exist build\_pkdiagram\moc_unsafearea.cpp (
           REM  mkdir build\_pkdiagram
           REM )
@@ -376,7 +460,6 @@ jobs:
 
       - name: pyqtdeploy-build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PYTHONPATH=%cd%\lib\site-packages
           pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
           copy build\common-config\* build\win32\
@@ -385,7 +468,6 @@ jobs:
   
       - name: qmake
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
           qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
@@ -393,15 +475,16 @@ jobs:
   
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl.exe /? || echo "MSVC compiler not found"
           echo on
           cd build\win32
-          msbuild /p:Configuration=Release "Family Diagram.vcxproj"
+          msbuild /p:Configuration=Release /m "Family Diagram.vcxproj"
         shell: cmd
   
       - name: Compress build
         run: |
           cd build\win32\Release
+          if not exist "Family Diagram.exe" (echo "Executable not built" && exit /b 1)
           7z a -tzip "Family Diagram.zip" "Family Diagram.exe"
         shell: cmd
           
