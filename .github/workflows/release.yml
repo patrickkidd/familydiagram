@@ -278,18 +278,27 @@ jobs:
         with:
           python-version: 3.11.6
           
-      - run: |
+      - name: Set up virtual env
+        run: |
           pip install pipenv
           mkdir .venv
           pipenv --clear
           set PIPENV_CACHE_DIR=.\pipenv_cache
           pipenv install --dev
+        shell: cmd
   
       - name: Install Qt
         run: |
           pipenv install aqtinstall
           pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+        shell: cmd
         
+      - name: Setup MSVC 2019 (x64)
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '16.0'
+          architecture: x64
+
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
         uses: actions/cache@v4
@@ -301,7 +310,6 @@ jobs:
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
@@ -311,7 +319,7 @@ jobs:
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
         shell: cmd
-  
+      
       - name: Setup sysroot caching
         id: cache-sysroot
         uses: actions/cache@v4
@@ -324,7 +332,6 @@ jobs:
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cl.exe /? || echo "MSVC compiler not found"
           echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
@@ -354,16 +361,14 @@ jobs:
   
       - name: Write build config
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pipenv run python bin\update_build_info.py
         shell: cmd
 
       # Write these in case sysroot-build did not run
       - name: (Re-)write _pkdiagram moc files
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cd _pkdiagram
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          cd _pkdiagram
           REM if not exist build\_pkdiagram\moc_unsafearea.cpp (
           REM  mkdir build\_pkdiagram
           REM )
@@ -377,7 +382,6 @@ jobs:
 
       - name: pyqtdeploy-build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PYTHONPATH=%cd%\lib\site-packages
           pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
           copy build\common-config\* build\win32\
@@ -386,7 +390,6 @@ jobs:
   
       - name: qmake
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
           qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
@@ -394,16 +397,16 @@ jobs:
   
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cl.exe /? || echo "MSVC compiler not found"
           echo on
           cd build\win32
-          msbuild /p:Configuration=Release "Family Diagram.vcxproj"
+          msbuild /p:Configuration=Release /m "Family Diagram.vcxproj"
         shell: cmd
   
       - name: Compress build
         run: |
           cd build\win32\Release
+          if not exist "Family Diagram.exe" (echo "Executable not built" && exit /b 1)
           7z a -tzip "Family Diagram.zip" "Family Diagram.exe"
         shell: cmd
           
