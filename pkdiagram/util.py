@@ -117,7 +117,12 @@ ENABLE_ITEM_COPY_PASTE = False
 ENABLE_DATE_BUDDIES = False
 
 
-SERVER_URL_ROOT = os.getenv("FD_SERVER_URL_ROOT", "https://database.familydiagram.com")
+if IS_BUNDLE:
+    SERVER_URL_ROOT = "https://database.familydiagram.com"
+else:
+    SERVER_URL_ROOT = os.getenv(
+        "FD_SERVER_URL_ROOT", "https://database.familydiagram.com"
+    )
 
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
