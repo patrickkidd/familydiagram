@@ -48,6 +48,8 @@ if sys.version_info[1] > 7:
 def main():
     import sys  # no idea
 
+    ENABLE_THERAPIST = util.IS_DEV or util.IS_IOS
+
     parser = OptionParser()
     parser.add_option(
         "-v",
@@ -57,7 +59,7 @@ def main():
         help="Print the version",
         default=False,
     )
-    if util.IS_DEV or util.IS_IOS:
+    if ENABLE_THERAPIST:
         parser.add_option(
             "-t",
             "--therapist",
@@ -111,7 +113,7 @@ def main():
 
         print(version.VERSION)
 
-    elif options.therapist:
+    elif ENABLE_THERAPIST and options.therapist:
         from pkdiagram.therapist import TherapistAppController
 
         util.init_logging()
