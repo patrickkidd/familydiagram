@@ -301,7 +301,7 @@ jobs:
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
@@ -324,7 +324,7 @@ jobs:
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
           curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
@@ -353,14 +353,14 @@ jobs:
   
       - name: Write build config
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pipenv run python bin\update_build_info.py
         shell: cmd
 
       # Write these in case sysroot-build did not run
       - name: (Re-)write _pkdiagram moc files
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd _pkdiagram
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           REM if not exist build\_pkdiagram\moc_unsafearea.cpp (
@@ -376,7 +376,7 @@ jobs:
 
       - name: pyqtdeploy-build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PYTHONPATH=%cd%\lib\site-packages
           pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
           copy build\common-config\* build\win32\
@@ -385,7 +385,7 @@ jobs:
   
       - name: qmake
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
           qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
@@ -393,7 +393,7 @@ jobs:
   
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           echo on
           cd build\win32
           msbuild /p:Configuration=Release "Family Diagram.vcxproj"
