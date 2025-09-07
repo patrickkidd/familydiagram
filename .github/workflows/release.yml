@@ -294,11 +294,16 @@ jobs:
           pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         shell: cmd
         
-      - name: Setup MSVC 2019 (x64)
+      - name: Setup MSVC (x64)
         uses: microsoft/setup-msbuild@v2
         with:
-          vs-version: '16.0'
-          architecture: x64
+          msbuild-architecture: x64
+
+      - name: Setup VS Developer Command Prompt with v142 Toolset (MSVC 19.2x)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          toolset: v142
 
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
