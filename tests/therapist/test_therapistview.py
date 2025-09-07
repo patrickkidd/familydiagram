@@ -1,50 +1,129 @@
-import os.path
-import logging
-import contextlib
-
 import pytest
-import mock
+from mock import patch
+
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QDir, QFileInfo
+from PyQt5.QtQml import qmlRegisterType
+from PyQt5.QtQml import QQmlEngine, qmlRegisterType
+from PyQt5.QtQuick import QQuickView
+from PyQt5.QtQuickWidgets import QQuickWidget
+from PyQt5.QtCore import QUrl
+
 
 # from tests.models.test_copilotengine import copilot
 
-from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout, QTimer
-from pkdiagram import util
-from pkdiagram.therapist import TherapistView
-from pkdiagram.app import Session
+from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
+from pkdiagram.condition import Condition
+from pkdiagram.therapist import TherapistAppController
+from pkdiagram.therapist.therapist import Discussion
 
 
-class TestTherapistView(TherapistView):
-    pass
+class MockSession(QObject):
+    def __init__(self, isLoggedIn=False):
+        super().__init__()
+        self._isLoggedIn = isLoggedIn
+
+    @pyqtSlot(result=bool)
+    def isLoggedIn(self):
+        return bool(self._isLoggedIn)
 
 
-_log = logging.getLogger(__name__)
+class MockQmlComponent(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
 
 @pytest.fixture
-def view(qtbot):
-    session = Session()
-    # session.init(sessionData=test_session.account_editor_dict())
+def controller(test_user, test_session, qmlEngine):
 
-    FPATH = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "pkdiagram",
-        "resources",
-        "qml",
-        "CopilotView.qml",
-    )
-    _view = TestTherapistView(session)
-    _view.resize(600, 800)
+    # from fdserver.therapist.database import Discussion, Statement, Speaker, SpeakerType
+    # from pkdiagram.server_types import Diagram
+
+    # diagram = Diagram(**test_user.free_diagram.data())
+    # discussions = [
+    #     Discussion(
+    #         id=1,
+    #         user_id=test_user.id,
+    #         summary="Test Discussion",
+    #         statements=[
+    #             Statement(
+    #                 id=1,
+    #                 speaker_id=1,
+    #                 speaker_type=SpeakerType.Therapist,
+    #                 content="Test Statement 1",
+    #             ),
+    #             Statement(
+    #                 id=2,
+    #                 speaker_id=2,
+    #                 speaker_type=SpeakerType.Client,
+    #                 content="Test Statement 2",
+    #             ),
+    #         ],
+    #         speakers=[
+    #             Speaker(id=1, name="Therapist 1"),
+    #             Speaker(id=2, name="Client 1"),
+    #         ],
+    #     ),
+    # ]
+
+    # diagram.database.add_discussion()
+
+    controller = TherapistAppController(QApplication.instance())
+    with patch.object(
+        controller.appConfig,
+        "get",
+        return_value=test_session.account_editor_dict(),
+    ):
+        controller.init(qmlEngine)
+
+    yield controller
+
+
+@pytest.fixture
+def view(qtbot, qmlEngine, controller):
+    _view = QQuickView(qmlEngine, None)
+    statusChanged = Condition(_view.statusChanged)
+    _view.setSource(QUrl("resources:/qml/Therapist/TherapistContainer.qml"))
     _view.show()
-    qtbot.addWidget(_view)
-    qtbot.waitActive(_view)
-
+    _view.resize(600, 800)
+    assert statusChanged.wait() == True
     yield _view
 
-    _view.hide()
-    _view.deinit()
+
+def __test_main_content_visible_when_logged_in(qmlEngine, controller, view):
+    assert (
+        view.status() == QQuickWidget.Status.Ready
+    ), f"Failed to load TherapistContainer.qml: {view.status()}"
+
+    mainContainer = view.rootObject()
+    stack = mainContainer.property("stack")
+    assert stack.property("visible") == True
+    tabBar = mainContainer.property("tabBar")
+    assert tabBar.property("visible") == True
+
+    # Verify account dialog loader is not active
+    accountDialog = mainContainer.property("accountDialog")
+    assert accountDialog.property("visible") == False
 
 
-def test_init(view):
-    pass
+def list_qrc_contents():
+    # List contents of resources:/qml/
+    qrc_dir = QDir("resources:/qml")
+    if qrc_dir.exists():
+        entries = qrc_dir.entryList(QDir.Files | QDir.Dirs | QDir.NoDotAndDotDot)
+        print("Contents of resources:/qml/")
+        for entry in entries:
+            print(f"  {entry}")
+
+    # List contents recursively
+    def list_recursive(path, indent=0):
+        dir_obj = QDir(path)
+        if dir_obj.exists():
+            entries = dir_obj.entryList(QDir.Files | QDir.Dirs | QDir.NoDotAndDotDot)
+            for entry in entries:
+                print("  " * indent + entry)
+                full_path = f"{path}/{entry}"
+                if QDir(full_path).exists():
+                    list_recursive(full_path, indent + 1)
+
+    print("\nRecursive listing of resources:/qml/")
+    list_recursive("resources:/qml")

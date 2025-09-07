@@ -23,7 +23,6 @@ pyqt5-sip = "12.15.0"
 pyqt5-qt5 = "5.15.2"
 bcrypt = "*"
 python-dateutil = "*"
-stripe = "*"
 pyqt-builder = { index="riverbank" } # "==1.16.4"
 vedana = {git = 'https://git@github.com/patrickkidd/vedana.git', ref = 'release'}
 

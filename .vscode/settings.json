@@ -1,7 +1,6 @@
 {
     "python.testing.pytestArgs": [
-        "tests",
-        "--log-cli-level=DEBUG"
+        "tests"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -10,6 +9,9 @@
         "editor.formatOnSave": true
     },
     "black-formatter.importStrategy": "fromEnvironment",
+    "search.exclude": {
+        "lib/": true
+    },
     // "black-formatter.interpreter": [
     //     ".venv/bin/python"
     // ]

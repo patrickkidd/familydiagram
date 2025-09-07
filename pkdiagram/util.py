@@ -117,15 +117,22 @@ ENABLE_ITEM_COPY_PASTE = False
 ENABLE_DATE_BUDDIES = False
 
 
-SERVER_URL_ROOT = "https://database.familydiagram.com"
-# SERVER_URL_ROOT = "http://127.0.0.1:8888"
+if IS_BUNDLE:
+    SERVER_URL_ROOT = "https://database.familydiagram.com"
+else:
+    SERVER_URL_ROOT = os.getenv(
+        "FD_SERVER_URL_ROOT", "https://database.familydiagram.com"
+    )
 
 # if version.IS_BETA or version.IS_ALPHA:
 #     Debug('SERVER_URL_ROOT:', SERVER_URL_ROOT)
 
 
-def serverUrl(path):
-    return "%s/%s%s" % (SERVER_URL_ROOT, vedana.SERVER_API_VERSION, path)
+def serverUrl(path, from_root: bool = False):
+    if from_root:
+        return "%s%s" % (SERVER_URL_ROOT, path)
+    else:
+        return "%s/%s%s" % (SERVER_URL_ROOT, vedana.SERVER_API_VERSION, path)
 
 
 def summarizeReplyShort(reply: QNetworkReply):
@@ -197,30 +204,18 @@ def init_logging():
         fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
         handlers.append(fileHandler)
 
-    def findTheMainWindow():
-        app = QApplication.instance()
-        if not app:
-            return
-        windows = app.topLevelWidgets()
-        if len(windows) == 1:
-            window = windows[0]
-        else:
-            window = app.activeWindow()
-        if window and hasattr(window, "session"):
-            return window
+    # class DatadogHandler(logging.Handler):
 
-    class DatadogHandler(logging.Handler):
+    #     def emit(self, record):
 
-        def emit(self, record):
+    #         mainwindow = findTheMainWindow()
+    #         if not mainwindow:
+    #             return
 
-            mainwindow = findTheMainWindow()
-            if not mainwindow:
-                return
+    #         mainwindow.session.handleLog(record)
 
-            mainwindow.session.handleLog(record)
-
-    datadogHandler = DatadogHandler()
-    handlers.append(datadogHandler)
+    # datadogHandler = DatadogHandler()
+    # handlers.append(datadogHandler)
 
     logging.basicConfig(level=logging.INFO, handlers=handlers)
 
@@ -928,6 +923,10 @@ def validatedDateTimeText(dateText, timeText=None):
 
 
 def pyDateTimeString(dateTime: datetime) -> str:
+    if isinstance(dateTime, str):
+        import dateutil.parser
+
+        dateTime = dateutil.parser.parse(dateTime)
     # .strftime("%a %B %d, %I:%M%p")
     # .replace("AM", "am")
     # .replace("PM", "pm")
@@ -1838,147 +1837,13 @@ class LoggedContext:
         print(f"<<< {self._scope}")
 
 
-class Condition(QObject):
-    """Allows you to wait for a signal to be called."""
-
-    # triggered = pyqtSignal()
-
-    def __init__(self, signal=None, only=None, condition=None, name=None):
-        super().__init__()
-        self.callCount = 0
-        self.callArgs = []
-        # self.senders = []
-        self.testCount = 0
-        self.lastCallArgs = None
-        self.only = only
-        self.condition = condition
-        self.name = name
-        self.signal = signal
-        if signal:
-            signal.connect(self)
-
-    def deinit(self):
-        if self.signal:
-            self.signal.disconnect(self)
-            self.signal = None
-
-    def reset(self):
-        self.callCount = 0
-        self.callArgs = []
-        # self.senders = []
-        self.lastCallArgs = None
-
-    def test(self):
-        """Return true if the condition is true."""
-        self.testCount += 1
-        if self.condition:
-            return self.condition()
-        else:
-            return self.callCount > 0
-
-    def set(self, *args):
-        """Set the condition to true. Alias for condition()."""
-        self.callCount += 1
-        # self.senders.append(QObject().sender())
-        self.lastCallArgs = args
-        self.callArgs.append(args)
-
-    def __call__(self, *args):
-        """Called by whatever signal that triggers the condition."""
-        if self.only:
-            only = self.only
-            if not only(*args):
-                return
-        self.set(*args)
-        # if self.test():
-        #     self.triggered.emit()
-
-    def wait(self, maxMS=1000, onError=None, interval=10):
-        """Wait for the condition to be true. onError is a callback."""
-        startTime = time.time()
-        app = QApplication.instance()
-        # sig_or_cond = self.signal or self.condition
-        while app and not self.test():
-            # log.debug(
-            #     f"Condition[{sig_or_cond}].wait() still waiting... test count: {self.testCount}, interval (ms): {interval}"
-            # )
-            try:
-                app.processEvents(QEventLoop.WaitForMoreEvents, interval)
-            except KeyboardInterrupt as e:
-                if onError:
-                    onError()
-                break
-            elapsed = (time.time() - startTime) * 1000
-            if elapsed >= maxMS:
-                break
-            # else:
-            #     time.sleep(.1) # replace with some way to release loop directly from signal
-        # log.debug(f"Condition[{sig_or_cond}].wait() returned {self.test()}")
-        ret = self.test()
-        return ret
-
-    def waitForCallCount(self, callCount, maxMS=1000):
-        log.info(f"Waiting for {callCount} calls to {self.signal}")
-        start_time = time.time()
-        ret = None
-        while self.callCount < callCount:
-            if time.time() - start_time > maxMS / 1000:
-                ret = False
-                log.info(
-                    f"Time elapsed on Condition[{self.signal}].wait() (callCount={self.callCount})"
-                )
-                break
-            ret = self.wait(maxMS=maxMS)
-            if not ret:
-                log.info(
-                    f"Inner wait() returned False on Condition[{self.signal}].wait()  (callCount={self.callCount})"
-                )
-                break
-        if ret is None:
-            ret = self.callCount == callCount
-            log.info(
-                f"Returning {ret} with {self.callCount}/{callCount} calls to {self.signal}"
-            )
-        return ret
-
-    def assertWait(self, *args, **kwargs):
-        assert self.wait(*args, **kwargs) == True
-
-
-def wait(signal, maxMS=1000):
-    return Condition(signal).wait(maxMS=maxMS)
-
-
-def waitForCallCount(signal, callCount, maxMS=1000):
-    return Condition(signal).waitForCallCount(callCount, maxMS=maxMS)
-
-
-def waitForCondition(condition: callable, maxMS=1000):
-    INTERVAL_MS = 10
-    startTime = time.time()
-
-    app = QApplication.instance()
-    ret = None
-    while ret is None:
-        app.processEvents(QEventLoop.WaitForMoreEvents, INTERVAL_MS)
-        bleh = condition()
-        if bleh:
-            log.debug(
-                f"Condition met on waitForCondition() using condition {condition}"
-            )
-            ret = True
-        if (time.time() - startTime) > maxMS / 1000:
-            log.error(f"Time elapsed on waitForCondition() using condition {condition}")
-            ret = False
-    return ret
-
-
-def waitForActive(windowOrWidget, maxMS=1000):
-    if not windowOrWidget.isWindow():
-        window = windowOrWidget.window()
-    else:
-        window = windowOrWidget
-    return waitForCondition(lambda: window.isActiveWindow(), maxMS=maxMS)
+from .condition import (
+    Condition,
+    wait,
+    waitForActive,
+    waitForCallCount,
+    waitForCondition,
+)
 
 
 class SignalCollector(QObject):

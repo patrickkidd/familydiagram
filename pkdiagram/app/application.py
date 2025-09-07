@@ -1,4 +1,4 @@
-import os, os.path, sys, traceback, logging
+import os, os.path, sys, traceback, logging, enum
 
 from _pkdiagram import AppFilter
 from pkdiagram.pyqt import (
@@ -23,7 +23,12 @@ log = logging.getLogger(__name__)
 
 class Application(QApplication):
 
-    def __init__(self, *args, prefsName=None, **kwargs):
+    class Type(enum.StrEnum):
+        Desktop = "desktop"
+        Mobile = "mobile"
+        Test = "test"
+
+    def __init__(self, argv: list[str], appType: Type, prefsName=None, **kwargs):
         def qtMessageHandler(msgType, context, msg):
             GREP_V = [
                 "QMacCGContext:: Unsupported paint engine type",
@@ -68,10 +73,11 @@ class Application(QApplication):
         # args[0].append(
         #     "-qmljsdebugger=port:1234,block",
         # )
-        super().__init__(*args, **kwargs)
+        super().__init__(argv, **kwargs)
 
         self.setQuitOnLastWindowClosed(True)
 
+        self._appType = appType
         self._prefsName = prefsName
         self._prefs = None
         # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
@@ -193,3 +199,6 @@ class Application(QApplication):
 
     def qmlUtil(self):
         return self._qmlUtil
+
+    def appType(self) -> Type:
+        return self._appType

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pkdiagram.pyqt import (
     pyqtSignal,
     QObject,
+    QApplication,
     QNetworkRequest,
     QNetworkReply,
     QUrl,
@@ -80,6 +81,7 @@ class Analytics(QObject):
         self._numLogsSent = 0
         self._currentRequest = None
         self._timer = None
+        self._service = QApplication.instance().appType()
 
     def filePath(self) -> str:
         return os.path.join(util.appDataDir(), "analytics.pickle")
@@ -195,7 +197,7 @@ class Analytics(QObject):
                     "ddsource": "python",
                     "ddtags": TAGS,
                     "host": "",
-                    "service": "desktop",
+                    "service": self._service,
                     #
                     "date": time_2_iso8601(x.time),
                     "message": x.message,
@@ -271,7 +273,10 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
-        if util.IS_DEV and not util.IS_TEST:
+        log.debug(
+            f"Analytics.send: util.IS_BUNDLE: {util.IS_BUNDLE}, util.IS_TEST: {util.IS_TEST}, item: {item}"
+        )
+        if (not util.IS_BUNDLE) or util.IS_TEST:
             return
         if not self._enabled:
             return

@@ -26,19 +26,6 @@ class AccumulativeLogHandler(logging.Handler):
         return "\n".join([self.format(record) for record in self._records])
 
 
-def findTheMainWindow():
-    app = QApplication.instance()
-    if not app:
-        return
-    windows = app.topLevelWidgets()
-    if len(windows) == 1:
-        window = windows[0]
-    else:
-        window = app.activeWindow()
-    if window and hasattr(window, "session"):
-        return window
-
-
 _excepthooks = []
 
 
@@ -51,8 +38,7 @@ def _excepthook(etype, value, tb):
 
 def _logging_excepthook(etype, value, tb):
     lines = traceback.format_exception(etype, value, tb)
-    for line in lines:
-        log.error(line[:-1])
+    log.error("\n".join(lines))
 
 
 def init_logging():
@@ -70,16 +56,26 @@ def init_logging():
     logger.addHandler(accumulativeHandler)
 
 
+_activeSession = None
+
+
+def setActiveSession(session):
+    global _activeSession
+
+    _activeSession = session
+
+
 def datadog_excepthook(etype, value, tb):
+    global _activeSession
+
     if issubclass(etype, KeyboardInterrupt):
         sys.__excepthook__(etype, value, tb)
         return
 
-    mainwindow = findTheMainWindow()
-    if not mainwindow:
+    if not _activeSession:
         return
 
-    mainwindow.session.error(etype, value, tb)
+    _activeSession.error(etype, value, tb)
 
 
 def init_datadog(app: QApplication):
@@ -95,5 +91,5 @@ def init_app(app: QApplication):
     # Installing an excepthook prevents a call to abort on exception from PyQt
     sys.excepthook = _excepthook
     init_logging()
-    if not util.IS_DEV:
-        init_datadog(app)
+    # if not util.IS_DEV:
+    init_datadog(app)

@@ -5,11 +5,13 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 """
 
 import time, pickle, logging
+import json
+import enum
 from datetime import datetime
 import hashlib
 import urllib.parse
 import wsgiref.handlers
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, InitVar, field
 from typing import Union
 
 import vedana
@@ -80,6 +82,41 @@ class License:
             self.activations = [Activation(**x) for x in self.activations]
 
 
+class SpeakerType(enum.StrEnum):
+    Expert = "expert"
+    Subject = "subject"
+
+
+@dataclass
+class Speaker:
+    id: int
+    name: str
+    person_id: int
+    type: SpeakerType
+
+
+@dataclass
+class Statement:
+    id: int
+    text: str
+    speaker: Speaker
+
+
+@dataclass
+class Discussion:
+    id: int
+    user_id: int
+    diagram_id: int
+    summary: str
+    extracting: bool = False
+    statements: list[Statement] = field(default_factory=list)
+    speakers: list[Speaker] = field(default_factory=list)
+    chat_user_speaker_id: int | None = None
+    chat_ai_speaker_id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 @dataclass
 class User:
     id: int
@@ -87,13 +124,14 @@ class User:
     first_name: str
     last_name: str
     roles: list[str]
-    created_at: datetime = None
-    updated_at: datetime = None
-    secret: bytes = None
-    licenses: list[License] = None
-    free_diagram_id: int = None
-    active: bool = None
-    status: str = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    secret: bytes | None = None
+    licenses: list[License] | None = None
+    free_diagram_id: int | None = None
+    free_diagram: Union["Diagram", None] = None
+    active: bool | None = None
+    status: str | None = None
 
     def __post_init__(self):
         if self.licenses and isinstance(self.licenses[0], dict):
@@ -110,10 +148,23 @@ class User:
 class AccessRight:
     user_id: int
     right: str
-    id: int = None
-    diagram_id: int = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    id: int | None = None
+    diagram_id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass
+class Database:
+    id: int
+    name: str
+    user_id: int
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    def __post_init__(self):
+        if isinstance(self.user_id, dict):
+            self.user_id = User(**self.user_id)
 
 
 @dataclass
@@ -122,14 +173,17 @@ class Diagram:
     user_id: int
     access_rights: list[AccessRight]
     created_at: datetime
-    updated_at: datetime = None
-    name: str = None
-    user: User = None
-    use_real_names: bool = None
-    require_password_for_real_names: bool = None
-    data: bytes = None
-    status: int = None
-    alias: str = None
+    updated_at: datetime | None = None
+    name: str | None = None
+    user: User | None = None
+    use_real_names: bool | None = None
+    require_password_for_real_names: bool | None = None
+    data: bytes | None = None
+    status: int | None = None
+    alias: str | None = None
+    database: Database | None = None
+    discussions: list[Discussion] = field(default_factory=list)
+    pdp: dict | None = None
 
     def __post_init__(self, *args, **kwargs):
         if isinstance(self.user, dict):
@@ -254,7 +308,7 @@ class Server(QObject):
         elif error == QNetworkReply.ConnectionRefusedError and not None in statuses:
             failMessage = f"Connection refused: {reply.url().toString()}"
         elif error == QNetworkReply.ContentAccessDenied:
-            log.info("Access Denied:", reply.url().toString())
+            failMessage = f"Access Denied: {reply.url().toString()}"
         elif error == QNetworkReply.AuthenticationRequiredError:
             pass
         elif error == QNetworkReply.ContentNotFoundError:
@@ -280,14 +334,21 @@ class Server(QObject):
         path,
         bdata=b"",
         data=None,
+        headers=None,
         anonymous=False,
         success=None,
         error=None,
         finished=None,
+        from_root=False,
     ):
-        if data and not bdata:
+        _headers = {"Content-Type": "application/x-python-pickle"}
+        _headers.update(headers or {})
+
+        if _headers["Content-Type"] == "application/json":
+            bdata = json.dumps(data).encode("utf-8")
+        elif data and not bdata:
             bdata = pickle.dumps(data)
-        full_url = util.serverUrl(path)
+        full_url = util.serverUrl(path, from_root=from_root)
         ## Make a QNetworkRequest with the appropriate signature headers. """
 
         parts = urllib.parse.urlparse(full_url)
@@ -311,9 +372,12 @@ class Server(QObject):
         # Do this like AWS
         # http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
         content_md5 = hashlib.md5(bdata).hexdigest()
-        content_type = "text/html"
+        # content_type = "text/html"
         request = QNetworkRequest(url)
-        request.setRawHeader(b"Content-Type", content_type.encode("utf-8"))
+
+        for key, value in _headers.items():
+            request.setRawHeader(key.encode("utf-8"), value.encode("utf-8"))
+        # This one can't be overridden
         request.setRawHeader(b"Content-MD5", content_md5.encode("utf-8"))
         date = wsgiref.handlers.format_date_time(
             time.mktime(datetime.now().timetuple())
@@ -325,7 +389,9 @@ class Server(QObject):
         else:
             user = vedana.ANON_USER
             secret = vedana.ANON_SECRET
-        signature = vedana.sign(secret, verb, content_md5, content_type, date, resource)
+        signature = vedana.sign(
+            secret, verb, content_md5, _headers["Content-Type"], date, resource
+        )
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
         auth_header = vedana.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
@@ -353,10 +419,13 @@ class Server(QObject):
                 # lazy hack to only read once since QNetworkReply is a
                 # sequential QIODevice
                 bdata = reply._pk_body = reply.readAll()
-                try:
-                    data = pickle.loads(bdata)
-                except pickle.UnpicklingError as e:
-                    data = None
+                if reply.request().rawHeader(b"Content-Type") == b"application/json":
+                    data = json.loads(bytes(bdata).decode("utf-8"))
+                else:
+                    try:
+                        data = pickle.loads(bdata)
+                    except pickle.UnpicklingError as e:
+                        data = None
                 if success:
                     success(data)
             finally:

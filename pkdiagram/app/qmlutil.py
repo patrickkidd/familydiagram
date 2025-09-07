@@ -12,6 +12,7 @@ from pkdiagram.pyqt import (
     QDateTime,
     pyqtSlot,
     pyqtSignal,
+    pyqtProperty,
     QVariant,
     QItemSelectionModel,
     QAbstractItemModel,
@@ -297,6 +298,10 @@ class QmlUtil(QObject, QObjectHelper):
             return {k.name: k.value for k in EventKind}
         else:
             return super().get(attr)
+
+    @pyqtProperty(str)
+    def appType(self) -> str:
+        return QApplication.instance().appType()
 
     @pyqtSlot(result=QVariant)
     def safeAreaMargins(self):

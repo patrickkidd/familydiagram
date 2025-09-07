@@ -1,21 +1,58 @@
-import QtQuick 2.12
+/*
+Manages the safe areas and any application-level handlers and logic.
+*/
 
+import QtQuick 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
-
-import "./PK" 1.0 as PK
+import "./Therapist" 1.0 as Therapist
 
 ApplicationWindow {
     visible: true
     width: 400
     height: 600
 
-    // Material.theme: Material.Light // Use light theme for iOS-like look
-    // Material.accent: "#007AFF" // iOS blue for accents
-    // Material.primary: "#F2F2F7" // iOS-like background color
+    flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
+    color: util.QML_WINDOW_BG
 
-    PK.TherapistView {
-        id: therapistView
-        anchors.fill: parent
+    property var safeAreaMargins_left: 0
+    property var safeAreaMargins_right: 0
+    property var safeAreaMargins_top: 0
+    property var safeAreaMargins_bottom: 0
+
+    Rectangle {
+        id: contentArea
+        anchors {
+            fill: parent
+            leftMargin: safeAreaMargins_left
+            rightMargin: safeAreaMargins_right
+            topMargin: safeAreaMargins_top
+            bottomMargin: Qt.inputMethod.visible ? 0 : safeAreaMargins_bottom
+        }
+
+        function adjustScreenMargins() {
+            var safeAreaMargins = util.safeAreaMargins()
+            // print('left:', safeAreaMargins.left, 'right:', safeAreaMargins.right, 'top:', safeAreaMargins.top, 'bottom:', safeAreaMargins.bottom)
+
+            safeAreaMargins_left = safeAreaMargins.left
+            safeAreaMargins_right = safeAreaMargins.right
+            safeAreaMargins_top = safeAreaMargins.top
+            safeAreaMargins_bottom = safeAreaMargins.bottom
+        }
+
+        Component.onCompleted: adjustScreenMargins()
+
+        Connections {
+            target: CUtil
+            function onSafeAreaMarginsChanged() {
+                contentArea.adjustScreenMargins()
+            }
+        }
+
+        Therapist.TherapistContainer {
+            id: therapistView
+            anchors.fill: parent
+        }
+
     }
 }

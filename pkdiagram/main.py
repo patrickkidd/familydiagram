@@ -3,15 +3,18 @@ from optparse import OptionParser
 
 from pkdiagram.pyqt import (
     Qt,
+    QUrl,
     QSettings,
     QWidget,
     QVBoxLayout,
     QOpenGLWidget,
     QSurfaceFormat,
+    QEventLoop,
 )
-from pkdiagram import util
+from pkdiagram import util, extensions
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import Application, AppController
+
 
 _log = logging.getLogger(__name__)
 
@@ -108,79 +111,39 @@ def main():
 
         print(version.VERSION)
 
-    # elif options.therapist:
-    #     from pkdiagram.therapist import TherapistView, TherapistController
-
-    #     util.init_logging()
-    #     app = Application(sys.argv, prefsName=options.prefsName)
-
-    #     util.SERVER_URL_ROOT = "http://127.0.0.1:8888"
-
-    #     controller = TherapistController(app)
-    #     controller.init()
-
-    #     mainWindow = QOpenGLWidget()
-    #     fmt = QSurfaceFormat.defaultFormat()
-    #     fmt.setSamples(util.OPENGL_SAMPLES)
-    #     mainWindow.setFormat(fmt)
-    #     mainWindow.setAttribute(
-    #         Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False
-    #     )
-
-    #     # def paletteChanged():
-    #     #     mainWindow.setStyleSheet(f"background-color: {util.QML_WINDOW_BG};")
-    #     #     _log.info(f"paletteChanged: {util.QML_WINDOW_BG}")
-
-    #     # Application.instance().paletteChanged.connect(paletteChanged)
-    #     # paletteChanged()
-
-    #     w = TherapistView(controller.session, mainWindow)
-    #     w.init()
-
-    #     Layout = QVBoxLayout(mainWindow)
-    #     Layout.setContentsMargins(0, 0, 0, 0)
-    #     Layout.addWidget(w)
-
-    #     mainWindow.show()
-    #     if not util.IS_IOS:
-    #         mainWindow.setGeometry(400, 400, 400, 600)
-
-    #     controller.exec(mainWindow)
-
-    #     w.deinit()
-    #     controller.deinit()
-    #     app.deinit()
-
     elif options.therapist:
-        from pkdiagram.therapist import TherapistView, TherapistController
-
-        util.SERVER_URL_ROOT = "http://127.0.0.1:8888"
+        from pkdiagram.therapist import TherapistAppController
 
         util.init_logging()
-        app = Application(sys.argv, prefsName=options.prefsName)
-        controller = TherapistController(app)
+
+        app = Application(
+            sys.argv, Application.Type.Mobile, prefsName=options.prefsName
+        )
+        controller = TherapistAppController(app)
 
         import sys
-        from PyQt5.QtCore import QUrl
-        from PyQt5.QtGui import QGuiApplication
         from PyQt5.QtQml import QQmlApplicationEngine
 
         engine = QQmlApplicationEngine()
         engine.addImportPath("resources:")
-        controller.initEngine(engine)
+        controller.init(engine)
 
         engine.load("resources:qml/TherapistApplication.qml")
+        extensions.setActiveSession(session=controller.session)
 
-        # if not engine.rootObjects():
-        #     print("Failed to load QML file")
-        #     sys.exit(-1)
+        ret = app.exec_()
 
-        sys.exit(app.exec_())
+        controller.deinit()
+        app.sendPostedEvents()
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents)
+        sys.exit(ret)
 
     else:
         util.init_logging()
 
-        app = Application(sys.argv, prefsName=options.prefsName)
+        app = Application(
+            sys.argv, Application.Type.Desktop, prefsName=options.prefsName
+        )
         controller = AppController(app, prefsName=options.prefsName)
         controller.init()
 
@@ -189,6 +152,7 @@ def main():
         )
         mainWindow.init()
 
+        extensions.setActiveSession(session=controller.session)
         controller.exec(mainWindow)
 
         mainWindow.deinit()
