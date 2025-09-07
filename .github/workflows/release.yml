@@ -263,7 +263,7 @@ jobs:
         path: build/osx/Release/Family Diagram.dmg
 
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2025
     needs: [setup]
   
     steps:
