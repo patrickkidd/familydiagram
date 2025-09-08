@@ -18,6 +18,7 @@ from pkdiagram import scene
 
 
 _log = logging.getLogger(__name__)
+_log.setLevel(logging.INFO)
 
 CLASS_PROPERTIES = {}
 

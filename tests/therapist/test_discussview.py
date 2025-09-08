@@ -225,6 +225,7 @@ def test_create_discussion(
         ),
     ):
         qml.mouseClick(newButton)
+    util.waitALittle()
     qml.mouseClick(discussionsButton)
     delegates = waitForListViewDelegates(discussionList, 1)
     assert discussionList.property("count") == 1
