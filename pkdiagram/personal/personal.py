@@ -172,7 +172,7 @@ class Discussion(QObject):
         )
 
 
-class Therapist(QObject):
+class Personal(QObject):
     """
     Simply translates the UI into a REST request.
     """
@@ -252,7 +252,7 @@ class Therapist(QObject):
         server = self._session.server()
         reply = server.nonBlockingRequest(
             "POST",
-            "/therapist/discussions/",
+            "/personal/discussions/",
             data={"diagram_id": self._diagram.id},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -274,7 +274,7 @@ class Therapist(QObject):
         server = self._session.server()
         reply = server.nonBlockingRequest(
             "GET",
-            f"/therapist/diagrams/{self._session.user.free_diagram_id}",
+            f"/personal/diagrams/{self._session.user.free_diagram_id}",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -324,9 +324,9 @@ class Therapist(QObject):
 
         # Create a discussion with the statement if there is no current discussion
         if self._currentDiscussion:
-            url = f"/therapist/discussions/{self._currentDiscussion.id}/statements"
+            url = f"/personal/discussions/{self._currentDiscussion.id}/statements"
         else:
-            url = "/therapist/discussions/"
+            url = "/personal/discussions/"
         args = {"statement": statement}
         reply = self._session.server().nonBlockingRequest(
             "POST",
@@ -340,7 +340,7 @@ class Therapist(QObject):
             },
             from_root=True,
         )
-        self._session.track(f"therapist.Engine.sendStatement: {statement}")
+        self._session.track(f"personal.Engine.sendStatement: {statement}")
         self.requestSent.emit(statement)
 
     ## PDP
@@ -357,7 +357,7 @@ class Therapist(QObject):
 
         reply = self._session.server().nonBlockingRequest(
             "GET",
-            "/therapist/pdp",
+            "/personal/pdp",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -373,7 +373,7 @@ class Therapist(QObject):
         _log.info(f"Accepting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/diagrams/{self._diagram.id}/pdp/{-id}/accept",
+            f"/personal/diagrams/{self._diagram.id}/pdp/{-id}/accept",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Accepted PDP item: {data}"),
@@ -389,7 +389,7 @@ class Therapist(QObject):
         _log.info(f"Rejecting PDP item with id: {id}")
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/therapist/diagrams/{self._diagram.id}/pdp/{-id}/reject",
+            f"/personal/diagrams/{self._diagram.id}/pdp/{-id}/reject",
             data={},
             error=lambda: self.onError(reply),
             success=lambda data: _log.info(f"Rejected PDP item: {data}"),
@@ -407,6 +407,6 @@ class Therapist(QObject):
         self.diagramChanged.emit()
 
 
-qmlRegisterType(Discussion, "Therapist", 1, 0, "Discussion")
-qmlRegisterType(Statement, "Therapist", 1, 0, "Statement")
-qmlRegisterType(Speaker, "Therapist", 1, 0, "Speaker")
+qmlRegisterType(Discussion, "Personal", 1, 0, "Discussion")
+qmlRegisterType(Statement, "Personal", 1, 0, "Statement")
+qmlRegisterType(Speaker, "Personal", 1, 0, "Speaker")

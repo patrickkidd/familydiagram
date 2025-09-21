@@ -4,7 +4,7 @@ import pytest
 from mock import patch
 
 from pkdiagram.app import Session
-from pkdiagram.therapist import Therapist
+from pkdiagram.personal import Personal
 from pkdiagram import util
 
 from btcopilot.extensions import db
@@ -13,7 +13,7 @@ from btcopilot.personal.database import Database, PDP, Person
 
 
 pytestmark = [
-    pytest.mark.component("Therapist"),
+    pytest.mark.component("Personal"),
     pytest.mark.depends_on("Session"),
 ]
 
@@ -26,45 +26,45 @@ def discussion(test_user):
 
 
 @pytest.fixture
-def therapist(test_session):
+def personal(test_session):
     session = Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
-    _therapist = Therapist(session)
+    _personal = Personal(session)
 
-    yield _therapist
+    yield _personal
 
 
-def test_refreshDiagram(flask_app, test_user, discussion, therapist: Therapist):
-    discussionsChanged = util.Condition(therapist.discussionsChanged)
-    therapist._refreshDiagram()
+def test_refreshDiagram(flask_app, test_user, discussion, personal: Personal):
+    discussionsChanged = util.Condition(personal.discussionsChanged)
+    personal._refreshDiagram()
     assert discussionsChanged.wait() == True
-    assert set(x.id for x in therapist.discussions) == {discussion.id}
+    assert set(x.id for x in personal.discussions) == {discussion.id}
 
 
-def test_refreshPDP(test_user, therapist: Therapist):
-    pdpChanged = util.Condition(therapist.pdpChanged)
+def test_refreshPDP(test_user, personal: Personal):
+    pdpChanged = util.Condition(personal.pdpChanged)
     diagram = test_user.free_diagram
     diagram.set_database(Database(pdp=PDP(people=[Person(name="Test Person")])))
     db.session.add(diagram)
     db.session.commit()
-    therapist.refreshPDP()
+    personal.refreshPDP()
     assert pdpChanged.wait() == True
-    assert therapist.pdp == test_user.free_diagram.get_database().pdp.model_dump()
+    assert personal.pdp == test_user.free_diagram.get_database().pdp.model_dump()
 
 
 @pytest.mark.parametrize("success", [True, False])
 def test_sendStatement(
-    server_error, test_user, discussion, therapist: Therapist, success
+    server_error, test_user, discussion, personal: Personal, success
 ):
 
     from btcopilot.personal.chat import Response, PDP
 
     RESPONSE = Response(statement="some response", pdp=PDP())
 
-    requestSent = util.Condition(therapist.requestSent)
-    responseReceived = util.Condition(therapist.responseReceived)
-    serverError = util.Condition(therapist.serverError)
-    serverDown = util.Condition(therapist.serverDown)
+    requestSent = util.Condition(personal.requestSent)
+    responseReceived = util.Condition(personal.responseReceived)
+    serverError = util.Condition(personal.serverError)
+    serverDown = util.Condition(personal.serverDown)
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
@@ -72,7 +72,7 @@ def test_sendStatement(
         )
         stack.enter_context(
             patch.object(
-                therapist,
+                personal,
                 "_currentDiscussion",
                 Discussion(
                     id=discussion.id,
@@ -83,7 +83,7 @@ def test_sendStatement(
         )
         if not success:
             stack.enter_context(server_error())
-        therapist.sendStatement("test message")
+        personal.sendStatement("test message")
     assert requestSent.callCount == 1
     if success:
         assert responseReceived.wait() == True

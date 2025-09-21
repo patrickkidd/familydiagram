@@ -1,5 +1,5 @@
 /*
-The outer view of the therapist feature.
+The outer view of the personal feature.
 */
 
 import QtQuick 2.12
@@ -39,22 +39,22 @@ Page {
     property bool initSelectedDiscussion: false
 
     Connections {
-        target: therapist
+        target: personal
         function onDiscussionsChanged() {
             if(!initSelectedDiscussion) {
                 initSelectedDiscussion = true
-                var lastDiscussion = therapist.discussions[therapist.discussions.length-1]
+                var lastDiscussion = personal.discussions[personal.discussions.length-1]
                 // print('initSelectedDiscussion: ' + lastDiscussion)
                 if(lastDiscussion !== undefined) {
-                    therapist.setCurrentDiscussion(lastDiscussion.id)
+                    personal.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
         function onStatementsChanged() {
-            // print('onStatementsChanged: ' + therapist.statements.length + ' statements')
+            // print('onStatementsChanged: ' + personal.statements.length + ' statements')
             chatModel.clear()
-            for(var i=0; i < therapist.statements.length; i++) {
-                var statement = therapist.statements[i];
+            for(var i=0; i < personal.statements.length; i++) {
+                var statement = personal.statements[i];
                 // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
@@ -108,7 +108,7 @@ Page {
             id: discussionList
 
             anchors.fill: parent
-            model: therapist ? therapist.discussions : undefined
+            model: personal ? personal.discussions : undefined
             clip: true
 
             delegate: ItemDelegate {
@@ -121,7 +121,7 @@ Page {
                 palette.text: util.QML_TEXT_COLOR
 
                 onClicked: {
-                    therapist.setCurrentDiscussion(modelData.id)
+                    personal.setCurrentDiscussion(modelData.id)
                     discussionsDrawer.visible = false
                 }
             }
@@ -153,7 +153,7 @@ Page {
         PK.ToolButton {
             id: discussionsButton
             text: "Discussions"
-            visible: therapist && therapist.discussions.length > 0
+            visible: personal && personal.discussions.length > 0
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
             onClicked: root.showDiscussions()
@@ -166,7 +166,7 @@ Page {
                 right: parent.right
                 margins: util.QML_MARGINS
             }
-            onClicked: therapist.createDiscussion()
+            onClicked: personal.createDiscussion()
         }
     }
 
@@ -308,7 +308,7 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    therapist.sendStatement(textEdit.text);
+                    personal.sendStatement(textEdit.text);
                     textEdit.text = ''
                     textEdit.focus = false
                     // Qt.inputMethod.hide()

@@ -39,10 +39,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Document/View** (`pkdiagram/documentview/`): Document management, QML engine, and main canvas view
 - **QML Engine** (`pkdiagram/documentview/qmlengine.py`): Manages QML context properties and model instances
 - **Main Window** (`pkdiagram/mainwindow/`): Native Qt widgets UI with .ui files compiled to Python
-- **Therapist Module** (`pkdiagram/therapist/`): Personal mobile app integration with AI-powered features
+- **Personal Module** (`pkdiagram/personal/`): Personal mobile app integration with AI-powered features
 
 ### QML/UI Architecture
-- **QML Resources**: `pkdiagram/resources/qml/` - QML components organized by module (PK/, Therapist/, etc.)
+- **QML Resources**: `pkdiagram/resources/qml/` - QML components organized by module (PK/, Personal/, etc.)
 - **Custom Components**: `pkdiagram/resources/qml/PK/` - reusable QML components (ListView, Button, etc.)
 - **Property System**: `pkdiagram/models/qobjecthelper.py` - dynamic Qt property generation from scene properties
 - **Widget Helpers**: `pkdiagram/widgets/qmlwidgethelper.py` - Python-QML interaction utilities
@@ -60,7 +60,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### External Dependencies
 - **Server Integration**: Connects to btcopilot (separate Flask application) for cloud features
-- **Therapist API**: JSON-based communication with mobile therapist application
+- **Personal API**: JSON-based communication with mobile personal application
 - **Qt Framework**: PyQt5 with QML for modern UI components
 - **Native Libraries**: Platform-specific integrations via C++ extensions
 

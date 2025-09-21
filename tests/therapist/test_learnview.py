@@ -11,8 +11,8 @@ from mock import patch
 
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
-from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Response, Therapist, Discussion, Statement
+from pkdiagram.personal import PersonalAppController
+from pkdiagram.personal.personal import Response, Personal, Discussion, Statement
 
 from tests.widgets.qmlwidgets import QmlHelper
 
@@ -25,11 +25,11 @@ pytest.skip(allow_module_level=True)
 
 @pytest.fixture
 def controller(qmlEngine):
-    controller = TherapistAppController(QApplication.instance())
+    controller = PersonalAppController(QApplication.instance())
     with contextlib.ExitStack() as stack:
         # stack.enter_context(
         #     patch.object(
-        #         controller.therapist,
+        #         controller.personal,
         #         "_threads",
         #         [
         #             Discussion(id=1, summary="my dog flew away", user_id=123),
@@ -37,8 +37,8 @@ def controller(qmlEngine):
         #         ],
         #     )
         # )
-        stack.enter_context(patch.object(controller.therapist, "_refreshDiscussion"))
-        stack.enter_context(patch.object(controller.therapist, "_refreshPDP"))
+        stack.enter_context(patch.object(controller.personal, "_refreshDiscussion"))
+        stack.enter_context(patch.object(controller.personal, "_refreshPDP"))
 
         controller.init(qmlEngine)
 
@@ -46,7 +46,7 @@ def controller(qmlEngine):
 
 
 @pytest.fixture
-def view(qtbot, test_session, qmlEngine, controller: TherapistAppController):
+def view(qtbot, test_session, qmlEngine, controller: PersonalAppController):
 
     FPATH = os.path.join(
         os.path.dirname(__file__),
@@ -55,7 +55,7 @@ def view(qtbot, test_session, qmlEngine, controller: TherapistAppController):
         "pkdiagram",
         "resources",
         "qml",
-        "Therapist",
+        "Personal",
         "LearnView.qml",
     )
 
@@ -75,11 +75,11 @@ def view(qtbot, test_session, qmlEngine, controller: TherapistAppController):
     _view.setSource(QUrl(""))
 
 
-def test_init_with_pdp(view: QQuickWidget, controller: TherapistAppController):
+def test_init_with_pdp(view: QQuickWidget, controller: PersonalAppController):
     pdpList = view.rootObject().property("pdpList")
     assert pdpList.property("numDelegates") == 0
 
-    controller.therapist.setPDP(
+    controller.personal.setPDP(
         {
             "people": [{"id": -1, "name": "Alice"}, {"id": -2, "name": "Bob"}],
             "events": [
@@ -91,9 +91,9 @@ def test_init_with_pdp(view: QQuickWidget, controller: TherapistAppController):
     assert util.waitForCondition(lambda: pdpList.property("numDelegates") == 4) == True
 
 
-def test_accept(view: QQuickWidget, controller: TherapistAppController):
+def test_accept(view: QQuickWidget, controller: PersonalAppController):
     assert False
 
 
-def test_reject(view: QQuickWidget, controller: TherapistAppController):
+def test_reject(view: QQuickWidget, controller: PersonalAppController):
     assert False
