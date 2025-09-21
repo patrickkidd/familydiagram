@@ -10,8 +10,8 @@ from pkdiagram.models import ServerFileManagerModel
 from pkdiagram.scene import Scene, Person
 from pkdiagram.app import Session as fe_Session
 
-from fdserver.extensions import db
-from fdserver.models import Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram
 
 
 @pytest.fixture

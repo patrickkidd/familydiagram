@@ -5,13 +5,11 @@ from mock import patch
 
 from pkdiagram.app import Session
 from pkdiagram.therapist import Therapist
-from pkdiagram.therapist.therapist import Response
 from pkdiagram import util
 
-from fdserver.extensions import db
-from fdserver.models import User
-from fdserver.therapist.models import Discussion, Statement, Speaker, SpeakerType
-from fdserver.therapist.database import Database, PDP, Person
+from btcopilot.extensions import db
+from btcopilot.personal.models import Discussion, Statement
+from btcopilot.personal.database import Database, PDP, Person
 
 
 pytestmark = [
@@ -34,9 +32,6 @@ def therapist(test_session):
     _therapist = Therapist(session)
 
     yield _therapist
-
-
-from fdserver.tests.therapist.conftest import discussion
 
 
 def test_refreshDiagram(flask_app, test_user, discussion, therapist: Therapist):
@@ -62,7 +57,7 @@ def test_sendStatement(
     server_error, test_user, discussion, therapist: Therapist, success
 ):
 
-    from fdserver.therapist.chat import Response, PDP
+    from btcopilot.personal.chat import Response, PDP
 
     RESPONSE = Response(statement="some response", pdp=PDP())
 
@@ -73,7 +68,7 @@ def test_sendStatement(
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            patch("fdserver.therapist.routes.discussions.ask", return_value=RESPONSE)
+            patch("btcopilot.personal.routes.discussions.ask", return_value=RESPONSE)
         )
         stack.enter_context(
             patch.object(

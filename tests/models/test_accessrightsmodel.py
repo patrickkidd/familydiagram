@@ -9,8 +9,8 @@ from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
 from pkdiagram.models import AccessRightsModel
 from pkdiagram.app import Session
-from fdserver.extensions import db
-from fdserver.models import Diagram, AccessRight
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram, AccessRight
 
 pytestmark = pytest.mark.component("AccessRightsModel")
 

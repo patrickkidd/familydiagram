@@ -9,8 +9,8 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.extensions import db
-from fdserver.models import Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.server_types import User
@@ -24,8 +24,8 @@ from pkdiagram.therapist.therapist import (
     SpeakerType,
 )
 
-from fdserver.tests.conftest import flask_app
-from fdserver.tests.therapist.conftest import chat_flow
+from btcopilot.tests.conftest import flask_app
+from btcopilot.tests.personal.conftest import chat_flow
 from tests.widgets.qmlwidgets import QmlHelper, waitForListViewDelegates
 
 
@@ -86,7 +86,7 @@ def therapist(controller):
 def test_refresh_diagram(
     test_user, test_session, view, controller: TherapistAppController
 ):
-    from fdserver.therapist.models import Discussion, Speaker, SpeakerType
+    from btcopilot.personal.models import Discussion, Speaker, SpeakerType
 
     SPEAKERS = [
         Speaker(id=1, name="Alice", type=SpeakerType.Expert),
@@ -190,7 +190,7 @@ def discussions(statements):
 def test_create_discussion(
     test_user, server_response, view, controller: TherapistAppController
 ):
-    from fdserver.therapist.models import Discussion, Speaker, SpeakerType
+    from btcopilot.personal.models import Discussion, Speaker, SpeakerType
 
     qml = QmlHelper(view)
     newButton = view.rootObject().property("newButton")
@@ -304,7 +304,7 @@ def test_ask(qtbot, view, controller, therapist, discussions):
 @pytest.mark.chat_flow
 def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask_app):
 
-    from fdserver.therapist.models import Discussion, Speaker, Statement, SpeakerType
+    from btcopilot.personal.models import Discussion, Speaker, Statement, SpeakerType
     from pkdiagram.therapist.therapist import (
         # Response,
         # Therapist,

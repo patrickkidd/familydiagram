@@ -6,12 +6,13 @@ import pytest, mock
 from sqlalchemy import inspect
 
 import vedana
-from pkdiagram import util, version
+from pkdiagram import version
+from pkdiagram.condition import Condition
 from pkdiagram.server_types import Diagram
 from pkdiagram.app import Session, DatadogLogStatus
 
 
-from fdserver import util as fdserver_util
+from btcopilot import pro
 
 from .test_analytics import analytics
 
@@ -109,7 +110,7 @@ def test_error_with_user(test_user, create_session, Analytics_send):
 
 def test_login_with_username_password(test_user, analytics):
     session = Session(analytics)
-    changed = util.Condition(session.changed)
+    changed = Condition(session.changed)
     session.init()
     changed.wait()
     changed.reset()
@@ -121,7 +122,7 @@ def test_login_with_username_password(test_user, analytics):
 @pytest.mark.use_bcrypt
 def test_login_incorrect_password(test_user, analytics):
     session = Session(analytics)
-    changed = util.Condition(session.changed)
+    changed = Condition(session.changed)
     session.init()
     changed.wait()
     changed.reset()
@@ -140,9 +141,9 @@ def test_login_expired_session(test_session, analytics):
 
 def test_logout(test_session, analytics):
     session = Session(analytics)
-    changed = util.Condition(session.changed)
-    failed = util.Condition(session.logoutFailed)
-    finished = util.Condition(session.logoutFinished)
+    changed = Condition(session.changed)
+    failed = Condition(session.logoutFailed)
+    finished = Condition(session.logoutFinished)
     session.init(test_session.account_editor_dict(), syncWithServer=False)
     session.logout()
     assert changed.callCount > 0
@@ -152,8 +153,8 @@ def test_logout(test_session, analytics):
 
 def test_logout_failed(test_session, analytics):
     session = Session(analytics)
-    failed = util.Condition(session.logoutFailed)
-    finished = util.Condition(session.logoutFinished)
+    failed = Condition(session.logoutFailed)
+    finished = Condition(session.logoutFinished)
     session.init(test_session.account_editor_dict(), syncWithServer=False)
     db_session = inspect(test_session).session
     db_session.delete(test_session)  # makes it fail
@@ -244,9 +245,9 @@ def test_hasFeature_client(analytics):
 
 def test_version_deactivated(test_session, analytics):
     with mock.patch.object(
-        fdserver_util,
+        pro,
         "DEACTIVATED_VERSIONS",
-        list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION],
+        list(pro.DEACTIVATED_VERSIONS) + [version.VERSION],
     ):
         session = Session(analytics)
         session.init(sessionData=test_session.account_editor_dict())

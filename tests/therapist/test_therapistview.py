@@ -35,7 +35,7 @@ class MockQmlComponent(QObject):
 @pytest.fixture
 def controller(test_user, test_session, qmlEngine):
 
-    # from fdserver.therapist.database import Discussion, Statement, Speaker, SpeakerType
+    # from btcopilot.personal.database import Discussion, Statement, Speaker, SpeakerType
     # from pkdiagram.server_types import Diagram
 
     # diagram = Diagram(**test_user.free_diagram.data())

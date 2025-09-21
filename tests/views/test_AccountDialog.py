@@ -1,4 +1,3 @@
-import datetime
 import contextlib
 import logging
 
@@ -11,9 +10,9 @@ from pkdiagram.pyqt import QApplication
 from pkdiagram import util
 from pkdiagram.views import AccountDialog
 
-import fdserver.extensions
-from fdserver.extensions import db
-from fdserver.models import License, User, Policy
+from btcopilot.extensions import mail
+from btcopilot.extensions import db
+from btcopilot.pro.models import License, User, Policy
 
 # def _logout(dlg, qtbot):
 #     assert dlg.isShown() == True
@@ -108,11 +107,7 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
                 "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
             )
         )
-        send = stack.enter_context(
-            mock.patch.object(
-                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
-            )
-        )
+        stack.enter_context(mock.patch.object(flask_mail.Mail, "send", wraps=mail.send))
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
 
         qtbot.clickOkAfter(lambda: dlg.mouseClick("authSubmitButton"))
@@ -176,9 +171,7 @@ def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
             )
         )
         send = stack.enter_context(
-            mock.patch.object(
-                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
-            )
+            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
         dlg.mouseClick("authSubmitButton")
@@ -238,9 +231,7 @@ def test_reset_password(flask_app, test_user, qtbot, create_dlg, qmlEngine):
             )
         )
         send = stack.enter_context(
-            mock.patch.object(
-                flask_mail.Mail, "send", wraps=fdserver.extensions.mail.send
-            )
+            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
         dlg.mouseClick("authSubmitButton")

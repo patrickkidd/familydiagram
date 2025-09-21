@@ -5,14 +5,14 @@ import pytest
 import mock
 from langchain.docstore.document import Document
 
-from btcopilot import Engine, Response
+from btcopilot.pro.copilot import Engine, Response
 from pkdiagram import util
 from pkdiagram.models import SearchModel
 from pkdiagram.models.copilotengine import CopilotEngine, formatSources
 from pkdiagram.app import Session
 from pkdiagram.scene import Person, Event, Marriage
 
-from btcopilot.tests.conftest import llm_response
+from btcopilot.tests.pro.copilot.conftest import llm_response
 
 _log = logging.getLogger(__name__)
 
@@ -150,7 +150,7 @@ TIMEOUT_MS = 30000
             "..",
             "..",
             "..",
-            "fdserver",
+            "btcopilot",
             "instance",
             "vector_db",
         )

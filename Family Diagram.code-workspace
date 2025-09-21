@@ -52,8 +52,8 @@
 			"**/__pycache__": true
 		},
 		"logViewer.watch": [
-			"/Users/patrick/dev/fdserver/ai_log.txt",
-			"/Users/patrick/dev/fdserver/debug_log.txt"
+			"/Users/patrick/dev/btcopilot/ai_log.txt",
+			"/Users/patrick/dev/btcopilot/debug_log.txt"
 		],
 		"black-formatter.importStrategy": "fromEnvironment",
 		"python.languageServer": "Pylance",

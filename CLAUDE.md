@@ -59,7 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Snapshot Testing**: Uses snapshottest for regression testing
 
 ### External Dependencies
-- **Server Integration**: Connects to fdserver (separate Flask application) for cloud features
+- **Server Integration**: Connects to btcopilot (separate Flask application) for cloud features
 - **Therapist API**: JSON-based communication with mobile therapist application
 - **Qt Framework**: PyQt5 with QML for modern UI components
 - **Native Libraries**: Platform-specific integrations via C++ extensions
