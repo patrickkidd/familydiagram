@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import datetime
 
 import pytest
 import mock
@@ -107,7 +108,9 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
                 "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
             )
         )
-        stack.enter_context(mock.patch.object(flask_mail.Mail, "send", wraps=mail.send))
+        send = stack.enter_context(
+            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
+        )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
 
         qtbot.clickOkAfter(lambda: dlg.mouseClick("authSubmitButton"))

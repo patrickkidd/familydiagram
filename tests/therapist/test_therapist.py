@@ -20,7 +20,7 @@ pytestmark = [
 
 @pytest.fixture
 def discussion(test_user):
-    discussion = Discussion(user_id=test_user.id)
+    discussion = Discussion(user_id=test_user.id, diagram_id=test_user.free_diagram_id)
     db.session.add(discussion)
     return discussion
 
