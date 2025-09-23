@@ -35,10 +35,10 @@ Page {
     }
 
     Connections {
-        target: therapist
+        target: personal
         function onPdpChanged() {
-            // console.log('onPdpChanged:', therapist.pdp);
-            root.updatePDP(therapist.pdp);
+            // console.log('onPdpChanged:', personal.pdp);
+            root.updatePDP(personal.pdp);
         }
     }
 
@@ -94,7 +94,7 @@ Page {
                     Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
                     onClicked: {
                         print('onClicked: Accepting item:', model.id);
-                        therapist.acceptPDPItem(model.id)
+                        personal.acceptPDPItem(model.id)
                         pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
@@ -106,7 +106,7 @@ Page {
                     Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
                     onClicked: {
                         print('onClicked: Rejecting item:', model.id);
-                        therapist.rejectPDPItem(model.id)
+                        personal.rejectPDPItem(model.id)
                         pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter

@@ -14,8 +14,8 @@ from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import AppController
 
 
-from fdserver.extensions import db
-from fdserver.models import Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram
 
 
 _log = logging.getLogger(__name__)

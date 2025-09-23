@@ -1,0 +1,6 @@
+module Personal
+LearnView 1.0 LearnView.qml
+PlanView 1.0 PlanView.qml
+PersonalContainer 1.0 PersonalContainer.qml
+singleton Style 1.0 Style.qml
+PersonalView 1.0 PersonalView.qml

@@ -9,23 +9,23 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
-from fdserver.extensions import db
-from fdserver.models import Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.server_types import User
-from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import (
+from pkdiagram.personal import PersonalAppController
+from pkdiagram.personal.personal import (
     Response,
-    Therapist,
+    Personal,
     Discussion,
     Statement,
     Speaker,
     SpeakerType,
 )
 
-from fdserver.tests.conftest import flask_app
-from fdserver.tests.therapist.conftest import chat_flow
+from btcopilot.tests.conftest import flask_app
+from btcopilot.tests.personal.conftest import chat_flow
 from tests.widgets.qmlwidgets import QmlHelper, waitForListViewDelegates
 
 
@@ -34,13 +34,13 @@ _log = logging.getLogger(__name__)
 
 @pytest.fixture
 def controller(test_session, flask_app, qmlEngine):
-    controller = TherapistAppController(QApplication.instance())
+    controller = PersonalAppController(QApplication.instance())
     controller.appConfig.set(
         "lastSessionData", test_session.account_editor_dict(), pickled=True
     )
     with (
-        patch.object(controller.therapist, "init"),
-        patch.object(controller.therapist, "_refreshPDP"),
+        patch.object(controller.personal, "init"),
+        patch.object(controller.personal, "_refreshPDP"),
     ):
 
         controller.init(qmlEngine)
@@ -48,7 +48,7 @@ def controller(test_session, flask_app, qmlEngine):
 
 
 @pytest.fixture
-def view(qtbot, qmlEngine, controller: TherapistAppController):
+def view(qtbot, qmlEngine, controller: PersonalAppController):
     # session.init(sessionData=test_session.account_editor_dict())
 
     FPATH = os.path.join(
@@ -58,7 +58,7 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
         "pkdiagram",
         "resources",
         "qml",
-        "Therapist",
+        "Personal",
         "DiscussView.qml",
     )
 
@@ -79,14 +79,14 @@ def view(qtbot, qmlEngine, controller: TherapistAppController):
 
 
 @pytest.fixture
-def therapist(controller):
-    return controller.therapist
+def personal(controller):
+    return controller.personal
 
 
 def test_refresh_diagram(
-    test_user, test_session, view, controller: TherapistAppController
+    test_user, test_session, view, controller: PersonalAppController
 ):
-    from fdserver.therapist.models import Discussion, Speaker, SpeakerType
+    from btcopilot.personal.models import Discussion, Speaker, SpeakerType
 
     SPEAKERS = [
         Speaker(id=1, name="Alice", type=SpeakerType.Expert),
@@ -143,13 +143,13 @@ def test_refresh_diagram(
         server.return_value.nonBlockingRequest = nonBlockingRequest
         user.free_diagram_id = 123
 
-        controller.therapist._refreshDiagram()
+        controller.personal._refreshDiagram()
 
-        assert len(controller.therapist._discussions) == 3
-        assert controller.therapist._discussions[0].id == 1
-        assert controller.therapist._discussions[0].summary == "my dog flew away"
-        assert controller.therapist._discussions[1].id == 2
-        assert controller.therapist._discussions[1].summary == "clouds ate my cake"
+        assert len(controller.personal._discussions) == 3
+        assert controller.personal._discussions[0].id == 1
+        assert controller.personal._discussions[0].summary == "my dog flew away"
+        assert controller.personal._discussions[1].id == 2
+        assert controller.personal._discussions[1].summary == "clouds ate my cake"
 
 
 # def test_create_discussion(view):
@@ -188,9 +188,9 @@ def discussions(statements):
 
 
 def test_create_discussion(
-    test_user, server_response, view, controller: TherapistAppController
+    test_user, server_response, view, controller: PersonalAppController
 ):
-    from fdserver.therapist.models import Discussion, Speaker, SpeakerType
+    from btcopilot.personal.models import Discussion, Speaker, SpeakerType
 
     qml = QmlHelper(view)
     newButton = view.rootObject().property("newButton")
@@ -200,10 +200,10 @@ def test_create_discussion(
 
     with (
         patch.object(
-            controller.therapist, "_diagram", Diagram(id=123, user_id=test_user.id)
+            controller.personal, "_diagram", Diagram(id=123, user_id=test_user.id)
         ),
         server_response(
-            resource="/therapist/discussions",
+            resource="/personal/discussions",
             method="POST",
             headers={b"Content-Type": b"application/json"},
             body=json.dumps(
@@ -229,32 +229,32 @@ def test_create_discussion(
     qml.mouseClick(discussionsButton)
     delegates = waitForListViewDelegates(discussionList, 1)
     assert discussionList.property("count") == 1
-    assert delegates[0].property("dText") == controller.therapist.discussions[0].summary
+    assert delegates[0].property("dText") == controller.personal.discussions[0].summary
 
 
-def test_show_discussion(view, controller: TherapistAppController, discussions):
+def test_show_discussion(view, controller: PersonalAppController, discussions):
     with (
-        patch("pkdiagram.therapist.Therapist._refreshDiagram"),
-        patch.object(controller.therapist, "_currentDiscussion", discussions[1]),
+        patch("pkdiagram.personal.Personal._refreshDiagram"),
+        patch.object(controller.personal, "_currentDiscussion", discussions[1]),
     ):
         statementsList = view.rootObject().property("statementsList")
-        controller.therapist.statementsChanged.emit()
+        controller.personal.statementsChanged.emit()
         delegates = waitForListViewDelegates(statementsList, 4)
         assert len(delegates) == len(discussions[1].statements())
 
 
 def test_select_discussion(
-    view, controller: TherapistAppController, discussions, statements
+    view, controller: PersonalAppController, discussions, statements
 ):
     with (
-        patch("pkdiagram.therapist.Therapist._refreshDiagram"),
-        patch.object(controller.therapist, "_discussions", discussions),
+        patch("pkdiagram.personal.Personal._refreshDiagram"),
+        patch.object(controller.personal, "_discussions", discussions),
     ):
 
         discussionList = view.rootObject().property("discussionList")
         statementsList = view.rootObject().property("statementsList")
 
-        controller.therapist.discussionsChanged.emit()
+        controller.personal.discussionsChanged.emit()
         view.rootObject().showDiscussions()
         delegates = waitForListViewDelegates(discussionList, len(discussions))
 
@@ -267,7 +267,7 @@ def test_select_discussion(
     )
 
 
-def test_ask(qtbot, view, controller, therapist, discussions):
+def test_ask(qtbot, view, controller, personal, discussions):
 
     MESSAGE = "hello there"
     RESPONSE = Response(message="some response", pdp={})
@@ -280,18 +280,18 @@ def test_ask(qtbot, view, controller, therapist, discussions):
 
     qml = QmlHelper(view)
     with (
-        patch.object(therapist, "_currentDiscussion", new=discussions[0]),
-        patch.object(therapist, "_sendStatement", autospec=True) as _sendStatement,
+        patch.object(personal, "_currentDiscussion", new=discussions[0]),
+        patch.object(personal, "_sendStatement", autospec=True) as _sendStatement,
     ):
-        therapist.statementsChanged.emit()
+        personal.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
-        therapist.requestSent.emit(MESSAGE)
+        personal.requestSent.emit(MESSAGE)
         delegates = waitForListViewDelegates(statementsList, 1)
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
-    therapist.responseReceived.emit(RESPONSE.message, {})
+    personal.responseReceived.emit(RESPONSE.message, {})
     delegates = waitForListViewDelegates(statementsList, 2)
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True
@@ -302,12 +302,12 @@ def test_ask(qtbot, view, controller, therapist, discussions):
 
 
 @pytest.mark.chat_flow
-def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask_app):
+def test_ask_full_stack(test_user, view, controller, personal, chat_flow, flask_app):
 
-    from fdserver.therapist.models import Discussion, Speaker, Statement, SpeakerType
-    from pkdiagram.therapist.therapist import (
+    from btcopilot.personal.models import Discussion, Speaker, Statement, SpeakerType
+    from pkdiagram.personal.personal import (
         # Response,
-        # Therapist,
+        # Personal,
         Discussion as MobileDiscussion,
         # Statement,
         # Speaker,
@@ -356,7 +356,7 @@ def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask
     statementsList = view.rootObject().property("statementsList")
 
     with patch.object(
-        therapist,
+        personal,
         "_currentDiscussion",
         new=MobileDiscussion(
             id=1,
@@ -365,7 +365,7 @@ def test_ask_full_stack(test_user, view, controller, therapist, chat_flow, flask
             user_id=123,
         ),
     ):
-        therapist.statementsChanged.emit()
+        personal.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
         delegates = waitForListViewDelegates(statementsList, 2)

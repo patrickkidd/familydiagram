@@ -4,9 +4,9 @@ import vedana
 from pkdiagram import util, version
 from pkdiagram.app import AppController
 
-from fdserver.extensions import db
-from fdserver.models import Activation, License, Policy, Machine, User, Session
-from fdserver import util as fdserver_util
+from btcopilot.extensions import db
+from btcopilot.pro.models import Activation, License, Policy, Machine, User, Session
+from btcopilot import pro
 
 
 def test_hide_account_dialog(create_ac_mw):
@@ -97,9 +97,9 @@ def test_enabled_disabled_all_licenses(
 
 def test_version_deactivated_while_logged_in(test_license, qtbot, create_ac_mw):
     with mock.patch.object(
-        fdserver_util,
+        pro,
         "DEACTIVATED_VERSIONS",
-        list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION],
+        list(pro.DEACTIVATED_VERSIONS) + [version.VERSION],
     ):
         ac, mw = create_ac_mw(init=False)
         qtbot.clickOkAfter(

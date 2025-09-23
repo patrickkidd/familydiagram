@@ -10,8 +10,8 @@ from pkdiagram.pyqt import QApplication, QUrl
 from pkdiagram import util
 from pkdiagram.mainwindow import FileManager
 
-from fdserver.extensions import db
-from fdserver.models import Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import Diagram
 
 
 @pytest.fixture

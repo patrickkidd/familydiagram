@@ -3,12 +3,12 @@ from pkdiagram import pepper
 from pkdiagram.app import AppConfig
 from pkdiagram.pyqt import QObject, QApplication, QQmlEngine
 from pkdiagram.app import Session, Analytics
-from pkdiagram.therapist import Therapist
+from pkdiagram.personal import Personal
 
 
-class TherapistAppController(QObject):
+class PersonalAppController(QObject):
     """
-    App controller for the therapist app.
+    App controller for the personal app.
     """
 
     def __init__(self, app: QApplication, parent=None):
@@ -22,14 +22,14 @@ class TherapistAppController(QObject):
         self.session = Session(self.analytics)
         self.session.changed.connect(self.onSessionChanged)
 
-        self.appConfig = AppConfig(self, prefsName="therapist.alaskafamilysystems.com")
-        self.therapist = Therapist(self.session)
+        self.appConfig = AppConfig(self, prefsName="personal.alaskafamilysystems.com")
+        self.personal = Personal(self.session)
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())
         engine.rootContext().setContextProperty("util", self.util)
         engine.rootContext().setContextProperty("session", self.session)
-        engine.rootContext().setContextProperty("therapist", self.therapist)
+        engine.rootContext().setContextProperty("personal", self.personal)
         self.analytics.init()
         self.appConfig.init()
         self.session.setQmlEngine(engine)
@@ -38,7 +38,7 @@ class TherapistAppController(QObject):
             self.session.init(sessionData=lastSessionData)
         else:
             self.session.init()
-        self.therapist.init()
+        self.personal.init()
 
     def deinit(self):
         self.analytics.init()

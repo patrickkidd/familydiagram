@@ -12,8 +12,8 @@ from pkdiagram.models import AccessRightsModel
 from pkdiagram.views import CaseProperties
 from pkdiagram.views.qml.copilotview import CopilotView
 
-from fdserver.extensions import db
-from fdserver.models import User, Diagram
+from btcopilot.extensions import db
+from btcopilot.pro.models import User, Diagram
 
 pytestmark = [
     pytest.mark.component("CaseProperties"),
@@ -94,18 +94,18 @@ def test_add_access_right_as_client(
     # Ensure test_user_2 is in the database
     db.session.add(test_user_2)
     db.session.commit()
-    
+
     cp = create_cp(loadFreeDiagram=True)
-    
+
     # Re-initialize session with fresh data that includes test_user_2
     qmlEngine.session.init(sessionData=test_session.account_editor_dict())
     db.session.add(test_user)
     data = pickle.loads(test_user.free_diagram.data)
     qmlEngine.sceneModel.scene.read(data)
-    
+
     # Test the UI interaction
     cp.keyClicks("addAccessRightBox", test_user_2.username, returnToFinish=True)
-    
+
     db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
@@ -113,11 +113,17 @@ def test_add_access_right_as_client(
 
 
 def test_add_only_one_access_right_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine, test_session
+    test_user,
+    test_user_2,
+    test_client_activation,
+    qtbot,
+    create_cp,
+    qmlEngine,
+    test_session,
 ):
     # Ensure test_user_2 and test_user_3 are in the database
     db.session.add(test_user_2)
-    
+
     test_user_3 = User(
         username="patrickkidd+unittest+3@gmail.com",
         password="something else",
@@ -127,9 +133,9 @@ def test_add_only_one_access_right_as_client(
     )
     db.session.add(test_user_3)
     db.session.commit()
-    
+
     cp = create_cp(loadFreeDiagram=True)
-    
+
     # Re-initialize session with fresh data that includes all users after CP is created
     qmlEngine.session.init(sessionData=test_session.account_editor_dict())
     db.session.add(test_user)
@@ -156,14 +162,20 @@ def test_add_only_one_access_right_as_client(
 
 
 def test_add_one_access_right_for_free_as_client(
-    test_user, test_user_2, test_client_activation, qtbot, create_cp, qmlEngine, test_session
+    test_user,
+    test_user_2,
+    test_client_activation,
+    qtbot,
+    create_cp,
+    qmlEngine,
+    test_session,
 ):
     # Ensure test_user_2 is in the database
     db.session.add(test_user_2)
     db.session.commit()
-    
+
     cp = create_cp(loadFreeDiagram=True)
-    
+
     # Re-initialize session with fresh data that includes test_user_2 after CP is created
     qmlEngine.session.init(sessionData=test_session.account_editor_dict())
     db.session.add(test_user)

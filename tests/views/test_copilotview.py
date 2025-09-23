@@ -8,7 +8,7 @@ from langchain.docstore.document import Document
 
 # from tests.models.test_copilotengine import copilot
 
-from btcopilot import Engine, Response
+from btcopilot.pro.copilot import Engine, Response
 from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout, QTimer
 from pkdiagram import util
 from pkdiagram.views.qml import CopilotView
@@ -137,7 +137,7 @@ TIMEOUT_MS = 30000
             "..",
             "..",
             "..",
-            "fdserver",
+            "btcopilot",
             "instance",
             "vector_db",
         )

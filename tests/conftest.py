@@ -60,8 +60,9 @@ from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session, QmlUtil
 
-from fdserver.tests.conftest import *
-from fdserver.models import User
+from btcopilot.pro.models import User
+from btcopilot.tests.conftest import *
+from btcopilot.tests.pro.conftest import *
 import flask_bcrypt
 
 import appdirs
@@ -485,7 +486,7 @@ def qApp():
             mock.patch("pkdiagram.app.Analytics.startTimer", return_value=123)
         )
         stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
-        # stack.enter_context(mock.patch("fdserver.extensions.init_excepthook"))
+        # stack.enter_context(mock.patch("btcopilot.extensions.init_excepthook"))
         yield app
 
     app.deinit()

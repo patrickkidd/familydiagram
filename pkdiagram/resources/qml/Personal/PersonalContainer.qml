@@ -8,7 +8,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
-import "." 1.0 as Therapist
+import "." 1.0 as Personal
 
 
 Page {
@@ -28,19 +28,19 @@ Page {
         anchors.fill: parent
         visible: session && session.loggedIn
 
-        Therapist.DiscussView {
+        Personal.DiscussView {
             id: discussView
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
 
-        Therapist.LearnView {
+        Personal.LearnView {
             id: learnView
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
 
-        Therapist.PlanView {
+        Personal.PlanView {
             id: planView
             Layout.fillHeight: true
             Layout.fillWidth: true
