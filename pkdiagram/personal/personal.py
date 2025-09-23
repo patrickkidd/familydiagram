@@ -197,8 +197,9 @@ class Personal(QObject):
         self._pdp: dict | None = None
 
     def init(self):
-        self._refreshDiagram()
-        self.refreshPDP()
+        if self._session.user:
+            self._refreshDiagram()
+            self._refreshPDP()
 
     def onSessionChanged(self):
         if not self._session.user:
@@ -208,7 +209,7 @@ class Personal(QObject):
             self._currentDiscussion = None
         else:
             self._refreshDiagram()
-            self.refreshPDP()
+            self._refreshPDP()
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
