@@ -262,6 +262,36 @@ jobs:
         name: familydiagram-macos
         path: build/osx/Release/Family Diagram.dmg
 
+  test-macos:
+    runs-on: ${{ matrix.os }}
+    needs: [build-osx]
+    strategy:
+      matrix:
+        os: [macos-13, macos-14, macos-15]
+    steps:
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: familydiagram-macos
+          path: ./artifact
+
+      - name: Mount DMG
+        run: |
+          hdiutil attach "./artifact/Family Diagram.dmg" -quiet -mountpoint /Volumes/"Family Diagram"
+
+      - name: Test App Execution
+        run: |
+          /Volumes/"Family Diagram"/"Family Diagram.app"/Contents/MacOS/"Family Diagram" --version
+          if [ $? -ne 0 ]; then
+            echo "App failed to execute with --version"
+            exit 1
+          fi
+
+      - name: Unmount DMG
+        if: always()
+        run: |
+          hdiutil detach /Volumes/"Family Diagram" || true
+
   build-windows:
     runs-on: windows-2022
     needs: [setup]
@@ -520,7 +550,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-24.04
-    needs: [setup, build-osx, build-windows]
+    needs: [setup, tests-osx, test-windows]
     if: ${{ !inputs.skip_release }}
     permissions:
       contents: write
