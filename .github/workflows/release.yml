@@ -494,6 +494,30 @@ jobs:
           name: familydiagram-windows
           path: build\win32\Release\Family Diagram.zip
   
+  test-windows:
+    runs-on: ${{ matrix.os }}
+    needs: [build-windows]
+    strategy:
+      matrix:
+        os: [windows-2019, windows-2022]
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: familydiagram-windows
+          path: ./artifact
+
+      - name: Unzip Artifact
+        run: |
+          Expand-Archive -Path ./artifact/'Family Diagram.zip' -DestinationPath ./build
+        shell: pwsh
+
+      - name: Test EXE Execution
+        run: |
+          & ./build/'Family Diagram.exe' --version
+          if ($LASTEXITCODE -ne 0) { throw "EXE failed to execute with --version" }
+        shell: pwsh
+
   publish:
     runs-on: ubuntu-24.04
     needs: [setup, build-osx, build-windows]
