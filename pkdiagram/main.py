@@ -112,8 +112,6 @@ def _main_impl():
 
         from . import version
 
-        abc
-
         print(version.VERSION)
 
         # Exit after printing version to avoid starting the GUI
