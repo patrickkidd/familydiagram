@@ -99,8 +99,35 @@ def main():
         import sys
 
         # Reopen stdout/stderr in the new console
-        sys.stdout = open("CONOUT$", "w")
-        sys.stderr = open("CONOUT$", "w")
+        try:
+            sys.stdout = open("CONOUT$", "w")
+            sys.stderr = open("CONOUT$", "w")
+        except OSError:
+            # If CONOUT$ fails, try to allocate console using Windows API
+            try:
+                import ctypes
+                from ctypes import wintypes
+
+                # Allocate console if not already attached
+                kernel32 = ctypes.windll.kernel32
+                if kernel32.AllocConsole():
+                    # Try again after allocating console
+                    sys.stdout = open("CONOUT$", "w")
+                    sys.stderr = open("CONOUT$", "w")
+                else:
+                    # If all else fails, create a simple file-like object that does nothing
+                    class NullWriter:
+                        def write(self, txt): pass
+                        def flush(self): pass
+                    sys.stdout = NullWriter()
+                    sys.stderr = NullWriter()
+            except (ImportError, OSError):
+                # Fallback: create a null writer
+                class NullWriter:
+                    def write(self, txt): pass
+                    def flush(self): pass
+                sys.stdout = NullWriter()
+                sys.stderr = NullWriter()
 
         # Only add the "Press Enter to close" for --windows-console, not for --version
         if options.windows_console:
