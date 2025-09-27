@@ -87,7 +87,8 @@ def main():
     if util.IS_IOS:
         options.therapist = True
 
-    if sys.platform == "win32" and options.windows_console:
+    # Handle console allocation for Windows
+    if sys.platform == "win32" and (options.windows_console or options.version):
         # Allocates a console and redirects stdout/stderr for Windows.
         from _pkdiagram import CUtil
 
@@ -101,9 +102,10 @@ def main():
         sys.stdout = open("CONOUT$", "w")
         sys.stderr = open("CONOUT$", "w")
 
-        import atexit
-
-        atexit.register(lambda: input("\nPress Enter to close..."))
+        # Only add the "Press Enter to close" for --windows-console, not for --version
+        if options.windows_console:
+            import atexit
+            atexit.register(lambda: input("\nPress Enter to close..."))
 
     if options.version:
 
@@ -112,6 +114,9 @@ def main():
         from . import version
 
         print(version.VERSION)
+
+        # Exit after printing version to avoid starting the GUI
+        sys.exit(0)
 
     elif ENABLE_THERAPIST and options.therapist:
         from pkdiagram.therapist import TherapistAppController
