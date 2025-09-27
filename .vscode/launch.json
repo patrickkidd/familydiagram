@@ -22,7 +22,7 @@
                 // "--windows-console"
             ],
             "env": {
-                "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+                // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
             }
         },
         {
@@ -40,7 +40,7 @@
                 "--therapist"
             ],
             "env": {
-                "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+                // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
             }
         },
         {
