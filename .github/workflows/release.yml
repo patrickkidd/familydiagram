@@ -529,7 +529,7 @@ jobs:
     needs: [setup, build-windows]
     strategy:
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2022]
     steps:
       - name: Download Windows Artifact
         uses: actions/download-artifact@v4
