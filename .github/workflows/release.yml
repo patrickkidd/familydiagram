@@ -526,7 +526,7 @@ jobs:
   
   test-windows:
     runs-on: ${{ matrix.os }}
-    needs: [build-windows]
+    needs: [setup, build-windows]
     strategy:
       matrix:
         os: [windows-2019, windows-2022]
@@ -544,13 +544,28 @@ jobs:
 
       - name: Test EXE Execution
         run: |
-          & ./build/'Family Diagram.exe' --version
-          if ($LASTEXITCODE -ne 0) { throw "EXE failed to execute with --version" }
+          Write-Host "Testing Windows executable..."
+
+          # Try to run the executable with --version flag
+          # Note: Windows GUI apps don't have console output by default
+          $process = Start-Process -FilePath "./build/Family Diagram.exe" -ArgumentList "--version" -Wait -PassThru -NoNewWindow
+          $exitCode = $process.ExitCode
+
+          Write-Host "Exit code: $exitCode"
+
+          # For Windows, we just check that the executable runs and exits
+          # The version output issue will be fixed in the application code
+          if ($exitCode -eq 0) {
+            Write-Host "✓ Executable runs successfully"
+          } else {
+            Write-Host "✗ Executable failed with exit code: $exitCode"
+            exit 1
+          }
         shell: pwsh
 
   publish:
     runs-on: ubuntu-24.04
-    needs: [setup, tests-osx, test-windows]
+    needs: [setup, test-macos, test-windows]
     if: ${{ !inputs.skip_release }}
     permissions:
       contents: write
