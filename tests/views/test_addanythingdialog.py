@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, EventKind, PathItem
+from pkdiagram.scene import Person, Marriage, LifeChange, PathItem
 from pkdiagram.views import AddAnythingDialog
 
 from tests.views import TestAddAnythingDialog
@@ -55,7 +55,7 @@ def test_init(qmlEngine, view, editorMode):
 
 
 def test_clear_CustomIndividual(view):
-    view.set_kind(EventKind.CustomIndividual)  # dyadic for end date
+    view.set_kind(LifeChange.CustomIndividual)  # dyadic for end date
     view.set_startDateTime(START_DATETIME)
     view.set_description("something")
     view.set_notes("here are some notes")
@@ -77,7 +77,7 @@ def test_clear_CustomIndividual(view):
 
 def test_clear_Dyadic(view):
     view.initForSelection([])
-    view.set_kind(EventKind.Cutoff)  # dyadic for end date
+    view.set_kind(LifeChange.Cutoff)  # dyadic for end date
     view.set_startDateTime(START_DATETIME)
     view.set_endDateTime(END_DATETIME)
     view.set_notes("here are some notes")
@@ -97,7 +97,7 @@ def test_clear_Dyadic(view):
 
 
 def test_clear_birth(view):
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("John Done")
     view.personAPicker.set_new_person("Jon Done")
     view.personBPicker.set_new_person("Jane Done")
@@ -111,7 +111,7 @@ def test_clear_birth(view):
 
 
 def test_clear_monadic(view):
-    view.set_kind(EventKind.Adopted)
+    view.set_kind(LifeChange.Adopted)
     view.personPicker.set_new_person("John Done")
     assert view.personPicker.item.property("isSubmitted") == True
     view.clickClearButton()
@@ -119,7 +119,7 @@ def test_clear_monadic(view):
 
 
 def test_clear_custom_individual(view):
-    view.set_kind(EventKind.CustomIndividual)
+    view.set_kind(LifeChange.CustomIndividual)
     view.peoplePicker.add_new_person("John Done")
     assert view.item.peopleEntries().toVariant()
     view.clickClearButton()
@@ -127,7 +127,7 @@ def test_clear_custom_individual(view):
 
 
 def test_clear_pairbond(view):
-    view.set_kind(EventKind.Married)
+    view.set_kind(LifeChange.Married)
     view.personAPicker.set_new_person("John Done")
     view.personBPicker.set_new_person("Jane Done")
     assert view.personAPicker.item.property("isSubmitted")
@@ -138,7 +138,7 @@ def test_clear_pairbond(view):
 
 
 def test_clear_dyadic(view):
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(LifeChange.Conflict)
     view.moversPicker.add_new_person("John Doe")
     view.moversPicker.add_new_person("Jane Doe")
     view.receiversPicker.add_new_person("Jane Doe")
@@ -155,7 +155,7 @@ def test_add_new_person_via_Birth(scene, view, qmlEngine):
 
     submitted = util.Condition(view.view.submitted)
     view.initForSelection([])
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.add_tag(TAG_1)
@@ -170,14 +170,14 @@ def test_add_new_person_via_Birth(scene, view, qmlEngine):
     assert person, f"Could not find created person {ONE_NAME}"
     assert len(person.events()) == 1, f"Incorrect number of events added to scene"
     event = person.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
-    assert event.description() == EventKind.Birth.name
+    assert event.uniqueId() == LifeChange.Birth.value
+    assert event.description() == LifeChange.Birth.name
     assert event.tags() == [TAG_1, TAG_2]
 
 
 def test_add_new_person_via_Birth_with_one_parent(scene, view, qmlEngine):
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("John Doe")
     view.personAPicker.set_new_person(
         "Joseph Doe",
@@ -195,8 +195,8 @@ def test_add_new_person_via_Birth_with_one_parent(scene, view, qmlEngine):
     assert person, f"Could not find created person {ONE_NAME}"
     assert len(person.events()) == 1, f"Incorrect number of events added to scene"
     event = person.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
-    assert event.description() == EventKind.Birth.name
+    assert event.uniqueId() == LifeChange.Birth.value
+    assert event.description() == LifeChange.Birth.name
     assert len(person.parents().people) == 2
     assert personA in person.parents().people
     assert personB.gender() == util.PERSON_KIND_FEMALE
@@ -205,7 +205,7 @@ def test_add_new_person_via_Birth_with_one_parent(scene, view, qmlEngine):
 @pytest.mark.parametrize("before", [True, False])
 def test_add_second_Birth_sets_currentDateTime(scene, view, before):
     view.initForSelection([])
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
@@ -217,7 +217,7 @@ def test_add_second_Birth_sets_currentDateTime(scene, view, before):
         second_dateTime = START_DATETIME.addDays(10)
 
     view.initForSelection([])
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(second_dateTime)
     view.clickAddButton()
@@ -234,7 +234,7 @@ def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("Josephine Doe")
     view.personAPicker.set_existing_person(parentA)
     view.personBPicker.set_new_person("Jane Doe")
@@ -249,8 +249,8 @@ def test_add_new_person_with_one_existing_parent_one_new_via_Birth(
     assert child, f"Could not find created child {ONE_NAME}"
     assert len(child.events()) == 1, f"Incorrect number of events added to scene"
     event = child.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
-    assert event.description() == EventKind.Birth.name
+    assert event.uniqueId() == LifeChange.Birth.value
+    assert event.description() == LifeChange.Birth.name
     assert event.notes() == BIRTH_NOTES
 
     parentA = scene.query1(name="John", lastName="Doe")
@@ -263,7 +263,7 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, view, qmlEngin
 
     parentA = scene.addItem(Person(name="John", lastName="Doe"))
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_new_person("Josephine Doe")
     view.personAPicker.set_existing_person(parentA)
     view.set_startDateTime(START_DATETIME)
@@ -277,8 +277,8 @@ def test_add_new_person_with_one_existing_parent_via_Birth(scene, view, qmlEngin
     assert child, f"Could not find created child {ONE_NAME}"
     assert len(child.events()) == 1, f"Incorrect number of events added to scene"
     event = child.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
-    assert event.description() == EventKind.Birth.name
+    assert event.uniqueId() == LifeChange.Birth.value
+    assert event.description() == LifeChange.Birth.name
     assert event.notes() == BIRTH_NOTES
 
     parentA = scene.query1(name="John", lastName="Doe")
@@ -297,7 +297,7 @@ comment.
     TAG_1, TAG_2 = "tag1", "tag2"
 
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.CustomIndividual)
+    view.set_kind(LifeChange.CustomIndividual)
     view.peoplePicker.add_new_person("John Doe", gender=GENDER)
     view.set_description(DESCRIPTION)
     view.set_startDateTime(START_DATETIME)
@@ -322,7 +322,7 @@ comment.
 
 def test_add_new_person_adopted(scene, view):
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.Adopted)
+    view.set_kind(LifeChange.Adopted)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
@@ -336,7 +336,7 @@ def test_add_new_person_adopted(scene, view):
 def test_add_multiple_events_to_new_person(scene, view):
     DESCRIPTION = "Something happened"
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.CustomIndividual)
+    view.set_kind(LifeChange.CustomIndividual)
     view.peoplePicker.add_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.set_description(DESCRIPTION)
@@ -349,7 +349,7 @@ def test_add_multiple_events_to_new_person(scene, view):
     assert newPerson.events()[0].dateTime() == START_DATETIME
 
     view.clickClearButton()
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_existing_person(newPerson)
     view.set_startDateTime(START_DATETIME.addDays(15))
     view.clickAddButton()
@@ -357,7 +357,7 @@ def test_add_multiple_events_to_new_person(scene, view):
     assert submitted.callCount == 2
     assert len(scene.people()) == 1
     assert len(newPerson.events()) == 2
-    assert newPerson.events()[0].uniqueId() == EventKind.Birth.value
+    assert newPerson.events()[0].uniqueId() == LifeChange.Birth.value
     assert newPerson.events()[0].dateTime() == START_DATETIME.addDays(15)
     assert newPerson.events()[1].description() == DESCRIPTION
     assert newPerson.events()[1].dateTime() == START_DATETIME
@@ -370,7 +370,7 @@ notes
 for this event.
 """
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(EventKind.Cutoff)
+    view.set_kind(LifeChange.Cutoff)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.set_endDateTime(END_DATETIME)
@@ -385,7 +385,7 @@ for this event.
     assert newPerson.emotions()[0].notes() == NOTES
 
 
-@pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isDyadic(x)])
+@pytest.mark.parametrize("kind", [x for x in LifeChange if LifeChange.isDyadic(x)])
 def test_add_new_dyadic(scene, view, kind):
     NOTES = """
 Here are the
@@ -417,7 +417,7 @@ for this event.
     assert len(personA.emotions()) == 1
     assert len(personB.emotions()) == 1
     assert personA.emotions() == personB.emotions()
-    assert personA.emotions()[0].kind() == EventKind.itemModeFor(kind)
+    assert personA.emotions()[0].kind() == LifeChange.itemModeFor(kind)
     assert personA.emotions()[0].startDateTime() == START_DATETIME
     assert personA.emotions()[0].endDateTime() == START_DATETIME
     assert personA.emotions()[0].notes() == NOTES
@@ -432,7 +432,7 @@ notes
 for this event.
 """
 
-    view.set_kind(EventKind.Away)
+    view.set_kind(LifeChange.Away)
     view.moversPicker.add_new_person("John Doe")
     view.receiversPicker.add_new_person("Jane Doe")
     view.set_startDateTime(START_DATETIME)
@@ -453,7 +453,7 @@ for this event.
 
 def test_add_existing_dyadic(scene, view):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(LifeChange.Conflict)
     view.moversPicker.add_existing_person(personA)
     view.receiversPicker.add_new_person("Jane Doe")
     view.set_startDateTime(START_DATETIME)
@@ -469,7 +469,7 @@ def test_add_existing_dyadic(scene, view):
 
 
 def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, view):
-    KIND_1 = EventKind.Conflict
+    KIND_1 = LifeChange.Conflict
 
     view.set_kind(KIND_1)
     view.moversPicker.add_new_person("John Doe")
@@ -486,7 +486,7 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, view):
     assert personA.emotions()[0].startDateTime() == START_DATETIME
     assert personA.emotions()[0].endDateTime() == START_DATETIME
 
-    KIND_2 = EventKind.Away
+    KIND_2 = LifeChange.Away
 
     view.set_kind(KIND_2)
     view.moversPicker.add_existing_person(personA)
@@ -506,10 +506,10 @@ def test_add_multiple_dyadic_to_same_mover_different_receivers(scene, view):
     assert personA.emotions()[1].endDateTime() == START_DATETIME.addDays(30)
 
 
-# @pytest.mark.parametrize("kind", [x for x in EventKind if EventKind.isPairBond(x)])
+# @pytest.mark.parametrize("kind", [x for x in LifeChange if LifeChange.isPairBond(x)])
 def test_add_existing_pairbond(scene, view):
     TAG_1, TAG_2 = "tag1", "tag2"
-    KIND = EventKind.Separated
+    KIND = LifeChange.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Jane", lastName="Doe"))
@@ -526,11 +526,11 @@ def test_add_existing_pairbond(scene, view):
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
     assert marriage.events()[0].uniqueId() == KIND.value
-    assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND)
+    assert marriage.events()[0].description() == LifeChange.menuLabelFor(KIND)
 
 
 def test_add_existing_pairbond_custom(scene, view):
-    kind = EventKind.CustomPairBond
+    kind = LifeChange.CustomPairBond
     DESCRIPTION = "Something Happened"
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
@@ -550,7 +550,7 @@ def test_add_existing_pairbond_custom(scene, view):
 
 
 def test_add_multiple_events_to_same_pairbond(scene, view):
-    KIND_1 = EventKind.Separated
+    KIND_1 = LifeChange.Separated
 
     personA = scene.addItem(Person(name="John", lastName="Doe"))
     personB = scene.addItem(Person(name="Jane", lastName="Doe"))
@@ -564,9 +564,9 @@ def test_add_multiple_events_to_same_pairbond(scene, view):
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
     assert marriage.events()[0].uniqueId() == KIND_1.value
-    assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND_1)
+    assert marriage.events()[0].description() == LifeChange.menuLabelFor(KIND_1)
 
-    KIND_2 = EventKind.Bonded
+    KIND_2 = LifeChange.Bonded
 
     view.clickClearButton()
     view.set_kind(KIND_2)
@@ -578,14 +578,14 @@ def test_add_multiple_events_to_same_pairbond(scene, view):
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 2
     assert marriage.events()[0].uniqueId() == KIND_2.value
-    assert marriage.events()[0].description() == EventKind.menuLabelFor(KIND_2)
+    assert marriage.events()[0].description() == LifeChange.menuLabelFor(KIND_2)
     assert marriage.events()[1].uniqueId() == KIND_1.value
-    assert marriage.events()[1].description() == EventKind.menuLabelFor(KIND_1)
+    assert marriage.events()[1].description() == LifeChange.menuLabelFor(KIND_1)
 
 
 def test_add_new_variables_CustomIndividual(scene, view):
     personA = scene.addItem(Person(name="John", lastName="Doe"))
-    view.set_kind(EventKind.CustomIndividual)
+    view.set_kind(LifeChange.CustomIndividual)
     view.peoplePicker.add_existing_person(personA)
     view.set_anxiety(util.VAR_VALUE_UP)
     view.set_functioning(util.VAR_FUNCTIONING_DOWN)
@@ -611,7 +611,7 @@ def test_add_new_variables_CustomIndividual(scene, view):
 
 
 def test_add_new_variables_PairBond(scene, view):
-    view.set_kind(EventKind.Bonded)
+    view.set_kind(LifeChange.Bonded)
     view.personAPicker.set_new_person("John Doe")
     view.personBPicker.set_new_person("Jane Doe")
     view.set_anxiety(util.VAR_VALUE_UP)
@@ -634,7 +634,7 @@ def test_add_new_variables_PairBond(scene, view):
 
 
 def test_add_new_variables_Dyadic(scene, view):
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(LifeChange.Conflict)
     view.moversPicker.add_new_person("John Doe")
     view.receiversPicker.add_new_person("Jane Doe")
     view.set_anxiety(util.VAR_VALUE_UP)
@@ -645,7 +645,7 @@ def test_add_new_variables_Dyadic(scene, view):
     view.clickAddButton()
     symbol = scene.emotions()[0]
     startEvent = symbol.startEvent
-    assert symbol.kind() == EventKind.itemModeFor(EventKind.Conflict)
+    assert symbol.kind() == LifeChange.itemModeFor(LifeChange.Conflict)
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
     assert dynamicPropertyNames == [
         util.ATTR_ANXIETY,

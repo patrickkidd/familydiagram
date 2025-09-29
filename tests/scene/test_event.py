@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Event, Person
+from pkdiagram.scene import LifeChange, Event, Person
 
 
 def test_init():
@@ -35,8 +35,8 @@ def test_setParent(scene, undo):
 
 def __test___lt__():
     parent = Person()
-    birth = Event(uniqueId=EventKind.Birth.value)
-    death = Event(uniqueId=EventKind.Death.value)
+    birth = Event(uniqueId=LifeChange.Birth.value)
+    death = Event(uniqueId=LifeChange.Death.value)
     eventA = Event()
 
     birth.setParent(parent)

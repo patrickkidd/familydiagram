@@ -11,7 +11,6 @@ state from the object required to undo the underlying api call.
 import os, shutil, logging
 
 from pkdiagram.pyqt import QUndoCommand
-from pkdiagram.scene import EventKind
 
 
 _log = logging.getLogger(__name__)
@@ -508,9 +507,9 @@ class SetEventParent(QUndoCommand):
         self.event._do_setParent(self.was_parent)
 
 
-# class SetEventKind(QUndoCommand):
+# class SetLifeChange(QUndoCommand):
 
-#     def __init__(self, events, kind: EventKind):
+#     def __init__(self, events, kind: LifeChange):
 #         super().__init__(f"Set event(s) to {kind.name}")
 #         self.was_kinds
 #         self.event = event

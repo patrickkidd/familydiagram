@@ -1,4 +1,5 @@
-from .eventkind import EventKind
+from .lifechange import LifeChange
+from .relationshipkind import RelationshipKind
 from .property import Property
 from .itemgarbage import ItemGarbage
 from .variablesdatabase import VariablesDatabase

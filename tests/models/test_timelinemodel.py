@@ -4,7 +4,15 @@ import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Marriage, Event, Emotion, EventKind, Marriage
+from pkdiagram.scene import (
+    Scene,
+    Person,
+    Marriage,
+    Event,
+    Emotion,
+    LifeChange,
+    Marriage,
+)
 from pkdiagram.models import SearchModel, TimelineModel
 
 
@@ -234,7 +242,7 @@ def test_include_marriage_events(scene):
     # marriage events for one person
     separated = Event(
         parent=marriage,
-        uniqueId=EventKind.Separated.value,
+        uniqueId=LifeChange.Separated.value,
         dateTime=util.Date(2001, 1, 1),
     )
     scene.addItem(separated)
@@ -244,7 +252,7 @@ def test_include_marriage_events(scene):
     # more marriage events for one person
     married = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
     scene.addItem(married)
@@ -339,7 +347,7 @@ def test_add_person_marriage():
 
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
-        parent=marriage, date=util.Date(2001, 1, 1), uniqueId=EventKind.Married.value
+        parent=marriage, date=util.Date(2001, 1, 1), uniqueId=LifeChange.Married.value
     )
     scene.addItem(marriage)
 
@@ -792,7 +800,7 @@ def test_showAliases_signals():
     marriage = Marriage(personA=patrick, personB=bob)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=util.Date(1900, 1, 5),
     )
     scene.addItems(patrick, bob, distance, marriage)

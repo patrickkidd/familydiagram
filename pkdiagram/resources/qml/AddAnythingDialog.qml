@@ -33,7 +33,7 @@ PK.Drawer {
     //     }
     // }
 
-    property var kind: null
+    property var lifeChange: null
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
     property var startDateButtons: startDateButtons
@@ -59,17 +59,17 @@ PK.Drawer {
 
     property var personLabel: personLabel
     property var peopleLabel: peopleLabel
-    property var personALabel: personALabel
-    property var personBLabel: personBLabel
+    property var parentALabel: parentALabel
+    property var parentPersonBLabel: parentPersonBLabel
     property var moversLabel: moversLabel
     property var receiversLabel: receiversLabel
-    property var kindLabel: kindLabel
+    property var lifeChangeLabel: lifeChangeLabel
     property var descriptionLabel: descriptionLabel
     property var startDateTimeLabel: startDateTimeLabel
     property var endDateTimeLabel: endDateTimeLabel
     property var isDateRangeLabel: isDateRangeLabel
 
-    property var kindBox: kindBox
+    property var lifeChangeBox: lifeChangeBox
     property var descriptionEdit: descriptionEdit
     property var startDatePicker: startDatePicker
     property var startTimePicker: startTimePicker
@@ -93,8 +93,8 @@ PK.Drawer {
     property var dirty: false
 
     property var lastKind: null
-    onKindChanged: {
-        var newKind = kindBox.currentValue()
+    function __onLifeChangeChanged: {
+        var newKind = lifeChangeBox.currentValue()
         var personEntry = personPicker.isSubmitted ? root.personEntry() : null
         var personAEntry = personAPicker.isSubmitted ? root.personAEntry() : null
         var personBEntry = personBPicker.isSubmitted ? root.personBEntry() : null
@@ -115,30 +115,30 @@ PK.Drawer {
             return
         }
 
-        if(util.isMonadicEventKind(lastKind)) {
-            if(util.isMonadicEventKind(newKind)) {
+        if(util.isMonadicLifeChange(lastKind)) {
+            if(util.isMonadicLifeChange(newKind)) {
                 if(personEntry) personPicker.setExistingPerson(personEntry.person)
-            } else if(newKind == util.EventKind.CustomIndividual) {
+            } else if(newKind == util.LifeChange.CustomIndividual) {
                 if(personEntry) peoplePicker.addExistingPerson(personEntry.person)
                 if(personAEntry) peoplePicker.addExistingPerson(personAEntry.person)
                 if(personBEntry) peoplePicker.addExistingPerson(personBEntry.person)
-            } else if (util.isPairBondEventKind(newKind)) {
+            } else if (util.isPairBondLifeChange(newKind)) {
                 if(personEntry) personAPicker.setExistingPerson(personEntry.person)
                 if(personAEntry) personBPicker.setExistingPerson(personAEntry.person)
-            } else if (util.isDyadicEventKind(newKind)) {
+            } else if (util.isDyadicLifeChange(newKind)) {
                 if(personEntry) moversPicker.addExistingPerson(personEntry.person)
                 if(personAEntry) receiversPicker.addExistingPerson(personAEntry.person)
                 if(personBEntry) receiversPicker.addExistingPerson(personBEntry.person)
             }
-        } else if(lastKind == util.EventKind.CustomIndividual) {
-            if(util.isMonadicEventKind(newKind)) {
+        } else if(lastKind == util.LifeChange.CustomIndividual) {
+            if(util.isMonadicLifeChange(newKind)) {
                 if(peopleEntries.length >= 1) personPicker.setExistingPerson(peopleEntries[0].person)
                 if(peopleEntries.length >= 2) personAPicker.setExistingPerson(peopleEntries[1].person)
                 if(peopleEntries.length >= 3) personBPicker.setExistingPerson(peopleEntries[2].person)
-            } else if(util.isPairBondEventKind(newKind)) {
+            } else if(util.isPairBondLifeChange(newKind)) {
                 if(peopleEntries.length >= 1) personAPicker.setExistingPerson(peopleEntries[0].person)
                 if(peopleEntries.length >= 2) personBPicker.setExistingPerson(peopleEntries[1].person)
-            } else if(util.isDyadicEventKind(newKind)) {
+            } else if(util.isDyadicLifeChange(newKind)) {
                 if(peopleEntries.length >= 1) moversPicker.addExistingPerson(peopleEntries[0].person)
                 if(peopleEntries.length >= 2) {
                     for(var i=1; i < peopleEntries.length; i++) {
@@ -146,46 +146,49 @@ PK.Drawer {
                     }
                 }
             }
-        } else if(util.isPairBondEventKind(lastKind)) {
-            if(util.isPairBondEventKind(newKind)) {
+        } else if(util.isPairBondLifeChange(lastKind)) {
+            if(util.isPairBondLifeChange(newKind)) {
                 if(personAEntry) personAPicker.setExistingPerson(personAEntry.person)
                 if(personBEntry) personBPicker.setExistingPerson(personBEntry.person)
-            } else if(util.isMonadicEventKind(newKind)) {
-                var isBirth = (newKind == util.EventKind.Birth)
+            } else if(util.isMonadicLifeChange(newKind)) {
+                var isBirth = (newKind == util.LifeChange.Birth)
                 if(personAEntry) personPicker.setExistingPerson(personAEntry.person)
                 if(isBirth && personAEntry) personAPicker.setExistingPerson(personBEntry.person)
-            } else if(newKind == util.EventKind.CustomIndividual) {
+            } else if(newKind == util.LifeChange.CustomIndividual) {
                 if(personAEntry) peoplePicker.addExistingPerson(personAEntry.person)
                 if(personBEntry) peoplePicker.addExistingPerson(personBEntry.person)
-            } else if (util.isDyadicEventKind(newKind)) {
+            } else if (util.isDyadicLifeChange(newKind)) {
                 if(personAEntry) moversPicker.addExistingPerson(personAEntry.person)
                 if(personBEntry) receiversPicker.addExistingPerson(personBEntry.person)
             }
-        } else if(util.isDyadicEventKind(lastKind)) {
-            if(util.isDyadicEventKind(newKind)) {
+        } else if(util.isDyadicLifeChange(lastKind)) {
+            if(util.isDyadicLifeChange(newKind)) {
                 for(var i=0; i < moverEntries.length; i++) {
                     moversPicker.addExistingPerson(moverEntries[i].person)
                 }
                 for(var i=0; i < receiverEntries.length; i++) {
                     receiversPicker.addExistingPerson(receiverEntries[i].person)
                 }
-            } else if(util.isMonadicEventKind(newKind)) {
-                var isBirth = (newKind == util.EventKind.Birth)
+            } else if(util.isMonadicLifeChange(newKind)) {
+                var isBirth = (newKind == util.LifeChange.Birth)
                 if(moverEntries.length >= 1) personPicker.setExistingPerson(moverEntries[0].person)
                 if(isBirth && moverEntries.length >= 2) personAPicker.setExistingPerson(moverEntries[1].person)
                 if(isBirth && moverEntries.length >= 3) personBPicker.setExistingPerson(moverEntries[2].person)
-            } else if(newKind == util.EventKind.CustomIndividual) {
+            } else if(newKind == util.LifeChange.CustomIndividual) {
                 print('onKindChanged[2]: ' + moverEntries.length + ', ' + receiverEntries.length)
                 for(var i=0; i < moverEntries.length; i++) {
                     peoplePicker.addExistingPerson(moverEntries[i].person)
                 }
-            } else if (util.isPairBondEventKind(newKind)) {
+            } else if (util.isPairBondLifeChange(newKind)) {
                 if(moverEntries.length >= 1) personAPicker.setExistingPerson(moverEntries[0].person)
                 if(moverEntries.length >= 2) personBPicker.setExistingPerson(moverEntries[1].person)
             }
         }
 
         lastKind = kindBox.currentValue()
+    }
+
+    function onRelationshipKindChanged() {
     }
 
     function clear() {
@@ -219,7 +222,7 @@ PK.Drawer {
 
     function initWithPairBond(pairBondId) {
         var pairBond = sceneModel.item(pairBondId)
-        kindBox.setCurrentValue(util.EventKind.CustomPairBond)
+        kindBox.setCurrentValue(util.LifeChange.CustomPairBond)
         var personA = pairBond.personA()
         var personB = pairBond.personB()
         // print('initWithPairBond: ' + personA + ', ' + personB)
@@ -232,7 +235,7 @@ PK.Drawer {
         for(var i=0; i < peopleIds.length; i++) {
             people.push(sceneModel.item(peopleIds[i]))
         }
-        kindBox.setCurrentValue(util.EventKind.CustomIndividual)
+        kindBox.setCurrentValue(util.LifeChange.CustomIndividual)
         // print('initWithMultiplePeople: ' + people.length)
         peoplePicker.setExistingPeople(people)
         tagsEdit.isDirty = false
@@ -353,110 +356,18 @@ PK.Drawer {
                     columnSpacing: util.QML_MARGINS / 2
                     Layout.margins: util.QML_MARGINS
 
-                    PK.Text {
-                        id: kindLabel
-                        text: "Event"
-                    }
-
-                    PK.ComboBox {
-                        id: kindBox
-                        model: util.eventKindLabels()
-                        property var valuesForIndex: util.eventKindValues()
-                        property var lastCurrentIndex: -1
-                        Layout.maximumWidth: root.fieldWidth - 28
-                        Layout.minimumWidth: root.fieldWidth - 28
-                        KeyNavigation.tab: personPicker.firstTabItem
-                        KeyNavigation.backtab: notesEdit
-                        // property var firstInSections: [5, 11]
-                        delegate: ItemDelegate {
-                            width: ListView.view.width
-                            text: kindBox.textRole ? (Array.isArray(kindBox.model) ? modelData[kindBox.textRole] : model[kindBox.textRole]) : modelData
-                            palette.text: kindBox.palette.text
-                            palette.highlightedText: kindBox.palette.highlightedText
-                            font.weight: kindBox.currentIndex === index ? Font.DemiBold : Font.Normal
-                            highlighted: kindBox.highlightedIndex === index
-                            hoverEnabled: kindBox.hoverEnabled
-                            Rectangle {
-                                x: 0
-                                y: 0
-                                width: parent.width
-                                height: 1
-                                color: util.QML_ACTIVE_TEXT_COLOR
-                                visible: index == 5 || index == 11
-                            }
-                        }
-                        onCurrentIndexChanged: {
-                            if (currentIndex != lastCurrentIndex) {
-                                lastCurrentIndex = currentIndex
-                                root.kind = currentValue()
-                                descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
-                            }
-                        }
-                        function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
-                        function clear() { currentIndex = -1 }
-                        function currentValue() {
-                            if(currentIndex == -1) {
-                                return null
-                            } else {
-                                return valuesForIndex[currentIndex]
-                            }
-                        }
-                    }
-
-                    PK.HelpText {
-                        id: kindHelpText
-                        text: util.S_EVENT_KIND_HELP_TEXT
-                        visible: text != ''
-                        Layout.columnSpan: 2
-                    }
-
-                    // ////////////////////////////////////////////////
-
-                    PK.FormDivider {
-                        Layout.columnSpan: 2
-                    }
-
-                    // Person
-
-                    PK.Text {
-                        id: personLabel
-                        text: 'Person'
-                        visible: util.isMonadicEventKind(root.kind)
-                    }
-
-                    PK.FormField {
-                        id: personField
-                        visible: personLabel.visible
-                        backTabItem: kindBox
-                        tabItem: peopleField.firstTabItem
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
-                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                        PK.PersonPicker {
-                            id: personPicker
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            border.width: 1
-                            border.color: util.QML_ITEM_BORDER_COLOR
-                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                        }
-                    }
-
                     // People
 
                     PK.Text {
                         id: peopleLabel
                         text: 'People'
-                        visible: root.kind == util.EventKind.CustomIndividual
                     }
 
                     PK.FormField {
                         id: peopleField
                         visible: peopleLabel.visible
                         backTabItem: personField.lastTabItem
-                        tabItem: personAField.firstTabItem
+                        tabItem: parentAField.firstTabItem
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         Layout.minimumHeight: peoplePicker.height
@@ -471,121 +382,6 @@ PK.Drawer {
                         }
                     }
 
-                    // Person A
-
-                    PK.Text {
-                        id: personALabel
-                        text: util.isChildEventKind(root.kind) ? 'Parent A' : 'Person A'
-                        visible: util.isPairBondEventKind(root.kind) || util.isChildEventKind(root.kind)
-                    }
-
-                    PK.FormField {
-                        id: personAField
-                        visible: personALabel.visible
-                        backTabItem: peopleField.lastTabItem
-                        tabItem: personBField.firstTabItem
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
-                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        PK.PersonPicker {
-                            id: personAPicker
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            border.width: 1
-                            border.color: util.QML_ITEM_BORDER_COLOR
-                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        }
-                    }
-
-                    // Person B
-
-                    PK.Text {
-                        id: personBLabel
-                        text: util.isChildEventKind(root.kind) ? 'Parent B' : 'Person B'
-                        visible: personALabel.visible
-                    }
-
-                    PK.FormField {
-                        id: personBField
-                        visible: personALabel.visible
-                        backTabItem: personAField.lastTabItem
-                        tabItem: moversField.firstTabItem
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
-                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        PK.PersonPicker {
-                            id: personBPicker
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            border.width: 1
-                            border.color: util.QML_ITEM_BORDER_COLOR
-                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        }
-                    }
-
-                    // Mover(s)
-
-                    PK.Text {
-                        id: moversLabel
-                        text: 'Mover(s)'
-                        visible: util.isDyadicEventKind(root.kind)
-                    }
-
-                    PK.FormField {
-                        id: moversField
-                        visible: moversLabel.visible
-                        backTabItem: personBField.lastTabItem
-                        tabItem: receiversField.firstTabItem
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
-                        Layout.minimumHeight: moversPicker.height
-                        Layout.maximumHeight: moversPicker.height
-                        PK.PeoplePicker {
-                            id: moversPicker
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                        }
-                    }
-
-                    // Receiver(s)
-
-                    PK.Text {
-                        id: receiversLabel
-                        visible: moversLabel.visible
-                        text: 'Receiver(s)'
-                    }
-
-                    PK.FormField {
-                        id: receiversField
-                        visible: moversLabel.visible
-                        backTabItem: moversField.lastTabItem
-                        tabItem: descriptionField.firstTabItem
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
-                        Layout.minimumHeight: receiversPicker.height
-                        Layout.maximumHeight: receiversPicker.height
-                        PK.PeoplePicker {
-                            id: receiversPicker
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
-                        }
-                    }
-
-                    PK.HelpText {
-                        id: peopleHelpText
-                        text: util.S_PEOPLE_HELP_TEXT
-                        visible: text != '' && kindBox.kindBox != -1
-                        Layout.columnSpan: 2
-                    }
-
                     // ////////////////////////////////////////////////
 
                     PK.FormDivider {
@@ -597,12 +393,10 @@ PK.Drawer {
                     PK.Text {
                         id: descriptionLabel
                         text: "Description"
-                        visible: util.isCustomEventKind(root.kind)
                     }
 
                     PK.FormField {
                         id: descriptionField
-                        visible: descriptionLabel.visible
                         KeyNavigation.backtab: receiversPicker.lastTabItem
                         KeyNavigation.tab: startDateButtons.firstTabItem
                         tabItem: startDateButtons.firstTabItem
@@ -746,8 +540,8 @@ PK.Drawer {
 
                     PK.Text {
                         id: isDateRangeLabel
-                        text: "Is Date Range"
-                        visible: util.isDyadicEventKind(root.kind) || root.kind == util.EventKind.Cutoff
+                        text: " "
+                        visible: util.isDyadicLifeChange(root.kind) || root.kind == util.LifeChange.Cutoff
                     }
 
                     PK.CheckBox {
@@ -767,7 +561,7 @@ PK.Drawer {
 
                     PK.Text {
                         id: locationLabel
-                        text: kindBox.valuesForIndex[kindBox.currentIndex] == util.EventKind.Moved ? "Destination" : "Location"
+                        text: kindBox.valuesForIndex[kindBox.currentIndex] == util.LifeChange.Moved ? "Destination" : "Location"
                     }
 
                     PK.FormField {
@@ -799,56 +593,174 @@ PK.Drawer {
 
                     PK.FormDivider {
                         Layout.columnSpan: 2
-                        visible: ! util.isRSymbolEventKind(root.kind)
-                    }
-                    
-                    PK.Text {
-                        text: "Δ Anxiety"
-                        visible: ! util.isRSymbolEventKind(root.kind)
-                    }
-
-                    PK.VariableBox {
-                        id: anxietyBox
-                        visible: ! util.isRSymbolEventKind(root.kind)
-                        Layout.fillWidth: true
-                        tabItem: functioningBox.firstTabItem
-                        backTabItem: locationField.lastTabItem
-                    }
-
-                    PK.HelpText {
-                        text: util.S_ANXIETY_HELP_TEXT
-                        visible: ! util.isRSymbolEventKind(root.kind)
-                        Layout.columnSpan: 2
-                        Layout.fillWidth: true
                     }
 
                     PK.Text {
-                        text: "Δ Functioning"
-                        visible: ! util.isRSymbolEventKind(root.kind)
+                        id: lifeChangeLabel
+                        text: "Life Change"
                     }
 
-                    PK.VariableBox {
-                        id: functioningBox
-                        visible: ! util.isRSymbolEventKind(root.kind)
-                        Layout.fillWidth: true
-                        backTabItem: anxietyBox.lastTabItem
-                        tabItem: symptomBox.firstTabItem
+                    PK.ComboBox {
+                        id: lifeChangeBox
+                        model: ListModel {
+                            ListElement { label: "Birth"; value: 'birth' }
+                            ListElement { label: "Adopted"; value: 'adopted' }
+                            ListElement { label: "Death"; value: 'death' }
+                            ListElement { label: "Bonded"; value: 'bonded' }
+                            ListElement { label: "Married"; value: 'married' }
+                            ListElement { label: "Separated"; value: 'separated' }
+                            ListElement { label: "Divorced"; value: 'divorced' }
+                            ListElement { label: "Moved"; value: 'moved' }
+                        }
+                        property var lastCurrentIndex: -1
+                        Layout.maximumWidth: root.fieldWidth - 28
+                        Layout.minimumWidth: root.fieldWidth - 28
+                        KeyNavigation.tab: personPicker.firstTabItem
+                        KeyNavigation.backtab: notesEdit
+                        // property var firstInSections: [5, 11]
+                        // delegate: ItemDelegate {
+                        //     width: ListView.view.width
+                        //     text: lifeChangeBox.textRole ? (Array.isArray(lifeChangeBox.model) ? modelData[lifeChangeBox.textRole] : model[lifeChangeBox.textRole]) : modelData
+                        //     palette.text: lifeChangeBox.palette.text
+                        //     palette.highlightedText: lifeChangeBox.palette.highlightedText
+                        //     font.weight: lifeChangeBox.currentIndex === index ? Font.DemiBold : Font.Normal
+                        //     highlighted: lifeChangeBox.highlightedIndex === index
+                        //     hoverEnabled: lifeChangeBox.hoverEnabled
+                        //     Rectangle {
+                        //         x: 0
+                        //         y: 0
+                        //         width: parent.width
+                        //         height: 1
+                        //         color: util.QML_ACTIVE_TEXT_COLOR
+                        //         visible: index == 5 || index == 11
+                        //     }
+                        // }
+                        onCurrentIndexChanged: {
+                            if (currentIndex != lastCurrentIndex) {
+                                lastCurrentIndex = currentIndex
+                                root.kind = currentValue()
+                                descriptionEdit.text = util.eventKindEventLabelFor(currentValue())
+                            }
+                        }
+                        function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
+                        function clear() { currentIndex = -1 }
+                        function currentValue() {
+                            if(currentIndex == -1) {
+                                return null
+                            } else {
+                                return valuesForIndex[currentIndex]
+                            }
+                        }
                     }
 
                     PK.HelpText {
-                        text: util.S_FUNCTIONING_HELP_TEXT
-                        visible: ! util.isRSymbolEventKind(root.kind)
+                        id: kindHelpText
+                        text: util.S_EVENT_KIND_HELP_TEXT
+                        visible: text != ''
                         Layout.columnSpan: 2
-                        Layout.fillWidth: true
                     }
+
+                    // Parent A
+
+                    PK.Text {
+                        id: parentALabel
+                        text: 'Parent A'
+                        visible: ['birth', 'adopted'].indexOf(root.lifeChange) != -1
+                    }
+
+                    PK.FormField {
+                        id: parentAField
+                        visible: parentALabel.visible
+                        backTabItem: peopleField.lastTabItem
+                        tabItem: parentBField.firstTabItem
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        PK.PersonPicker {
+                            id: personAPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        }
+                    }
+
+                    // Parent B
+
+                    PK.Text {
+                        id: parentBLabel
+                        text: 'Parent B'
+                        visible: ['birth', 'adopted'].indexOf(root.lifeChange) != -1
+                    }
+
+                    PK.FormField {
+                        id: parentBField
+                        visible: parentBLabel.visible
+                        backTabItem: parentBField.lastTabItem
+                        tabItem: moversField.firstTabItem
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        PK.PersonPicker {
+                            id: personBPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        }
+                    }
+
+                    // Spouse
+
+                    PK.Text {
+                        id: spouseLabel
+                        text: 'Spouse'
+                        visible: ['birth', 'adopted'].indexOf(root.lifeChange) != -1
+                    }
+
+                    PK.FormField {
+                        id: spouseField
+                        visible: spouseLabel.visible
+                        backTabItem: spouseField.lastTabItem
+                        tabItem: moversField.firstTabItem
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        PK.PersonPicker {
+                            id: personBPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        }
+                    }
+
+
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                    }
+
+                    /////////////////////////////////////////////////
+                    // Variables
+                    /////////////////////////////////////////////////
+
+                    // Symptom
+
                     PK.Text {
                         text: "Δ Symptom"
-                        visible: ! util.isRSymbolEventKind(root.kind)
                     }
 
                     PK.VariableBox {
                         id: symptomBox
-                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.fillWidth: true
                         backTabItem: functioningBox.lastTabItem
                         tabItem: nodalBox
@@ -856,9 +768,196 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_SYMPTOM_HELP_TEXT
-                        visible: ! util.isRSymbolEventKind(root.kind)
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
+                    }
+
+                    // Anxiety
+
+                    PK.Text {
+                        text: "Δ Anxiety"
+                    }
+
+                    PK.VariableBox {
+                        id: anxietyBox
+                        Layout.fillWidth: true
+                        tabItem: functioningBox.firstTabItem
+                        backTabItem: locationField.lastTabItem
+                    }
+
+                    PK.HelpText {
+                        text: util.S_ANXIETY_HELP_TEXT
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                    }
+
+                    // Functioning
+
+                    PK.Text {
+                        text: "Δ Functioning"
+                    }
+
+                    PK.VariableBox {
+                        id: functioningBox
+                        Layout.fillWidth: true
+                        backTabItem: anxietyBox.lastTabItem
+                        tabItem: symptomBox.firstTabItem
+                    }
+
+                    PK.HelpText {
+                        text: util.S_FUNCTIONING_HELP_TEXT
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                    }
+
+                    // Relationship
+
+                    PK.Text {
+                        text: "Δ Relationship"
+                    }
+
+                    PK.ComboBox {
+                        id: relationshipBox
+                        model: ListModel {
+                            ListElement { label: "Conflict"; value: util.ITEM_CONFLICT }
+                            ListElement { label: "Distance"; value: util.ITEM_DISTANCE }
+                            ListElement { label: "Reciprocity"; value: util.ITEM_RECIPROCITY }
+                            ListElement { label: "Child-Focus"; value: util.ITEM_PROJECTION }
+                            ListElement { label: "Cutoff"; value: util.ITEM_CUTOFF }
+                            ListElement { label: "Triangle, to inside"; value: util.ITEM_INSIDE }
+                            ListElement { label: "Triangle, to outside"; value: util.ITEM_OUTSIDE }
+                            ListElement { label: "Toward"; value: util.ITEM_TOWARD }
+                            ListElement { label: "Away"; value: util.ITEM_AWAY }
+                        }
+                        property var lastCurrentIndex: -1
+                        Layout.maximumWidth: root.fieldWidth - 28
+                        Layout.minimumWidth: root.fieldWidth - 28
+                        KeyNavigation.tab: nodalBox
+                        KeyNavigation.backtab: functioningBox.lastTabItem
+                        // delegate: ItemDelegate {
+                        //     width: ListView.view.width
+                        //     text: kindBox.textRole ? (Array.isArray(kindBox.model) ? modelData[kindBox.textRole] : model[kindBox.textRole]) : modelData
+                        //     palette.text: kindBox.palette.text
+                        //     palette.highlightedText: kindBox.palette.highlightedText
+                        //     font.weight: kindBox.currentIndex === index ? Font.DemiBold : Font.Normal
+                        //     highlighted: kindBox.highlightedIndex === index
+                        //     hoverEnabled: kindBox.hoverEnabled
+                        //     Rectangle {
+                        //         x: 0
+                        //         y: 0
+                        //         width: parent.width
+                        //         height: 1
+                        //         color: util.QML_ACTIVE_TEXT_COLOR
+                        //         visible: index == 5 || index == 11
+                        //     }
+                        // }
+                        onCurrentIndexChanged: {
+                            if (currentIndex != lastCurrentIndex) {
+                                lastCurrentIndex = currentIndex
+                                root.relationship = selectedValue
+                            }
+                        }
+                        function clear() { currentIndex = -1 }
+                        function currentValue() {
+                            return selectedValue
+                            if(currentIndex == -1) {
+                                return null
+                            } else {
+                                return model.get(currentIndex).value
+                            }
+                        }
+                    }                    
+
+                    // Inside(s)
+
+                    PK.Text {
+                        id: insidesLabel
+                        text: 'Inside(s)'
+                        visible: root.relationship == util.ITEM_INSIDE || root.relationship == util.ITEM_OUTSIDE
+                    }
+
+                    PK.FormField {
+                        id: insidesField
+                        visible: insidesLabel.visible
+                        backTabItem: spouseField.lastTabItem
+                        tabItem: outsidesField.firstTabItem
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: insidesPicker.height
+                        Layout.maximumHeight: insidesPicker.height
+                        PK.PeoplePicker {
+                            id: insidesPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                        }
+                    }
+
+                    // Outside(s)
+
+                    PK.Text {
+                        id: outsidesLabel
+                        text: 'Outside(s)'
+                        visible: root.relationship == util.ITEM_INSIDE || root.relationship == util.ITEM_OUTSIDE
+                    }
+
+                    PK.FormField {
+                        id: outsidesField
+                        visible: outsidesLabel.visible
+                        backTabItem: parentBField.lastTabItem
+                        tabItem: receiversField.firstTabItem
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: outsidesPicker.height
+                        Layout.maximumHeight: outsidesPicker.height
+                        PK.PeoplePicker {
+                            id: outsidesPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                            Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                        }
+                    }
+
+                    // Person B
+
+                    PK.Text {
+                        id: personBLabel
+                        text: {
+                            if([util.ITEM_CONFLICT, util.ITEM_DISTANCE, util.ITEM_RECIPROCITY].indexOf(root.relationship) != -1) {
+                                return "Recipient"
+                            } else if(root.relationship == util.ITEM_RECIPROCITY) {
+                                return "Overfunctioner"
+                            } else if(root.relationship == util.ITEM_PROJECTION) {
+                                return "Focused"
+                            } else if(root.relationship == util.ITEM_DEFINED_SELF) {
+                                return "Defined Self"
+                            } else {
+                                return "???"
+                            }
+                        }
+                        visible: [util.ITEM_CONFLICT, util.ITEM_DISTANCE, util.ITEM_RECIPROCITY, util.ITEM_PROJECTION, util.ITEM_DEFINED_SELF].indexOf(root.relationship) != -1
+                    }
+
+                    PK.FormField {
+                        id: personBField
+                        visible: personBLabel.visible
+                        backTabItem: peopleField.lastTabItem
+                        tabItem: parentBField.firstTabItem
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        PK.PersonPicker {
+                            id: personAPicker
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        }
                     }
 
                     PK.Text {

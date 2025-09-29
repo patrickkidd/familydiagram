@@ -3,14 +3,14 @@ from datetime import datetime
 
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
-from pkdiagram.scene import EventKind, Item, Property
+from pkdiagram.scene import LifeChange, Item, Property
 from pkdiagram.scene.commands import SetEventParent
 
 
 class Event(Item):
     """
     Canonical way to add:
-        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), uniqueId=EventKind.Birth.value)
+        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), uniqueId=LifeChange.Birth.value)
         scene.addItem(event)
 
     Events are also added / removed from the scene whenever the parent is added / removed from the scene.
@@ -26,7 +26,7 @@ class Event(Item):
             {"attr": "color", "type": str, "default": None},
             {"attr": "parentName"},
             {"attr": "location"},
-            {"attr": "uniqueId"},  # TODO: Rename to `kind`, one of EventKind
+            {"attr": "uniqueId"},  # TODO: Rename to `lifeChange`, one of LifeChange
             {"attr": "includeOnDiagram", "default": False},
         )
     )
@@ -86,64 +86,64 @@ class Event(Item):
                 return False
             elif self.parent.isPerson:
                 if (
-                    self.uniqueId() == EventKind.Birth.value
-                    and other.uniqueId() == EventKind.Adopted.value
+                    self.uniqueId() == LifeChange.Birth.value
+                    and other.uniqueId() == LifeChange.Adopted.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Birth.value
-                    and other.uniqueId() == EventKind.Death.value
+                    self.uniqueId() == LifeChange.Birth.value
+                    and other.uniqueId() == LifeChange.Death.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Adopted.value
-                    and other.uniqueId() == EventKind.Birth.value
+                    self.uniqueId() == LifeChange.Adopted.value
+                    and other.uniqueId() == LifeChange.Birth.value
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Adopted.value
-                    and other.uniqueId() == EventKind.Death.value
+                    self.uniqueId() == LifeChange.Adopted.value
+                    and other.uniqueId() == LifeChange.Death.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Death.value
-                    and other.uniqueId() == EventKind.Birth.value
+                    self.uniqueId() == LifeChange.Death.value
+                    and other.uniqueId() == LifeChange.Birth.value
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Death.value
-                    and other.uniqueId() == EventKind.Adopted.value
+                    self.uniqueId() == LifeChange.Death.value
+                    and other.uniqueId() == LifeChange.Adopted.value
                 ):
                     return False
             elif self.parent.isMarriage:
                 if (
-                    self.uniqueId() == EventKind.Married.value
-                    and other.uniqueId() == EventKind.Separated.value
+                    self.uniqueId() == LifeChange.Married.value
+                    and other.uniqueId() == LifeChange.Separated.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Married.value
-                    and other.uniqueId() == EventKind.Divorced.value
+                    self.uniqueId() == LifeChange.Married.value
+                    and other.uniqueId() == LifeChange.Divorced.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Separated.value
-                    and other.uniqueId() == EventKind.Married.value
+                    self.uniqueId() == LifeChange.Separated.value
+                    and other.uniqueId() == LifeChange.Married.value
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Separated.value
-                    and other.uniqueId() == EventKind.Divorced.value
+                    self.uniqueId() == LifeChange.Separated.value
+                    and other.uniqueId() == LifeChange.Divorced.value
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Divorced.value
-                    and other.uniqueId() == EventKind.Married.value
+                    self.uniqueId() == LifeChange.Divorced.value
+                    and other.uniqueId() == LifeChange.Married.value
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Divorced.value
-                    and other.uniqueId() == EventKind.Separated.value
+                    self.uniqueId() == LifeChange.Divorced.value
+                    and other.uniqueId() == LifeChange.Separated.value
                 ):
                     return False
         if self.uniqueId() and not other.uniqueId():
@@ -186,7 +186,7 @@ class Event(Item):
             self._do_setParent(parent)
 
     def onProperty(self, prop):
-        if prop.name() == "location" and self.uniqueId() == EventKind.Moved.value:
+        if prop.name() == "location" and self.uniqueId() == LifeChange.Moved.value:
             if not self._onShowAliases:
                 self.updateDescription()
         elif prop.name() == "notes":
@@ -295,20 +295,20 @@ class Event(Item):
         ret = None
         if self.parent:
             if self.parent.isPerson:
-                if uniqueId == EventKind.Birth.value:
+                if uniqueId == LifeChange.Birth.value:
                     ret = util.BIRTH_TEXT
-                elif uniqueId == EventKind.Adopted.value:
+                elif uniqueId == LifeChange.Adopted.value:
                     ret = util.ADOPTED_TEXT
-                elif uniqueId == EventKind.Death.value:
+                elif uniqueId == LifeChange.Death.value:
                     ret = util.DEATH_TEXT
             elif self.parent.isMarriage:
-                if uniqueId == EventKind.Bonded.value:
+                if uniqueId == LifeChange.Bonded.value:
                     ret = "Bonded"
-                elif uniqueId == EventKind.Married.value:
+                elif uniqueId == LifeChange.Married.value:
                     ret = "Married"
-                elif uniqueId == EventKind.Divorced.value:
+                elif uniqueId == LifeChange.Divorced.value:
                     ret = "Divorced"
-                elif uniqueId == EventKind.Separated.value:
+                elif uniqueId == LifeChange.Separated.value:
                     ret = "Separated"
                 elif uniqueId == "moved":
                     if self.location():

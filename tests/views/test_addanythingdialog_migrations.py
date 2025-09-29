@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from pkdiagram.scene import EventKind, Person
+from pkdiagram.scene import LifeChange, Person
 
 from tests.widgets import waitForPersonPickers
 from tests.views.test_addanythingdialog import view
@@ -18,32 +18,32 @@ pytestmark = [
 @pytest.mark.parametrize(
     "kind",
     [
-        EventKind.CustomIndividual,
-        EventKind.Married,
-        EventKind.Conflict,
-        EventKind.Adopted,
+        LifeChange.CustomIndividual,
+        LifeChange.Married,
+        LifeChange.Conflict,
+        LifeChange.Adopted,
     ],
 )
 def test_migrate_from_birth(scene, view, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personB = scene.addItem(Person(name="Josephina", lastName="Donner"))
     personC = scene.addItem(Person(name="Josephine", lastName="Donner"))
-    view.set_kind(EventKind.Birth)
+    view.set_kind(LifeChange.Birth)
     view.personPicker.set_existing_person(personA)
     view.personAPicker.set_existing_person(personB)
     view.personBPicker.set_existing_person(personC)
     view.set_kind(kind)
     waitForPersonPickers()
-    if kind == EventKind.CustomIndividual:
+    if kind == LifeChange.CustomIndividual:
         assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
             personA.id,
             personB.id,
             personC.id,
         }
-    elif kind == EventKind.Married:
+    elif kind == LifeChange.Married:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
-    elif kind == EventKind.Conflict:
+    elif kind == LifeChange.Conflict:
         assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
             personA.id
         }
@@ -51,33 +51,33 @@ def test_migrate_from_birth(scene, view, kind):
             personB.id,
             personC.id,
         }
-    elif kind == EventKind.Adopted:
+    elif kind == LifeChange.Adopted:
         assert view.item.personEntry().toVariant()["person"] == personA
         assert view.personAPicker.item.property("isSubmitted") == False
         assert view.personBPicker.item.property("isSubmitted") == False
 
 
 @pytest.mark.parametrize(
-    "kind", [EventKind.Birth, EventKind.Married, EventKind.Conflict]
+    "kind", [LifeChange.Birth, LifeChange.Married, LifeChange.Conflict]
 )
 def test_migrate_from_custom_individual(scene, view, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personB = scene.addItem(Person(name="Josephina", lastName="Donner"))
     personC = scene.addItem(Person(name="Josephine", lastName="Donner"))
-    view.set_kind(EventKind.CustomIndividual)
+    view.set_kind(LifeChange.CustomIndividual)
     view.peoplePicker.add_existing_person(personA)
     view.peoplePicker.add_existing_person(personB)
     view.peoplePicker.add_existing_person(personC)
     view.set_kind(kind)
     waitForPersonPickers()
-    if kind == EventKind.Birth:
+    if kind == LifeChange.Birth:
         assert view.item.personEntry().toVariant()["person"] == personA
         assert view.item.personAEntry().toVariant()["person"] == personB
         assert view.item.personBEntry().toVariant()["person"] == personC
-    elif kind == EventKind.Married:
+    elif kind == LifeChange.Married:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
-    elif kind == EventKind.Conflict:
+    elif kind == LifeChange.Conflict:
         assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
             personA.id
         }
@@ -90,68 +90,73 @@ def test_migrate_from_custom_individual(scene, view, kind):
 @pytest.mark.parametrize(
     "kind",
     [
-        EventKind.Birth,
-        EventKind.CustomIndividual,
-        EventKind.Conflict,
-        EventKind.Separated,
+        LifeChange.Birth,
+        LifeChange.CustomIndividual,
+        LifeChange.Conflict,
+        LifeChange.Separated,
     ],
 )
 def test_migrate_from_pairbond(scene, view, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personB = scene.addItem(Person(name="Josephina", lastName="Donner"))
-    view.set_kind(EventKind.Married)
+    view.set_kind(LifeChange.Married)
     view.personAPicker.set_existing_person(personA)
     view.personBPicker.set_existing_person(personB)
     view.set_kind(kind)
     waitForPersonPickers()
-    if kind == EventKind.Birth:
+    if kind == LifeChange.Birth:
         assert view.item.personEntry().toVariant()["person"] == personA
         assert view.item.personAEntry().toVariant()["person"] == personB
         assert view.item.personBEntry().toVariant()["person"] == None
-    elif kind == EventKind.CustomIndividual:
+    elif kind == LifeChange.CustomIndividual:
         assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
             personA.id,
             personB.id,
         }
-    elif kind == EventKind.Conflict:
+    elif kind == LifeChange.Conflict:
         assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
             personA.id
         }
         assert {x["person"].id for x in view.item.receiverEntries().toVariant()} == {
             personB.id
         }
-    elif kind == EventKind.Separated:
+    elif kind == LifeChange.Separated:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
 
 
 @pytest.mark.parametrize(
     "kind",
-    [EventKind.Birth, EventKind.CustomIndividual, EventKind.Married, EventKind.Away],
+    [
+        LifeChange.Birth,
+        LifeChange.CustomIndividual,
+        LifeChange.Married,
+        LifeChange.Away,
+    ],
 )
 def test_migrate_from_dyadic(scene, view, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personB = scene.addItem(Person(name="Josephina", lastName="Donner"))
     personC = scene.addItem(Person(name="Josephine", lastName="Donner"))
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(LifeChange.Conflict)
     view.moversPicker.add_existing_person(personA)
     view.moversPicker.add_existing_person(personB)
     view.receiversPicker.add_existing_person(personC)
     view.set_kind(kind)
     waitForPersonPickers()
-    if kind == EventKind.Birth:
+    if kind == LifeChange.Birth:
         assert view.item.personEntry().toVariant()["person"] == personA
         assert view.item.personAEntry().toVariant()["person"] == personB
         assert view.item.personBEntry().toVariant()["person"] == None
-    elif kind == EventKind.CustomIndividual:
+    elif kind == LifeChange.CustomIndividual:
         assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
             personA.id,
             personB.id,
         }
-    elif kind == EventKind.Married:
+    elif kind == LifeChange.Married:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
-    elif kind == EventKind.Away:
+    elif kind == LifeChange.Away:
         assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
             personA.id,
             personB.id,

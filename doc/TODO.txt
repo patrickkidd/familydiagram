@@ -1,11 +1,48 @@
 v2.0.0
 =============================================================================
 
-Priority
+Fix Event/Emotion relationship
 ------------------------------------
-- MUST Create relationship field in add form
+- Create relationship field in add form
   - When setting R type, just change fields to match
-- Need to re-use add form when editing event.
+- Re-use add form when editing event.
+- Eliminate confusing R symbol event relationship
+- Can add multiple events for different people, just choose how to show them
+- Focus person field in PersonPicker on clear
+- Event
+  - Person(s)
+  - When
+    - Is Date Range
+  --------------
+  - Symptom
+  - Anxiety
+  - Relationship (store emotion object, link events)
+    - Conflict, Distance, Defined-Self
+      - personB (Recipient)
+    - Reciprocity
+      - personB (Overfunctioner)
+    - Child-Focus
+      - personB (Focused)
+    - Cutoff
+    - Triangle, to inside
+      - inside(s)
+      - outside(s)
+    - Triangle, to outside
+      - inside(s)
+      - outside(s)
+  - Functioning
+  --------------
+  - Life Change
+    - Birth, Adopted
+      - Parent A
+      - Parent B
+    - Death
+    - Bonded, Married, Separated, Divorced, Moved
+      - personB (Spouse)
+  - Location
+  - Details
+
+
 
 BUGS
 ------------------------------------

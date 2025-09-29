@@ -11,7 +11,7 @@ from pkdiagram.scene import (
     ChildOf,
     MultipleBirth,
     Layer,
-    EventKind,
+    LifeChange,
 )
 
 
@@ -753,7 +753,7 @@ def test_ChildOf_delete_undo_redo(qtbot):
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=QDateTime(util.Date(1900, 1, 1)),
     )
     twinA.setParents(marriage)
@@ -808,7 +808,7 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=QDateTime(util.Date(1900, 1, 1)),
     )
     twinA.setParents(marriage)
@@ -863,7 +863,7 @@ def test_hide_ChildOf_honor_marriage_tags():
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1", tags=["here"])
@@ -895,7 +895,7 @@ def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     twinA.setParents(marriage)
@@ -925,7 +925,7 @@ def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     marriage = Marriage(parentA, parentB)
     marriedEvent = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        uniqueId=LifeChange.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     twinA.setParents(marriage)

@@ -11,7 +11,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
 )
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Person, Emotion, Event, Marriage
+from pkdiagram.scene import LifeChange, Person, Emotion, Event, Marriage
 from pkdiagram.views import QmlDrawer
 
 _log = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ class AddAnythingDialog(QmlDrawer):
         if self.item.property("kind") is None:
             kind = None
         else:
-            kind = EventKind(self.item.property("kind"))
+            kind = LifeChange(self.item.property("kind"))
         personEntry = self.personEntry()
         personAEntry = self.personAEntry()
         personBEntry = self.personBEntry()
@@ -177,17 +177,17 @@ class AddAnythingDialog(QmlDrawer):
         moversPicker = self.item.property("moversPicker")
         receiversPicker = self.item.property("receiversPicker")
 
-        def _isPickerRequired(kind: EventKind, pickerName: str):
-            if EventKind.isMonadic(kind) and pickerName == "personPicker":
+        def _isPickerRequired(kind: LifeChange, pickerName: str):
+            if LifeChange.isMonadic(kind) and pickerName == "personPicker":
                 return True
-            elif kind == EventKind.CustomIndividual and pickerName == "peoplePicker":
+            elif kind == LifeChange.CustomIndividual and pickerName == "peoplePicker":
                 return True
-            elif EventKind.isPairBond(kind) and pickerName in (
+            elif LifeChange.isPairBond(kind) and pickerName in (
                 "personAPicker",
                 "personBPicker",
             ):
                 return True
-            elif EventKind.isDyadic(kind) and pickerName in (
+            elif LifeChange.isDyadic(kind) and pickerName in (
                 "moversPicker",
                 "receiversPicker",
             ):
@@ -256,22 +256,22 @@ class AddAnythingDialog(QmlDrawer):
             kindValue = self.item.property("kind")
             if not kindValue:
                 return
-            kind = EventKind(kindValue)
+            kind = LifeChange(kindValue)
             ret = None
 
             # Refactor with _isPickerRequired?
-            if kind == EventKind.CustomIndividual:
+            if kind == LifeChange.CustomIndividual:
                 if not peopleEntries:
                     ret = "peopleLabel"
-            elif EventKind.isMonadic(kind):
+            elif LifeChange.isMonadic(kind):
                 if not personPicker.property("isSubmitted"):
                     ret = "personLabel"
-            elif EventKind.isPairBond(kind):
+            elif LifeChange.isPairBond(kind):
                 if not personAPicker.property("isSubmitted"):
                     ret = "personALabel"
                 elif not personBPicker.property("isSubmitted"):
                     ret = "personBLabel"
-            elif EventKind.isDyadic(kind):
+            elif LifeChange.isDyadic(kind):
                 if not moverEntries:
                     ret = "moversLabel"
                 elif not receiverEntries:
@@ -307,14 +307,14 @@ class AddAnythingDialog(QmlDrawer):
 
         # Validation: Confirmations
 
-        if EventKind.isMonadic(kind):
+        if LifeChange.isMonadic(kind):
             person = personEntry.get("person")
             if person:
                 if any(
                     [
-                        kind == EventKind.Birth and person.birthDateTime(),
-                        kind == EventKind.Adopted and person.adoptedDateTime(),
-                        kind == EventKind.Death and person.deceasedDateTime(),
+                        kind == LifeChange.Birth and person.birthDateTime(),
+                        kind == LifeChange.Adopted and person.adoptedDateTime(),
+                        kind == LifeChange.Death and person.deceasedDateTime(),
                     ]
                 ):
                     button = QMessageBox.question(
@@ -325,7 +325,7 @@ class AddAnythingDialog(QmlDrawer):
                     if button == QMessageBox.NoButton:
                         return
 
-        elif EventKind.isDyadic(kind):
+        elif LifeChange.isDyadic(kind):
             numSymbols = len(moverEntries) * len(receiverEntries)
             if numSymbols > 3:
                 button = QMessageBox.question(
@@ -336,7 +336,7 @@ class AddAnythingDialog(QmlDrawer):
                 if button == QMessageBox.NoButton:
                     return
 
-        elif kind == EventKind.CustomIndividual:
+        elif kind == LifeChange.CustomIndividual:
             numSymbols = len(peopleEntries)
             if numSymbols > 3:
                 button = QMessageBox.question(
@@ -362,7 +362,7 @@ class AddAnythingDialog(QmlDrawer):
         if self.item.property("kind") is None:
             kind = None
         else:
-            kind = EventKind(self.item.property("kind"))
+            kind = LifeChange(self.item.property("kind"))
         personEntry = self.personEntry()
         personAEntry = self.personAEntry()
         personBEntry = self.personBEntry()
@@ -409,7 +409,7 @@ class AddAnythingDialog(QmlDrawer):
                     existingPeople.append(entry["person"])
             return existingPeople, newPeople
 
-        if EventKind.isMonadic(kind):
+        if LifeChange.isMonadic(kind):
             existingPersons, newPersons = _entries2People([personEntry])
             if existingPersons:
                 person = existingPersons[0]
@@ -426,10 +426,10 @@ class AddAnythingDialog(QmlDrawer):
             else:
                 parentB = newPersonsB[0]
             newPeople = newPersons + newPersonsA + newPersonsB
-        elif kind == EventKind.CustomIndividual:
+        elif kind == LifeChange.CustomIndividual:
             existingPeople, newPeople = _entries2People(peopleEntries)
             people = existingPeople + newPeople
-        elif EventKind.isPairBond(kind):
+        elif LifeChange.isPairBond(kind):
             existingPeopleA, newPeopleA = _entries2People([personAEntry])
             if existingPeopleA:
                 personA = existingPeopleA[0]
@@ -441,7 +441,7 @@ class AddAnythingDialog(QmlDrawer):
             else:
                 personB = newPeopleB[0]
             newPeople = newPeopleA + newPeopleB
-        elif EventKind.isDyadic(kind):
+        elif LifeChange.isDyadic(kind):
             existingMovers, newMovers = _entries2People(moverEntries)
             existingReceivers, newReceivers = _entries2People(receiverEntries)
             movers = existingMovers + newMovers
@@ -469,15 +469,15 @@ class AddAnythingDialog(QmlDrawer):
 
         newEvents = []
 
-        if EventKind.isMonadic(kind):
-            if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
+        if LifeChange.isMonadic(kind):
+            if kind in (LifeChange.Birth, LifeChange.Adopted, LifeChange.Death):
                 event = None
-                if kind == EventKind.Birth:
+                if kind == LifeChange.Birth:
                     event = person.birthEvent
-                elif kind == EventKind.Adopted:
+                elif kind == LifeChange.Adopted:
                     event = person.adoptedEvent
                     person.setAdopted(True)
-                elif kind == EventKind.Death:
+                elif kind == LifeChange.Death:
                     event = person.deathEvent
                 event.setDateTime(startDateTime, undo=True)
                 if location:
@@ -489,15 +489,15 @@ class AddAnythingDialog(QmlDrawer):
 
                 # Prevent the new person being invisible.
                 if (
-                    kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death)
+                    kind in (LifeChange.Birth, LifeChange.Adopted, LifeChange.Death)
                     and self.scene.currentDateTime() < startDateTime
                 ):
                     self.scene.setCurrentDateTime(startDateTime, undo=True)
 
                 # Optional: Add Parents
                 if (parentA or parentB) and kind in (
-                    EventKind.Birth,
-                    EventKind.Adopted,
+                    LifeChange.Birth,
+                    LifeChange.Adopted,
                 ):
                     if parentB and parentB.gender() == util.PERSON_KIND_MALE:
                         personAKind = util.PERSON_KIND_FEMALE
@@ -535,7 +535,7 @@ class AddAnythingDialog(QmlDrawer):
                         self.scene.addItem(marriage, undo=True)
                         newMarriages.append(marriage)
                     person.setParents(marriage, undo=True)
-            elif kind == EventKind.Cutoff:
+            elif kind == LifeChange.Cutoff:
                 kwargs = {"endDateTime": endDateTime} if isDateRange else {}
                 if notes:
                     kwargs["notes"] = notes
@@ -551,7 +551,7 @@ class AddAnythingDialog(QmlDrawer):
                 if emotion.endEvent.dateTime():
                     newEvents.append(emotion.endEvent)
 
-        elif kind == EventKind.CustomIndividual:
+        elif kind == LifeChange.CustomIndividual:
             kwargs = {"location": location} if location else {}
             for person in people:
                 event = Event(
@@ -565,7 +565,7 @@ class AddAnythingDialog(QmlDrawer):
                 self.scene.addItem(event, undo=True)
                 newEvents.append(event)
 
-        elif EventKind.isPairBond(kind):
+        elif LifeChange.isPairBond(kind):
             marriage = Marriage.marriageForSelection([personA, personB])
             if not marriage:
                 # Generally there is only one marriage item per person. Multiple
@@ -576,7 +576,7 @@ class AddAnythingDialog(QmlDrawer):
                 newMarriages.append(marriage)
 
             kwargs = {"endDateTime": endDateTime} if isDateRange else {}
-            if kind == EventKind.CustomPairBond:
+            if kind == LifeChange.CustomPairBond:
                 kwargs["description"] = description
             else:
                 kwargs["uniqueId"] = kind.value
@@ -592,8 +592,8 @@ class AddAnythingDialog(QmlDrawer):
             self.scene.addItem(event, undo=True)
             newEvents.append(event)
 
-        elif EventKind.isDyadic(kind):
-            itemMode = EventKind.itemModeFor(kind)
+        elif LifeChange.isDyadic(kind):
+            itemMode = LifeChange.itemModeFor(kind)
             if isDateRange:
                 kwargs = {"endDateTime": endDateTime}
             else:
@@ -621,7 +621,7 @@ class AddAnythingDialog(QmlDrawer):
                     emotion.endEvent.setNotes(notes)
                     newEvents.append(emotion.endEvent)
         else:
-            raise ValueError(f"Don't know how to handle EventKind {kind}")
+            raise ValueError(f"Don't know how to handle LifeChange {kind}")
 
         for event in newEvents:
             if anxiety is not None:
@@ -633,7 +633,7 @@ class AddAnythingDialog(QmlDrawer):
 
         # Arrange people
         spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else None
-        if EventKind.isMonadic(kind):
+        if LifeChange.isMonadic(kind):
 
             def _arrange_parents(childPos, parentA, parentB):
                 if parentA.gender() == util.PERSON_KIND_MALE:
@@ -691,7 +691,7 @@ class AddAnythingDialog(QmlDrawer):
                 else:
                     person.setItemPosNow(QPointF((xRight - xLeft) / 2, parentAPos.y()))
 
-        elif EventKind.isPairBond(kind):
+        elif LifeChange.isPairBond(kind):
             if {personA, personB} == set(newPeople):
                 personA.setItemPosNow(QPointF(-spacing, 0))
                 personB.setItemPosNow(QPointF(spacing, 0))
@@ -705,7 +705,7 @@ class AddAnythingDialog(QmlDrawer):
                     personB.setItemPosNow(personA.pos() + QPointF(-spacing * 2, 0))
                 else:
                     personB.setItemPosNow(personA.pos() + QPointF(spacing * 2, 0))
-        elif EventKind.isDyadic(kind):
+        elif LifeChange.isDyadic(kind):
             newMovers = [x for x in movers if x in newPeople]
             newReceivers = [x for x in receivers if x in newPeople]
             existingMovers = [x for x in movers if x not in newPeople]
@@ -720,7 +720,7 @@ class AddAnythingDialog(QmlDrawer):
                 receiver.setItemPosNow(
                     receiverReference + QPointF(spacing, i * (spacing))
                 )
-        elif kind == EventKind.CustomIndividual:
+        elif kind == LifeChange.CustomIndividual:
             existingPeople = [x for x in people if x not in newPeople]
             peopleReference = existingPeople[0].pos() if existingPeople else QPointF()
             for i, person in enumerate(newPeople):

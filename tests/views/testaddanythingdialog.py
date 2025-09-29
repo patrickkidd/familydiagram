@@ -11,7 +11,7 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QDateTime,
 )
-from pkdiagram.scene import EventKind, Person, Marriage, PathItem
+from pkdiagram.scene import LifeChange, Person, Marriage, PathItem
 from pkdiagram.views import AddAnythingDialog
 
 from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
@@ -128,9 +128,9 @@ class TestAddAnythingDialog:
         ), f"Could not find genderBox for {peoplePicker}:{personIndex}"
         self.view.clickComboBoxItem(picker, genderLabel)
 
-    def set_kind(self, kind: EventKind):
+    def set_kind(self, kind: LifeChange):
         self.view.clickComboBoxItem(
-            self.kindBox, EventKind.menuLabelFor(kind), force=False
+            self.kindBox, LifeChange.menuLabelFor(kind), force=False
         )
 
     def set_description(self, description: str):
@@ -333,7 +333,7 @@ class TestAddAnythingDialog:
     # scripts
 
     def add_person_by_birth(self, personName: str, startDateTime) -> Person:
-        self.set_kind(EventKind.Birth)
+        self.set_kind(LifeChange.Birth)
         self.personPicker.set_new_person(personName)
         self.set_startDateTime(startDateTime)
         self.clickAddButton()
@@ -342,7 +342,7 @@ class TestAddAnythingDialog:
 
     def add_marriage_to_person(self, person: Person, spouseName, startDateTime):
         pre_marriages = set(person.marriages)
-        self.set_kind(EventKind.Married)
+        self.set_kind(LifeChange.Married)
         self.set_existing_person(self.personAPicker, person)
         self.personBPicker.set_new_person(spouseName)
         self.set_startDateTime(startDateTime)
@@ -350,7 +350,9 @@ class TestAddAnythingDialog:
         spouse = self.view.scene.query1(methods={"fullNameOrAlias": spouseName})
         return (set(person.marriages) - pre_marriages).pop()
 
-    def add_event_to_marriage(self, marriage: Marriage, kind: EventKind, startDateTime):
+    def add_event_to_marriage(
+        self, marriage: Marriage, kind: LifeChange, startDateTime
+    ):
         pre_events = set(marriage.events())
         self.set_kind(kind)
         self.set_existing_person(self.personAPicker, marriage.personA())

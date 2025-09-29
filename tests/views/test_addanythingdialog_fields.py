@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, EventKind
+from pkdiagram.scene import Person, Marriage, LifeChange
 
 
 from .test_addanythingdialog import view
@@ -18,18 +18,18 @@ pytestmark = [
 
 
 def test_init_no_selection(view):
-    assert [i for i in view.kindBox.property("model")] == EventKind.menuLabels()
+    assert [i for i in view.kindBox.property("model")] == LifeChange.menuLabels()
     assert view.item.property("kind") == None
 
 
 def test_init_with_existing_person(scene, view):
-    assert [i for i in view.kindBox.property("model")] == EventKind.menuLabels()
+    assert [i for i in view.kindBox.property("model")] == LifeChange.menuLabels()
     person = scene.addItem(
         Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
     )
     view.initForSelection([person])
     peopleEntries = view.item.peopleEntries().toVariant()
-    assert view.item.property("kind") == EventKind.CustomIndividual.value
+    assert view.item.property("kind") == LifeChange.CustomIndividual.value
     assert len(peopleEntries) == 1
     assert peopleEntries[0]["person"] == person
     assert peopleEntries[0]["gender"] == util.PERSON_KIND_FEMALE
@@ -41,7 +41,7 @@ def test_init_with_pairbond_people_selected(scene, view):
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItems(personA, personB, marriage)
     view.initForSelection([personA, personB])
-    assert view.item.property("kind") == EventKind.CustomPairBond.value
+    assert view.item.property("kind") == LifeChange.CustomPairBond.value
     assert view.personAPicker.item.property("person") == personA
     assert view.personBPicker.item.property("person") == personB
 
@@ -52,7 +52,7 @@ def test_init_with_pairbond_selected(scene, view):
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItems(personA, personB, marriage)
     view.initForSelection([marriage])
-    assert view.item.property("kind") == EventKind.CustomPairBond.value
+    assert view.item.property("kind") == LifeChange.CustomPairBond.value
     assert view.personAPicker.item.property("person") == personA
     assert view.personBPicker.item.property("person") == personB
 
@@ -64,7 +64,7 @@ def test_init_with_individuals_selected(scene, view):
     personD = Person(name="Josephine", lastName="Donner")
     scene.addItems(personA, personB, personC, personD)
     view.initForSelection([personA, personB, personC])
-    assert view.item.property("kind") == EventKind.CustomIndividual.value
+    assert view.item.property("kind") == LifeChange.CustomIndividual.value
     assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
         personA.id,
         personB.id,
@@ -72,57 +72,57 @@ def test_init_with_individuals_selected(scene, view):
     }
 
 
-@pytest.mark.parametrize("kind", [x for x in EventKind])
+@pytest.mark.parametrize("kind", [x for x in LifeChange])
 def test_fields_for_kind(view, kind):
-    view.view.clickComboBoxItem(view.kindBox, EventKind.menuLabelFor(kind))
-    assert view.personLabel.property("visible") == EventKind.isMonadic(kind)
-    assert view.personPicker.item.property("visible") == EventKind.isMonadic(kind)
+    view.view.clickComboBoxItem(view.kindBox, LifeChange.menuLabelFor(kind))
+    assert view.personLabel.property("visible") == LifeChange.isMonadic(kind)
+    assert view.personPicker.item.property("visible") == LifeChange.isMonadic(kind)
 
-    assert view.peopleLabel.property("visible") == (kind == EventKind.CustomIndividual)
+    assert view.peopleLabel.property("visible") == (kind == LifeChange.CustomIndividual)
     assert view.peoplePicker.item.property("visible") == (
-        kind == EventKind.CustomIndividual
+        kind == LifeChange.CustomIndividual
     )
 
     assert (
         view.item.property("personALabel").property("text") == "Person A"
-        if EventKind.isPairBond(kind)
+        if LifeChange.isPairBond(kind)
         else "Parent A"
     )
     assert (
         view.item.property("personBLabel").property("text") == "Person B"
-        if EventKind.isPairBond(kind)
+        if LifeChange.isPairBond(kind)
         else "Parent B"
     )
     assert view.item.property("personALabel").property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+        LifeChange.isPairBond(kind) or LifeChange.isChild(kind)
     )
     assert view.personAPicker.item.property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+        LifeChange.isPairBond(kind) or LifeChange.isChild(kind)
     )
     assert view.item.property("personBLabel").property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+        LifeChange.isPairBond(kind) or LifeChange.isChild(kind)
     )
     assert view.personBPicker.item.property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
+        LifeChange.isPairBond(kind) or LifeChange.isChild(kind)
     )
 
-    assert view.moversLabel.property("visible") == EventKind.isDyadic(kind)
-    assert view.moversPicker.item.property("visible") == EventKind.isDyadic(kind)
-    assert view.receiversLabel.property("visible") == EventKind.isDyadic(kind)
-    assert view.receiversPicker.item.property("visible") == EventKind.isDyadic(kind)
+    assert view.moversLabel.property("visible") == LifeChange.isDyadic(kind)
+    assert view.moversPicker.item.property("visible") == LifeChange.isDyadic(kind)
+    assert view.receiversLabel.property("visible") == LifeChange.isDyadic(kind)
+    assert view.receiversPicker.item.property("visible") == LifeChange.isDyadic(kind)
 
     assert view.item.property("descriptionLabel").property(
         "visible"
-    ) == EventKind.isCustom(kind)
-    assert view.descriptionEdit.property("visible") == EventKind.isCustom(kind)
+    ) == LifeChange.isCustom(kind)
+    assert view.descriptionEdit.property("visible") == LifeChange.isCustom(kind)
 
-    assert view.item.property("anxietyBox").property("visible") != EventKind.isRSymbol(
+    assert view.item.property("anxietyBox").property("visible") != LifeChange.isRSymbol(
         kind
     )
     assert view.item.property("functioningBox").property(
         "visible"
-    ) != EventKind.isRSymbol(kind)
-    assert view.item.property("symptomBox").property("visible") != EventKind.isRSymbol(
+    ) != LifeChange.isRSymbol(kind)
+    assert view.item.property("symptomBox").property("visible") != LifeChange.isRSymbol(
         kind
     )
 
@@ -142,7 +142,7 @@ def test_endDateTime_pickers(view):
 
     DATE_TIME = util.Date(2023, 2, 1)
 
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(LifeChange.Conflict)
     view.set_endDateTime(DATE_TIME)
 
     # util.dumpWidget(view)
@@ -158,7 +158,7 @@ def test_endDateTime_pickers(view):
 # def test_person_help_text_add_one_person(qtbot, view):
 #     _set_required_fields(view, people=False, fillRequired=False)
 #     _add_new_person(view)
-#     view.clickComboBoxItem("kindBox", EventKind.Birth.name)
+#     view.clickComboBoxItem("kindBox", LifeChange.Birth.name)
 #     assert (
 #         view.eventHelpText.property("text")
 #         == AddAnythingDialog.S_EVENT_MULTIPLE_INDIVIDUALS
@@ -170,7 +170,7 @@ def test_endDateTime_pickers(view):
 #     _add_new_person(view, firstName="John", lastName="Doe")
 #     _add_new_person(view, firstName="Jane", lastName="Doe")
 #     _add_new_person(view, firstName="Joseph", lastName="Belgard")
-#     view.clickComboBoxItem("kindBox", EventKind.Birth.name)
+#     view.clickComboBoxItem("kindBox", LifeChange.Birth.name)
 #     assert (
 #         view.eventHelpText.property("text")
 #         == AddAnythingDialog.S_EVENT_MULTIPLE_INDIVIDUALS
