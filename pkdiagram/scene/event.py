@@ -414,22 +414,22 @@ class Event(Item):
     def functioning(self):
         return self.dynamicProperty(util.ATTR_FUNCTIONING).get()
 
-    def setSymptom(self, value, notify=True):
-        self.dynamicProperty(util.ATTR_SYMPTOM).set(value, notify=notify)
+    def setSymptom(self, value, notify=True, undo=False):
+        self.dynamicProperty(util.ATTR_SYMPTOM).set(value, notify=notify, undo=undo)
 
-    def setAnxiety(self, value, notify=True):
-        self.dynamicProperty(util.ATTR_ANXIETY).set(value, notify=notify)
+    def setAnxiety(self, value, notify=True, undo=False):
+        self.dynamicProperty(util.ATTR_ANXIETY).set(value, notify=notify, undo=undo)
 
-    def setRelationship(self, value: RelationshipKind, notify=True):
-        self.dynamicProperty(util.ATTR_RELATIONSHIP).set(value.value, notify=notify)
+    def setRelationship(self, value: RelationshipKind, notify=True, undo=False):
+        self.dynamicProperty(util.ATTR_RELATIONSHIP).set(value.value, notify=notify, undo=undo)
 
-    def setRelationshipTargets(self, targets: list["Person"], notify=True):
+    def setRelationshipTargets(self, targets: list["Person"], notify=True, undo=False):
         if not isinstance(targets, list):
             targets = [targets]
         ids = []
         for person in targets:
             ids.append(person.id)
-        self.prop("relationshipTargets").set(ids, notify=notify)
+        self.prop("relationshipTargets").set(ids, notify=notify, undo=undo)
 
     def relationshipTargets(self) -> list["Person"]:
         from pkdiagram.scene import Person
@@ -439,13 +439,13 @@ class Event(Item):
             return []
         return self.scene().find(ids=ids, types=Person)
 
-    def setRelationshipTriangles(self, triangles: list, notify=True):
+    def setRelationshipTriangles(self, triangles: list, notify=True, undo=False):
         if not isinstance(triangles, list):
             triangles = [triangles]
         ids = []
         for person in triangles:
             ids.append(person.id)
-        self.prop("relationshipTriangles").set(ids, notify=notify)
+        self.prop("relationshipTriangles").set(ids, notify=notify, undo=undo)
 
     def relationshipTriangles(self) -> list:
         from pkdiagram.scene import Person
@@ -455,5 +455,5 @@ class Event(Item):
             return []
         return self.scene().find(ids=ids, types=Person)
 
-    def setFunctioning(self, value, notify=True):
-        self.dynamicProperty(util.ATTR_FUNCTIONING).set(value, notify=notify)
+    def setFunctioning(self, value, notify=True, undo=False):
+        self.dynamicProperty(util.ATTR_FUNCTIONING).set(value, notify=notify, undo=undo)

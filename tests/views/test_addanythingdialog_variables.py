@@ -11,8 +11,13 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 
 @pytest.mark.parametrize("isDateRange", [True, False])
 def test_add_variables(scene, view, isDateRange):
+    person = scene.addItem(Person(name="John Doe"))
+    scene.addEventProperty(util.ATTR_SYMPTOM)
+    scene.addEventProperty(util.ATTR_ANXIETY)
+    scene.addEventProperty(util.ATTR_RELATIONSHIP)
+    scene.addEventProperty(util.ATTR_FUNCTIONING)
     view.set_kind(EventKind.VariableShift)
-    view.personPicker.set_new_person("John Doe")
+    view.personPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
     if isDateRange:
         view.set_endDateTime(END_DATETIME)
@@ -30,7 +35,7 @@ def test_add_variables(scene, view, isDateRange):
         util.ATTR_RELATIONSHIP,
         util.ATTR_FUNCTIONING,
     ]
-    event = scene.events()[0]
+    event = person.emotions()[0].events()[0]
     assert event.symptom() == util.VAR_SYMPTOM_UP
     assert event.anxiety() == util.VAR_ANXIETY_DOWN
     assert event.relationship() == RelationshipKind.Conflict
@@ -50,6 +55,7 @@ def test_existing_variables(scene, view):
     view.set_anxiety(util.VAR_ANXIETY_DOWN)
     view.set_relationship(RelationshipKind.Conflict)
     view.targetsPicker.add_new_person("Jane Doe")
+    view.set_description("Some description")
     view.set_functioning(util.VAR_FUNCTIONING_SAME)
     view.clickAddButton()
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
@@ -59,7 +65,7 @@ def test_existing_variables(scene, view):
         util.ATTR_RELATIONSHIP,
         util.ATTR_FUNCTIONING,
     ]
-    event = person.events()[0]
+    event = person.emotions()[0].events()[0]
     assert event.symptom() == util.VAR_SYMPTOM_UP
     assert event.anxiety() == util.VAR_ANXIETY_DOWN
     assert event.relationship() == RelationshipKind.Conflict

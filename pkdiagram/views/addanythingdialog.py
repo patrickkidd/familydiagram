@@ -514,8 +514,10 @@ class AddAnythingDialog(QmlDrawer):
                 child.setAdopted(True)
             elif kind == EventKind.Death:
                 event = person.deathEvent
+                person.setDeceased(True)
 
             event.setDateTime(startDateTime, undo=True)
+            events.append(event)
 
         elif kind and spouse:
             marriage = Marriage.marriageForSelection([person, spouse])
@@ -541,7 +543,7 @@ class AddAnythingDialog(QmlDrawer):
             self.scene.addItem(event, undo=True)
             events.append(event)
 
-        elif relationship:
+        elif kind == EventKind.VariableShift and relationship:
             itemMode = relationship.itemMode()
             if isDateRange:
                 kwargs = {"endDateTime": endDateTime}
@@ -588,7 +590,7 @@ class AddAnythingDialog(QmlDrawer):
             if relationship is not None:
                 event.setRelationship(relationship)
                 if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
-                    event.setRelationshipTriangle(triangles, undo=True)
+                    event.setRelationshipTriangles(triangles, undo=True)
             if functioning is not None:
                 event.setFunctioning(functioning)
             event.setTags(tags, undo=True)

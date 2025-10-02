@@ -14,7 +14,7 @@ pytestmark = [
 ]
 
 
-def test_parents_to_existing_person(scene, view):
+def test_Birth_default_parents_parents_to_existing_person(scene, view):
     submitted = util.Condition(view.view.submitted)
 
     person = Person(name="John", lastName="Doe")
@@ -23,12 +23,12 @@ def test_parents_to_existing_person(scene, view):
     assert person.scenePos() == QPointF(0, 0)
 
     view.set_kind(EventKind.Birth)
-    view.personPicker.set_existing_person(person=person)
     view.personPicker.set_new_person("Father Doe")
     view.spousePicker.set_new_person(
         "Mother Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
     )
+    view.childPicker.set_existing_person(person=person)
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
     assert submitted.wait() == True
@@ -39,12 +39,12 @@ def test_parents_to_existing_person(scene, view):
     assert mother.scenePos() == QPointF(SPACING, -SPACING * 1.5)
 
 
-def test_add_via_birth_with_two_parents(scene, view):
+def test_Birth_add_via_birth_one_default_parent(scene, view):
     submitted = util.Condition(view.view.submitted)
 
     view.set_kind(EventKind.Birth)
-    view.personPicker.set_new_person("Son Doe")
-    view.spousePicker.set_new_person("Father Doe")
+    view.personPicker.set_new_person("Father Doe")
+    view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
     assert submitted.wait() == True

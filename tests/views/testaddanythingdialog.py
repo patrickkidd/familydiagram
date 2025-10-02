@@ -143,6 +143,9 @@ class TestAddAnythingDialog:
     def set_description(self, description: str):
         self.view.keyClicksItem(self.descriptionEdit, description)
 
+    def set_location(self, location: str):
+        self.view.keyClicksItem(self.locationEdit, location)
+
     # def set_new_person(
     #     self,
     #     personPicker: str,

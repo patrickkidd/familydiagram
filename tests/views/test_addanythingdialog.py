@@ -54,33 +54,72 @@ def test_init(qmlEngine, view, editorMode):
     assert view.rootProp("tagsLabel").property("visible") == editorMode
 
 
-@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
+@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
 def test_attrs(scene, view, kind: EventKind):
     mother = scene.addItem(Person(name="Mother"))
     view.initForSelection([])
     view.set_kind(kind)
     view.personPicker.set_existing_person(mother)
-    if kind not in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-        view.set_description("Some description")
     view.set_startDateTime(START_DATETIME)
     view.set_location("Somewhere")
     view.set_notes("Some notes")
     view.clickAddButton()
 
-    child = mother.marriages().children()
+    child = mother.marriages[0].children[0]
     assert child.name() == None
     event = child.events()[0]
     assert event.uniqueId() == kind.value
-    if kind not in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-        assert event.description() == "Some description"
-    else:
-        assert event.description() == kind.name
+    assert event.description() == kind.name
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
-    if kind == EventKind.Adopted:
+    if kind == EventKind.Birth:
+        assert child.birthDateTime() == START_DATETIME
+    elif kind == EventKind.Adopted:
         assert child.adopted() == True
         assert child.adoptedDateTime() == START_DATETIME
     elif kind == EventKind.Death:
         assert child.deceased() == True
         assert child.deathDateTime() == START_DATETIME
+    assert scene.currentDateTime() == START_DATETIME
+
+
+def test_attrs_Death(scene, view):
+    person = scene.addItem(Person(name="John Doe"))
+    view.initForSelection([])
+    view.set_kind(EventKind.Death)
+    view.personPicker.set_existing_person(person)
+    view.set_startDateTime(START_DATETIME)
+    view.set_location("Somewhere")
+    view.set_notes("Some notes")
+    view.clickAddButton()
+
+    event = person.events()[0]
+    assert event.uniqueId() == EventKind.Death.value
+    assert event.description() == EventKind.Death.name
+    assert event.location() == "Somewhere"
+    assert event.notes() == "Some notes"
+    assert person.deceased() == True
+    assert person.deceasedDateTime() == START_DATETIME
+    assert scene.currentDateTime() == START_DATETIME
+
+
+def test_attrs_VariableShift(scene, view):
+    mother = scene.addItem(Person(name="Mother"))
+    view.initForSelection([])
+    view.set_kind(EventKind.VariableShift)
+    view.personPicker.set_existing_person(mother)
+    view.set_relationship(RelationshipKind.Inside)
+    view.targetsPicker.add_new_person("Jane Doe")
+    view.trianglesPicker.add_new_person("John Doe")
+    view.set_description("Some description")
+    view.set_startDateTime(START_DATETIME)
+    view.set_location("Somewhere")
+    view.set_notes("Some notes")
+    view.clickAddButton()
+
+    event = mother.emotions()[0].events()[0]
+    assert event.uniqueId() == EventKind.VariableShift.value
+    assert event.description() == RelationshipKind.Inside.name
+    assert event.location() == "Somewhere"
+    assert event.notes() == "Some notes"
     assert scene.currentDateTime() == START_DATETIME
