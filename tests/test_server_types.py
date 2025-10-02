@@ -13,6 +13,6 @@ def test_nonBlocking_response_body():
     BODY = b"Hello, World!"
 
     server = Server()
-    response = server.blockingRequest("GET", "/hello")
+    response = server.blockingRequest("GET", "/health")
     assert response.status_code == 200
     assert response.body == BODY
