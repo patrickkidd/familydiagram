@@ -1,9 +1,10 @@
 import logging
 
 import pytest
+from mock import patch
 
 from pkdiagram import util
-from pkdiagram.scene import Person, LifeChange
+from pkdiagram.scene import Person, EventKind
 from pkdiagram.views import AddAnythingDialog
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
@@ -25,11 +26,22 @@ def test_required_field_kind(view):
     view.expectedFieldLabel(view.item.property("kindLabel"))
 
 
+def test_Monadic_only_one_person(view):
+    view.set_life_change(EventKind.Birth)
+    with patch("PyQt5.QtWidgets.QMessageBox.critical") as critical:
+        view.clickAddButton()
+    assert critical.call_count == 1
+    assert (
+        critical.call_args[0][2]
+        == AddAnythingDialog.S_EVENT_MONADIC_MULTIPLE_INDIVIDUALS
+    )
+
+
 def test_required_field_Monadic(view):
 
     submitted = util.Condition(view.view.submitted)
 
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
 
     view.expectedFieldLabel(view.item.property("personLabel"))
     view.personPicker.set_new_person("John Doe")
@@ -44,13 +56,13 @@ def test_required_field_Monadic(view):
 def test_required_field_CustomIndividual(view):
     submitted = util.Condition(view.view.submitted)
 
-    view.set_kind(LifeChange.CustomIndividual)
+    view.set_kind(EventKind.CustomIndividual)
 
     view.expectedFieldLabel(view.item.property("peopleLabel"))
     view.peoplePicker.add_new_person("John Doe")
 
     view.expectedFieldLabel(view.item.property("descriptionLabel"))
-    view.set_description("Some description")
+    view.set_summary("Some description")
 
     view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
     view.set_startDateTime(START_DATETIME)
@@ -64,7 +76,7 @@ def test_required_field_Dyadic(view, endDateTime):
 
     submitted = util.Condition(view.view.submitted)
 
-    view.set_kind(LifeChange.Conflict)
+    view.set_kind(EventKind.Conflict)
 
     view.expectedFieldLabel(view.item.property("moversLabel"))
     view.moversPicker.add_new_person("John Doe")
@@ -87,7 +99,7 @@ def test_required_field_Dyadic(view, endDateTime):
 def test_required_field_PairBond(view):
     submitted = util.Condition(view.view.submitted)
 
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
 
     view.expectedFieldLabel(view.item.property("personALabel"))
     view.personAPicker.set_new_person("John Doe")
@@ -102,18 +114,16 @@ def test_required_field_PairBond(view):
     assert submitted.wait() == True
 
 
-@pytest.mark.parametrize(
-    "kind", [LifeChange.Birth, LifeChange.Adopted, LifeChange.Death]
-)
+@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
 def test_confirm_replace_singular_events(qtbot, scene, view, kind):
     PRIOR_DATETIME = util.Date(2011, 1, 1)
     submitted = util.Condition(view.view.submitted)
     person = scene.addItem(Person(name="John", lastName="Doe"))
-    if kind == LifeChange.Birth:
+    if kind == EventKind.Birth:
         person.setBirthDateTime(PRIOR_DATETIME)
-    elif kind == LifeChange.Adopted:
+    elif kind == EventKind.Adopted:
         person.setAdoptedDateTime(PRIOR_DATETIME)
-    elif kind == LifeChange.Death:
+    elif kind == EventKind.Death:
         person.setDeceasedDateTime(PRIOR_DATETIME)
     view.set_kind(kind)
     view.personPicker.set_existing_person(person)
@@ -123,11 +133,11 @@ def test_confirm_replace_singular_events(qtbot, scene, view, kind):
         text=AddAnythingDialog.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
     )
     assert submitted.callCount == 1
-    if kind == LifeChange.Birth:
+    if kind == EventKind.Birth:
         assert person.birthDateTime() == START_DATETIME
-    elif kind == LifeChange.Adopted:
+    elif kind == EventKind.Adopted:
         assert person.adoptedDateTime() == START_DATETIME
-    elif kind == LifeChange.Death:
+    elif kind == EventKind.Death:
         assert person.deceasedDateTime() == START_DATETIME
 
 
@@ -141,7 +151,7 @@ def test_confirm_adding_many_dyadic_symbols(qtbot, scene, view):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*(peopleA + peopleB))
-    view.set_kind(LifeChange.Reciprocity)
+    view.set_kind(EventKind.VariableShift)
     view.moversPicker.add_existing_person(peopleA[0])
     view.moversPicker.add_existing_person(peopleA[1])
     view.receiversPicker.add_existing_person(peopleB[0])
@@ -164,13 +174,13 @@ def test_confirm_adding_many_individual_events(qtbot, scene, view):
         Person(name="Jill", lastName="Doe"),
     ]
     scene.addItems(*people)
-    view.set_kind(LifeChange.CustomIndividual)
+    view.set_kind(EventKind.CustomIndividual)
     view.peoplePicker.add_existing_person(people[0])
     view.peoplePicker.add_existing_person(people[1])
     view.peoplePicker.add_existing_person(people[2])
     view.peoplePicker.add_existing_person(people[3])
     view.set_startDateTime(START_DATETIME)
-    view.set_description(DESCRIPTION)
+    view.set_summary(DESCRIPTION)
     qtbot.clickYesAfter(
         lambda: view.clickAddButton(),
         text=AddAnythingDialog.S_ADD_MANY_SYMBOLS.format(numSymbols=4),
@@ -186,7 +196,7 @@ def test_confirm_adding_many_individual_events(qtbot, scene, view):
 
 def test_add_dyadic_event_with_one_person_selected(qtbot, scene, view):
     person = scene.addItem(Person(name="John", lastName="Doe"))
-    view.set_kind(LifeChange.Conflict)
+    view.set_kind(EventKind.Conflict)
     view.moversPicker.add_existing_person(person)
     name = view.item.property("receiversLabel").property("text")
     expectedText = AddAnythingDialog.S_REQUIRED_FIELD_ERROR.format(name=name)
@@ -197,7 +207,7 @@ def test_add_dyadic_event_with_one_person_selected(qtbot, scene, view):
 
 
 def test_add_dyadic_event_with_three_people_selected(qtbot, view):
-    view.set_kind(LifeChange.Away)
+    view.set_kind(EventKind.Away)
     view.moversPicker.add_new_person("John Doe")
     view.moversPicker.add_new_person("Jane Doe")
     view.receiversPicker.add_new_person("Jack Doe")
@@ -213,20 +223,20 @@ def test_add_dyadic_event_with_three_people_selected(qtbot, view):
 
 
 def test_person_submitted_Birth_personPicker(view):
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe", returnToFinish=False, resetFocus=True)
     view.pickerNotSubmitted(view.item.property("personLabel"))
 
 
 def test_person_submitted_Birth_personAPicker(view):
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe")
     view.personAPicker.set_new_person("Johnny Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("personALabel"))
 
 
 def test_person_submitted_Birth_personBPicker(view):
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe")
     view.personAPicker.set_new_person("Johnny Doe")
     view.personBPicker.set_new_person("Janet Doe", returnToFinish=False)
@@ -237,7 +247,7 @@ def test_person_submitted_Birth_personBPicker(view):
 
 
 def test_person_submitted_CustomIndividual_personPicker(view):
-    view.set_kind(LifeChange.CustomIndividual)
+    view.set_kind(EventKind.CustomIndividual)
     view.peoplePicker.add_new_person("John Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("peopleLabel"))
 
@@ -246,13 +256,13 @@ def test_person_submitted_CustomIndividual_personPicker(view):
 
 
 def test_person_submitted_Bonded_personAPicker(view):
-    view.set_kind(LifeChange.Bonded)
+    view.set_kind(EventKind.Bonded)
     view.personAPicker.set_new_person("John Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("personALabel"))
 
 
 def test_person_submitted_Bonded_personBPicker(view):
-    view.set_kind(LifeChange.Bonded)
+    view.set_kind(EventKind.Bonded)
     view.personAPicker.set_new_person("John Doe")
     view.personBPicker.set_new_person("Jane Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("personBLabel"))
@@ -262,13 +272,13 @@ def test_person_submitted_Bonded_personBPicker(view):
 
 
 def test_person_submitted_Fusion_moversPicker(view):
-    view.set_kind(LifeChange.Fusion)
+    view.set_kind(EventKind.Fusion)
     view.moversPicker.add_new_person("John Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("moversLabel"))
 
 
 def test_person_submitted_Fusion_receiversPicker(view):
-    view.set_kind(LifeChange.Fusion)
+    view.set_kind(EventKind.Fusion)
     view.moversPicker.add_new_person("John Doe")
     view.receiversPicker.add_new_person("Jane Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("receiversLabel"))

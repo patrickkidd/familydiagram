@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from pkdiagram import util
-from pkdiagram.scene import LifeChange
+from pkdiagram.scene import EventKind
 from pkdiagram.mainwindow import MainWindow
 
 from tests.views import TestAddAnythingDialog
@@ -28,7 +28,7 @@ def test_close_after_adding_lots(
     assert mw.scene != None
     qtbot.clickAndProcessEvents(mw.documentView.view.rightToolBar.addAnythingButton)
     assert mw.documentView.currentDrawer == dlg.view
-    dlg.set_kind(LifeChange.Birth)
+    dlg.set_kind(EventKind.Birth)
     dlg.personPicker.set_new_person("John Doe")
     dlg.personAPicker.set_new_person("Joseph Doe")
     dlg.personBPicker.set_new_person("Josephina Doe")
@@ -38,7 +38,7 @@ def test_close_after_adding_lots(
 
     johnDoe = mw.scene.query1(name="John", lastName="Doe")
     assert mw.documentView.currentDrawer == dlg.view
-    dlg.set_kind(LifeChange.Married)
+    dlg.set_kind(EventKind.Married)
     dlg.personAPicker.set_existing_person(johnDoe)
     dlg.personBPicker.set_new_person("Janet Dowery")
     dlg.set_startDateTime(util.Date(2001, 2, 3))
@@ -49,10 +49,10 @@ def test_close_after_adding_lots(
     assert len(johnDoe.marriages[0].events()) == 1
 
     DESCRIPTION = "asdasdsd ddd"
-    dlg.set_kind(LifeChange.CustomIndividual)
+    dlg.set_kind(EventKind.CustomIndividual)
     dlg.peoplePicker.add_existing_person(johnDoe)
     dlg.set_startDateTime(util.Date(2010, 1, 1))
-    dlg.set_description(DESCRIPTION)
+    dlg.set_summary(DESCRIPTION)
     dlg.set_anxiety(util.VAR_VALUE_UP)
     dlg.clickAddButton()
     assert submitted.callCount == 3

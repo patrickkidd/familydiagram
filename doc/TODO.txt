@@ -10,37 +10,37 @@ Fix Event/Emotion relationship
 - Can add multiple events for different people, just choose how to show them
 - Focus person field in PersonPicker on clear
 - Event
-  - Person(s)
-  - When
-    - Is Date Range
-  --------------
-  - Symptom
-  - Anxiety
-  - Relationship (store emotion object, link events)
-    - Conflict, Distance, Defined-Self
-      - personB (Recipient)
-    - Reciprocity
-      - personB (Overfunctioner)
-    - Child-Focus
-      - personB (Focused)
-    - Cutoff
-    - Triangle, to inside
-      - inside(s)
-      - outside(s)
-    - Triangle, to outside
-      - inside(s)
-      - outside(s)
-  - Functioning
-  --------------
-  - Life Change
-    - Birth, Adopted
-      - Parent A
-      - Parent B
+  - Who
+    - person
+  - What
+    - Bonded, Married, Separated, Divorced, Moved (isPairBond)
+      - single (Spouse; optional=Moved)
+    - Birth, Pregnancy, Adopted (isOffspring)
+      - single (Spouse)
+      - single (Child)
+    - Variable Shift (isVariableShift)
+      - Summary
+      - Symptom
+      - Anxiety
+      - Relationship (store emotion object, link events)
+        - Conflict, Distance (Other(s))
+        - Overfunctioning (Underfunctioner(s))
+        - Underfunctioning (Overfunctioner(s))
+        - Projection (Focused)
+        - Cutoff (HIDDEN)
+        - Triangle, to inside (Outside(s))
+        - Triangle, to outside (Insides(s))
+        - Toward (To)
+        - Away (From)
+        - DefinedSelf (Target(s))
+      - Functioning
     - Death
-    - Bonded, Married, Separated, Divorced, Moved
-      - personB (Spouse)
-  - Location
-  - Details
+  - When
+    - Is Date Range (Disabled: isOffspring, isPairBond, Death)
+  - Where
+    - Location
+  - How
+    - Details
 
 
 

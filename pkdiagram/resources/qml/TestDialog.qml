@@ -14,31 +14,31 @@ ColumnLayout {
 
     PK.Text { text: "Anxiety" }
 
-    PK.VariableBox {
-        id: anxietyBox
-        objectName: "anxietyBox"
+    PK.VariableField {
+        id: anxietyField
+        objectName: "anxietyField"
         Layout.fillWidth: true
-        KeyNavigation.tab: functioningBox
-        // KeyNavigation.backtab: anxietyBox
+        KeyNavigation.tab: functioningField
+        // KeyNavigation.backtab: anxietyField
     }
 
     PK.Text { text: "Functioning" }
 
-    PK.VariableBox {
-        id: functioningBox
-        objectName: "functioningBox"
+    PK.VariableField {
+        id: functioningField
+        objectName: "functioningField"
         Layout.fillWidth: true
-        KeyNavigation.tab: symptomBox
-        // KeyNavigation.backtab: functioningBox
+        KeyNavigation.tab: symptomField
+        // KeyNavigation.backtab: functioningField
     }
 
     PK.Text { text: "Symptom" }
 
-    PK.VariableBox {
-        id: symptomBox
-        objectName: "symptomBox"
+    PK.VariableField {
+        id: symptomField
+        objectName: "symptomField"
         Layout.fillWidth: true
-        KeyNavigation.tab: anxietyBox
-        // KeyNavigation.backtab: functioningBox
+        KeyNavigation.tab: anxietyField
+        // KeyNavigation.backtab: functioningField
     }
 }

@@ -3,7 +3,7 @@ import datetime
 
 from pkdiagram.pyqt import QPointF
 from pkdiagram import util
-from pkdiagram.scene import LifeChange, Person
+from pkdiagram.scene import EventKind, Person
 
 from .test_addanythingdialog import view, START_DATETIME, END_DATETIME
 
@@ -22,7 +22,7 @@ def test_parents_to_existing_person(scene, view):
     SPACING = person.boundingRect().width() * 2
     assert person.scenePos() == QPointF(0, 0)
 
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(person=person)
     view.personAPicker.set_new_person("Father Doe")
     view.personBPicker.set_new_person(
@@ -42,7 +42,7 @@ def test_parents_to_existing_person(scene, view):
 def test_add_via_birth_with_two_parents(scene, view):
     submitted = util.Condition(view.view.submitted)
 
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("Son Doe")
     view.personAPicker.set_new_person("Father Doe")
     view.set_startDateTime(START_DATETIME)

@@ -1228,7 +1228,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "VariableBox.qml"
+name = "VariableField.qml"
 included = true
 is_directory = false
 

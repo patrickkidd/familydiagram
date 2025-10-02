@@ -507,9 +507,9 @@ class SetEventParent(QUndoCommand):
         self.event._do_setParent(self.was_parent)
 
 
-# class SetLifeChange(QUndoCommand):
+# class SetEventKind(QUndoCommand):
 
-#     def __init__(self, events, kind: LifeChange):
+#     def __init__(self, events, kind: EventKind):
 #         super().__init__(f"Set event(s) to {kind.name}")
 #         self.was_kinds
 #         self.event = event

@@ -18,6 +18,7 @@ from pkdiagram.pyqt import (
     QVariant,
     QApplication,
     QPointF,
+    QJSValue,
 )
 from pkdiagram import util
 from pkdiagram.models import QObjectHelper
@@ -501,6 +502,8 @@ class QmlWidgetHelper(QObjectHelper):
             itemTexts = [
                 model.data(model.index(row, 0), role) for row in range(model.rowCount())
             ]
+        elif isinstance(model, QJSValue):
+            itemTexts = [x["name"] for x in model.toVariant()]
         currentIndex = None
         for i, text in enumerate(itemTexts):
             if text == itemText:

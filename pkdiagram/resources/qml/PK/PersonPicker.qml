@@ -80,12 +80,17 @@ Rectangle {
         // print('<<< PersonPicker.clear() root.gender: ' + root.gender + ', ' + genderBox.currentIndex)
     }
 
-    function setFocus() {
+    function focusTextEdit() {
+        util.debug('>>> PersonPicker.focusTextEdit()')
         pickerTextEdit.forceActiveFocus()
+        util.debug('<<< PersonPicker.focusTextEdit()')
     }
 
     function personEntry() {
-        // print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + person.gender())
+        print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + root.gender)
+        if(! root.isSubmitted) {
+            return null
+        }
         return {
             person: root.person,
             personName: root.personName,

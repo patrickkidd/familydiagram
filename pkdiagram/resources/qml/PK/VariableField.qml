@@ -43,7 +43,7 @@ RowLayout {
     PK.ComboBox {
         id: valueBox
         objectName: root.objectName + "_valueBox"
-        width: 100
+        width: 130
         model: boxModel
         focus: true
         currentIndex: {

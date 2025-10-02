@@ -39,4 +39,4 @@ ToolBar 1.0 ToolBar.qml
 ToolButton 1.0 ToolButton.qml
 TimelineView 1.0 TimelineView.qml
 Tumbler 1.0 Tumbler.qml
-VariableBox 1.0 VariableBox.qml
+VariableField 1.0 VariableField.qml

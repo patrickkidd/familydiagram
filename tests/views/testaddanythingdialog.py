@@ -1,6 +1,6 @@
 import logging
 
-import mock
+from mock import patch
 
 from pkdiagram import util
 from pkdiagram.pyqt import (
@@ -11,7 +11,8 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QDateTime,
 )
-from pkdiagram.scene import LifeChange, Person, Marriage, PathItem
+from pkdiagram.scene import EventKind, Person, Marriage, PathItem
+from pkdiagram.scene.relationshipkind import RelationshipKind
 from pkdiagram.views import AddAnythingDialog
 
 from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
@@ -26,45 +27,67 @@ class TestAddAnythingDialog:
         self.view = view
         self.item = view.qml.rootObject()
 
+        # Controls
+
         self.addButton = self.item.property("addButton")
         self.clearButton = self.item.property("clearButton")
         self.cancelButton = self.item.property("cancelButton")
+
+        # Who
+
+        self.personLabel = self.item.property("personLabel")
+        self.spouseLabel = self.item.property("spouseLabel")
+        self.childLabel = self.item.property("childLabel")
+        self.targetsLabel = self.item.property("targetsLabel")
+
+        self.personPicker = TestPersonPicker(
+            self.view, self.item.property("personPicker")
+        )
+        self.spousePicker = TestPersonPicker(
+            self.view, self.item.property("spousePicker")
+        )
+        self.childPicker = TestPersonPicker(
+            self.view, self.item.property("childPicker")
+        )
+        self.targetsPicker = TestPeoplePicker(
+            self.view, self.item.property("targetsPicker")
+        )
+
+        # What
+
         self.kindBox = self.item.property("kindBox")
         self.descriptionEdit = self.item.property("descriptionEdit")
+        self.symptomField = self.item.property("symptomField")
+        self.anxietyField = self.item.property("anxietyField")
+        self.relationshipField = self.item.property("relationshipField")
+        self.functioningField = self.item.property("functioningField")
+
+        self.symptomLabel = self.item.property("symptomLabel")
+        self.anxietyLabel = self.item.property("anxietyLabel")
+        self.relationshipLabel = self.item.property("relationshipLabel")
+        self.functioningLabel = self.item.property("functioningLabel")
+
+        # When
+
         self.startDateButtons = self.item.property("startDateButtons")
         self.startDatePicker = self.item.property("startDatePicker")
         self.startTimePicker = self.item.property("startTimePicker")
         self.endDateButtons = self.item.property("endDateButtons")
         self.endDatePicker = self.item.property("endDatePicker")
         self.endTimePicker = self.item.property("endTimePicker")
-        self.locationEdit = self.item.property("locationEdit")
-        self.tagsEdit = self.item.property("tagsEdit")
-        self.notesEdit = self.item.property("notesEdit")
         self.isDateRangeBox = self.item.property("isDateRangeBox")
 
-        self.personPicker = TestPersonPicker(
-            self.view, self.item.property("personPicker")
-        )
-        self.personAPicker = TestPersonPicker(
-            self.view, self.item.property("personAPicker")
-        )
-        self.personBPicker = TestPersonPicker(
-            self.view, self.item.property("personBPicker")
-        )
-        self.peoplePicker = TestPeoplePicker(
-            self.view, self.item.property("peoplePicker")
-        )
-        self.moversPicker = TestPeoplePicker(
-            self.view, self.item.property("moversPicker")
-        )
-        self.receiversPicker = TestPeoplePicker(
-            self.view, self.item.property("receiversPicker")
-        )
+        # Where
 
-        self.personLabel = self.item.property("personLabel")
-        self.peopleLabel = self.item.property("peopleLabel")
-        self.moversLabel = self.item.property("moversLabel")
-        self.receiversLabel = self.item.property("receiversLabel")
+        self.locationEdit = self.item.property("locationEdit")
+
+        # How
+
+        self.notesEdit = self.item.property("notesEdit")
+
+        # Meta
+
+        self.tagsEdit = self.item.property("tagsEdit")
 
     # QmlWidgetHelper passthrough
 
@@ -85,25 +108,8 @@ class TestAddAnythingDialog:
     def initForSelection(self, selection: list[PathItem]):
         if Marriage.marriageForSelection(selection):
             self.view.initForSelection(selection)
-            # personAPickerItem = self.view.findItem("personAPicker")
-            # itemAddDoneA = util.Condition(personAPickerItem.itemAddDone)
-            # personBPickerItem = self.view.findItem("personBPicker")
-            # itemAddDoneB = util.Condition(personBPickerItem.itemAddDone)
-            # while itemAddDoneA.callCount < 1:
-            #     _log.info(f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals")
-            #     assert itemAddDoneA.wait() == True
-            # while itemAddDoneB.callCount < 1:
-            #     assert itemAddDoneB.wait() == True
         else:
-            itemAddDone = util.Condition(self.peoplePicker.item.itemAddDone)
             self.view.initForSelection(selection)
-            while itemAddDone.callCount < len(selection):
-                _log.info(
-                    f"Waiting for {len(selection) - itemAddDone.callCount} / {len(selection)} itemAddDone signals"
-                )
-                assert (
-                    itemAddDone.wait() == True
-                ), f"itemAddDone signal not emitted, called {itemAddDone.callCount} times"
 
     def set_person_picker_gender(self, personPicker, genderLabel):
         genderBox = self.personPicker.property("genderBox")
@@ -128,10 +134,8 @@ class TestAddAnythingDialog:
         ), f"Could not find genderBox for {peoplePicker}:{personIndex}"
         self.view.clickComboBoxItem(picker, genderLabel)
 
-    def set_kind(self, kind: LifeChange):
-        self.view.clickComboBoxItem(
-            self.kindBox, LifeChange.menuLabelFor(kind), force=False
-        )
+    def set_kind(self, kind: EventKind):
+        self.view.clickComboBoxItem(self.kindBox, kind.menuLabel(), force=False)
 
     def set_description(self, description: str):
         self.view.keyClicksItem(self.descriptionEdit, description)
@@ -293,7 +297,7 @@ class TestAddAnythingDialog:
     def expectedFieldLabel(self, expectedTextLabel: QQuickItem):
         name = expectedTextLabel.property("text")
         expectedText = self.view.S_REQUIRED_FIELD_ERROR.format(name=name)
-        with mock.patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
+        with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickAddButton()
             assert warning.call_count == 1
             assert warning.call_args[0][0] == self.view
@@ -304,20 +308,27 @@ class TestAddAnythingDialog:
         expectedText = self.view.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(
             pickerLabel=name
         )
-        with mock.patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
+        with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickAddButton()
             assert warning.call_count == 1
             assert warning.call_args[0][0] == self.view
             assert warning.call_args[0][2] == expectedText
 
+    def set_symptom(self, x):
+        self.view.setVariable("symptom", x)
+
     def set_anxiety(self, x):
         self.view.setVariable("anxiety", x)
 
+    def set_relationship(self, relationshipKind: RelationshipKind):
+        self.view.clickComboBoxItem(
+            self.relationshipField.property("comboBox"),
+            relationshipKind.menuLabel(),
+            force=False,
+        )
+
     def set_functioning(self, x):
         self.view.setVariable("functioning", x)
-
-    def set_symptom(self, x):
-        self.view.setVariable("symptom", x)
 
     def add_tag(self, tag: str):
         self.view.scrollChildToVisible(self.item.property("addPage"), self.tagsEdit)
@@ -333,7 +344,7 @@ class TestAddAnythingDialog:
     # scripts
 
     def add_person_by_birth(self, personName: str, startDateTime) -> Person:
-        self.set_kind(LifeChange.Birth)
+        self.set_kind(EventKind.Birth)
         self.personPicker.set_new_person(personName)
         self.set_startDateTime(startDateTime)
         self.clickAddButton()
@@ -342,7 +353,7 @@ class TestAddAnythingDialog:
 
     def add_marriage_to_person(self, person: Person, spouseName, startDateTime):
         pre_marriages = set(person.marriages)
-        self.set_kind(LifeChange.Married)
+        self.set_kind(EventKind.Married)
         self.set_existing_person(self.personAPicker, person)
         self.personBPicker.set_new_person(spouseName)
         self.set_startDateTime(startDateTime)
@@ -350,9 +361,7 @@ class TestAddAnythingDialog:
         spouse = self.view.scene.query1(methods={"fullNameOrAlias": spouseName})
         return (set(person.marriages) - pre_marriages).pop()
 
-    def add_event_to_marriage(
-        self, marriage: Marriage, kind: LifeChange, startDateTime
-    ):
+    def add_event_to_marriage(self, marriage: Marriage, kind: EventKind, startDateTime):
         pre_events = set(marriage.events())
         self.set_kind(kind)
         self.set_existing_person(self.personAPicker, marriage.personA())

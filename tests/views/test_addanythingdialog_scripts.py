@@ -7,7 +7,7 @@ import mock
 
 from pkdiagram.pyqt import QApplication, QDateTime, QTimer, QEventLoop
 from pkdiagram import util
-from pkdiagram.scene import Person, LifeChange
+from pkdiagram.scene import Person, EventKind
 
 from .test_addanythingdialog import view, START_DATETIME, END_DATETIME
 
@@ -22,7 +22,7 @@ pytestmark = [
 
 def test_add_pairbond_and_children(scene, view):
     submitted = util.Condition(view.view.submitted)
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
@@ -33,7 +33,7 @@ def test_add_pairbond_and_children(scene, view):
     personA.setSelected(True)
     view.initForSelection(scene.selectedItems())
     QApplication.processEvents()
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
     view.personBPicker.set_new_person("Jane Doe")
     view.set_startDateTime(START_DATETIME.addYears(25))
     view.clickAddButton()
@@ -41,13 +41,13 @@ def test_add_pairbond_and_children(scene, view):
     assert len(scene.people()) == 2
     # personB = scene.query1(name="Jane")
     assert len(personA.marriages[0].events()) == 1
-    personA.marriages[0].events()[0].uniqueId() == LifeChange.Married.value
+    personA.marriages[0].events()[0].uniqueId() == EventKind.Married.value
 
 
 def test_mw_add_pairbond_and_children(scene, view):
     submitted = util.Condition(view.view.submitted)
     # Add person and parents by birth
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe")
     view.personAPicker.set_new_person("James Doe")
     view.personBPicker.set_new_person(
@@ -72,7 +72,7 @@ def test_mw_add_pairbond_and_children(scene, view):
 
     # Add by marriage
     view.initForSelection([johnDoe])
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
     view.personBPicker.set_new_person(
         "Janet Doran",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
@@ -89,7 +89,7 @@ def test_mw_add_pairbond_and_children(scene, view):
 
     # Add first kid
     view.initForSelection([])
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("Roberto Doe")
     view.personAPicker.set_existing_person(person=johnDoe)
     view.personBPicker.set_existing_person(person=janetDoran)
@@ -101,7 +101,7 @@ def test_mw_add_pairbond_and_children(scene, view):
     assert set(robertoDoe.parents().people) == {johnDoe, janetDoran}
 
     # Add second kid
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person(
         "Roberta Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
@@ -128,7 +128,7 @@ def test_add_pairbond_event_to_existing_pairbond(scene, view):
     # marriage = Marriage(personA, personB)
     scene.addItems(personA, personB)
 
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
     view.personAPicker.set_existing_person(person=personA)
     view.personBPicker.set_existing_person(person=personB)
     view.set_startDateTime(END_DATETIME)
@@ -136,7 +136,7 @@ def test_add_pairbond_event_to_existing_pairbond(scene, view):
 
     scene.setCurrentDateTime(END_DATETIME)
 
-    view.set_kind(LifeChange.Bonded)
+    view.set_kind(EventKind.Bonded)
     view.personAPicker.set_existing_person(person=personA)
     view.personBPicker.set_existing_person(person=personB)
     view.set_startDateTime(START_DATETIME)
@@ -147,7 +147,7 @@ def test_mw_add_birth_w_parents_and_birth(scene, view):
     submitted = util.Condition(view.view.submitted)
 
     # Add person by birth
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
 
     view.personPicker.set_new_person("John Doe")
     view.personAPicker.set_new_person("James Doe")
@@ -172,7 +172,7 @@ def test_mw_add_birth_w_parents_and_birth(scene, view):
     }
 
     # Add Spouse Birth
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person(
         "Janet Doran",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
@@ -188,7 +188,7 @@ def test_mw_add_birth_w_parents_and_birth(scene, view):
 def test_add_second_marriage_to_person(scene, view):
     person = Person(name="John", lastName="Doe")
     scene.addItem(person)
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
     view.personAPicker.set_existing_person(person=person)
     view.personBPicker.set_new_person("Jane Doe")
     view.set_startDateTime(START_DATETIME)
@@ -198,7 +198,7 @@ def test_add_second_marriage_to_person(scene, view):
     assert len(spouse1.marriages) == 1
     assert person in spouse1.marriages[0].people
 
-    view.set_kind(LifeChange.Married)
+    view.set_kind(EventKind.Married)
     view.personAPicker.set_existing_person(person=person)
     view.personBPicker.set_new_person("Janet Doe")
     view.set_startDateTime(START_DATETIME.addDays(5))
@@ -229,13 +229,13 @@ def test_no_Marriage_DeferredDelete(data_root, scene, view):
     bob = scene.query1(name="bob")
 
     view.initForSelection([patrick.marriages[0]])
-    view.set_kind(LifeChange.CustomPairBond)
+    view.set_kind(EventKind.CustomPairBond)
     view.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
-    view.set_description("Something pair-bond-y")
+    view.set_summary("Something pair-bond-y")
     view.clickAddButton()
 
     view.initForSelection([patrick])
-    view.set_kind(LifeChange.Birth)
+    view.set_kind(EventKind.Birth)
     view.set_startDateTime(QDateTime(1900, 1, 1, 0, 0))
 
     _log.info("Running event loop")

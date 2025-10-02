@@ -30,7 +30,7 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
 )
 from pkdiagram import util
-from pkdiagram.scene import LifeChange, RelationshipKind
+from pkdiagram.scene import EventKind, RelationshipKind
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import HTTPError
 
@@ -139,6 +139,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_EVENT_KIND_HELP_TEXT",
         "S_DESCRIPTION_HELP_TEXT",
         "S_ANXIETY_HELP_TEXT",
+        "S_RELATIONSHIP_HELP_TEXT",
         "S_FUNCTIONING_HELP_TEXT",
         "S_SYMPTOM_HELP_TEXT",
         "S_NOTES_HELP_TEXT",
@@ -168,7 +169,10 @@ class QmlUtil(QObject, QObjectHelper):
             }
             for attr in CONSTANTS
         ]
-        + [{"attr": "LifeChange", "type": "QVariant"}],
+        + [
+            {"attr": "EventKind", "type": "QVariant"},
+            {"attr": "RelationshipKind", "type": "QVariant"},
+        ],
         globalContext=util.__dict__,
     )
 
@@ -294,8 +298,10 @@ class QmlUtil(QObject, QObjectHelper):
         self.refreshAllProperties()
 
     def get(self, attr):
-        if attr == "LifeChange":
-            return {k.name: k.value for k in LifeChange}
+        if attr == "EventKind":
+            return {k.name: k.value for k in EventKind}
+        elif attr == "RelationshipKind":
+            return {k.name: k.value for k in RelationshipKind}
         else:
             return super().get(attr)
 

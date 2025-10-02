@@ -15,7 +15,7 @@ from pkdiagram.scene import (
     Event,
     MultipleBirth,
     Layer,
-    LifeChange,
+    EventKind,
 )
 from pkdiagram.models import SceneLayerModel
 

@@ -1,0 +1,11 @@
+In a time series data model, would a triangle be better tracked a series of actions, each action by one person in relation to 1-to-N multiple people, or 1-to-N multiple people in relation to 1-to-N other people?
+
+-----------------------------------------------
+
+The literature emphasizes that triangles are the basic building blocks of emotional systems and that they are inherently more complex than dyadic relationships. Triangles allow for a more stable and flexible emotional configuration, especially in times of stress, as they can distribute and manage anxiety among the participants. The literature also discusses the predictability of emotional forces within triangles and how they can shift in response to changes in anxiety levels.
+
+Tracking a single person's actions in relation to multiple others (1-to-N) would allow for a clearer observation of how that individual's emotional dynamics interact with the larger group, making it easier to identify patterns and changes over time. This approach aligns with the literature's focus on the importance of understanding the dynamics of individual roles within triangles, as well as the potential for those dynamics to influence the emotional system as a whole.
+
+In contrast, a model involving multiple people in relation to multiple others (1-to-N with 1-to-N) would likely introduce a level of complexity that could obscure the specific interactions and emotional processes at play, making it more challenging to track and analyze the dynamics of triangles effectively. The literature suggests that as the number of participants increases, the number of potential triangles also increases exponentially, which could lead to confusion and difficulty in maintaining clarity in the analysis.
+
+Therefore, for the purpose of tracking triangles in a time series data model, focusing on a single person's actions in relation to multiple others would likely yield more actionable insights and a clearer understanding of the emotional dynamics involved.

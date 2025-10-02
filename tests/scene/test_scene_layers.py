@@ -13,7 +13,7 @@ from pkdiagram.scene import (
     Event,
     MultipleBirth,
     Layer,
-    LifeChange,
+    EventKind,
 )
 from pkdiagram.models import SceneLayerModel
 
@@ -106,7 +106,7 @@ def test_layered_properties():
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=LifeChange.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
@@ -193,7 +193,7 @@ def test_undo_add_remove_layered_item_props(qtbot):
     marriage = Marriage(personA=male, personB=female)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=LifeChange.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     layer = Layer(name="View 1")
@@ -315,7 +315,7 @@ def test_layered_setPathItemVisible():
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=LifeChange.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, layer3, layer4, personA, personB, marriage)
@@ -386,7 +386,7 @@ def test_layered_setPathItemVisible_2():
     marriage = Marriage(personA=personA, personB=personB)
     divorcedEvent = Event(
         parent=marriage,
-        uniqueId=LifeChange.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(layer1, layer2, personA, personB, marriage)

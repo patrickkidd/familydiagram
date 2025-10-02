@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import LifeChange, Person, Marriage, Event
+from pkdiagram.scene import EventKind, Person, Marriage, Event
 from pkdiagram.views import QmlDrawer
 
 
@@ -116,7 +116,7 @@ def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
 
     event = Event(
         parent=marriage,
-        uniqueId=LifeChange.Divorced.value,
+        uniqueId=EventKind.Divorced.value,
         dateTime=util.Date(2000, 1, 1),
     )
     scene.addItem(event)
@@ -129,7 +129,7 @@ def test_married_becomes_enabled_after_delete_married_event(scene, noEvents, mp)
     marriage = noEvents
     married = Event(
         parent=marriage,
-        uniqueId=LifeChange.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(2000, 1, 1),
     )
     scene.addItem(married)
@@ -191,7 +191,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == LifeChange.Separated.value
+        == EventKind.Separated.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.DashLine
@@ -203,7 +203,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == LifeChange.Divorced.value
+        == EventKind.Divorced.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine
@@ -215,7 +215,7 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.isVisible() == True
     assert (
         marriage.separationStatusFor(scene.currentDateTime())
-        == LifeChange.Separated.value
+        == EventKind.Separated.value
     )
     assert marriage.separationIndicator.isVisible() == True
     assert marriage.pen().style() == Qt.SolidLine

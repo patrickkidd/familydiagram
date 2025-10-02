@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QApplication
 from pkdiagram import util
-from pkdiagram.scene import LifeChange, Person, Marriage, Event, Scene, Emotion
+from pkdiagram.scene import EventKind, Person, Marriage, Event, Scene, Emotion
 from pkdiagram.views import QmlDrawer
 
 
@@ -352,23 +352,23 @@ def test_set_uniqueId_with_description(qtbot, scene, view):
     qtbot.waitActive(view)
 
     view.clickComboBoxItem("uniqueIdBox", "Separated")
-    assert event.uniqueId() == LifeChange.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     # qtbot.clickYesAfter(lambda: view.clickComboBoxItem('uniqueIdBox', 'Separated'))
 
 
-def test_reset_description_on_reset_uniqueId(qtbot, view, scene):
+def test_reset_summary_on_reset_uniqueId(qtbot, view, scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
         parent=marriage,
-        uniqueId=LifeChange.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(marriage)
     view.eventModel.items = [married]
     qtbot.waitActive(view)
-    assert married.uniqueId() == LifeChange.Married.value
+    assert married.uniqueId() == EventKind.Married.value
     assert married.description() == "Married"
     assert view.itemProp("uniqueIdBox", "currentText") == "Married"
 
@@ -384,7 +384,7 @@ def test_uniqueId_undo_redo(qtbot, view):
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(
         parent=marriage,
-        uniqueId=LifeChange.Married.value,
+        uniqueId=EventKind.Married.value,
         dateTime=util.Date(1900, 1, 1),
     )
     scene.addItems(personA, personB, marriage)
@@ -396,7 +396,7 @@ def test_uniqueId_undo_redo(qtbot, view):
     assert view.itemProp("uniqueIdBox", "currentText") == ""
 
     scene.undo()
-    assert married.uniqueId() == LifeChange.Married.value
+    assert married.uniqueId() == EventKind.Married.value
     assert married.description() == "Married"
     assert view.itemProp("uniqueIdBox", "currentText") == "Married"
 
@@ -417,7 +417,7 @@ def test_uniqueId_undo_redo_custom_event(qtbot, view, scene):
     assert view.itemProp("descriptionEdit", "text") == "Initial"
 
     view.clickComboBoxItem("uniqueIdBox", "Separated")
-    assert event.uniqueId() == LifeChange.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     assert view.itemProp("descriptionEdit", "text") == "Separated"
 
@@ -429,6 +429,6 @@ def test_uniqueId_undo_redo_custom_event(qtbot, view, scene):
     assert view.itemProp("descriptionEdit", "text") == "Initial"
 
     scene.redo()
-    assert event.uniqueId() == LifeChange.Separated.value
+    assert event.uniqueId() == EventKind.Separated.value
     assert event.description() == "Separated"
     assert view.itemProp("descriptionEdit", "text") == "Separated"

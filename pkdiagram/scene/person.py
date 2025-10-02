@@ -25,7 +25,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util, slugify
 from pkdiagram.scene import (
-    LifeChange,
+    EventKind,
     Property,
     PathItem,
     ItemDetails,
@@ -280,9 +280,9 @@ class Person(PathItem):
         self._onShowAliases = False
         self._lastVariableLines = []
         self.variablesDatabase = VariablesDatabase()
-        self.birthEvent = Event(self, uniqueId=LifeChange.Birth.value)
-        self.deathEvent = Event(self, uniqueId=LifeChange.Death.value)
-        self.adoptedEvent = Event(self, uniqueId=LifeChange.Adopted.value)
+        self.birthEvent = Event(self, uniqueId=EventKind.Birth.value)
+        self.deathEvent = Event(self, uniqueId=EventKind.Death.value)
+        self.adoptedEvent = Event(self, uniqueId=EventKind.Adopted.value)
         self.snappedOther = (
             None  # person this item is snapped to; set on master person only
         )
@@ -425,9 +425,9 @@ class Person(PathItem):
         self.deathEvent.read(chunk.get("deathEvent", {}), byId)
         self.adoptedEvent.read(chunk.get("adoptedEvent", {}), byId)
         # re-set props in case they change in future versions
-        self.birthEvent.setUniqueId(LifeChange.Birth.value)
-        self.deathEvent.setUniqueId(LifeChange.Death.value)
-        self.adoptedEvent.setUniqueId(LifeChange.Adopted.value)
+        self.birthEvent.setUniqueId(EventKind.Birth.value)
+        self.deathEvent.setUniqueId(EventKind.Death.value)
+        self.adoptedEvent.setUniqueId(EventKind.Adopted.value)
         self.birthEvent.setDescription(util.BIRTH_TEXT)
         self.deathEvent.setDescription(util.DEATH_TEXT)
         self.adoptedEvent.setDescription(util.ADOPTED_TEXT)
@@ -983,9 +983,9 @@ class Person(PathItem):
     def _onAddEvent(self, x):
         """Called from Event.setParent."""
         if x.uniqueId() in (
-            LifeChange.Birth.value,
-            LifeChange.Adopted.value,
-            LifeChange.Death.value,
+            EventKind.Birth.value,
+            EventKind.Adopted.value,
+            EventKind.Death.value,
         ):  # called from Person()
             return
         if x not in self._events:

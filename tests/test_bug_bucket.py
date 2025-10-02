@@ -1,5 +1,5 @@
 from pkdiagram import util
-from pkdiagram.scene import Scene, LifeChange
+from pkdiagram.scene import Scene, EventKind
 from pkdiagram.models import TimelineModel
 
 
@@ -100,7 +100,7 @@ PRISCILLA_SCENE = {
                 "id": 1525,
                 "dateTime": util.Date(2002, 11, 25),
                 "parentName": None,
-                "uniqueId": LifeChange.Death.value,
+                "uniqueId": EventKind.Death.value,
             },
             "deceased": True,
             "kind": "Person",
