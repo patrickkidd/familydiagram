@@ -44,14 +44,6 @@ def view(qtbot, scene, qmlEngine):
     widget.deinit()
 
 
-def test_show(qmlEngine, view):
-    qmlEngine.sceneModel.onEditorMode(False)
-    # activeFocusItem = view.item.window().activeFocusItem()
-    # textEdit = view.peoplePicker.item.pickerAtIndex(0).property("textEdit")
-    # assert activeFocusItem == textEdit
-    util.exec_()
-
-
 @pytest.mark.parametrize("editorMode", [True, False])
 def test_init(qmlEngine, view, editorMode):
     qmlEngine.sceneModel.onEditorMode(editorMode)

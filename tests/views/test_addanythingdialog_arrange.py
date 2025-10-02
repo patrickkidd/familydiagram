@@ -24,8 +24,8 @@ def test_parents_to_existing_person(scene, view):
 
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(person=person)
-    view.personAPicker.set_new_person("Father Doe")
-    view.personBPicker.set_new_person(
+    view.personPicker.set_new_person("Father Doe")
+    view.spousePicker.set_new_person(
         "Mother Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
     )
@@ -44,7 +44,7 @@ def test_add_via_birth_with_two_parents(scene, view):
 
     view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("Son Doe")
-    view.personAPicker.set_new_person("Father Doe")
+    view.spousePicker.set_new_person("Father Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
     assert submitted.wait() == True

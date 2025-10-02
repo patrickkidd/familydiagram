@@ -68,6 +68,7 @@ PK.Drawer {
     // What
 
     property var kindBox: kindBox
+    property var kindLabel: kindLabel
 
     property var descriptionLabel: descriptionLabel
     property var descriptionEdit: descriptionEdit

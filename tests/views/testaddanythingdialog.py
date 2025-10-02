@@ -326,6 +326,7 @@ class TestAddAnythingDialog:
             relationshipKind.menuLabel(),
             force=False,
         )
+        util.waitALittle()
 
     def set_functioning(self, x):
         self.view.setVariable("functioning", x)

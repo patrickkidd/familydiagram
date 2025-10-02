@@ -218,35 +218,43 @@ class AddAnythingDialog(QmlDrawer):
         if not self.item.property("kind"):
             invalidLabel = "kindLabel"
 
-        if not self.item.property("personPicker").property("isSubmitted"):
+        elif not self.item.property("personPicker").property("isSubmitted"):
             invalidLabel = "personLabel"
 
         elif kind and kind == EventKind.Death:
             pass
 
-        elif kind and kind in (
-            EventKind.Bonded,
-            EventKind.Married,
-            EventKind.Separated,
-            EventKind.Divorced,
+        elif (
+            kind
+            and kind
+            in (
+                EventKind.Bonded,
+                EventKind.Married,
+                EventKind.Separated,
+                EventKind.Divorced,
+            )
+            and not self.item.property("spousePicker").property("isSubmitted")
         ):
-            if not self.item.property("spousePicker").property("isSubmitted"):
-                invalidLabel = "spouseLabel"
+            invalidLabel = "spouseLabel"
 
         # elif kind and kind in (EventKind.Birth, EventKind.Adopted):
         #     if not self.item.property("childPicker").property("isSubmitted"):
         #         invalidLabel = "childLabel"
 
-        elif relationship:
-            if not self.item.property("description"):
-                invalidLabel = "descriptionLabel"
+        elif relationship and not self.item.property("description"):
+            invalidLabel = "descriptionLabel"
 
-            if not self.item.property("targetsPicker").allSubmitted():
-                invalidLabel = "targetsLabel"
+        elif relationship and (
+            not self.targetsEntries()
+            or not self.item.property("targetsPicker").allSubmitted()
+        ):
+            invalidLabel = "targetsLabel"
 
-            if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
-                if not self.item.property("trianglesPicker").allSubmitted():
-                    invalidLabel = "trianglesLabel"
+        elif (
+            relationship in (RelationshipKind.Inside, RelationshipKind.Outside)
+            and not self.item.property("trianglesPicker").allSubmitted()
+        ):
+            invalidLabel = "trianglesLabel"
 
         elif not self.item.property("startDateTime"):
             invalidLabel = "startDateTimeLabel"
@@ -272,21 +280,35 @@ class AddAnythingDialog(QmlDrawer):
 
         # Validation: Confirmations
 
-        if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
-
-            childEntry = self.childEntry()
-            child = childEntry["person"]
-
-            if (not childEntry["isNewPerson"]) and any(
-                [
-                    kind == EventKind.Birth and child.birthDateTime(),
-                    kind == EventKind.Adopted and child.adoptedDateTime(),
-                    kind == EventKind.Death and child.deceasedDateTime(),
-                ]
+        childEntry = self.childEntry()
+        personEntry = self.personEntry()
+        if (
+            kind in (EventKind.Birth, EventKind.Adopted)
+            and childEntry
+            and not childEntry["isNewPerson"]
+            and childEntry["person"]
+        ):
+            childPerson = childEntry["person"]
+            if (kind == EventKind.Birth and childPerson.birthDateTime()) or (
+                kind == EventKind.Adopted and childPerson.adoptedDateTime()
             ):
                 button = QMessageBox.question(
                     self,
                     f"Replace {kind.name} event(s)?",
+                    self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
+                )
+                if button == QMessageBox.NoButton:
+                    return
+
+        elif kind == EventKind.Death and (
+            personEntry and not personEntry["isNewPerson"] and personEntry["person"]
+        ):
+
+            person = personEntry["person"]
+            if person.deceasedDateTime():
+                button = QMessageBox.question(
+                    self,
+                    f"Replace {kind.name} event?",
                     self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                 )
                 if button == QMessageBox.NoButton:
@@ -491,7 +513,7 @@ class AddAnythingDialog(QmlDrawer):
                 event = child.adoptedEvent
                 child.setAdopted(True)
             elif kind == EventKind.Death:
-                event = child.deathEvent
+                event = person.deathEvent
 
             event.setDateTime(startDateTime, undo=True)
 
@@ -539,10 +561,10 @@ class AddAnythingDialog(QmlDrawer):
                 )
                 self.scene.addItem(emotion, undo=True)
                 newEmotions.append(emotion)
-            events.append(emotion.startEvent)
-            emotion.startEvent.setRelationshipTargets(targets)
-            if emotion.endEvent.dateTime():
-                events.append(emotion.endEvent)
+                events.append(emotion.startEvent)
+                emotion.startEvent.setRelationshipTargets(targets)
+                if emotion.endEvent.dateTime():
+                    events.append(emotion.endEvent)
 
         else:
             kwargs = {"location": location} if location else {}

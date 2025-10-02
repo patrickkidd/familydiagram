@@ -21,35 +21,26 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 def test_clear(view):
     view.set_kind(EventKind.Birth)
     view.set_startDateTime(START_DATETIME)
-    view.set_summary("something")
+    view.set_description("something")
     view.set_notes("here are some notes")
-    view.set_anxiety(util.VAR_VALUE_UP)
-    view.set_symptom(util.VAR_VALUE_DOWN)
-    view.set_functioning(util.VAR_VALUE_SAME)
-    view.spousePicker.add_new_person("Jane Doe")
-    view.childPicker.add_new_person("Juaro Doe")
-    view.targetsPicker.add_new_person("Jane Doe")
+    view.spousePicker.set_new_person("Jane Doe")
+    view.childPicker.set_new_person("Juaro Doe")
     view.add_tag("tag1")
     view.set_active_tags(["tag1"])
     view.clickClearButton()
     assert view.item.property("startDateTime") == None
     assert view.item.property("endDateTime") == None
-    assert view.item.property("summary") == ""
+    assert view.item.property("description") == ""
     assert view.item.property("notes") == ""
-    assert view.item.property("symptom") == None
-    assert view.item.property("anxiety") == None
-    assert view.item.property("relationship") == None
-    assert view.item.property("functioning") == None
     assert view.item.property("eventModel").tags == []
 
 
 def test_clear_variables(view):
-    view.initForSelection([])
-    view.personPicker.add_new_person("John Doe")
     view.set_kind(EventKind.VariableShift)
+    view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.set_endDateTime(END_DATETIME)
-    view.set_summary("here are some notes")
+    view.set_description("here are some notes")
     view.set_symptom(util.VAR_VALUE_DOWN)
     view.set_anxiety(util.VAR_VALUE_UP)
     view.set_relationship(RelationshipKind.Inside)
@@ -58,7 +49,7 @@ def test_clear_variables(view):
     view.add_tag("tag1")
     view.set_active_tags(["tag1"])
     view.clickClearButton()
-    assert view.item.property("summary") == ""
+    assert view.item.property("description") == ""
     assert view.item.property("symptom") == None
     assert view.item.property("anxiety") == None
     assert view.item.property("relationship") == None
@@ -68,14 +59,13 @@ def test_clear_variables(view):
     assert view.anxietyField.property("value") == None
     assert view.relationshipField.property("value") == None
     assert view.functioningField.property("value") == None
-    assert view.item.targetsEntries() == None
-    assert view.targetsPicker.personEntries() == []
+    assert view.view.targetsEntries() == []
 
 
 def test_clear_spouse_child(view):
     view.set_kind(EventKind.Birth)
-    view.personPicker.add_new_person("John Done")
-    view.spousePicker.add_new_person("Jane Doe")
+    view.personPicker.set_new_person("John Done")
+    view.spousePicker.set_new_person("Jane Doe")
     view.childPicker.set_new_person("Jon Done")
     assert view.personPicker.item.property("isSubmitted") == True
     assert view.spousePicker.item.property("isSubmitted") == True

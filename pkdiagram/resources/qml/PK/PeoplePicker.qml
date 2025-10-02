@@ -125,10 +125,11 @@ PK.GroupBox {
     }
 
     function allSubmitted() {
-        // print('allSubmitted: ' + root.objectName)
+        // print('allSubmitted: ' + root.objectName + ', model.count: ' + root.model.count)
         var allSubmitted = true
         for(var i = 0; i < root.model.count; i++) {
             var personPicker = pickerAtIndex(i)
+            // print('  personPicker ' + i + ': ' + personPicker + ', isSubmitted: ' + personPicker.isSubmitted)
             if(!personPicker.isSubmitted) {
                 return false
             }

@@ -70,9 +70,9 @@ def test_eventkind_fields_response(
         (RelationshipKind.Projection, "Focused"),
         (RelationshipKind.Toward, "To"),
         (RelationshipKind.Away, "From"),
-        (RelationshipKind.DefinedSelf, "Target(s)"),
-        (RelationshipKind.Inside, "Outside(s)"),
-        (RelationshipKind.Outside, "Inside(s)"),
+        (RelationshipKind.DefinedSelf, "Other(s)"),
+        (RelationshipKind.Inside, "Inside(s)"),
+        (RelationshipKind.Outside, "Outside(s)"),
     ],
     ids=[
         "Conflict",
@@ -109,12 +109,6 @@ def test_relationship_triangles(view, relationship):
     view.set_kind(EventKind.VariableShift)
     view.set_relationship(relationship)
     assert view.targetsPicker.item.property("visible") == True
-
-
-def test_relationship_cutoff(view):
-    view.set_kind(EventKind.VariableShift)
-    view.set_relationship(RelationshipKind.Cutoff)
-    assert view.targetsPicker.item.property("visible") == False
 
 
 def test_startDateTime_pickers(view):

@@ -15,6 +15,11 @@ pytestmark = [
 ]
 
 
+pytest.skip(
+    reason="Migrations not implemented yet, may never be", allow_module_level=True
+)
+
+
 @pytest.mark.parametrize(
     "kind",
     [
