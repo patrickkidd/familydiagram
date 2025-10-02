@@ -26,7 +26,7 @@ def picker(qmlEngine, create_qml):
         / "PersonPicker.qml"
     )
 
-    _log.info(SOURCE_FPATH)
+    # _log.info(SOURCE_FPATH)
 
     helper = create_qml(SOURCE_FPATH)
     _ret = TestPersonPicker(helper, helper.qml.rootObject())
