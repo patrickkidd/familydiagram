@@ -60,14 +60,14 @@ PK.GroupBox {
     function addEntry(callback) {
         root.model.append({ personName: "", isNewPerson: true, personId: -1 })
         root.currentIndex = root.model.count - 1
-        util.debug('addEntry() root.model.count: ' + root.model.count + ', callback: ' + callback)
+        // util.debug('addEntry() root.model.count: ' + root.model.count + ', callback: ' + callback)
         callAfterDone = callback
     }
 
     function focusEntry(index) {
-        print('>>> PeoplePicker.focusEntry(' + index + ') ')
+        // print('>>> PeoplePicker.focusEntry(' + index + ') ')
         pickerAtIndex(index).focusTextEdit()
-        print('<<< PeoplePicker.focusEntry(' + index + ') ')
+        // print('<<< PeoplePicker.focusEntry(' + index + ') ')
     }
 
     function peopleEntries() {

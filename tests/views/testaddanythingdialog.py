@@ -52,6 +52,9 @@ class TestAddAnythingDialog:
         self.targetsPicker = TestPeoplePicker(
             self.view, self.item.property("targetsPicker")
         )
+        self.trianglesPicker = TestPeoplePicker(
+            self.view, self.item.property("trianglesPicker")
+        )
 
         # What
 

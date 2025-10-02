@@ -565,6 +565,9 @@ class AddAnythingDialog(QmlDrawer):
                 emotion.startEvent.setRelationshipTargets(targets)
                 if emotion.endEvent.dateTime():
                     events.append(emotion.endEvent)
+                if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
+                    emotion.startEvent.setRelationshipTargets(targets)
+                    emotion.endEvent.setRelationshipTriangles(triangles)
 
         else:
             kwargs = {"location": location} if location else {}
@@ -595,7 +598,7 @@ class AddAnythingDialog(QmlDrawer):
                 event.setRelationship
 
         # Arrange people
-        spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else None
+        spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else 0
 
         if kind and kind.isOffspring():
 
@@ -669,8 +672,12 @@ class AddAnythingDialog(QmlDrawer):
                     spouse.setItemPosNow(person.pos() + QPointF(spacing * 2, 0))
 
         if relationship:
-            existingTargets = [x for x in targetsEntries if not x["isNewPerson"]]
-            existingTriangles = [x for x in trianglesEntries if not x["isNewPerson"]]
+            existingTargets = [
+                x["person"] for x in targetsEntries if not x["isNewPerson"]
+            ]
+            existingTriangles = [
+                x["person"] for x in trianglesEntries if not x["isNewPerson"]
+            ]
             personReference = person.pos() if person in newPeople else QPointF()
             targetsReference = (
                 existingTargets[0].pos() if existingTargets else QPointF()

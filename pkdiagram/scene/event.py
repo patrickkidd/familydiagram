@@ -437,7 +437,7 @@ class Event(Item):
         ids = self.prop("relationshipTargets").get()
         if not ids:
             return []
-        return self.scene().find(ids=ids, type=Person)
+        return self.scene().find(ids=ids, types=Person)
 
     def setRelationshipTriangles(self, triangles: list, notify=True):
         if not isinstance(triangles, list):
@@ -453,7 +453,7 @@ class Event(Item):
         ids = self.prop("relationshipTriangles").get()
         if not ids:
             return []
-        return self.scene().find(ids=ids, type=Person)
+        return self.scene().find(ids=ids, types=Person)
 
     def setFunctioning(self, value, notify=True):
         self.dynamicProperty(util.ATTR_FUNCTIONING).set(value, notify=notify)
