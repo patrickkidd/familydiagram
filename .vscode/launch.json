@@ -22,9 +22,28 @@
                 // "--windows-console"
             ],
             "env": {
-                "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+                // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
             }
         },
+
+        {
+            "name": "app --version",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pkdiagram",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "variablePresentation": {
+                "all": "hide",
+                "protected": "inline",
+            },
+            "args": [
+                "--version"
+            ],
+            "env": {
+                // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
+            }
+        },        
         {
             "name": "Therapist",
             "type": "debugpy",

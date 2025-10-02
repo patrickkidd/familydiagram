@@ -54,10 +54,12 @@ def mockRequest(status_code: int):
         QTimer.singleShot(0, lambda: _simulateFinished(reply))
         return reply
 
-    with mock.patch.object(
-        QNAM.instance(), "sendCustomRequest", side_effect=_sendCustomRequest
-    ) as sendCustomRequest:
-        yield sendCustomRequest
+    with mock.patch.object(util, "IS_BUNDLE", True):
+        with mock.patch.object(util, "IS_TEST", False):
+            with mock.patch.object(
+                QNAM.instance(), "sendCustomRequest", side_effect=_sendCustomRequest
+            ) as sendCustomRequest:
+                yield sendCustomRequest
 
 
 @pytest.fixture(autouse=True)
@@ -169,12 +171,12 @@ def test_datadog_send_logs_api(analytics, user):
     assert json.loads(sendCustomRequest.call_args[0][2].decode()) == [
         {
             "ddsource": "python",
-            "ddtags": "env:test",
+            "ddtags": "env:staging",
             "message": "some log content",
             "platform": "platform-123",
             "date": time_2_iso8601(123),
             "host": "",
-            "service": "desktop",
+            "service": "test",
             "status": "info",
             "session_id": None,
             "user": {

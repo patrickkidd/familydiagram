@@ -1,6 +1,12 @@
 v2.0.0
 =============================================================================
 
+Priority
+------------------------------------
+- MUST Create relationship field in add form
+  - When setting R type, just change fields to match
+- Need to re-use add form when editing event.
+
 BUGS
 ------------------------------------
 - View tag, add R symbol, lots of things are hidden
@@ -13,6 +19,11 @@ BUGS
 
 IDEAS
 ------------------------------------
+- Automatically add a person to the Person Picker and focus it if none exists when choosing event type.
+- Rename event "Description" to "summary"
+- For reciprocity
+  - Change label mover(s) to up/overfunction
+  - Change label receiver(s) to down/underfunctions
 - Add pregnancy
   - Change miscarraige to have X through it like death
 - Prompt for variable shifts for additional people when entering data point

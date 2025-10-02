@@ -145,7 +145,7 @@ class Discussion(QObject):
         return list(self._statements)
 
     @staticmethod
-    def create(data: dict):
+    def create(data: dict) -> "Discussion":
         speakers = [
             Speaker(
                 id=x["id"],
@@ -206,6 +206,9 @@ class Therapist(QObject):
             self._discussions = []
             self._pdp = {}
             self._currentDiscussion = None
+        else:
+            self._refreshDiagram()
+            self.refreshPDP()
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
@@ -264,12 +267,9 @@ class Therapist(QObject):
         def onSuccess(data):
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
-            if not self._discussions:
-                self._createDiscussion()
-            else:
-                self.discussionsChanged.emit()
-                self.statementsChanged.emit()
-                self.pdpChanged.emit()
+            self.discussionsChanged.emit()
+            self.statementsChanged.emit()
+            self.pdpChanged.emit()
 
         server = self._session.server()
         reply = server.nonBlockingRequest(
@@ -351,6 +351,45 @@ class Therapist(QObject):
             _doSendStatement()
         else:
             self._createDiscussion(callback=_doSendStatement)
+
+    ## PDP
+
+    @pyqtSlot()
+    def refreshPDP(self):
+        self._refreshPDP()
+
+    def _refreshPDP(self):
+        def onSuccess(data):
+            # added_data_points = data["added_data_points"]
+            # response = Response(
+            #     statement=data["statement"],
+            #     added_data_points=data["added_data_points"],
+            #     removed_data_points=data["removed_data_points"],
+            #     guidance=data["guidance"],
+            # )
+            self.setPDP(data["pdp"])
+            self.responseReceived.emit(data["statement"], data["pdp"])
+
+        # Create a discussion with the statement if there is no current discussion
+        if self._currentDiscussion:
+            url = f"/therapist/discussions/{self._currentDiscussion.id}/statements"
+        else:
+            url = "/therapist/discussions/"
+        args = {"statement": statement}
+        reply = self._session.server().nonBlockingRequest(
+            "POST",
+            url,
+            data=args,
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            from_root=True,
+        )
+        self._session.track(f"therapist.Engine.sendStatement: {statement}")
+        self.requestSent.emit(statement)
 
     ## PDP
 

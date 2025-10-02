@@ -45,7 +45,7 @@ if sys.version_info[1] > 7:
 # _log.info(sysconfig.get_path('purelib'))
 
 
-def main():
+def _main_impl():
     import sys  # no idea
 
     ENABLE_THERAPIST = util.IS_DEV or util.IS_IOS
@@ -87,7 +87,8 @@ def main():
     if util.IS_IOS:
         options.therapist = True
 
-    if sys.platform == "win32" and options.windows_console:
+    # Handle console allocation for Windows
+    if sys.platform == "win32" and (options.windows_console or options.version):
         # Allocates a console and redirects stdout/stderr for Windows.
         from _pkdiagram import CUtil
 
@@ -95,15 +96,15 @@ def main():
 
         CUtil.dev_showDebugConsole()
 
-        import sys
-
         # Reopen stdout/stderr in the new console
         sys.stdout = open("CONOUT$", "w")
         sys.stderr = open("CONOUT$", "w")
 
-        import atexit
+        # Only add the "Press Enter to close" for --windows-console, not for --version
+        if options.windows_console:
+            import atexit
 
-        atexit.register(lambda: input("\nPress Enter to close..."))
+            atexit.register(lambda: input("\nPress Enter to close..."))
 
     if options.version:
 
@@ -112,6 +113,9 @@ def main():
         from . import version
 
         print(version.VERSION)
+
+        # Exit after printing version to avoid starting the GUI
+        sys.exit(0)
 
     elif ENABLE_THERAPIST and options.therapist:
         from pkdiagram.therapist import TherapistAppController
@@ -160,6 +164,51 @@ def main():
         mainWindow.deinit()
         controller.deinit()
         app.deinit()
+
+
+def main():
+
+    import os
+    from datetime import datetime
+    import traceback
+    import sys
+
+    try:
+        _main_impl()
+    except Exception as e:
+
+        log_dir = os.path.dirname(sys.executable)
+        error_log_path = os.path.join(log_dir, "startup_errors.txt")
+
+        from . import version
+
+        with open(error_log_path, "a", encoding="utf-8") as f:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"\n=== {timestamp} ===\n")
+            f.write(f"Family Diagram: {version.VERSION}\n")
+            f.write(f"Platform: {sys.platform}\n")
+            f.write(f"Executable: {sys.executable}\n")
+            f.write(f"Critical startup error: {str(e)}\n")
+            f.write("Traceback:\n")
+            f.write(traceback.format_exc())
+            f.write("\n")
+            f.flush()
+
+        if sys.platform == "win32":
+            try:
+                import ctypes
+
+                ctypes.windll.user32.MessageBoxW(
+                    0,
+                    f"Family Diagram failed to start.\n\nError: {str(e)}\n\nCheck the log file at:\n{error_log_path}",
+                    "Family Diagram Startup Error",
+                    0x10,  # MB_ICONERROR
+                )
+            except:
+                pass
+
+        # Re-raise for normal Python error handling
+        raise
 
 
 if __name__ == "__main__":

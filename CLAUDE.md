@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Environment Setup
-- **Virtual environment**: `pipenv install --dev` then `pipenv shell` (uses Pipfile for dependencies)
+- **Virtual environment**: `pipenv run` (uses Pipfile for dependencies, required for all bash commands to add dependencies to PYTHONPATH via .env file)
+- **Environment File**: ./.env
 - **Python entry point**: `python main.py` (starts the desktop application)
 
 ### Testing
