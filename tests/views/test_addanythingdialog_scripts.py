@@ -227,7 +227,7 @@ def test_no_Marriage_DeferredDelete(data_root, scene, view):
     view.initForSelection([patrick.marriages[0]])
     view.set_kind(EventKind.CustomPairBond)
     view.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
-    view.set_summary("Something pair-bond-y")
+    view.set_description("Something pair-bond-y")
     view.clickAddButton()
 
     view.initForSelection([patrick])

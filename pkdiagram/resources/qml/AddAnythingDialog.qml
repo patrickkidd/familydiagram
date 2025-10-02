@@ -370,7 +370,7 @@ PK.Drawer {
                             }
                         }
                         onCurrentIndexChanged: {
-                            print('kindBox.onCurrentIndexChanged: ' + currentIndex + ' / ' + currentValue())
+                            // print('kindBox.onCurrentIndexChanged: ' + currentIndex + ' / ' + currentValue())
                             if (currentIndex != lastCurrentIndex) {
                                 lastCurrentIndex = currentIndex
                                 root.kind = currentValue()

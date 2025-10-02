@@ -582,20 +582,21 @@ class AddAnythingDialog(QmlDrawer):
 
         for event in events:
             if symptom is not None:
-                event.dynamicProperty(util.ATTR_SYMPTOM).set(symptom)
+                event.setSymptom(symptom)
             if anxiety is not None:
-                event.dynamicProperty(util.ATTR_ANXIETY).set(anxiety)
+                event.setAnxiety(anxiety)
             if relationship is not None:
-                event.dynamicProperty(util.ATTR_RELATIONSHIP).set(relationship)
+                event.setRelationship(relationship)
+                if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
+                    event.setRelationshipTriangle(triangles, undo=True)
             if functioning is not None:
-                event.dynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
+                event.setFunctioning(functioning)
             event.setTags(tags, undo=True)
+            event.setUniqueId(kind.value)
             if location:
                 event.setLocation(location, undo=True)
             if notes:
                 event.setNotes(notes, undo=True)
-            if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
-                event.setRelationship
 
         # Arrange people
         spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else 0

@@ -87,7 +87,7 @@ Rectangle {
     }
 
     function personEntry() {
-        print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + root.gender)
+        // print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + root.gender)
         if(! root.isSubmitted) {
             return null
         }
