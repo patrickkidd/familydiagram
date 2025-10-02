@@ -211,8 +211,12 @@ def test_lt_eq():
         ("functioning", util.VAR_FUNCTIONING_SAME),
     ],
 )
-def test_variables(attr, value):
-    event = Event()
+def test_variables(scene, attr, value):
+    scene.addEventProperty(util.ATTR_SYMPTOM)
+    scene.addEventProperty(util.ATTR_ANXIETY)
+    scene.addEventProperty(util.ATTR_RELATIONSHIP)
+    scene.addEventProperty(util.ATTR_FUNCTIONING)
+    event = scene.addItem(Event())
     getattr(event, f"set{attr.capitalize()}")(value)
     assert getattr(event, attr)() == value
 
@@ -222,11 +226,14 @@ def test_variables(attr, value):
 )
 def test_triangle(scene, relationship: RelationshipKind):
     """Test setting and getting triangle members."""
+    scene.addEventProperty(util.ATTR_SYMPTOM)
+    scene.addEventProperty(util.ATTR_ANXIETY)
+    scene.addEventProperty(util.ATTR_RELATIONSHIP)
+    scene.addEventProperty(util.ATTR_FUNCTIONING)
     person = scene.addItem(Person(name="Person"))
     spouse = scene.addItem(Person(name="Spouse"))
     third = scene.addItem(Person(name="Third"))
-    event = Event()
-    event.setParent(person)
+    event = scene.addItem(Event(parent=person))
     event.setRelationship(relationship)
     event.setRelationshipTargets(spouse)
     event.setRelationshipTriangles(third)

@@ -406,7 +406,10 @@ class Event(Item):
         return self.dynamicProperty(util.ATTR_ANXIETY).get()
 
     def relationship(self) -> RelationshipKind:
-        return self.dynamicProperty(util.ATTR_RELATIONSHIP).get()
+        x = self.dynamicProperty(util.ATTR_RELATIONSHIP).get()
+        if x:
+            return RelationshipKind(x)
+        return None
 
     def functioning(self):
         return self.dynamicProperty(util.ATTR_FUNCTIONING).get()
@@ -418,10 +421,7 @@ class Event(Item):
         self.dynamicProperty(util.ATTR_ANXIETY).set(value, notify=notify)
 
     def setRelationship(self, value: RelationshipKind, notify=True):
-        x = self.dynamicProperty(util.ATTR_RELATIONSHIP).set(value, notify=notify)
-        if x:
-            return RelationshipKind(x)
-        return None
+        self.dynamicProperty(util.ATTR_RELATIONSHIP).set(value.value, notify=notify)
 
     def setRelationshipTargets(self, targets: list["Person"], notify=True):
         if not isinstance(targets, list):
@@ -441,7 +441,7 @@ class Event(Item):
 
     def setRelationshipTriangles(self, triangles: list, notify=True):
         if not isinstance(triangles, list):
-            triangles = [targets]
+            triangles = [triangles]
         ids = []
         for person in triangles:
             ids.append(person.id)
