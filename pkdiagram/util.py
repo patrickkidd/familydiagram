@@ -80,12 +80,15 @@ except ImportError as e:
 if IS_IOS:
     HARDWARE_UUID = "<ios>"  # no device-id protection required on iOS
 elif "nt" in os.name:
-    # s = subprocess.check_output('wmic csproduct get uid')
-    # self.hardwareUUID = s.split('\n')[1].strip().decode('utf-8').strip()
+    # Use PowerShell Get-CimInstance (future-proof replacement for deprecated wmic)
+    # Works on Windows 10+ all editions (Home, Pro, Enterprise)
     HARDWARE_UUID = (
-        subprocess.check_output("wmic csproduct get name,identifyingnumber,uuid")
+        subprocess.check_output(
+            'powershell -command "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID"',
+            shell=True
+        )
         .decode("utf-8")
-        .split()[-1]
+        .strip()
     )
 elif os.uname()[0] == "Darwin":
     HARDWARE_UUID = (
