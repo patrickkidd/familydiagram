@@ -678,8 +678,8 @@ bool CUtil::dev_amIBeingDebugged() {
 
 void CUtil::dev_showDebugConsole() {
     qDebug() << "dev_showDebugConsole 1";
-#ifdef PK_WIN32_BUILD
-    qDebug() << "dev_showDebugConsole PK_WIN32_BUILD";
+#ifdef Q_OS_WINDOWS
+    qDebug() << "dev_showDebugConsole Q_OS_WINDOWS";
     if (AllocConsole()) {
         // Redirect stdout/stderr to the new console
         FILE* fp;

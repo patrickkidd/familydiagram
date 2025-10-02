@@ -262,6 +262,36 @@ jobs:
         name: familydiagram-macos
         path: build/osx/Release/Family Diagram.dmg
 
+  test-macos:
+    runs-on: ${{ matrix.os }}
+    needs: [build-osx]
+    strategy:
+      matrix:
+        os: [macos-13, macos-14, macos-15]
+    steps:
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: familydiagram-macos
+          path: ./artifact
+
+      - name: Mount DMG
+        run: |
+          hdiutil attach "./artifact/Family Diagram.dmg" -quiet -mountpoint /Volumes/"Family Diagram"
+
+      - name: Test App Execution
+        run: |
+          /Volumes/"Family Diagram"/"Family Diagram.app"/Contents/MacOS/"Family Diagram" --version
+          if [ $? -ne 0 ]; then
+            echo "App failed to execute with --version"
+            exit 1
+          fi
+
+      - name: Unmount DMG
+        if: always()
+        run: |
+          hdiutil detach /Volumes/"Family Diagram" || true
+
   build-windows:
     runs-on: windows-2022
     needs: [setup]
@@ -494,9 +524,48 @@ jobs:
           name: familydiagram-windows
           path: build\win32\Release\Family Diagram.zip
   
+  test-windows:
+    runs-on: ${{ matrix.os }}
+    needs: [setup, build-windows]
+    strategy:
+      matrix:
+        os: [windows-2022]
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: familydiagram-windows
+          path: ./artifact
+
+      - name: Unzip Artifact
+        run: |
+          Expand-Archive -Path ./artifact/'Family Diagram.zip' -DestinationPath ./build
+        shell: pwsh
+
+      - name: Test EXE Execution
+        run: |
+          Write-Host "Testing Windows executable..."
+
+          # Try to run the executable with --version flag
+          # Note: Windows GUI apps don't have console output by default
+          $process = Start-Process -FilePath "./build/Family Diagram.exe" -ArgumentList "--version" -Wait -PassThru -NoNewWindow
+          $exitCode = $process.ExitCode
+
+          Write-Host "Exit code: $exitCode"
+
+          # For Windows, we just check that the executable runs and exits
+          # The version output issue will be fixed in the application code
+          if ($exitCode -eq 0) {
+            Write-Host "✓ Executable runs successfully"
+          } else {
+            Write-Host "✗ Executable failed with exit code: $exitCode"
+            exit 1
+          }
+        shell: pwsh
+
   publish:
     runs-on: ubuntu-24.04
-    needs: [setup, build-osx, build-windows]
+    needs: [setup, test-macos, test-windows]
     if: ${{ !inputs.skip_release }}
     permissions:
       contents: write
