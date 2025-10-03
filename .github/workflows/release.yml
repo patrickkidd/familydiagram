@@ -115,7 +115,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
 
@@ -138,7 +138,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
 
     - name: Write build config
       run: |
