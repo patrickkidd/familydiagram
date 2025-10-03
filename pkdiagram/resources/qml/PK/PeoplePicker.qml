@@ -52,9 +52,25 @@ PK.GroupBox {
     }
 
     function clear() {
+        // Remove all entries in model from selectedPeopleModel
+        for(var i = 0; i < root.model.count; i++) {
+            var entry = root.model.get(i)
+            if(entry.person) {
+                for(var j = 0; j < selectedPeopleModel.count; j++) {
+                    var person = selectedPeopleModel.get(j)
+                    if(person.person.itemId() === entry.person.itemId()) {
+                        selectedPeopleModel.remove(j)
+                        break
+                    }
+                }
+            }
+        }
+
+
         // print('>>> PeoplePicker.clear() ' + root.objectName)
         root.model.clear()
         // print('<<< PeoplePicker.clear()')
+
     }
 
     function addEntry(callback) {
