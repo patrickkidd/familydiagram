@@ -58,7 +58,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: [setup]
 
     steps:
