@@ -36,7 +36,7 @@ PK.Drawer {
         onItemsChanged: {
             if(items.length == 0) {
                 eventPropertiesDrawer.position = 0
-            }            
+            }
         }
     }
 

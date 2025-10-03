@@ -113,7 +113,7 @@ PK.Drawer {
         print('onStartDateTimeChanged: ' + startDateTime)
     }
 
-    readonly property var fieldWidth: 275
+    readonly property var fieldWidth: 200
 
     property var dirty: false
 
@@ -302,8 +302,6 @@ PK.Drawer {
                         visible: personLabel.visible
                         backTabItem: notesField.lastTabItem
                         tabItem: kindBox
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
                         Layout.minimumHeight: personPicker.height
                         Layout.maximumHeight: personPicker.height
                         PK.PersonPicker {
@@ -312,6 +310,8 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
                             border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         }
@@ -348,8 +348,8 @@ PK.Drawer {
                         }
                         textRole: "label"
                         property var lastCurrentIndex: -1
-                        Layout.maximumWidth: root.fieldWidth - 28
-                        Layout.minimumWidth: root.fieldWidth - 28
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
                         KeyNavigation.tab: spouseField.firstTabItem
                         KeyNavigation.backtab: personField.lastTabItem
                         delegate: ItemDelegate {
@@ -414,8 +414,6 @@ PK.Drawer {
                         visible: spouseLabel.visible
                         backTabItem: kindBox
                         tabItem: childField.firstTabItem
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
@@ -424,6 +422,8 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
                             border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         }
@@ -444,8 +444,6 @@ PK.Drawer {
                         visible: childLabel.visible
                         backTabItem: targetsField.lastTabItem
                         tabItem: spouseField.firstTabItem
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
@@ -454,6 +452,8 @@ PK.Drawer {
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
                             border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         }
@@ -470,11 +470,12 @@ PK.Drawer {
                         visible: root.kind == util.EventKind.VariableShift
                         tabItem: symptomField.firstTabItem
                         backTabItem: childField.lastTabItem
-                        Layout.fillWidth: true
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.TextField {
                             id: descriptionEdit
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             property Item firstTabItem: this
                             property Item lastTabItem: this
                             property bool isDirty: text != ''
@@ -868,8 +869,6 @@ PK.Drawer {
 
                     PK.FormField {
                         id: locationField
-                        Layout.maximumWidth: root.fieldWidth
-                        Layout.minimumWidth: root.fieldWidth
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         tabItem: kindBox
@@ -879,6 +878,8 @@ PK.Drawer {
                             property bool isDirty: text != ''
                             property Item firstTabItem: this
                             property Item lastTabItem: this
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
                             KeyNavigation.tab: anxietyField
                             KeyNavigation.backtab: endDateButtons.lastTabItem
                             Keys.onTabPressed: {
