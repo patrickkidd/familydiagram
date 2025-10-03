@@ -287,6 +287,21 @@ jobs:
             exit 1
           fi
 
+      - name: Test Error Logging
+        run: |
+          /Volumes/"Family Diagram"/"Family Diagram.app"/Contents/MacOS/"Family Diagram" --test-error-logging || true
+          if [ ! -f ~/Desktop/startup_errors.txt ]; then
+            echo "startup_errors.txt was not created on Desktop"
+            exit 1
+          fi
+          if ! grep -q "Test error logging to startup_errors.txt" ~/Desktop/startup_errors.txt; then
+            echo "startup_errors.txt does not contain expected error message"
+            cat ~/Desktop/startup_errors.txt
+            exit 1
+          fi
+          echo "✓ Error logging test passed"
+          rm ~/Desktop/startup_errors.txt
+
       - name: Unmount DMG
         if: always()
         run: |
@@ -561,6 +576,31 @@ jobs:
             Write-Host "✗ Executable failed with exit code: $exitCode"
             exit 1
           }
+        shell: pwsh
+
+      - name: Test Error Logging
+        run: |
+          Write-Host "Testing error logging..."
+
+          $process = Start-Process -FilePath "./build/Family Diagram.exe" -ArgumentList "--test-error-logging" -Wait -PassThru -NoNewWindow
+
+          $desktopPath = [Environment]::GetFolderPath("Desktop")
+          $errorLogPath = Join-Path $desktopPath "startup_errors.txt"
+
+          if (-not (Test-Path $errorLogPath)) {
+            Write-Host "✗ startup_errors.txt was not created on Desktop"
+            exit 1
+          }
+
+          $logContent = Get-Content $errorLogPath -Raw
+          if ($logContent -notmatch "Test error logging to startup_errors.txt") {
+            Write-Host "✗ startup_errors.txt does not contain expected error message"
+            Write-Host $logContent
+            exit 1
+          }
+
+          Write-Host "✓ Error logging test passed"
+          Remove-Item $errorLogPath
         shell: pwsh
 
   publish:

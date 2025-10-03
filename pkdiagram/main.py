@@ -82,6 +82,13 @@ def _main_impl():
         dest="prefsName",
         help="The preferences scope to use when testing",
     )
+    parser.add_option(
+        "--test-error-logging",
+        dest="test_error_logging",
+        action="store_true",
+        help="Force an exception to test error logging to startup_errors.txt",
+        default=False,
+    )
     options, args = parser.parse_args(sys.argv)
 
     if util.IS_IOS:
@@ -105,6 +112,9 @@ def _main_impl():
             import atexit
 
             atexit.register(lambda: input("\nPress Enter to close..."))
+
+    if options.test_error_logging:
+        raise RuntimeError("Test error logging to startup_errors.txt")
 
     if options.version:
 
@@ -177,8 +187,8 @@ def main():
         _main_impl()
     except Exception as e:
 
-        log_dir = os.path.dirname(sys.executable)
-        error_log_path = os.path.join(log_dir, "startup_errors.txt")
+        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+        error_log_path = os.path.join(desktop_dir, "startup_errors.txt")
 
         from . import version
 
