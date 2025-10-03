@@ -4,6 +4,7 @@ import datetime
 from pkdiagram.pyqt import QPointF
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person
+from pkdiagram.scene.relationshipkind import RelationshipKind
 
 from .test_addanythingdialog import view, START_DATETIME, END_DATETIME
 
@@ -55,3 +56,21 @@ def test_Birth_add_via_birth_one_default_parent(scene, view):
     assert son.scenePos() == QPointF(0, SPACING * 1.5)
     assert father.scenePos() == QPointF(-SPACING, 0)
     assert mother.scenePos() == QPointF(SPACING, 0)
+
+
+def test_Variable_add_to_existing_people(scene, view):
+    father = scene.addItem(Person(name="Father"))
+    mother = scene.addItem(Person(name="Mother"))
+    SPACING = father.boundingRect().width() * 2
+    father.setItemPosNow(QPointF(-SPACING, 0))
+    mother.setItemPosNow(QPointF(SPACING, 0))
+    view.set_kind(EventKind.VariableShift)
+    view.set_relationship(RelationshipKind.Conflict)
+    view.personPicker.set_existing_person(father)
+    view.targetsPicker.add_existing_person(mother)
+    view.set_description("argument")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
+
+    assert father.scenePos() == QPointF(-SPACING, 0)  # unchanged
+    assert mother.scenePos() == QPointF(SPACING, 0)  # unchanged

@@ -42,8 +42,6 @@ Fix Event/Emotion relationship
   - How
     - Details
 Testing
-  - Add spouse to existing pairbond does not arrange properly.
-  - Adding a conflict symbol moved `person`
   - Make summary optional, default to "Variables: S,A,R" or something like that
 
 

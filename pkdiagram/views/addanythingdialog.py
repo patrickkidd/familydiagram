@@ -688,7 +688,8 @@ class AddAnythingDialog(QmlDrawer):
             trianglesReference = (
                 existingTriangles[0].pos() if existingTriangles else QPointF()
             )
-            person.setItemPosNow(personReference + QPointF(-spacing, 0))
+            if person in newPeople:
+                person.setItemPosNow(personReference + QPointF(-spacing, 0))
             for i, target in enumerate(newTargets):
                 target.setItemPosNow(targetsReference + QPointF(spacing, i * (spacing)))
             for i, target in enumerate(newTriangles):
