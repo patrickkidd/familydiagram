@@ -44,6 +44,7 @@ Fix Event/Emotion relationship
 Testing
   - Make summary optional, default to "Variables: S,A,R" or something like that
 
+- need labels or something for the symbols
 
 
 BUGS
