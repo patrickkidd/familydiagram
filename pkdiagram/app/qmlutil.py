@@ -30,7 +30,7 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
 )
 from pkdiagram import util
-from pkdiagram.scene import EventKind
+from pkdiagram.scene import EventKind, RelationshipKind
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import HTTPError
 
@@ -139,6 +139,7 @@ class QmlUtil(QObject, QObjectHelper):
         "S_EVENT_KIND_HELP_TEXT",
         "S_DESCRIPTION_HELP_TEXT",
         "S_ANXIETY_HELP_TEXT",
+        "S_RELATIONSHIP_HELP_TEXT",
         "S_FUNCTIONING_HELP_TEXT",
         "S_SYMPTOM_HELP_TEXT",
         "S_NOTES_HELP_TEXT",
@@ -168,7 +169,10 @@ class QmlUtil(QObject, QObjectHelper):
             }
             for attr in CONSTANTS
         ]
-        + [{"attr": "EventKind", "type": "QVariant"}],
+        + [
+            {"attr": "EventKind", "type": "QVariant"},
+            {"attr": "RelationshipKind", "type": "QVariant"},
+        ],
         globalContext=util.__dict__,
     )
 
@@ -296,6 +300,8 @@ class QmlUtil(QObject, QObjectHelper):
     def get(self, attr):
         if attr == "EventKind":
             return {k.name: k.value for k in EventKind}
+        elif attr == "RelationshipKind":
+            return {k.name: k.value for k in RelationshipKind}
         else:
             return super().get(attr)
 
@@ -520,94 +526,7 @@ class QmlUtil(QObject, QObjectHelper):
     def time(self):
         return time.time()
 
-    @pyqtSlot(str, result=bool)
-    def isMonadicEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isMonadic(EventKind(x))
-
-    @pyqtSlot(str, result=bool)
-    def isDyadicEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isDyadic(EventKind(x))
-
-    @pyqtSlot(str, result=bool)
-    def isPairBondEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isPairBond(EventKind(x))
-
-    @pyqtSlot(str, result=bool)
-    def isChildEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isChild(EventKind(x))
-
-    @pyqtSlot(str, result=bool)
-    def isCustomEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isCustom(EventKind(x))
-
-    @pyqtSlot(str, result=bool)
-    def isRSymbolEventKind(self, x):
-        if x == "":
-            return False
-        return EventKind.isRSymbol(EventKind(x))
-
-    @pyqtSlot(str, result=str)
-    def eventKindEventLabelFor(self, x: str):
-        if x:
-            return EventKind.eventLabelFor(EventKind(x))
-        else:
-            return ""
-
-    @pyqtSlot(result=list)
-    def eventKindMenuItems(self):
-        return [self.eventKindEventLabelFor(x) for x in EventKind]
-
-        def _section(x: str):
-            kind = EventKind(x)
-            if EventKind.isPairBond(kind):
-                return "Pair-Bond"
-            elif EventKind.isMonadic(kind):
-                return "Monadic"
-            elif EventKind.isDyadic(kind):
-                return "Move"
-            elif kind == EventKind.CustomIndividual:
-                return "Custom"
-            else:
-                raise ValueError(f"Unknown EventKind: {x}")
-
-        ret = []
-        lastSection = None
-        for i, x in enumerate(self.eventKindValues()):
-            section = _section(x)
-            if i > 0 and lastSection != section:
-                isFirstInSection = True
-            else:
-                isFirstInSection = False
-            lastSection = section
-            ret.append(
-                {
-                    "label": EventKind.menuLabelFor(EventKind(x)),
-                    "section": _section(x),
-                    "isFirstInSection": isFirstInSection,
-                }
-            )
-        # import pprint
-
-        # log.info(pprint.pformat(ret, indent=4))
-        return ret
-
-    @pyqtSlot(result=list)
-    def eventKindLabels(self):
-        return [EventKind.menuLabelFor(EventKind(x)) for x in self.eventKindValues()]
-
-    @pyqtSlot(result=list)
-    def eventKindValues(self):
-        return EventKind.menuOrder()
+    # Person Kinds
 
     @pyqtSlot(int, result=str)
     def personKindFromIndex(self, index):

@@ -38,9 +38,9 @@
 		"python.analysis.typeCheckingMode": "off",
 		"python.testing.pytestEnabled": false,
 		"python.analysis.extraPaths": [
-			".", 
-			"../fdserver", 
-			"../vedana", 
+			".",
+			"../fdserver",
+			"../vedana",
 			"../btcopilot",
 			"lib/site-packages"
 		],

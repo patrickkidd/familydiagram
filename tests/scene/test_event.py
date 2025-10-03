@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Event, Person
+from pkdiagram.scene import EventKind, RelationshipKind, Event, Person
 
 
 def test_init():
@@ -200,3 +200,42 @@ def test_lt_eq():
     d1 = Event(dateTime=util.Date(2001, 12, 6))
     d2 = Event(dateTime=util.Date(2001, 12, 5))
     assert not (d1 <= d2)
+
+
+@pytest.mark.parametrize(
+    "attr, value",
+    [
+        ("symptom", util.VAR_SYMPTOM_UP),
+        ("anxiety", util.VAR_ANXIETY_DOWN),
+        ("relationship", RelationshipKind.Conflict),
+        ("functioning", util.VAR_FUNCTIONING_SAME),
+    ],
+)
+def test_variables(scene, attr, value):
+    scene.addEventProperty(util.ATTR_SYMPTOM)
+    scene.addEventProperty(util.ATTR_ANXIETY)
+    scene.addEventProperty(util.ATTR_RELATIONSHIP)
+    scene.addEventProperty(util.ATTR_FUNCTIONING)
+    event = scene.addItem(Event())
+    getattr(event, f"set{attr.capitalize()}")(value)
+    assert getattr(event, attr)() == value
+
+
+@pytest.mark.parametrize(
+    "relationship", [RelationshipKind.Inside, RelationshipKind.Outside]
+)
+def test_triangle(scene, relationship: RelationshipKind):
+    """Test setting and getting triangle members."""
+    scene.addEventProperty(util.ATTR_SYMPTOM)
+    scene.addEventProperty(util.ATTR_ANXIETY)
+    scene.addEventProperty(util.ATTR_RELATIONSHIP)
+    scene.addEventProperty(util.ATTR_FUNCTIONING)
+    person = scene.addItem(Person(name="Person"))
+    spouse = scene.addItem(Person(name="Spouse"))
+    third = scene.addItem(Person(name="Third"))
+    event = scene.addItem(Event(parent=person))
+    event.setRelationship(relationship)
+    event.setRelationshipTargets(spouse)
+    event.setRelationshipTriangles(third)
+    assert event.relationshipTargets() == [spouse]
+    assert event.relationshipTriangles() == [third]

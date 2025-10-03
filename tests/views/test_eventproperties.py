@@ -357,7 +357,7 @@ def test_set_uniqueId_with_description(qtbot, scene, view):
     # qtbot.clickYesAfter(lambda: view.clickComboBoxItem('uniqueIdBox', 'Separated'))
 
 
-def test_reset_description_on_reset_uniqueId(qtbot, view, scene):
+def test_reset_summary_on_reset_uniqueId(qtbot, view, scene):
     personA, personB = Person(), Person()
     marriage = Marriage(personA=personA, personB=personB)
     married = Event(

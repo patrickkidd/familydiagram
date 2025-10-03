@@ -41,6 +41,7 @@ PK.GroupBox {
     // for testing since delegate creation is async
     signal itemAddDone(Item item)
     signal itemRemoveDone(Item item)
+    property var callAfterDone: null
 
     function onPersonRowClicked(mouse, row) {
         if(mouse && mouse.modifiers & Qt.ControlModifier) {
@@ -51,9 +52,38 @@ PK.GroupBox {
     }
 
     function clear() {
+        // Remove all entries in model from selectedPeopleModel
+        for(var i = 0; i < root.model.count; i++) {
+            var entry = root.model.get(i)
+            if(entry.person) {
+                for(var j = 0; j < selectedPeopleModel.count; j++) {
+                    var person = selectedPeopleModel.get(j)
+                    if(person.person.itemId() === entry.person.itemId()) {
+                        selectedPeopleModel.remove(j)
+                        break
+                    }
+                }
+            }
+        }
+
+
         // print('>>> PeoplePicker.clear() ' + root.objectName)
         root.model.clear()
         // print('<<< PeoplePicker.clear()')
+
+    }
+
+    function addEntry(callback) {
+        root.model.append({ personName: "", isNewPerson: true, personId: -1 })
+        root.currentIndex = root.model.count - 1
+        // util.debug('addEntry() root.model.count: ' + root.model.count + ', callback: ' + callback)
+        callAfterDone = callback
+    }
+
+    function focusEntry(index) {
+        // print('>>> PeoplePicker.focusEntry(' + index + ') ')
+        pickerAtIndex(index).focusTextEdit()
+        // print('<<< PeoplePicker.focusEntry(' + index + ') ')
     }
 
     function peopleEntries() {
@@ -84,7 +114,7 @@ PK.GroupBox {
 
     function pickerAtIndex(index) {
         var personPickerIndex = -1;
-        // print(root.objectName + '.pickerAtIndex(' + index + ')')
+        util.debug(root.objectName + '.pickerAtIndex(' + index + ')')
         for(var i=0; i < list.contentItem.children.length; i++) {
             var item = list.contentItem.children[i];
             if(item.isPersonPicker) {
@@ -111,10 +141,11 @@ PK.GroupBox {
     }
 
     function allSubmitted() {
-        // print('allSubmitted: ' + root.objectName)
+        // print('allSubmitted: ' + root.objectName + ', model.count: ' + root.model.count)
         var allSubmitted = true
         for(var i = 0; i < root.model.count; i++) {
             var personPicker = pickerAtIndex(i)
+            // print('  personPicker ' + i + ': ' + personPicker + ', isSubmitted: ' + personPicker.isSubmitted)
             if(!personPicker.isSubmitted) {
                 return false
             }
@@ -176,6 +207,11 @@ PK.GroupBox {
                     if(model.personId == -1) {
                         dRoot.textEdit.focus = true
                         root.itemAddDone(dRoot)
+                        if(callAfterDone) {
+                            util.debug('callAfterDone: ' + callAfterDone)
+                            callAfterDone()
+                            callAfterDone = null
+                        }
                     } else {
                         dRoot.isInitializingWithSubmission = true
                         dRoot.setExistingPerson(sceneModel.item(model.personId))
@@ -210,8 +246,10 @@ PK.GroupBox {
             width: parent.width
             addButton: true
             onAdd: {
-                root.model.append({ personName: "", isNewPerson: true, personId: -1 })
-                root.currentIndex = root.model.count - 1
+                root.addEntry(function() {
+                    util.debug('callAfterDone: ' + (root.model.count - 1))
+                    root.focusEntry(root.model.count - 1)
+                })
             }
             addButtonToolTip: 'Add a new person'
             removeButtonEnabled: list.count > 0 && root.currentIndex >= 0

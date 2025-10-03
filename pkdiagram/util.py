@@ -252,6 +252,7 @@ ITEM_MARRY = 2
 ITEM_CHILD = 3
 ITEM_PENCIL = 4
 ITEM_ERASER = 5
+#
 ITEM_FUSION = 6
 ITEM_CUTOFF = 7
 ITEM_CONFLICT = 8
@@ -292,21 +293,24 @@ VAR_VALUE_DOWN = "down"
 VAR_VALUE_SAME = "same"
 VAR_VALUE_UP = "up"
 
+VAR_SYMPTOM_DOWN = VAR_VALUE_DOWN
+VAR_SYMPTOM_SAME = VAR_VALUE_SAME
+VAR_SYMPTOM_UP = VAR_VALUE_UP
+
 VAR_ANXIETY_DOWN = VAR_VALUE_DOWN
 VAR_ANXIETY_SAME = VAR_VALUE_SAME
 VAR_ANXIETY_UP = VAR_VALUE_UP
+
+# Relationship values are nominal not ordinal, from RelationshipKind
 
 VAR_FUNCTIONING_DOWN = VAR_VALUE_DOWN
 VAR_FUNCTIONING_SAME = VAR_VALUE_SAME
 VAR_FUNCTIONING_UP = VAR_VALUE_UP
 
-VAR_SYMPTOM_DOWN = VAR_VALUE_DOWN
-VAR_SYMPTOM_SAME = VAR_VALUE_SAME
-VAR_SYMPTOM_UP = VAR_VALUE_UP
-
-ATTR_ANXIETY = "Δ Anxiety"
-ATTR_FUNCTIONING = "Δ Functioning"
 ATTR_SYMPTOM = "Δ Symptom"
+ATTR_ANXIETY = "Δ Anxiety"
+ATTR_RELATIONSHIP = "Δ Relationship"
+ATTR_FUNCTIONING = "Δ Functioning"
 
 # Person
 
@@ -502,6 +506,10 @@ S_ANXIETY_HELP_TEXT = LONG_TEXT(
 S_SYMPTOM_HELP_TEXT = LONG_TEXT(
     "Shift up, down or same in any physical or emotional problem. "
     "Symptoms can increase or decrease with anxiety"
+)
+
+S_RELATIONSHIP_HELP_TEXT = LONG_TEXT(
+    "Shift in the relationship between people in response to discomfort."
 )
 
 S_FUNCTIONING_HELP_TEXT = LONG_TEXT(

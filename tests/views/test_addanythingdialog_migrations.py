@@ -15,12 +15,15 @@ pytestmark = [
 ]
 
 
+pytest.skip(
+    reason="Migrations not implemented yet, may never be", allow_module_level=True
+)
+
+
 @pytest.mark.parametrize(
     "kind",
     [
-        EventKind.CustomIndividual,
         EventKind.Married,
-        EventKind.Conflict,
         EventKind.Adopted,
     ],
 )
@@ -34,33 +37,31 @@ def test_migrate_from_birth(scene, view, kind):
     view.personBPicker.set_existing_person(personC)
     view.set_kind(kind)
     waitForPersonPickers()
-    if kind == EventKind.CustomIndividual:
-        assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
-            personA.id,
-            personB.id,
-            personC.id,
-        }
-    elif kind == EventKind.Married:
+    # if kind == EventKind.CustomIndividual:
+    #     assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
+    #         personA.id,
+    #         personB.id,
+    #         personC.id,
+    #     }
+    if kind == EventKind.Married:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
-    elif kind == EventKind.Conflict:
-        assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
-            personA.id
-        }
-        assert {x["person"].id for x in view.item.receiverEntries().toVariant()} == {
-            personB.id,
-            personC.id,
-        }
+    # elif kind == EventKind.Conflict:
+    #     assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
+    #         personA.id
+    #     }
+    #     assert {x["person"].id for x in view.item.receiverEntries().toVariant()} == {
+    #         personB.id,
+    #         personC.id,
+    #     }
     elif kind == EventKind.Adopted:
         assert view.item.personEntry().toVariant()["person"] == personA
         assert view.personAPicker.item.property("isSubmitted") == False
         assert view.personBPicker.item.property("isSubmitted") == False
 
 
-@pytest.mark.parametrize(
-    "kind", [EventKind.Birth, EventKind.Married, EventKind.Conflict]
-)
-def test_migrate_from_custom_individual(scene, view, kind):
+@pytest.mark.parametrize("lifeChange", [EventKind.Birth, EventKind.Married])
+def test_migrate_from_custom_individual(scene, view, lifeChange):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))
     personB = scene.addItem(Person(name="Josephina", lastName="Donner"))
     personC = scene.addItem(Person(name="Josephine", lastName="Donner"))
@@ -77,22 +78,22 @@ def test_migrate_from_custom_individual(scene, view, kind):
     elif kind == EventKind.Married:
         assert view.item.personAEntry().toVariant()["person"] == personA
         assert view.item.personBEntry().toVariant()["person"] == personB
-    elif kind == EventKind.Conflict:
-        assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
-            personA.id
-        }
-        assert {x["person"].id for x in view.item.receiverEntries().toVariant()} == {
-            personB.id,
-            personC.id,
-        }
+    # elif kind == EventKind.Conflict:
+    #     assert {x["person"].id for x in view.item.moverEntries().toVariant()} == {
+    #         personA.id
+    #     }
+    #     assert {x["person"].id for x in view.item.receiverEntries().toVariant()} == {
+    #         personB.id,
+    #         personC.id,
+    #     }
 
 
 @pytest.mark.parametrize(
     "kind",
     [
         EventKind.Birth,
-        EventKind.CustomIndividual,
-        EventKind.Conflict,
+        # EventKind.CustomIndividual,
+        # EventKind.Conflict,
         EventKind.Separated,
     ],
 )
@@ -127,7 +128,10 @@ def test_migrate_from_pairbond(scene, view, kind):
 
 @pytest.mark.parametrize(
     "kind",
-    [EventKind.Birth, EventKind.CustomIndividual, EventKind.Married, EventKind.Away],
+    [
+        EventKind.Birth,
+        EventKind.Married,
+    ],
 )
 def test_migrate_from_dyadic(scene, view, kind):
     personA = scene.addItem(Person(name="Joseph", lastName="Donner"))

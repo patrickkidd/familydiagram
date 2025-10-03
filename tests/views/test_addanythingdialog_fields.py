@@ -4,7 +4,7 @@ import pytest
 import mock
 
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, EventKind
+from pkdiagram.scene import Person, Marriage, EventKind, RelationshipKind
 
 
 from .test_addanythingdialog import view
@@ -17,114 +17,156 @@ pytestmark = [
 ]
 
 
-def test_init_no_selection(view):
-    assert [i for i in view.kindBox.property("model")] == EventKind.menuLabels()
-    assert view.item.property("kind") == None
+@pytest.mark.parametrize(
+    "kind,spouseVisible,childVisible",
+    [
+        (EventKind.Birth, True, True),
+        (EventKind.Adopted, True, True),
+        (EventKind.Death, False, False),
+        (EventKind.Bonded, True, False),
+        (EventKind.Married, True, False),
+        (EventKind.Separated, True, False),
+        (EventKind.Divorced, True, False),
+        (EventKind.Moved, True, False),
+    ],
+    ids=[
+        "Birth",
+        "Adopted",
+        "Death",
+        "Bonded",
+        "Married",
+        "Separated",
+        "Divorced",
+        "Moved",
+    ],
+)
+def test_eventkind_fields_response(
+    view, kind: EventKind, spouseVisible: bool, childVisible: bool
+):
+    view.set_kind(kind)
+    assert view.spousePicker.item.property("visible") == spouseVisible
+    assert view.childPicker.item.property("visible") == childVisible
+    assert view.descriptionEdit.property("visible") == False
+    for item in [
+        view.symptomLabel,
+        view.symptomField,
+        view.anxietyLabel,
+        view.anxietyField,
+        view.relationshipLabel,
+        view.relationshipField,
+        view.functioningLabel,
+        view.functioningField,
+    ]:
+        assert item.property("visible") == False
 
 
-def test_init_with_existing_person(scene, view):
-    assert [i for i in view.kindBox.property("model")] == EventKind.menuLabels()
-    person = scene.addItem(
-        Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
-    )
-    view.initForSelection([person])
-    peopleEntries = view.item.peopleEntries().toVariant()
-    assert view.item.property("kind") == EventKind.CustomIndividual.value
-    assert len(peopleEntries) == 1
-    assert peopleEntries[0]["person"] == person
-    assert peopleEntries[0]["gender"] == util.PERSON_KIND_FEMALE
+def test_onKindChanged_clears_triangle_fields(scene, view):
 
+    DATETIME = util.Date(2023, 1, 1)
+    person = scene.addItem(Person(name="Jane", lastName="Doe"))
+    person2 = scene.addItem(Person(name="John", lastName="Doe"))
+    person3 = scene.addItem(Person(name="Baby", lastName="Doe"))
+    view.set_kind(EventKind.VariableShift)
+    view.personPicker.set_existing_person(person)
+    view.set_relationship(RelationshipKind.Inside)  # unhappy path
+    view.set_description("Something happened")
+    view.targetsPicker.add_existing_person(person2)
+    view.trianglesPicker.add_existing_person(person3)
+    view.set_startDateTime(DATETIME)
+    view.set_endDateTime(DATETIME)
+    view.add_tag("tag1")
+    view.add_tag("tag2")
+    view.set_active_tags(["tag1", "tag2"])
 
-def test_init_with_pairbond_people_selected(scene, view):
-    personA = Person(name="Joseph", lastName="Donner")
-    personB = Person(name="Josephina", lastName="Donner")
-    marriage = Marriage(personA=personA, personB=personB)
-    scene.addItems(personA, personB, marriage)
-    view.initForSelection([personA, personB])
-    assert view.item.property("kind") == EventKind.CustomPairBond.value
-    assert view.personAPicker.item.property("person") == personA
-    assert view.personBPicker.item.property("person") == personB
+    view.set_kind(EventKind.Birth)
 
-
-def test_init_with_pairbond_selected(scene, view):
-    personA = Person(name="Joseph", lastName="Donner")
-    personB = Person(name="Josephina", lastName="Donner")
-    marriage = Marriage(personA=personA, personB=personB)
-    scene.addItems(personA, personB, marriage)
-    view.initForSelection([marriage])
-    assert view.item.property("kind") == EventKind.CustomPairBond.value
-    assert view.personAPicker.item.property("person") == personA
-    assert view.personBPicker.item.property("person") == personB
-
-
-def test_init_with_individuals_selected(scene, view):
-    personA = Person(name="Joseph", lastName="Donner")
-    personB = Person(name="Josephina", lastName="Donner")
-    personC = Person(name="Josephine", lastName="Donner")
-    personD = Person(name="Josephine", lastName="Donner")
-    scene.addItems(personA, personB, personC, personD)
-    view.initForSelection([personA, personB, personC])
-    assert view.item.property("kind") == EventKind.CustomIndividual.value
-    assert {x["person"].id for x in view.item.peopleEntries().toVariant()} == {
-        personA.id,
-        personB.id,
-        personC.id,
-    }
-
-
-@pytest.mark.parametrize("kind", [x for x in EventKind])
-def test_fields_for_kind(view, kind):
-    view.view.clickComboBoxItem(view.kindBox, EventKind.menuLabelFor(kind))
-    assert view.personLabel.property("visible") == EventKind.isMonadic(kind)
-    assert view.personPicker.item.property("visible") == EventKind.isMonadic(kind)
-
-    assert view.peopleLabel.property("visible") == (kind == EventKind.CustomIndividual)
-    assert view.peoplePicker.item.property("visible") == (
-        kind == EventKind.CustomIndividual
-    )
-
+    assert view.relationshipField.property("value") == None
+    assert view.descriptionEdit.property("text") == ""
+    assert view.view.targetsEntries() == []
+    assert view.view.trianglesEntries() == []
     assert (
-        view.item.property("personALabel").property("text") == "Person A"
-        if EventKind.isPairBond(kind)
-        else "Parent A"
-    )
+        view.item.property("selectedPeopleModel").rowCount() == 1  # person
+    )  # hidden pickers retained selections
+    # not cleared
+    assert view.view.personEntry()["person"] == person
+    assert view.item.property("startDateTime") == DATETIME
+    assert view.item.property("endDateTime") == DATETIME
+    assert view.isDateRangeBox.property("checked") == True
+    assert view.item.property("eventModel").property("tags") == ["tag1", "tag2"]
+
+
+def test_onKindChanged_clears_pairbond_fields(scene, view):
+    person = scene.addItem(Person(name="Jane", lastName="Doe"))
+    spouse = scene.addItem(Person(name="John", lastName="Doe"))
+    child = scene.addItem(Person(name="Baby", lastName="Doe"))
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_existing_person(person)
+    view.spousePicker.set_existing_person(spouse)
+    view.childPicker.set_existing_person(child)
+
+    view.set_kind(EventKind.VariableShift)
+    assert view.relationshipField.property("value") == None
+    assert view.view.personEntry()["person"] == person
+    assert view.view.spouseEntry() == None
+    assert view.view.childEntry() == None
+    assert view.view.targetsEntries() == []
+    assert view.view.trianglesEntries() == []
     assert (
-        view.item.property("personBLabel").property("text") == "Person B"
-        if EventKind.isPairBond(kind)
-        else "Parent B"
-    )
-    assert view.item.property("personALabel").property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
-    )
-    assert view.personAPicker.item.property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
-    )
-    assert view.item.property("personBLabel").property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
-    )
-    assert view.personBPicker.item.property("visible") == (
-        EventKind.isPairBond(kind) or EventKind.isChild(kind)
-    )
+        view.item.property("selectedPeopleModel").rowCount() == 1  # person
+    )  # hidden pickers retained selections
+    # not cleared
+    assert view.view.personEntry()["person"] == person
 
-    assert view.moversLabel.property("visible") == EventKind.isDyadic(kind)
-    assert view.moversPicker.item.property("visible") == EventKind.isDyadic(kind)
-    assert view.receiversLabel.property("visible") == EventKind.isDyadic(kind)
-    assert view.receiversPicker.item.property("visible") == EventKind.isDyadic(kind)
 
-    assert view.item.property("descriptionLabel").property(
-        "visible"
-    ) == EventKind.isCustom(kind)
-    assert view.descriptionEdit.property("visible") == EventKind.isCustom(kind)
+@pytest.mark.parametrize(
+    "relationship, labelText",
+    [
+        (RelationshipKind.Conflict, "Other(s)"),
+        (RelationshipKind.Distance, "Other(s)"),
+        (RelationshipKind.Underfunctioning, "Overfunctioner(s)"),
+        (RelationshipKind.Overfunctioning, "Underfunctioner(s)"),
+        (RelationshipKind.Projection, "Focused"),
+        (RelationshipKind.Toward, "To"),
+        (RelationshipKind.Away, "From"),
+        (RelationshipKind.DefinedSelf, "Other(s)"),
+        (RelationshipKind.Inside, "Inside(s)"),
+        (RelationshipKind.Outside, "Outside(s)"),
+    ],
+    ids=[
+        "Conflict",
+        "Distance",
+        "Underfunctioning",
+        "Overfunctioning",
+        "Projection",
+        "Toward",
+        "Away",
+        "DefinedSelf",
+        "Inside",
+        "Outside",
+    ],
+)
+def test_relationship_targets_labels(view, relationship, labelText):
+    view.set_kind(EventKind.VariableShift)
+    view.set_relationship(relationship)
+    assert view.targetsLabel.property("text") == labelText
 
-    assert view.item.property("anxietyBox").property("visible") != EventKind.isRSymbol(
-        kind
-    )
-    assert view.item.property("functioningBox").property(
-        "visible"
-    ) != EventKind.isRSymbol(kind)
-    assert view.item.property("symptomBox").property("visible") != EventKind.isRSymbol(
-        kind
-    )
+
+@pytest.mark.parametrize(
+    "relationship",
+    [
+        RelationshipKind.Conflict,
+        RelationshipKind.Distance,
+        RelationshipKind.Toward,
+        RelationshipKind.Away,
+        RelationshipKind.DefinedSelf,
+        RelationshipKind.Inside,
+        RelationshipKind.Outside,
+    ],
+)
+def test_relationship_triangles(view, relationship):
+    view.set_kind(EventKind.VariableShift)
+    view.set_relationship(relationship)
+    assert view.targetsPicker.item.property("visible") == True
 
 
 def test_startDateTime_pickers(view):
@@ -142,7 +184,7 @@ def test_endDateTime_pickers(view):
 
     DATE_TIME = util.Date(2023, 2, 1)
 
-    view.set_kind(EventKind.Conflict)
+    view.set_kind(EventKind.Bonded)
     view.set_endDateTime(DATE_TIME)
 
     # util.dumpWidget(view)

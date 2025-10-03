@@ -80,12 +80,17 @@ Rectangle {
         // print('<<< PersonPicker.clear() root.gender: ' + root.gender + ', ' + genderBox.currentIndex)
     }
 
-    function setFocus() {
+    function focusTextEdit() {
+        // util.debug('>>> PersonPicker.focusTextEdit()')
         pickerTextEdit.forceActiveFocus()
+        // util.debug('<<< PersonPicker.focusTextEdit()')
     }
 
     function personEntry() {
-        // print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + person.gender())
+        util.debug('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + root.gender)
+        if(! root.isSubmitted) {
+            return null
+        }
         return {
             person: root.person,
             personName: root.personName,
@@ -214,7 +219,7 @@ Rectangle {
         id: genderBox
         objectName: "genderBox"
         z: 2
-        width: 90
+        width: 70
         height: util.QML_ITEM_HEIGHT - 10
         visible: isSubmitted
         model: util.PERSON_KIND_NAMES
@@ -230,6 +235,8 @@ Rectangle {
             rightMargin: root.spacing + 10
         }
         palette.button: 'transparent'
+        popup.width: genderBox.width + 25
+
         onCurrentIndexChanged: {
             var newGender = util.personKindFromIndex(currentIndex)
             if(newGender != root.gender) {

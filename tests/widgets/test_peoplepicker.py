@@ -149,3 +149,12 @@ def test_maintain_selectedPeopleModel(scene, picker):
 # test_cancel_add_new
 # test_add_existing_then_delete
 # test_add_new__then_delete
+
+
+def test_clear(scene, picker):
+    personA = scene.addItem(Person(name="John"))
+    picker.add_existing_person(personA)
+    picker.add_new_person("Someone new")
+    picker.item.clear()
+    assert picker.model.rowCount() == 0
+    assert picker.item.property("selectedPeopleModel").property("count") == 0

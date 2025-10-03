@@ -4,7 +4,15 @@ import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Marriage, Event, Emotion, EventKind, Marriage
+from pkdiagram.scene import (
+    Scene,
+    Person,
+    Marriage,
+    Event,
+    Emotion,
+    EventKind,
+    Marriage,
+)
 from pkdiagram.models import SearchModel, TimelineModel
 
 

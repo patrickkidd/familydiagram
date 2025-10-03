@@ -346,6 +346,26 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "personal"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "personal.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "personalappcontroller.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "pyqt.py"
 included = true
 is_directory = false
@@ -1009,6 +1029,46 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "Personal"
+included = true
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "DiscussView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "LearnView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PersonalContainer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PlanView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "qmldir"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "Style.qml"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "PersonalApplication.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "PersonProperties.qml"
 included = true
 is_directory = false
@@ -1228,7 +1288,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "VariableBox.qml"
+name = "VariableField.qml"
 included = true
 is_directory = false
 
@@ -1241,46 +1301,6 @@ is_directory = false
 [[Application.Package.Content.Content.Content]]
 name = "TestDialog.qml"
 included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "Personal"
-included = true
-is_directory = true
-[[Application.Package.Content.Content.Content.Content]]
-name = "DiscussView.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "LearnView.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "PlanView.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "qmldir"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "Style.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "PersonalContainer.qml"
-included = true
-is_directory = false
-
-
-[[Application.Package.Content.Content.Content]]
-name = "PersonalApplication.qml"
-included = true
 is_directory = false
 
 
@@ -1505,6 +1525,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "relationshipkind.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "scene.py"
 included = true
 is_directory = false
@@ -1529,26 +1554,6 @@ is_directory = false
 name = "sortedlist.py"
 included = true
 is_directory = false
-
-[[Application.Package.Content]]
-name = "personal"
-included = true
-is_directory = true
-[[Application.Package.Content.Content]]
-name = "__init__.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "personal.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "personalappcontroller.py"
-included = true
-is_directory = false
-
 
 [[Application.Package.Content]]
 name = "util.py"
@@ -1596,11 +1601,6 @@ is_directory = false
 [[Application.Package.Content.Content.Content]]
 name = "copilotview.py"
 included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "personalview.py"
-included = false
 is_directory = false
 
 

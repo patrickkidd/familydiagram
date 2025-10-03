@@ -11,7 +11,6 @@ state from the object required to undo the underlying api call.
 import os, shutil, logging
 
 from pkdiagram.pyqt import QUndoCommand
-from pkdiagram.scene import EventKind
 
 
 _log = logging.getLogger(__name__)
