@@ -1435,7 +1435,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "lifechange.py"
+name = "eventkind.py"
 included = true
 is_directory = false
 
