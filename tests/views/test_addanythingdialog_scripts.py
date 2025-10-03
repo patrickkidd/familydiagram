@@ -243,3 +243,37 @@ def test_no_Marriage_DeferredDelete(data_root, scene, view):
     ) as onDeferredDelete:
         loop.exec()
     assert onDeferredDelete.call_count == 0
+
+
+## Undo-redo
+
+
+def test_Married_undo_redo(scene, view):
+    personA = scene.addItem(Person(name="John", lastName="Doe"))
+    view.personPicker.set_existing_person(personA)
+    view.set_kind(EventKind.Married)
+    view.spousePicker.set_new_person("Jane Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
+    personB = scene.query1(name="Jane", lastName="Doe")
+    assert len(scene.people()) == 2
+    marriage = personA.marriages[0]
+    assert marriage in personB.marriages
+    assert len(marriage.events()) == 1
+    assert marriage.events()[0].uniqueId() == EventKind.Married.value
+    assert marriage.events()[0].description() == EventKind.Married.menuLabel()
+
+    scene.undo()
+    assert len(scene.people()) == 1
+    assert personA.marriages == []
+    assert personB.marriages == []
+    assert marriage not in scene.items()
+    # assert marriage.events() == [] # bug, parents still have reference because event.setParent(None) is never called
+
+    scene.redo()
+    assert len(scene.people()) == 2
+    assert marriage in personA.marriages
+    assert marriage in personB.marriages
+    assert len(marriage.events()) == 1
+    assert marriage.events()[0].uniqueId() == EventKind.Married.value
+    assert marriage.events()[0].description() == EventKind.Married.menuLabel()

@@ -436,7 +436,7 @@ class AddAnythingDialog(QmlDrawer):
             f"Adding {len(newPeople)} new people to scene, found {len(existingPeople)} existing people"
         )
         if newPeople:
-            self.scene.addItems(*newPeople)
+            self.scene.addItems(*newPeople, undo=True)
 
         # Ensure variables in scene
 
@@ -519,7 +519,12 @@ class AddAnythingDialog(QmlDrawer):
             event.setDateTime(startDateTime, undo=True)
             events.append(event)
 
-        elif kind and spouse:
+        elif kind in (
+            EventKind.Bonded,
+            EventKind.Married,
+            EventKind.Separated,
+            EventKind.Divorced,
+        ):
             marriage = Marriage.marriageForSelection([person, spouse])
             if not marriage:
                 # Generally there is only one marriage item per person. Multiple
@@ -601,7 +606,7 @@ class AddAnythingDialog(QmlDrawer):
                 event.setNotes(notes, undo=True)
 
         # Arrange people
-        spacing = (newPeople[0].boundingRect().width() * 2) if newPeople else 0
+        spacing = (newPeople[0].sceneBoundingRect().width() * 2) if newPeople else 0
 
         if kind and kind.isOffspring():
 
@@ -657,7 +662,12 @@ class AddAnythingDialog(QmlDrawer):
                             )
                         )
                 else:
-                    child.setItemPosNow(QPointF((xRight - xLeft) / 2, parentAPos.y()))
+                    child.setItemPosNow(
+                        QPointF(
+                            xRight - (xRight - xLeft) / 2,
+                            marriage.sceneBoundingRect().bottomLeft().y() + spacing,
+                        )
+                    )
 
         elif kind and spouse:
             if {person, spouse} == set(newPeople):
@@ -703,7 +713,11 @@ class AddAnythingDialog(QmlDrawer):
         #         person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
         timelineModel = self.qmlEngine().rootContext().contextProperty("timelineModel")
-        if self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
+        if newEmotions:
+            self.scene.setCurrentDateTime(
+                newEmotions[0].startEvent.dateTime(), undo=True
+            )
+        elif self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
             self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:
             pathItem.flash()

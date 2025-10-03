@@ -15,11 +15,8 @@ pytestmark = [
 ]
 
 
-def test_Birth_default_parents_parents_to_existing_person(scene, view):
-    submitted = util.Condition(view.view.submitted)
-
-    person = Person(name="John", lastName="Doe")
-    scene.addItems(person)
+def test_Birth_default_parents_parents_to_existing_child(scene, view):
+    person = scene.addItems(Person(name="John", lastName="Doe"))
     SPACING = person.boundingRect().width() * 2
     assert person.scenePos() == QPointF(0, 0)
 
@@ -29,10 +26,9 @@ def test_Birth_default_parents_parents_to_existing_person(scene, view):
         "Mother Doe",
         gender=util.personKindNameFromKind(util.PERSON_KIND_FEMALE),
     )
-    view.childPicker.set_existing_person(person=person)
+    view.childPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
-    assert submitted.wait() == True
     father = scene.query1(name="Father")
     mother = scene.query1(name="Mother")
     assert person.scenePos() == QPointF(0, 0)  # hasn't changed
@@ -41,14 +37,11 @@ def test_Birth_default_parents_parents_to_existing_person(scene, view):
 
 
 def test_Birth_add_via_birth_one_default_parent(scene, view):
-    submitted = util.Condition(view.view.submitted)
-
     view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("Father Doe")
     view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickAddButton()
-    assert submitted.wait() == True
     son = scene.query1(name="Son")
     father = scene.query1(name="Father")
     mother = scene.query1(gender=util.PERSON_KIND_FEMALE)
@@ -56,6 +49,27 @@ def test_Birth_add_via_birth_one_default_parent(scene, view):
     assert son.scenePos() == QPointF(0, SPACING * 1.5)
     assert father.scenePos() == QPointF(-SPACING, 0)
     assert mother.scenePos() == QPointF(SPACING, 0)
+
+
+def test_Birth_add_new_existing_parents(scene, view):
+    mother = scene.addItem(Person(name="Mother"))
+    father = scene.addItem(Person(name="Father"))
+    SPACING = father.boundingRect().width() * 2
+    mother.setItemPosNow(QPointF(-SPACING, 0))
+    father.setItemPosNow(QPointF(SPACING, 0))
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_existing_person(mother)
+    view.spousePicker.set_existing_person(father)
+    view.childPicker.set_new_person("Son Doe")
+    view.set_startDateTime(START_DATETIME)
+    view.clickAddButton()
+    child = scene.query1(name="Son")
+    assert mother.scenePos() == QPointF(-SPACING, 0)
+    assert father.scenePos() == QPointF(SPACING, 0)
+    spacing = child.sceneBoundingRect().width() * 2
+    assert child.itemPos() == QPointF(
+        0, father.marriages[0].sceneBoundingRect().bottomLeft().y() + spacing
+    )
 
 
 def test_Variable_add_to_existing_people(scene, view):

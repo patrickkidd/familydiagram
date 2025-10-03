@@ -60,6 +60,64 @@ def test_eventkind_fields_response(
         assert item.property("visible") == False
 
 
+def test_onKindChanged_clears_triangle_fields(scene, view):
+
+    DATETIME = util.Date(2023, 1, 1)
+    person = scene.addItem(Person(name="Jane", lastName="Doe"))
+    person2 = scene.addItem(Person(name="John", lastName="Doe"))
+    person3 = scene.addItem(Person(name="Baby", lastName="Doe"))
+    view.set_kind(EventKind.VariableShift)
+    view.personPicker.set_existing_person(person)
+    view.set_relationship(RelationshipKind.Inside)  # unhappy path
+    view.set_description("Something happened")
+    view.targetsPicker.add_existing_person(person2)
+    view.trianglesPicker.add_existing_person(person3)
+    view.set_startDateTime(DATETIME)
+    view.set_endDateTime(DATETIME)
+    view.add_tag("tag1")
+    view.add_tag("tag2")
+    view.set_active_tags(["tag1", "tag2"])
+
+    view.set_kind(EventKind.Birth)
+
+    assert view.relationshipField.property("value") == None
+    assert view.descriptionEdit.property("text") == ""
+    assert view.view.targetsEntries() == []
+    assert view.view.trianglesEntries() == []
+    assert (
+        view.item.property("selectedPeopleModel").rowCount() == 1  # person
+    )  # hidden pickers retained selections
+    # not cleared
+    assert view.view.personEntry()["person"] == person
+    assert view.item.property("startDateTime") == DATETIME
+    assert view.item.property("endDateTime") == DATETIME
+    assert view.isDateRangeBox.property("checked") == True
+    assert view.item.property("eventModel").property("tags") == ["tag1", "tag2"]
+
+
+def test_onKindChanged_clears_pairbond_fields(scene, view):
+    person = scene.addItem(Person(name="Jane", lastName="Doe"))
+    spouse = scene.addItem(Person(name="John", lastName="Doe"))
+    child = scene.addItem(Person(name="Baby", lastName="Doe"))
+    view.set_kind(EventKind.Birth)
+    view.personPicker.set_existing_person(person)
+    view.spousePicker.set_existing_person(spouse)
+    view.childPicker.set_existing_person(child)
+
+    view.set_kind(EventKind.VariableShift)
+    assert view.relationshipField.property("value") == None
+    assert view.view.personEntry()["person"] == person
+    assert view.view.spouseEntry() == None
+    assert view.view.childEntry() == None
+    assert view.view.targetsEntries() == []
+    assert view.view.trianglesEntries() == []
+    assert (
+        view.item.property("selectedPeopleModel").rowCount() == 1  # person
+    )  # hidden pickers retained selections
+    # not cleared
+    assert view.view.personEntry()["person"] == person
+
+
 @pytest.mark.parametrize(
     "relationship, labelText",
     [

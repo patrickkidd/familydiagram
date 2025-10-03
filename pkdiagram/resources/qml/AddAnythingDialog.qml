@@ -108,12 +108,24 @@ PK.Drawer {
     property var tagsEdit: tagsEditItem
     property var tagsLabel: tagsLabel
 
+    onKindChanged: {
+        spousePicker.clear()
+        childPicker.clear()
+        targetsPicker.clear()
+        trianglesPicker.clear()
+        descriptionEdit.clear()
+        symptomField.clear()
+        anxietyField.clear()
+        relationshipField.clear()
+        functioningField.clear()
+    }
+
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
         print('onStartDateTimeChanged: ' + startDateTime)
     }
 
-    readonly property var fieldWidth: 200
+    readonly property var fieldWidth: 231
 
     property var dirty: false
 
@@ -175,9 +187,9 @@ PK.Drawer {
 
     function initPersonPicker() {
         personPicker.clear()
-        util.debug('>>> initPeoplePicker() callback')
+        // util.debug('>>> initPeoplePicker() callback')
         personPicker.focusTextEdit()
-        util.debug('<<< initPeoplePicker() callback')
+        // util.debug('<<< initPeoplePicker() callback')
     }
 
     function setVariable(attr, x) {
@@ -306,6 +318,7 @@ PK.Drawer {
                         Layout.maximumHeight: personPicker.height
                         PK.PersonPicker {
                             id: personPicker
+                            objectName: 'personPicker'
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -327,7 +340,7 @@ PK.Drawer {
                     PK.Text {
                         id: kindLabel
                         text: "Event"
-                        Layout.minimumWidth: 100
+                        Layout.minimumWidth: 90
                     }
 
                     PK.ComboBox {
@@ -418,6 +431,7 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
                             id: spousePicker
+                            objectName: 'spousePicker'
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -448,6 +462,7 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
                             id: childPicker
+                            objectName: 'childPicker'
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             border.width: 1
@@ -631,6 +646,7 @@ PK.Drawer {
                         Layout.maximumHeight: targetsPicker.height
                         PK.PeoplePicker {
                             id: targetsPicker
+                            objectName: 'targetsPicker'
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
@@ -677,6 +693,7 @@ PK.Drawer {
                         Layout.maximumHeight: trianglesPicker.height
                         PK.PeoplePicker {
                             id: trianglesPicker
+                            objectName: 'trianglesPicker'
                             scenePeopleModel: peopleModel
                             selectedPeopleModel: root.selectedPeopleModel
                             Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
