@@ -16,8 +16,8 @@ pytestmark = [
 
 
 def test_Birth_default_parents_parents_to_existing_child(scene, view):
-    person = scene.addItems(Person(name="John", lastName="Doe"))
-    SPACING = person.boundingRect().width() * 2
+    person = scene.addItem(Person(name="John", lastName="Doe"))
+    SPACING = person.sceneBoundingRect().width() * 2
     assert person.scenePos() == QPointF(0, 0)
 
     view.set_kind(EventKind.Birth)
@@ -45,7 +45,7 @@ def test_Birth_add_via_birth_one_default_parent(scene, view):
     son = scene.query1(name="Son")
     father = scene.query1(name="Father")
     mother = scene.query1(gender=util.PERSON_KIND_FEMALE)
-    SPACING = son.boundingRect().width() * 2
+    SPACING = son.sceneBoundingRect().width() * 2
     assert son.scenePos() == QPointF(0, SPACING * 1.5)
     assert father.scenePos() == QPointF(-SPACING, 0)
     assert mother.scenePos() == QPointF(SPACING, 0)
