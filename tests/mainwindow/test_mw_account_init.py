@@ -3,7 +3,7 @@ import vedana
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
 
-from fdserver.extensions import db
+from btcopilot.extensions import db
 
 
 pytestmark = [

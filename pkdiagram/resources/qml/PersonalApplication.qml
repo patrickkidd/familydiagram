@@ -5,7 +5,7 @@ Manages the safe areas and any application-level handlers and logic.
 import QtQuick 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
-import "./Therapist" 1.0 as Therapist
+import "./Personal" 1.0 as Personal
 
 ApplicationWindow {
     visible: true
@@ -49,8 +49,8 @@ ApplicationWindow {
             }
         }
 
-        Therapist.TherapistContainer {
-            id: therapistView
+        Personal.PersonalContainer {
+            id: personalView
             anchors.fill: parent
         }
 

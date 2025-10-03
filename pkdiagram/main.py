@@ -62,10 +62,10 @@ def _main_impl():
     if ENABLE_THERAPIST:
         parser.add_option(
             "-t",
-            "--therapist",
-            dest="therapist",
+            "--personal",
+            dest="personal",
             action="store_true",
-            help="Run the therapist UI",
+            help="Run the personal mobile UI",
         )
     if sys.platform == "win32":
         parser.add_option(
@@ -85,7 +85,7 @@ def _main_impl():
     options, args = parser.parse_args(sys.argv)
 
     if util.IS_IOS:
-        options.therapist = True
+        options.personal = True
 
     # Handle console allocation for Windows
     if sys.platform == "win32" and (options.windows_console or options.version):
@@ -117,15 +117,15 @@ def _main_impl():
         # Exit after printing version to avoid starting the GUI
         sys.exit(0)
 
-    elif ENABLE_THERAPIST and options.therapist:
-        from pkdiagram.therapist import TherapistAppController
+    elif ENABLE_THERAPIST and options.personal:
+        from pkdiagram.personal import PersonalAppController
 
         util.init_logging()
 
         app = Application(
             sys.argv, Application.Type.Mobile, prefsName=options.prefsName
         )
-        controller = TherapistAppController(app)
+        controller = PersonalAppController(app)
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine
@@ -134,7 +134,7 @@ def _main_impl():
         engine.addImportPath("resources:")
         controller.init(engine)
 
-        engine.load("resources:qml/TherapistApplication.qml")
+        engine.load("resources:qml/PersonalApplication.qml")
         extensions.setActiveSession(session=controller.session)
 
         ret = app.exec_()

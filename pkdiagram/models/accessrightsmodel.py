@@ -21,7 +21,7 @@ class AccessRightsModel(QAbstractListModel):
     UsernameRole = Qt.UserRole + 1
     RightRole = UsernameRole + 1
 
-    S_CLIENT_ONLY_ALLOWED_ONE_RIGHT = "You are using the Client license which only allows adding a single access right. This can be for any user with a professional license, for example your therapist or coach. If you want to grant a different person access to your diagram, you will need to remove the existing access right first."
+    S_CLIENT_ONLY_ALLOWED_ONE_RIGHT = "You are using the Client license which only allows adding a single access right. This can be for any user with a professional license, for example your personal or coach. If you want to grant a different person access to your diagram, you will need to remove the existing access right first."
 
     def __init__(self, parent=None):
         super().__init__(parent)

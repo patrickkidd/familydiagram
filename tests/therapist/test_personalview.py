@@ -13,8 +13,8 @@ from PyQt5.QtCore import QUrl
 
 from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
 from pkdiagram.condition import Condition
-from pkdiagram.therapist import TherapistAppController
-from pkdiagram.therapist.therapist import Discussion
+from pkdiagram.personal import PersonalAppController
+from pkdiagram.personal.personal import Discussion
 
 
 class MockSession(QObject):
@@ -35,7 +35,7 @@ class MockQmlComponent(QObject):
 @pytest.fixture
 def controller(test_user, test_session, qmlEngine):
 
-    # from fdserver.therapist.database import Discussion, Statement, Speaker, SpeakerType
+    # from btcopilot.personal.database import Discussion, Statement, Speaker, SpeakerType
     # from pkdiagram.server_types import Diagram
 
     # diagram = Diagram(**test_user.free_diagram.data())
@@ -48,7 +48,7 @@ def controller(test_user, test_session, qmlEngine):
     #             Statement(
     #                 id=1,
     #                 speaker_id=1,
-    #                 speaker_type=SpeakerType.Therapist,
+    #                 speaker_type=SpeakerType.Personal,
     #                 content="Test Statement 1",
     #             ),
     #             Statement(
@@ -59,7 +59,7 @@ def controller(test_user, test_session, qmlEngine):
     #             ),
     #         ],
     #         speakers=[
-    #             Speaker(id=1, name="Therapist 1"),
+    #             Speaker(id=1, name="Personal 1"),
     #             Speaker(id=2, name="Client 1"),
     #         ],
     #     ),
@@ -67,7 +67,7 @@ def controller(test_user, test_session, qmlEngine):
 
     # diagram.database.add_discussion()
 
-    controller = TherapistAppController(QApplication.instance())
+    controller = PersonalAppController(QApplication.instance())
     with patch.object(
         controller.appConfig,
         "get",
@@ -82,7 +82,7 @@ def controller(test_user, test_session, qmlEngine):
 def view(qtbot, qmlEngine, controller):
     _view = QQuickView(qmlEngine, None)
     statusChanged = Condition(_view.statusChanged)
-    _view.setSource(QUrl("resources:/qml/Therapist/TherapistContainer.qml"))
+    _view.setSource(QUrl("resources:/qml/Personal/PersonalContainer.qml"))
     _view.show()
     _view.resize(600, 800)
     assert statusChanged.wait() == True
@@ -92,7 +92,7 @@ def view(qtbot, qmlEngine, controller):
 def __test_main_content_visible_when_logged_in(qmlEngine, controller, view):
     assert (
         view.status() == QQuickWidget.Status.Ready
-    ), f"Failed to load TherapistContainer.qml: {view.status()}"
+    ), f"Failed to load PersonalContainer.qml: {view.status()}"
 
     mainContainer = view.rootObject()
     stack = mainContainer.property("stack")

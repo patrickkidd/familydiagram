@@ -564,7 +564,7 @@ S_SERVER_IS_DOWN = "The server is down. Please try again later."
 S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
 
 
-# Therapist
+# Personal
 
 S_THERAPIST_NO_CHAT_TEXT = "What's on your mind?"
 

@@ -1244,7 +1244,7 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "Therapist"
+name = "Personal"
 included = true
 is_directory = true
 [[Application.Package.Content.Content.Content.Content]]
@@ -1273,13 +1273,13 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "TherapistContainer.qml"
+name = "PersonalContainer.qml"
 included = true
 is_directory = false
 
 
 [[Application.Package.Content.Content.Content]]
-name = "TherapistApplication.qml"
+name = "PersonalApplication.qml"
 included = true
 is_directory = false
 
@@ -1531,7 +1531,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
-name = "therapist"
+name = "personal"
 included = true
 is_directory = true
 [[Application.Package.Content.Content]]
@@ -1540,12 +1540,12 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "therapist.py"
+name = "personal.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "therapistappcontroller.py"
+name = "personalappcontroller.py"
 included = true
 is_directory = false
 
@@ -1599,7 +1599,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "therapistview.py"
+name = "personalview.py"
 included = false
 is_directory = false
 

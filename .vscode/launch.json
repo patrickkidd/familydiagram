@@ -45,7 +45,7 @@
             }
         },        
         {
-            "name": "Therapist",
+            "name": "Personal",
             "type": "debugpy",
             "request": "launch",
             "module": "pkdiagram",
@@ -56,7 +56,7 @@
                 "protected": "inline",
             },
             "args": [
-                "--therapist"
+                "--personal"
             ],
             "env": {
                 // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",

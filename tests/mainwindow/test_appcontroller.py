@@ -8,7 +8,7 @@ import vedana
 from pkdiagram import version, util
 from pkdiagram.scene import Scene, Person
 from pkdiagram.app import AppController
-from fdserver import util as fdserver_util
+from btcopilot import pro
 
 
 pytestmark = [
@@ -83,8 +83,8 @@ def test_free_license_when_no_licenses_activated(create_ac_mw):
 
 
 def test_version_deactivated(test_license, qtbot, create_ac_mw):
-    da = list(fdserver_util.DEACTIVATED_VERSIONS) + [version.VERSION]
-    with mock.patch.object(fdserver_util, "DEACTIVATED_VERSIONS", da):
+    da = list(pro.DEACTIVATED_VERSIONS) + [version.VERSION]
+    with mock.patch.object(pro, "DEACTIVATED_VERSIONS", da):
         ac, mw = create_ac_mw(init=False)
         qtbot.clickOkAfter(
             lambda: ac._pre_event_loop(mw), contains=AppController.S_VERSION_DEACTIVATED
