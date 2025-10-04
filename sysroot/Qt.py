@@ -33,6 +33,16 @@ class QtComponent(Qt.QtComponent):
                 "qtbase/src/3rdparty/libpng/pngpriv.h",
                 self._patch_libpng_pngpriv,
             )
+            # Fix SDK version check for macOS 15+
+            self.patch_file(
+                "qtbase/mkspecs/common/macx.conf",
+                self._patch_macos_sdk_version,
+            )
+            # Remove deprecated AGL framework for macOS 15+ SDK
+            self.patch_file(
+                "qtbase/mkspecs/common/mac.conf",
+                self._patch_remove_agl_framework,
+            )
             # shutil.copyfile(
             #     "../../../toolchain-macos-13.prf",
             #     "qtbase/mkspecs/features/toolchain.prf",
@@ -83,27 +93,52 @@ class QtComponent(Qt.QtComponent):
         # Track if we're inside the block to skip
         if not hasattr(patch_file, "_skip_fp_block"):
             patch_file._skip_fp_block = False
-            patch_file._replaced_with_math = False
 
-        # Detect start of the obsolete block
-        if "# if (defined(__MWERKS__)" in line and "defined(macintosh)" in line:
+        # Detect start of the obsolete block - the #if with __MWERKS__ and macintosh
+        if "#  if (defined(__MWERKS__)" in line and "defined(macintosh)" in line:
             patch_file._skip_fp_block = True
+            # Replace entire block with just math.h include
+            patch_file.write("#  include <math.h>\n")
             return
 
-        # If we're skipping the block
+        # If we're skipping the block, skip lines until we hit #endif after #else
         if patch_file._skip_fp_block:
-            # When we hit the #else, output math.h and stop skipping
-            if line.strip() == "# else":
-                if not patch_file._replaced_with_math:
-                    patch_file.write("# include <math.h>\n")
-                    patch_file._replaced_with_math = True
-                return
-            # Skip the second math.h include after #else
-            if line.strip() == "# include <math.h>" and patch_file._replaced_with_math:
+            # The block ends with "#  endif" at the same indent level
+            if line.strip() == "#  endif":
                 patch_file._skip_fp_block = False
+                # Don't write the endif, it's part of the removed block
                 return
-            # Skip everything else in the block
+            # Skip everything in between
             return
 
         # Write all other lines unchanged
         patch_file.write(line)
+
+    @staticmethod
+    def _patch_macos_sdk_version(line, patch_file):
+        """Update QT_MAC_SDK_VERSION_MAX to support macOS 15+ SDK."""
+        patch_file.write(
+            line.replace(
+                "QT_MAC_SDK_VERSION_MAX = 13",
+                "QT_MAC_SDK_VERSION_MAX = 26",
+            )
+        )
+
+    @staticmethod
+    def _patch_remove_agl_framework(line, patch_file):
+        """Remove deprecated AGL framework references for macOS 15+ SDK."""
+        # Remove AGL from include paths
+        if "QMAKE_INCDIR_OPENGL" in line and "AGL.framework" not in line:
+            # This is the start of QMAKE_INCDIR_OPENGL, write it
+            patch_file.write(line)
+        elif "/System/Library/Frameworks/AGL.framework/Headers/" in line:
+            # Skip the AGL include line entirely
+            return
+        elif "QMAKE_LIBS_OPENGL" in line:
+            # Remove -framework AGL from libs
+            patch_file.write(
+                line.replace(" -framework AGL", "")
+            )
+        else:
+            # Write all other lines unchanged
+            patch_file.write(line)

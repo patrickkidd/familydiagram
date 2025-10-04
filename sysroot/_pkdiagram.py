@@ -70,7 +70,15 @@ class PKDiagramComponent(Component):
                 os.path.join(self._sysroot.sysroot_dir, "..", "..", "_pkdiagram")
             )
             os.chdir(_path)
-            self.run("sip-build")
+
+            # Use the sysroot's qmake to ensure correct Qt version and mkspecs
+            sysroot_qmake = os.path.join(
+                self._sysroot.sysroot_dir, "Qt", "bin", "qmake"
+            )
+            if os.path.exists(sysroot_qmake):
+                self.run("sip-build", f"--qmake={sysroot_qmake}")
+            else:
+                self.run("sip-build")
         except Exception as e:
             self.verbose(str(e))
         finally:
