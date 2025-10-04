@@ -80,28 +80,29 @@ class QtComponent(Qt.QtComponent):
     @staticmethod
     def _patch_libpng_pngpriv(line, patch_file):
         """Remove obsolete fp.h header for macOS 15+ SDK compatibility."""
-        # Skip the obsolete macOS compiler check block that includes fp.h
-        if "# if (defined(__MWERKS__)" in line:
-            # Skip lines until we find the closing #endif for this block
-            # Just write the standard math.h include instead
-            patch_file.write("# include <math.h>\n")
+        # Track if we're inside the block to skip
+        if not hasattr(patch_file, "_skip_fp_block"):
+            patch_file._skip_fp_block = False
+            patch_file._replaced_with_math = False
+
+        # Detect start of the obsolete block
+        if "# if (defined(__MWERKS__)" in line and "defined(macintosh)" in line:
+            patch_file._skip_fp_block = True
             return
 
-        # Skip the continuation of the __MWERKS__ condition
-        if any(x in line for x in [
-            "defined(THINK_C)",
-            "/* We need to check that <math.h>",
-            "* as it seems it doesn't agree with <fp.h>",
-            "* <fp.h> if possible.",
-            "# if !defined(__MATH_H__)",
-            "# include <fp.h>",
-        ]):
-            return
-
-        # Skip the #else and second math.h include (we already added it)
-        if line.strip() == "# else" or (line.strip() == "# include <math.h>" and hasattr(patch_file, "_libpng_patched")):
+        # If we're skipping the block
+        if patch_file._skip_fp_block:
+            # When we hit the #else, output math.h and stop skipping
             if line.strip() == "# else":
-                patch_file._libpng_patched = True
+                if not patch_file._replaced_with_math:
+                    patch_file.write("# include <math.h>\n")
+                    patch_file._replaced_with_math = True
+                return
+            # Skip the second math.h include after #else
+            if line.strip() == "# include <math.h>" and patch_file._replaced_with_math:
+                patch_file._skip_fp_block = False
+                return
+            # Skip everything else in the block
             return
 
         # Write all other lines unchanged
