@@ -58,7 +58,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: [setup]
 
     steps:
@@ -115,7 +115,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
 
@@ -138,7 +138,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
 
     - name: Write build config
       run: |

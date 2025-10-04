@@ -89,8 +89,7 @@ configure_options = [
     "-nomake", "examples",
     "-nomake", "tests",
     "-no-sql-mysql",
-    "-no-sql-psql",
-    "-opengl", "desktop"
+    "-no-sql-psql"
 ]
 
 [Qt.win]
