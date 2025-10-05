@@ -984,11 +984,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "EventPropertiesDrawer.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
 name = "FileManager.qml"
 included = true
 is_directory = false
@@ -1353,16 +1348,9 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "EventPropertiesTest.qml"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "TimelineViewTest.qml"
 included = false
 is_directory = false
-
-
 
 [[Application.Package.Content.Content]]
 name = "timeline-button.png"

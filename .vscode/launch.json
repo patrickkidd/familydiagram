@@ -87,19 +87,6 @@
             "envFile": "/.vscode/.windows-env"
         },
         {
-            "name": "sysroot-dev TestDialog",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "main_qml.py",
-            "console": "integratedTerminal",
-            "args": [
-                "CopilotView"
-            ],
-            "env": {
-                "--QT_LOGGING_RULES": "qt.quick.*=true"
-            }
-        },
-        {
             "name": "ingest",
             "type": "debugpy",
             "request": "launch",

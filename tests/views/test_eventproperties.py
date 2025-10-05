@@ -1,6 +1,7 @@
+import os.path
 import pytest
 
-from pkdiagram.pyqt import Qt, QDateTime, QApplication
+from pkdiagram.pyqt import Qt, QDateTime, QUrl
 from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Marriage, Event, Scene, Emotion
 from pkdiagram.views import QmlDrawer
@@ -24,12 +25,30 @@ def eventProps():
     }
 
 
+QML = """
+import QtQuick 2.12
+import PK 1.0 as PK
+import PK.Models 1.0
+
+PK.EventProperties {
+
+    id: root
+    objectName: 'eventProps'
+
+    signal resize
+}
+"""
+
+
 @pytest.fixture
-def view(qtbot, qmlEngine, scene):
+def view(tmp_path, qtbot, qmlEngine, scene):
+    FPATH = os.path.join(tmp_path, "test.qml")
+    with open(FPATH, "w") as f:
+        f.write(QML)
     qmlEngine.setScene(scene)
-    view = QmlDrawer(
-        qmlEngine, "qml/EventPropertiesDrawer.qml", propSheetModel="eventModel"
-    )
+    qml_resources_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../pkdiagram/resources/qml'))
+    qmlEngine.addImportPath(qml_resources_path)
+    view = QmlDrawer(qmlEngine, QUrl.fromLocalFile(FPATH), propSheetModel="eventModel")
     view.checkInitQml()
     view.eventModel = view.rootProp("eventModel")
     view.resize(600, 800)
