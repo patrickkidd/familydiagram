@@ -85,7 +85,7 @@ elif "nt" in os.name:
     HARDWARE_UUID = (
         subprocess.check_output(
             'powershell -command "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID"',
-            shell=True
+            shell=True,
         )
         .decode("utf-8")
         .strip()
@@ -599,47 +599,47 @@ def personKindFromIndex(index):
     return PERSON_KINDS[index]["kind"]
 
 
-def personKindNameFromKind(kind):
+def personKindNameFromKind(kind) -> str:
     for i, v in enumerate(PERSON_KINDS):
         if v["kind"] == kind:
             return v["name"]
 
 
-def personKindIndexFromKind(kind):
+def personKindIndexFromKind(kind) -> int:
     for i, v in enumerate(PERSON_KINDS):
         if v["kind"] == kind:
             return i
 
 
-def personSizeFromIndex(index):
+def personSizeFromIndex(index) -> int:
     return PERSON_SIZES[index]["size"]
 
 
-def personSizeFromName(name):
+def personSizeFromName(name) -> int:
     for entry in PERSON_SIZES:
         if entry["name"] == name:
             return entry["size"]
 
 
-def personSizeNameFromSize(size):
+def personSizeNameFromSize(size) -> str:
     for entry in PERSON_SIZES:
         if entry["size"] == size:
             return entry["name"]
 
 
-def personSizeIndexFromName(name):
+def personSizeIndexFromName(name) -> int:
     for i, entry in enumerate(PERSON_SIZES):
         if entry["name"] == name:
             return i
 
 
-def personSizeIndexFromSize(size):
+def personSizeIndexFromSize(size) -> int:
     for i, entry in enumerate(PERSON_SIZES):
         if entry["size"] == size:
             return i
 
 
-def scaleForPersonSize(size):
+def scaleForPersonSize(size) -> float:
     if size > NORMAL_PERSON_SIZE:
         return 1.0 + 0.25 * (size - NORMAL_PERSON_SIZE)
     elif size == NORMAL_PERSON_SIZE:
@@ -648,14 +648,14 @@ def scaleForPersonSize(size):
         return 0.4 ** abs(size - NORMAL_PERSON_SIZE)
 
 
-def personRectForSize(size):
+def personRectForSize(size) -> QRectF:
     coeff = scaleForPersonSize(size)
     width = PERSON_RECT.width() * coeff
     ret = QRectF(-width / 2.0, -width / 2.0, width, width)
     return ret
 
 
-def sizeForPeople(personA, personB=None):
+def sizeForPeople(personA, personB=None) -> int:
     if personA and personB:
         size = max(personA.size(), personB.size())
     elif personA and not personB:

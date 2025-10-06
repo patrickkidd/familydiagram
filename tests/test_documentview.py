@@ -2,6 +2,7 @@ import os.path, datetime
 import logging
 import itertools
 import pickle
+import json
 import contextlib
 
 import pytest, mock
@@ -25,6 +26,7 @@ from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
 
 from tests.widgets import TestActiveListEdit
+from tests.views.eventform.testeventform import TestEventForm
 
 pytestmark = [
     pytest.mark.component("DocumentView"),
@@ -364,14 +366,8 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     dv.graphicalTimelineView.timeline.setFocus(True)
     qtbot.mouseClick(dv.graphicalTimelineView.inspectButton, Qt.LeftButton)
     # dv.ui.actionInspect.triggered.emit()
-    assert dv.currentDrawer == dv.caseProps
-    assert dv.caseProps.currentTab() == RightDrawerView.Timeline.value
-    assert set(
-        dv.caseProps.qml.rootObject()
-        .property("eventProperties")
-        .property("eventModel")
-        .items
-    ) == {event_1, event_2}
+    assert dv.currentDrawer == dv.eventForm
+    assert set(dv.eventForm._events) == {event_1, event_2}
 
 
 def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
@@ -414,12 +410,14 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
         ),
         QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
     )
-    dv.caseProps.onInspect("item")
-    assert dv.caseProps.rootProp("isDrawerOpen") == True
+    dv.setCurrentDrawer(dv.caseProps)
+    dv.caseProps.qml.setFocus(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.eventForm
 
     dv.setShowGraphicalTimeline(True)
     dv.graphicalTimelineView.timeline.canvas._selectEvents([])
-    assert dv.caseProps.rootProp("isDrawerOpen") == False
+    assert dv.currentDrawer == dv.eventForm
 
 
 def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
@@ -430,6 +428,7 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
     event_1 = Event(personA, dateTime=util.Date(2001, 1, 1))
     event_2 = Event(personB, dateTime=util.Date(2002, 1, 1))
     scene.addItems(event_1, event_2)
+    dv.caseProps.qml.setFocus(True)
     dv.timelineSelectionModel.select(
         QItemSelection(
             dv.timelineModel.indexForEvent(event_1),
@@ -437,12 +436,13 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
         ),
         QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
     )
-    dv.caseProps.onInspect("item")
-    assert dv.caseProps.rootProp("isDrawerOpen") == True
+    dv.setCurrentDrawer(dv.caseProps)
+    dv.caseProps.qml.setFocus(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.eventForm
 
-    eventProperties = dv.caseProps.rootProp("eventProperties")
-    dv.caseProps.keyClicksItem(eventProperties, "\b1/1/2001")
-    assert dv.caseProps.rootProp("isDrawerOpen") == True
+    TestEventForm(dv.eventForm).set_startDateTime(util.Date(2000, 1, 1))
+    assert dv.currentDrawer == dv.eventForm
 
 
 def test_load_reload(qtbot, dv):
@@ -989,3 +989,30 @@ def test_print(dv: DocumentView):
 
         dv.controller.onPrint()
         dv.controller.writeJPG.assert_called_once_with(printer=printer)
+
+
+def test_write_JSON(tmp_path, dv: DocumentView):
+    FILE_PATH = os.path.join(tmp_path, "test_out.json")
+
+    person = dv.scene.addItem(Person(name="person"))
+    event1 = Event(
+        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
+    )
+    event2 = Event(
+        parent=person,
+        datetime=util.Date(2002, 1, 1),
+        description="Something happened again",
+    )
+    dv.scene.addItems(event1, event2)
+    dv.controller.writeJSON(FILE_PATH)
+
+    # with open(FILE_PATH, "r") as f:
+    #     sdata = json.load(f)
+    # scene2 = Scene()
+    # scene2.read(sdata)
+    # assert len(scene2.items()) == 3
+    # assert len(scene2.people()) == 1
+    # assert len(scene2.events()) == 2
+    # assert scene2.people()[0].birthEvent.dateTime() == person.birthEvent.dateTime()
+    # assert scene2.events()[0].description() == event1.description()
+    # assert scene2.events()[1].description() == event2.description()

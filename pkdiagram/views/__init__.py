@@ -7,6 +7,6 @@ from .qmlvedana import QmlVedana
 from .qmldrawer import QmlDrawer
 from .qmlhelpers import LineEditBackEnd, TextEditBackEnd
 from .searchdialog import SearchDialog
-from .addanythingdialog import AddAnythingDialog
+from .eventform import EventForm
 from .accountdialog import AccountDialog
 from .caseproperties import CaseProperties

@@ -5,9 +5,9 @@ import mock
 
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, EventKind, RelationshipKind
-from pkdiagram.views import AddAnythingDialog
+from pkdiagram.views import EventForm
 
-from tests.views import TestAddAnythingDialog
+from tests.views import TestEventForm
 
 _log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 def view(qtbot, scene, qmlEngine):
     qmlEngine.sceneModel.onEditorMode(True)
     qmlEngine.setScene(scene)
-    widget = AddAnythingDialog(qmlEngine)
+    widget = EventForm(qmlEngine)
     widget.resize(600, 1000)
     widget.setScene(scene)
     widget.show()
@@ -33,8 +33,8 @@ def view(qtbot, scene, qmlEngine):
 
     # widget.adjustFlickableHack()
 
-    view = TestAddAnythingDialog(widget)
-    view.initForSelection([])
+    view = TestEventForm(widget)
+    view.view.addEvent()
     view.item.property("addPage").setProperty("interactive", False)
 
     yield view
@@ -57,13 +57,13 @@ def test_init(qmlEngine, view, editorMode):
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
 def test_attrs(scene, view, kind: EventKind):
     mother = scene.addItem(Person(name="Mother"))
-    view.initForSelection([])
+    view.addEvent([])
     view.set_kind(kind)
     view.personPicker.set_existing_person(mother)
     view.set_startDateTime(START_DATETIME)
     view.set_location("Somewhere")
     view.set_notes("Some notes")
-    view.clickAddButton()
+    view.clickSaveButton()
 
     child = mother.marriages[0].children[0]
     assert child.name() == None
@@ -85,13 +85,13 @@ def test_attrs(scene, view, kind: EventKind):
 
 def test_attrs_Death(scene, view):
     person = scene.addItem(Person(name="John Doe"))
-    view.initForSelection([])
+    view.addEvent([])
     view.set_kind(EventKind.Death)
     view.personPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
     view.set_location("Somewhere")
     view.set_notes("Some notes")
-    view.clickAddButton()
+    view.clickSaveButton()
 
     event = person.events()[0]
     assert event.uniqueId() == EventKind.Death.value
@@ -105,7 +105,7 @@ def test_attrs_Death(scene, view):
 
 def test_attrs_VariableShift(scene, view):
     mother = scene.addItem(Person(name="Mother"))
-    view.initForSelection([])
+    view.view.addEvent()
     view.set_kind(EventKind.VariableShift)
     view.personPicker.set_existing_person(mother)
     view.set_relationship(RelationshipKind.Inside)
@@ -115,11 +115,11 @@ def test_attrs_VariableShift(scene, view):
     view.set_startDateTime(START_DATETIME)
     view.set_location("Somewhere")
     view.set_notes("Some notes")
-    view.clickAddButton()
+    view.clickSaveButton()
 
     event = mother.emotions()[0].events()[0]
     assert event.uniqueId() == EventKind.VariableShift.value
-    assert event.description() == RelationshipKind.Inside.name
+    assert event.description() == "Some description"
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
     assert scene.currentDateTime() == START_DATETIME

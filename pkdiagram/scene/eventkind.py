@@ -24,6 +24,16 @@ class EventKind(enum.Enum):
     def isOffspring(self) -> bool:
         return self in (self.Birth, self.Adopted)
 
+    def isPairBond(self) -> bool:
+        return self in (self.Bonded, self.Married, self.Separated, self.Divorced)
+
+    @staticmethod
+    def fromUniqueId(uniqueId: str) -> "EventKind | None":
+        for kind in EventKind:
+            if kind.value == uniqueId:
+                return kind
+        return None
+
     def menuLabel(self) -> str:
         labels = {
             self.Bonded: "Bonded",
@@ -34,6 +44,6 @@ class EventKind(enum.Enum):
             self.Birth: "Birth",
             self.Adopted: "Adopted",
             self.Death: "Death",
-            self.VariableShift: "Variable Shift",
+            self.VariableShift: "Shift",
         }
         return labels[self]

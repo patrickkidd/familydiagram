@@ -1,6 +1,7 @@
 import random, collections, logging
 
 from _pkdiagram import CUtil
+from stripe import Person
 from pkdiagram.pyqt import (
     pyqtSignal,
     Qt,
@@ -19,6 +20,7 @@ from pkdiagram.pyqt import (
     QEasingCurve,
     QColor,
     QMarginsF,
+    QPainter,
 )
 from pkdiagram import util
 from pkdiagram.scene import Event, PathItem
@@ -332,7 +334,7 @@ class FannedBox(QGraphicsObject):
             if self.scene():
                 self.scene().removeItem(self)
 
-    def paint(self, painter, option, widget):
+    def paint(self, painter: QPainter, option, widget):
         """must be overridden."""
         if self.DEBUG_PAINT:
             painter.save()
@@ -1841,10 +1843,10 @@ class Emotion(PathItem):
         if prop.name() in ("tags", "color"):
             self.updateAll()
 
-    def personA(self):
+    def personA(self) -> "Person":
         return self.people[0]
 
-    def personB(self):
+    def personB(self) -> "Person":
         return self.people[1]
 
     def swapPeople(self):

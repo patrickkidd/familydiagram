@@ -44,7 +44,7 @@ Rectangle {
         selectedPeopleModel.append({ person: person, isNewPerson: false })
     }
 
-    // The list of people already selected in the AddAnythingDialog
+    // The list of people already selected in the EventForm
     property var selectedPeopleModel: ListModel { }
 
     // The list of people used for auto-complete
@@ -99,7 +99,15 @@ Rectangle {
         }
     }
 
+    function setExistingPersonId(personId) {
+        setExistingPerson(sceneModel.item(personId))
+    }
+
     function setExistingPerson(person) {
+        if (!person) {
+            util.warning('PersonPicker[' + root.objectName + '].setExistingPerson: null person')
+            return
+        }
         util.debug('PersonPicker[' + root.objectName + '].setExistingPerson: ' + person.listLabel())
         root.isDirty = true
         root.isSubmitted = true

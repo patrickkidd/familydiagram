@@ -2,7 +2,7 @@ import enum
 
 
 class RightDrawerView(enum.Enum):
-    AddAnything = "addanything"
+    EventForm = "eventform"
     Timeline = "timeline"
     Settings = "settings"
     Copilot = "copilot"

@@ -6,11 +6,11 @@ from pkdiagram import util
 from pkdiagram.scene import EventKind, Person
 from pkdiagram.scene.relationshipkind import RelationshipKind
 
-from .test_addanythingdialog import view, START_DATETIME, END_DATETIME
+from .test_eventform import view, START_DATETIME, END_DATETIME
 
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -28,7 +28,7 @@ def test_Birth_default_parents_parents_to_existing_child(scene, view):
     )
     view.childPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     father = scene.query1(name="Father")
     mother = scene.query1(name="Mother")
     assert person.scenePos() == QPointF(0, 0)  # hasn't changed
@@ -41,7 +41,7 @@ def test_Birth_add_via_birth_one_default_parent(scene, view):
     view.personPicker.set_new_person("Father Doe")
     view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     son = scene.query1(name="Son")
     father = scene.query1(name="Father")
     mother = scene.query1(gender=util.PERSON_KIND_FEMALE)
@@ -62,7 +62,7 @@ def test_Birth_add_new_existing_parents(scene, view):
     view.spousePicker.set_existing_person(father)
     view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     child = scene.query1(name="Son")
     assert mother.scenePos() == QPointF(-SPACING, 0)
     assert father.scenePos() == QPointF(SPACING, 0)
@@ -84,7 +84,7 @@ def test_Variable_add_to_existing_people(scene, view):
     view.targetsPicker.add_existing_person(mother)
     view.set_description("argument")
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
 
     assert father.scenePos() == QPointF(-SPACING, 0)  # unchanged
     assert mother.scenePos() == QPointF(SPACING, 0)  # unchanged

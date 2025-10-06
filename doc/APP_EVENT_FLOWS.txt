@@ -9,7 +9,7 @@ Data-dependent displays
         * View.noItemsCTALabel.show()
 
 - No events in timeline
-    - AddAnythingDialog.onDone()
+    - EventForm.onDone()
         * Scene.setCurrentDateTime()
         * DocumentController.onSceneProperty()
         * DocumentView.updateTimelineCallout()

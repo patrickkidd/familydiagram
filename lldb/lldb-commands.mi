@@ -6,5 +6,5 @@ target stop-hook add -o 'handle_event(debugger, None, None, None)'
 
 breakpoint set -n QObject::deleteLater
 
-run -m pytest -svv tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2
+run -m pytest -svv tests/test_eventform_scripts.py::test_blow_up_ItemDetails_2
 

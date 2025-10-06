@@ -8,7 +8,6 @@ from .peoplemodel import PeopleModel
 from .timelinemodel import TimelineModel, selectedEvents
 from .scenevariablesmodel import SceneVariablesModel
 from .eventvariablesmodel import EventVariablesModel
-from .eventpropertiesmodel import EventPropertiesModel
 from .emotionpropertiesmodel import EmotionPropertiesModel
 from .personpropertiesmodel import PersonPropertiesModel
 from .marriagepropertiesmodel import MarriagePropertiesModel

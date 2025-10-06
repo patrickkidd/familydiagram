@@ -250,11 +250,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "eventpropertiesmodel.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
 name = "eventvariablesmodel.py"
 included = true
 is_directory = false
@@ -964,7 +959,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "AddAnythingDialog.qml"
+name = "EventForm.qml"
 included = true
 is_directory = false
 
@@ -1129,11 +1124,6 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "EmotionProperties.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "EventProperties.qml"
 included = true
 is_directory = false
 
@@ -1568,7 +1558,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "addanythingdialog.py"
+name = "eventform.py"
 included = true
 is_directory = false
 

@@ -45,8 +45,9 @@ def test_childItem_parent():
 
 
 def test_Cutoff_parent():
-    """Cutoff.parentItem() was being reset by Scene.addItem if it was listed
-    before it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
+    """
+    Cutoff.parentItem() was being reset by Scene.addItem if it was listed before
+    it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
     """
     data = {
         "items": [
@@ -184,7 +185,7 @@ def test_hide_age_when_no_deceased_date():
 
 def test_updateAll_layer_props_init():
     """itemOpacity was not set directly in Person.updateAll()."""
-    data = {
+    DATA = {
         "items": [
             {"id": 1, "kind": "Person", "size": 5, "layers": [2]},
             {
@@ -198,7 +199,7 @@ def test_updateAll_layer_props_init():
         ]
     }
     scene = Scene()
-    assert scene.read(data) == None
+    assert scene.read(DATA) == None
 
     person = scene.find(1)
     layer = scene.find(2)

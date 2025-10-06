@@ -1502,7 +1502,7 @@ class Person(PathItem):
             elif self.scene() and self.scene().readOnly():
                 # Prevent moving person after double-click and hold when drawer is animating open
                 variant = self.pos()
-            # Re-enabled to accomodate correcting arrangements from AddAnythingDialog.
+            # Re-enabled to accomodate correcting arrangements from EventForm.
             # elif (
             #     self.scene()
             #     and self.scene().isAnimatingDrawer()

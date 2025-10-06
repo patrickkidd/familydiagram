@@ -5,9 +5,9 @@ include(../build/qmake_features/pyqt5.prf)
 
 
 FORMS += \
-    mainwindow.ui \
-    preferences.ui \
-    welcome.ui
+    mainwindow/mainwindow.ui \
+    mainwindow/preferences.ui \
+    mainwindow/welcome.ui
 
 
 RESOURCES += \
@@ -28,7 +28,6 @@ DISTFILES += \
     ../resources/qml/PK/DatePicker.qml \
     ../resources/qml/PK/DatePickerButtons.qml \
     ../resources/qml/PK/EmotionProperties.qml \
-    ../resources/qml/PK/EventProperties.qml \
     ../resources/qml/PK/FDListView.qml \
     ../resources/qml/PK/Globals.qml \
     ../resources/qml/PK/ListPicker.qml \

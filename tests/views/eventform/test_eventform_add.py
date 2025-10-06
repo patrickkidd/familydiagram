@@ -5,11 +5,11 @@ from pkdiagram import util
 from pkdiagram.scene import EventKind, RelationshipKind, Person, Marriage, person
 
 
-from .test_addanythingdialog import view
+from .test_eventform import view
 
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -30,7 +30,7 @@ def test_tags(scene, view):
     view.add_tag(TAG_1)
     view.add_tag(TAG_2)
     view.set_active_tags([TAG_1, TAG_2])
-    view.clickAddButton()
+    view.clickSaveButton()
     assert set([tag for event in scene.events() for tag in event.tags()]) == {
         TAG_1,
         TAG_2,
@@ -39,11 +39,10 @@ def test_tags(scene, view):
 
 def test_Birth_default_spouse_default_child(scene, view):
     mother = scene.addItem(Person(name="Mother"))
-    view.initForSelection([])
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(mother)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
 
     assert len(scene.people()) == 3
     spouse = next(x for x in mother.marriages[0].people if x is not mother)
@@ -65,7 +64,7 @@ def test_Birth_existing_parents_existing_child(scene, view):
     view.spousePicker.set_existing_person(father)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     assert len(scene.people()) == 3
     assert set(mother.marriages[0].people) == {mother, father}
     assert set(child.parents().people) == {mother, father}
@@ -78,12 +77,11 @@ def test_Birth_existing_parents_existing_child(scene, view):
 def test_Birth_add_another_sets_currentDateTime(scene, view, before):
 
     mother = scene.addItem(Person(name="Mother"))
-    view.initForSelection([])
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     assert scene.currentDateTime() == START_DATETIME
     child = scene.query1(name="John", lastName="Doe")
 
@@ -92,13 +90,13 @@ def test_Birth_add_another_sets_currentDateTime(scene, view, before):
     else:
         second_dateTime = START_DATETIME.addDays(10)
 
-    view.initForSelection([])
+    view.view.addEvent()
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(second_dateTime)
     with patch("PyQt5.QtWidgets.QMessageBox.question") as question:
-        view.clickAddButton()
+        view.clickSaveButton()
     assert question.call_count == 1
     if before:
         assert scene.currentDateTime() == START_DATETIME
@@ -116,7 +114,7 @@ def test_Birth_existing_pairbond_default_spouse(scene, view, qmlEngine):
     view.spousePicker.set_existing_person(father)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     assert set(mother.marriages[0].people) == {mother, father}
     assert set(child.parents().people) == {mother, father}
 
@@ -133,35 +131,33 @@ def test_Birth_multiple_pairbonds_exiting_spouse(scene, view, qmlEngine):
     view.spousePicker.set_existing_person(father)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     assert set(mother.marriages[0].people) == {mother, father}
     assert set(child.parents().people) == {mother, father}
 
 
 def test_add_multiple_events_to_new_person(scene, view):
-    submitted = util.Condition(view.view.submitted)
     mother = scene.addItem(Person(name="Mother"))
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     newPerson = scene.query1(name="John", lastName="Doe")
-    assert submitted.callCount == 1
     assert len(scene.people()) == 3
     assert len(newPerson.events()) == 1
     assert newPerson.events()[0].description() == EventKind.Birth.name
     assert newPerson.events()[0].dateTime() == START_DATETIME
 
     view.clickClearButton()
+    view.view.addEvent()
     view.set_kind(EventKind.VariableShift)
     view.personPicker.set_existing_person(newPerson)
     view.set_startDateTime(START_DATETIME.addDays(15))
     view.set_symptom(util.VAR_SYMPTOM_DOWN)
     view.set_description("Something happened")
-    view.clickAddButton()
+    view.clickSaveButton()
     newPerson = scene.query1(name="John", lastName="Doe")
-    assert submitted.callCount == 2
     assert len(scene.people()) == 3
     assert len(newPerson.events()) == 2
     assert newPerson.events()[0].uniqueId() == EventKind.Birth.value
@@ -178,7 +174,7 @@ def test_flash_new_items(scene, view):
     view.set_startDateTime(START_DATETIME)
     view.set_description("Something happened")
     with patch("pkdiagram.scene.ItemAnimationHelper.flash", autospec=True) as flash:
-        view.clickAddButton()
+        view.clickSaveButton()
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     emotion = personA.emotions()[0]
@@ -203,7 +199,7 @@ def test_PairBond_add_existing(scene, view):
     view.add_tag(TAG_1)
     view.add_tag(TAG_2)
     view.set_active_tags([TAG_1, TAG_2])
-    view.clickAddButton()
+    view.clickSaveButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
@@ -221,7 +217,7 @@ def test_PairBond_add_multiple_events_to_new_pairbond(scene, view):
     view.set_kind(KIND_1)
     view.spousePicker.set_existing_person(personB)
     view.set_startDateTime(START_DATETIME)
-    view.clickAddButton()
+    view.clickSaveButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
@@ -235,7 +231,7 @@ def test_PairBond_add_multiple_events_to_new_pairbond(scene, view):
     view.set_kind(KIND_2)
     view.spousePicker.set_existing_person(personB)
     view.set_startDateTime(START_DATETIME.addDays(-30))
-    view.clickAddButton()
+    view.clickSaveButton()
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 2

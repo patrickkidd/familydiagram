@@ -27,13 +27,15 @@ class Event(Item):
             {"attr": "parentName"},
             {"attr": "location"},
             {"attr": "uniqueId"},  # TODO: Rename to `lifeChange`, one of EventKind
+            {"attr": "spouse", "type": int, "default": None},
+            {"attr": "child", "type": int, "default": None},
             {"attr": "relationshipTargets", "type": list, "default": []},
             {"attr": "relationshipTriangles", "type": list, "default": []},
             {"attr": "includeOnDiagram", "default": False},
         )
     )
 
-    def __init__(self, parent=None, dynamicProperties: dict = None, **kwargs):
+    def __init__(self, parent=None, dynamicProperties: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.isEvent = True
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
@@ -44,7 +46,7 @@ class Event(Item):
         self._aliasParentName = None
         self._onShowAliases = False
         self._updatingDescription = False
-        self.parent = None
+        self.parent: Item | None = None
         if dynamicProperties:
             for attr, value in dynamicProperties.items():
                 self.addDynamicProperty(attr).set(value)
@@ -202,12 +204,20 @@ class Event(Item):
         if self.parent:
             self.parent.onEventProperty(prop)
 
-    def scene(self):
+    def scene(self) -> "Scene":
         if self.parent:
             if self.parent.isScene:
                 return self.parent
             else:
                 return self.parent.scene()
+
+    def kind(self) -> EventKind:
+        if self.uniqueId():
+            try:
+                return EventKind(self.uniqueId())
+            except ValueError:
+                return None
+        return None
 
     def shouldShowAliases(self):
         scene = self.scene()
@@ -400,28 +410,69 @@ class Event(Item):
     # Variables
 
     def symptom(self):
-        return self.dynamicProperty(util.ATTR_SYMPTOM).get()
+        prop = self.dynamicProperty(util.ATTR_SYMPTOM)
+        if prop:
+            return prop.get()
 
     def anxiety(self):
-        return self.dynamicProperty(util.ATTR_ANXIETY).get()
+        prop = self.dynamicProperty(util.ATTR_ANXIETY)
+        if prop:
+            return prop.get()
 
     def relationship(self) -> RelationshipKind:
-        x = self.dynamicProperty(util.ATTR_RELATIONSHIP).get()
-        if x:
-            return RelationshipKind(x)
-        return None
+        prop = self.dynamicProperty(util.ATTR_RELATIONSHIP)
+        if prop:
+            x = prop.get()
+            if x:
+                return RelationshipKind(x)
 
     def functioning(self):
-        return self.dynamicProperty(util.ATTR_FUNCTIONING).get()
+        prop = self.dynamicProperty(util.ATTR_FUNCTIONING)
+        if prop:
+            return prop.get()
 
     def setSymptom(self, value, notify=True, undo=False):
-        self.dynamicProperty(util.ATTR_SYMPTOM).set(value, notify=notify, undo=undo)
+        prop = self.dynamicProperty(util.ATTR_SYMPTOM)
+        if prop:
+            prop.set(value, notify=notify, undo=undo)
 
     def setAnxiety(self, value, notify=True, undo=False):
-        self.dynamicProperty(util.ATTR_ANXIETY).set(value, notify=notify, undo=undo)
+        prop = self.dynamicProperty(util.ATTR_ANXIETY)
+        if prop:
+            prop.set(value, notify=notify, undo=undo)
 
     def setRelationship(self, value: RelationshipKind, notify=True, undo=False):
-        self.dynamicProperty(util.ATTR_RELATIONSHIP).set(value.value, notify=notify, undo=undo)
+        prop = self.dynamicProperty(util.ATTR_RELATIONSHIP)
+        if prop:
+            prop.set(value.value, notify=notify, undo=undo)
+
+    def setSpouse(self, person: "Person", notify=True, undo=False):
+        self.prop("spouse").set(person.id, notify=notify, undo=undo)
+
+    def spouse(self) -> "Person":
+        from pkdiagram.scene import Person
+
+        id = self.prop("spouse").get()
+        if not id:
+            return None
+        people = self.scene().find(ids=[id], types=Person)
+        if people:
+            return people[0]
+        return None
+
+    def setChild(self, person: "Person", notify=True, undo=False):
+        self.prop("child").set(person.id, notify=notify, undo=undo)
+
+    def child(self) -> "Person":
+        from pkdiagram.scene import Person
+
+        id = self.prop("child").get()
+        if not id:
+            return None
+        people = self.scene().find(ids=[id], types=Person)
+        if people:
+            return people[0]
+        return None
 
     def setRelationshipTargets(self, targets: list["Person"], notify=True, undo=False):
         if not isinstance(targets, list):
@@ -456,4 +507,6 @@ class Event(Item):
         return self.scene().find(ids=ids, types=Person)
 
     def setFunctioning(self, value, notify=True, undo=False):
-        self.dynamicProperty(util.ATTR_FUNCTIONING).set(value, notify=notify, undo=undo)
+        prop = self.dynamicProperty(util.ATTR_FUNCTIONING)
+        if prop:
+            prop.set(value, notify=notify, undo=undo)

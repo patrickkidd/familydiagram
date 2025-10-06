@@ -35,6 +35,7 @@ PK.Drawer {
 
     // State
 
+    property var isEditing: false
     property var kind: null
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
@@ -50,7 +51,7 @@ PK.Drawer {
     property var relationship: relationshipField.value
     property var functioning: functioningField.value
     property var notes: notesEdit.text
-    property var eventModel: EventPropertiesModel {}
+    property var tagsModel: tagsModel
 
     // Who
 
@@ -122,7 +123,6 @@ PK.Drawer {
 
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
-        print('onStartDateTimeChanged: ' + startDateTime)
     }
 
     readonly property var fieldWidth: 231
@@ -164,7 +164,6 @@ PK.Drawer {
 
         addPage.scrollToTop()
         tagsEditItem.clear()
-        eventModel.tags = []
         personPicker.focusTextEdit()
         root.dirty = false;
     }
@@ -174,7 +173,6 @@ PK.Drawer {
 
     function initWithPerson(personId) {
         var person = sceneModel.item(personId)
-        print('initWithPerson: ' + person + ', ' + personId)
         personPicker.setExistingPerson(person)
         tagsEdit.isDirty = false
     }
@@ -190,6 +188,10 @@ PK.Drawer {
         // util.debug('>>> initPeoplePicker() callback')
         personPicker.focusTextEdit()
         // util.debug('<<< initPeoplePicker() callback')
+    }
+
+    function setKind(x) {
+        kindBox.setCurrentValue(x)
     }
 
     function setVariable(attr, x) {
@@ -238,6 +240,7 @@ PK.Drawer {
             id: clearButton
             text: "Clear"
             x: cancelButton.x + width + margin
+            visible: root.isEditing == false
             onClicked: root.clear()
         }
         PK.Label {
@@ -251,7 +254,7 @@ PK.Drawer {
         }
         PK.ToolButton {
             id: addButton
-            text: 'Add'
+            text: root.isEditing ? 'Save' : 'Add'
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
@@ -312,6 +315,7 @@ PK.Drawer {
                     PK.FormField {
                         id: personField
                         visible: personLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: notesField.lastTabItem
                         tabItem: kindBox
                         Layout.minimumHeight: personPicker.height
@@ -346,7 +350,7 @@ PK.Drawer {
                     PK.ComboBox {
                         id: kindBox
                         model: ListModel {
-                            ListElement { label: "Variable Shift"; value: 'variable-shift' }
+                            ListElement { label: "Shift"; value: 'variable-shift' }
                             //
                             ListElement { label: "Birth"; value: 'birth' }
                             ListElement { label: "Adopted"; value: 'adopted' }
@@ -359,6 +363,7 @@ PK.Drawer {
                             //
                             ListElement { label: "Death"; value: 'death' }
                         }
+                        enabled: ! isEditing
                         textRole: "label"
                         property var lastCurrentIndex: -1
                         Layout.maximumWidth: root.fieldWidth
@@ -389,7 +394,17 @@ PK.Drawer {
                                 root.kind = currentValue()
                             }
                         }
-                        function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
+                        function setCurrentValue(value) {
+                            for (var i = 0; i < model.count; i++) {
+                                // print('setCurrentValue: ' + i + ' / ' + model.get(i).value + ' == ' + value)
+                                if (model.get(i).value === value) {
+                                    currentIndex = i;
+                                    print
+                                    return;
+                                }
+                            }
+                            currentIndex = -1;
+                        }
                         function clear() { currentIndex = -1 }
                         function currentValue() {
                             if(currentIndex == -1) {
@@ -425,6 +440,7 @@ PK.Drawer {
                     PK.FormField {
                         id: spouseField
                         visible: spouseLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: kindBox
                         tabItem: childField.firstTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -456,6 +472,7 @@ PK.Drawer {
                     PK.FormField {
                         id: childField
                         visible: childLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: targetsField.lastTabItem
                         tabItem: spouseField.firstTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -493,7 +510,7 @@ PK.Drawer {
                             Layout.minimumWidth: root.fieldWidth
                             property Item firstTabItem: this
                             property Item lastTabItem: this
-                            property bool isDirty: text != ''
+                            property bool isDirty: text != '' 
                             function clear() { text = '' }
                         }
                     }
@@ -638,6 +655,7 @@ PK.Drawer {
                     PK.FormField {
                         id: targetsField
                         visible: targetsLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: relationshipField
                         tabItem: trianglesField.firstTabItem
                         Layout.fillHeight: true
@@ -685,6 +703,7 @@ PK.Drawer {
                     PK.FormField {
                         id: trianglesField
                         visible: trianglesLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: targetsField
                         tabItem: functioningField.firstTabItem
                         Layout.fillHeight: true
@@ -995,7 +1014,6 @@ PK.Drawer {
                         tabItem: notesField.firstTabItem
                         backTabItem: notesEdit
                         visible: sceneModel.isInEditorMode
-                        onVisibleChanged: print('tagsField visible: ' + visible)
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -1004,7 +1022,6 @@ PK.Drawer {
                             model: TagsModel {
                                 id: tagsModel
                                 scene: sceneModel ? sceneModel.scene : undefined
-                                items: eventModel.items
                                 onDataChanged: {
                                     tagsEditItem.isDirty = true
                                 }

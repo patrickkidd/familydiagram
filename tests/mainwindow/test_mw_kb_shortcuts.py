@@ -50,7 +50,7 @@ def test_person_kb_shortcut_timeline(qtbot, create_ac_mw):
     person.setSelected(True)
     qtbot.keyClick(mw, Qt.Key_T, Qt.ShiftModifier | Qt.ControlModifier)
     assert mw.documentView.personProps.isVisible() == True
-    assert mw.documentView.personProps.currentTab() == RightDrawerView.Timeline.value
+    assert mw.documentView.personProps.currentTab() == "item"
 
 
 def test_marriage_kb_shortcut_item(qtbot, create_ac_mw):
@@ -95,7 +95,7 @@ def test_marriage_kb_shortcut_timeline(qtbot, create_ac_mw):
     marriage.setSelected(True)
     qtbot.keyClick(mw, Qt.Key_T, Qt.ShiftModifier | Qt.ControlModifier)
     assert mw.documentView.marriageProps.isVisible() == True
-    assert mw.documentView.marriageProps.currentTab() == RightDrawerView.Timeline.value
+    assert mw.documentView.marriageProps.currentTab() == "item"
 
 
 def test_emotion_kb_shortcut_item(qtbot, create_ac_mw):

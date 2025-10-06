@@ -1,5 +1,6 @@
 import logging
 import bisect
+import json
 
 import vedana
 from _pkdiagram import CUtil
@@ -21,6 +22,12 @@ from pkdiagram.pyqt import (
     QColor,
     QItemSelection,
     QDialog,
+    QJSValue,
+    QDateTime,
+    QSize,
+    QSizeF,
+    QPoint,
+    QPointF,
 )
 from pkdiagram import util
 from pkdiagram.scene import Property, Person, Emotion, Event, LayerItem, Layer, ChildOf
@@ -151,7 +158,7 @@ class DocumentController(QObject):
             self.onDeactivateAllLayers
         )
         #
-        self.ui.actionAdd_Anything.toggled[bool].connect(self.dv.showAddAnything)
+        self.ui.actionAdd_Anything.toggled[bool].connect(self.dv.showEventForm)
         self.ui.actionShow_Diagram.triggered.connect(self.dv.showDiagram)
         self.ui.actionShow_Timeline.toggled[bool].connect(self.dv.showTimeline)
         self.ui.actionShow_Items_with_Notes.toggled.connect(
@@ -173,7 +180,7 @@ class DocumentController(QObject):
         self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.emotionProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.layerItemProps.hideRequested.connect(self.onHideCurrentDrawer)
-        self.dv.addAnythingDialog.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.eventForm.hideRequested.connect(self.onHideCurrentDrawer)
 
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
@@ -828,23 +835,29 @@ class DocumentController(QObject):
 
     def onInspect(self, tab=None):
         """duplicated in canInspect"""
+
+        def _inspectEvents(events: list[Event]):
+            if isinstance(events, QJSValue):
+                events = events.toVariant()
+            self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventForm.editEvents(events)
+            self.dv.session.trackView("Edit event(s)")
+
         fw = QApplication.focusWidget()
         if isinstance(fw, QQuickWidget):
-            if hasattr(fw.parent(), "onInspect"):
+            if (
+                fw.parent() == self.dv.caseProps
+                and self.dv.caseProps.currentTab() == "timeline"
+            ):
+                events = self.dv.caseProps.selectedEvents()
+                _inspectEvents(events)
+            elif hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
         elif fw is self.dv.graphicalTimelineView.timeline:
             events = selectedEvents(
                 self.dv.timelineModel, self.dv.timelineSelectionModel
             )
-            if (
-                self.dv.currentDrawer != self.dv.caseProps
-                or self.dv.caseProps.currentTab() != RightDrawerView.Timeline.value
-            ):
-                self.dv.showTimeline(
-                    callback=lambda: self.dv.caseProps.inspectEvents(events)
-                )
-            else:
-                self.dv.caseProps.inspectEvents(events)
+            _inspectEvents(events)
         else:  # scene
             self.dv.inspectSelection(tab=tab)
 
@@ -880,6 +893,9 @@ class DocumentController(QObject):
             self.dv.graphicalTimelineView.setExpanded(False)
             return True
 
+    def onEventFormDoneEditing(self):
+        self.dv.setCurrentDrawer(self.dv.caseProps)
+
     def onHideCurrentDrawer(self):
         if self.dv.currentDrawer:
             self.tryToHideDrawer(self.dv.currentDrawer)
@@ -890,7 +906,7 @@ class DocumentController(QObject):
         consistency with action and button states.
         """
         if drawer.canClose():
-            if drawer is self.dv.addAnythingDialog:
+            if drawer is self.dv.eventForm:
                 if self.ui.actionAdd_Anything.isChecked():
                     self.ui.actionAdd_Anything.setChecked(False)
                     return True
@@ -1136,18 +1152,33 @@ class DocumentController(QObject):
 
     def writeJSON(self, filePath):
         data = {}
-        self.write(data)
+        self.scene.write(data)
 
-        import pprint
+        class QtObjectEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, QDateTime):
+                    if obj.isNull():
+                        return None
+                    return obj.toString("yyyy-MM-ddTHH:mm:ss")
+                elif isinstance(obj, QColor):
+                    return obj.name()
+                elif isinstance(obj, (QSize, QSizeF)):
+                    return {"width": obj.width(), "height": obj.height()}
+                elif isinstance(obj, (QPoint, QPointF)):
+                    return {"x": obj.x(), "y": obj.y()}
+                elif isinstance(obj, (QRect, QRectF)):
+                    return {
+                        "x": obj.x(),
+                        "y": obj.y(),
+                        "width": obj.width(),
+                        "height": obj.height(),
+                    }
+                return super().default(obj)
 
-        p_sdata = pprint.pformat(data, indent=4)
+        p_sdata = json.dumps(data, indent=4, cls=QtObjectEncoder)
         log.info(p_sdata)
         with open(filePath, "w") as f:
             f.write(p_sdata)
-
-        # sdata = json.dumps(data, indent=4)
-        # with open(filePath, 'w') as f:
-        #     f.write(sdata)
 
     def onPrint(self):
         printer = QPrinter()

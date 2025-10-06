@@ -2,7 +2,7 @@ import logging
 
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
 from pkdiagram import version
-from pkdiagram.scene import ItemDetails, Emotion
+from pkdiagram.scene import ItemDetails, Emotion, RelationshipKind, EventKind, Emotion
 
 _log = logging.getLogger(__name__)
 
@@ -272,6 +272,21 @@ def update_data(data):
                         f"Migrating emotion.startEvent.notes to emotion.notes for {chunk['id']}"
                     )
                     chunk["notes"] = chunk["startEvent"]["notes"]
+
+    if UP_TO(data, "2.0.12b1"):
+        for chunk in data.get("items", []):
+            if chunk["kind"] in Emotion.kindSlugs():
+                if chunk.get("startEvent"):
+                    chunk["startEvent"]["uniqueId"] = EventKind.VariableShift.value
+                    chunk["startEvent"]["relationship"] = RelationshipKind.fromItemMode(
+                        Emotion.kindForKindSlug(chunk["kind"])
+                    ).value
+                    chunk["relationshipTargets"] = (
+                        [chunk.get("person_b")] if chunk.get("person_b") else []
+                    )
+                    # no relationshipTriangles
+                if chunk.get("endEvent"):
+                    chunk["endEvent"]["uniqueId"] = "variable-end"
 
     ## Add more version fixes here
     # if ....

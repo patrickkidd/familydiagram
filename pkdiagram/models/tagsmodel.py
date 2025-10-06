@@ -148,6 +148,24 @@ class TagsModel(QAbstractListModel, ModelHelper):
             self._scene.removeTag(tag)
             self._blocked = False
 
+    def checkedTags(self) -> list[str]:
+        tags = []
+        for row in range(self.rowCount()):
+            index = self.index(row, 0)
+            if index.data(role=self.ActiveRole) == Qt.Checked:
+                tag = index.data(role=self.NameRole)
+                tags.append(tag)
+        return tags
+
+    def uncheckedTags(self) -> list[str]:
+        tags = []
+        for row in range(self.rowCount()):
+            index = self.index(row, 0)
+            if index.data(role=self.ActiveRole) == Qt.Unchecked:
+                tag = index.data(role=self.NameRole)
+                tags.append(tag)
+        return tags
+
     @pyqtSlot()
     def resetToSceneTags(self):
         if self._items:

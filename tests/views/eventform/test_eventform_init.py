@@ -4,11 +4,11 @@ from pkdiagram import util
 from pkdiagram.scene import EventKind, Person, Marriage
 
 
-from .test_addanythingdialog import view
+from .test_eventform import view
 
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -28,7 +28,7 @@ def test_init_with_existing_person(scene, view):
     person = scene.addItem(
         Person(name="Joseph", lastName="Donner", gender=util.PERSON_KIND_FEMALE)
     )
-    view.initForSelection([person])
+    view.addEvent([person])
     assert view.item.property("kind") == None
     personEntry = view.view.personEntry()
     assert personEntry["person"] == person
@@ -40,7 +40,7 @@ def test_init_with_pairbond_people_selected(scene, view):
     spouse = Person(name="Josephina", lastName="Donner")
     marriage = Marriage(personA=person, personB=spouse)
     scene.addItems(person, spouse, marriage)
-    view.initForSelection([person, spouse])
+    view.addEvent([person, spouse])
     assert view.item.property("kind") == None
     assert view.personPicker.item.property("person") == person
     assert view.spousePicker.item.property("person") == None
@@ -51,7 +51,7 @@ def test_init_with_pairbond_selected(scene, view):
     spouse = Person(name="Josephina", lastName="Donner")
     marriage = Marriage(personA=person, personB=spouse)
     scene.addItems(person, spouse, marriage)
-    view.initForSelection([marriage])
+    view.addEvent([marriage])
     assert view.item.property("kind") == None
     assert view.personPicker.item.property("person") == person
     assert view.spousePicker.item.property("person") == None
@@ -63,6 +63,6 @@ def test_init_with_individuals_selected(scene, view):
     personC = Person(name="Josephine", lastName="Donner")
     personD = Person(name="Josephine", lastName="Donner")
     scene.addItems(personA, personB, personC, personD)
-    view.initForSelection([personA, personB, personC])
+    view.addEvent([personA, personB, personC])
     assert view.item.property("kind") == None
     assert view.view.personEntry()["person"] == personA

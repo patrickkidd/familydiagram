@@ -1,10 +1,29 @@
 v2.0.0
 =============================================================================
 
-Fix Event/Emotion relationship
+Edit events with EventForm
 ------------------------------------
-- Create relationship field in add form
-  - When setting R type, just change fields to match
+- event.includeOnDiagram
+- Event.color
+- Add link to edit emotion if kind == VariableShift
+- Remove event field edits from EmotionProperties, just add links to start event
+- Disable isDateRange when not editing Emotion's
+- Legacy births, leave person/spouse empty if none exist if possible
+- VariableShift -> Shift
+- Storing EventKind on Event.uniqueId or new Event.kind?
+  - Going to end up replacing `uniqueId` with `kind` anyway?
+  - But still duplicates data?
+- compat: Emotion.startEvent['emotionStartEvent] -> Emotion.startEvent['variable-shift']
+- compat CustomIndividual -> 'variable-shift'
+Test
+- editing emotion end event (might need to finally flatted emotion events)
+- editing emotion start + end event
+
+
+
+Create relationship field in add form
+------------------------------------
+- When setting R type, just change fields to match
 - Re-use add form when editing event.
 - Eliminate confusing R symbol event relationship
 - Can add multiple events for different people, just choose how to show them
@@ -43,8 +62,12 @@ Fix Event/Emotion relationship
     - Details
 Testing
   - Make summary optional, default to "Variables: S,A,R" or something like that
-
 - need labels or something for the symbols
+
+
+Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
+
+
 
 
 BUGS
@@ -80,7 +103,7 @@ IDEAS
   - Add search button to top or bottom of timeline
 - Need add button for Person views tab
 - Speed up mainwindow tests. Need account login and everything?
-- Command+Enter to submit AddAnythingDialog; need more obvious active field aura
+- Command+Enter to submit EventForm; need more obvious active field aura
 - PersonPicker
   - Focus box around PersonPicker, kindBox on initial tab after show, functioning box
   - Make PersonPicker yellow, then green when submitted? (same as create account dialog)

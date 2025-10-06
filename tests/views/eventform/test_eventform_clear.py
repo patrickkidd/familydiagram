@@ -4,11 +4,11 @@ from pkdiagram import util
 from pkdiagram.scene import EventKind, RelationshipKind
 
 
-from .test_addanythingdialog import view
+from .test_eventform import view
 
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -32,7 +32,7 @@ def test_clear(view):
     assert view.item.property("endDateTime") == None
     assert view.item.property("description") == ""
     assert view.item.property("notes") == ""
-    assert view.item.property("eventModel").tags == []
+    assert view.item.property("tagsModel").items[0].tags() == []
 
 
 def test_clear_variables(view):
@@ -54,7 +54,7 @@ def test_clear_variables(view):
     assert view.item.property("anxiety") == None
     assert view.item.property("relationship") == None
     assert view.item.property("functioning") == None
-    assert view.item.property("eventModel").tags == []
+    assert view.item.property("tagsModel").items[0].tags() == []
     assert view.symptomField.property("value") == None
     assert view.anxietyField.property("value") == None
     assert view.relationshipField.property("value") == None

@@ -7,12 +7,12 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, EventKind, RelationshipKind
 
 
-from .test_addanythingdialog import view
+from .test_eventform import view
 
 _log = logging.getLogger(__name__)
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -92,7 +92,7 @@ def test_onKindChanged_clears_triangle_fields(scene, view):
     assert view.item.property("startDateTime") == DATETIME
     assert view.item.property("endDateTime") == DATETIME
     assert view.isDateRangeBox.property("checked") == True
-    assert view.item.property("eventModel").property("tags") == ["tag1", "tag2"]
+    assert view.item.property("tagsModel").items[0].tags() == ["tag1", "tag2"]
 
 
 def test_onKindChanged_clears_pairbond_fields(scene, view):
@@ -203,7 +203,7 @@ def test_endDateTime_pickers(view):
 #     view.clickComboBoxItem("kindBox", EventKind.Birth.name)
 #     assert (
 #         view.eventHelpText.property("text")
-#         == AddAnythingDialog.S_EVENT_MULTIPLE_INDIVIDUALS
+#         == EventForm.S_EVENT_MULTIPLE_INDIVIDUALS
 #     )
 
 
@@ -215,7 +215,7 @@ def test_endDateTime_pickers(view):
 #     view.clickComboBoxItem("kindBox", EventKind.Birth.name)
 #     assert (
 #         view.eventHelpText.property("text")
-#         == AddAnythingDialog.S_EVENT_MULTIPLE_INDIVIDUALS
+#         == EventForm.S_EVENT_MULTIPLE_INDIVIDUALS
 #     )
 
 

@@ -13,7 +13,7 @@ PK.Drawer {
 
     property int margin: util.QML_MARGINS
     property var focusResetter: marriagePageInner
-    property bool isDrawerOpen: eventPropertiesDrawer.visible
+    property bool isDrawerOpen: false
     property string itemTitle: {
         if(marriageModel.personAName && marriageModel.personBName) {
             "(Pair-Bond): %1 & %2".arg(marriageModel.personAName).arg(marriageModel.personBName)
@@ -28,63 +28,33 @@ PK.Drawer {
     property var marriageModel: MarriagePropertiesModel {
         scene: sceneModel.scene
         objectName: 'marriageModel'
-        onItemsChanged: {
-            if(items.length == 0) {
-                eventPropertiesDrawer.position = 0
-            }
-        }
     }
     
-    property bool canRemove: tabBar.currentIndex == 1 && timelineView.canRemove
-    property bool canInspect: tabBar.currentIndex == 1 && timelineView.canInspect
+    property bool canRemove: false
+    property bool canInspect: false
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
-    function removeSelection() {
-        timelineView.removeSelection()
-    }
 
     function setCurrentTab(tab) {
         var index = 0
         if(tab == 'item')
             index = 0
-        else if(tab == 'timeline')
-            index = 1
         else if(tab == 'notes')
-            index = 2
+            index = 1
         else if(tab == 'meta')
-            index = 3
+            index = 2
         tabBar.setCurrentIndex(index)
     }
 
     function currentTab() {
         return {
             0: 'item',
-            1: 'timeline',
-            2: 'notes',
-            3: 'meta'
+            1: 'notes',
+            2: 'meta'
         }[tabBar.currentIndex]
     }    
-        
-    function onInspect(tab) {
-        if(canInspect) {
-            session.trackView('Edit person events')
-            if(tab !== undefined) {
-                eventProperties.setCurrentTab(tab)
-            } else {
-                eventProperties.setCurrentTab('item')
-            }
-            eventProperties.eventModel.items = timelineView.selectedEvents
-            eventPropertiesDrawer.visible = true
-        }
-    }    
 
-    function onInspectNotes(row) {
-        session.trackView('Edit event notes')
-        eventProperties.eventModel.items = timelineView.selectedEvents
-        eventProperties.setCurrentTab('notes')
-        eventPropertiesDrawer.visible = true
-    }
     KeyNavigation.tab: marriedBox
 
     header: PK.ToolBar {
@@ -119,7 +89,6 @@ PK.Drawer {
         objectName: 'tabBar'
         currentIndex: stack.currentIndex
         PK.TabButton { text: "Pair-Bond" }
-        PK.TabButton { text: "Timeline" }
         PK.TabButton { text: "Notes" }
 //        PK.TabButton { text: "Meta" }
     }
@@ -127,25 +96,6 @@ PK.Drawer {
     background: Rectangle {
         anchors.fill: parent
         color: util.QML_WINDOW_BG
-    }
-
-    QQC.Drawer {
-        id: eventPropertiesDrawer
-        objectName: 'eventPropertiesDrawer'
-        width: util.DRAWER_OVER_WIDTH
-        height: root.height
-        dragMargin: 0
-        edge: Qt.RightEdge
-        PK.EventProperties {
-            id: eventProperties
-            objectName: 'eventProperties'
-            anchors.fill: parent
-        }
-        onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
-        Connections {
-            target: eventProperties
-            function onDone() { eventPropertiesDrawer.visible = false }
-        }
     }
 
     StackLayout {
@@ -397,33 +347,6 @@ PK.Drawer {
             }            
         }
 
-        Page {
-
-            id: timelinePage
-            padding: 0
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            
-            Rectangle { color: util.QML_WINDOW_BG ; anchors.fill: parent }
-
-            PK.TimelineView {
-                id: timelineView
-                objectName: 'marriageProps_timelineView'
-                model: TimelineModel {
-                    objectName: 'marriageTimelineModel'
-                    searchModel: searchModel
-                    scene: sceneModel.scene
-                    items: marriageModel.items.length > 0 ? marriageModel.items : undefined
-                }
-                enabled: Qt.binding(function() { model.count > 0 })
-                anchors.fill: parent
-                margin: root.margin
-                onSelectionChanged: sceneModel.selectionChanged()
-                onInspect: root.onInspect()
-                onInspectNotes: root.onInspectNotes(row)
-            }
-        }
-            
         Flickable {
             id: notesEditFlickable
             contentX: 0
