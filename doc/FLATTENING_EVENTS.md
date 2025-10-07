@@ -60,6 +60,9 @@ Edit events with EventForm
   - CustomIndividual -> 'variable-shift' (kind can never be `None`)
   - [in &.read()] Marriage.events, Person.Events, Emotion.events -> Scene.events
   - Event.kind is None -> kind = Shift
+  - Marriage.events -> Scene.events
+    - personA -> Event.person
+    - personB -> Event.spouse
   - Emotion.startEvent['emotionStartEvent'] -> Emotion.startEvent['variable-shift']
   - Emotion.isDateRange (isSingularDate()) -> Event.endEvent
   - Emotion.notes -> Emotion.event().notes

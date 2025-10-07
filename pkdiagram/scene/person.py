@@ -393,10 +393,6 @@ class Person(PathItem):
         return x
 
     def remap(self, map):
-        for event in self._events:
-            parent = map.find(event._cloned_parent_id)
-            event.setParent(parent)
-            delattr(event, "_cloned_parent_id")
         self.childOf = map.find(self._cloned_childOf_id)
         delattr(self, "_cloned_childOf_id")
         return True
@@ -875,18 +871,6 @@ class Person(PathItem):
             self.updateAgeText()
             self.updatePen()
 
-    def _onAddEvent(self, x):
-        """Called from Event.setParent."""
-        if x not in self._events:
-            self._events.append(x)
-            self.updateEvents()
-
-    def _onRemoveEvent(self, x):
-        """Called from Event.setParent."""
-        if x in self._events:
-            self._events.remove(x)
-            self.updateEvents()
-
     ## Layers and Layer Items
 
     def layerItems(self):
@@ -1330,8 +1314,6 @@ class Person(PathItem):
                 if self.childOf:
                     self.scene().removeItem(self.childOf)
                 self.scene().removeItem(self.detailsText)
-                for event in self._events:
-                    self.scene().removeItem(event)
             self.updateDetails()
         elif change == QGraphicsItem.ItemSceneHasChanged:
             if self.scene():
@@ -1342,8 +1324,6 @@ class Person(PathItem):
                         self.scene().addItem(self.childOf.multipleBirth)
                 self.detailsText.setParentItem(self)
                 self.scene().addItem(self.detailsText)
-                for event in self._events:
-                    self.scene().addItem(event)
                 if self.scene().readOnly():
                     self.setFlag(QGraphicsItem.ItemIsMovable, False)
                 else:

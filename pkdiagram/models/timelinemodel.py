@@ -149,9 +149,6 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     ## Rows
 
-    def isSceneModel(self):
-        return self._items and self._items[0].isScene
-
     def _shouldHide(self, event):
         hidden = False
         if event.dateTime() is None or event.dateTime().isNull():
@@ -255,8 +252,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._refreshRows()
 
     def onEventAdded(self, event):
-        if self._items:
-            self._ensureEvent(event)
+        self._ensureEvent(event)
 
     def onEventChanged(self, prop):
         if self._settingData:
@@ -601,7 +597,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(int, result=QVariant)
     def eventForRow(self, row):
         if row >= 0 and row < len(self._rows):
-            return self._rows[row]
+            return self._rows[row].event
 
     def endRowForEvent(self, event: Event) -> TimelineRow:
         """Return the date buddy to this one."""
@@ -625,8 +621,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def firstRowForDateTime(self, dateTime):
         # entries = self._dateItemCache.get(date, None)
         row = -1
-        for i, event in enumerate(self._rows):
-            if event.dateTime() == dateTime:
+        for i, row in enumerate(self._rows):
+            if row.dateTime() == dateTime:
                 row = i
                 break
         return row
@@ -634,8 +630,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(QDateTime, result=int)
     def lastRowForDateTime(self, dateTime):
         row = -1
-        for i, event in enumerate(reversed(self._rows)):
-            if event.dateTime() == dateTime:
+        for i, row in enumerate(reversed(self._rows)):
+            if row.dateTime() == dateTime:
                 row = len(self._rows) - 1 - i
                 break
         return row
@@ -648,7 +644,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if not date:
             return -1
         ret = -1
-        rowDates = [event.dateTime() for i, event in enumerate(self._rows)]
+        rowDates = [row.dateTime() for i, row in enumerate(self._rows)]
         if not date in rowDates:
             if rowDates and date < rowDates[0]:
                 return 0  # prior to first
@@ -671,9 +667,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def dateBuddyForRow(self, row):
         """Return the emotion row that is a date buddy to this one."""
-        event = self._rows[row]
-        if event and event.endDateTime():
-            return event.endDateTime()
+        row = self._rows[row]
+        if row.endDateTime():
+            return row.endDateTime()
 
     # def dateBuddiesInternal(self):
     #     ret = set()

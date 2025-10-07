@@ -4,11 +4,11 @@ I am in the middle of a major refactor of the fundamental data model and object
   Events a top-level Item instead of always associating it with either a Person,
   Marriage, or Event. This refactor is so big and deep that it is hard to keep
   it all in my head. I have been taking notes in @doc/FLATTENING_EVENTS.md, but
-  there are many changes all over the repo that are hard to keep track of. The
-  last commit 235dc56934f025665f80134ff9d8beb62e393a7d is a progress commit, so
-  it is incomplete. I expect many, many exceptions running this code and
-  executing tests. In fact, many of the tests probably have logical errors now
-  too that will need to be fixed.
+  there are many changes all over the repo that are hard to keep track of. All
+  of my changes thus far are since commit
+  235dc56934f025665f80134ff9d8beb62e393a7d. I expect many, many exceptions
+  running this code and executing tests. In fact, many of the tests probably
+  have logical errors now too that will need to be fixed.
 
   --------------------------------------------------------------------------
 

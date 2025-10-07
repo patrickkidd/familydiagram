@@ -8,7 +8,6 @@ from pkdiagram.pyqt import (
     QPainterPath,
     QPointF,
     QDateTime,
-    pyqtSignal,
     Qt,
     QFont,
     QRectF,
@@ -19,11 +18,9 @@ from pkdiagram.scene import (
     ItemDetails,
     Event,
     PathItem,
-    Property,
     EmotionalUnit,
     EventKind,
 )
-from tests.views.test_marriageproperties import marriage
 
 log = logging.getLogger(__name__)
 
@@ -167,7 +164,6 @@ class Marriage(PathItem):
         self._Marriage_isUpdatingAll = False
         self.people = [personA, personB]
         self._emotionalUnit = EmotionalUnit(self)
-        self._events = []
         self._aliasNotes = None
         self._onShowAliases = False
         self.children = (
@@ -291,7 +287,7 @@ class Marriage(PathItem):
         priorMarriedEvents = []
         priorDivorcedEvents = []
         anyMarriedEvents = []
-        for e in self._events:
+        for e in self.events():
             if e.dateTime() and e.dateTime() <= dateTime:
                 if e.kind() == EventKind.Bonded:
                     priorBondedEvents.append(e)
@@ -321,7 +317,7 @@ class Marriage(PathItem):
         """Returns 'separated', 'divorced', None"""
         separatedEvents = []
         divorcedEvents = []
-        for e in self._events:
+        for e in self.events():
             if (
                 e.kind() == EventKind.Separated
                 and e.dateTime()
@@ -365,16 +361,12 @@ class Marriage(PathItem):
             if self.scene():
                 self.scene().removeItem(self.detailsText)
                 self.scene().removeItem(self.separationIndicator)
-                for event in self._events:
-                    self.scene().removeItem(event)
         elif change == QGraphicsItem.ItemSceneHasChanged:
             if self.scene():
                 self.detailsText.setParentItem(self)
                 self.separationIndicator.setParentItem(self)
                 self.scene().addItem(self.detailsText)
                 self.scene().addItem(self.separationIndicator)
-                for event in self._events:
-                    self.scene().addItem(event)
                 if not self.scene().readOnly():
                     self.detailsText.setFlag(QGraphicsItem.ItemIsMovable, True)
                     self.separationIndicator.setFlag(QGraphicsItem.ItemIsMovable, True)
@@ -399,19 +391,15 @@ class Marriage(PathItem):
         else:
             return []
 
-    def _onAddEvent(self, x):
-        """Called from Event.setParent."""
-        if not x in self._events:
-            self._events.append(x)
-            self.updateDetails()
-
-    def _onRemoveEvent(self, x):
-        """Called from Event.setParent."""
-        if x in self._events:
-            self._events.remove(x)
-            self.updateDetails()
-
     ## Internal Data
+
+    def onEventAdded(self):
+        self.updateDetails()
+        self.updateGeometry()
+
+    def onEventRemoved(self):
+        self.updateDetails()
+        self.updateGeometry()
 
     def notesIconPos(self):
         return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
@@ -622,7 +610,7 @@ class Marriage(PathItem):
         # 5
         anyBondedMarriedDates = [
             e.dateTime()
-            for e in self._events
+            for e in self.events()
             if e.kind() in (EventKind.Bonded, EventKind.Married)
         ]
         priorBondedMarriedDates = [

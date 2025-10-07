@@ -29,7 +29,9 @@ class Event(Item):
             {"attr": "unsure", "default": True},
             {"attr": "description"},
             {"attr": "nodal", "default": False},
-            {"attr": "notes"},
+            {
+                "attr": "notes"
+            },  # only when manually drawing emotions on diagram. Can't retroactively add dates to a symbol anymore, so overlap
             {"attr": "color", "type": str, "default": None},
             {"attr": "location"},
             {"attr": "includeOnDiagram", "default": False},
@@ -219,7 +221,9 @@ class Event(Item):
         #     QUndoEvent. elif prop.name() == "kind":
         #     self.updateDescription()
         super().onProperty(prop)
-        self.person().onEventProperty(prop)
+        person = self.person()
+        if person:
+            person.onEventProperty(prop)
 
     def scene(self) -> "Scene":
         if self.person():

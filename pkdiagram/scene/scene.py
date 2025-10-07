@@ -386,7 +386,6 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            item.person().onEventAdded()
             for target in item.relationshipTargets():
                 emotion = self.addItem(
                     Emotion(
@@ -403,6 +402,10 @@ class Scene(QGraphicsScene, Item):
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
             if not self.isBatchAddingRemovingItems():
+                item.person().onEventAdded()
+                if item.kind().isPairBond():
+                    for marriage in self.marriagesFor(item.person(), item.spouse()):
+                        marriage.onEventAdded()
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
@@ -537,15 +540,18 @@ class Scene(QGraphicsScene, Item):
             item.parents().emotionalUnit().update()
             item.person.setParents(None)
         elif item.isEvent:
-            item.person().onEventRemoved()
             self._events.remove(item)
-            self.eventRemoved.emit(item)
-            if (
-                not [x for x in self._events if x.dateTime()]
-                and not self.isBatchAddingRemovingItems()
-                and not self._isUndoRedoing
-            ):
-                self.setCurrentDateTime(QDateTime())
+            if not self.isBatchAddingRemovingItems():
+                item.person().onEventRemoved()
+                if item.kind().isPairBond():
+                    for marriage in self.marriagesFor(item.person(), item.spouse()):
+                        marriage.onEventAdded()
+                self.eventRemoved.emit(item)
+                if (
+                    not [x for x in self._events if x.dateTime()]
+                    and not self._isUndoRedoing
+                ):
+                    self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
             item.person()._events.remove(item)
             if item.target():
