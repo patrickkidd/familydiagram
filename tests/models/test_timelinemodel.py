@@ -169,7 +169,7 @@ def test_init_multiple_people():
     )
     # Add two emotions where only one person's end should should in the timeline
     distance = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=personA,
         relationship=RelationshipKind.Distance,
         relationshipTargets=personC,
@@ -177,7 +177,7 @@ def test_init_multiple_people():
         endDateTime=util.Date(2005, 1, 1),
     )
     conflict = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=personB,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=personC,
@@ -186,7 +186,7 @@ def test_init_multiple_people():
     )
     # add one emotion where both ends should be shown but without duplicates.
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=personA,
         relationship=RelationshipKind.Fusion,
         relationshipTargets=personB,
@@ -260,7 +260,7 @@ def test_add_item(timelineScene, model):
 
     fusion = timelineScene.addItem(
         Event(
-            kind=EventKind.VariableShift,
+            kind=EventKind.Shift,
             relationship=RelationshipKind.Fusion,
             dateTime=util.Date(1980, 1, 11),
             endDateTime=util.Date(2015, 1, 1),
@@ -348,7 +348,7 @@ def test_delete_emotion_date(qtbot, timelineScene: Scene, model: TimelineModel):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
     conflict = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=p1,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=p2,
@@ -446,7 +446,7 @@ def test_set_emotion_date():
     p2 = Person()
     scene.addItems(p1, p2)
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=p1,
         relationship=RelationshipKind.Fusion,
         relationshipTarget=p2,
@@ -486,7 +486,7 @@ def test_emotion_move_has_only_one_event(scene):
     p1 = Person()
     p2 = Person()
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         dateTime=util.Date(1980, 1, 11),
         person=p1,
         relationship=RelationshipKind.Fusion,
@@ -504,7 +504,7 @@ def test_emotion_date_changed(scene):
     p1 = Person()
     p2 = Person()
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=p1,
         relationshipTargets=p2,
         relationship=RelationshipKind.Fusion,
@@ -530,7 +530,7 @@ def test_dateBuddies(timelineScene, model):
     p2 = timelineScene.query1(name="p2")
 
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=p1,
         relationship=RelationshipKind.Fusion,
         relationshipTargets=p2,
@@ -602,7 +602,7 @@ def test_emotion_parentName_changed():
     p1 = Person(name="p1")
     p2 = Person(name="p2")
     fusion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=p1,
         relationship=RelationshipKind.Fusion,
         relationshipTargets=p2,
@@ -740,7 +740,7 @@ def test_showAliases_signals(scene: Scene):
         description="Patrick came home with bob",
     )
     distance = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         relationship=RelationshipKind.Distance,
         dateTime=util.Date(1900, 1, 4),
         endDateTime=util.Date(1900, 1, 5),

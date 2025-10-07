@@ -103,10 +103,10 @@ def test_attrs_Death(scene, view):
     assert scene.currentDateTime() == START_DATETIME
 
 
-def test_attrs_VariableShift(scene, view):
+def test_attrs_Shift(scene, view):
     mother = scene.addItem(Person(name="Mother"))
     view.view.addEvent()
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(mother)
     view.set_relationship(RelationshipKind.Inside)
     view.targetsPicker.add_new_person("Jane Doe")
@@ -118,7 +118,7 @@ def test_attrs_VariableShift(scene, view):
     view.clickSaveButton()
 
     event = mother.emotions()[0].events()[0]
-    assert event.kind() == EventKind.VariableShift
+    assert event.kind() == EventKind.Shift
     assert event.description() == "Some description"
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"

@@ -11,7 +11,7 @@ class EventKind(enum.Enum):
     Separated = "separated"
     Divorced = "divorced"
 
-    VariableShift = "variable-shift"
+    Shift = "shift"
     Death = "death"
 
     def isPairBond(self) -> bool:
@@ -35,6 +35,6 @@ class EventKind(enum.Enum):
             self.Birth: "Birth",
             self.Adopted: "Adopted",
             self.Death: "Death",
-            self.VariableShift: "Shift",
+            self.Shift: "Shift",
         }
         return labels[self]

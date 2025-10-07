@@ -26,8 +26,8 @@ def test_required_fields_kind(view):
     view.expectedFieldLabel(view.item.property("kindLabel"))
 
 
-def test_required_fields_VariableShift(view):
-    view.set_kind(EventKind.VariableShift)
+def test_required_fields_Shift(view):
+    view.set_kind(EventKind.Shift)
 
     view.expectedFieldLabel(view.item.property("personLabel"))
     view.personPicker.set_new_person("John Doe")
@@ -48,7 +48,7 @@ def test_required_fields_VariableShift(view):
 @pytest.mark.parametrize("endDateTime", [None, END_DATETIME])
 def test_required_fields_Relationship(view, endDateTime):
 
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_relationship(RelationshipKind.Conflict)
 
@@ -115,7 +115,7 @@ def test_confirm_replace_singular_events(qtbot, scene, view, kind):
 
 
 def test_person_unsubmitted_personPicker(view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(RelationshipKind.Inside)
     view.personPicker.set_new_person("John Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("personLabel"))
@@ -165,7 +165,7 @@ def test_person_unsubmitted_Bonded_personBPicker(view):
 
 
 def test_person_unsubmitted_Triangle_targetsPicker(view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(RelationshipKind.Inside)
     view.personPicker.set_new_person("John Doe")
     view.targetsPicker.add_new_person("Jane Doe", returnToFinish=False)

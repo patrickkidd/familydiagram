@@ -1430,8 +1430,11 @@ class Scene(QGraphicsScene, Item):
             ret = [x for x in ret if x.dateTime()]
         return ret
 
-    def emotions(self):
+    def emotions(self) -> list[Emotion]:
         return list(self._emotions)
+
+    def emotionsFor(self, person: Person) -> list[Emotion]:
+        return [e for e in self._emotions if person in (e.person(), e.target())]
 
     def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:

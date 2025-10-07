@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Person, Marriage, Event
+from pkdiagram.scene import EventKind, Person, Marriage, Event, marriage
 from pkdiagram.views import QmlDrawer
 
 
@@ -10,7 +10,7 @@ pytestmark = [pytest.mark.component("MarriageProperties")]
 
 
 @pytest.fixture
-def noEvents(scene):
+def marriage(scene):
     personA, personB = Person(name="personA"), Person(name="personB")
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItems(personA, personB, marriage)
@@ -34,8 +34,12 @@ def mp(qtbot, scene, qmlEngine):
     mp.deinit()
 
 
-def test_show_init(mp, scene, noEvents):
-    marriage = noEvents
+@pytest.fixture
+def model(mp):
+    return mp.rootProp("marriageModel")
+
+
+def test_show_init(mp, scene, marriage):
     mp.marriageModel.items = [marriage]
     mp.marriageModel.scene = scene
 
@@ -45,8 +49,110 @@ def test_show_init(mp, scene, noEvents):
     )
 
 
-def test_marriedBox(noEvents, mp):
-    marriage = noEvents
+## Aggregate Properties
+
+
+def test_anyMarriedEvents(scene, model, marriage):
+    model.items = [marriage]
+    assert model.anyMarriedEvents() == False
+
+    scene.addItem(
+        Event(
+            EventKind.Married,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    assert model.anyMarriedEvents() == True
+
+
+def test_anySeparatedEvents(scene, model, marriage):
+    model.items = [marriage]
+    assert model.anySeparatedEvents() == False
+
+    scene.addItem(
+        Event(
+            EventKind.Separated,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    assert model.anySeparatedEvents() == True
+
+
+def test_anyDivorcedEvents(scene, model, marriage):
+    model.items = [marriage]
+    assert model.anyDivorcedEvents() == False
+
+    scene.addItem(
+        Event(
+            EventKind.Divorced,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    assert model.anyDivorcedEvents() == True
+
+
+def test_everMarried(scene, model, marriage):
+    model.items = [marriage]
+    assert model.everMarried() == True
+
+    marriage.setMarried(False)
+    assert model.everMarried() == False
+
+    scene.addItem(
+        Event(EventKind.Married, marriage.personA(), spouse=marriage.personB())
+    )
+    assert model.everMarried() == True
+
+    marriage.setMarried(True)
+    assert model.everMarried() == True
+
+
+def test_everSeparated(scene, marriage, model):
+    assert model.everSeparated() == False
+
+    marriage.setSeparated(True)
+    assert model.everSeparated() == True
+
+    marriage.setSeparated(False)
+    assert model.everSeparated() == False
+
+    scene.addItem(
+        Event(EventKind.Separated, marriage.personA(), spouse=marriage.personB())
+    )
+    assert model.everSeparated() == True
+
+    marriage.setSeparated(True)
+    assert model.everSeparated() == True
+
+
+def test_everDivorced(scene, marriage, model):
+    assert model.everDivorced() == False
+
+    marriage.setDivorced(True)
+    assert model.everDivorced() == True
+
+    marriage.setDivorced(False)
+    assert model.everDivorced() == False
+
+    scene.addItem(
+        Event(EventKind.Divorced, marriage.personA(), spouse=marriage.personB())
+    )
+    assert model.everDivorced() == True
+
+    marriage.setDivorced(True)
+    assert model.everDivorced() == True
+
+
+## Properties
+
+
+def test_marriedBox(marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
 
@@ -54,8 +160,7 @@ def test_marriedBox(noEvents, mp):
     assert marriage.married() == False
 
 
-def test_separatedBox(noEvents, mp):
-    marriage = noEvents
+def test_separatedBox(marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
     assert marriage.separated() == False
@@ -65,8 +170,7 @@ def test_separatedBox(noEvents, mp):
     assert marriage.separated() == True
 
 
-def test_divorcedBox(noEvents, mp):
-    marriage = noEvents
+def test_divorcedBox(marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
     assert marriage.separated() == False
@@ -79,8 +183,7 @@ def test_divorcedBox(noEvents, mp):
 
 
 @pytest.mark.parametrize("propName", ["hideDetails", "hideDates"])
-def test_divorcedBox(noEvents, mp, propName):
-    marriage = noEvents
+def test_divorcedBox_extras(marriage, mp, propName):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.prop(propName).get() == False
 
@@ -91,8 +194,7 @@ def test_divorcedBox(noEvents, mp, propName):
     assert marriage.prop(propName).get() == False
 
 
-def test_married_disabled_when_divorced(noEvents, mp):
-    marriage = noEvents
+def test_married_disabled_when_divorced(marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
     assert mp.itemProp("marriedBox", "enabled") == True
@@ -105,8 +207,7 @@ def test_married_disabled_when_divorced(noEvents, mp):
     assert mp.itemProp("separatedBox", "enabled") == False
 
 
-def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
-    marriage = noEvents
+def test_divorced_disabled_when_divorce_events(scene, marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
     assert marriage.divorced() == False
@@ -114,10 +215,13 @@ def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
     assert mp.itemProp("separatedBox", "enabled") == True
     assert mp.itemProp("divorcedBox", "enabled") == True
 
-    event = Event(
-        parent=marriage,
-        kind=EventKind.Divorced,
-        dateTime=util.Date(2000, 1, 1),
+    event = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            person=marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(2000, 1, 1),
+        )
     )
     scene.addItem(event)
     assert mp.itemProp("marriedBox", "enabled") == False
@@ -125,12 +229,14 @@ def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
     assert mp.itemProp("divorcedBox", "enabled") == False
 
 
-def test_married_becomes_enabled_after_delete_married_event(scene, noEvents, mp):
-    marriage = noEvents
-    married = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=util.Date(2000, 1, 1),
+def test_married_becomes_enabled_after_delete_married_event(scene, marriage, mp):
+    married = scene.addItem(
+        Event(
+            EventKind.Married,
+            person=marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(2000, 1, 1),
+        )
     )
     scene.addItem(married)
     mp.rootProp("marriageModel").items = [marriage]
@@ -140,23 +246,20 @@ def test_married_becomes_enabled_after_delete_married_event(scene, noEvents, mp)
     assert mp.itemProp("marriedBox", "enabled") == True
 
 
-def test_married_separated_divorced_disabled_with_events(scene, noEvents, mp):
-    marriage = noEvents
+def test_married_separated_divorced_disabled_with_events(scene, marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
-    mp.itemProp("marriedBox", "enabled") == True
-    mp.itemProp("separatedBox", "enabled") == True
-    mp.itemProp("divorcedBox", "enabled") == True
+    assert mp.itemProp("marriedBox", "enabled") == True
+    assert mp.itemProp("separatedBox", "enabled") == True
+    assert mp.itemProp("divorcedBox", "enabled") == True
 
     event = Event(parent=marriage, description="Something happened")
     scene.addItem(event)
-    mp.itemProp("marriedBox", "enabled") == False
-    mp.itemProp("separatedBox", "enabled") == False
-    mp.itemProp("divorcedBox", "enabled") == False
+    assert mp.itemProp("marriedBox", "enabled") == False
+    assert mp.itemProp("separatedBox", "enabled") == False
+    assert mp.itemProp("divorcedBox", "enabled") == False
 
 
-def test_married_separated_pen(noEvents, mp):
-    marriage = noEvents
-    scene = marriage.scene()
+def test_married_separated_pen(marriage, mp):
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True
     assert marriage.pen().style() == Qt.SolidLine
@@ -165,8 +268,7 @@ def test_married_separated_pen(noEvents, mp):
     assert marriage.pen().style() == Qt.SolidLine
 
 
-def test_married_separated_divorced(noEvents, mp):
-    marriage = noEvents
+def test_married_separated_divorced(marriage, mp):
     scene = marriage.scene()
     mp.rootProp("marriageModel").items = [marriage]
     assert marriage.married() == True  # default
@@ -221,9 +323,8 @@ def test_married_separated_divorced(noEvents, mp):
     assert marriage.pen().style() == Qt.SolidLine
 
 
-# def test_add_marriage_event(noEvents, mp):
-#     marriage = noEvents
-#     mp.rootProp('marriageModel').items = [marriage]
+# def test_add_marriage_event(marriage, mp):
+# #     mp.rootProp('marriageModel').items = [marriage]
 #     mp.setCurrentTab('timeline')
 #     assert len(marriage.events()) == 0
 

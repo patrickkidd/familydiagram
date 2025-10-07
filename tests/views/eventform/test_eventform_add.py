@@ -23,7 +23,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 def test_tags(scene, view):
     TAG_1, TAG_2 = "tag1", "tag2"
 
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_description("Something happened")
     view.set_startDateTime(START_DATETIME)
@@ -151,7 +151,7 @@ def test_add_multiple_events_to_new_person(scene, view):
 
     view.clickClearButton()
     view.view.addEvent()
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(newPerson)
     view.set_startDateTime(START_DATETIME.addDays(15))
     view.set_symptom(util.VAR_SYMPTOM_DOWN)
@@ -167,7 +167,7 @@ def test_add_multiple_events_to_new_person(scene, view):
 
 
 def test_flash_new_items(scene, view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_relationship(RelationshipKind.Conflict)
     view.targetsPicker.add_new_person("Jane Doe")

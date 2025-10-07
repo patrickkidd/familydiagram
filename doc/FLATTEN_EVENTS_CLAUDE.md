@@ -353,7 +353,7 @@ canonical Emotion factory in the Event, especially since in the future I may laz
   | Adopted                 | adoptive parent | -      | child | -         | -           |
   | Death                   | deceased        | -      | -     | -         | -           |
   | Married                 | -               | -      | -     | -         | -           |
-  | VariableShift (Emotion) | subject         | -      | -     | target(s) | triangle(s) |
+  | Shift (Emotion) | subject         | -      | -     | target(s) | triangle(s) |
 
   THE CONFUSION: Marriage events don't have a single "person" - they have TWO people!
 
@@ -502,7 +502,7 @@ canonical Emotion factory in the Event, especially since in the future I may laz
   CLEARER MODEL - OPTION A (Emotion owns Event):
   # Event is just data:
   event = Event(
-      kind=EventKind.VariableShift,
+      kind=EventKind.Shift,
       dateTime=...,
       relationship=RelationshipKind.Conflict,
       relationshipTargets=[person2, person3],
@@ -522,7 +522,7 @@ canonical Emotion factory in the Event, especially since in the future I may laz
   CLEARER MODEL - OPTION B (Event-centric, no Emotion objects):
   # Event stores everything, Emotion is just a QGraphicsItem view:
   event = Event(
-      kind=EventKind.VariableShift,
+      kind=EventKind.Shift,
       relationship=RelationshipKind.Conflict,
       person=person1,
       relationshipTargets=[person2, person3],
@@ -545,7 +545,7 @@ canonical Emotion factory in the Event, especially since in the future I may laz
   CLARIFICATION NEEDED:
   # Should this:
   event = Event(
-      kind=EventKind.VariableShift,
+      kind=EventKind.Shift,
       relationship=RelationshipKind.Conflict,
       relationshipTargets=[alice, bob, charlie],
   )

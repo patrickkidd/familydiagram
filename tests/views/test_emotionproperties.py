@@ -34,7 +34,7 @@ def test_show_init(scene, ep):
 
     personA, personB = Person(name="personA"), Person(name="personB")
     event = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         person=personA,
         relationship=RelationshipKind.Projection,
         relationshipTargets=personB,
@@ -67,7 +67,7 @@ def test_show_init(scene, ep):
     #
 
     assert emotion.kind() == RelationshipKind.Conflict
-    assert event.kind() == EventKind.VariableShift
+    assert event.kind() == EventKind.Shift
     assert emotion.intensity() == INTENSITY
     assert emotion.notes().strip() == NOTES
 
@@ -77,7 +77,7 @@ def test_show_init_multiple_different(scene, ep):
 
     event1 = Event(
         person=personA,
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         relationship=RelationshipKind.Projection,
         relationshipTargets=personB,
         color="#3c3c3c",
@@ -86,7 +86,7 @@ def test_show_init_multiple_different(scene, ep):
     )
     event2 = Event(
         person=personA,
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=personB,
         color="#3c3c3c",

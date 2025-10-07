@@ -23,6 +23,7 @@ from pkdiagram.scene import (
     EmotionalUnit,
     EventKind,
 )
+from tests.views.test_marriageproperties import marriage
 
 log = logging.getLogger(__name__)
 
@@ -285,10 +286,6 @@ class Marriage(PathItem):
     def peopleNames(self):
         return self.peopleNamesFor(self.people[0], self.people[1])
 
-    def onPersonNameChanged(self, person):
-        for event in self.events():
-            event.updateParentName()
-
     def penStyleFor(self, dateTime):
         priorBondedEvents = []
         priorMarriedEvents = []
@@ -344,36 +341,6 @@ class Marriage(PathItem):
         else:
             return None
 
-    def everMarried(self):
-        """Return True if `married` is checked or married events exist."""
-        return self.everDivorced() or self.married() or self.anyMarriedEvents()
-
-    def everSeparated(self):
-        """Return True if `separated` is checked or separated events exist."""
-        return self.separated() or self.anySeparatedEvents()
-
-    def everDivorced(self):
-        """Return True if `married` is checked or married events exist."""
-        return self.divorced() or self.anyDivorcedEvents()
-
-    def anyMarriedEvents(self):
-        for event in self.events():
-            if event.kind() == EventKind.Married:
-                return True
-        return False
-
-    def anySeparatedEvents(self):
-        for event in self.events():
-            if event.kind() == EventKind.Separated:
-                return True
-        return False
-
-    def anyDivorcedEvents(self):
-        for event in self.events():
-            if event.kind() == EventKind.Divorced:
-                return True
-        return False
-
     def spouseOf(self, person):
         if person in self.people:
             if self.people[0] == person:
@@ -422,8 +389,15 @@ class Marriage(PathItem):
 
     ## Events
 
-    def events(self):
-        return list(self._events)
+    def events(self) -> list[Event]:
+        if self.scene():
+            return [
+                x
+                for x in self.scene().events()
+                if {x.person(), x.spouse()} == {self.personA(), self.personB()}
+            ]
+        else:
+            return []
 
     def _onAddEvent(self, x):
         """Called from Event.setParent."""

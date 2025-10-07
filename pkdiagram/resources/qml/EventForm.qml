@@ -496,12 +496,12 @@ PK.Drawer {
                     PK.Text {
                         id: descriptionLabel
                         text: "Summary"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.FormField {
                         id: descriptionField
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         tabItem: symptomField.firstTabItem
                         backTabItem: childField.lastTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -529,13 +529,13 @@ PK.Drawer {
                     PK.Text {
                         id: symptomLabel
                         text: "Δ Symptom"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: symptomField
                         objectName: "symptomField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: spouseField.lastTabItem
                         tabItem: anxietyField.firstTabItem
@@ -543,7 +543,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_SYMPTOM_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
@@ -553,13 +553,13 @@ PK.Drawer {
                     PK.Text {
                         id: anxietyLabel
                         text: "Δ Anxiety"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: anxietyField
                         objectName: "anxietyField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: symptomField.lastTabItem
                         tabItem: relationshipField
@@ -567,7 +567,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_ANXIETY_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
@@ -577,7 +577,7 @@ PK.Drawer {
                     PK.Text {
                         id: relationshipLabel
                         text: "Δ Relationship"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
@@ -644,7 +644,7 @@ PK.Drawer {
                                 "Other(s)"
                             }
                         }
-                        visible: root.kind == util.EventKind.VariableShift && root.relationship != null
+                        visible: root.kind == util.EventKind.Shift && root.relationship != null
                     }
 
                     Rectangle {
@@ -735,13 +735,13 @@ PK.Drawer {
                     PK.Text {
                         id: functioningLabel
                         text: "Δ Functioning"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: functioningField
                         objectName: "functioningField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: targetsField.lastTabItem
                         tabItem: startDateButtons.firstTabItem
@@ -749,7 +749,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_FUNCTIONING_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }

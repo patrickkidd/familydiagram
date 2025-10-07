@@ -9,7 +9,7 @@ Spec
 - Remove all Person/Marriage/Emotion event references for computer properties,
   Scene as single source of truth
   - Remove Person.onAddEvent, etc.
-- Have Person.updateEvents() only listen for VariableShift since it only updates self.variablesDatabase?
+- Have Person.updateEvents() only listen for Shift since it only updates self.variablesDatabase?
 - Add TimelineRow dataclass instead of dummy events; _ensureEvent(adds 1 or 2 for dateTime & endDateTime)
   ```
     def _ensureEvent(self, event: Event):
@@ -37,11 +37,11 @@ Edit events with EventForm
 ------------------------------------
 - event.includeOnDiagram
 - Event.color
-- Add link to edit emotion if kind == VariableShift
+- Add link to edit emotion if kind == Shift
 - Remove event field edits from EmotionProperties, just add links to start event
 - Disable isDateRange when not editing Emotion's
 - Legacy births, leave person/spouse empty if none exist if possible
-- VariableShift -> Shift
+- Shift -> Shift
 - Storing EventKind on Event.uniqueId or new Event.kind?
   - Going to end up replacing `uniqueId` with `kind` anyway?
   - But still duplicates data?
@@ -59,6 +59,7 @@ Edit events with EventForm
 - compat
   - CustomIndividual -> 'variable-shift' (kind can never be `None`)
   - [in &.read()] Marriage.events, Person.Events, Emotion.events -> Scene.events
+  - Event.kind is None -> kind = Shift
   - Emotion.startEvent['emotionStartEvent'] -> Emotion.startEvent['variable-shift']
   - Emotion.isDateRange (isSingularDate()) -> Event.endEvent
   - Emotion.notes -> Emotion.event().notes
@@ -84,7 +85,7 @@ Create relationship field in add form
     - Birth, Pregnancy, Adopted (isOffspring)
       - single (Spouse)
       - single (Child)
-    - Variable Shift (isVariableShift)
+    - Shift
       - Summary
       - Symptom
       - Anxiety

@@ -581,7 +581,7 @@ class EventForm(QmlDrawer):
         if not isEditing:
 
             newEvent: Event = self.scene.addItem(Event(person=person, kind=kind))
-            if kind == EventKind.VariableShift and relationship:
+            if kind == EventKind.Shift and relationship:
                 newEvent.setRelationshipTargets(targets)
                 newEvent.setRelationshipTriangles(triangles)
                 newEmotions = newEvent.emotions()

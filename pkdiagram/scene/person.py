@@ -266,7 +266,6 @@ class Person(PathItem):
         self.marriages = []
         self.setShapeMargin(0)  # override from PathItem
         self.setShapeIsBoundingRect(True)
-        self._events = []
         self._eventsCache = []  # Used for efficiently updating self.variablesDatabase
         self._emotions = []
         self._layers = []  # cache for &.prop('layers')
@@ -375,7 +374,6 @@ class Person(PathItem):
             _log.warning("*** None in self.marriages!")
             self.marriages = [m for m in self.marriages if m]
         #
-        self._events = []
         self.updateVariablesDatabase()
         self._delegate.setPrimary(self.primary())
         self._delegate.setGender(self.gender())
@@ -386,14 +384,6 @@ class Person(PathItem):
     def clone(self, scene):
         x = super().clone(scene)
         self.initAlias()
-        for event in list(
-            self._events
-        ):  # I wonder if excluding events would be a good idea?
-            newEvent = event.clone(scene)
-            newEvent._cloned_parent_id = self.id
-            x._events.append(newEvent)
-        x._cloned_marriage_ids = [m.id for m in self.marriages]
-        x._cloned_emotion_ids = [e.id for e in self.emotions()]
         if self.childOf:
             x._cloned_childOf_id = self.childOf.id
         else:
@@ -407,12 +397,6 @@ class Person(PathItem):
             parent = map.find(event._cloned_parent_id)
             event.setParent(parent)
             delattr(event, "_cloned_parent_id")
-        self.marriages = [map.find(id) for id in self._cloned_marriage_ids]
-        self.marriages = [i for i in self.marriages if i is not None]
-        delattr(self, "_cloned_marriage_ids")
-        self._emotions = [map.find(id) for id in self._cloned_emotion_ids]
-        self._emotions = [i for i in self._emotions if i is not None]
-        delattr(self, "_cloned_emotion_ids")
         self.childOf = map.find(self._cloned_childOf_id)
         delattr(self, "_cloned_childOf_id")
         return True
@@ -691,15 +675,7 @@ class Person(PathItem):
 
     @util.blocked
     def onProperty(self, prop):
-        if prop.name() in ("name", "middleName", "lastName", "nickName"):
-            for marriage in self.marriages:
-                marriage.onPersonNameChanged(self)
-            for event in self.events():
-                event.updateParentName()
-            for emotion in self.emotions():
-                emotion.onPeopleChanged()
-            self.setObjectName("Person_" + self.fullNameOrAlias())
-        elif prop.name() == "gender":
+        if prop.name() == "gender":
             self._delegate.setGender(prop.get())
             self.updateAgeText()
             self.initAlias()
@@ -785,7 +761,26 @@ class Person(PathItem):
     ## Events
 
     def events(self) -> list[Event]:
-        return self._events
+        if self.scene():
+            return [x for x in self.scene().events() if x.person() == self]
+        else:
+            return []
+
+    def emotions(self) -> list[Emotion]:
+        if self.scene():
+            return [
+                x for x in self.scene().events() if self in (x.person(), x.target())
+            ]
+        else:
+            return []
+
+    def marriages(self) -> list[Marriage]:
+        if self.scene():
+            return [
+                x for x in self.scene().events() if self in (x.personA(), x.personB())
+            ]
+        else:
+            return []
 
     def updateEvents(self):
         """handle add|remove changes."""

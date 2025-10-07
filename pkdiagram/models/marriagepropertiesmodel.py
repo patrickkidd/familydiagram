@@ -3,6 +3,33 @@ from pkdiagram.scene import EventKind, Item, Marriage
 from pkdiagram.models import ModelHelper
 
 
+def _anyMarriedEvents(marriage: Marriage):
+    return any(
+        x
+        for x in marriage.events()
+        if x.kind() == EventKind.Married
+        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
+    )
+
+
+def _anySeparatedEvents(marriage: Marriage):
+    return any(
+        x
+        for x in marriage.events()
+        if x.kind() == EventKind.Separated
+        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
+    )
+
+
+def _anyDivorcedEvents(marriage: Marriage):
+    return any(
+        x
+        for x in marriage.events()
+        if x.kind() == EventKind.Divorced
+        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
+    )
+
+
 class MarriagePropertiesModel(QObject, ModelHelper):
 
     PROPERTIES = Item.adjustedClassProperties(
@@ -23,7 +50,6 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             {"attr": "anyMarriedEvents", "type": bool},
             {"attr": "anySeparatedEvents", "type": bool},
             {"attr": "anyDivorcedEvents", "type": bool},
-            {"attr": "numEvents", "type": int},
         ],
     )
 
@@ -53,6 +79,7 @@ class MarriagePropertiesModel(QObject, ModelHelper):
 
     def get(self, attr):
         ret = None
+
         if self._items:
             marriage = self._items[0]
             x = None
@@ -65,19 +92,21 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             elif attr == "personBId":
                 x = marriage.personB().id
             elif attr == "everMarried":
-                x = marriage.everMarried()
+                x = (
+                    marriage.everDivorced()
+                    or marriage.married()
+                    or _anyMarriedEvents(marriage)
+                )
             elif attr == "everSeparated":
-                x = marriage.everSeparated()
+                x = marriage.separated() or _anySeparatedEvents(marriage)
             elif attr == "everDivorced":
-                x = marriage.everDivorced()
+                x = marriage.everDivorced() or _anyDivorcedEvents(marriage)
             elif attr == "anyMarriedEvents":
-                x = marriage.anyMarriedEvents()
+                ret = _anyMarriedEvents(marriage)
             elif attr == "anySeparatedEvents":
-                x = marriage.anySeparatedEvents()
+                ret = _anySeparatedEvents(marriage)
             elif attr == "anyDivorcedEvents":
-                x = marriage.anyDivorcedEvents()
-            elif attr == "numEvents":
-                x = len(marriage.events())
+                ret = _anyDivorcedEvents(marriage)
             if x is not None:
                 ret = self.getterConvertTo(attr, x)
             else:

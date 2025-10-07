@@ -195,7 +195,6 @@ def emotionModel():
         endDateTime=util.Date(2010, 2, 10),
         loggedDateTime=util.Date(2000, 1, 10),
     )
-    endEvent = Event(dateTime=startEvent.endDateTime(), description="Conflict ended")
     conflict = Emotion(
         event=startEvent,
         target=target,
@@ -205,7 +204,7 @@ def emotionModel():
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.items = scene
-    return searchModel, startEvent, endEvent
+    return searchModel, startEvent
 
 
 def test_loggedStartDateTime_emotions(emotionModel):

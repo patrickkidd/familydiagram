@@ -36,7 +36,7 @@ def test_clear(view):
 
 
 def test_clear_variables(view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
     view.set_endDateTime(END_DATETIME)

@@ -45,13 +45,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     - Circular references are handled when loading the diagram file in two
       phases; 1) instantiate all the items with a map of their id's, then 2)
       resolve all dependencies via passing the map to each Item's read() method.
-    - TimelineModel creates dummy Event's to show, select and delete Event.endDateTime() in a UI. I am open to ideas for a cleaner implementation. This is the only rationale for allowing Event.kind() to be none.
   - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
   - `Event` has mandatory `EventKind` as:
     - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,
       `Divorced` are "PairBond" categories that reflect the pairbond/marriage's
       life cycle. All include a spouse and potentially a child.
-    - `VariableShift` category that indicates a change in the app's four key
+    - `Shift` category that indicates a change in the app's four key
       variables: (S)ymptom, (A)nxiety, (R)elationship and (F)unctioning.
         - R changes always occur in relation to one or more targets. 
         - R changes pertaining to triangles (`RelationShipKind.Inside`,

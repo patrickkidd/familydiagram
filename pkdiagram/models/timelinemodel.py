@@ -159,7 +159,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif not self._scene:  # SceneModel.nullTimelineModel
             hidden = False
         elif (
-            event.kind() == EventKind.VariableShift
+            event.kind() == EventKind.Shift
             and event.relationship()
             and event.isEndEvent
             and event.emotion().isSingularDate()
@@ -504,7 +504,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             event.setDescription(value, undo=True)
         elif self.isColumn(index, self.LOCATION):
             event.setLocation(value, undo=True)
-        elif event.kind() == EventKind.VariableShift:
+        elif event.kind() == EventKind.Shift:
             attr = self.dynamicPropertyAttr(index)
             if attr:
                 prop = event.dynamicProperty(attr)
@@ -536,7 +536,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 pass
             elif self.dynamicPropertyAttr(index):
                 ret |= Qt.ItemIsEditable
-            if event.kind() != EventKind.VariableShift:
+            if event.kind() != EventKind.Shift:
                 pass
             elif self.isColumn(
                 index,

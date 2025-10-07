@@ -1,10 +1,14 @@
 import os
+import logging
 from datetime import datetime
 
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
 from pkdiagram.scene.commands import SetEventPerson
+
+
+_log = logging.getLogger(__name__)
 
 
 class Event(Item):
@@ -19,7 +23,7 @@ class Event(Item):
     Item.registerProperties(
         (
             # Core fields
-            {"attr": "kind"},  # EventKind
+            {"attr": "kind", "default": EventKind.Shift.value},  # EventKind
             {"attr": "dateTime", "type": QDateTime},
             {"attr": "endDateTime", "type": QDateTime},
             {"attr": "unsure", "default": True},
@@ -33,7 +37,7 @@ class Event(Item):
             {"attr": "person", "type": int, "default": None},
             {"attr": "spouse", "type": int, "default": None},
             {"attr": "child", "type": int, "default": None},
-            # Variable shift fields
+            # Shift fields
             {"attr": "relationshipTargets", "type": list, "default": []},
             {"attr": "relationshipTriangles", "type": list, "default": []},
             {
@@ -47,7 +51,8 @@ class Event(Item):
 
     def __init__(
         self,
-        person: "Person | None" = None,
+        kind: EventKind,
+        person: "Person",
         spouse: "Person | None" = None,
         child: "Person | None" = None,
         anxiety: "Person | None" = None,
@@ -58,7 +63,11 @@ class Event(Item):
         relationshipTriangles: "list[Person]" = [],
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        if not isinstance(kind, EventKind):
+            raise TypeError(
+                f"Event() requires kind=EventKind, got {type(kind).__name__}"
+            )
+        super().__init__(kind=kind.value, person=person.id, **kwargs)
         self.isEvent = True
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
         if "id" in kwargs:
@@ -68,8 +77,6 @@ class Event(Item):
         self._aliasParentName = None
         self._onShowAliases = False
         self._updatingDescription = False
-        if person is not None:
-            self.setPerson(person)
         if spouse is not None:
             self.setSpouse(spouse)
         if child is not None:
@@ -175,7 +182,7 @@ class Event(Item):
         else:
             return False
 
-    def _do_setPerson(self, person):
+    def _do_setPerson(self, person: "Person"):
         was = self.person()
         if was:
             was.onEventRemoved()
@@ -222,10 +229,18 @@ class Event(Item):
                 return self.person().scene()
 
     def kind(self) -> EventKind:
-        return EventKind(self.prop("kind").get())
+        value = self.prop("kind").get()
+        if value is None:
+            # This should never happen with new code, but handle legacy data gracefully
+            _log.warning(f"Event {self.id} has no kind, defaulting to Shift")
+            return EventKind.Shift
+        return EventKind(value)
 
-    def setKind(self, x: EventKind):
-        self.prop("kind").set(x)
+    def setKind(self, x: EventKind, undo=False):
+        """Set the event kind."""
+        if not isinstance(x, EventKind):
+            raise TypeError(f"setKind() requires EventKind, got {type(x).__name__}")
+        self.prop("kind").set(x.value, undo=undo)
 
     def shouldShowAliases(self):
         scene = self.scene()
@@ -240,12 +255,12 @@ class Event(Item):
         wasDescription = prop.get()
         newDescription = None
         if self.person():
-            if kind == EventKind.Moved:
+            if self.kind() == EventKind.Moved:
                 newDescription = (
                     "Moved to %s" % self.location() if self.location() else "Moved"
                 )
             else:
-                newDescription = kind.menuLabel()
+                newDescription = self.kind().menuLabel()
 
             if wasDescription != newDescription:
                 if newDescription:

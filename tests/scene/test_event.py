@@ -7,7 +7,7 @@ from pkdiagram.scene import EventKind, RelationshipKind, Event, Person
 def test_init():
     """Try to break ctor."""
     person = Person()
-    event = Event(person)
+    event = Event(EventKind.Shift, person)
     assert event in person.events()
 
 
@@ -18,10 +18,10 @@ def test_setParent(scene, undo):
     """
     personA, personB = Person(), Person()
     scene.addItems(personA, personB)
-    event = Event(parent=personB)
+    event = Event(EventKind.Shift, personB)
     scene.addItem(event)
     #
-    event.setParent(personA, undo=undo)
+    event.setPerson(personB, undo=undo)
     assert event in personA.events()
     assert event not in personB.events()
     scene.undo()
@@ -35,9 +35,9 @@ def test_setParent(scene, undo):
 
 def __test___lt__():
     person = Person()
-    birth = Event(kind=EventKind.Birth, person=person)
-    death = Event(kind=EventKind.Death, person=person)
-    eventA = Event(person=person)
+    birth = Event(EventKind.Birth, person=person)
+    death = Event(EventKind.Death, person=person)
+    eventA = Event(EventKind.Shift, person=person)
 
     # test birth < eventA < death (blank dates)
     assert birth < eventA
@@ -58,7 +58,7 @@ def test_sorted_every_other():
     dateTime = util.Date(2001, 1, 1)
     events = []
     for i in range(10):
-        event = Event()
+        event = Event(EventKind.Shift, person=Person())
         if i % 2:
             event.setDateTime(dateTime)
             dateTime = dateTime.addDays(1)
@@ -137,64 +137,65 @@ def test_QDate_lt_eq():
 
 
 def test_lt():
-    d1 = Event(dateTime=util.Date(2000, 1, 2))
-    d2 = Event(dateTime=util.Date(2000, 1, 2))
+    person = Person()
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001, 12, 4))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2001, 11, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2000, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 < d2
 
-    d1 = Event(dateTime=util.Date(2002, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 11, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
     assert not (d1 < d2)
 
-    d1 = Event(dateTime=util.Date(2001, 12, 6))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert not (d1 < d2)
 
 
 @pytest.mark.skip("__le__ not supported yet")
 def test_lt_eq():
-
-    d1 = Event(dateTime=util.Date(2000, 1, 2))
-    d2 = Event(dateTime=util.Date(2000, 1, 2))
+    person = Person()
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2001, 12, 4))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2001, 11, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2000, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert d1 <= d2
 
-    d1 = Event(dateTime=util.Date(2002, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert not (d1 <= d2)
 
-    d1 = Event(dateTime=util.Date(2001, 12, 5))
-    d2 = Event(dateTime=util.Date(2001, 11, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
     assert not (d1 <= d2)
 
-    d1 = Event(dateTime=util.Date(2001, 12, 6))
-    d2 = Event(dateTime=util.Date(2001, 12, 5))
+    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6))
+    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
     assert not (d1 <= d2)
 
 
@@ -212,7 +213,7 @@ def test_variables(scene, attr, value):
     scene.addEventProperty(util.ATTR_ANXIETY)
     scene.addEventProperty(util.ATTR_RELATIONSHIP)
     scene.addEventProperty(util.ATTR_FUNCTIONING)
-    event = scene.addItem(Event())
+    event = scene.addItem(Event(EventKind.Shift, Person()))
     getattr(event, f"set{attr.capitalize()}")(value)
     assert getattr(event, attr)() == value
 
@@ -229,7 +230,7 @@ def test_triangle(scene, relationship: RelationshipKind):
     person = scene.addItem(Person(name="Person"))
     spouse = scene.addItem(Person(name="Spouse"))
     third = scene.addItem(Person(name="Third"))
-    event = scene.addItem(Event(parent=person))
+    event = scene.addItem(Event(EventKind.Shift, person))
     event.setRelationship(relationship)
     event.setRelationshipTargets(spouse)
     event.setRelationshipTriangles(third)

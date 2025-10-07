@@ -78,7 +78,7 @@ def test_Variable_add_to_existing_people(scene, view):
     SPACING = father.boundingRect().width() * 2
     father.setItemPosNow(QPointF(-SPACING, 0))
     mother.setItemPosNow(QPointF(SPACING, 0))
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(RelationshipKind.Conflict)
     view.personPicker.set_existing_person(father)
     view.targetsPicker.add_existing_person(mother)

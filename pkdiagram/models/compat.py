@@ -277,7 +277,7 @@ def update_data(data):
         for chunk in data.get("items", []):
             if chunk["kind"] in Emotion.kindSlugs():
                 if chunk.get("startEvent"):
-                    chunk["startEvent"]["uniqueId"] = EventKind.VariableShift.value
+                    chunk["startEvent"]["uniqueId"] = EventKind.Shift.value
                     chunk["startEvent"]["relationship"] = RelationshipKind.fromItemMode(
                         Emotion.kindForKindSlug(chunk["kind"])
                     ).value

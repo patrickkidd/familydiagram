@@ -1174,7 +1174,8 @@ class Emotion(PathItem):
                 "default": util.DEFAULT_EMOTION_INTENSITY,
                 "onset": "updateGeometry",
             },
-            {"attr": "parentName"},
+            {"attr": "event", "type": int, "default": None},   # Store event ID
+            {"attr": "target", "type": int, "default": None},  # Store target ID
             {"attr": "color", "default": _new_color()},
             {"attr": "notes"},
         ]
@@ -1204,14 +1205,15 @@ class Emotion(PathItem):
 
     def __init__(
         self,
+        kind: RelationshipKind,
         target: "Person",
         event: Event | None = None,
-        kind: RelationshipKind | None = None,
         **kwargs,
     ):
-        super().__init__(kind=kind.value if kind else None, **kwargs)
-        if "kind" not in kwargs:
-            raise TypeError(f"`kind` kwarg is required for Emotion()")
+        """
+        Event could be none when drawing on the diagram.
+        """
+        super().__init__(kind: RelationshipKind, **kwargs)
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.prop("itemPos").setLayered(False)
@@ -1227,8 +1229,7 @@ class Emotion(PathItem):
         # self.hoverTimer.timeout.connect(self.onHoverTimer)
         self.fannedBox = None
         self.isLatest = True
-        self.onPeopleChanged()
-        if not self.isDyadic() and event.person():
+        if not self.isDyadic() and event and event.person():
             self.setParentItem(event.person())
         self.isInit = True
 
@@ -1277,7 +1278,7 @@ class Emotion(PathItem):
             self.intensity()
 
     def setEvent(self, event: Event):
-        assert event.kind() == EventKind.VariableShift
+        assert event.kind() == EventKind.Shift
         assert event.relationship() == self.kind()
         self._event = event
 
@@ -1299,7 +1300,7 @@ class Emotion(PathItem):
             return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
         else:
             return super().notesIconPos()
-
+        
     # def parentName(self):
     #     if self.shouldShowAliases():
     #         if (
@@ -1512,17 +1513,6 @@ class Emotion(PathItem):
                 #     self.fannedBox.onEmotionDeselected(self)
         return super().itemChange(change, variant)
 
-    def onPeopleChanged(self):
-        was = self.parentName()
-        self.updateParentName()
-        if was != self.parentName():
-            self.onProperty(self.prop("parentName"))
-        self.updateGeometry()
-        for peer in self.peers():
-            peer.updatePen()
-        if self.scene():  # defered b/c it's called on the scene
-            self.updateFannedBox()
-
     def peers(self):
         """Return other visible emotions that have the same people.
         Returns empty list when self is not shown.
@@ -1534,21 +1524,24 @@ class Emotion(PathItem):
             return ret
         if not self.shouldShowRightNow():
             return ret
-        for emotion in self.person()._emotions:
-            _canFanOut = emotion.canFanOut()
-            _notSelf = emotion is not self
-            _samePeople = len(set(emotion.people) & set(self.people)) == len(
-                self.people
-            )
-            _shouldShow = emotion.shouldShowRightNow()
-            if (
-                _canFanOut
-                and _notSelf
-                and _samePeople
-                and _shouldShow
-                and emotion.scene()
-            ):
-                ret.add(emotion)
+        for person in (self.person(), self.target()):
+            if person is None:
+                continue
+            for emotion in self.scene().emotionsFor(person):
+                _canFanOut = emotion.canFanOut()
+                _notSelf = emotion is not self
+                _samePeople = len(set(emotion.people) & set(self.people)) == len(
+                    self.people
+                )
+                _shouldShow = emotion.shouldShowRightNow()
+                if (
+                    _canFanOut
+                    and _notSelf
+                    and _samePeople
+                    and _shouldShow
+                    and emotion.scene()
+                ):
+                    ret.add(emotion)
         return ret
 
     def updateFannedBox(self):

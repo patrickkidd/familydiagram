@@ -61,12 +61,12 @@ def test_init_Death(scene, view):
     assert view.item.property("notes") == "Old Notes"
 
 
-def test_init_VariableShift(scene, view):
+def test_init_Shift(scene, view):
     mother = scene.addItem(Person(name="Mother"))
     event = scene.addItem(
         Event(
             parent=mother,
-            kind=EventKind.VariableShift,
+            kind=EventKind.Shift,
             location="Some Location",
             notes="Some Notes",
             dateTime=START_DATETIME,
@@ -74,7 +74,7 @@ def test_init_VariableShift(scene, view):
     )
     event.setDescription("Some Description")
     view.view.editEvents([event])
-    assert view.item.property("kind") == EventKind.VariableShift
+    assert view.item.property("kind") == EventKind.Shift
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries() == []
     assert view.view.trianglesEntries() == []
@@ -84,7 +84,7 @@ def test_init_VariableShift(scene, view):
     assert view.item.property("notes") == "Some Notes"
 
 
-def test_init_VariableShift_Conflict(scene, view):
+def test_init_Shift_Conflict(scene, view):
     mother = scene.addItem(Person(name="Mother"))
     father = scene.addItem(Person(name="Father"))
     conflict = scene.addItem(
@@ -102,7 +102,7 @@ def test_init_VariableShift_Conflict(scene, view):
     util.waitALittle()
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.VariableShift
+    assert view.item.property("kind") == EventKind.Shift
     assert view.item.property("relationship") == RelationshipKind.Conflict
     assert view.item.property("description") == "Conflict began"
     assert view.item.property("startDateTime") == START_DATETIME
@@ -110,7 +110,7 @@ def test_init_VariableShift_Conflict(scene, view):
     assert view.item.property("notes") == "Some Notes"
 
 
-def test_init_VariableShift_Triangle(scene, view):
+def test_init_Shift_Triangle(scene, view):
     mother = scene.addItem(Person(name="Mother"))
     father = scene.addItem(Person(name="Father"))
     lover = scene.addItem(Person(name="Lover"))
@@ -130,7 +130,7 @@ def test_init_VariableShift_Triangle(scene, view):
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == lover
     assert view.view.trianglesEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.VariableShift
+    assert view.item.property("kind") == EventKind.Shift
     assert view.item.property("relationship") == RelationshipKind.Inside
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("endDateTime") == END_DATETIME

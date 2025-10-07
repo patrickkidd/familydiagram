@@ -136,7 +136,7 @@ def test_add_emotion(scene, undo):
     person1 = Person(name="person1")
     person2 = Person(name="person2")
     emotion = Event(
-        kind=EventKind.VariableShift,
+        kind=EventKind.Shift,
         startDateTime=util.Date(2001, 1, 1),
         person=person1,
         relationship=RelationshipKind.Conflict,

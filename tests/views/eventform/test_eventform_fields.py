@@ -66,7 +66,7 @@ def test_onKindChanged_clears_triangle_fields(scene, view):
     person = scene.addItem(Person(name="Jane", lastName="Doe"))
     person2 = scene.addItem(Person(name="John", lastName="Doe"))
     person3 = scene.addItem(Person(name="Baby", lastName="Doe"))
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(person)
     view.set_relationship(RelationshipKind.Inside)  # unhappy path
     view.set_description("Something happened")
@@ -104,7 +104,7 @@ def test_onKindChanged_clears_pairbond_fields(scene, view):
     view.spousePicker.set_existing_person(spouse)
     view.childPicker.set_existing_person(child)
 
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     assert view.relationshipField.property("value") == None
     assert view.view.personEntry()["person"] == person
     assert view.view.spouseEntry() == None
@@ -146,7 +146,7 @@ def test_onKindChanged_clears_pairbond_fields(scene, view):
     ],
 )
 def test_relationship_targets_labels(view, relationship, labelText):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(relationship)
     assert view.targetsLabel.property("text") == labelText
 
@@ -164,7 +164,7 @@ def test_relationship_targets_labels(view, relationship, labelText):
     ],
 )
 def test_relationship_triangles(view, relationship):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(relationship)
     assert view.targetsPicker.item.property("visible") == True
 

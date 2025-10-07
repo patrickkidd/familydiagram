@@ -78,7 +78,7 @@ def __init__(self, target: Person, event: Event, kind: RelationshipKind, **kwarg
 **Action Items:**
 - [ ] Make `event` and `kind` required parameters in `Emotion.__init__()`
 - [ ] Update all `Emotion()` calls to include both parameters
-- [ ] Add assertions to validate event.kind() == EventKind.VariableShift
+- [ ] Add assertions to validate event.kind() == EventKind.Shift
 
 ---
 
@@ -461,7 +461,7 @@ class TimelineModel:
 def _shouldHide(self, event):
     # ...
     elif (
-        event.kind() == EventKind.VariableShift
+        event.kind() == EventKind.Shift
         and event.relationship()
         and event.isEndEvent  # WRONG: Events don't have isEndEvent!
         and event.emotion().isSingularDate()
@@ -530,7 +530,7 @@ def Event.emotions(self) -> list[Emotion]:
 ```python
 # When creating a relationship event:
 event = Event(
-    kind=EventKind.VariableShift,
+    kind=EventKind.Shift,
     person=person1,
     relationshipTargets=[person2, person3],
 )
@@ -759,10 +759,10 @@ for chunk in data.get("events", []):
         elif uid == "moved":
             chunk["kind"] = EventKind.Moved.value
         elif uid == "emotionStartEvent" or uid == "emotionEndEvent" or uid == "CustomIndividual" or uid == "" or uid is None:
-            chunk["kind"] = EventKind.VariableShift.value
+            chunk["kind"] = EventKind.Shift.value
         else:
-            log.warning(f"Unknown uniqueId: {uid}, defaulting to VariableShift")
-            chunk["kind"] = EventKind.VariableShift.value
+            log.warning(f"Unknown uniqueId: {uid}, defaulting to Shift")
+            chunk["kind"] = EventKind.Shift.value
 
         del chunk["uniqueId"]
 ```
@@ -770,7 +770,7 @@ for chunk in data.get("events", []):
 **Action Items:**
 - [ ] Implement uniqueId → kind migration in compat.py
 - [ ] Map all old uniqueId strings to EventKind enums
-- [ ] Set blank/CustomIndividual to EventKind.VariableShift (per CLAUDE.md)
+- [ ] Set blank/CustomIndividual to EventKind.Shift (per CLAUDE.md)
 - [ ] Delete uniqueId field after migration
 
 ---
@@ -857,7 +857,7 @@ def update_data(data):
             end = emotion_chunk.pop("endEvent", None)
 
             event_chunk = start
-            event_chunk["kind"] = EventKind.VariableShift.value
+            event_chunk["kind"] = EventKind.Shift.value
             event_chunk["person"] = emotion_chunk.get("person_a")  # Subject
 
             # Migrate isDateRange to endDateTime
@@ -986,7 +986,7 @@ emotion = Emotion(kind=RelationshipKind.Conflict, ...)  # Missing event?
 ```python
 event = Event(
     person=person1,
-    kind=EventKind.VariableShift,
+    kind=EventKind.Shift,
     relationshipTargets=[person2],
 )
 scene.addItem(event)
@@ -1162,8 +1162,8 @@ Update QML interfaces to work with new structure.
 **Changes:**
 - Add `event.includeOnDiagram` checkbox
 - Add `event.color` picker
-- Add link to edit Emotion if `kind == VariableShift`
-- Show "Shift" instead of "VariableShift"
+- Add link to edit Emotion if `kind == Shift`
+- Show "Shift" instead of "Shift"
 
 **Action Items:**
 - [ ] Add UI controls for new Event properties
@@ -1225,20 +1225,453 @@ Update undo commands to work with Scene-owned events.
 
 ---
 
-### 11.3 Update RemoveItems Command
-**File:** `pkdiagram/scene/commands.py`
+### 11.3 Update RemoveItems Command - CRITICAL REFACTOR NEEDED 🔴
+**File:** `pkdiagram/scene/commands.py:47-347`
 
-**Ensure:** RemoveItems properly removes events from Scene._events
+**Problem:** `RemoveItems` has deep coupling to OLD event/emotion ownership model. The refactor breaks this command in multiple ways.
 
-**Action Items:**
-- [ ] Verify RemoveItems calls Scene.removeItem() which handles events
-- [ ] Test undo/redo with event removal
+#### Current Issues:
+
+**Issue 1: Event Ownership Confusion**
+```python
+# Line 154-155: Assumes person owns events
+for event in list(item.events()):  # Now queries Scene, not cache
+    mapEvent(event)
+```
+
+After refactor, `person.events()` returns scene-queried events, not owned events. The mapping is fine, but the redo/undo logic assumes wrong ownership.
+
+**Issue 2: Event Person Restoration (Line 307-311)**
+```python
+for entry in self._unmapped["events"]:
+    if entry["dateTime"]:
+        entry["event"].setDateTime(entry["dateTime"])
+    else:
+        entry["event"].setPerson(entry["person"])  # WRONG: person may not exist yet!
+```
+
+**Problem:** Events might get restored BEFORE their person is restored, causing crash when trying to call `person.onEventAdded()`.
+
+**Issue 3: Emotion Person Cache Calls (Lines 200, 240, 314, 317)**
+```python
+# Line 200 (redo):
+person._onRemoveEmotion(emotion)  # No longer exists after Phase 2
+
+# Line 314-318 (undo):
+entry["people"][0]._onAddEmotion(entry["emotion"])  # No longer exists
+entry["emotion"].setPersonA(entry["people"][0])     # Obsolete - uses event.person now
+entry["people"][1]._onAddEmotion(entry["emotion"])  # No longer exists
+entry["emotion"].setPersonB(entry["people"][1])     # Obsolete - uses emotion.target now
+```
+
+**Problem:** All `_onAddEmotion()` and `_onRemoveEmotion()` calls will break after Phase 2 removes emotion caching.
+
+**Issue 4: Event Mapping Stores Wrong Data (Line 109-115)**
+```python
+def mapEvent(item):
+    self._unmapped["events"].append(
+        {"event": item, "person": item.person, "dateTime": item.dateTime()}
+    )
+```
+
+**Problem:**
+- Stores `person` object reference, but person might be deleted/recreated
+- Should store `person.id` instead
+- Missing `spouse`, `child`, `relationshipTargets`, `relationshipTriangles` IDs
+
+**Issue 5: Emotion Mapping Obsolete (Line 117-126)**
+```python
+def mapEmotion(item):
+    self._unmapped["emotions"].append({
+        "emotion": item,
+        "people": list(item.people),  # WRONG: emotion.people no longer exists
+    })
+```
+
+**Problem:** `emotion.people` is obsolete. Should map `emotion.event.id` and `emotion.target.id`.
+
+**Issue 6: Person Deletion Removes Events/Emotions (Lines 189-201)**
+```python
+if item.isPerson:
+    for emotion in list(item.emotions()):  # Queries all scene emotions
+        for person in list(emotion.people):  # Obsolete
+            person._onRemoveEmotion(emotion)  # Obsolete
+        self.scene.removeItem(emotion)  # DELETES emotion when person deleted!
+```
+
+**Problem:** Currently deletes ALL emotions when person is deleted. With new model, should emotions survive person deletion? Need policy decision.
+
+#### Required Changes:
+
+**CHANGE 1: Update Event Mapping**
+```python
+def mapEvent(item):
+    for entry in self._unmapped["events"]:
+        if entry["event"] is item:
+            return
+
+    # Store IDs, not object references
+    mapping = {
+        "event": item,
+        "personId": item.person().id if item.person() else None,
+        "spouseId": item.spouse().id if item.spouse() else None,
+        "childId": item.child().id if item.child() else None,
+        "targetIds": [p.id for p in item.relationshipTargets()],
+        "triangleIds": [p.id for p in item.relationshipTriangles()],
+        "dateTime": item.dateTime(),
+    }
+    self._unmapped["events"].append(mapping)
+```
+
+**CHANGE 2: Update Event Undo Restoration**
+```python
+# MUST restore events AFTER people are restored
+for entry in self._unmapped["events"]:
+    # Don't try to restore person reference yet - it happens in event.read()
+    # Just ensure event is in scene
+    if not entry["event"].scene():
+        self.scene.addItem(entry["event"])
+```
+
+**CHANGE 3: Update Emotion Mapping**
+```python
+def mapEmotion(item):
+    for entry in self._unmapped["emotions"]:
+        if entry["emotion"] is item:
+            return
+
+    mapping = {
+        "emotion": item,
+        "eventId": item.event().id if item.event() else None,
+        "targetId": item.target().id if item.target() else None,
+    }
+    self._unmapped["emotions"].append(mapping)
+```
+
+**CHANGE 4: Remove Obsolete Emotion Cache Calls**
+```python
+# DELETE all of these:
+# person._onAddEmotion()
+# person._onRemoveEmotion()
+# emotion.setPersonA()
+# emotion.setPersonB()
+# emotion.people
+
+# REPLACE with simple scene add/remove:
+elif item.isEmotion:
+    self.scene.removeItem(item)  # Scene handles notification
+```
+
+**CHANGE 5: Update Emotion Undo Restoration**
+```python
+for entry in self._unmapped["emotions"]:
+    # Emotion references are via event, not direct person
+    if not entry["emotion"].scene():
+        self.scene.addItem(entry["emotion"])
+```
+
+**CHANGE 6: Decide Person Deletion Policy**
+
+**Option A: Keep current behavior (delete events/emotions with person)**
+```python
+if item.isPerson:
+    # Delete all events for this person
+    for event in list(self.scene.events()):
+        if event.person() == item:
+            self.scene.removeItem(event)
+
+    # Delete all emotions involving this person
+    for emotion in list(self.scene.emotions()):
+        if emotion.person() == item or emotion.target() == item:
+            self.scene.removeItem(emotion)
+```
+
+**Option B: Allow orphaned events (just remove person reference)**
+```python
+if item.isPerson:
+    # Orphan events - they remain in scene but lose person reference
+    for event in list(self.scene.events()):
+        if event.person() == item:
+            event.prop("person").set(None)  # Orphan it
+
+    # Delete only emotions where this person is the subject
+    # Keep emotions where they're just a target? Or orphan those too?
+```
+
+**Recommendation:** Use Option A for now (delete with person), add Option B as future enhancement if needed.
+
+#### Action Items:
+
+- [ ] **DECIDE:** Delete events/emotions when person deleted, or orphan them?
+- [ ] Update `mapEvent()` to store person/spouse/child/target/triangle IDs, not objects
+- [ ] Update `mapEmotion()` to store event ID and target ID, not people list
+- [ ] Remove all `_onAddEmotion()` and `_onRemoveEmotion()` calls
+- [ ] Remove all `emotion.setPersonA()` and `emotion.setPersonB()` calls
+- [ ] Fix event restoration order - events AFTER people in undo()
+- [ ] Fix emotion restoration order - emotions AFTER events in undo()
+- [ ] Update person deletion logic (lines 189-201) per chosen policy
+- [ ] Update emotion deletion logic (lines 237-241)
+- [ ] Add test: delete person with events, undo, verify events restored
+- [ ] Add test: delete emotion, undo, verify emotion + event restored
+- [ ] Add test: delete event, verify emotion stays but is orphaned (or deleted?)
 
 ---
 
-## PHASE 12: Edge Cases & Polish 🟢
+## PHASE 12: Clone/Remap Refactor 🟡
 
-### 12.1 Handle Orphaned Events
+**Overview:** The clone/remap system is used for copy/paste operations. Items are cloned with temporary `_cloned_*_id` attributes, then remapped to resolve references between clones.
+
+### 12.1 Add Event.clone() Method
+**File:** `pkdiagram/scene/event.py` (NEW)
+
+**Problem:** Event doesn't have a clone() method, but Person.clone() calls `event.clone(scene)`!
+
+**Current:** Event inherits default `Item.clone()` which copies properties, but doesn't handle:
+- Dynamic properties (symptom, anxiety, relationship, functioning)
+- Person references need remapping (person, spouse, child, targets, triangles)
+
+**New Code:**
+```python
+def Event.clone(self, scene):
+    """Clone this event for copy/paste."""
+    x = super().clone(scene)  # Copies all properties including person ID
+
+    # Clone dynamic properties
+    for prop in self.dynamicProperties:
+        newProp = x.addDynamicProperty(prop.attr)
+        newProp.set(prop.get(), notify=False)
+
+    # Store original IDs for remapping phase
+    x._cloned_person_id = self.prop("person").get()
+    x._cloned_spouse_id = self.prop("spouse").get()
+    x._cloned_child_id = self.prop("child").get()
+    x._cloned_target_ids = list(self.prop("relationshipTargets").get() or [])
+    x._cloned_triangle_ids = list(self.prop("relationshipTriangles").get() or [])
+
+    return x
+
+def Event.remap(self, map):
+    """Remap person references after cloning."""
+    # Remap person reference
+    if hasattr(self, "_cloned_person_id") and self._cloned_person_id:
+        person = map.find(self._cloned_person_id)
+        if person:
+            self.prop("person").set(person.id, notify=False)
+        delattr(self, "_cloned_person_id")
+
+    # Remap spouse
+    if hasattr(self, "_cloned_spouse_id") and self._cloned_spouse_id:
+        spouse = map.find(self._cloned_spouse_id)
+        if spouse:
+            self.prop("spouse").set(spouse.id, notify=False)
+        else:
+            self.prop("spouse").set(None, notify=False)
+        delattr(self, "_cloned_spouse_id")
+
+    # Remap child
+    if hasattr(self, "_cloned_child_id") and self._cloned_child_id:
+        child = map.find(self._cloned_child_id)
+        if child:
+            self.prop("child").set(child.id, notify=False)
+        else:
+            self.prop("child").set(None, notify=False)
+        delattr(self, "_cloned_child_id")
+
+    # Remap relationship targets
+    if hasattr(self, "_cloned_target_ids"):
+        new_target_ids = []
+        for id in self._cloned_target_ids:
+            target = map.find(id)
+            if target:
+                new_target_ids.append(target.id)
+        self.prop("relationshipTargets").set(new_target_ids, notify=False)
+        delattr(self, "_cloned_target_ids")
+
+    # Remap relationship triangles
+    if hasattr(self, "_cloned_triangle_ids"):
+        new_triangle_ids = []
+        for id in self._cloned_triangle_ids:
+            triangle = map.find(id)
+            if triangle:
+                new_triangle_ids.append(triangle.id)
+        self.prop("relationshipTriangles").set(new_triangle_ids, notify=False)
+        delattr(self, "_cloned_triangle_ids")
+
+    return True  # Success
+```
+
+**Action Items:**
+- [ ] Add `Event.clone()` method to handle dynamic properties
+- [ ] Add `Event.remap()` method to remap all person references (person, spouse, child, targets, triangles)
+- [ ] Store `_cloned_*_id` attributes for remap phase
+- [ ] Handle None values gracefully when references don't exist in clipboard
+
+---
+
+### 12.2 Update Emotion.clone() and Emotion.remap()
+**File:** `pkdiagram/scene/emotions.py:1358-1379`
+
+**Current Code:**
+```python
+def clone(self, scene):
+    raise NotImplementedError("Emotion.clone() is not implemented.")
+    x = super().clone(scene)
+    if self.isDyadic():
+        x._cloned_people_ids = []
+        for p in self.people:  # WRONG: emotion.people removed in refactor
+            x._cloned_people_ids.append(p.id)
+    else:
+        x._cloned_person_id = self.people[0].id  # WRONG
+    return x
+
+def remap(self, map):
+    raise NotImplementedError("Emotion.remap() is not implemented.")
+    if self.isDyadic():
+        self.people = [map.find(id) for id in self._cloned_people_ids]  # WRONG
+        # ...
+```
+
+**New Code:**
+```python
+def clone(self, scene):
+    """Clone this emotion for copy/paste."""
+    x = super().clone(scene)
+
+    # Store IDs for remapping (emotion references event + target)
+    x._cloned_event_id = self._event.id if self._event else None
+    x._cloned_target_id = self._target.id if self._target else None
+
+    return x
+
+def remap(self, map):
+    """Remap event and target references after cloning."""
+    # Remap event reference
+    if hasattr(self, "_cloned_event_id"):
+        event_id = self._cloned_event_id
+        delattr(self, "_cloned_event_id")
+
+        if event_id:
+            self._event = map.find(event_id)
+            if not self._event:
+                return False  # Can't clone emotion without event
+
+    # Remap target reference
+    if hasattr(self, "_cloned_target_id"):
+        target_id = self._cloned_target_id
+        delattr(self, "_cloned_target_id")
+
+        if target_id:
+            self._target = map.find(target_id)
+            if not self._target:
+                return False  # Can't clone emotion without target
+
+    # Update parent item (emotion is child of person in scene graph)
+    if not self.isDyadic() and self._event and self._event.person():
+        self.setParentItem(self._event.person())
+
+    return True
+```
+
+**Action Items:**
+- [ ] Remove `NotImplementedError` from Emotion.clone()
+- [ ] Remove `NotImplementedError` from Emotion.remap()
+- [ ] Remove references to obsolete `emotion.people` list
+- [ ] Store `_cloned_event_id` and `_cloned_target_id` for remapping
+- [ ] Remap using `map.find()`
+- [ ] Return False if event or target not found in clipboard (incomplete clone)
+
+---
+
+### 12.3 Update Marriage.clone() - Events Handling
+**File:** `pkdiagram/scene/marriage.py:241-246`
+
+**Current Code:**
+```python
+def clone(self, scene):
+    x = super().clone(scene)
+    x._cloned_people_ids = [p.id for p in self.people]
+    x._cloned_children_ids = [p.id for p in self.children]
+    x._cloned_custody_id = self.custody()
+    return x
+```
+
+**Issue:** Marriage doesn't clone its events, but Marriage has events after refactor!
+
+**Question:** Should Marriage.clone() also clone its events like Person does?
+
+**Option A: Clone marriage events**
+```python
+def clone(self, scene):
+    x = super().clone(scene)
+    x._cloned_people_ids = [p.id for p in self.people]
+    x._cloned_children_ids = [p.id for p in self.children]
+    x._cloned_custody_id = self.custody()
+
+    # Clone events
+    x._cloned_event_ids = []
+    for event in self.events():
+        newEvent = event.clone(scene)
+        newEvent._cloned_person_id = self.id  # Marriage is the "person"
+        x._cloned_event_ids.append(newEvent.id)
+
+    return x
+```
+
+**Option B: Don't clone marriage events (current behavior)**
+- Simpler, events stay with original marriage
+- User can copy events separately if needed
+
+**Action Items:**
+- [ ] **DECIDE:** Should cloning a marriage also clone its events?
+- [ ] If yes, update Marriage.clone() to clone events
+- [ ] If yes, update Marriage.remap() to remap cloned events
+
+---
+
+### 12.4 Test Clone/Paste Workflow
+**Files:** New tests needed
+
+**Test Scenarios:**
+1. **Copy/paste person with events**
+   - Create person with birth/death events
+   - Copy person
+   - Paste person
+   - Verify cloned person has cloned events
+   - Verify events point to cloned person, not original
+
+2. **Copy/paste person with emotions**
+   - Create person with relationship to another person
+   - Create emotion with event
+   - Copy first person only
+   - Paste - emotion should fail to remap (target not in clipboard)
+   - Copy BOTH people
+   - Paste - should paste emotion with remapped event and target
+
+3. **Copy/paste marriage (if events cloned)**
+   - Create marriage with married/divorced events
+   - Copy marriage
+   - Paste marriage
+   - Verify events remapped to cloned marriage
+
+4. **Copy/paste event with multiple targets**
+   - Create VariableShift event with relationship targets
+   - Create emotion
+   - Copy person
+   - Paste - verify targets that aren't in clipboard are cleared
+
+**Action Items:**
+- [ ] Write test: copy/paste person with events
+- [ ] Write test: copy/paste person with emotions (partial selection fails)
+- [ ] Write test: copy/paste multiple people with shared emotions (full selection works)
+- [ ] Write test: copy/paste marriage with events (if decided)
+- [ ] Write test: event targets remapping with partial clipboard
+- [ ] Test clipboard.py integration with new event/emotion clone methods
+
+---
+
+## PHASE 13: Edge Cases & Polish 🟢
+
+### 13.1 Handle Orphaned Events
 **Scenario:** Event.person is deleted
 
 **Current Behavior:** ?
@@ -1285,7 +1718,7 @@ def Event.validate(self):
         assert self.spouse(), f"{self.kind()} requires spouse (other parent)"
         assert self.child(), f"{self.kind()} requires child"
 
-    elif self.kind() == EventKind.VariableShift:
+    elif self.kind() == EventKind.Shift:
         if self.relationship():  # R variable
             assert self.relationshipTargets(), "Relationship shift requires targets"
         else:  # S, A, or F variable
