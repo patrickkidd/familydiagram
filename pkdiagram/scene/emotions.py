@@ -1214,6 +1214,8 @@ class Emotion(PathItem):
         Event could be none when drawing on the diagram.
         """
         super().__init__(kind: RelationshipKind, **kwargs)
+        assert event.kind() == EventKind.Shift
+
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.prop("itemPos").setLayered(False)

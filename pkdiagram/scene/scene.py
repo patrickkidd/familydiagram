@@ -402,7 +402,7 @@ class Scene(QGraphicsScene, Item):
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
-            if item.dateTime() and not self.isBatchAddingRemovingItems():
+            if not self.isBatchAddingRemovingItems():
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
@@ -710,7 +710,8 @@ class Scene(QGraphicsScene, Item):
                     item = Callout()
                 elif chunk["kind"] in Emotion.kindSlugs():
                     kind = Emotion.kindForKindSlug(chunk["kind"])
-                    item = Emotion(kind=kind)
+                    # Provide placeholder values - will be overwritten by item.read(chunk, byId)
+                    item = Emotion(kind=kind, target=None, event=None)
                 else:
                     log.warning(f"Retaining future item: {chunk}")
                     self.futureItems.append(chunk)
