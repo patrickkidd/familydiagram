@@ -34,14 +34,10 @@ def test_setParent(scene, undo):
 
 
 def __test___lt__():
-    parent = Person()
-    birth = Event(uniqueId=EventKind.Birth.value)
-    death = Event(uniqueId=EventKind.Death.value)
-    eventA = Event()
-
-    birth.setParent(parent)
-    death.setParent(parent)
-    eventA.setParent(parent)
+    person = Person()
+    birth = Event(kind=EventKind.Birth, person=person)
+    death = Event(kind=EventKind.Death, person=person)
+    eventA = Event(person=person)
 
     # test birth < eventA < death (blank dates)
     assert birth < eventA

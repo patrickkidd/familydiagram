@@ -41,7 +41,7 @@ def test_add_pairbond_and_children(scene, view):
     assert len(scene.people()) == 3
     # personB = scene.query1(name="Jane")
     assert len(personA.marriages[0].events()) == 1
-    assert personA.marriages[0].events()[0].uniqueId() == EventKind.Married.value
+    assert personA.marriages[0].events()[0].kind() == EventKind.Married
 
 
 @pytest.mark.skip(reason="Need to re-think this test")
@@ -260,7 +260,7 @@ def test_Married_undo_redo(scene, view):
     marriage = personA.marriages[0]
     assert marriage in personB.marriages
     assert len(marriage.events()) == 1
-    assert marriage.events()[0].uniqueId() == EventKind.Married.value
+    assert marriage.events()[0].kind() == EventKind.Married
     assert marriage.events()[0].description() == EventKind.Married.menuLabel()
 
     scene.undo()
@@ -275,5 +275,5 @@ def test_Married_undo_redo(scene, view):
     assert marriage in personA.marriages
     assert marriage in personB.marriages
     assert len(marriage.events()) == 1
-    assert marriage.events()[0].uniqueId() == EventKind.Married.value
+    assert marriage.events()[0].kind() == EventKind.Married
     assert marriage.events()[0].description() == EventKind.Married.menuLabel()

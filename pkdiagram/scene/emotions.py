@@ -23,8 +23,8 @@ from pkdiagram.pyqt import (
     QPainter,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, PathItem
-from pkdiagram.scene.commands import SetEmotionPerson
+from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind
+from pkdiagram.scene.commands import SetEmotionPerson, SetProperty
 
 
 DEBUG = False
@@ -1160,8 +1160,8 @@ def pathFor_Reciprocity(
 
 class Emotion(PathItem):
 
-    personAChanged = pyqtSignal(int)
-    personBChanged = pyqtSignal(int)
+    personChanged = pyqtSignal(int)
+    targetChanged = pyqtSignal(int)
 
     UNDER_PEN = QColor(100, 100, 100, 50)
 
@@ -1176,109 +1176,40 @@ class Emotion(PathItem):
             },
             {"attr": "parentName"},
             {"attr": "color", "default": _new_color()},
-            {"attr": "isDateRange", "type": bool, "default": False},
             {"attr": "notes"},
         ]
     )
 
-    ITEM_MAP = collections.OrderedDict(
-        [
-            (
-                util.ITEM_CONFLICT,
-                {"pathFunc": pathFor_Conflict, "label": "Conflict", "slug": "Conflict"},
-            ),
-            (
-                util.ITEM_DISTANCE,
-                {"pathFunc": pathFor_Distance, "label": "Distance", "slug": "Distance"},
-            ),
-            (
-                util.ITEM_RECIPROCITY,
-                {
-                    "pathFunc": pathFor_Reciprocity,
-                    "label": "Reciprocity",
-                    "slug": "Reciprocity",
-                },
-            ),
-            (
-                util.ITEM_PROJECTION,
-                {
-                    "pathFunc": pathFor_Projection,
-                    "label": "Projection",
-                    "slug": "Projection",
-                },
-            ),
-            (
-                util.ITEM_FUSION,
-                {"pathFunc": pathFor_Fusion, "label": "Fusion", "slug": "Fusion"},
-            ),
-            (
-                util.ITEM_CUTOFF,
-                {"pathFunc": pathFor_Cutoff, "label": "Cutoff", "slug": "Cutoff"},
-            ),
-            (
-                util.ITEM_DEFINED_SELF,
-                {
-                    "pathFunc": pathFor_DefinedSelf,
-                    "label": "Defined Self",
-                    "slug": "DefinedSelf",
-                },
-            ),
-            (
-                util.ITEM_AWAY,
-                {"pathFunc": pathFor_Away, "label": "Away", "slug": "Away"},
-            ),
-            (
-                util.ITEM_TOWARD,
-                {"pathFunc": pathFor_Toward, "label": "Toward", "slug": "Toward"},
-            ),
-            (
-                util.ITEM_INSIDE,
-                {"pathFunc": pathFor_Inside, "label": "Inside", "slug": "Inside"},
-            ),
-            (
-                util.ITEM_OUTSIDE,
-                {"pathFunc": pathFor_Outside, "label": "Outside", "slug": "Outside"},
-            ),
-        ]
-    )
+    KIND_MAP = {
+        RelationshipKind.Conflict: pathFor_Conflict,
+        RelationshipKind.Distance: pathFor_Distance,
+        RelationshipKind.Underfunctioning: pathFor_Reciprocity,
+        RelationshipKind.Overfunctioning: pathFor_Reciprocity,
+        RelationshipKind.Projection: pathFor_Projection,
+        RelationshipKind.Fusion: pathFor_Fusion,
+        RelationshipKind.Cutoff: pathFor_Cutoff,
+        RelationshipKind.DefinedSelf: pathFor_DefinedSelf,
+        RelationshipKind.Away: pathFor_Away,
+        RelationshipKind.Toward: pathFor_Toward,
+        RelationshipKind.Inside: pathFor_Inside,
+        RelationshipKind.Outside: pathFor_Outside,
+    }
 
     @staticmethod
-    def kinds():
-        return list(Emotion.ITEM_MAP.keys())
-
-    @staticmethod
-    def kindSlugs():
-        return [entry["slug"] for kind, entry in Emotion.ITEM_MAP.items()]
-
-    @staticmethod
-    def kindLabels():
-        return [entry["label"] for kind, entry in Emotion.ITEM_MAP.items()]
-
-    @staticmethod
-    def kindForKindSlug(slug):
-        for kind, entry in Emotion.ITEM_MAP.items():
-            if slug == entry["slug"]:
-                return kind
-
-    @staticmethod
-    def kindSlugForKind(kind):
-        return Emotion.ITEM_MAP[kind]["slug"]
-
-    @staticmethod
-    def kindLabelForKind(kind) -> str:
-        return Emotion.ITEM_MAP[kind]["label"]
-
-    @staticmethod
-    def pathFor(kind, *args, **kwargs):
-        if not kind in Emotion.ITEM_MAP:
-            return QPainterPath()
-        entry = Emotion.ITEM_MAP.get(kind)
-        return entry["pathFunc"](*args, **kwargs)
+    def pathFor(kind, *args, **kwargs) -> QPainterPath:
+        pathFunc = Emotion.KIND_MAP[kind]
+        return pathFunc(*args, **kwargs)
 
     ITEM_Z = util.EMOTION_Z
 
-    def __init__(self, personA=None, personB=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        target: "Person",
+        event: Event | None = None,
+        kind: RelationshipKind | None = None,
+        **kwargs,
+    ):
+        super().__init__(kind=kind.value if kind else None, **kwargs)
         if "kind" not in kwargs:
             raise TypeError(f"`kind` kwarg is required for Emotion()")
         self.isInit = False
@@ -1288,34 +1219,18 @@ class Emotion(PathItem):
         self.isCreating = (
             False  # don't hide if not initially part of selected scenetags
         )
-        self._aliasNotes = None
-        self._aliasParentName = None
-        self._onShowAliases = False
-        self.people = [personA, personB]
-        self.startEvent = Event(self, uniqueId="emotionStartEvent")
-        self.endEvent = Event(self, uniqueId="emotionEndEvent")
+        self._event: Event | None = event
+        self.setEvent(event)
+        self._target: "Person | None" = target
         # self.hoverTimer = QTimer(self)
         # self.hoverTimer.setInterval(500)
         # self.hoverTimer.timeout.connect(self.onHoverTimer)
         self.fannedBox = None
         self.isLatest = True
         self.onPeopleChanged()
-        if self.people[0]:
-            self.people[0]._onAddEmotion(self)
-        if self.people[1]:
-            self.people[1]._onAddEmotion(self)
-        if not self.isDyadic() and personA:
-            self.setParentItem(personA)
+        if not self.isDyadic() and event.person():
+            self.setParentItem(event.person())
         self.isInit = True
-        if "startDateTime" in kwargs:
-            self.startEvent.setDateTime(kwargs["startDateTime"])
-            self.startEvent.updateDescription()
-        if "endDateTime" in kwargs:
-            self.endEvent.setDateTime(kwargs["endDateTime"])
-            self.endEvent.updateDescription()
-        if self.prop("loggedDateTime").isset():
-            self.startEvent.setLoggedDateTime(self.loggedDateTime())
-            self.endEvent.setLoggedDateTime(self.loggedDateTime())
 
     def __repr__(self, exclude=[]):
         """Forked from Item.__repr___()."""
@@ -1352,174 +1267,97 @@ class Emotion(PathItem):
             else:
                 return self.id < other.id
 
-    def events(self):
-        return [self.startEvent, self.endEvent]
+    def event(self) -> Event:
+        return self._event
 
-    def startDateTime(self):
-        """Backwards compat"""
-        return self.startEvent.dateTime()
+    def intensity(self) -> int:
+        if self._event:
+            return self._event.relationshipIntensity()
+        else:
+            self.intensity()
 
-    def endDateTime(self):
-        """Backwards compat"""
-        return self.endEvent.dateTime()
-
-    def onEventProperty(self, prop):
-        if prop.name() == "dateTime":
-            if not self.prop("isDateRange").get() and prop.item == self.startEvent:
-                self.endEvent.setDateTime(prop.get())
-            self.startEvent.updateDescription()
-            self.endEvent.updateDescription()
-        elif prop.name() == "notes":
-            self.setNotes(prop.get())
+    def setEvent(self, event: Event):
+        assert event.kind() == EventKind.VariableShift
+        assert event.relationship() == self.kind()
+        self._event = event
 
     def isDyadic(self):
-        return self.kind() != util.ITEM_CUTOFF
+        return self.kind() != RelationshipKind.Cutoff
 
     def canFanOut(self):
-        return self.kind() not in (util.ITEM_CUTOFF, util.ITEM_RECIPROCITY)
-
-    def shouldShowAliases(self):
-        scene = self.scene()
-        return scene and scene.shouldShowAliases()
-
-    def isSingularDate(self):
-        """Dates are the same."""
-        return (
-            self.startEvent.dateTime()
-            and self.endEvent.dateTime()
-            and self.startEvent.dateTime() == self.endEvent.dateTime()
+        return self.kind() not in (
+            RelationshipKind.Cutoff,
+            RelationshipKind.Underfunctioning,
+            RelationshipKind.Overfunctioning,
         )
 
-    def kindLabel(self):
-        return self.kindLabelForKind(self.kind())
-
-    @util.fblocked
-    def updateNotes(self):
-        """Force re-write of aliases."""
-        prop = self.prop("notes")
-        notes = prop.get()
-        if notes is not None:
-            self._aliasNotes = self.scene().anonymize(notes)
-        else:
-            self._aliasNotes = None
-
-    def notes(self):
-        if self.shouldShowAliases():
-            if self._aliasNotes is None and self.prop("notes").get():  # first time
-                self.updateNotes()
-            return self._aliasNotes
-        else:
-            return self.prop("notes").get()
-
     def notesIconPos(self):
-        if self.kind() in (
-            util.ITEM_CONFLICT,
-            util.ITEM_DISTANCE,
-            util.ITEM_RECIPROCITY,
-            util.ITEM_PROJECTION,
-            util.ITEM_FUSION,
-            util.ITEM_AWAY,
-            util.ITEM_TOWARD,
-        ):
+        """
+        Still makes sense to show note icon when start event has the notes?
+        """
+        if self.isDyadic() and self.kind() != RelationshipKind.Reciprocity:
             return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
         else:
             return super().notesIconPos()
 
-    def parentName(self):
-        if self.shouldShowAliases():
-            if (
-                self._aliasParentName is None and self.prop("parentName").get()
-            ):  # first time
-                self.updateParentName()
-            return self._aliasParentName
-        else:
-            return self.prop("parentName").get()
+    # def parentName(self):
+    #     if self.shouldShowAliases():
+    #         if (
+    #             self._aliasParentName is None and self.prop("parentName").get()
+    #         ):  # first time
+    #             self.updateParentName()
+    #         return self._aliasParentName
+    #     else:
+    #         return self.prop("parentName").get()
 
-    def updateParentName(self):
-        prop = self.prop("parentName")
-        newParentName = None
-        if self.isDyadic():
-            personAName = (
-                (self.personA() and self.personA().name())
-                and self.personA().name()
-                or "Unnamed"
-            )
-            personBName = (
-                (self.personB() and self.personB().name())
-                and self.personB().name()
-                or "Unnamed"
-            )
-            if (personAName, personBName) != (None, None):
-                if self.kind() == util.ITEM_TOWARD:
-                    newParentName = "%s to %s" % (personAName, personBName)
-                elif self.kind() == util.ITEM_AWAY:
-                    newParentName = "%s from %s" % (personAName, personBName)
-                else:
-                    newParentName = "%s & %s" % (personAName, personBName)
-        else:
-            if self.personA() is not None:
-                newParentName = self.personA().name()
-        if newParentName != prop.get():
-            prop.set(newParentName, notify=False)
-        if prop.get() is not None and self.scene():
-            self._aliasParentName = self.scene().anonymize(prop.get())
-        else:
-            self._aliasParentName = None
-        self.startEvent.updateParentName()
-        self.endEvent.updateParentName()
-
-    def onShowAliases(self):
-        self._onShowAliases = True
-        prop = self.prop("notes")
-        if prop.get() != self._aliasNotes:
-            self.onProperty(prop)
-        prop = self.prop("parentName")
-        if prop.get() != self._aliasParentName:
-            self.onProperty(prop)
-        self._onShowAliases = False
+    # def updateParentName(self):
+    #     prop = self.prop("parentName")
+    #     newParentName = None
+    #     if self.isDyadic():
+    #         personAName = (
+    #             (self.person() and self.person().name())
+    #             and self.person().name()
+    #             or "Unnamed"
+    #         )
+    #         personBName = (
+    #             (self.target() and self.target().name())
+    #             and self.target().name()
+    #             or "Unnamed"
+    #         )
+    #         if (personAName, personBName) != (None, None):
+    #             if self.kind() == util.ITEM_TOWARD:
+    #                 newParentName = "%s to %s" % (personAName, personBName)
+    #             elif self.kind() == util.ITEM_AWAY:
+    #                 newParentName = "%s from %s" % (personAName, personBName)
+    #             else:
+    #                 newParentName = "%s & %s" % (personAName, personBName)
+    #     else:
+    #         if self.person() is not None:
+    #             newParentName = self.person().name()
+    #     if newParentName != prop.get():
+    #         prop.set(newParentName, notify=False)
+    #     if prop.get() is not None and self.scene():
+    #         self._aliasParentName = self.scene().anonymize(prop.get())
+    #     else:
+    #         self._aliasParentName = None
 
     ## Data
 
     def write(self, chunk):
         super().write(chunk)
-        chunk["kind"] = Emotion.kindSlugForKind(self.kind())
-        chunk["startEvent"] = {}
-        self.startEvent.write(chunk["startEvent"])
-        chunk["endEvent"] = {}
-        self.endEvent.write(chunk["endEvent"])
-        if self.people[0]:  # when adding from dialog, dummy write
-            chunk["person_a"] = self.people[0].id
-        else:
-            chunk["person_a"] = None
-        if self.people[1]:
-            chunk["person_b"] = self.people[1].id
-        else:
-            chunk["person_b"] = None
+        chunk["target"] = self._target.id if self._target else None
+        chunk["event"] = self._event.id if self._event else None
 
     def read(self, chunk, byId):
-        chunk["kind"] = Emotion.kindForKindSlug(chunk["kind"])
         super().read(chunk, byId)
-        self.startEvent.read(chunk.get("startEvent", {}), byId)
-        self.endEvent.read(chunk.get("endEvent", {}), byId)
-        self.people = [
-            byId(chunk.get("person_a", None)),
-            byId(chunk.get("person_b", None)),
-        ]
-        if self.people[0]:  # when adding from dialog, duymmy write
-            self.people[0]._onAddEmotion(self)
-        if self.people[1]:
-            self.people[1]._onAddEmotion(self)
-        self.startEvent.updateParentName()
-        self.startEvent.updateDescription()
-        self.endEvent.updateParentName()
-        self.endEvent.updateDescription()
+        self._target = byId(chunk.get("target", None))
+        self._event = byId(chunk.get("event", None))
 
     ## Cloning
 
     def clone(self, scene):
+        raise NotImplementedError("Emotion.clone() is not implemented.")
         x = super().clone(scene)
-        x.startEvent = self.startEvent.clone(scene)
-        x.endEvent = self.endEvent.clone(scene)
         if self.isDyadic():
             x._cloned_people_ids = []
             for p in self.people:
@@ -1529,15 +1367,14 @@ class Emotion(PathItem):
         return x
 
     def remap(self, map):
-        self.startEvent.setParent(self)
-        self.endEvent.setParent(self)
+        raise NotImplementedError("Emotion.remap() is not implemented.")
         if self.isDyadic():
             self.people = [map.find(id) for id in self._cloned_people_ids]
             delattr(self, "_cloned_people_ids")
             return None not in self.people
         else:
             self.people = [map.find(self._cloned_person_id), None]
-            self.setParentItem(self.personA())
+            self.setParentItem(self.person())
             delattr(self, "_cloned_person_id")
             return self.people[0] is not None
 
@@ -1601,10 +1438,10 @@ class Emotion(PathItem):
         super().updatePen()
         self.setBrush(Qt.transparent)
         #
-        if self.personA() and self.personB():
-            size = util.sizeForPeople(self.personA(), self.personB())
-        elif self.personA():
-            size = self.personA().size()
+        if self.person() and self.target():
+            size = util.sizeForPeople(self.person(), self.target())
+        elif self.person():
+            size = self.person().size()
         #
         pen = QPen(util.PEN)
         # if self.isSelected():
@@ -1622,19 +1459,22 @@ class Emotion(PathItem):
     def updateGeometry(self):
         """TODO: Cache path when person positions haven't changed at all during fanning?"""
         super().updateGeometry()
-        if self.isDyadic() and None in [self.personA(), self.personB()]:
+        if self.isDyadic() and None in [self.person(), self.target()]:
             pass
-        elif self.personA() is None:
+        elif self.person() is None:
             pass
         else:
-            size = util.sizeForPeople(*self.people)
+            people = (
+                (self.person(), self.target()) if self.isDyadic() else (self.person(),)
+            )
+            size = util.sizeForPeople(*people)
             scale = util.scaleForPersonSize(size)
             if self.isDyadic():
                 self.setScale(scale)
             path = self.pathFor(
                 self.kind(),
-                personA=self.personA(),
-                personB=self.personB(),
+                person=self.person(),
+                target=self.target(),
                 intensity=self.intensity(),
             )
             if self.isDyadic():  # cutoff stays @ (0, 0)
@@ -1647,7 +1487,7 @@ class Emotion(PathItem):
             self.setPath(path)
         self.updateDetails()
         self.updatePen()
-        if self.kind() == util.ITEM_CUTOFF:
+        if self.kind() == RelationshipKind.Cutoff:
             self.setPos(0, 0)
 
     def onUpdateAll(self):
@@ -1657,19 +1497,12 @@ class Emotion(PathItem):
             peer.updatePen()
 
     def itemChange(self, change, variant):
-        if change == QGraphicsItem.ItemSceneChange:
-            if self.scene():
-                self.scene().removeItem(self.startEvent)
-                self.scene().removeItem(self.endEvent)
-        elif change == QGraphicsItem.ItemSceneHasChanged:
+        if change == QGraphicsItem.ItemSceneHasChanged:
             if self.scene() and not self.isCreating:
-                if self.isDyadic() and self.personA() and self.personB():
+                if self.isDyadic() and self.person() and self.target():
                     self.onCurrentDateTime()
-                elif not self.isDyadic() and self.personA():
+                elif not self.isDyadic() and self.person():
                     self.onCurrentDateTime()
-            if self.scene():
-                self.scene().addItem(self.startEvent)
-                self.scene().addItem(self.endEvent)
             if not self.scene() or not self.scene().isBatchAddingRemovingItems():
                 self.updateFannedBox()
         elif change == QGraphicsItem.ItemSelectedChange:
@@ -1690,19 +1523,6 @@ class Emotion(PathItem):
         if self.scene():  # defered b/c it's called on the scene
             self.updateFannedBox()
 
-    def peopleNames(self):
-        ret = ""
-        if not None in self.people:
-            name1 = self.people[0].name()
-            name2 = self.people[1].name()
-            if name1 and name2:
-                ret += "%s & %s" % (name1, name2)
-            elif name1:
-                ret += "%s" % name1
-            elif name2:
-                ret += "%s" % name2
-        return ret
-
     def peers(self):
         """Return other visible emotions that have the same people.
         Returns empty list when self is not shown.
@@ -1710,11 +1530,11 @@ class Emotion(PathItem):
         ret = set()
         if self.scene() is None:
             return ret
-        if self.personA() is None:
+        if self.person() is None:
             return ret
         if not self.shouldShowRightNow():
             return ret
-        for emotion in self.personA().emotions():
+        for emotion in self.person()._emotions:
             _canFanOut = emotion.canFanOut()
             _notSelf = emotion is not self
             _samePeople = len(set(emotion.people) & set(self.people)) == len(
@@ -1814,83 +1634,25 @@ class Emotion(PathItem):
 
     ## Attributes
 
-    def itemName(self):
-        ret = self.__class__.__name__
-        if self.personA() and self.personB():
-            ret = ret + " (%s & %s)" % (
-                self.personA().itemName(),
-                self.personB().itemName(),
-            )
-        elif self.personA():
-            ret = ret + " (%s)" % (self.personA().itemName())
-        return ret
-
     def onProperty(self, prop):
-        if self.id is not None:  # don't notify if not added to scene yet
-            # these optimize timelineviews for person props
-            if self.personA():
-                self.personA().onEmotionProperty(prop)
-            if self.personB():
-                self.personB().onEmotionProperty(prop)
         # send it out to the scene for the timelineview in case props
-        if prop.name() == "notes":
-            self.startEvent.setNotes(prop.get())
-            if not self._onShowAliases:
-                self.updateNotes()
-        elif prop.name() == "isDateRange":
-            self.endEvent.setDateTime(self.startEvent.dateTime())
         super().onProperty(prop)
         if prop.name() in ("tags", "color"):
             self.updateAll()
 
-    def personA(self) -> "Person":
-        return self.people[0]
+    def kind(self) -> RelationshipKind:
+        return RelationshipKind(self.prop("kind").get())
 
-    def personB(self) -> "Person":
-        return self.people[1]
-
-    def swapPeople(self):
-        self.people = [self.people[1], self.people[0]]
-        self.personAChanged.emit(self.people[0].id)
-        self.personBChanged.emit(self.people[0].id)
-        self.onPeopleChanged()
-
-    def _setPersonA(self, person):
-        if self.people[0]:
-            self.people[0]._onRemoveEmotion(self)
-        self.people[0] = person
-        if not self.isDyadic():
-            self.setParentItem(person)
-        if self.people[0]:
-            self.people[0]._onAddEmotion(self)
-            self.personAChanged.emit(person.id)
-        else:
-            self.personAChanged.emit(None)
-        self.onPeopleChanged()
-
-    def setPersonA(self, person, undo=False):
-        if self.personA() == person:
+    def setKind(self, x: RelationshipKind, undo=False):
+        if self.kind() == x:
             return
         if undo:
-            self.scene().push(SetEmotionPerson(self, personA=person))
+            self.scene().push(SetProperty(prop, x))
         else:
-            self._setPersonA(person)
+            self.prop("kind").set(x.value)
 
-    def _setPersonB(self, person):
-        if self.people[1]:
-            self.people[1]._onRemoveEmotion(self)
-        self.people[1] = person
-        if self.people[1]:
-            self.people[1]._onAddEmotion(self)
-            self.personBChanged.emit(person.id)
-        else:
-            self.personBChanged.emit(None)
-        self.onPeopleChanged()
+    def person(self) -> "Person":
+        return self._event.person()
 
-    def setPersonB(self, person, undo=False):
-        if self.personB() == person:
-            return
-        if undo:
-            self.scene().push(SetEmotionPerson(self, personB=person))
-        else:
-            self._setPersonB(person)
+    def target(self) -> "Person":
+        return self._target

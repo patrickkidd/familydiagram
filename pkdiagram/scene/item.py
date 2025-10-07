@@ -242,11 +242,6 @@ class Item:
                 was = prop.get()
                 prop.onActiveLayersChanged()
                 now = prop.get()
-                itemName = (
-                    prop.item.itemName()
-                    and prop.item.itemName()
-                    or prop.item.__class__.__name__
-                )
                 if now != was:
                     changed.append(prop)
         for prop in changed:

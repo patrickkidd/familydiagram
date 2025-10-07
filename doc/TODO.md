@@ -13,11 +13,25 @@ Edit events with EventForm
 - Storing EventKind on Event.uniqueId or new Event.kind?
   - Going to end up replacing `uniqueId` with `kind` anyway?
   - But still duplicates data?
-- compat: Emotion.startEvent['emotionStartEvent] -> Emotion.startEvent['variable-shift']
-- compat CustomIndividual -> 'variable-shift'
-Test
-- editing emotion end event (might need to finally flatted emotion events)
-- editing emotion start + end event
+- Update person geometry/details when birth/adopted/death events change
+- delete commands.SetEmotionPerson
+- Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
+- ITEM_MODE -> EventKind | RelationshipKind
+  - Emotion
+- Remove Emotion.notes and in EmotionProperties
+- Scene data:
+  - data["items"] -> data["events"]
+  - data["items"] -> data["people"]
+- compat
+  - CustomIndividual -> 'variable-shift' (kind can never be `None`)
+  - Marriage.events, Person.Events, Emotion.events -> Scene.events
+  - Emotion.startEvent['emotionStartEvent'] -> Emotion.startEvent['variable-shift']
+  - Emotion.isDateRange (isSingularDate()) -> Event.endEvent
+  - Emotion.notes -> Emotion.event().notes
+  - Emotion.kind -> RelationshipKind
+  - Emotion.person_a -> Event.person
+  - Emotion.person_b -> Emotion.target
+  - Emotion.intensity -> Event.intensity
 
 
 

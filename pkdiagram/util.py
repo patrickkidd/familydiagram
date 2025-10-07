@@ -266,6 +266,20 @@ ITEM_RECIPROCITY = 15
 ITEM_INSIDE = 16
 ITEM_OUTSIDE = 17
 
+
+def emotionItemModes() -> list[int]:
+    return [
+        ITEM_PROJECTION,
+        ITEM_CONFLICT,
+        ITEM_CUTOFF,
+        ITEM_DISTANCE,
+        ITEM_TOWARD,
+        ITEM_AWAY,
+        ITEM_DEFINED_SELF,
+        ITEM_RECIPROCITY,
+    ]
+
+
 BORDER_RADIUS = 5
 #
 DEFAULT_USE_TIME = QDateTime(

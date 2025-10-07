@@ -116,7 +116,7 @@ def test_divorced_disabled_when_divorce_events(scene, noEvents, mp):
 
     event = Event(
         parent=marriage,
-        uniqueId=EventKind.Divorced.value,
+        kind=EventKind.Divorced,
         dateTime=util.Date(2000, 1, 1),
     )
     scene.addItem(event)
@@ -129,7 +129,7 @@ def test_married_becomes_enabled_after_delete_married_event(scene, noEvents, mp)
     marriage = noEvents
     married = Event(
         parent=marriage,
-        uniqueId=EventKind.Married.value,
+        kind=EventKind.Married,
         dateTime=util.Date(2000, 1, 1),
     )
     scene.addItem(married)

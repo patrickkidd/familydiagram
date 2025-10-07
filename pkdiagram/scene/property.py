@@ -148,7 +148,9 @@ class Property:
             if self.type is type(None):
                 y = None
             else:
+                print(f">>> {self.type}")
                 y = self.type(x)
+                print(f"<<< {self.type}")
         if self.strip and y is not None:
             y = y.strip()
         currentValue = self.get()

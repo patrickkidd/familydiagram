@@ -15,10 +15,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             {"attr": "personBId", "type": int, "default": -1},
             {"attr": "startDateTime", "type": QDateTime},
             {"attr": "endDateTime", "type": QDateTime},
-            {"attr": "startDateUnsure", "type": bool},
-            {"attr": "endDateUnsure", "type": bool},
-            {"attr": "startEventId", "type": int},
-            {"attr": "endEventId", "type": int},
+            {"attr": "itemName"},
             {"attr": "dyadic", "type": bool},
         ],
     )
@@ -49,13 +46,9 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         elif attr == "startDateTime":
             x = util.sameOf(self._items, lambda item: item.startEvent.dateTime())
             ret = self.getterConvertTo(attr, x)
-        elif attr == "startDateUnsure":
-            ret = util.sameOf(self._items, lambda item: item.startEvent.unsure())
         elif attr == "endDateTime":
             x = util.sameOf(self._items, lambda item: item.endEvent.dateTime())
             ret = self.getterConvertTo(attr, x)
-        elif attr == "endDateUnsure":
-            ret = util.sameOf(self._items, lambda item: item.endEvent.unsure())
         elif attr == "startEventId":
             ret = util.sameOf(self._items, lambda item: item.startEvent.id)
         elif attr == "endEventId":
@@ -68,6 +61,8 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             ret = util.sameOf(
                 self._items, lambda item: item.personB() and item.personB().id or -1
             )
+        elif attr == "parentName":
+            ret = util.sameOf(self._items, lambda item: item.kind().name)
         elif attr == "dyadic":
             ret = util.sameOf(self._items, lambda item: item.isDyadic())
         if ret is None:
@@ -85,24 +80,6 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         elif attr == "intensityIndex":
             intensity = util.emotionIntensityFromIndex(value)
             self.set("intensity", intensity)
-        elif attr == "startDateTime":
-            x = self.setterConvertTo(attr, value)
-            with self._scene.macro("Set emotion start datetime"):
-                for item in self._items:
-                    item.startEvent.setDateTime(x, undo=True)
-        elif attr == "startDateUnsure":
-            with self._scene.macro("Set emotion start unsure"):
-                for item in self._items:
-                    item.startEvent.setUnsure(value, undo=True)
-        elif attr == "endDateTime":
-            x = self.setterConvertTo(attr, value)
-            with self._scene.macro("Set emotion end datetime"):
-                for item in self._items:
-                    item.endEvent.setDateTime(x, undo=True)
-        elif attr == "endDateUnsure":
-            with self._scene.macro("Set emotion end unsure"):
-                for item in self._items:
-                    item.endEvent.setUnsure(value, undo=True)
         elif attr == "personAId" and self._scene:
             person = self._scene.find(id=value)
             with self._scene.macro("Set emotion person A"):
@@ -120,23 +97,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
     def reset(self, attr):
         if attr == "intensityIndex":
             super().reset("intensity")
-        elif attr == "startDateTime":
-            with self._scene.macro("Reset emotion start datetime"):
-                for item in self._items:
-                    item.startEvent.prop("dateTime").reset(undo=True)
-        elif attr == "endDateTime":
-            with self._scene.macro("Reset emotion end datetime"):
-                for item in self._items:
-                    item.endEvent.prop("dateTime").reset(undo=True)
         super().reset(attr)
-
-    @pyqtProperty(list, constant=True)
-    def kindsMap(self):
-        ret = [
-            {"kind": kind, "label": entry["label"], "slug": entry["slug"]}
-            for kind, entry in Emotion.ITEM_MAP.items()
-        ]
-        return ret
 
 
 qmlRegisterType(EmotionPropertiesModel, "PK.Models", 1, 0, "EmotionPropertiesModel")

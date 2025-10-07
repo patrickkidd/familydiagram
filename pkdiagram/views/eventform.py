@@ -159,33 +159,32 @@ class EventForm(QmlDrawer):
         self._events = events
         self._tagsModel.items = events
 
-        commonParent = util.sameOf(events, lambda e: e.parent)
-        if all(x.parent.isEmotion for x in events):
-            itemMode = util.sameOf(events, lambda e: e.parent.kind())
-            kind = EventKind.VariableShift
-            relationship = RelationshipKind.fromItemMode(itemMode) if itemMode else None
-        elif all(x.parent.isMarriage for x in events):
-            uniqueId = util.sameOf(events, lambda e: e.uniqueId())
-            kind = EventKind.fromUniqueId(uniqueId) if uniqueId else None
-            relationship = None
-        elif all(x.parent.isPerson for x in events):
-            uniqueId = util.sameOf(events, lambda e: e.uniqueId())
-            kind = EventKind.fromUniqueId(uniqueId) if uniqueId else None
-            if kind is EventKind.VariableShift:
-                relationship = util.sameOf(events, lambda e: e.relationship())
-            else:
-                relationship = None
-        else:
-            kind = None
-            relationship = None
+        person = util.sameOf(events, lambda e: e.person)
+        if person:
+            self.item.property("personPicker").setExistingPersonId(person.id)
 
+        kind: EventKind | None = util.sameOf(events, lambda e: e.kind())
         if kind:
             self.item.property("kindBox").setCurrentValue(kind.value)
+
+            if kind.isPairBond():
+                spouse = util.sameOf(events, lambda x: x.spouse())
+                if spouse:
+                    self.item.property("spousePicker").setExistingPersonId(spouse.id)
+            elif kind.isOffspring():
+                child = util.sameOf(events, lambda x: x.child())
+                if child:
+                    self.item.property("childPicker").setExistingPersonId(child.id)
 
         # Set dates only if all events agree
         startDateTime = util.sameOf(events, lambda e: e.dateTime())
         if startDateTime:
             self.item.setProperty("startDateTime", startDateTime)
+
+        endDateTime = util.sameOf(events, lambda e: e.endDateTime())
+        if endDateTime:
+            self.item.property("isDateRangeBox").setProperty("checked", True)
+            self.item.setProperty("endDateTime", endDateTime)
 
         # Set text fields only if all events agree
         description = util.sameOf(events, lambda e: e.description())
@@ -196,10 +195,6 @@ class EventForm(QmlDrawer):
         if location:
             self.item.setProperty("location", location)
 
-        notes = util.sameOf(events, lambda e: e.notes())
-        if notes:
-            self.item.setProperty("notes", notes)
-
         # Set variable fields only if all events agree
         symptom = util.sameOf(events, lambda e: e.symptom())
         if symptom is not None:
@@ -209,64 +204,35 @@ class EventForm(QmlDrawer):
         if anxiety is not None:
             self.item.setProperty("anxiety", anxiety)
 
-        if relationship:
+        relationship = util.sameOf(events, lambda e: e.relationship())
+        if relationship is not None:
             self.item.setProperty("relationship", relationship.value)
+            if relationship in (
+                RelationshipKind.Inside,
+                RelationshipKind.Outside,
+            ):
+                triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
+                if triangles:
+                    self.item.property("trianglesPicker").setExistingPeopleIds(
+                        [x.id for x in triangles]
+                    )
+            elif relationship in (
+                RelationshipKind.Inside,
+                RelationshipKind.Outside,
+            ):
+                triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
+                if triangles:
+                    self.item.property("trianglesPicker").setExistingPeopleIds(
+                        [x.id for x in triangles]
+                    )
 
         functioning = util.sameOf(events, lambda e: e.functioning())
         if functioning is not None:
             self.item.setProperty("functioning", functioning)
 
-        # Initialize person/spouse/child pickers if all events share same parent
-        if commonParent and kind:
-            if commonParent.isPerson:
-                self.item.property("personPicker").setExistingPersonId(commonParent.id)
-                if kind.isPairBond():
-                    spouse = util.sameOf(events, lambda x: x.spouse())
-                    if spouse:
-                        self.item.property("spousePicker").setExistingPersonId(
-                            spouse.id
-                        )
-                elif kind.isOffspring():
-                    child = util.sameOf(events, lambda x: x.child())
-                    if child:
-                        self.item.property("childPicker").setExistingPersonId(child.id)
-                elif kind == EventKind.VariableShift and relationship in (
-                    RelationshipKind.Inside,
-                    RelationshipKind.Outside,
-                ):
-                    triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
-                    if triangles:
-                        self.item.property("trianglesPicker").setExistingPeopleIds(
-                            [x.id for x in triangles]
-                        )
-
-            # Legacy
-            elif commonParent.isMarriage:
-                self.item.property("personPicker").setExistingPersonId(
-                    commonParent.personA().id
-                )
-                self.item.property("spousePicker").setExistingPersonId(
-                    commonParent.personB().id
-                )
-            elif commonParent.isEmotion:
-                self.item.property("personPicker").setExistingPersonId(
-                    commonParent.personA().id
-                )
-                self.item.property("targetsPicker").setExistingPeopleIds(
-                    [commonParent.personB().id]
-                )
-                isDateRange = bool(commonParent.endEvent.dateTime())
-                if isDateRange:
-                    self.item.property("isDateRangeBox").setProperty(
-                        "checked", isDateRange
-                    )
-                    self.item.setProperty(
-                        "endDateTime", commonParent.endEvent.dateTime()
-                    )
-                if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
-                    self.item.property("trianglesPicker").setExistingPeopleIds(
-                        [x.id for x in commonParent.startEvent.relationshipTriangles()]
-                    )
+        notes = util.sameOf(events, lambda e: e.notes())
+        if notes:
+            self.item.setProperty("notes", notes)
 
         # Initialize relationship targets if all events agree
         targets = util.sameOf(
@@ -374,13 +340,7 @@ class EventForm(QmlDrawer):
 
         elif (
             kind
-            and kind
-            in (
-                EventKind.Bonded,
-                EventKind.Married,
-                EventKind.Separated,
-                EventKind.Divorced,
-            )
+            and kind.isPairBond()
             and not self.item.property("spousePicker").property("isSubmitted")
         ):
             invalidLabel = "spouseLabel"
@@ -475,6 +435,7 @@ class EventForm(QmlDrawer):
         _log.debug(f"EventForm._save()")
 
         # Who
+
         personEntry = self.personEntry()
         spouseEntry = self.spouseEntry()
         childEntry = self.childEntry()
@@ -487,9 +448,22 @@ class EventForm(QmlDrawer):
         description = self.item.property("description")
         symptom = self.item.property("symptom")
         anxiety = self.item.property("anxiety")
-        relationship: RelationshipKind | None = None
         if self.item.property("relationship"):
             relationship = RelationshipKind(self.item.property("relationship"))
+
+            targetsEntries = self.targetsEntries()
+            if not targetsEntries:
+                targetsEntries = []
+
+            trianglesEntries = self.trianglesEntries()
+            if not trianglesEntries:
+                trianglesEntries = []
+
+        else:
+            relationship: RelationshipKind | None = None
+            targetsEntries = []
+            trianglesEntries = []
+
         functioning = self.item.property("functioning")
 
         # When
@@ -497,6 +471,7 @@ class EventForm(QmlDrawer):
         startDateTime = self.item.property("startDateTime")
         endDateTime = self.item.property("endDateTime")
         isDateRange = self.item.property("isDateRange")
+        isDateRangeDirty = self.item.property("isDateRangeDirty")
 
         # Where
 
@@ -529,14 +504,6 @@ class EventForm(QmlDrawer):
                 gender=entry["gender"],
                 size=self.scene.newPersonSize(),
             )
-
-        targetsEntries = self.targetsEntries()
-        if not targetsEntries:
-            targetsEntries = []
-
-        trianglesEntries = self.trianglesEntries()
-        if not trianglesEntries:
-            trianglesEntries = []
 
         person = None
         spouse = None
@@ -608,148 +575,65 @@ class EventForm(QmlDrawer):
 
         # Compile new Events, Marriages, Emotions
 
-        newEvents = []
         newMarriages = []
         newEmotions = []
 
         if not isEditing:
 
-            if kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
+            newEvent: Event = self.scene.addItem(Event(person=person, kind=kind))
+            if kind == EventKind.VariableShift and relationship:
+                newEvent.setRelationshipTargets(targets)
+                newEvent.setRelationshipTriangles(triangles)
+                newEmotions = newEvent.emotions()
+                events = [newEvent]
 
-                # Prevent the new person being invisible.
-                if (
-                    kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death)
-                    and self.scene.currentDateTime() < startDateTime
-                ):
-                    self.scene.setCurrentDateTime(startDateTime, undo=True)
+            else:  # kind.isPairBond()
 
-                # Set up spouse and child relations; all births now have 2 parents and a child
-                if kind in (EventKind.Birth, EventKind.Adopted):
+                # Default child if not added
+                if kind in (EventKind.Birth, EventKind.Adopted) and not child:
 
-                    # Default child if not added
-                    if not child:
-                        child = self.scene.addItem(
-                            Person(
-                                size=self.scene.newPersonSize(),
-                            ),
-                            undo=True,
-                        )
-                        newPeople.append(child)
+                    child = self.scene.addItem(
+                        Person(size=self.scene.newPersonSize()), undo=True
+                    )
 
-                    # Default spouse if not added
-                    if not spouse:
-                        if person.gender() == util.PERSON_KIND_MALE:
-                            spouseKind = util.PERSON_KIND_FEMALE
-                        elif person and person.gender() == util.PERSON_KIND_FEMALE:
-                            spouseKind = util.PERSON_KIND_MALE
-                        else:
-                            spouseKind = util.PERSON_KIND_FEMALE
-                        spouse = self.scene.addItem(
-                            Person(
-                                gender=spouseKind,
-                                size=self.scene.newPersonSize(),
-                            ),
-                            undo=True,
-                        )
-                        newPeople.append(spouse)
-
-                    marriage = Marriage.marriageForSelection([person, spouse])
-                    if not marriage:
-                        marriage = Marriage(person, spouse)
-                        self.scene.addItem(marriage, undo=True)
-                        newMarriages.append(marriage)
-
-                    if child.parents != marriage:
-                        child.setParents(marriage, undo=True)
-
-                if kind == EventKind.Birth:
-                    event = child.birthEvent
-                elif kind == EventKind.Adopted:
-                    event = child.adoptedEvent
-                    child.setAdopted(True)
-                elif kind == EventKind.Death:
-                    event = person.deathEvent
-                    person.setDeceased(True)
-
-                event.setDateTime(startDateTime, undo=True)
-                if not isEditing:
-                    newEvents.append(event)
-
-            elif kind.isPairBond():
-                marriage = Marriage.marriageForSelection([person, spouse])
-                if not marriage:
-                    # Generally there is only one marriage item per person. Multiple
-                    # marriages/weddings between the same person just get separate
-                    # `married`` events.
-                    marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
-                    newMarriages.append(marriage)
-
-                _log.debug(
-                    f"Adding {kind.name} event to marriage {marriage} w/ {marriage.personA()} and {marriage.personB()}"
-                )
-
-                event = self.scene.addItem(
-                    Event(marriage, dateTime=startDateTime), undo=True
-                )
-                description = kind.menuLabel()
-                newEvents.append(event)
-
-            elif kind == EventKind.VariableShift and relationship:
-                itemMode = relationship.itemMode()
-                if isDateRange:
-                    kwargs = {"endDateTime": endDateTime}
-                else:
-                    kwargs = {}
-                if notes and not startDateTime:
-                    kwargs["notes"] = notes
-
-                for target in targets:
-                    emotion = self.scene.addItem(
-                        Emotion(
-                            kind=itemMode,
-                            personA=person,
-                            personB=target,
-                            startDateTime=startDateTime,
-                            tags=checkedTags,
-                            **kwargs,
+                # Default spouse if not added
+                if not spouse:
+                    if person.gender() == util.PERSON_KIND_MALE:
+                        spouseKind = util.PERSON_KIND_FEMALE
+                    elif person and person.gender() == util.PERSON_KIND_FEMALE:
+                        spouseKind = util.PERSON_KIND_MALE
+                    else:
+                        spouseKind = util.PERSON_KIND_FEMALE
+                    spouse = self.scene.addItem(
+                        Person(
+                            gender=spouseKind,
+                            size=self.scene.newPersonSize(),
                         ),
                         undo=True,
                     )
-                    newEmotions.append(emotion)
-                    newEvents.append(emotion.startEvent)
-                    if emotion.endEvent.dateTime():
-                        newEvents.append(emotion.endEvent)
-                    emotion.startEvent.setRelationshipTargets(targets)
-                    if relationship in (
-                        RelationshipKind.Inside,
-                        RelationshipKind.Outside,
-                    ):
-                        emotion.startEvent.setRelationshipTargets(targets)
-                        emotion.endEvent.setRelationshipTriangles(triangles)
+                    newPeople.append(spouse)
 
-            else:
-                event = self.scene.addItem(
-                    Event(person, dateTime=startDateTime),
-                    undo=True,
-                )
-                newEvents.append(event)
+                marriage = Marriage.marriageForSelection([person, spouse])
+                if not marriage:
+                    marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
+                    newMarriages.append(marriage)
+
+                event = self.scene.addItem(Event(), undo=True)
 
         if isEditing:
             events = self._events
         else:
             events = newEvents
 
-        isAllEmotions = all(x.parent.isEmotion for x in events)
-
-        if isAllEmotions:
-            for emotion in newEmotions:
-                emotion.startEvent.setDateTime(startDateTime, undo=True)
-                if isDateRange:
-                    emotion.endEvent.setDateTime(endDateTime, undo=True)
-
         for event in events:
-            if not isAllEmotions and startDateTime:
-                event.setDateTime(startDateTime, undo=True)
+            event.setKind(kind, undo=True)
+            if kind == EventKind.Adopted:
+                event.child().setAdopted(True, undo=True)
+            event.setDateTime(startDateTime, undo=True)
+            if endDateTime:
+                event.setEndDateTime(endDateTime, undo=True)
+            elif isDateRangeDirty and not isDateRange:
+                event.setEndDateTime(QDateTime(), undo=True)
             if symptom is not None:
                 event.setSymptom(symptom, undo=True)
             if anxiety is not None:
@@ -885,10 +769,15 @@ class EventForm(QmlDrawer):
         #         person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
         timelineModel = self.qmlEngine().rootContext().contextProperty("timelineModel")
-        if newEmotions:
-            self.scene.setCurrentDateTime(
-                newEmotions[0].startEvent.dateTime(), undo=True
-            )
+        # Prevent the new person being invisible.
+        if (
+            newPeople
+            and kind in (EventKind.Birth, EventKind.Adopted, EventKind.Death)
+            and self.scene.currentDateTime() < startDateTime
+        ):
+            self.scene.setCurrentDateTime(startDateTime, undo=True)
+        elif newEmotions:
+            self.scene.setCurrentDateTime(events[0].dateTime(), undo=True)
         elif self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
             self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:

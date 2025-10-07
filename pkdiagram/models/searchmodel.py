@@ -1,7 +1,7 @@
 from pkdiagram.pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
-from ..scene import Item, Property
+from pkdiagram.scene import Item, Property, Event
 
 
 class SearchModel(QObject, QObjectHelper):
@@ -115,7 +115,7 @@ class SearchModel(QObject, QObjectHelper):
 
     # Verbs
 
-    def shouldHide(self, event):
+    def shouldHide(self, event: Event):
         """Search kernel."""
         nullLoggedDate = bool(
             not event.loggedDateTime() or event.loggedDateTime().isNull()

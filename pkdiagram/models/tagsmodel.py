@@ -263,9 +263,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
                 for item in self._items:
                     if item.isEvent and item.parent and item.parent.isEmotion:
                         todo.add(item.parent)
-                    elif item.isEmotion:
-                        todo.add(item.startEvent)
-                        todo.add(item.endEvent)
                 # Do the value set
                 self._settingItemTags = True
                 with self._scene.macro(f"Set tag '{tag}' on items to {value}"):

@@ -393,11 +393,13 @@ class Scene(QGraphicsScene, Item):
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
+            for emotion in item.emotions():
+                self._do_addItem(emotion)
         elif item.isEmotion:
             self._emotions.append(item)
-            item.personA()._onAddEmotion(item)
-            if item.personB():
-                item.personB()._onAddEmotion(item)
+            item.person()._emotions.append(item)
+            if item.target():
+                item.target()._emotions.append(item)
             if not self.isBatchAddingRemovingItems():
                 self.emotionAdded.emit(item)
                 if item.startDateTime() and not self._isUndoRedoing:
@@ -526,6 +528,8 @@ class Scene(QGraphicsScene, Item):
             item.parents().emotionalUnit().update()
             item.person.setParents(None)
         elif item.isEvent:
+            for emotion in item.emotions():
+                self._do_removeItem(emotion)
             self._events.remove(item)
             self.eventRemoved.emit(item)
             if (
@@ -535,9 +539,9 @@ class Scene(QGraphicsScene, Item):
             ):
                 self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
-            item.personA()._onRemoveEmotion(item)
-            if item.personB():
-                item.personB()._onRemoveEmotion(item)
+            item.person()._events.remove(item)
+            if item.target():
+                item.target()._events.remove(item)
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
         elif item.isLayer:
@@ -733,12 +737,12 @@ class Scene(QGraphicsScene, Item):
                 "Adding items during read file", undo=False, batchAddRemove=True
             ):
                 for item in items:
-                    if item.isEmotion and item.personA() is None:
+                    if item.isEmotion and item.person() is None:
                         log.warning(
                             f"Emotion {item} has no personA, skipping loading..."
                         )
                         continue
-                    elif item.isEmotion and item.isDyadic() and item.personB() is None:
+                    elif item.isEmotion and item.isDyadic() and item.target() is None:
                         log.warning(
                             f"Emotion {item} has no personB, skipping loading..."
                         )
@@ -1060,11 +1064,11 @@ class Scene(QGraphicsScene, Item):
                     hoverMe = self.childOfUnder(e.scenePos())
                     if not hoverMe:
                         hoverMe = self.multipleBirthUnder(e.scenePos())
-            elif self.itemMode() in Emotion.kinds():
+            elif self.itemMode() in util.emotionItemModes():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
                     kind=self.itemMode(),
-                    personA=self.dragStartItem,
+                    person=self.dragStartItem,
                     pointB=e.scenePos(),
                     hoverPerson=hoverMe,
                 )
@@ -1127,7 +1131,10 @@ class Scene(QGraphicsScene, Item):
                 undo=True,
             )
             self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() in [util.ITEM_MARRY, util.ITEM_CHILD] + Emotion.kinds():
+        elif (
+            self.itemMode()
+            in [util.ITEM_MARRY, util.ITEM_CHILD] + util.emotionItemModes()
+        ):
             e.accept()
             success = False
             if self.itemMode() is util.ITEM_MARRY:
@@ -1142,13 +1149,14 @@ class Scene(QGraphicsScene, Item):
                 if parentItem:
                     self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
-            elif self.itemMode() in Emotion.kinds():
+            elif self.itemMode() in util.emotionItemModes():
                 person = self.personUnder(e.scenePos())
+                kind = Emotion.KIND_MAP[self.itemMode()]
                 if self.itemMode() == util.ITEM_CUTOFF:  # monadic
-                    emotion = Emotion(kind=self.itemMode(), personA=person)
+                    emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic
                     emotion = Emotion(
-                        kind=self.itemMode(), personA=self.dragStartItem, personB=person
+                        kind=kind, person=self.dragStartItem, target=person
                     )
                 else:
                     emotion = None
@@ -1224,7 +1232,7 @@ class Scene(QGraphicsScene, Item):
             path = Person.pathFor("female", pos=QPointF(0, 0))
             scale = self.newPersonScale()
         elif self.itemMode() == util.ITEM_CUTOFF:
-            path = Emotion.pathFor(util.ITEM_CUTOFF, personA=QPointF(0, 0))
+            path = Emotion.pathFor(util.ITEM_CUTOFF, person=QPointF(0, 0))
             scale = (1 / self.scaleFactor()) * 0.6
         elif self.itemMode() == util.ITEM_CALLOUT:
             path = Callout(scale=self.newPersonScale()).path()
@@ -1989,8 +1997,6 @@ class Scene(QGraphicsScene, Item):
                 return True
             elif item.isEvent:
                 if item.anyDynamicPropertiesSet():
-                    return True
-                elif item.uniqueId():
                     return True
                 elif item.includeOnDiagram():
                     return True

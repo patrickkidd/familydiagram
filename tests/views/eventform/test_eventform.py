@@ -68,7 +68,7 @@ def test_attrs(scene, view, kind: EventKind):
     child = mother.marriages[0].children[0]
     assert child.name() == None
     event = child.events()[0]
-    assert event.uniqueId() == kind.value
+    assert event.kind() == kind
     assert event.description() == kind.name
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
@@ -94,7 +94,7 @@ def test_attrs_Death(scene, view):
     view.clickSaveButton()
 
     event = person.events()[0]
-    assert event.uniqueId() == EventKind.Death.value
+    assert event.kind() == EventKind.Death
     assert event.description() == EventKind.Death.name
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
@@ -118,7 +118,7 @@ def test_attrs_VariableShift(scene, view):
     view.clickSaveButton()
 
     event = mother.emotions()[0].events()[0]
-    assert event.uniqueId() == EventKind.VariableShift.value
+    assert event.kind() == EventKind.VariableShift
     assert event.description() == "Some description"
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"

@@ -52,7 +52,7 @@ def test_close_after_adding_lots(
     dlg.set_anxiety(util.VAR_VALUE_UP)
     dlg.clickSaveButton()
     assert len(johnDoe.events()) == 1
-    assert johnDoe.events()[0].uniqueId() == EventKind.VariableShift.value
+    assert johnDoe.events()[0].kind() == EventKind.VariableShift
     assert len(johnDoe.marriages[1].events()) == 1
 
     qtbot.clickYesAfter(

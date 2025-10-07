@@ -16,6 +16,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util
+from pkdiagram.scene import Event, EventKind
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 
@@ -99,6 +100,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._events = SortedList()
+        self._endEvents = {}
         self._columnHeaders = []
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
@@ -118,6 +120,74 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return self.COLUMNS + [x["name"] for x in self._scene.eventProperties()]
         else:
             return self.COLUMNS
+
+    ## Rows
+
+    def isSceneModel(self):
+        return self._items and self._items[0].isScene
+
+    def _shouldHide(self, event):
+        hidden = False
+        if event.dateTime() is None or event.dateTime().isNull():
+            hidden = True
+        elif not self._scene:  # SceneModel.nullTimelineModel
+            hidden = False
+        elif (
+            event.kind() == EventKind.VariableShift
+            and event.relationship()
+            and event.isEndEvent
+            and event.emotion().isSingularDate()
+        ):
+            hidden = True
+        elif self._searchModel and self._searchModel.shouldHide(event):
+            hidden = True
+        return hidden
+
+    def _ensureEvent(self, event: Event, emit=True):
+        if event in self._events:
+            return
+        if event.dateTime() is None:
+            return
+        if not self._shouldHide(event):
+            newRow = self._events.bisect_right(
+                event
+            )  # SortedList.add uses &.bisect_right()
+            if emit:
+                self.beginInsertRows(QModelIndex(), newRow, newRow)
+            self._events.add(event)
+            if emit:
+                self.endInsertRows()
+
+        if event.endDateTime():
+            endEvent = Event(
+                dateTime=event.endDateTime(), description=f"{event.kind().name} ended"
+            )
+            self._endEvents[event] = endEvent
+            self._events.append(endEvent)
+            newRow = self._events.bisect_right(
+                event
+            )  # SortedList.add uses &.bisect_right()
+            if emit:
+                self.beginInsertRows(QModelIndex(), newRow, newRow)
+            self._events.add(event)
+            if emit:
+                self.endInsertRows()
+
+    def _removeEvent(self, event):
+        try:
+            row = self._events.index(event)
+        except ValueError:
+            return
+        self.beginRemoveRows(QModelIndex(), row, row)
+        self._events.remove(event)
+        self.endRemoveRows()
+        #
+        if event.endDateTime() and (endEvent := self._endEvents.get(event)):
+            row = self._events.index(endEvent)
+            del self._endEvents[event]
+            self.beginRemoveRows(QModelIndex(), row, row)
+            self._events.remove(endEvent)
+            self.endRemoveRows()
 
     def refreshColumnHeaders(self, columnHeaders=None):
         """Account for event variables."""
@@ -155,70 +225,13 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 Qt.Horizontal, len(self.COLUMNS), self.columnCount()
             )
 
-    ## Rows
-
-    def isSceneModel(self):
-        return self._items and self._items[0].isScene
-
-    def _shouldHide(self, event):
-        hidden = False
-        if event.dateTime() is None or event.dateTime().isNull():
-            hidden = True
-        elif not self._scene:  # SceneModel.nullTimelineModel
-            hidden = False
-        elif (
-            event.parent
-            and event.parent.isEmotion
-            and event is event.parent.endEvent
-            and event.parent.isSingularDate()
-        ):
-            hidden = True
-        elif self._searchModel and self._searchModel.shouldHide(event):
-            hidden = True
-        return hidden
-
-    def _ensureEvent(self, event, emit=True):
-        if event in self._events:
-            return
-        if event.dateTime() is None:
-            return
-        if self._shouldHide(event):
-            return
-        newRow = self._events.bisect_right(
-            event
-        )  # SortedList.add uses &.bisect_right()
-        if emit:
-            self.beginInsertRows(QModelIndex(), newRow, newRow)
-        self._events.add(event)
-        if emit:
-            self.endInsertRows()
-
-    def _removeEvent(self, event):
-        try:
-            row = self._events.index(event)
-        except ValueError:
-            return
-        self.beginRemoveRows(QModelIndex(), row, row)
-        self._events.remove(event)
-        self.endRemoveRows()
-
     def _refreshRows(self):
         """The core method to collect all the events from people, pair-bonds, and emotions."""
         if not self._scene:
             return
-        # collect all
-        events = set()
-        for item in self._items:
-            events.update(item.events())
-            if item.isPerson:
-                for marriage in item.marriages:
-                    events.update(marriage.events())
-            if item.isPerson or item.isScene:
-                for emotion in item.emotions():
-                    events.update(emotion.events())
         # sort and filter
         self._events = SortedList()
-        for event in events:
+        for event in self._scene.events():
             if not self._shouldHide(event):
                 self._events.add(event)
         self.refreshAllProperties()
@@ -239,7 +252,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             row = self._events.index(event)
         except ValueError:
             row = -1
-        if prop.name() == "dateTime":
+        if prop.name() == "dateTime" or prop.name() == "endDateTime":
             self._removeEvent(event)
             self._ensureEvent(event)
             self.refreshProperty("dateBuddies")
@@ -291,38 +304,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if self._items:
             self._removeEvent(event)
 
-    def onPersonMarriageAdded(self, item):
-        item.eventAdded.connect(self.onEventAdded)
-        item.eventRemoved.connect(self.onEventRemoved)
-
-    def onPersonMarriageRemoved(self, item):
-        item.eventAdded.disconnect(self.onEventAdded)
-        item.eventRemoved.disconnect(self.onEventRemoved)
-
-    def onEmotionAdded(self, emotion):
-        self._ensureEvent(emotion.startEvent)
-        self._ensureEvent(emotion.endEvent)
-        # emotion.eventAdded.connect(self.onEventChanged)
-
-    def onEmotionRemoved(self, emotion):
-        self._removeEvent(emotion.startEvent)
-        self._removeEvent(emotion.endEvent)
-        # emotion.eventAdded.disconnect(self.onEventChanged)
-
     def onFinishedBatchAddingRemovingItems(self, added, removed):
         """Just reset the model."""
         for item in added:
             if item.isEvent:
                 self._ensureEvent(item)
-            if item.isEmotion:
-                self._ensureEvent(item.startEvent)
-                self._ensureEvent(item.endEvent)
         for item in removed:
             if item.isEvent:
                 self._removeEvent(item)
-            if item.isEmotion:
-                self._removeEvent(item.startEvent)
-                self._removeEvent(item.endEvent)
 
     def events(self):
         return self._events.to_list()
@@ -334,70 +323,37 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def get(self, attr):
         ret = None
-        if attr == "dateBuddies":
-            ret = [
-                {"startRow": start, "endRow": end, "color": item.color()}
-                for start, end, item in self.dateBuddiesInternal()
-            ]
-        elif attr == "searchModel":
+        # if attr == "dateBuddies":
+        #     ret = [
+        #         {"startRow": start, "endRow": end, "color": item.color()}
+        #         for start, end, item in self.dateBuddiesInternal()
+        #     ]
+        if attr == "searchModel":
             ret = self._searchModel
         else:
             ret = super().get(attr)
         return ret
 
     def set(self, attr, value):
-        if attr == "items":
-            if self._items:
-                for item in self._items:
-                    item.eventAdded.disconnect(self.onEventAdded)
-                    item.eventChanged.disconnect(self.onEventChanged)
-                    item.eventRemoved.disconnect(self.onEventRemoved)
-                    if item.isPerson:
-                        item.marriageAdded.disconnect(self.onPersonMarriageAdded)
-                        item.marriageRemoved.disconnect(self.onPersonMarriageRemoved)
-                        for marriage in item.marriages:
-                            marriage.eventAdded.disconnect(self.onEventAdded)
-                            marriage.eventRemoved.disconnect(self.onEventRemoved)
-                    if item.isScene or item.isPerson:
-                        for emotion in item.emotions():
-                            self.onEmotionRemoved(emotion)
-                        if item.isScene:
-                            item.finishedBatchAddingRemovingItems[
-                                list, list
-                            ].disconnect(self.onFinishedBatchAddingRemovingItems)
-            if value:
-                for item in value:
-                    item.eventAdded.connect(self.onEventAdded)
-                    item.eventChanged.connect(self.onEventChanged)
-                    item.eventRemoved.connect(self.onEventRemoved)
-                    if item.isPerson:
-                        item.marriageAdded.connect(self.onPersonMarriageAdded)
-                        item.marriageRemoved.connect(self.onPersonMarriageRemoved)
-                        for marriage in item.marriages:
-                            marriage.eventAdded.connect(self.onEventAdded)
-                            marriage.eventRemoved.connect(self.onEventRemoved)
-                    # if item.isScene or item.isPerson:
-                    #     for emotion in item.emotions():
-                    #         emotion.eventChanged.disconnect(self.onEventChanged)
-        elif attr == "searchModel":
+        if attr == "searchModel":
             if self._searchModel:
                 self._searchModel.changed.disconnect(self.onSearchChanged)
             self._searchModel = value
             if self._searchModel:
                 self._searchModel.changed.connect(self.onSearchChanged)
             self._refreshRows()
+        if attr == "scene":
+            if self._scene:
+                self._scene.eventAdded[Event].disconnect(self.onEventAdded)
+                self._scene.eventChanged[Event].disconnect(self.onEventChanged)
+                self._scene.eventRemoved[Event].disconnect(self.onEventRemoved)
         super().set(attr, value)
         if attr == "scene":
+            if self._scene:
+                self._scene.eventAdded[Event].connect(self.onEventAdded)
+                self._scene.eventChanged[Event].connect(self.onEventChanged)
+                self._scene.eventRemoved[Event].connect(self.onEventRemoved)
             self._events = SortedList()
-        elif attr == "items":
-            self.refreshColumnHeaders()
-            self._refreshRows()
-            if self._items:
-                for item in self._items:
-                    if item.isScene:
-                        item.finishedBatchAddingRemovingItems[list, list].connect(
-                            self.onFinishedBatchAddingRemovingItems
-                        )
 
     ## Qt Virtuals
 
@@ -504,17 +460,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         success = True
         forceBlockEmit = False
         if self.isColumn(index, self.PARENT):
-            if event.parent.isEmotion:
-                success = False
-            else:
-                if role in (Qt.DisplayRole, Qt.EditRole):
-                    success = False  # maybe set by searching for name?
-                elif role == self.ParentIdRole:
-                    if event.parent is None or value != event.parent.id:
-                        person = self._scene.find(id=value)
-                        event.setParent(person, undo=True)
-                    else:
-                        success = False
+            if role in (Qt.DisplayRole, Qt.EditRole):
+                success = False  # maybe set by searching for name?
+            elif role == self.ParentIdRole:
+                if event.parent is None or value != event.parent.id:
+                    person = self._scene.find(id=value)
+                    event.setParent(person, undo=True)
+                else:
+                    success = False
         elif self.isColumn(index, self.NODAL):
             event.setNodal(value, undo=True)
         elif self.isColumn(index, self.DATETIME) or role == self.DateTimeRole:
@@ -546,15 +499,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.UNSURE):
             event.setUnsure(value)
         elif self.isColumn(index, self.DESCRIPTION):
-            if event.parent.isEmotion:
-                success = False
-            else:
-                event.setDescription(value, undo=True)
+            event.setDescription(value, undo=True)
         elif self.isColumn(index, self.LOCATION):
             event.setLocation(value, undo=True)
-        elif (
-            not event.parent.isEmotion
-        ):  # TODO: Remove condition if moving to allow vars on emotion events
+        elif event.kind() == EventKind.VariableShift:
             attr = self.dynamicPropertyAttr(index)
             if attr:
                 prop = event.dynamicProperty(attr)
@@ -586,14 +534,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 pass
             elif self.dynamicPropertyAttr(index):
                 ret |= Qt.ItemIsEditable
-            # elif event.parent.isMarriage:
-            #     if self.isColumn(index, labels=[self.DATETIME, self.LOCATION]):
-            #         ret |= Qt.ItemIsEditable
-            elif event.uniqueId() is not None:
-                if not self.isColumn(
-                    index, labels=[self.DESCRIPTION, self.PARENT, self.LOGGED]
-                ):
-                    ret |= Qt.ItemIsEditable
+            if event.kind() != EventKind.VariableShift:
+                pass
             elif self.isColumn(
                 index,
                 labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION, self.PARENT],
@@ -656,10 +598,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     @pyqtSlot(int, result=QVariant)
     def eventForRow(self, row):
-        try:
+        if row >= 0 and row < len(self._events):
             return self._events[row]
-        except IndexError:
-            return
+
+    def endEventForEvent(self, event: Event):
+        """Return the emotion row that is a date buddy to this one."""
+        return self._endEvents.get(event)
 
     def indexForEvent(self, event) -> QModelIndex:
         row = self.rowForEvent(event)
@@ -667,11 +611,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return self.index(row, 0)
 
     @pyqtSlot(int, result=str)
-    def uniqueIdForRow(self, row: int) -> str:
-        try:
-            return self._events[row].uniqueId()
-        except IndexError:
-            return
+    def kindForRow(self, row: int) -> str:
+        return self._events[row].kind()
 
     @pyqtSlot(int, result=QDateTime)
     def dateTimeForRow(self, row):
@@ -731,39 +672,35 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def dateBuddyForRow(self, row):
         """Return the emotion row that is a date buddy to this one."""
         event = self._events[row]
-        if event.parent.isEmotion:
-            emotion = event.parent
-            if event is emotion.startEvent and emotion.endEvent in self._events:
-                return self._events.index(emotion.endEvent)
-            if event is emotion.endEvent and emotion.startEvent in self._events:
-                return self._events.index(emotion.startEvent)
+        if event and event.endDateTime():
+            return event.endDateTime()
 
-    def dateBuddiesInternal(self):
-        ret = set()
-        for event in self._events:
-            if event.parent.isEmotion:
-                emotion = event.parent
-                if (
-                    emotion.startEvent in self._events
-                    and emotion.endEvent in self._events
-                ):
-                    if emotion.startEvent.dateTime() == emotion.endEvent.dateTime():
-                        ret.add(
-                            (
-                                self._events.index(emotion.startEvent),
-                                self._events.index(emotion.startEvent),
-                                emotion,
-                            )
-                        )
-                    else:
-                        ret.add(
-                            (
-                                self._events.index(emotion.startEvent),
-                                self._events.index(emotion.endEvent),
-                                emotion,
-                            )
-                        )
-        return tuple(ret)
+    # def dateBuddiesInternal(self):
+    #     ret = set()
+    #     for event in self._events:
+    #         if event.parent.isEmotion:
+    #             emotion = event.parent
+    #             if (
+    #                 emotion.startEvent in self._events
+    #                 and emotion.endEvent in self._events
+    #             ):
+    #                 if emotion.startEvent.dateTime() == emotion.endEvent.dateTime():
+    #                     ret.add(
+    #                         (
+    #                             self._events.index(emotion.startEvent),
+    #                             self._events.index(emotion.startEvent),
+    #                             emotion,
+    #                         )
+    #                     )
+    #                 else:
+    #                     ret.add(
+    #                         (
+    #                             self._events.index(emotion.startEvent),
+    #                             self._events.index(emotion.endEvent),
+    #                             emotion,
+    #                         )
+    #                     )
+    #     return tuple(ret)
 
     ## Mutations
 
@@ -777,7 +714,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             event = self.eventForRow(index.row())
             events.add(event)
         # for event in events:
-        #     if event.uniqueId() is not None:
+        #     if event.kind() is not None:
         #         events.append(event)
         #         docsPath = event.documentsPath()
         #         if docsPath:

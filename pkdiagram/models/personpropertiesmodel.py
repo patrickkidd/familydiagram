@@ -77,31 +77,31 @@ class PersonPropertiesModel(QObject, ModelHelper):
 
     def onEventProperty(self, prop):
         if prop.name() == "dateTime":
-            if prop.item.uniqueId() == EventKind.Birth.value:
+            if prop.item.kind() == EventKind.Birth:
                 self.refreshProperty("birthDateTime")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
+            elif prop.item.kind() == EventKind.Adopted:
                 self.refreshProperty("adoptedDateTime")
-            elif prop.item.uniqueId() == EventKind.Death.value:
+            elif prop.item.kind() == EventKind.Death:
                 self.refreshProperty("deceasedDateTime")
         elif prop.name() == "location":
-            if prop.item.uniqueId() == EventKind.Birth.value:
+            if prop.item.kind() == EventKind.Birth:
                 self.refreshProperty("birthLocation")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
+            elif prop.item.kind() == EventKind.Adopted:
                 self.refreshProperty("adoptedLocation")
-            elif prop.item.uniqueId() == EventKind.Death.value:
+            elif prop.item.kind() == EventKind.Death:
                 self.refreshProperty("deceasedLocation")
 
     def onItemEventAddedOrRemoved(self, event):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == EventKind.Birth.value:
+        if event.kind() == EventKind.Birth:
             self.refreshProperty("birthDateTime")
             self.refreshProperty("birthLocation")
-        elif event.uniqueId() == EventKind.Adopted.value:
+        elif event.kind() == EventKind.Adopted:
             self.refreshProperty("adoptedDateTime")
             self.refreshProperty("adoptedLocation")
-        elif event.uniqueId() == EventKind.Death.value:
+        elif event.kind() == EventKind.Death:
             self.refreshProperty("deceasedDateTime")
             self.refreshProperty("deceasedLocation")
 

@@ -4,7 +4,8 @@ from pkdiagram import util
 
 
 class RelationshipKind(enum.Enum):
-    # Fusion = "fusion"
+    Fusion = "fusion"
+    #
     Conflict = "conflict"
     Distance = "distance"
     Overfunctioning = "overfunctioning"

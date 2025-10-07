@@ -39,6 +39,7 @@ PK.Drawer {
     property var kind: null
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
+    property var isDateRangeDirty: isDateRangeBox.dirty
     property var startDateButtons: startDateButtons
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
@@ -154,6 +155,7 @@ PK.Drawer {
         startDatePicker.clear()
         endDatePicker.clear()
         isDateRangeBox.checked = false
+        isDateRangeBox.dirty = false // Checkboxes need their own dirty attr
 
         // Where
 
@@ -880,8 +882,9 @@ PK.Drawer {
 
                     PK.CheckBox {
                         id: isDateRangeBox
-                        text: "Is Date Range" 
+                        text: "Is Date Range"
                         visible: isDateRangeLabel.visible
+                        property var dirty: false
                         KeyNavigation.backtab: endDateButtons.lastTabItem
                         KeyNavigation.tab: locationField
                         Layout.fillWidth: true
@@ -889,6 +892,7 @@ PK.Drawer {
                         onCheckedChanged: {
                             if(root.isDateRange != checked) {
                                 root.isDateRange = checked
+                                dirty = true
                             }
                         }
                     }

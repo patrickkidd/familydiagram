@@ -12,6 +12,7 @@ from pkdiagram.scene import (
     Emotion,
     EventKind,
     Marriage,
+    RelationshipKind,
 )
 from pkdiagram.models import SearchModel, TimelineModel
 
@@ -88,7 +89,6 @@ def test_shouldHide():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     model.searchModel = SearchModel()
     model.searchModel.scene = scene
     assert model._shouldHide(Event(dateTime=util.Date(2000, 1, 1))) == False
@@ -141,7 +141,6 @@ def test_set_searchModel():
 
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
 
     searchModel_1 = SearchModel()
     searchModel_1.tags = ["here"]
@@ -160,66 +159,61 @@ def test_init_multiple_people():
 
     scene = Scene()
     personA, personB, personC = Person(), Person(), Person()
-    personA.setBirthDateTime(util.Date(2000, 1, 1))
-    personB.setBirthDateTime(util.Date(2001, 1, 1))
+    birthEventA = scene.addItem(Event(personA, dateTime=util.Date(2000, 1, 1)))
+    birthEventB = scene.addItem(Event(personB, dateTime=util.Date(2001, 1, 1)))
     eventA = Event(
         personA, description="PersonA something", dateTime=util.Date(2002, 1, 1)
     )
     eventB = Event(
         personB, description="PersonB something", dateTime=util.Date(2003, 1, 1)
     )
-    # add two emotions where only one person's end should should in the timeline
-    emotionA = Emotion(
-        kind=util.ITEM_DISTANCE,
-        personA=personA,
-        personB=personC,
-        startDateTime=util.Date(2004, 1, 1),
+    # Add two emotions where only one person's end should should in the timeline
+    distance = Event(
+        kind=EventKind.VariableShift,
+        person=personA,
+        relationship=RelationshipKind.Distance,
+        relationshipTargets=personC,
+        dateTime=util.Date(2004, 1, 1),
         endDateTime=util.Date(2005, 1, 1),
     )
-    emotionB = Emotion(
-        kind=util.ITEM_CONFLICT,
-        personA=personB,
-        personB=personC,
-        startDateTime=util.Date(2006, 1, 1),
+    conflict = Event(
+        kind=EventKind.VariableShift,
+        person=personB,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=personC,
+        dateTime=util.Date(2006, 1, 1),
         endDateTime=util.Date(2007, 1, 1),
     )
     # add one emotion where both ends should be shown but without duplicates.
-    emotionC = Emotion(
-        kind=util.ITEM_FUSION,
-        personA=personA,
-        personB=personB,
-        startDateTime=util.Date(2008, 1, 1),
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        person=personA,
+        relationship=RelationshipKind.Fusion,
+        relationshipTargets=personB,
+        dateTime=util.Date(2008, 1, 1),
         endDateTime=util.Date(2009, 1, 1),
     )
-    scene.addItems(personA, personB, personC, emotionA, emotionB, emotionC)
+    scene.addItems(personA, personB, personC, distance, conflict, fusion)
     model = TimelineModel()
     model.scene = scene
-    model.items = [personA, personB]
 
     assert model.rowCount() == 10
-    assert (
-        model.data(model.index(0, 0), model.DateTimeRole)
-        == personA.birthEvent.dateTime()
-    )
-    assert (
-        model.data(model.index(1, 0), model.DateTimeRole)
-        == personB.birthEvent.dateTime()
-    )
+    assert model.data(model.index(0, 0), model.DateTimeRole) == birthEventA.dateTime()
+    assert model.data(model.index(1, 0), model.DateTimeRole) == birthEventB.dateTime()
     assert model.data(model.index(2, 0), model.DateTimeRole) == eventA.dateTime()
     assert model.data(model.index(3, 0), model.DateTimeRole) == eventB.dateTime()
-    assert model.data(model.index(4, 0), model.DateTimeRole) == emotionA.startDateTime()
-    assert model.data(model.index(5, 0), model.DateTimeRole) == emotionA.endDateTime()
-    assert model.data(model.index(6, 0), model.DateTimeRole) == emotionB.startDateTime()
-    assert model.data(model.index(7, 0), model.DateTimeRole) == emotionB.endDateTime()
-    assert model.data(model.index(8, 0), model.DateTimeRole) == emotionC.startDateTime()
-    assert model.data(model.index(9, 0), model.DateTimeRole) == emotionC.endDateTime()
+    assert model.data(model.index(4, 0), model.DateTimeRole) == distance.dateTime()
+    assert model.data(model.index(5, 0), model.DateTimeRole) == distance.endDateTime()
+    assert model.data(model.index(6, 0), model.DateTimeRole) == conflict.dateTime()
+    assert model.data(model.index(7, 0), model.DateTimeRole) == conflict.endDateTime()
+    assert model.data(model.index(8, 0), model.DateTimeRole) == fusion.dateTime()
+    assert model.data(model.index(9, 0), model.DateTimeRole) == fusion.endDateTime()
 
 
 def test_access_data_after_deinit():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     personA, personB = Person(name="A"), Person(name="B")
     pairBond = Marriage(personA=personA, personB=personB)
     Event(parent=pairBond, description="Married", dateTime=util.Date(2000, 1, 1))
@@ -230,56 +224,22 @@ def test_access_data_after_deinit():
     model.data(model.index(0, 1), model.FlagsRole)
 
 
-def test_include_marriage_events(scene):
-    personA, personB = Person(), Person()
-    marriage = Marriage(personA=personA, personB=personB)
-    scene.addItems(personA, personB, marriage)
-    model = TimelineModel()
-    model.scene = scene
-    model.items = [personA]
-    assert model.rowCount() == 0
-
-    # marriage events for one person
-    separated = Event(
-        parent=marriage,
-        uniqueId=EventKind.Separated.value,
-        dateTime=util.Date(2001, 1, 1),
-    )
-    scene.addItem(separated)
-    assert model.rowCount() == 1
-    assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
-
-    # more marriage events for one person
-    married = Event(
-        parent=marriage,
-        uniqueId=EventKind.Married.value,
-        dateTime=util.Date(2000, 1, 1),
-    )
-    scene.addItem(married)
-    assert model.rowCount() == 2
-    assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2000, 1, 1)
-    assert model.data(model.index(1, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
-
-    # don't duplicate marriage events when both people/ends are added
-    model.items = [personA, personB]
-    assert model.rowCount() == 2
-    assert model.data(model.index(0, 0), model.DateTimeRole) == util.Date(2000, 1, 1)
-    assert model.data(model.index(1, 0), model.DateTimeRole) == util.Date(2001, 1, 1)
-
-
 def test_flags(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = Emotion(kind=util.ITEM_FUSION)
-    fusion.setPersonA(p1)
-    fusion.setPersonB(p2)
-    fusion.startEvent.setDateTime(util.Date(1980, 5, 11))
-    fusion.endEvent.setDateTime(util.Date(2015, 1, 1))
-    timelineScene.addItem(fusion)
+    timelineScene.addItem(
+        Event(
+            kind=util.ITEM_FUSION,
+            event=Event(
+                dateTime=util.Date(1980, 5, 11), endDateTime=util.Date(2015, 1, 1)
+            ),
+            person=p1,
+            targate=p2,
+        )
+    )
 
     for row in range(model.rowCount()):
-        item = model.itemForRow(row)
         iBuddies = model.columnIndex(model.BUDDIES)
         iDate = model.columnIndex(model.DATETIME)
         iDescription = model.columnIndex(model.DESCRIPTION)
@@ -287,25 +247,10 @@ def test_flags(timelineScene, model):
         iParent = model.columnIndex(model.PARENT)
         iLogged = model.columnIndex(model.LOGGED)
         assert not model.flags(model.index(row, iBuddies)) & Qt.ItemIsEditable
-        if item.isEmotion:
-            assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
-            assert not model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
-            assert not model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
-            assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-        else:
-            event = model.eventForRow(row)
-            if event.uniqueId():
-                assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
-                assert (
-                    not model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
-                )
-                assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-                assert not model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
-            else:
-                assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
-                assert model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
-                assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-                assert model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
+        assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
+        assert not model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
+        assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
+        assert not model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
         assert not model.flags(model.index(row, iLogged)) & Qt.ItemIsEditable
 
 
@@ -313,12 +258,16 @@ def test_add_item(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = Emotion(kind=util.ITEM_FUSION)
-    fusion.setPersonA(p1)
-    fusion.setPersonB(p2)
-    fusion.startEvent.setDateTime(util.Date(1981, 5, 11))
-    fusion.endEvent.setDateTime(util.Date(2015, 1, 1))
-    timelineScene.addItem(fusion)
+    fusion = timelineScene.addItem(
+        Event(
+            kind=EventKind.VariableShift,
+            relationship=RelationshipKind.Fusion,
+            dateTime=util.Date(1980, 1, 11),
+            endDateTime=util.Date(2015, 1, 1),
+            person=p1,
+            target=p2,
+        )
+    )
     #
     assert model.rowCount() == 4
     #
@@ -329,7 +278,7 @@ def test_add_item(timelineScene, model):
     # fusion dates
     col = model.columnIndex(model.DATETIME)
     assert model.index(2, col).data(Qt.DisplayRole) == util.dateString(
-        fusion.startDateTime()
+        fusion.dateTime()
     )
     assert model.index(3, col).data(Qt.DisplayRole) == util.dateString(
         fusion.endDateTime()
@@ -346,9 +295,7 @@ def test_add_person_marriage():
     model.items = [personA]
 
     marriage = Marriage(personA=personA, personB=personB)
-    married = Event(
-        parent=marriage, date=util.Date(2001, 1, 1), uniqueId=EventKind.Married.value
-    )
+    married = Event(parent=marriage, date=util.Date(2001, 1, 1), kind=EventKind.Married)
     scene.addItem(marriage)
 
     assert model.rowForEvent(married) != None
@@ -396,18 +343,20 @@ def test_delete_birthDate(qtbot, timelineScene, model):
     assert model.rowCount() == 1
 
 
-def test_delete_emotion_date(qtbot, timelineScene, model):
+def test_delete_emotion_date(qtbot, timelineScene: Scene, model: TimelineModel):
     # should clear date
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
-    conflict = Emotion(
-        personA=p1,
-        personB=p2,
-        kind=util.ITEM_CONFLICT,
-        startDateTime=util.Date(2000, 1, 1),
+    conflict = Event(
+        kind=EventKind.VariableShift,
+        person=p1,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=p2,
+        dateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
     )
     timelineScene.addItem(conflict)
+    endEvent = model.endEventForEvent(conflict)
     assert model.rowCount() == 4
 
     selectionModel = QItemSelectionModel(model)
@@ -416,16 +365,16 @@ def test_delete_emotion_date(qtbot, timelineScene, model):
     )
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
     assert model.rowCount() == 3
-    assert conflict.endEvent.dateTime() == None
-    assert conflict.endEvent in timelineScene.events()
+    assert conflict.dateTime() == None
+    assert endEvent in timelineScene.events()
 
     selectionModel.select(
         model.index(2, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows
     )
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
     assert model.rowCount() == 2
-    assert conflict.startEvent.dateTime() == None
-    assert conflict.startEvent in timelineScene.events()
+    assert conflict.dateTime() == None
+    assert conflict in timelineScene.events()
 
 
 @pytest.mark.skip(
@@ -435,7 +384,6 @@ def test_dont_show_not_deceased_with_deceased_date():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     person = Person()
     # set deceased date but not `deceased`
     person.setDeceasedDateTime(util.Date(2000, 1, 1))
@@ -463,16 +411,15 @@ def test_set_datetime():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
-    person = Person(name="Person A")
-    person.birthEvent.setDateTime(util.Date(2000, 1, 1))
+    person = scene.addItem(Person(name="Person A"))
+    birthEvent = scene.addItem(Event(person=person, dateTime=util.Date(2000, 1, 1)))
     scene.addItems(person)
     model.setData(
         model.index(0, model.columnIndex(model.DATETIME)),
         "10/02/2002 12:35pm",
         role=model.DisplayExpandedRole,
     )
-    assert person.birthEvent.dateTime() == util.Date(2002, 10, 2, 12, 35, 0)
+    assert birthEvent.dateTime() == util.Date(2002, 10, 2, 12, 35, 0)
 
 
 @pytest.mark.parametrize("role", [Qt.DisplayRole, Qt.EditRole])
@@ -480,14 +427,13 @@ def test_set_date_retains_time(role):
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
-    person = Person(name="Person A")
-    person.birthEvent.setDateTime(util.Date(2000, 1, 1, 12, 35, 0))
+    person = scene.addItem(Person(name="Person A"))
+    birthEvent = scene.addItem(Event(dateTime=util.Date(2000, 1, 1, 12, 35, 0)))
     scene.addItems(person)
     model.setData(
         model.index(0, model.columnIndex(model.DATETIME)), "4/5/2003", role=role
     )
-    assert person.birthEvent.dateTime() == util.Date(2003, 4, 5, 12, 35, 0)
+    assert birthEvent.dateTime() == util.Date(2003, 4, 5, 12, 35, 0)
 
 
 def test_set_emotion_date():
@@ -495,27 +441,28 @@ def test_set_emotion_date():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
 
     p1 = Person()
     p2 = Person()
     scene.addItems(p1, p2)
-    fusion = Emotion(
-        kind=util.ITEM_FUSION,
-        personA=p1,
-        personB=p2,
-        startDateTime=util.Date(1990, 1, 11),
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        person=p1,
+        relationship=RelationshipKind.Fusion,
+        relationshipTarget=p2,
+        dateTime=util.Date(1990, 1, 11),
         endDateTime=util.Date(1992, 1, 1),
     )
     scene.addItem(fusion)
-    assert model.rowForEvent(fusion.startEvent) == 0
-    assert model.rowForEvent(fusion.endEvent) == 1
+    endEvent = model.endEventForEvent(fusion)
+    assert model.rowForEvent(fusion) == 0
+    assert model.rowForEvent(endEvent) == 1
 
     iDate = model.columnIndex(model.DATETIME)
     rowsRemoved = util.Condition(model.rowsRemoved)
     rowsInserted = util.Condition(model.rowsInserted)
     model.setData(model.index(0, iDate), "1/1/1991")
-    assert fusion.startDateTime() == util.Date(1991, 1, 1)
+    assert fusion.dateTime() == util.Date(1991, 1, 1)
     assert fusion.endDateTime() == util.Date(1992, 1, 1)
     assert rowsRemoved.callCount == 1
     assert rowsRemoved.callArgs[0][1] == 0
@@ -533,32 +480,35 @@ def test_set_emotion_date():
     )
 
 
-def test_emotion_move_has_only_one_event():
-    scene = Scene()
+def test_emotion_move_has_only_one_event(scene):
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     p1 = Person()
     p2 = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, startDateTime=util.Date(1980, 1, 11))
-    fusion.setPersonA(p1)
-    fusion.setPersonB(p2)
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        dateTime=util.Date(1980, 1, 11),
+        person=p1,
+        relationship=RelationshipKind.Fusion,
+        relationshipTargets=p2,
+    )
     scene.addItems(p1, p2, fusion)
     assert model.rowCount() == 1
-    assert model.index(0, 0).data(model.DateTimeRole) == fusion.startDateTime()
+    assert model.index(0, 0).data(model.DateTimeRole) == fusion.dateTime()
 
 
-def test_emotion_date_changed():
+def test_emotion_date_changed(scene):
 
-    scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     p1 = Person()
     p2 = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION)
-    fusion.setPersonA(p1)
-    fusion.setPersonB(p2)
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        person=p1,
+        relationshipTargets=p2,
+        relationship=RelationshipKind.Fusion,
+    )
     scene.addItems(p1, p2, fusion)
 
     dateTime = util.Date(1980, 1, 11)
@@ -566,7 +516,7 @@ def test_emotion_date_changed():
     iDate = model.columnIndex(model.DATETIME)
     rowsRemoved = util.Condition(model.rowsRemoved)
     rowsInserted = util.Condition(model.rowsInserted)
-    fusion.startEvent.setDateTime(dateTime)
+    fusion.setDateTime(dateTime)
     assert rowsRemoved.callCount == 0
     assert rowsInserted.callCount == 1
     assert rowsInserted.callArgs[0][1] == 0
@@ -579,21 +529,23 @@ def test_dateBuddies(timelineScene, model):
     p1 = timelineScene.query1(name="p1")
     p2 = timelineScene.query1(name="p2")
 
-    fusion = Emotion(
-        kind=util.ITEM_FUSION,
-        personA=p1,
-        personB=p2,
-        startDateTime=util.Date(1981, 5, 11),
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        person=p1,
+        relationship=RelationshipKind.Fusion,
+        relationshipTargets=p2,
+        dateTime=util.Date(1981, 5, 11),
         endDateTime=util.Date(2015, 1, 1),
     )
     timelineScene.addItem(fusion)
+    endEvent = timelineScene.endEventForEvent(fusion)
 
-    assert model.firstRowForDateTime(fusion.startEvent.dateTime()) == 2
-    assert model.rowForEvent(fusion.startEvent) == 2
-    assert model.firstRowForDateTime(fusion.endEvent.dateTime()) == 3
+    assert model.firstRowForDateTime(fusion.dateTime()) == 2
+    assert model.rowForEvent(fusion) == 2
+    assert model.firstRowForDateTime(endEvent.dateTime()) == 3
 
-    startDateRow = model.rowForEvent(fusion.startEvent)
-    endDateRow = model.rowForEvent(fusion.endEvent)
+    startDateRow = model.rowForEvent(fusion)
+    endDateRow = model.rowForEvent(endEvent)
     assert startDateRow == 2
     assert endDateRow == 3
 
@@ -647,21 +599,22 @@ def test_emotion_parentName_changed():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     p1 = Person(name="p1")
     p2 = Person(name="p2")
-    fusion = Emotion(
-        kind=util.ITEM_FUSION,
-        personA=p1,
-        personB=p2,
-        startDateTime=util.Date(1980, 5, 11),
+    fusion = Event(
+        kind=EventKind.VariableShift,
+        person=p1,
+        relationship=RelationshipKind.Fusion,
+        relationshipTargets=p2,
+        dateTime=util.Date(1980, 5, 11),
         endDateTime=util.Date(1980, 5, 12),
     )
     scene.addItems(p1, p2, fusion)
+    endEvent = model.endEventForEvent(fusion)
     # util.printModel(model)
     assert model.rowCount() == 2  # startDateTime, endDateTime
-    assert model.rowForEvent(fusion.startEvent) == 0
-    assert model.rowForEvent(fusion.endEvent) == 1
+    assert model.rowForEvent(fusion) == 0
+    assert model.rowForEvent(endEvent) == 1
     assert model.data(model.index(0, model.COLUMNS.index(model.PARENT))) == "p1 & p2"
 
     dataChanged = util.Condition()
@@ -681,13 +634,12 @@ def test_rows_for_date():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     p1 = Person(name="p1")
-    event1 = Event(parent=p1, dateTime=util.Date(1900, 1, 2))
-    event2 = Event(parent=p1, dateTime=util.Date(1910, 1, 2))
-    event3 = Event(parent=p1, dateTime=util.Date(1910, 1, 2))
-    event4 = Event(parent=p1, dateTime=util.Date(1910, 1, 2))
-    event5 = Event(parent=p1, dateTime=util.Date(1920, 1, 2))
+    event1 = Event(person=p1, dateTime=util.Date(1900, 1, 2))
+    event2 = Event(person=p1, dateTime=util.Date(1910, 1, 2))
+    event3 = Event(person=p1, dateTime=util.Date(1910, 1, 2))
+    event4 = Event(person=p1, dateTime=util.Date(1910, 1, 2))
+    event5 = Event(person=p1, dateTime=util.Date(1920, 1, 2))
     scene.addItems(p1)
 
     dateTime = util.Date(1899, 1, 2)
@@ -726,15 +678,14 @@ def test_rows_for_date_search():
     scene = Scene()
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     model.searchModel = SearchModel()
     model.searchModel.scene = scene
     p1 = Person(name="p1")
-    event1 = Event(parent=p1, dateTime=util.Date(1900, 1, 2))
-    event2 = Event(parent=p1, dateTime=util.Date(1910, 1, 2), tags=["bleh"])  # 0
-    event3 = Event(parent=p1, dateTime=util.Date(1910, 1, 2))
-    event4 = Event(parent=p1, dateTime=util.Date(1910, 1, 2), tags=["bleh"])  # 1
-    event5 = Event(parent=p1, dateTime=util.Date(1920, 1, 2), tags=["bleh"])  # 2
+    event1 = Event(person=p1, dateTime=util.Date(1900, 1, 2))
+    event2 = Event(person=p1, dateTime=util.Date(1910, 1, 2), tags=["bleh"])  # 0
+    event3 = Event(person=p1, dateTime=util.Date(1910, 1, 2))
+    event4 = Event(person=p1, dateTime=util.Date(1910, 1, 2), tags=["bleh"])  # 1
+    event5 = Event(person=p1, dateTime=util.Date(1920, 1, 2), tags=["bleh"])  # 2
     scene.addItems(p1)
 
     model.searchModel.tags = ["bleh"]
@@ -770,38 +721,38 @@ def test_rows_for_date_search():
     assert model.dateBetweenRow(dateTime) == 2
 
 
-def test_showAliases_signals():
-    scene = Scene()
+def test_showAliases_signals(scene: Scene):
     model = TimelineModel()
     model.scene = scene
-    model.items = [scene]
     patrick = Person(name="Patrick", alias="Marco", notes="Patrick Bob")
     bob = Person(name="Bob", nickName="Robby", alias="John")
     e1 = Event(
-        parent=patrick, dateTime=util.Date(1900, 1, 1), description="Bob came home"
+        person=patrick, dateTime=util.Date(1900, 1, 1), description="Bob came home"
     )
     e2 = Event(
-        parent=patrick,
+        person=patrick,
         dateTime=util.Date(1900, 1, 2),
         description="robby came home, took Robby's place",
     )
     e3 = Event(
-        parent=bob,
+        person=bob,
         dateTime=util.Date(1900, 1, 3),
         description="Patrick came home with bob",
     )
-    distance = Emotion(
-        kind=util.ITEM_DISTANCE,
-        startDateTime=util.Date(1900, 1, 4),
+    distance = Event(
+        kind=EventKind.VariableShift,
+        relationship=RelationshipKind.Distance,
+        dateTime=util.Date(1900, 1, 4),
         endDateTime=util.Date(1900, 1, 5),
-        personA=patrick,
-        personB=bob,
+        person=patrick,
+        relationshipTargets=bob,
     )
     marriage = Marriage(personA=patrick, personB=bob)
-    marriedEvent = Event(
-        parent=marriage,
-        uniqueId=EventKind.Married.value,
+    married = Event(
+        kind=EventKind.Married,
         dateTime=util.Date(1900, 1, 5),
+        person=patrick,
+        spouse=bob,
     )
     scene.addItems(patrick, bob, distance, marriage)
     newValues = {}
@@ -834,13 +785,13 @@ def test_showAliases_signals():
     assert model.index(2, 3).data() == "Patrick came home with bob"
     assert model.index(2, 5).data() == "Bob"
 
-    assert distance.parentName() == "Patrick & Bob"
+    assert distance.personName() == "Patrick & Bob"
     assert model.index(3, 3).data() == "Distance began"
     assert model.index(3, 5).data() == "Patrick & Bob"
     assert model.index(4, 3).data() == "Distance ended"
     assert model.index(4, 5).data() == "Patrick & Bob"
 
-    assert marriedEvent.parentName() == "Patrick & Bob"
+    assert married.personName() == "Patrick & Bob"
     assert model.index(5, 5).data() == "Patrick & Bob"
 
     util.runModel(model, silent=True)
@@ -863,7 +814,7 @@ def test_showAliases_signals():
     assert newValues[3][5] == "[Marco] & [John]"
     assert newValues[4][5] == "[Marco] & [John]"
 
-    assert marriedEvent.parentName() == "[Marco] & [John]"
+    assert married.parentName() == "[Marco] & [John]"
     assert model.index(5, 5).data() == "[Marco] & [John]"
 
 

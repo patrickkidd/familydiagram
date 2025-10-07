@@ -27,7 +27,7 @@ def variables(scene):
 def test_init_Birth(scene, view):
     person = scene.addItem(Person(name="John Doe"))
     event = scene.addItem(
-        Event(person, uniqueId=EventKind.Birth.value, description=EventKind.Birth.name)
+        Event(person, kind=EventKind.Birth, description=EventKind.Birth.name)
     )
     event.setDateTime(START_DATETIME)
     event.setLocation("Old Location")
@@ -36,7 +36,7 @@ def test_init_Birth(scene, view):
     view.view.editEvents([event])
     assert view.item.property("kindBox").property("enabled") == False
     assert view.view.personEntry()["person"] == person
-    assert view.item.property("kind") == EventKind.Birth.value
+    assert view.item.property("kind") == EventKind.Birth
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Old Location"
     assert view.item.property("notes") == "Old Notes"
@@ -45,7 +45,7 @@ def test_init_Birth(scene, view):
 def test_init_Death(scene, view):
     person = scene.addItem(Person(name="John Doe"))
     event = scene.addItem(
-        Event(person, uniqueId=EventKind.Death.value, description=EventKind.Death.name)
+        Event(person, kind=EventKind.Death, description=EventKind.Death.name)
     )
     event.setDateTime(START_DATETIME)
     event.setLocation("Old Location")
@@ -55,7 +55,7 @@ def test_init_Death(scene, view):
 
     view.view.editEvents([event])
     assert view.view.personEntry()["person"] == person
-    assert view.item.property("kind") == EventKind.Death.value
+    assert view.item.property("kind") == EventKind.Death
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Old Location"
     assert view.item.property("notes") == "Old Notes"
@@ -66,7 +66,7 @@ def test_init_VariableShift(scene, view):
     event = scene.addItem(
         Event(
             parent=mother,
-            uniqueId=EventKind.VariableShift.value,
+            kind=EventKind.VariableShift,
             location="Some Location",
             notes="Some Notes",
             dateTime=START_DATETIME,
@@ -74,7 +74,7 @@ def test_init_VariableShift(scene, view):
     )
     event.setDescription("Some Description")
     view.view.editEvents([event])
-    assert view.item.property("kind") == EventKind.VariableShift.value
+    assert view.item.property("kind") == EventKind.VariableShift
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries() == []
     assert view.view.trianglesEntries() == []
@@ -102,8 +102,8 @@ def test_init_VariableShift_Conflict(scene, view):
     util.waitALittle()
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.VariableShift.value
-    assert view.item.property("relationship") == RelationshipKind.Conflict.value
+    assert view.item.property("kind") == EventKind.VariableShift
+    assert view.item.property("relationship") == RelationshipKind.Conflict
     assert view.item.property("description") == "Conflict began"
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Some Location"
@@ -130,8 +130,8 @@ def test_init_VariableShift_Triangle(scene, view):
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == lover
     assert view.view.trianglesEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.VariableShift.value
-    assert view.item.property("relationship") == RelationshipKind.Inside.value
+    assert view.item.property("kind") == EventKind.VariableShift
+    assert view.item.property("relationship") == RelationshipKind.Inside
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("endDateTime") == END_DATETIME
     assert view.item.property("isDateRange") is True
@@ -166,7 +166,7 @@ def test_edit_isPerson(scene, view, kind):
         view.clickSaveButton()
 
     assert len(person.events()) == 1
-    assert event.uniqueId() == kind.value
+    assert event.kind() == kind
     assert event.description() == kind.name
     assert event.location() == "New Location"
     assert event.notes() == "New Notes"
@@ -183,9 +183,9 @@ def test_edit_isPairBond(scene, view, kind: EventKind, legacy: bool):
     spouse = scene.addItem(Person(name="Jane Doe"))
     marriage = scene.addItem(Marriage(person, spouse))
     if legacy:
-        event = scene.addItem(Event(marriage, uniqueId=kind.value))
+        event = scene.addItem(Event(marriage, kind=kind))
     else:
-        event = scene.addItem(Event(person, uniqueId=kind.value))
+        event = scene.addItem(Event(person, kind=kind))
         event.setSpouse(spouse)
     event.setRelationshipTargets([spouse])
     view.view.editEvents([event])
@@ -193,7 +193,7 @@ def test_edit_isPairBond(scene, view, kind: EventKind, legacy: bool):
     view.clickSaveButton()
 
     # assert len(person.events()) == 1
-    assert event.uniqueId() == kind.value
+    assert event.kind() == kind
     assert event.dateTime() == START_DATETIME
     if legacy:
         assert event.parent == marriage

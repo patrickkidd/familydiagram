@@ -4,38 +4,52 @@ from datetime import datetime
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
-from pkdiagram.scene.commands import SetEventParent
+from pkdiagram.scene.commands import SetEventPerson
 
 
 class Event(Item):
     """
     Canonical way to add:
-        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), uniqueId=EventKind.Birth.value)
+        event = Event(personOrPairbond, dateTime=QDateTime.currentDateTime(), kind=EventKind.Birth)
         scene.addItem(event)
 
-    Events are also added / removed from the scene whenever the parent is added / removed from the scene.
+    Events are also added / removed from the scene whenever the person is added / removed from the scene.
     """
 
     Item.registerProperties(
         (
+            {"attr": "kind"},
             {"attr": "dateTime", "type": QDateTime},
+            {"attr": "endDateTime", "type": QDateTime},
             {"attr": "unsure", "default": True},
             {"attr": "description"},
             {"attr": "nodal", "default": False},
             {"attr": "notes"},
             {"attr": "color", "type": str, "default": None},
-            {"attr": "parentName"},
+            {"attr": "personName"},
             {"attr": "location"},
-            {"attr": "uniqueId"},  # TODO: Rename to `lifeChange`, one of EventKind
             {"attr": "spouse", "type": int, "default": None},
             {"attr": "child", "type": int, "default": None},
             {"attr": "relationshipTargets", "type": list, "default": []},
             {"attr": "relationshipTriangles", "type": list, "default": []},
+            {
+                "attr": "relationshipIntensity",
+                "type": int,
+                "default": util.DEFAULT_EMOTION_INTENSITY,
+                "onset": "updateGeometry",
+            },
             {"attr": "includeOnDiagram", "default": False},
         )
     )
 
-    def __init__(self, parent=None, dynamicProperties: dict | None = None, **kwargs):
+    def __init__(
+        self,
+        person=None,
+        dynamicProperties: dict | None = None,
+        relationshipTargets: "list[Person]" = [],
+        relationshipTriangles: "list[Person]" = [],
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.isEvent = True
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
@@ -46,18 +60,23 @@ class Event(Item):
         self._aliasParentName = None
         self._onShowAliases = False
         self._updatingDescription = False
-        self.parent: Item | None = None
+        self._emotions = []  # relationships only
+        self.person: Item | None = None
         if dynamicProperties:
             for attr, value in dynamicProperties.items():
                 self.addDynamicProperty(attr).set(value)
-        # avoid adding to the parent in various cases
-        if parent:  # for tidyness in ctors
-            self._do_setParent(parent)
+        if relationshipTargets:
+            self.setRelationshipTargets(relationshipTargets)
+        if relationshipTriangles:
+            self.setRelationshipTriangles(relationshipTriangles)
+        # avoid adding to the person in various cases
+        if person:  # for tidyness in ctors
+            self._do_setPerson(person)
             self.updateDescription()
 
     def itemName(self):
-        if self.parent:
-            return "<%s>: %s" % (self.parent.itemName(), self.description())
+        if self.person:
+            return "<%s>: %s" % (self.person.itemName(), self.description())
         else:
             return str(self)
 
@@ -85,88 +104,76 @@ class Event(Item):
             return False
         elif self.dateTime() and other.dateTime():
             return self.dateTime() < other.dateTime()
-        elif self.parent == other.parent:
-            if self.parent is None:
+        elif self.person == other.person:
+            if self.person is None:
                 return False
-            elif self.parent.isPerson:
+            elif self.person.isPerson:
+                if self.kind() == EventKind.Birth and other.kind() == EventKind.Adopted:
+                    return True
+                elif self.kind() == EventKind.Birth and other.kind() == EventKind.Death:
+                    return True
+                elif (
+                    self.kind() == EventKind.Adopted and other.kind() == EventKind.Birth
+                ):
+                    return False
+                elif (
+                    self.kind() == EventKind.Adopted and other.kind() == EventKind.Death
+                ):
+                    return True
+                elif self.kind() == EventKind.Death and other.kind() == EventKind.Birth:
+                    return False
+                elif (
+                    self.kind() == EventKind.Death and other.kind() == EventKind.Adopted
+                ):
+                    return False
+            elif self.person.isMarriage:
                 if (
-                    self.uniqueId() == EventKind.Birth.value
-                    and other.uniqueId() == EventKind.Adopted.value
+                    self.kind() == EventKind.Married
+                    and other.kind() == EventKind.Separated
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Birth.value
-                    and other.uniqueId() == EventKind.Death.value
+                    self.kind() == EventKind.Married
+                    and other.kind() == EventKind.Divorced
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Adopted.value
-                    and other.uniqueId() == EventKind.Birth.value
+                    self.kind() == EventKind.Separated
+                    and other.kind() == EventKind.Married
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Adopted.value
-                    and other.uniqueId() == EventKind.Death.value
+                    self.kind() == EventKind.Separated
+                    and other.kind() == EventKind.Divorced
                 ):
                     return True
                 elif (
-                    self.uniqueId() == EventKind.Death.value
-                    and other.uniqueId() == EventKind.Birth.value
+                    self.kind() == EventKind.Divorced
+                    and other.kind() == EventKind.Married
                 ):
                     return False
                 elif (
-                    self.uniqueId() == EventKind.Death.value
-                    and other.uniqueId() == EventKind.Adopted.value
+                    self.kind() == EventKind.Divorced
+                    and other.kind() == EventKind.Separated
                 ):
                     return False
-            elif self.parent.isMarriage:
-                if (
-                    self.uniqueId() == EventKind.Married.value
-                    and other.uniqueId() == EventKind.Separated.value
-                ):
-                    return True
-                elif (
-                    self.uniqueId() == EventKind.Married.value
-                    and other.uniqueId() == EventKind.Divorced.value
-                ):
-                    return True
-                elif (
-                    self.uniqueId() == EventKind.Separated.value
-                    and other.uniqueId() == EventKind.Married.value
-                ):
-                    return False
-                elif (
-                    self.uniqueId() == EventKind.Separated.value
-                    and other.uniqueId() == EventKind.Divorced.value
-                ):
-                    return True
-                elif (
-                    self.uniqueId() == EventKind.Divorced.value
-                    and other.uniqueId() == EventKind.Married.value
-                ):
-                    return False
-                elif (
-                    self.uniqueId() == EventKind.Divorced.value
-                    and other.uniqueId() == EventKind.Separated.value
-                ):
-                    return False
-        if self.uniqueId() and not other.uniqueId():
+        if self.kind() and not other.kind():
             return True
-        elif not self.uniqueId() and other.uniqueId():
+        elif not self.kind() and other.kind():
             return True
         else:
             return False
 
-    def _do_setParent(self, parent):
-        was = self.parent
-        self.parent = parent
+    def _do_setPerson(self, person):
+        was = self.person
+        self.person = person
         if was and not was.isEmotion and not was.isScene:
             was._onRemoveEvent(self)
-        if parent and not parent.isEmotion and not parent.isScene:
-            parent._onAddEvent(self)
+        if person and not person.isEmotion and not person.isScene:
+            person._onAddEvent(self)
         wasDescription = self.description()
         wasNotes = self.notes()
-        wasParentName = self.parentName()
+        wasParentName = self.personName()
         # >>> still needed ???
         self.updateDescription()
         self.updateNotes()
@@ -176,48 +183,46 @@ class Event(Item):
             self.onProperty(self.prop("description"))
         if self.notes() != wasNotes:
             self.onProperty(self.prop("notes"))
-        if self.parentName() != wasParentName:
-            self.onProperty(self.prop("parentName"))
+        if self.personName() != wasParentName:
+            self.onProperty(self.prop("personName"))
 
-    def setParent(self, parent, undo=False):
-        """The proper way to assign a parent, also called from Event(parent)."""
+    def setPerson(self, person, undo=False):
+        """The proper way to assign a person, also called from Event(person)."""
         if undo:
             scene = self.scene()
             if not scene:
-                scene = parent.scene()
-            scene.push(SetEventParent(self, parent))
+                scene = person.scene()
+            scene.push(SetEventPerson(self, person))
         else:
-            self._do_setParent(parent)
+            self._do_setPerson(person)
 
     def onProperty(self, prop):
-        if prop.name() == "location" and self.uniqueId() == EventKind.Moved.value:
+        if prop.name() == "location" and self.kind() == EventKind.Moved:
             if not self._onShowAliases:
                 self.updateDescription()
         elif prop.name() == "notes":
             if not self._onShowAliases:
                 self.updateNotes()
         # Disabled because this is probably only ever set from the emotion
-        # properties and now we aggreate uniqueId and description into a single
-        #     QUndoEvent. elif prop.name() == "uniqueId":
+        # properties and now we aggreate kind and description into a single
+        #     QUndoEvent. elif prop.name() == "kind":
         #     self.updateDescription()
         super().onProperty(prop)
-        if self.parent:
-            self.parent.onEventProperty(prop)
+        if self.person:
+            self.person.onEventProperty(prop)
 
     def scene(self) -> "Scene":
-        if self.parent:
-            if self.parent.isScene:
-                return self.parent
+        if self.person:
+            if self.person.isScene:
+                return self.person
             else:
-                return self.parent.scene()
+                return self.person.scene()
 
     def kind(self) -> EventKind:
-        if self.uniqueId():
-            try:
-                return EventKind(self.uniqueId())
-            except ValueError:
-                return None
-        return None
+        return EventKind(self.prop("kind").get())
+
+    def setKind(self, x: EventKind):
+        self.prop("kind").set(x)
 
     def shouldShowAliases(self):
         scene = self.scene()
@@ -225,20 +230,20 @@ class Event(Item):
 
     def updateParentName(self):
         """Force re-write of aliases."""
-        if not self.parent:
+        if not self.person:
             return
-        prop = self.prop("parentName")
+        prop = self.prop("personName")
         newParentName = None
-        if self.parent:
-            if self.parent.isPerson:
-                newParentName = self.parent.name()
-            elif self.parent.isMarriage or self.parent.isEmotion:
-                peopleNames = self.parent.peopleNames()
+        if self.person:
+            if self.person.isPerson:
+                newParentName = self.person.name()
+            elif self.person.isMarriage or self.person.isEmotion:
+                peopleNames = self.person.peopleNames()
                 if not peopleNames:
                     peopleNames = "<not set>"
                 newParentName = peopleNames
         if newParentName != prop.get():
-            self.prop("parentName").set(newParentName)  # , notify=False)
+            self.prop("personName").set(newParentName)  # , notify=False)
         scene = self.scene()
         if prop.get() is not None and scene:
             self._aliasParentName = scene.anonymize(prop.get())
@@ -253,9 +258,8 @@ class Event(Item):
         prop = self.prop("description")
         wasDescription = prop.get()
         newDescription = None
-        uniqueId = self.uniqueId()
-        if self.parent and uniqueId:
-            newDescription = self.getDescriptionForUniqueId(uniqueId)
+        if self.person:
+            newDescription = self.getDescriptionForKind(self.kind())
             if wasDescription != newDescription:
                 if newDescription:
                     prop.set(newDescription, undo=undo)
@@ -286,7 +290,7 @@ class Event(Item):
         prop = self.prop("notes")
         if prop.get() != self._aliasNotes:
             self.onProperty(prop)
-        prop = self.prop("parentName")
+        prop = self.prop("personName")
         if prop.get() != self._aliasParentName:
             self.onProperty(prop)
         self._onShowAliases = False
@@ -301,48 +305,46 @@ class Event(Item):
         else:
             return self.prop("description").get()
 
-    def getDescriptionForUniqueId(self, uniqueId=None):
-        if not uniqueId:
-            uniqueId = self.uniqueId()
+    def getDescriptionForKind(self, kind=None):
         ret = None
-        if self.parent:
-            if self.parent.isPerson:
-                if uniqueId == EventKind.Birth.value:
+        if self.person:
+            if self.person.isPerson:
+                if kind == EventKind.Birth:
                     ret = util.BIRTH_TEXT
-                elif uniqueId == EventKind.Adopted.value:
+                elif kind == EventKind.Adopted:
                     ret = util.ADOPTED_TEXT
-                elif uniqueId == EventKind.Death.value:
+                elif kind == EventKind.Death:
                     ret = util.DEATH_TEXT
-            elif self.parent.isMarriage:
-                if uniqueId == EventKind.Bonded.value:
+            elif self.person.isMarriage:
+                if kind == EventKind.Bonded:
                     ret = "Bonded"
-                elif uniqueId == EventKind.Married.value:
+                elif kind == EventKind.Married:
                     ret = "Married"
-                elif uniqueId == EventKind.Divorced.value:
+                elif kind == EventKind.Divorced:
                     ret = "Divorced"
-                elif uniqueId == EventKind.Separated.value:
+                elif kind == EventKind.Separated:
                     ret = "Separated"
-                elif uniqueId == "moved":
+                elif kind == "moved":
                     if self.location():
                         ret = "Moved to %s" % self.location()
                     else:
                         ret = "Moved"
-            elif self.parent.isEmotion and self.parent.isInit:
-                if uniqueId == "emotionStartEvent":
-                    if self.parent.isSingularDate():
-                        ret = self.parent.kindLabelForKind(self.parent.kind())
+            elif self.person.isEmotion and self.person.isInit:
+                if kind == "emotionStartEvent":
+                    if self.person.isSingularDate():
+                        ret = self.person.kindLabelForKind(self.person.kind())
                     elif self.dateTime():
-                        kind = self.parent.kindLabelForKind(self.parent.kind())
+                        kind = self.person.kindLabelForKind(self.person.kind())
                         ret = f"{kind} began"
                     else:
                         ret = ""
-                elif uniqueId == "emotionEndEvent":
-                    if self.parent.isSingularDate():
+                elif kind == "emotionEndEvent":
+                    if self.person.isSingularDate():
                         ret = ""
                     elif not self.dateTime():
                         ret = ""
                     else:
-                        kind = self.parent.kindLabelForKind(self.parent.kind())
+                        kind = self.person.kindLabelForKind(self.person.kind())
                         ret = f"{kind} ended"
         return ret
 
@@ -354,22 +356,22 @@ class Event(Item):
         else:
             return self.prop("notes").get()
 
-    def parentName(self):
+    def personName(self):
         if self.shouldShowAliases():
             if (
-                self._aliasParentName is None and self.prop("parentName").get()
+                self._aliasParentName is None and self.prop("personName").get()
             ):  # first time
                 self.updateParentName()
             return self._aliasParentName
         else:
-            return self.prop("parentName").get()
+            return self.prop("personName").get()
 
     def toText(self):
         return str(self)
 
     def documentsPath(self):
-        if hasattr(self.parent, "documentsPath") and self.parent.documentsPath():
-            return os.path.join(self.parent.documentsPath(), "Events", str(self.id))
+        if hasattr(self.person, "documentsPath") and self.person.documentsPath():
+            return os.path.join(self.person.documentsPath(), "Events", str(self.id))
 
     ## Dynamic Properties
 
@@ -406,6 +408,36 @@ class Event(Item):
 
     def clearDynamicProperties(self):
         self.dynamicProperties = []
+
+    # Pair-Bond Events
+
+    def setSpouse(self, person: "Person", notify=True, undo=False):
+        self.prop("spouse").set(person.id, notify=notify, undo=undo)
+
+    def spouse(self) -> "Person":
+        from pkdiagram.scene import Person
+
+        id = self.prop("spouse").get()
+        if not id:
+            return None
+        people = self.scene().find(ids=[id], types=Person)
+        if people:
+            return people[0]
+        return None
+
+    def setChild(self, person: "Person", notify=True, undo=False):
+        self.prop("child").set(person.id, notify=notify, undo=undo)
+
+    def child(self) -> "Person":
+        from pkdiagram.scene import Person
+
+        id = self.prop("child").get()
+        if not id:
+            return None
+        people = self.scene().find(ids=[id], types=Person)
+        if people:
+            return people[0]
+        return None
 
     # Variables
 
@@ -446,33 +478,31 @@ class Event(Item):
         if prop:
             prop.set(value.value, notify=notify, undo=undo)
 
-    def setSpouse(self, person: "Person", notify=True, undo=False):
-        self.prop("spouse").set(person.id, notify=notify, undo=undo)
+    def emotions(self) -> list["Emotion"]:
+        """
+        Canonical constructor for emotions unless drawn directly on the diagram with no dates.
+        """
+        from pkdiagram.scene import Emotion
 
-    def spouse(self) -> "Person":
-        from pkdiagram.scene import Person
+        if self.relationship():
+            if not self._emotions:
+                from pkdiagram.scene import Emotion
 
-        id = self.prop("spouse").get()
-        if not id:
-            return None
-        people = self.scene().find(ids=[id], types=Person)
-        if people:
-            return people[0]
-        return None
-
-    def setChild(self, person: "Person", notify=True, undo=False):
-        self.prop("child").set(person.id, notify=notify, undo=undo)
-
-    def child(self) -> "Person":
-        from pkdiagram.scene import Person
-
-        id = self.prop("child").get()
-        if not id:
-            return None
-        people = self.scene().find(ids=[id], types=Person)
-        if people:
-            return people[0]
-        return None
+                for target in self.relationshipTargets():
+                    emotion = self.scene.addItem(
+                        Emotion(
+                            kind=self.relationship(),
+                            target=target,
+                            event=self,
+                            tags=self.tags(),
+                            **kwargs,
+                        ),
+                        undo=True,
+                    )
+                    self._emotions.append(emotion)
+            return self._emotions
+        else:
+            return []
 
     def setRelationshipTargets(self, targets: list["Person"], notify=True, undo=False):
         if not isinstance(targets, list):

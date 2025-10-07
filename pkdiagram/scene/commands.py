@@ -110,14 +110,8 @@ class RemoveItems(QUndoCommand):
             for entry in self._unmapped["events"]:
                 if entry["event"] is item:
                     return
-            if item.uniqueId():  # just clear date for built-in events
-                parent = None
-                dateTime = item.dateTime()
-            else:
-                parent = item.parent
-                dateTime = None
             self._unmapped["events"].append(
-                {"event": item, "parent": parent, "dateTime": dateTime}
+                {"event": item, "person": item.person, "dateTime": item.dateTime()}
             )
 
         def mapEmotion(item):
@@ -238,11 +232,7 @@ class RemoveItems(QUndoCommand):
                 docsPath = item.documentsPath()
                 if docsPath and os.path.isdir(docsPath):  # this cannot be undone
                     shutil.rmtree(docsPath)
-                if item.uniqueId() and not item.parent.isMarriage:
-                    item.prop("dateTime").reset()
-                else:
-                    item.setParent(None)
-                    self.scene.removeItem(item)
+                self.scene.removeItem(item)
 
             elif item.isEmotion:
                 for person in list(item.people):
@@ -318,7 +308,7 @@ class RemoveItems(QUndoCommand):
             if entry["dateTime"]:
                 entry["event"].setDateTime(entry["dateTime"])
             else:
-                entry["event"].setParent(entry["parent"])
+                entry["event"].setPerson(entry["person"])
         #
         for entry in self._unmapped["emotions"]:
             entry["people"][0]._onAddEmotion(entry["emotion"])
@@ -492,19 +482,19 @@ class SetEmotionPerson(QUndoCommand):
                 self.emotion.setPersonB(self.was_personB)
 
 
-class SetEventParent(QUndoCommand):
+class SetEventPerson(QUndoCommand):
 
-    def __init__(self, event, parent):
-        super().__init__(f"Set event {event.itemName()} parent to {parent.itemName()}")
-        self.was_parent = event.parent
+    def __init__(self, event, person):
+        super().__init__(f"Set event {event.itemName()} person to {person.itemName()}")
+        self.was_person = event.person
         self.event = event
-        self.parent = parent
+        self.person = person
 
     def redo(self):
-        self.event._do_setParent(self.parent)
+        self.event._do_setPerson(self.person)
 
     def undo(self):
-        self.event._do_setParent(self.was_parent)
+        self.event._do_setPerson(self.was_person)
 
 
 # class SetEventKind(QUndoCommand):

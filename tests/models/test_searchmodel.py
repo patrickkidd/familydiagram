@@ -186,22 +186,26 @@ def test_ignores_layer_tags(model):
 @pytest.fixture
 def emotionModel():
     scene = Scene()
-    personA = Person(name="Person A")
-    personB = Person(name="Person B")
+    person = Person(name="Person A")
+    target = Person(name="Person B")
+    startEvent = Event(
+        person=person,
+        spouse=target,
+        dateTime=util.Date(2010, 1, 10),
+        endDateTime=util.Date(2010, 2, 10),
+        loggedDateTime=util.Date(2000, 1, 10),
+    )
+    endEvent = Event(dateTime=startEvent.endDateTime(), description="Conflict ended")
     conflict = Emotion(
-        personA=personA,
-        personB=personB,
+        event=startEvent,
+        target=target,
         kind=util.ITEM_CONFLICT,
     )
-    conflict.startEvent.setDateTime(util.Date(2010, 1, 10))
-    conflict.endEvent.setDateTime(util.Date(2010, 2, 10))
-    conflict.startEvent.setLoggedDateTime(util.Date(2000, 1, 10))
-    conflict.endEvent.setLoggedDateTime(util.Date(2000, 2, 10))
-    scene.addItems(personA, personB, conflict)
+    scene.addItems(person, target, conflict)
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.items = scene
-    return searchModel, conflict.startEvent, conflict.endEvent
+    return searchModel, startEvent, endEvent
 
 
 def test_loggedStartDateTime_emotions(emotionModel):

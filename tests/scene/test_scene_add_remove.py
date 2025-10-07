@@ -16,6 +16,8 @@ from pkdiagram.scene import (
     PathItem,
     ChildOf,
     Callout,
+    EventKind,
+    RelationshipKind,
 )
 
 pytestmark = [
@@ -127,25 +129,34 @@ def test_add_pairbond_undo_redo(scene):
 
 
 def test_add_emotion(scene, undo):
+    eventAdded = util.Condition(scene.eventAdded)
+    eventRemoved = util.Condition(scene.eventRemoved)
     emotionAdded = util.Condition(scene.emotionAdded)
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Emotion(
-        person1, person2, startDateTime=util.Date(2001, 1, 1), kind=util.ITEM_CONFLICT
+    emotion = Event(
+        kind=EventKind.VariableShift,
+        startDateTime=util.Date(2001, 1, 1),
+        person=person1,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=person2,
     )
     scene.addItems(person1, person2)
     scene.addItem(emotion, undo=undo)
+    assert eventAdded.callCount == 1
     assert emotionAdded.callCount == 1
     assert scene.people() == [person1, person2]
     assert scene.emotions() == [emotion]
     scene.undo()
     if undo:
         assert scene.currentDateTime() == QDateTime()
+        assert eventRemoved.callCount == 1
         assert emotionRemoved.callCount == 1
         assert scene.emotions() == []
     else:
-        assert scene.currentDateTime() == emotion.startDateTime()
+        assert scene.currentDateTime() == emotion.dateTime()
+        assert eventRemoved.callCount == 0
         assert emotionRemoved.callCount == 0
         assert scene.emotions() == [emotion]
 

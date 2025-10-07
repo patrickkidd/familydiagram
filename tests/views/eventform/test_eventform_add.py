@@ -50,7 +50,7 @@ def test_Birth_default_spouse_default_child(scene, view):
     assert spouse.name() == None
     assert child.name() == None
     event = child.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
+    assert event.kind() == EventKind.Birth
     assert event.description() == EventKind.Birth.name
 
 
@@ -69,7 +69,7 @@ def test_Birth_existing_parents_existing_child(scene, view):
     assert set(mother.marriages[0].people) == {mother, father}
     assert set(child.parents().people) == {mother, father}
     event = child.events()[0]
-    assert event.uniqueId() == EventKind.Birth.value
+    assert event.kind() == EventKind.Birth
     assert event.description() == EventKind.Birth.name
 
 
@@ -160,7 +160,7 @@ def test_add_multiple_events_to_new_person(scene, view):
     newPerson = scene.query1(name="John", lastName="Doe")
     assert len(scene.people()) == 3
     assert len(newPerson.events()) == 2
-    assert newPerson.events()[0].uniqueId() == EventKind.Birth.value
+    assert newPerson.events()[0].kind() == EventKind.Birth
     assert newPerson.events()[0].dateTime() == START_DATETIME
     assert newPerson.events()[1].description() == "Something happened"
     assert newPerson.events()[1].dateTime() == START_DATETIME.addDays(15)
@@ -203,7 +203,7 @@ def test_PairBond_add_existing(scene, view):
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
-    assert marriage.events()[0].uniqueId() == KIND.value
+    assert marriage.events()[0].kind() == KIND
     assert marriage.events()[0].description() == KIND.menuLabel()
 
 
@@ -221,7 +221,7 @@ def test_PairBond_add_multiple_events_to_new_pairbond(scene, view):
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 1
-    assert marriage.events()[0].uniqueId() == KIND_1.value
+    assert marriage.events()[0].kind() == KIND_1
     assert marriage.events()[0].description() == KIND_1.menuLabel()
 
     KIND_2 = EventKind.Bonded
@@ -235,7 +235,7 @@ def test_PairBond_add_multiple_events_to_new_pairbond(scene, view):
     assert len(scene.people()) == 2
     assert personA.marriages == personB.marriages == [marriage]
     assert len(marriage.events()) == 2
-    assert marriage.events()[0].uniqueId() == KIND_2.value
+    assert marriage.events()[0].kind() == KIND_2
     assert marriage.events()[0].description() == KIND_2.menuLabel()
-    assert marriage.events()[1].uniqueId() == KIND_1.value
+    assert marriage.events()[1].kind() == KIND_1
     assert marriage.events()[1].description() == KIND_1.menuLabel()
