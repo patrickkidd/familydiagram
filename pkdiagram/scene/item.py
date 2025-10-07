@@ -219,7 +219,7 @@ class Item:
         return self._propCache.keys()
         # return [p.name() for p in self.props]
 
-    def prop(self, name):
+    def prop(self, name) -> Property | None:
         return self._propCache.get(name)
 
     ## Scene Events

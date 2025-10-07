@@ -61,11 +61,11 @@ class SeparationIndicator(PathItem):
         lineRun = personRect.width() * 0.2 * custodyDirection
         y = personRect.height() * 0.15
         status = marriage.separationStatusFor(currentDateTime)
-        if status in (EventKind.Separated.value, EventKind.Divorced.value):
+        if status in (EventKind.Separated, EventKind.Divorced):
             x = 0
             path.moveTo(x, y)
             path.lineTo(x + lineRun, y - lineRise)
-        if status == EventKind.Divorced.value:
+        if status == EventKind.Divorced:
             x = personRect.width() * 0.1
             path.moveTo(x, y)
             path.lineTo(x + lineRun, y - lineRise)
@@ -127,7 +127,7 @@ class Marriage(PathItem):
         return path
 
     @staticmethod
-    def marriagesFor(personA, personB):
+    def marriagesFor(personA, personB) -> "list[Marriage]":
         return [m for m in personA.marriages if {personA, personB} == set(m.people)]
 
     @staticmethod
@@ -167,7 +167,6 @@ class Marriage(PathItem):
         self.people = [personA, personB]
         self._emotionalUnit = EmotionalUnit(self)
         self._events = []
-        self._eventsCache = []  # used for add|remove signals
         self._aliasNotes = None
         self._onShowAliases = False
         self.children = (
@@ -221,11 +220,6 @@ class Marriage(PathItem):
         super().write(chunk)
         chunk["person_a"] = self.people[0].id
         chunk["person_b"] = self.people[1].id
-        chunk["events"] = []
-        for i in self._events:
-            x = {}
-            i.write(x)
-            chunk["events"].append(x)
         chunk["detailsText"] = {}
         self.detailsText.write(chunk["detailsText"])
         chunk["separationIndicator"] = {}
@@ -235,19 +229,6 @@ class Marriage(PathItem):
         self.isInit = False
         super().read(chunk, byId)
         self.people = [byId(chunk["person_a"]), byId(chunk["person_b"])]
-        for eChunk in chunk.get("events", []):
-            if util.IS_DEV:
-                # test for duplicates from some bugs created in dev
-                skip = False
-                for e in self._events:
-                    if e.id == eChunk["id"]:
-                        log.warning(f"Ignoring duplicate event: {e.id}")
-                        skip = True
-                        break
-                if skip:
-                    continue
-            event = Event(self, id=eChunk["id"])
-            event.read(eChunk, byId)
         # need bounding rect for detailsPos
         self.updateDetails()  # before setPos?
         self.detailsText.read(chunk.get("detailsText", {}), byId)
@@ -260,9 +241,6 @@ class Marriage(PathItem):
         x = super().clone(scene)
         x._cloned_people_ids = [p.id for p in self.people]
         x._cloned_children_ids = [p.id for p in self.children]
-        for event in self._events:  # I wonder if excluding events would be a good idea?
-            event = event.clone(scene)
-            x._events.append(event)
         x._cloned_custody_id = self.custody()
         return x
 
@@ -452,45 +430,12 @@ class Marriage(PathItem):
         if not x in self._events:
             self._events.append(x)
             self.updateDetails()
-            self.updateEvents()
 
     def _onRemoveEvent(self, x):
         """Called from Event.setParent."""
         if x in self._events:
             self._events.remove(x)
             self.updateDetails()
-            self.updateEvents()
-
-    def updateEvents(self):
-        """handle add|remove changes."""
-
-        def byDate(event):
-            if event.dateTime() is None:
-                return QDateTime()
-            else:
-                return event.dateTime()
-
-        added = []
-        removed = []
-        newEvents = self._events = sorted(self._events, key=byDate)
-        oldEvents = self._eventsCache
-        for newEvent in newEvents:
-            if not newEvent in oldEvents:
-                added.append(newEvent)
-        for oldEvent in oldEvents:
-            if not oldEvent in newEvents:
-                removed.append(oldEvent)
-        # for event in added:
-        #     self.eventAdded.emit(event)
-        # for event in removed:
-        #     self.eventRemoved.emit(event)
-        self._eventsCache = list(newEvents)
-        return {
-            "oldEvents": oldEvents,
-            "newEvents": newEvents,
-            "added": added,
-            "removed": removed,
-        }
 
     ## Internal Data
 
@@ -525,7 +470,6 @@ class Marriage(PathItem):
                 if prop.get():
                     self.setMarried(True)
                     self.setSeparated(True)
-            self.updateEvents()
             self.updatePen()
         if prop.name() not in ("itemPos",):
             super().onProperty(prop)
@@ -640,7 +584,7 @@ class Marriage(PathItem):
                     lines.append("s. " + util.dateString(event.dateTime()))
                 elif kind == EventKind.Divorced and event.dateTime():
                     lines.append("d. " + util.dateString(event.dateTime()))
-                elif kind == "moved" and event.dateTime():
+                elif kind == EventKind.Moved and event.dateTime():
                     lines.append(
                         "%s %s"
                         % (util.dateString(event.dateTime()), event.description())

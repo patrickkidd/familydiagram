@@ -386,6 +386,19 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
+            item.person().onEventAdded()
+            for target in item.relationshipTargets():
+                emotion = self.addItem(
+                    Emotion(
+                        kind=self.relationship(),
+                        target=target,
+                        event=self,
+                        tags=self.tags(),
+                        **kwargs,
+                    ),
+                    undo=True,
+                )
+                self.do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
@@ -393,8 +406,6 @@ class Scene(QGraphicsScene, Item):
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
-            for emotion in item.emotions():
-                self._do_addItem(emotion)
         elif item.isEmotion:
             self._emotions.append(item)
             item.person()._emotions.append(item)
@@ -402,8 +413,6 @@ class Scene(QGraphicsScene, Item):
                 item.target()._emotions.append(item)
             if not self.isBatchAddingRemovingItems():
                 self.emotionAdded.emit(item)
-                if item.startDateTime() and not self._isUndoRedoing:
-                    self.setCurrentDateTime(item.startDateTime())
         elif item.isLayer:
             self._layers.append(item)
             item.setScene(self)
@@ -528,8 +537,7 @@ class Scene(QGraphicsScene, Item):
             item.parents().emotionalUnit().update()
             item.person.setParents(None)
         elif item.isEvent:
-            for emotion in item.emotions():
-                self._do_removeItem(emotion)
+            item.person().onEventRemoved()
             self._events.remove(item)
             self.eventRemoved.emit(item)
             if (

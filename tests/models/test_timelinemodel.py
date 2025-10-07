@@ -356,7 +356,7 @@ def test_delete_emotion_date(qtbot, timelineScene: Scene, model: TimelineModel):
         endDateTime=util.Date(2001, 1, 1),
     )
     timelineScene.addItem(conflict)
-    endEvent = model.endEventForEvent(conflict)
+    endRow = model.endEventForEvent(conflict)
     assert model.rowCount() == 4
 
     selectionModel = QItemSelectionModel(model)
@@ -366,7 +366,7 @@ def test_delete_emotion_date(qtbot, timelineScene: Scene, model: TimelineModel):
     qtbot.clickYesAfter(lambda: model.removeSelection(selectionModel))
     assert model.rowCount() == 3
     assert conflict.dateTime() == None
-    assert endEvent in timelineScene.events()
+    assert model.endRowForEvent(conflict) == endRow
 
     selectionModel.select(
         model.index(2, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows

@@ -33,21 +33,23 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         super().__init__(parent)
         self.initModelHelper()
 
-    def onItemEventAddedOrRemoved(self, event):
+    def onEventsChanged(self, event):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.kind() == EventKind.Married:
-            self.refreshProperty("anyMarriedEvents")
-            self.refreshProperty("everMarried")
-        elif event.kind() == EventKind.Separated:
-            self.refreshProperty("anySeparatedEvents")
-            self.refreshProperty("everSeparated")
-        elif event.kind() == EventKind.Divorced:
-            self.refreshProperty("everMarried")
-            self.refreshProperty("everSeparated")
-            self.refreshProperty("anyDivorcedEvents")
-            self.refreshProperty("everDivorced")
+        marriage = event.marriage()
+        if not marriage and marriage in self._items:
+            if event.kind() == EventKind.Married:
+                self.refreshProperty("anyMarriedEvents")
+                self.refreshProperty("everMarried")
+            elif event.kind() == EventKind.Separated:
+                self.refreshProperty("anySeparatedEvents")
+                self.refreshProperty("everSeparated")
+            elif event.kind() == EventKind.Divorced:
+                self.refreshProperty("everMarried")
+                self.refreshProperty("everSeparated")
+                self.refreshProperty("anyDivorcedEvents")
+                self.refreshProperty("everDivorced")
 
     def get(self, attr):
         ret = None
@@ -85,16 +87,15 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         return ret
 
     def set(self, attr, value):
-        if attr == "items":
-            if self._items:
-                for item in self._items:
-                    item.addPropertyListener
-                    item.eventAdded.disconnect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.disconnect(self.onItemEventAddedOrRemoved)
+        if attr == "scene":
+            if self._scene:
+                self._scene.eventAdded.disconnect(self.onEventsChanged)
+                self._scene.eventChanged.disconnect(self.onEventsChanged)
+                self._scene.eventRemoved.disconnect(self.onEventsChanged)
             if value:
-                for item in value:
-                    item.eventAdded.connect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.connect(self.onItemEventAddedOrRemoved)
+                value.eventAdded.connect(self.onEventsChanged)
+                value.eventChanged.connect(self.onEventsChanged)
+                value.eventRemoved.connect(self.onEventsChanged)
         super().set(attr, value)
         if attr == "married":
             self.refreshProperty("everMarried")

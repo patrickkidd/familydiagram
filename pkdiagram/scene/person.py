@@ -267,7 +267,7 @@ class Person(PathItem):
         self.setShapeMargin(0)  # override from PathItem
         self.setShapeIsBoundingRect(True)
         self._events = []
-        self._eventsCache = []
+        self._eventsCache = []  # Used for efficiently updating self.variablesDatabase
         self._emotions = []
         self._layers = []  # cache for &.prop('layers')
         self._layerItems = []
@@ -816,6 +816,16 @@ class Person(PathItem):
             "added": added,
             "removed": removed,
         }
+
+    def onEventAdded(self):
+        self.updateEvents()  # Recalc variables database
+        self.updateDetails()  # Birth/death dates affect display
+        self.updateGeometry()  # Adopted status affects visuals
+
+    def onEventRemoved(self):
+        self.updateEvents()
+        self.updateDetails()
+        self.updateGeometry()
 
     def onEventProperty(self, prop):
         if not self.isInit:

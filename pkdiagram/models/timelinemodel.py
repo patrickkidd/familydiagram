@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 # from sortedcontainers import SortedList
 from pkdiagram.pyqt import (
@@ -21,6 +22,32 @@ from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 
 _log = logging.getLogger(__name__)
+
+
+@dataclass
+class TimelineRow:
+    event: Event
+    isEndMarker: bool = False
+
+    def description(self) -> str:
+        if self.isEndMarker:
+            return f"{self.event.kind().name} ended"
+        else:
+            return self.event.kind().name
+
+    def dateTime(self) -> QDateTime:
+        if self.isEndMarker:
+            return self.event.endDateTime()
+        else:
+            return self.event.dateTime()
+
+    def __lt__(self, other):
+        if self.dateTime() < other.dateTime():
+            return True
+        elif self.dateTime() > other.dateTime():
+            return False
+        else:
+            return True
 
 
 def selectedEvents(timelineModel: "TimelineModel", selectionModel: QItemSelectionModel):
@@ -99,8 +126,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._events = SortedList()
-        self._endEvents = {}
+        self._rows = SortedList()
         self._columnHeaders = []
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
@@ -109,7 +135,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     # def __repr__(self):
     #     s = ''
-    #     for i, event in enumerate(self._events):
+    #     for i, event in enumerate(self._rows):
     #         s += ('    %s:\t%s\n' % (util.dateString(event.dateTime()), event.parent))
     #     return '%s: [\n%s]' % (self.__class__.__name__, s)
 
@@ -144,49 +170,37 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return hidden
 
     def _ensureEvent(self, event: Event, emit=True):
-        if event in self._events:
-            return
-        if event.dateTime() is None:
-            return
+        for row in self._rows:
+            if row.event == event:
+                return
         if not self._shouldHide(event):
-            newRow = self._events.bisect_right(
+            newRow = self._rows.bisect_right(
                 event
             )  # SortedList.add uses &.bisect_right()
             if emit:
                 self.beginInsertRows(QModelIndex(), newRow, newRow)
-            self._events.add(event)
+            self._rows.add(TimelineRow(event=event, isEndMarker=False))
             if emit:
                 self.endInsertRows()
 
         if event.endDateTime():
-            endEvent = Event(
-                dateTime=event.endDateTime(), description=f"{event.kind().name} ended"
-            )
-            self._endEvents[event] = endEvent
-            self._events.append(endEvent)
-            newRow = self._events.bisect_right(
+            newRow = self._rows.bisect_right(
                 event
             )  # SortedList.add uses &.bisect_right()
             if emit:
                 self.beginInsertRows(QModelIndex(), newRow, newRow)
-            self._events.add(event)
+            self._rows.add(TimelineRow(event=event, isEndMarker=True))
             if emit:
                 self.endInsertRows()
 
     def _removeEvent(self, event):
-        try:
-            row = self._events.index(event)
-        except ValueError:
+        rows = [x for x in self._rows if x.event == event]
+        if not rows:
             return
-        self.beginRemoveRows(QModelIndex(), row, row)
-        self._events.remove(event)
-        self.endRemoveRows()
-        #
-        if event.endDateTime() and (endEvent := self._endEvents.get(event)):
-            row = self._events.index(endEvent)
-            del self._endEvents[event]
+        for row in rows:
+            row = self._rows.index(row)
             self.beginRemoveRows(QModelIndex(), row, row)
-            self._events.remove(endEvent)
+            self._rows.remove(event)
             self.endRemoveRows()
 
     def refreshColumnHeaders(self, columnHeaders=None):
@@ -230,10 +244,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if not self._scene:
             return
         # sort and filter
-        self._events = SortedList()
+        self._rows = SortedList()
         for event in self._scene.events():
             if not self._shouldHide(event):
-                self._events.add(event)
+                self._ensureEvent(event, emit=False)
         self.refreshAllProperties()
         self.modelReset.emit()
 
@@ -248,8 +262,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if self._settingData:
             return
         event = prop.item
+        rows = [self._rows.index(x) for x in self._rows if x.event == event]
         try:
-            row = self._events.index(event)
+            startRow = self._rows.index(event)
         except ValueError:
             row = -1
         if prop.name() == "dateTime" or prop.name() == "endDateTime":
@@ -258,27 +273,27 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self.refreshProperty("dateBuddies")
         elif prop.name() == "description":
             col = self.COLUMNS.index(self.DESCRIPTION)
-            if row > -1:
+            for row in rows:
                 self.dataChanged.emit(self.index(row, col), self.index(row, col))
         elif prop.name() == "color":
             col = self.COLUMNS.index(self.COLOR)
-            if row > -1:
+            for row in rows:
                 self.dataChanged.emit(
                     self.index(row, 0),
                     self.index(row, self.columnCount() - 1),
                     [self.ColorRole],
                 )
+
         elif prop.name() == "location":
             col = self.COLUMNS.index(self.LOCATION)
-            if row > -1:
+            for row in rows:
                 self.dataChanged.emit(self.index(row, col), self.index(row, col))
         elif (
             prop.name() == "parentName"
         ):  # possibly redundant b/c it is already removed/re-added
             col = self.COLUMNS.index(self.PARENT)
-            if row > -1:
-                index = self.index(row, col)
-                self.dataChanged.emit(index, index)
+            for row in rows:
+                self.dataChanged.emit(self.index(row, col), self.index(row, col))
         # elif prop.name() == "color":
         #     self.refreshProperty("dateBuddies")
         elif prop.name() == "itemPos":
@@ -295,29 +310,16 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             else:  # 'nodal', for example
                 firstCol = 0
                 lastCol = self.columnCount() - 1
-            if row > -1:  # props before dates set on items
+            for row in rows:
                 self.dataChanged.emit(
                     self.index(row, firstCol), self.index(row, lastCol)
                 )
 
     def onEventRemoved(self, event):
-        if self._items:
-            self._removeEvent(event)
-
-    def onFinishedBatchAddingRemovingItems(self, added, removed):
-        """Just reset the model."""
-        for item in added:
-            if item.isEvent:
-                self._ensureEvent(item)
-        for item in removed:
-            if item.isEvent:
-                self._removeEvent(item)
-
-    def events(self):
-        return self._events.to_list()
+        self._removeEvent(event)
 
     def eventsAt(self, dateTime: QDateTime):
-        return [event for event in self._events if event.dateTime() == dateTime]
+        return [x.event for x in self._rows if x.dateTime() == dateTime]
 
     # QObjectHelper
 
@@ -353,7 +355,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 self._scene.eventAdded[Event].connect(self.onEventAdded)
                 self._scene.eventChanged[Event].connect(self.onEventChanged)
                 self._scene.eventRemoved[Event].connect(self.onEventRemoved)
-            self._events = SortedList()
+            self._rows = SortedList()
 
     ## Qt Virtuals
 
@@ -372,7 +374,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return ret
 
     def rowCount(self, index=QModelIndex()):
-        return len(self._events)
+        return len(self._rows)
 
     def columnCount(self, index=QModelIndex()):
         return len(self._columnHeaders)
@@ -384,7 +386,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return QVariant()
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        event = self._events[index.row()] if self._events else []
+        event = self._rows[index.row()].event
         ret = None
         if not self._scene:
             ret = None
@@ -456,7 +458,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if self._settingData:
             return False
         self._settingData = True  # block onItemChanged
-        event = self._events[index.row()]
+        event = self._rows[index.row()]
         success = True
         forceBlockEmit = False
         if self.isColumn(index, self.PARENT):
@@ -522,7 +524,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def flags(self, index):
         ret = 0
         try:
-            event = self._events[index.row()]
+            event = self._rows[index.row()]
         except IndexError:
             return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
@@ -586,38 +588,36 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     @pyqtSlot(int, result=QVariant)
     def itemForRow(self, row):
-        if row >= 0 and row < len(self._events):
-            return self._events[row].parent
+        if row >= 0 and row < len(self._rows):
+            return self._rows[row].parent
 
     def rowForEvent(self, event):
         """Only used in tests."""
         try:
-            return self._events.index(event)
+            return self._rows.index(event)
         except ValueError:
             return -1
 
     @pyqtSlot(int, result=QVariant)
     def eventForRow(self, row):
-        if row >= 0 and row < len(self._events):
-            return self._events[row]
+        if row >= 0 and row < len(self._rows):
+            return self._rows[row]
 
-    def endEventForEvent(self, event: Event):
-        """Return the emotion row that is a date buddy to this one."""
-        return self._endEvents.get(event)
+    def endRowForEvent(self, event: Event) -> TimelineRow:
+        """Return the date buddy to this one."""
+        for row in self._rows:
+            if row.event == event and row.isEndMarker:
+                return row
 
     def indexForEvent(self, event) -> QModelIndex:
         row = self.rowForEvent(event)
         if row >= 0:
             return self.index(row, 0)
 
-    @pyqtSlot(int, result=str)
-    def kindForRow(self, row: int) -> str:
-        return self._events[row].kind()
-
     @pyqtSlot(int, result=QDateTime)
     def dateTimeForRow(self, row):
-        if row >= 0 and row < len(self._events):
-            return self._events[row].dateTime()
+        if row >= 0 and row < len(self._rows):
+            return self._rows[row].dateTime()
         else:
             return QDateTime()
 
@@ -625,7 +625,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def firstRowForDateTime(self, dateTime):
         # entries = self._dateItemCache.get(date, None)
         row = -1
-        for i, event in enumerate(self._events):
+        for i, event in enumerate(self._rows):
             if event.dateTime() == dateTime:
                 row = i
                 break
@@ -634,9 +634,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(QDateTime, result=int)
     def lastRowForDateTime(self, dateTime):
         row = -1
-        for i, event in enumerate(reversed(self._events)):
+        for i, event in enumerate(reversed(self._rows)):
             if event.dateTime() == dateTime:
-                row = len(self._events) - 1 - i
+                row = len(self._rows) - 1 - i
                 break
         return row
 
@@ -648,7 +648,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if not date:
             return -1
         ret = -1
-        rowDates = [event.dateTime() for i, event in enumerate(self._events)]
+        rowDates = [event.dateTime() for i, event in enumerate(self._rows)]
         if not date in rowDates:
             if rowDates and date < rowDates[0]:
                 return 0  # prior to first
@@ -662,41 +662,41 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return ret
 
     def firstEventDateTime(self):
-        if self._events:
-            return self._events[0].dateTime()
+        if self._rows:
+            return self._rows[0].dateTime()
 
     def lastEventDateTime(self):
-        if self._events:
-            return self._events[-1].dateTime()
+        if self._rows:
+            return self._rows[-1].dateTime()
 
     def dateBuddyForRow(self, row):
         """Return the emotion row that is a date buddy to this one."""
-        event = self._events[row]
+        event = self._rows[row]
         if event and event.endDateTime():
             return event.endDateTime()
 
     # def dateBuddiesInternal(self):
     #     ret = set()
-    #     for event in self._events:
+    #     for event in self._rows:
     #         if event.parent.isEmotion:
     #             emotion = event.parent
     #             if (
-    #                 emotion.startEvent in self._events
-    #                 and emotion.endEvent in self._events
+    #                 emotion.startEvent in self._rows
+    #                 and emotion.endEvent in self._rows
     #             ):
     #                 if emotion.startEvent.dateTime() == emotion.endEvent.dateTime():
     #                     ret.add(
     #                         (
-    #                             self._events.index(emotion.startEvent),
-    #                             self._events.index(emotion.startEvent),
+    #                             self._rows.index(emotion.startEvent),
+    #                             self._rows.index(emotion.startEvent),
     #                             emotion,
     #                         )
     #                     )
     #                 else:
     #                     ret.add(
     #                         (
-    #                             self._events.index(emotion.startEvent),
-    #                             self._events.index(emotion.endEvent),
+    #                             self._rows.index(emotion.startEvent),
+    #                             self._rows.index(emotion.endEvent),
     #                             emotion,
     #                         )
     #                     )
