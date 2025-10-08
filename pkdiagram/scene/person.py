@@ -23,20 +23,17 @@ from pkdiagram.pyqt import (
     QAbstractAnimation,
     QPointF,
 )
-from pkdiagram import util, slugify
+from pkdiagram import util
 from pkdiagram.scene import (
     EventKind,
-    Property,
     PathItem,
     ItemDetails,
-    Event,
-    Emotion,
     Marriage,
     ChildOf,
     MultipleBirth,
     VariablesDatabase,
     random_names,
-    ItemMode,
+    RelationshipKind,
 )
 from pkdiagram.scene.commands import SetParents
 
@@ -454,23 +451,26 @@ class Person(PathItem):
         return self.fullNameOrAlias()
 
     def birthDateTime(self) -> QDateTime:
-        for event in self.eventsFor(self):
-            if event.kind() == EventKind.Birth:
-                return event.dateTime()
+        if self.scene():
+            for event in self.scene().eventsFor(self):
+                if event.kind() == EventKind.Birth:
+                    return event.dateTime()
         return QDateTime()
 
     def deceased(self) -> bool:
         if self.prop("deceased").get():
             return True
-        for event in self.eventsFor(self):
-            if event.kind() == EventKind.Death:
-                return True
+        if self.scene():
+            for event in self.scene().eventsFor(self):
+                if event.kind() == EventKind.Death:
+                    return True
         return False
 
     def deceasedDateTime(self) -> QDateTime:
-        for event in self.eventsFor(self):
-            if event.kind() == EventKind.Death:
-                return event.dateTime()
+        if self.scene():
+            for event in self.scene().eventsFor(self):
+                if event.kind() == EventKind.Death:
+                    return event.dateTime()
         return QDateTime()
 
     def age(self):
@@ -735,9 +735,10 @@ class Person(PathItem):
                 self.updateNotes()
         elif prop.name() == "primary":
             self._delegate.setPrimary(prop.get())
-            for emotion in self.emotions():
-                if emotion.kind() == RelationshipKind.Cutoff:
-                    emotion.updateGeometry()
+            if self.scene():
+                for emotion in self.scene().emotionsFor(self):
+                    if emotion.kind() == RelationshipKind.Cutoff:
+                        emotion.updateGeometry()
         elif prop.name() == "layers":
             if self.scene():
                 # Defensive, some layers were disappearing. Emotional Units?
@@ -761,7 +762,7 @@ class Person(PathItem):
         """handle add|remove changes."""
         added = []
         removed = []
-        newEvents = self.eventsFor(self)
+        newEvents = self.scene().eventsFor(self) if self.scene() else []
         oldEvents = self._eventsCache
         for newEvent in newEvents:
             if not newEvent in oldEvents:
@@ -842,10 +843,13 @@ class Person(PathItem):
 
     def updateVariablesDatabase(self):
         self.variablesDatabase.clear()
-        for event in self.eventsFor(self):
-            for prop in event.dynamicProperties:
-                if event.dateTime() and prop.isset():
-                    self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())
+        if self.scene():
+            for event in self.scene().eventsFor(self):
+                for prop in event.dynamicProperties:
+                    if event.dateTime() and prop.isset():
+                        self.variablesDatabase.set(
+                            prop.attr, event.dateTime(), prop.get()
+                        )
 
     def onAgeChanged(self):
         if self.scene():
@@ -1393,7 +1397,7 @@ class Person(PathItem):
             self.cachedPosChangeOldPos = self.pos()
         elif change == QGraphicsItem.ItemPositionHasChanged:
             if self.scene():  # None when commands.AddPerson
-                for emotion in self.emotions():
+                for emotion in self.scene().emotionsFor(self):
                     # update emotions fanned box offsets before updating their geometry
                     if emotion.fannedBox:
                         emotion.fannedBox.updateOffsets()  # double calls when more than one person/emotion moved...
@@ -1432,9 +1436,10 @@ class Person(PathItem):
 
     def onUpdateAll(self):
         super().onUpdateAll()
-        for emotion in self.emotions():
-            if emotion.kind() == RelationshipKind.Cutoff:
-                emotion.setParentItem(self)
+        if self.scene():
+            for emotion in self.scene().emotionsFor(self):
+                if emotion.kind() == RelationshipKind.Cutoff:
+                    emotion.setParentItem(self)
         self.onAgeChanged()
 
     ## Files

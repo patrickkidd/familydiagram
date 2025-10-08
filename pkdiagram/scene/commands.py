@@ -110,20 +110,28 @@ class RemoveItems(QUndoCommand):
             for entry in self._unmapped["events"]:
                 if entry["event"] is item:
                     return
-            self._unmapped["events"].append(
-                {"event": item, "person": item.person, "dateTime": item.dateTime()}
-            )
+            # Store IDs, not object references
+            mapping = {
+                "event": item,
+                "personId": item.person().id if item.person() else None,
+                "spouseId": item.spouse().id if item.spouse() else None,
+                "childId": item.child().id if item.child() else None,
+                "targetIds": [p.id for p in item.relationshipTargets()],
+                "triangleIds": [p.id for p in item.relationshipTriangles()],
+                "dateTime": item.dateTime(),
+            }
+            self._unmapped["events"].append(mapping)
 
         def mapEmotion(item):
             for entry in self._unmapped["emotions"]:
                 if entry["emotion"] is item:
                     return
-            self._unmapped["emotions"].append(
-                {
-                    "emotion": item,
-                    "people": list(item.people),
-                }
-            )
+            mapping = {
+                "emotion": item,
+                "eventId": item.event().id if item.event() else None,
+                "targetId": item.target().id if item.target() else None,
+            }
+            self._unmapped["emotions"].append(mapping)
 
         def mapItem(item):
             for layer in scene.layers():
@@ -149,9 +157,9 @@ class RemoveItems(QUndoCommand):
             if item.isPerson:
                 for marriage in list(item.marriages):
                     mapMarriage(marriage)
-                for emotion in list(item.emotions()):
+                for emotion in list(scene.emotionsFor(item)):
                     mapEmotion(emotion)
-                for event in list(item.events()):
+                for event in list(scene.eventsFor(item)):
                     mapEvent(event)
                 if item.childOf:
                     mapChildOf(item.childOf)
@@ -194,10 +202,12 @@ class RemoveItems(QUndoCommand):
                         person._onRemoveMarriage(marriage)
                     self.scene.removeItem(marriage)
 
-                for emotion in list(item.emotions()):
-                    for person in list(emotion.people):
-                        if person:  # ! dyadic
-                            person._onRemoveEmotion(emotion)
+                # Delete all events for this person
+                for event in list(self.scene.eventsFor(item)):
+                    self.scene.removeItem(event)
+
+                # Delete all emotions involving this person (as subject or target)
+                for emotion in list(self.scene.emotionsFor(item)):
                     self.scene.removeItem(emotion)
 
                 if item.childOf:
@@ -235,10 +245,7 @@ class RemoveItems(QUndoCommand):
                 self.scene.removeItem(item)
 
             elif item.isEmotion:
-                for person in list(item.people):
-                    if person:
-                        person._onRemoveEmotion(item)
-                        self.scene.removeItem(item)
+                self.scene.removeItem(item)
 
             elif item.isLayerItem:
                 self.scene.removeItem(item)
@@ -305,20 +312,22 @@ class RemoveItems(QUndoCommand):
             entry["person"].setParents(entry["parents"])
         #
         for entry in self._unmapped["events"]:
-            if entry["dateTime"]:
-                entry["event"].setDateTime(entry["dateTime"])
-            else:
-                entry["event"].setPerson(entry["person"])
+            # Events are restored via scene.addItem - person references will be resolved
+            # Just ensure event is in scene
+            if not entry["event"].scene():
+                self.scene.addItem(entry["event"])
         #
         for entry in self._unmapped["emotions"]:
-            entry["people"][0]._onAddEmotion(entry["emotion"])
-            entry["emotion"].setPersonA(entry["people"][0])
-            if entry["people"][1]:  # ! dyadic
-                entry["people"][1]._onAddEmotion(entry["emotion"])
-                entry["emotion"].setPersonB(entry["people"][1])
-            if not entry["emotion"].isDyadic():
-                entry["emotion"].setParentItem(entry["people"][0])
-            self.scene.addItem(entry["emotion"])
+            # Emotion references are via event, not direct person
+            if not entry["emotion"].scene():
+                self.scene.addItem(entry["emotion"])
+            # Update parent item for non-dyadic emotions
+            if (
+                not entry["emotion"].isDyadic()
+                and entry["emotion"].event()
+                and entry["emotion"].event().person()
+            ):
+                entry["emotion"].setParentItem(entry["emotion"].event().person())
         #
         for entry in self._unmapped["layers"]:  # before layer items
             for layerItem in entry["layerItems"]:

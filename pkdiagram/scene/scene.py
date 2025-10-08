@@ -1561,7 +1561,7 @@ class Scene(QGraphicsScene, Item):
 
     def emotionsFor(self, item: Union[Person, Event]) -> list[Emotion]:
         if isinstance(item, Person):
-            return [e for e in self._emotions if item in (e.item(), e.target())]
+            return [e for e in self._emotions if item in (e.person(), e.target())]
         elif isinstance(item, Event):
             return [e for e in self._emotions if e.event() is item]
 

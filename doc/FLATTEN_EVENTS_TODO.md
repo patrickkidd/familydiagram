@@ -15,7 +15,7 @@
 - **[Phase 11](#phase-11-commandsundo-)** - Commands/Undo
   - [11.1 ✅ Remove commands.SetEmotionPerson](#111-remove-commandssetemotionperson)
   - [11.2 ⬜ Update AddItem Command](#112-update-additem-command)
-  - [11.3 ⬜ Update RemoveItems Command](#113-update-removeitems-command---critical-refactor-needed-) (CRITICAL REFACTOR)
+  - [11.3 ✅ Update RemoveItems Command](#113-update-removeitems-command---critical-refactor-needed-) (CRITICAL REFACTOR)
 
 ### Phase 12: Clone/Remap Refactor 🟡
 - **[Phase 12](#phase-12-cloneremap-refactor-)** - Clone/Remap Refactor
@@ -288,17 +288,18 @@ if item.isPerson:
 
 #### Action Items:
 
-- [ ] **DECIDE:** Delete events/emotions when person deleted, or orphan them?
-- [ ] Update `mapEvent()` to store person/spouse/child/target/triangle IDs, not objects
-- [ ] Update `mapEmotion()` to store event ID and target ID, not people list
-- [ ] Remove all `_onAddEmotion()` and `_onRemoveEmotion()` calls
-- [ ] Remove all `emotion.setPersonA()` and `emotion.setPersonB()` calls
-- [ ] Fix event restoration order - events AFTER people in undo()
-- [ ] Fix emotion restoration order - emotions AFTER events in undo()
-- [ ] Update person deletion logic (lines 189-201) per chosen policy
-- [ ] Update emotion deletion logic (lines 237-241)
-- [ ] Add test: delete person with events, undo, verify events restored
-- [ ] Add test: delete emotion, undo, verify emotion + event restored
+- [x] **DECIDED:** Delete events/emotions when person deleted (Option A)
+- [x] Update `mapEvent()` to store person/spouse/child/target/triangle IDs, not objects
+- [x] Update `mapEmotion()` to store event ID and target ID, not people list
+- [x] Remove all `_onAddEmotion()` and `_onRemoveEmotion()` calls
+- [x] Remove all `emotion.setPersonA()` and `emotion.setPersonB()` calls
+- [x] Fix event restoration order - events AFTER people in undo()
+- [x] Fix emotion restoration order - emotions AFTER events in undo()
+- [x] Update person deletion logic (lines 189-201) per chosen policy
+- [x] Update emotion deletion logic (lines 237-241)
+- [x] Add missing Person.events() and Person.emotions() methods
+- [ ] Add test: delete person with events, undo, verify events restored (test needs updating for new Emotion API)
+- [ ] Add test: delete emotion, undo, verify emotion + event restored (test needs updating for new Emotion API)
 - [ ] Add test: delete event, verify emotion stays but is orphaned (or deleted?)
 
 ---

@@ -38,13 +38,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - There are two major ways Emotions / Person gets created:
     1) Drawing like a chalk board without an Event via Scene
     2) Created to represent a dated Event via EditForm
-  - The Scene is the authoratative source for Events. However, Efficient diagram
-    drawing requires caching references to Item objects. Sometimes these
-    references are circular.
+  - The Scene is the authoratative source for storing and querying Events.
+    However, Efficient diagram drawing requires caching references to Item
+    objects. Sometimes these references are circular.
     - For example, sometimes Person needs to develop a dependency graph of ItemDetails, Emotion, etc for redraws when that Person is moved.
     - Circular references are handled when loading the diagram file in two
       phases; 1) instantiate all the items with a map of their id's, then 2)
       resolve all dependencies via passing the map to each Item's read() method.
+  - The Scene is the authoratitive source for querying Item relationships, e.g.
+    though eventsFor, emotionsFor, marriageFor, etc
   - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
   - `Event` has mandatory `EventKind` as:
     - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,

@@ -34,6 +34,7 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Migrate CustomPairBond events to VariableShift for person/spouse
 - Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.
 - event.includeOnDiagram

@@ -270,7 +270,7 @@ class Marriage(PathItem):
         priorMarriedEvents = []
         priorDivorcedEvents = []
         anyMarriedEvents = []
-        for e in self.eventsFor(self):
+        for e in self.scene().eventsFor(self) if self.scene() else []:
             if e.dateTime() and e.dateTime() <= dateTime:
                 if e.kind() == EventKind.Bonded:
                     priorBondedEvents.append(e)
