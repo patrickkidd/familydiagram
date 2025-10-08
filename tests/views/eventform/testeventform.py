@@ -109,7 +109,7 @@ class TestEventForm:
         self.view.mouseClickItem(self.cancelButton)
 
     def addEvent(self, selection: list[PathItem] = None):
-        if Marriage.marriageForSelection(selection):
+        if self.view.marriageForSelection(selection):
             self.view.addEvent(selection)
         else:
             self.view.addEvent(selection)

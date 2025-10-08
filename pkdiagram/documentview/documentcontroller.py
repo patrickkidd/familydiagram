@@ -695,24 +695,26 @@ class DocumentController(QObject):
         """Set the current date to the next visible date."""
         if not self.scene:
             return
-        events = self.dv.timelineModel.events()
-        dummy = Event(dateTime=self.scene.currentDateTime())
-        nextRow = bisect.bisect_right(events, dummy)
-        if nextRow == len(events):  # end
-            nextDate = self.dv.timelineModel.lastEventDateTime()
-        else:
-            nextDate = events[nextRow].dateTime()
-        if nextDate:
-            self.scene.setCurrentDateTime(nextDate)
+        nextDateTime = self.dv.timelineModel.nextDateTimeAfter(
+            self.scene.currentDateTime()
+        )
+        if nextDateTime:
+            self.scene.setCurrentDateTime(nextDateTime)
 
     def onPrevEvent(self):
         if not self.scene:
             return
-        events = self.dv.timelineModel.events()
-        dummy = Event(dateTime=self.scene.currentDateTime())
-        prevRow = bisect.bisect_left(events, dummy) - 1
-        if prevRow <= 0:
-            prevDate = self.dv.timelineModel.firstEventDateTime()
+        prevDateTime = self.dv.timelineModel.prevDateTimeBefore(
+            self.scene.currentDateTime()
+        )
+        if prevDateTime:
+            self.scene.setCurrentDateTime(prevDateTime)
+
+    def onDeselectAllTags(self):
+        for action in self.ui.menuTags.actions():
+            if action.isCheckable() and action.isChecked():
+                action.blockSignals(True)
+                action.setChecked(False)
         else:
             prevDate = events[prevRow].dateTime()
         if prevDate:

@@ -6,8 +6,30 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util, scene
-from pkdiagram.scene import EventKind
+from pkdiagram.scene import EventKind, Person, Event
 from pkdiagram.models import ModelHelper
+
+
+def _birthEvent(person: Person) -> Event | None:
+    for event in person.scene().eventsFor(person):
+        if event.kind() == EventKind.Birth and event.person() == person:
+            return event
+    return None
+
+
+def _anyAdoptedEvents(person: Person):
+    return any(
+        x
+        for x in person.scene().eventsFor(person)
+        if x.kind() == EventKind.Adopted and x.person() == person
+    )
+
+
+def _deathEvent(person: Person) -> Event | None:
+    for event in person.scene().eventsFor(person):
+        if event.kind() == EventKind.Death and event.person() == person:
+            return event
+    return None
 
 
 class PersonPropertiesModel(QObject, ModelHelper):

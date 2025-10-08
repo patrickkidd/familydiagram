@@ -10,48 +10,53 @@
 
 ## 📋 TABLE OF CONTENTS
 
-### ✅ COMPLETED - Critical Infrastructure
-- **[Phase 0](#phase-0-critical-infrastructure-blockers--highest-priority)** - Critical Infrastructure Blockers
-  - [0.2 ✅ Scene.read() Missing Events](#02-sceneread-missing-event-loading-code--completed) (Completed in Phase 6.5)
-  - [0.3 ✅ Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--completed) (Completed in Phase 6.5)
+### Phase 8: Model/View Updates ✅
+- **[Phase 8](#phase-8-modelview-updates-)** - Model/View Updates (COMPLETED)
 
-### 🟡 PENDING - Test Infrastructure
-- **[Phase 7](#phase-7-test-fixes-)** - Test Fixes
-  - [7.1 ⬜ Fix Event() Constructor Calls](#71-fix-event-constructor-calls) (18 test files)
-  - [7.3 ⬜ Fix Emotion Construction](#73-fix-emotion-construction) (13 files)
-  - [7.4 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
-
-### 🟡 PENDING - Model/View Layer
-- **[Phase 8](#phase-8-modelview-updates-)** - Model/View Updates
-  - [8.1 ✅ Update PersonPropertiesModel Event Handling](#81-update-personpropertiesmodel-event-handling---completed)
-  - [8.2 ✅ Update MarriagePropertiesModel Event Handling](#82-update-marriagepropertiesmodel-event-handling---completed)
-  - [8.3 ⬜ Remove EmotionPropertiesModel Date Editors](#83-remove-emotionpropertiesmodel-date-editors)
-  - [8.4 ⬜ Update SearchModel](#84-update-searchmodel)
-- **[Phase 9](#phase-9-scene-data-format-)** - Scene Data Format
-  - [9.1 ✅ Update Scene.write()](#91-update-scenewrite---completed) (Completed in Phase 6.5)
-  - [9.2 ✅ Update Scene.read()](#92-update-sceneread---completed) (Completed in Phase 6.5)
+### Phase 10: QML/UI Updates 🟡
 - **[Phase 10](#phase-10-qmlui-updates-)** - QML/UI Updates
   - [10.1 ⬜ Update EventForm](#101-update-eventform) (add includeOnDiagram, color picker)
   - [10.2 ⬜ Update EmotionProperties](#102-update-emotionproperties) (remove ~300 lines of date pickers)
   - [10.3 ⬜ Update PersonProperties](#103-update-personproperties---major-removal) (remove ~165 lines of date pickers)
 
-### 🟡 PENDING - Commands & Clone
+### Phase 10.5: GraphicalTimeline TimelineRow Refactor 🟡
+- **[Phase 10.5](#phase-105-graphicaltimeline-timelinerow-refactor-)** - GraphicalTimeline TimelineRow Refactor
+  - [10.5.1 ⬜ Update GraphicalTimelineCanvas](#1051-update-graphicaltimelinecanvas)
+  - [10.5.2 ⬜ Update Event Drawing Logic](#1052-update-event-drawing-logic)
+  - [10.5.3 ⬜ Update Event Selection](#1053-update-event-selection)
+
+### Phase 15: ItemMode Enum Migration 🟡
+- **[Phase 15](#phase-15-itemmode-enum-migration-)** - ItemMode Enum Migration
+  - [15.1 ⬜ Create ItemMode Enum](#151-create-itemmode-enum)
+  - [15.2 ⬜ Update Scene and Mouse Handlers](#152-update-scene-and-mouse-handlers)
+  - [15.3 ⬜ Update DocumentController](#153-update-documentcontroller)
+  - [15.4 ⬜ Update QML Exposure](#154-update-qml-exposure)
+
+### Phase 11: Commands/Undo 🟡
 - **[Phase 11](#phase-11-commandsundo-)** - Commands/Undo
   - [11.1 ⬜ Remove commands.SetEmotionPerson](#111-remove-commandssetemotionperson)
   - [11.2 ⬜ Update AddItem Command](#112-update-additem-command)
   - [11.3 ⬜ Update RemoveItems Command](#113-update-removeitems-command---critical-refactor-needed-) (CRITICAL REFACTOR)
+
+### Phase 12: Clone/Remap Refactor 🟡
 - **[Phase 12](#phase-12-cloneremap-refactor-)** - Clone/Remap Refactor
   - [12.1 ⬜ Add Event.clone() Method](#121-add-eventclone-method)
   - [12.2 ⬜ Update Emotion.clone() and Emotion.remap()](#122-update-emotionclone-and-emotionremap)
   - [12.3 ⬜ Update Marriage.clone()](#123-update-marriageclone---events-handling)
   - [12.4 ⬜ Test Clone/Paste Workflow](#124-test-clonepaste-workflow)
 
-### 🟡 PENDING - Polish & Documentation
+### Phase 7: Test Fixes 🟡
+- **[Phase 7](#phase-7-test-fixes-)** - Test Fixes
+  - [7.1 ⬜ Fix Event() Constructor Calls](#71-fix-event-constructor-calls) (18 test files)
+  - [7.3 ⬜ Fix Emotion Construction](#73-fix-emotion-construction) (13 files)
+  - [7.4 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
+
+### Phase 13: Documentation 🟡
 - **[Phase 13](#phase-13-documentation-)** - Documentation
   - [13.1 ⬜ Update CLAUDE.md](#131-update-claudemd)
   - [13.2 ⬜ Add Architecture Diagram](#132-add-architecture-diagram)
 
-### 🔴 CRITICAL - Release Preparation
+### Phase 14: File Format Version Bump 🔴
 - **[Phase 14](#phase-14-file-format-version-bump--critical)** - File Format Version Bump
   - [14.1 ⬜ Update VERSION_COMPAT](#141-update-version_compat)
   - [14.2 ⬜ Add Migration Test Cases](#142-add-migration-test-cases)
@@ -60,405 +65,55 @@
 ### 📚 Reference
 - **[Appendix](#appendix-original-analysis-issues)** - Original Analysis Issues
 - **[Appendix](#appendix-user-decisions--clarifications)** - User Decisions & Clarifications
-- **[Progress Tracking](#progress-tracking)** - Status & Effort Estimates
-- **[Testing Strategy](#testing-strategy)** - Test Plans
 
 ---
 
 ## 🚨 QUICK START - Critical Path
 
-**To get app running and tests passing:**
+**Priority order:** Phase 10 → 10.5 → 15 → 11 → 12 → 7 → 13 → 14
 
-1. ✅ **Phase 6** - Implement compat.py migrations (COMPLETED)
-2. ✅ **Phase 0.2** - Add Event loading to Scene.read() (COMPLETED in Phase 6.5)
-3. ✅ **Phase 0.3** - Add Event separation to Scene.write() (COMPLETED in Phase 6.5)
-4. **Fix Phase 7.1, 7.3** - Update test Event() and Emotion() constructor calls
-5. **Run tests** - `python -m pytest -vv` and fix remaining failures
+**Next Steps:**
+1. Update QML/UI (Phase 10)
+2. Refactor GraphicalTimeline to use TimelineRow (Phase 10.5)
+3. ItemMode enum migration (Phase 15 - optional code quality)
+4. Fix Commands/Undo and Clone (Phases 11, 12)
+5. Fix remaining test failures (Phase 7)
+6. Polish and release (Phases 13, 14)
 
-**Priority order:** Phase 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+**Completed:**
+- ✅ Phases 0.1, 1, 2, 3, 4, 5, 6, 7.0, 7.2 (see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md))
+- ✅ Phases 0.2, 0.3, 8.1, 8.2, 8.3, 8.4, 9.1, 9.2 (completed in Phase 6.5 or Phase 8)
 
-**Note:** Phases 0.2, 0.3, and 6 are ✅ COMPLETED - see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md)
+**Estimated Effort Remaining:**
+- Phase 10: 4 hours (QML UI updates)
+- Phase 10.5: 3 hours (GraphicalTimeline refactor)
+- Phase 15: 2-3 hours (ItemMode enum - optional code quality)
+- Phases 11, 12: 4 hours (commands and clone)
+- Phase 7: 4 hours (test fixes)
+- Phase 13: 1 hour (documentation)
+- Phase 14: 2 hours (version bump)
+- **Total: ~20-21 hours of focused work**
 
----
+**Testing Strategy:**
+After each phase:
+1. Run unit tests: `python -m pytest tests/scene/test_event.py -v`
+2. Run model tests: `python -m pytest tests/models/ -v`
+3. Run integration tests: `python -m pytest tests/views/ -v`
+4. Smoke test UI: Open app, create events, timeline, undo/redo
 
-## PHASE 0: Critical Infrastructure Blockers ✅ COMPLETED
-
-These critical blockers have been resolved as part of Phase 6.5.
-
-### 0.2 Scene.read() Missing Event Loading Code ✅ COMPLETED
-**File:** `pkdiagram/scene/scene.py:704-788`
-
-**Status:** ✅ COMPLETED in Phase 6.5
-
-**Implementation:**
-- ✅ Events loaded FIRST from `data.get("events", [])` before people (lines 706-711)
-- ✅ People loaded from `data.get("people", [])` (lines 713-718)
-- ✅ Marriages loaded from `data.get("marriages", [])` (lines 720-725)
-- ✅ Emotions loaded from `data.get("emotions", [])` (lines 727-734)
-- ✅ Layers, layerItems, multipleBirths loaded from typed arrays (lines 736-761)
-- ✅ Backward compatibility maintained with `data.get("items", [])` fallback (lines 763-789)
-
-**Key Implementation:**
-```python
-# Load events FIRST (before people, since people query events)
-for chunk in data.get("events", []):
-    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
-    item.id = chunk["id"]
-    items.append(item)
-    itemChunks.append((item, chunk))
-```
+Before final commit:
+1. Full test suite: `python -m pytest -vv`
+2. Load old diagram files (test compat.py)
+3. Create new diagram, save, reload
+4. Test all event types
+5. Test timeline interactions
+6. Test undo/redo thoroughly
 
 ---
 
-### 0.3 Scene.write() Not Separating Events ✅ COMPLETED
-**File:** `pkdiagram/scene/scene.py:851-927`
+## PHASE 8: Model/View Updates ✅
 
-**Status:** ✅ COMPLETED in Phase 6.5
-
-**Implementation:**
-- ✅ All typed arrays initialized (lines 858-866): `people`, `marriages`, `emotions`, `events`, `layers`, `layerItems`, `multipleBirths`, `items`
-- ✅ Events routed to `data["events"]` array (lines 880-883)
-- ✅ People routed to `data["people"]` (lines 884-887)
-- ✅ Marriages routed to `data["marriages"]` (lines 888-891)
-- ✅ Emotions routed to `data["emotions"]` with kind as string (lines 892-895)
-- ✅ Layers, layerItems, multipleBirths routed correctly (lines 896-913)
-- ✅ Unknown types preserved in `data["items"]` for forward compatibility (lines 914-917)
-- ✅ Future items retained (lines 920-922)
-
-**Key Implementation:**
-```python
-# Initialize typed arrays
-data["events"] = []
-# ... other arrays ...
-
-# Route to appropriate array
-if item.isEvent:
-    chunk["kind"] = "Event"
-    item.write(chunk)
-    data["events"].append(chunk)
-elif item.isPerson:
-    chunk["kind"] = "Person"
-    item.write(chunk)
-    data["people"].append(chunk)
-# ... etc
-```
-
----
-
-## PHASE 6: Data Compatibility (compat.py) ✅ COMPLETED
-
-**Status:** All Phase 6 work is complete! See [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md) for full documentation.
-
-**Completed Sub-phases:**
-- ✅ 6.1: Split `data["items"]` into typed arrays (people, marriages, emotions, events, layers, layerItems, multipleBirths)
-- ✅ 6.2: Migrated all nested events to top-level Scene.events array
-- ✅ 6.3: Emotion kind migration (Won't Fix - already strings)
-- ✅ 6.4: All 11 compat.py test cases passing
-- ✅ 6.5: Scene.read() and Scene.write() updated for new typed array format
-
-**Key migrations performed:**
-- Person.birthEvent/deathEvent/adoptedEvent → Scene.events with person reference
-- Person.events[] → Scene.events
-- Marriage.events[] → Scene.events with person/spouse references
-- Emotion.startEvent/endEvent → merged into single Event with endDateTime
-- Event.uniqueId → Event.kind (enum values)
-- Emotion.person_a/person_b → Event.person and Emotion.target
-
-**Note:** Phase 0.2 and 0.3 below describe Scene.read()/write() updates, but these were actually completed as part of Phase 6.5. They may already be addressed.
-
----
-
-## PHASE 7: Test Fixes 🟡
-
-Update tests to work with new Event structure.
-
-### 7.1 Fix Event() Constructor Calls
-**Files Changed (from git diff):**
-- tests/scene/test_event.py (77 lines changed)
-- tests/scene/test_marriage.py (81 lines deleted - needs investigation)
-- tests/views/eventform/*.py (multiple files)
-- tests/views/test_emotionproperties.py (8 lines changed)
-- tests/views/test_marriageproperties.py (185 lines changed)
-- tests/models/test_copilotengine.py (8 lines changed)
-- tests/models/test_searchmodel.py (3 lines changed)
-- tests/models/test_timelinemodel.py (26 lines changed)
-
-**Old Pattern:**
-```python
-event = Event(person)  # FAILS: missing kind argument
-```
-
-**New Pattern (from test_event.py:10):**
-```python
-event = Event(EventKind.Shift, person)  # Positional
-```
-
-**Action Items:**
-- [ ] tests/scene/test_event.py - update all Event() calls (mostly done, check line 24 logic error)
-- [ ] tests/scene/test_marriage.py - 81 lines deleted, verify tests still valid
-- [ ] tests/views/eventform/ - 6 test files with Event() calls
-- [ ] tests/views/test_emotionproperties.py - update Event() calls
-- [ ] tests/views/test_marriageproperties.py - 185 lines changed, needs review
-- [ ] tests/models/*.py - update Event() calls in model tests
-- [ ] Search for remaining `Event\(` patterns and update
-
-**Known Logic Error:**
-**File:** tests/scene/test_event.py:24
-```python
-# Line 21-33 - LOGIC ERROR
-event = Event(EventKind.Shift, personB)  # ← Event added to personB
-event.setPerson(personB, undo=undo)  # ← Still personB! Not personA!
-assert event in personA.events()  # ← WRONG: event is still in personB
-assert event not in personB.events()  # ← WRONG: should be in personB
-```
-
-Should probably be:
-```python
-event = Event(EventKind.Shift, personA)  # Start with personA
-event.setPerson(personB, undo=undo)  # Switch to personB
-assert event not in personA.events()  # No longer in personA
-assert event in personB.events()  # Now in personB
-```
-
----
-
-### 7.3 Fix Emotion Construction
-**Files with Emotion() calls (from grep):**
-- pkdiagram/scene/scene.py
-- pkdiagram/scene/emotions.py
-- tests/views/eventform/test_edit.py
-- tests/views/test_emotionproperties.py
-- tests/scene/test_scene_add_remove.py
-- tests/models/test_timelinemodel.py
-- tests/models/test_searchmodel.py
-- pkdiagram/scene/commands.py
-- tests/test_documentview.py
-- tests/mainwindow/test_mw_kb_shortcuts.py
-- tests/scene/test_scene_show_hide.py
-- tests/scene/test_scene_read_write.py
-- tests/scene/test_emotions.py
-
-**Old Pattern:**
-```python
-emotion = Emotion(kind=RelationshipKind.Conflict, ...)  # Missing event?
-```
-
-**New Pattern (from scene.py:720):**
-```python
-# Scene.read() pattern:
-kind = Emotion.kindForKindSlug(chunk["kind"])
-item = Emotion(kind=kind, target=None, event=None)  # Placeholder values
-
-# Test pattern:
-event = Event(
-    kind=EventKind.Shift,
-    person=person1,
-    relationshipTargets=[person2],
-)
-scene.addItem(event)
-
-emotion = Emotion(event=event, target=person2, kind=RelationshipKind.Conflict)
-scene.addItem(emotion)
-```
-
-**Action Items:**
-- [ ] Update all Emotion() calls in tests to include `event=` and `target=`
-- [ ] Create corresponding Event objects for dated emotions
-- [ ] For undated emotions (manual drawing), use event=None
-- [ ] Add both event and emotion to scene explicitly
-- [ ] Verify scene.py:720 Emotion loading works with event=None placeholder
-
----
-
-### 7.4 Run Full Test Suite and Fix Failures
-**Action Items:**
-- [ ] Run `python -m pytest -vv` and collect all failures
-- [ ] Fix test failures by category (Event, Emotion, Marriage, Scene, etc.)
-- [ ] Verify Scene.read()/write() tests pass after Phase 0.2/0.3 implemented
-- [ ] Verify compat.py tests pass after Phase 6 implemented
-- [ ] Verify clone/paste tests pass after Phase 12 implemented
-
----
-
-## PHASE 8: Model/View Updates 🟡
-
-Update models to work with new structure.
-
-### 8.1 Update PersonPropertiesModel Event Handling ✅ COMPLETED
-**File:** `pkdiagram/models/personpropertiesmodel.py:78-106`
-
-**Status:** ✅ Already using EventKind enums
-
-**Implementation:**
-```python
-def onEventProperty(self, prop):
-    if prop.name() == "dateTime":
-        if prop.item.kind() == EventKind.Birth:
-            self.refreshProperty("birthDateTime")
-        elif prop.item.kind() == EventKind.Adopted:
-            self.refreshProperty("adoptedDateTime")
-        elif prop.item.kind() == EventKind.Death:
-            self.refreshProperty("deceasedDateTime")
-    # ... location handling uses same pattern
-```
-
-**Completed Action Items:**
-- ✅ Replaced `uniqueId()` with `kind()` in PersonPropertiesModel (lines 80, 82, 84)
-- ✅ Replaced string comparisons with EventKind enums (lines 80-92, 98-106)
-- ✅ EventKind imported on line 9
-
----
-
-### 8.2 Update MarriagePropertiesModel Event Handling ✅ COMPLETED
-**File:** `pkdiagram/models/marriagepropertiesmodel.py:6-78`
-
-**Status:** ✅ Already using EventKind enums
-
-**Implementation:**
-```python
-def _anyMarriedEvents(marriage: Marriage):
-    return any(x for x in marriage.events()
-               if x.kind() == EventKind.Married
-               and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()})
-
-def onEventsChanged(self, event):
-    if event.kind() == EventKind.Married:
-        self.refreshProperty("anyMarriedEvents")
-    elif event.kind() == EventKind.Separated:
-        self.refreshProperty("anySeparatedEvents")
-    elif event.kind() == EventKind.Divorced:
-        self.refreshProperty("anyDivorcedEvents")
-```
-
-**Completed Action Items:**
-- ✅ Replaced `uniqueId()` with `kind()` in MarriagePropertiesModel
-- ✅ Replaced string comparisons with EventKind enums (lines 10, 19, 28, 68, 71, 74)
-- ✅ EventKind imported on line 2
-
----
-
-### 8.3 Remove EmotionPropertiesModel Date Editors
-**File:** `pkdiagram/models/emotionpropertiesmodel.py`
-
-**Current Code:** Has date/time properties that should be on Event
-
-**Changes:**
-```python
-# Remove these properties (now on Event):
-# - startDateTime
-# - endDateTime
-# - startDateUnsure
-# - endDateUnsure
-
-# Keep these:
-# - personAId / personBId (or migrate to person/target?)
-# - dyadic
-# - itemName
-```
-
-**Action Items:**
-- [ ] Remove date/time properties from EmotionPropertiesModel
-- [ ] Add link to edit Event instead
-- [ ] Update QML to show Event properties via link
-
----
-
-### 8.4 Update SearchModel
-**File:** `pkdiagram/models/searchmodel.py:118`
-
-**Current Code:**
-```python
-def shouldHide(self, event):
-    """Search kernel."""
-    nullLoggedDate = bool(
-        not event.loggedDateTime() or event.loggedDateTime().isNull()
-    )
-```
-
-**Ensure:** Type hint shows this expects Event, not TimelineRow:
-```python
-def shouldHide(self, event: Event) -> bool:
-    """Determine if event should be hidden based on search criteria."""
-    # ... existing logic ...
-```
-
-**Action Items:**
-- [ ] Add type hints to SearchModel.shouldHide()
-- [ ] Ensure it works with Event objects (not TimelineRow)
-
----
-
-## PHASE 9: Scene Data Format ✅ COMPLETED
-
-Update Scene serialization format. **Both sub-phases completed in Phase 6.5.**
-
-### 9.1 Update Scene.write() ✅ COMPLETED
-**File:** `pkdiagram/scene/scene.py:851-927`
-
-**Status:** ✅ COMPLETED in Phase 6.5
-
-**Implementation:**
-Scene.write() has been fully updated to use typed arrays:
-
-```python
-# Initialize typed arrays (lines 858-866)
-data["people"] = []
-data["marriages"] = []
-data["emotions"] = []
-data["events"] = []  # NEW: top-level events array
-data["layers"] = []
-data["layerItems"] = []
-data["multipleBirths"] = []
-data["items"] = []  # For future unknown types
-
-# Route items to appropriate arrays (lines 880-917)
-if item.isEvent:
-    chunk["kind"] = "Event"
-    item.write(chunk)
-    data["events"].append(chunk)
-elif item.isPerson:
-    chunk["kind"] = "Person"
-    item.write(chunk)
-    data["people"].append(chunk)
-# ... etc
-```
-
-**Completed Action Items:**
-- ✅ Updated `Scene.write()` to separate events from other items
-- ✅ Created `data["events"]` array
-- ✅ Removed events from `data["people"]` and `data["marriages"]`
-- ✅ Unknown item types preserved in `data["items"]` for forward compatibility
-
----
-
-### 9.2 Update Scene.read() ✅ COMPLETED
-**File:** `pkdiagram/scene/scene.py:704-788`
-
-**Status:** ✅ COMPLETED in Phase 6.5
-
-**Implementation:**
-Scene.read() implements two-phase loading with typed arrays:
-
-```python
-# Phase 1: Load events FIRST (lines 706-711)
-for chunk in data.get("events", []):
-    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
-    item.id = chunk["id"]
-    items.append(item)
-    itemChunks.append((item, chunk))
-
-# Then load people, marriages, emotions... (lines 713-761)
-
-# Phase 2: Resolve all dependencies via byId (lines 777-788)
-for item, chunk in itemChunks:
-    item.read(chunk, byId)  # Resolves event.person via byId lookup
-```
-
-**Completed Action Items:**
-- ✅ Implemented two-phase loading in Scene.read()
-- ✅ Events loaded FIRST in phase 1 (before people who query events)
-- ✅ Event.person references resolved in phase 2
-- ✅ Backward compatibility with `data.get("items", [])` fallback (lines 763-789)
+**Status:** COMPLETED - See [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md) for Phase 8.3 and 8.4 details.
 
 ---
 
@@ -513,12 +168,12 @@ Update QML interfaces to work with new structure.
 - pkdiagram/resources/qml/EmotionPropertiesDrawer.qml (wrapper)
 
 **Action Items:**
-- [ ] Remove all date/time pickers from EmotionProperties.qml
-- [ ] Remove `startDateTime`, `endDateTime` properties
+- [x] Remove all date/time pickers from EmotionProperties.qml
+- [x] Remove `startDateTime`, `endDateTime` properties
 - [ ] Add "Edit Event" link button that opens EventForm
 - [ ] Pass `emotion.event()` to EventForm when link clicked
-- [ ] Keep intensity, notes, kind, target editors for undated emotions
-- [ ] Update EmotionPropertiesDrawer.qml if needed
+- [x] Keep intensity, notes, kind, target editors for undated emotions
+- [x] Update EmotionPropertiesDrawer.qml if needed
 
 ---
 
@@ -606,14 +261,438 @@ property var deceasedDateButtons: deceasedDateButtons // ← REMOVE
 ```
 
 **Action Items:**
-- [ ] Remove ~165 lines of date picker widgets (lines 381-546)
-- [ ] Remove birthDatePicker, birthDateButtons, adoptedDateButtons, deceasedDateButtons properties
+- [x] Remove ~165 lines of date picker widgets (lines 381-546)
+- [x] Remove birthDatePicker, birthDateButtons, adoptedDateButtons, deceasedDateButtons properties
 - [ ] Add 3 "Edit Event" buttons for Birth, Adopted, Death events
 - [ ] Implement button click handlers to find/create events and open EventForm
 - [ ] Display current date in button text (or "Set date..." if no event)
-- [ ] Update layout to remove DatePicker columns
-- [ ] Test that birth/adopted/death dates still display correctly (read-only)
+- [x] Update layout to remove DatePicker columns
+- [x] Test that birth/adopted/death dates still display correctly (read-only)
 - [ ] Verify age calculation still works (should read from personModel.birthDateTime)
+
+---
+
+## PHASE 10.5: GraphicalTimeline TimelineRow Refactor 🟡
+
+**Goal:** Refactor GraphicalTimeline to work with `TimelineRow` objects instead of raw `Event` objects, properly accounting for events with date ranges that create multiple timeline rows.
+
+**Background:**
+- `TimelineModel` stores `_rows` as a `SortedList` of `TimelineRow` objects
+- Each `TimelineRow` has `.event` (the Event) and `.isEndMarker` (bool) properties
+- Events with `endDateTime` create TWO rows: one for start, one for end
+- **Current bug:** `graphicaltimelinecanvas.py:114` calls `self._timelineModel.events()` which doesn't exist
+- GraphicalTimeline should display timeline rows, not just raw events
+
+**Why This Matters:**
+- Events with date ranges (e.g., relationship shifts with start/end dates) should display both markers
+- Current code tries to access a non-existent `TimelineModel.events()` method
+- Scene has become the canonical query interface, but TimelineModel provides filtered/sorted rows for UI
+
+---
+
+### 10.5.1 Update GraphicalTimelineCanvas
+**File:** `pkdiagram/documentview/graphicaltimelinecanvas.py`
+
+**Current Code (line 114):**
+```python
+self._events = self._timelineModel.events()  # ❌ DOES NOT EXIST
+```
+
+**Issue:**
+- `TimelineModel.events()` method doesn't exist
+- Need to work with `TimelineRow` objects from `_timelineModel._rows`
+
+**New Approach:**
+```python
+# Get TimelineRow objects from TimelineModel
+self._rows_data = []
+for row_index in range(self._timelineModel.rowCount()):
+    timeline_row = self._timelineModel._rows[row_index]
+    self._rows_data.append(timeline_row)
+
+# Or access via Scene for events, then match to TimelineRows
+if self.scene:
+    all_events = [e for e in self.scene.events() if e.dateTime() and not e.dateTime().isNull()]
+    all_events.sort(key=lambda e: e.dateTime())
+    # Build rows accounting for endDateTime
+    self._rows_data = []
+    for event in all_events:
+        self._rows_data.append(TimelineRow(event=event, isEndMarker=False))
+        if event.endDateTime():
+            self._rows_data.append(TimelineRow(event=event, isEndMarker=True))
+```
+
+**Action Items:**
+- [ ] Remove call to non-existent `TimelineModel.events()` method
+- [ ] Decide: Access `TimelineModel._rows` directly OR reconstruct from `Scene.events()`
+- [ ] Update `self._events` to store `TimelineRow` objects or keep separate list
+- [ ] Update `dateTimeRange()` method to work with TimelineRow objects
+- [ ] Update tag filtering logic to work with TimelineRow objects (line 127)
+
+---
+
+### 10.5.2 Update Event Drawing Logic
+**Files:**
+- `pkdiagram/documentview/graphicaltimelinecanvas.py` (paint methods)
+- `pkdiagram/documentview/graphicaltimeline.py` (if affected)
+
+**Current State:** Drawing logic assumes `self._events` contains Event objects.
+
+**Changes Needed:**
+- Update drawing code to extract `.event` from TimelineRow
+- Handle `.isEndMarker` flag to draw end markers differently
+- Differentiate visual display between start markers and end markers
+
+**Example:**
+```python
+# OLD:
+for event in self._events:
+    draw_event(event)
+
+# NEW:
+for timeline_row in self._rows_data:
+    event = timeline_row.event
+    if timeline_row.isEndMarker:
+        draw_end_marker(event, event.endDateTime())
+    else:
+        draw_start_marker(event, event.dateTime())
+```
+
+**Action Items:**
+- [ ] Update paint methods to work with TimelineRow objects
+- [ ] Add visual distinction for end markers vs start markers
+- [ ] Ensure hover/tooltip shows correct dateTime (start vs end)
+- [ ] Test rendering with events that have date ranges
+
+---
+
+### 10.5.3 Update Event Selection
+**Files:**
+- `pkdiagram/documentview/graphicaltimelinecanvas.py` (selection logic)
+- `pkdiagram/documentview/documentview.py` (if affected)
+
+**Current State:** Selection logic works with Event objects.
+
+**Changes Needed:**
+- Clicking on an end marker should select the same underlying Event as the start marker
+- Selection highlighting should show both start and end markers for an event with date range
+- Rubber band selection should work with TimelineRow objects
+
+**Example:**
+```python
+# When clicking on a timeline row:
+clicked_row = find_row_at_position(click_pos)
+event = clicked_row.event  # Get underlying event
+# Select the event (both start and end markers will highlight)
+select_event(event)
+```
+
+**Action Items:**
+- [ ] Update mouse click handlers to work with TimelineRow objects
+- [ ] Ensure selecting an end marker selects the underlying Event
+- [ ] Update selection visual to highlight both start/end markers
+- [ ] Test selection with rubber band on events with date ranges
+- [ ] Verify double-click to inspect works with both start/end markers
+
+---
+
+## PHASE 15: ItemMode Enum Migration 🟢
+
+**Goal:** Replace integer constants (`util.ITEM_*`) with an `ItemMode` enum for type safety and clarity. This is a code quality improvement, not a functional requirement.
+
+**Priority:** MEDIUM - This refactor improves code maintainability and should be done before Commands/Undo work to avoid confusion with ITEM_* vs ItemMode in that code.
+
+**Background:**
+- `util.ITEM_*` constants (e.g., `ITEM_MALE=0`, `ITEM_FEMALE=1`, `ITEM_MARRY=2`) are used when drawing items onto the diagram via toolbar buttons (chalkboard mode)
+- These are separate from `EventKind` enum which is used for dated events (timeline mode)
+- `RelationshipKind` already has `.itemMode()` and `.fromItemMode()` methods for bidirectional conversion
+- Current implementation uses raw integers, which lacks type safety
+
+**Current ITEM_* Constants (util.py:248-267):**
+```python
+ITEM_NONE = None
+ITEM_MALE = 0
+ITEM_FEMALE = 1
+ITEM_MARRY = 2
+ITEM_CHILD = 3
+ITEM_PENCIL = 4
+ITEM_ERASER = 5
+ITEM_FUSION = 6
+ITEM_CUTOFF = 7
+ITEM_CONFLICT = 8
+ITEM_PROJECTION = 9
+ITEM_DISTANCE = 10
+ITEM_TOWARD = 11
+ITEM_AWAY = 12
+ITEM_DEFINED_SELF = 13
+ITEM_CALLOUT = 14
+ITEM_RECIPROCITY = 15
+ITEM_INSIDE = 16
+ITEM_OUTSIDE = 17
+```
+
+**Key Usage Files:**
+- `pkdiagram/scene/scene.py` - Scene._itemMode, mouse event handlers
+- `pkdiagram/documentview/documentcontroller.py` - QAction.setData() mappings
+- `pkdiagram/scene/relationshipkind.py` - itemMode() and fromItemMode() conversions
+- `pkdiagram/app/qmlutil.py` - QML property exposure
+- `pkdiagram/scene/emotions.py` - Emotion.KIND_MAP indirectly uses via RelationshipKind
+
+---
+
+### 15.1 Create ItemMode Enum
+**File:** `pkdiagram/scene/itemmode.py` (NEW)
+
+**Create enum matching existing constants:**
+```python
+import enum
+
+
+class ItemMode(enum.Enum):
+    """Drawing modes for creating items on the diagram."""
+
+    # Special
+    NONE = None
+
+    # People
+    MALE = "male"
+    FEMALE = "female"
+
+    # Relationships
+    MARRY = "marry"
+    CHILD = "child"
+
+    # Emotions (relationships)
+    FUSION = "fusion"
+    CUTOFF = "cutoff"
+    CONFLICT = "conflict"
+    PROJECTION = "projection"
+    DISTANCE = "distance"
+    TOWARD = "toward"
+    AWAY = "away"
+    DEFINED_SELF = "defined-self"
+    RECIPROCITY = "reciprocity"
+    INSIDE = "inside"
+    OUTSIDE = "outside"
+
+    # UI Tools
+    PENCIL = "pencil"
+    ERASER = "eraser"
+    CALLOUT = "callout"
+
+    def isEmotion(self) -> bool:
+        """Check if this mode creates an emotion."""
+        return self in [
+            self.PROJECTION,
+            self.CONFLICT,
+            self.CUTOFF,
+            self.DISTANCE,
+            self.TOWARD,
+            self.AWAY,
+            self.DEFINED_SELF,
+            self.RECIPROCITY,
+            self.INSIDE,
+            self.OUTSIDE,
+        ]
+
+    def isPerson(self) -> bool:
+        """Check if this mode creates a person."""
+        return self in [self.MALE, self.FEMALE]
+
+    def isRelationship(self) -> bool:
+        """Check if this mode creates a marriage or child relationship."""
+        return self in [self.MARRY, self.CHILD]
+```
+
+**Action Items:**
+- [ ] Create `pkdiagram/scene/itemmode.py` with ItemMode enum
+- [ ] Add helper methods (isEmotion, isPerson, isRelationship)
+- [ ] Use string values (like EventKind) instead of integers
+
+---
+
+### 15.2 Update Scene and Mouse Handlers
+**File:** `pkdiagram/scene/scene.py`
+
+**Current Code:**
+```python
+self._itemMode = util.ITEM_NONE  # line 222
+
+if self.itemMode() == util.ITEM_CALLOUT:  # line 1107
+    ...
+elif self.itemMode() in [util.ITEM_MALE, util.ITEM_FEMALE]:  # line 1113
+    ...
+elif self.itemMode() in [  # line 1121
+    util.ITEM_MARRY,
+    util.ITEM_CHILD,
+    util.ITEM_CONFLICT,
+    ...
+]:
+```
+
+**New Code:**
+```python
+from pkdiagram.scene import ItemMode
+
+self._itemMode = ItemMode.NONE
+
+if self.itemMode() == ItemMode.CALLOUT:
+    ...
+elif self.itemMode().isPerson():
+    ...
+elif self.itemMode().isRelationship() or self.itemMode().isEmotion():
+    ...
+```
+
+**Changes Needed:**
+- Replace `util.ITEM_*` with `ItemMode.*`
+- Replace list checks with helper methods
+- Update `Scene.setItemMode()` signature: `def setItemMode(self, mode: ItemMode)`
+- Update `Scene.itemMode()` return type: `def itemMode(self) -> ItemMode`
+
+**Action Items:**
+- [ ] Replace all `util.ITEM_*` references with `ItemMode.*` in scene.py
+- [ ] Update method signatures with ItemMode type hints
+- [ ] Use `itemMode().isPerson()` instead of `itemMode() in [ITEM_MALE, ITEM_FEMALE]`
+- [ ] Use `itemMode().isEmotion()` instead of `itemMode() in emotionItemModes()`
+- [ ] Remove `util.emotionItemModes()` function (replaced by ItemMode.isEmotion())
+
+---
+
+### 15.3 Update DocumentController
+**File:** `pkdiagram/documentview/documentcontroller.py`
+
+**Current Code:**
+```python
+self.ui.actionMale.setData(util.ITEM_MALE)  # line 127
+self.ui.actionFemale.setData(util.ITEM_FEMALE)
+self.ui.actionMarriage.setData(util.ITEM_MARRY)
+...
+
+def onSceneItemMode(self):  # line 745
+    if self.scene.itemMode() is util.ITEM_NONE:
+        ...
+```
+
+**New Code:**
+```python
+from pkdiagram.scene import ItemMode
+
+self.ui.actionMale.setData(ItemMode.MALE)
+self.ui.actionFemale.setData(ItemMode.FEMALE)
+self.ui.actionMarriage.setData(ItemMode.MARRY)
+...
+
+def onSceneItemMode(self):
+    if self.scene.itemMode() == ItemMode.NONE:
+        ...
+```
+
+**Action Items:**
+- [ ] Replace all `util.ITEM_*` with `ItemMode.*` in documentcontroller.py
+- [ ] Update `onSceneItemMode()` to use ItemMode enum
+
+---
+
+### 15.4 Update QML Exposure
+**File:** `pkdiagram/app/qmlutil.py`
+
+**Current Code:**
+```python
+UTIL_CONST_NAMES = [
+    ...
+    "ITEM_CUTOFF",
+    "ITEM_FUSION",
+    "ITEM_CONFLICT",
+    ...
+]
+```
+
+**Issue:** QML currently accesses emotion item modes as integers via `Util.ITEM_CUTOFF`.
+
+**Options:**
+
+**Option A: Keep integer constants for QML (RECOMMENDED)**
+- Keep `util.ITEM_*` constants for QML compatibility
+- Use `ItemMode` enum in Python code only
+- Add conversion: `ItemMode.CUTOFF.toInt()` → returns old integer value
+- QML continues to use `Util.ITEM_CUTOFF` without changes
+
+**Option B: Expose ItemMode enum to QML**
+- Register ItemMode as QEnum
+- Update QML to use `ItemMode.CUTOFF` instead of `Util.ITEM_CUTOFF`
+- More complex, requires QML changes
+
+**Recommendation:** Use Option A to avoid QML changes. The integer constants can coexist with the enum for backwards compatibility.
+
+**Action Items:**
+- [ ] **DECIDE:** Keep integer constants for QML vs expose enum to QML
+- [ ] If Option A: Keep util.ITEM_* constants, add ItemMode ↔ int conversion
+- [ ] If Option B: Register ItemMode as QEnum, update QML files
+
+---
+
+### 15.5 Update RelationshipKind Conversions
+**File:** `pkdiagram/scene/relationshipkind.py`
+
+**Current Code:**
+```python
+def itemMode(self) -> int:
+    if self == self.Cutoff:
+        return util.ITEM_CUTOFF
+    elif self == self.Conflict:
+        return util.ITEM_CONFLICT
+    ...
+
+@staticmethod
+def fromItemMode(itemMode: int) -> "RelationshipKind":
+    mapping = {
+        util.ITEM_CONFLICT: RelationshipKind.Conflict,
+        ...
+    }
+```
+
+**New Code:**
+```python
+def itemMode(self) -> ItemMode:
+    if self == self.Cutoff:
+        return ItemMode.CUTOFF
+    elif self == self.Conflict:
+        return ItemMode.CONFLICT
+    ...
+
+@staticmethod
+def fromItemMode(itemMode: ItemMode) -> "RelationshipKind":
+    mapping = {
+        ItemMode.CONFLICT: RelationshipKind.Conflict,
+        ...
+    }
+```
+
+**Action Items:**
+- [ ] Update RelationshipKind.itemMode() return type to ItemMode
+- [ ] Update RelationshipKind.fromItemMode() parameter type to ItemMode
+- [ ] Update mapping dictionary keys from util.ITEM_* to ItemMode.*
+
+---
+
+### 15.6 Testing
+**Files:** Test files that use ITEM_* constants
+
+**Test Changes Needed:**
+```python
+# Old
+scene.setItemMode(util.ITEM_MALE)
+
+# New
+from pkdiagram.scene import ItemMode
+scene.setItemMode(ItemMode.MALE)
+```
+
+**Action Items:**
+- [ ] Update test files that reference util.ITEM_* constants
+- [ ] Run full test suite to verify drawing functionality
+- [ ] Manual test: Click toolbar buttons to draw people, emotions, relationships
 
 ---
 
@@ -1087,6 +1166,118 @@ def clone(self, scene):
 
 ---
 
+## PHASE 7: Test Fixes 🟡
+
+Update tests to work with new Event structure.
+
+### 7.1 Fix Event() Constructor Calls
+**Files Changed (from git diff):**
+- tests/scene/test_event.py (77 lines changed)
+- tests/scene/test_marriage.py (81 lines deleted - needs investigation)
+- tests/views/eventform/*.py (multiple files)
+- tests/views/test_emotionproperties.py (8 lines changed)
+- tests/views/test_marriageproperties.py (185 lines changed)
+- tests/models/test_copilotengine.py (8 lines changed)
+- tests/models/test_searchmodel.py (3 lines changed)
+- tests/models/test_timelinemodel.py (26 lines changed)
+
+**Old Pattern:**
+```python
+event = Event(person)  # FAILS: missing kind argument
+```
+
+**New Pattern (from test_event.py:10):**
+```python
+event = Event(EventKind.Shift, person)  # Positional
+```
+
+**Action Items:**
+- [ ] tests/scene/test_event.py - update all Event() calls (mostly done, check line 24 logic error)
+- [ ] tests/scene/test_marriage.py - 81 lines deleted, verify tests still valid
+- [ ] tests/views/eventform/ - 6 test files with Event() calls
+- [ ] tests/views/test_emotionproperties.py - update Event() calls
+- [ ] tests/views/test_marriageproperties.py - 185 lines changed, needs review
+- [ ] tests/models/*.py - update Event() calls in model tests
+- [ ] Search for remaining `Event\(` patterns and update
+
+**Known Logic Error:**
+**File:** tests/scene/test_event.py:24
+```python
+# Line 21-33 - LOGIC ERROR
+event = Event(EventKind.Shift, personB)  # ← Event added to personB
+event.setPerson(personB, undo=undo)  # ← Still personB! Not personA!
+assert event in personA.events()  # ← WRONG: event is still in personB
+assert event not in personB.events()  # ← WRONG: should be in personB
+```
+
+Should probably be:
+```python
+event = Event(EventKind.Shift, personA)  # Start with personA
+event.setPerson(personB, undo=undo)  # Switch to personB
+assert event not in personA.events()  # No longer in personA
+assert event in personB.events()  # Now in personB
+```
+
+---
+
+### 7.3 Fix Emotion Construction
+**Files with Emotion() calls (from grep):**
+- pkdiagram/scene/scene.py
+- pkdiagram/scene/emotions.py
+- tests/views/eventform/test_edit.py
+- tests/views/test_emotionproperties.py
+- tests/scene/test_scene_add_remove.py
+- tests/models/test_timelinemodel.py
+- tests/models/test_searchmodel.py
+- pkdiagram/scene/commands.py
+- tests/test_documentview.py
+- tests/mainwindow/test_mw_kb_shortcuts.py
+- tests/scene/test_scene_show_hide.py
+- tests/scene/test_scene_read_write.py
+- tests/scene/test_emotions.py
+
+**Old Pattern:**
+```python
+emotion = Emotion(kind=RelationshipKind.Conflict, ...)  # Missing event?
+```
+
+**New Pattern (from scene.py:720):**
+```python
+# Scene.read() pattern:
+kind = Emotion.kindForKindSlug(chunk["kind"])
+item = Emotion(kind=kind, target=None, event=None)  # Placeholder values
+
+# Test pattern:
+event = Event(
+    kind=EventKind.Shift,
+    person=person1,
+    relationshipTargets=[person2],
+)
+scene.addItem(event)
+
+emotion = Emotion(event=event, target=person2, kind=RelationshipKind.Conflict)
+scene.addItem(emotion)
+```
+
+**Action Items:**
+- [ ] Update all Emotion() calls in tests to include `event=` and `target=`
+- [ ] Create corresponding Event objects for dated emotions
+- [ ] For undated emotions (manual drawing), use event=None
+- [ ] Add both event and emotion to scene explicitly
+- [ ] Verify scene.py:720 Emotion loading works with event=None placeholder
+
+---
+
+### 7.4 Run Full Test Suite and Fix Failures
+**Action Items:**
+- [ ] Run `python -m pytest -vv` and collect all failures
+- [ ] Fix test failures by category (Event, Emotion, Marriage, Scene, etc.)
+- [ ] Verify Scene.read()/write() tests pass after Phase 0.2/0.3 implemented
+- [ ] Verify compat.py tests pass after Phase 6 implemented
+- [ ] Verify clone/paste tests pass after Phase 12 implemented
+
+---
+
 ## PHASE 13: Edge Cases & Polish 🟢
 
 ### 13.1 Handle Orphaned Events
@@ -1364,52 +1555,6 @@ def test_migrate_uniqueId_to_kind():
 - Remove Event.emotions() factory
 - Explicit creation: create Event, then create Emotion(s) referencing it
 - See Phase 4
-
----
-
-## Progress Tracking
-
-**Current Status:** Critical infrastructure complete! Ready for test fixes.
-
-**Completed:**
-- ✅ Phases 0.1, 1, 2, 3, 4, 5, 7.0, 7.2 (archived in FLATTEN_EVENTS_DONE.md)
-- ✅ Phase 6 (Data Compatibility - compat.py with 11 tests passing)
-- ✅ Phase 0.2 (Scene.read() Event loading - completed in Phase 6.5)
-- ✅ Phase 0.3 (Scene.write() Event separation - completed in Phase 6.5)
-- ✅ Phase 9 (Scene Data Format - Scene.read()/write() typed arrays - completed in Phase 6.5)
-
-**Next Steps:**
-1. Fix Phase 7.1, 7.3 (Update test Event() and Emotion() constructor calls)
-2. Fix Phase 7.4 (Run full test suite and fix failures)
-3. Continue with Phases 8, 10-14
-
-**Estimated Effort:**
-- ~~Phase 6: 8 hours (compat.py - CRITICAL)~~ ✅ COMPLETED
-- ~~Phase 0.2, 0.3: 4 hours (Scene read/write)~~ ✅ COMPLETED
-- ~~Phase 9: 4 hours (Scene data format)~~ ✅ COMPLETED (already done in Phase 6.5)
-- Phase 7: 4 hours (remaining tests)
-- Phase 8, 10-13: 8 hours (polish)
-- Phase 14: 2 hours (version bump)
-
-**Total Remaining:** ~14 hours of focused work (down from 28 hours!)
-
----
-
-## Testing Strategy
-
-After each phase:
-1. Run unit tests: `python -m pytest tests/scene/test_event.py -v`
-2. Run model tests: `python -m pytest tests/models/ -v`
-3. Run integration tests: `python -m pytest tests/views/ -v`
-4. Smoke test UI: Open app, create events, timeline, undo/redo
-
-Before final commit:
-1. Full test suite: `python -m pytest -vv`
-2. Load old diagram files (test compat.py)
-3. Create new diagram, save, reload
-4. Test all event types
-5. Test timeline interactions
-6. Test undo/redo thoroughly
 
 ---
 

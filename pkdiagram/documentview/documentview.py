@@ -100,7 +100,7 @@ class DocumentView(QWidget):
         )
         self.emotionProps = QmlDrawer(
             self._qmlEngine,
-            "qml/EmotionPropertiesDrawer.qml",
+            "qml/EmotionProperties.qml",
             parent=self,
             resizable=False,
             propSheetModel="emotionModel",
@@ -266,7 +266,7 @@ class DocumentView(QWidget):
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
-            if self.scene.hideDateSlider() or len(self.timelineModel.events()) == 0:
+            if self.scene.hideDateSlider() or self.timelineModel.rowCount() == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:
                 self.graphicalTimelineShim.setFixedHeight(

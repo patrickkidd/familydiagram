@@ -1,5 +1,6 @@
 import os, sys, re, logging
 import contextlib
+from typing import Union
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -54,6 +55,7 @@ from pkdiagram.scene import (
     LayerItem,
     Callout,
     ItemGarbage,
+    ItemDetails,
     clipboard,
 )
 from pkdiagram.scene.commands import (
@@ -406,8 +408,8 @@ class Scene(QGraphicsScene, Item):
             if not self.isBatchAddingRemovingItems():
                 item.person().onEventAdded()
                 if item.kind().isPairBond():
-                    for marriage in self.marriagesFor(item.person(), item.spouse()):
-                        marriage.onEventAdded()
+                    marriage = self.marriageFor(item.person(), item.spouse())
+                    marriage.onEventAdded()
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
@@ -544,8 +546,8 @@ class Scene(QGraphicsScene, Item):
             if not self.isBatchAddingRemovingItems():
                 item.person().onEventRemoved()
                 if item.kind().isPairBond():
-                    for marriage in self.marriagesFor(item.person(), item.spouse()):
-                        marriage.onEventAdded()
+                    marriage = self.marriageFor(item.person(), item.spouse())
+                    marriage.onEventAdded()
                 self.eventRemoved.emit(item)
                 if (
                     not [x for x in self._events if x.dateTime()]
@@ -1516,10 +1518,10 @@ class Scene(QGraphicsScene, Item):
         else:
             return ret
 
-    def marriages(self):
+    def marriages(self) -> list[Marriage]:
         return list(self._marriages)
 
-    def itemDetails(self):
+    def itemDetails(self) -> list[ItemDetails]:
         return list(self._itemDetails)
 
     def events(self, tags=[], onlyDated=False) -> list[Event]:
@@ -1531,11 +1533,34 @@ class Scene(QGraphicsScene, Item):
             ret = [x for x in ret if x.dateTime()]
         return ret
 
+    def eventsFor(self, item: Person | Marriage) -> list[Event]:
+        if isinstance(item, Person):
+            return [e for e in self._events if e.person() is item]
+        elif isinstance(item, Marriage):
+            return [
+                x
+                for x in self.events()
+                if {x.person(), x.spouse()} == {item.personA(), item.personB()}
+            ]
+        raise TypeError("item must be Person or Marriage")
+
+    def marriageFor(self, personA: Person, personB: Person) -> Marriage | None:
+        for m in self._marriages:
+            if {personA, personB} == {m.personA(), m.personB()}:
+                return m
+        return None
+
+    def marriagesFor(self, person: Person) -> list[Marriage]:
+        return [m for m in self._marriages if person in (m.personA(), m.personB())]
+
     def emotions(self) -> list[Emotion]:
         return list(self._emotions)
 
-    def emotionsFor(self, person: Person) -> list[Emotion]:
-        return [e for e in self._emotions if person in (e.person(), e.target())]
+    def emotionsFor(self, item: Union[Person, Event]) -> list[Emotion]:
+        if isinstance(item, Person):
+            return [e for e in self._emotions if item in (e.item(), e.target())]
+        elif isinstance(item, Event):
+            return [e for e in self._emotions if e.event() is item]
 
     def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:

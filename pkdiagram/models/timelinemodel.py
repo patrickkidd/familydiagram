@@ -636,6 +636,24 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 break
         return row
 
+    @pyqtSlot(QDateTime, result=QDateTime)
+    def nextDateTimeAfter(self, dateTime: QDateTime) -> QDateTime:
+        dummy = TimelineRow(dateTime=dateTime)
+        nextRow = bisect.bisect_right(self._rows, dummy)
+        if nextRow == len(self._rows):  # end
+            return self.lastEventDateTime()
+        else:
+            return self._rows[nextRow].dateTime()
+
+    @pyqtSlot(QDateTime, result=QDateTime)
+    def prevDateTimeBefore(self, dateTime: QDateTime) -> QDateTime:
+        dummy = TimelineRow(dateTime=dateTime)
+        prevRow = bisect.bisect_left(self._rows, dummy) - 1
+        if prevRow == -1:  # start
+            return self.firstEventDateTime()
+        else:
+            return self._rows[prevRow].dateTime()
+
     @pyqtSlot(QDateTime, result=int)
     def dateBetweenRow(self, date):
         """Return the row that the date falls right after if not right on.

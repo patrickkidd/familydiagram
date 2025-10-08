@@ -2,10 +2,13 @@ import os
 import logging
 from datetime import datetime
 
+from stripe import Person
+
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
 from pkdiagram.scene.commands import SetEventPerson
+from pkdiagram.scene.marriage import Marriage
 
 
 _log = logging.getLogger(__name__)
@@ -65,9 +68,16 @@ class Event(Item):
         relationshipTriangles: "list[Person]" = [],
         **kwargs,
     ):
+        from pkdiagram.scene import Person
+
         if not isinstance(kind, EventKind):
             raise TypeError(
                 f"Event() requires kind=EventKind, got {type(kind).__name__}"
+            )
+
+        if not isinstance(person, Person):
+            raise TypeError(
+                f"Event() requires person=Person, got {type(person).__name__}"
             )
         super().__init__(kind=kind.value, person=person.id, **kwargs)
         self.isEvent = True
@@ -368,16 +378,10 @@ class Event(Item):
 
     # Pair-Bond Events
 
-    def marriage(self):
-        from pkdiagram.scene import Marriage
-
+    def marriage(self) -> "Marriage | None":
         person = self.person()
         spouse = self.spouse()
-
-        if person and spouse:
-            marriages = Marriage.marriagesFor(person, spouse)
-            if marriages[0]:
-                return marriages[0]
+        return self.scene().marriageFor(person, spouse)
 
     def setSpouse(self, person: "Person", notify=True, undo=False):
         self.prop("spouse").set(person.id, notify=notify, undo=undo)

@@ -6,7 +6,7 @@ from pkdiagram.models import ModelHelper
 def _anyMarriedEvents(marriage: Marriage):
     return any(
         x
-        for x in marriage.events()
+        for x in marriage.scene().events()
         if x.kind() == EventKind.Married
         and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
     )
@@ -15,7 +15,7 @@ def _anyMarriedEvents(marriage: Marriage):
 def _anySeparatedEvents(marriage: Marriage):
     return any(
         x
-        for x in marriage.events()
+        for x in marriage.scene().events()
         if x.kind() == EventKind.Separated
         and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
     )
@@ -24,7 +24,7 @@ def _anySeparatedEvents(marriage: Marriage):
 def _anyDivorcedEvents(marriage: Marriage):
     return any(
         x
-        for x in marriage.events()
+        for x in marriage.scene().events()
         if x.kind() == EventKind.Divorced
         and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
     )

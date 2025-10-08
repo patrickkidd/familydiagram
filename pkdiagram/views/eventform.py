@@ -132,6 +132,16 @@ class EventForm(QmlDrawer):
     #         f"EventForm.onActiveFocusItemChanged: {parentName}.{itemName}[{itemClassName}]"
     #     )
 
+    def marriageForSelection(self, selection: list[Item]) -> Marriage | None:
+        if selection:
+            people = [x for x in selection if x.isPerson]
+            if len(people) != 2:
+                return None
+            marriages = self.scene.marriageFor(people[0], people[1])
+            if marriages:
+                return marriages[0]
+        return None
+
     def addEvent(self, selection: list[Item] = None):
         self.clear()
         self.item.setProperty("isEditing", False)
@@ -139,7 +149,7 @@ class EventForm(QmlDrawer):
         self._events = [event]
         self._tagsModel.items = [event]
         if selection:
-            pairBond = Marriage.marriageForSelection(selection)
+            pairBond = self.marriageForSelection(selection)
             if pairBond:
                 self.initWithPerson(pairBond.personA().id)
             elif any(x.isPerson for x in selection):
@@ -613,7 +623,7 @@ class EventForm(QmlDrawer):
                     )
                     newPeople.append(spouse)
 
-                marriage = Marriage.marriageForSelection([person, spouse])
+                marriage = self.marriageForSelection([person, spouse])
                 if not marriage:
                     marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
                     newMarriages.append(marriage)
@@ -687,7 +697,7 @@ class EventForm(QmlDrawer):
                 parentBPos = parentB.itemPos()
                 xLeft = min(parentAPos.x(), parentBPos.x())
                 xRight = max(parentAPos.x(), parentBPos.x())
-                marriage = Marriage.marriagesFor(parentA, parentB)[0]
+                marriage = self.scene().marriageFor(parentA, parentB)
                 siblings = [x for x in marriage.children if x != child]
                 if siblings:
                     newSiblings = list(

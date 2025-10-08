@@ -9,9 +9,12 @@ import PK.Models 1.0
 Page {
     
     id: root
+    objectName: 'emotionProps'
 
     signal cancel
     signal done
+    signal resize
+
 
     property int margin: util.QML_MARGINS
     property var focusResetter: emotionPage
@@ -160,69 +163,9 @@ Page {
                         //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
                         // }
 
-                        Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 2 }
-
-                        PK.Text { text: "Person" }
-
-                        PK.ComboBox {
-                            id: personBox
-                            model: peopleModel
-                            textRole: 'name'
-                            displayText: {
-                                if(emotionModel.personAId != -1 && currentIndex != -1)
-                                    currentText
-                                else if(currentIndex == -1)
-                                    util.EMPTY_TEXT
-                                else
-                                    'Unnamed Person'
-                            }
-                            currentIndex: {
-                                model.resetter
-                                model.rowForId(emotionModel.personAId)
-                            }
-                            Layout.fillWidth: true
-                            Layout.maximumWidth: 200
-                            KeyNavigation.tab: targetBox
-                            onCurrentIndexChanged: {
-                                if(currentIndex > -1) {
-                                    emotionModel.personAId = model.idForRow(currentIndex)
-                                }
-                            }
-                        }
-                        
-                        PK.Text { text: "Other" }
-
-                        PK.ComboBox {
-                            id: targetBox
-                            textRole: 'name'
-                            displayText: {
-                                if(emotionModel.personBId != -1 && currentIndex != -1)
-                                    currentText
-                                else if(currentIndex == -1)
-                                    util.EMPTY_TEXT
-                                else
-                                    'Unnamed Person'
-                            }
-                            enabled: emotionModel.dyadic
-                            model: peopleModel
-                            currentIndex: {
-                                model.resetter
-                                model.rowForId(emotionModel.personBId)
-                            }
-                            Layout.fillWidth: true
-                            Layout.maximumWidth: 200
-                            KeyNavigation.tab: intensityBox
-                            KeyNavigation.backtab: personBox
-                            onCurrentIndexChanged: {
-                                if(currentIndex > -1) {
-                                    emotionModel.personBId = model.idForRow(currentIndex)
-                                }
-                            }
-                        }
-                        
                         Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 1 }
 
-                        PK.Text { text: "Size" }
+                        PK.Text { text: "Intensity" }
 
                         PK.ComboBox {
                             id: intensityBox

@@ -11,10 +11,6 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         [
             {"attr": "kindIndex", "type": int, "default": -1},
             {"attr": "intensityIndex", "type": int, "default": -1},
-            {"attr": "personAId", "type": int, "default": -1},
-            {"attr": "personBId", "type": int, "default": -1},
-            {"attr": "startDateTime", "type": QDateTime},
-            {"attr": "endDateTime", "type": QDateTime},
             {"attr": "itemName"},
             {"attr": "dyadic", "type": bool},
         ],
@@ -53,14 +49,6 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             ret = util.sameOf(self._items, lambda item: item.startEvent.id)
         elif attr == "endEventId":
             ret = util.sameOf(self._items, lambda item: item.endEvent.id)
-        elif attr == "personAId":
-            ret = util.sameOf(
-                self._items, lambda item: item.personA() and item.personA().id or -1
-            )
-        elif attr == "personBId":
-            ret = util.sameOf(
-                self._items, lambda item: item.personB() and item.personB().id or -1
-            )
         elif attr == "parentName":
             ret = util.sameOf(self._items, lambda item: item.kind().name)
         elif attr == "dyadic":
@@ -80,18 +68,6 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         elif attr == "intensityIndex":
             intensity = util.emotionIntensityFromIndex(value)
             self.set("intensity", intensity)
-        elif attr == "personAId" and self._scene:
-            person = self._scene.find(id=value)
-            with self._scene.macro("Set emotion person A"):
-                for item in self._items:
-                    if person != item.personA():
-                        item.setPersonA(person, undo=True)
-        elif attr == "personBId" and self._scene:
-            person = self._scene.find(id=value)
-            with self._scene.macro("Set emotiona person B"):
-                for item in self._items:
-                    if person != item.personB():
-                        item.setPersonB(person, undo=True)
         return super().set(attr, value)
 
     def reset(self, attr):

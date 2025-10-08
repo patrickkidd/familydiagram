@@ -974,11 +974,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "EmotionPropertiesDrawer.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
 name = "FileManager.qml"
 included = true
 is_directory = false

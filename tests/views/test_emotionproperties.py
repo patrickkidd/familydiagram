@@ -10,7 +10,7 @@ from pkdiagram.views import QmlDrawer
 def ep(qtbot, scene, qmlEngine):
     qmlEngine.setScene(scene)
     ep = QmlDrawer(
-        qmlEngine, "qml/EmotionPropertiesDrawer.qml", propSheetModel="emotionModel"
+        qmlEngine, "qml/EmotionProperties.qml", propSheetModel="emotionModel"
     )
     ep.checkInitQml()
     ep.emotionModel = ep.rootProp("emotionModel")
@@ -94,8 +94,8 @@ def test_show_init_multiple_different(scene, ep):
     )
 
     scene.addItems(event1, event2)
-    emotion1 = event1.emotions()[0]
-    emotion2 = event2.emotions()[0]
+    emotion1 = scene.emotionsFor(event1)[0]
+    emotion2 = scene.emotionsFor(event2)[0]
 
     ep.show([emotion1])
     model = ep.rootProp("emotionModel")
@@ -119,12 +119,17 @@ def test_show_init_multiple_different(scene, ep):
 
 @pytest.mark.parametrize("dateTime", [util.Date(2000, 4, 21), QDateTime()])
 def test_notes_field_has_start_datetime(scene, ep, dateTime):
-    personA, personB = Person(name="personA"), Person(name="personB")
-    emotion = Emotion(
-        personA=personA, personB=personB, event=Event(), kind=util.ITEM_PROJECTION
+    personA, personB = scene.addItems(Person(name="personA"), Person(name="personB"))
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Projection,
+            relationshipTargets=personB,
+            dateTime=dateTime,
+        )
     )
-    emotion.event().setDateTime(dateTime)
-    scene.addItem(emotion)
+    emotion = scene.emotionsFor(event)[0]
     ep.show(emotion, tab="notes")
     emotionNotesEdit = ep.rootProp("emotionNotesEdit")
     notesHiddenHelpText = ep.rootProp("notesHiddenHelpText")

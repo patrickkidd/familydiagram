@@ -157,7 +157,7 @@ PK.Drawer {
                                     id: separatedBox
                                     objectName: 'separatedBox'
                                     text: "Show Separated"
-                                    enabled: !marriageModel.anySeparatedEvents && !marriageModel.everDivorced
+                                    enabled: !marriageModel.anySeparatedEvents && !marriageModel.everSeparated
                                     checkState: marriageModel.separated
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: divorcedBox
@@ -176,7 +176,7 @@ PK.Drawer {
                                 }
 
                                 PK.Text {
-                                    text: "These options show bonded, married, separated, and divorced status prior to adding special bonded, married, separated, divorced events. These options are unavailable as soon as the respective events are added to the Pair-Bond."
+                                    text: "These options show bonded, married, separated, and divorced status prior to adding bonded, married, separated, divorced events to the Pair-Bond. These options are unavailable as soon as at least one of the respective events are added to this pair-bond."
                                     font.pixelSize: util.HELP_FONT_SIZE
                                     wrapMode: Text.WordWrap
                                     Layout.fillWidth: true

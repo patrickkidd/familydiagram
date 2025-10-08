@@ -124,23 +124,6 @@ class Marriage(PathItem):
         path.lineTo(QPointF(pos.x(), y_end))
         return path
 
-    @staticmethod
-    def marriagesFor(personA, personB) -> "list[Marriage]":
-        return [m for m in personA.marriages if {personA, personB} == set(m.people)]
-
-    @staticmethod
-    def marriageForSelection(selection):
-        people = [x for x in selection if x.isPerson]
-        if people:
-            if len(people) != 2:
-                return []
-            marriages = Marriage.marriagesFor(people[0], people[1])
-            if marriages:
-                return marriages[0]
-        marriages = [x for x in selection if x.isMarriage]
-        if marriages:
-            return marriages[0]
-
     PathItem.registerProperties(
         (
             {"attr": "married", "default": True, "onset": "updateGeometryAndDetails"},
@@ -287,7 +270,7 @@ class Marriage(PathItem):
         priorMarriedEvents = []
         priorDivorcedEvents = []
         anyMarriedEvents = []
-        for e in self.events():
+        for e in self.eventsFor(self):
             if e.dateTime() and e.dateTime() <= dateTime:
                 if e.kind() == EventKind.Bonded:
                     priorBondedEvents.append(e)
@@ -317,7 +300,7 @@ class Marriage(PathItem):
         """Returns 'separated', 'divorced', None"""
         separatedEvents = []
         divorcedEvents = []
-        for e in self.events():
+        for e in self.scene().eventsFor(self):
             if (
                 e.kind() == EventKind.Separated
                 and e.dateTime()
@@ -379,19 +362,7 @@ class Marriage(PathItem):
                 self.updateAll()  # update after override in shouldShowFor
         return super().itemChange(change, variant)
 
-    ## Events
-
-    def events(self) -> list[Event]:
-        if self.scene():
-            return [
-                x
-                for x in self.scene().events()
-                if {x.person(), x.spouse()} == {self.personA(), self.personB()}
-            ]
-        else:
-            return []
-
-    ## Internal Data
+    # Events
 
     def onEventAdded(self):
         self.updateDetails()
@@ -400,6 +371,8 @@ class Marriage(PathItem):
     def onEventRemoved(self):
         self.updateDetails()
         self.updateGeometry()
+
+    # Internal Data
 
     def notesIconPos(self):
         return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
@@ -530,7 +503,7 @@ class Marriage(PathItem):
 
         # Compile Dates
         if not self.hideDates():
-            for event in self.events():
+            for event in self.scene().eventsFor(self):
                 kind = event.kind()
                 if (
                     not event.dateTime()
@@ -610,7 +583,7 @@ class Marriage(PathItem):
         # 5
         anyBondedMarriedDates = [
             e.dateTime()
-            for e in self.events()
+            for e in self.scene().eventsFor(self)
             if e.kind() in (EventKind.Bonded, EventKind.Married)
         ]
         priorBondedMarriedDates = [

@@ -6,7 +6,11 @@
 
 ## 📋 COMPLETED SECTIONS FROM TOC
 
-### ✅ COMPLETED - Architecture Changes
+### ✅ COMPLETED - Infrastructure & Architecture
+- **[Phase 0](#phase-0-critical-infrastructure-blockers-)** - Critical Infrastructure Blockers
+  - [0.1 ✅ Circular Import in marriage.py](#01-circular-import-in-marriagepy--completed)
+  - [0.2 ✅ Scene.read() Missing Event Loading Code](#02-sceneread-missing-event-loading-code--completed)
+  - [0.3 ✅ Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--completed)
 - **[Phase 1](#phase-1-fix-critical-blockers--urgent)** - Fix Critical Blockers
   - [1.1 ✅ Event.kind Property Initialization](#11-eventkind-property-initialization--notes-in-claudemd)
   - [1.2 ✅ Emotion Constructor Crash](#12-emotion-constructor-crash--completed)
@@ -28,8 +32,24 @@
   - [5.1 ✅ Fix String Comparisons](#51-fix-string-comparisons--completed)
   - [5.2 ✅ Update Marriage.separationStatusFor()](#52-update-marriageseparationstatusfor--completed)
 
+### ✅ COMPLETED - Data & Compatibility
+- **[Phase 6](#phase-6-data-compatibility-compatpy--completed)** - Data Compatibility (compat.py)
+- **[Phase 7](#phase-7-test-fixes-partial-)** - Test Fixes (Partial)
+  - [7.0 ✅ Fix Tests That Can Now Run](#70-fix-tests-that-can-now-run--completed)
+  - [7.2 ✅ Fix event.uniqueId() Calls](#72-fix-eventuniqueId-calls--completed)
+- **[Phase 8](#phase-8-modelview-updates-partial-)** - Model/View Updates (Partial)
+  - [8.1 ✅ Update PersonPropertiesModel](#81-update-personpropertiesmodel-event-handling--completed)
+  - [8.2 ✅ Update MarriagePropertiesModel](#82-update-marriagepropertiesmodel-event-handling--completed)
+  - [8.3 ✅ Remove EmotionPropertiesModel Date Editors](#phase-83-remove-emotionpropertiesmodel-date-editors-)
+  - [8.4 ✅ Update SearchModel](#phase-84-update-searchmodel-)
+- **[Phase 9](#phase-9-scene-data-format--completed)** - Scene Data Format
+  - [9.1 ✅ Update Scene.write()](#91-update-scenewrite--completed)
+  - [9.2 ✅ Update Scene.read()](#92-update-sceneread--completed)
+
 
 ---
+
+## PHASE 0: Critical Infrastructure Blockers ✅
 
 ### 0.1 Circular Import in marriage.py ✅ COMPLETED
 **File:** `pkdiagram/scene/marriage.py:26` (FIXED)
@@ -42,6 +62,33 @@ from tests.views.test_marriageproperties import marriage  # ← WRONG
 **Impact:** Prevented ALL tests from running with circular import error.
 
 **Resolution:** User removed the import. Tests can now run.
+
+---
+
+### 0.2 Scene.read() Missing Event Loading Code ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:676-755`
+
+**Problem:** Scene.read() had NO code to load Event objects from saved files!
+
+**Impact:** Saved diagrams could not be opened because events were never loaded from `data["events"]`.
+
+**Resolution Implemented:**
+- Scene.read() now implements two-phase loading (see Phase 9.2)
+- Phase 1: Instantiate events with ID map
+- Phase 2: Resolve event.person references via byId lookup
+
+---
+
+### 0.3 Scene.write() Not Separating Events ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:789-828`
+
+**Problem:** Scene.write() output everything to `data["items"]` - didn't check for `isEvent` or create `data["events"]`.
+
+**Impact:** Events were not being written to files correctly.
+
+**Resolution Implemented:**
+- Scene.write() now separates events into `data["events"]` array (see Phase 9.1)
+- Events are written as top-level items separate from people/marriages
 
 ---
 
@@ -624,6 +671,229 @@ if "items" in data:
 - [x] Verify that emotion.kind is written as RelationshipKind string value (e.g., "conflict", "distance")
 - [x] Add Emotion.kindSlugs() and Emotion.kindForKindSlug() methods
 - [x] Add relationship field to emotion events in compat.py migration
+
+---
+
+## PHASE 7: Test Fixes (Partial) ✅
+
+### 7.0 Fix Tests That Can Now Run ✅ COMPLETED
+**Blocker Removed:** Circular import in marriage.py:26 has been fixed.
+
+**Status:** Tests can now run. However, many failed initially due to refactor changes.
+
+**Git Diff Showed 35 Files Changed:**
+- 18 test files modified
+- Most common issues: Event() constructor calls, uniqueId() removal, Emotion() constructor
+
+**Completed Action Items:**
+- ✅ Fixed circular import blocker (Phase 0.1)
+- ✅ Tests can now execute without import errors
+- ✅ Identified patterns that need fixing across test files
+
+---
+
+### 7.2 Fix event.uniqueId() Calls ✅ COMPLETED
+**Files:** All test and production files
+
+**Pattern Replaced:**
+```python
+# Old:
+assert event.uniqueId() == "birth"
+
+# New:
+assert event.kind() == EventKind.Birth
+```
+
+**Status:** ✅ All uniqueId() calls have been replaced with kind() calls.
+
+**Completed Action Items:**
+- ✅ Replaced `event.uniqueId()` with `event.kind()` throughout codebase
+- ✅ Replaced string comparisons with EventKind enums
+- ✅ Verified no remaining uniqueId() calls via grep
+
+---
+
+## PHASE 8: Model/View Updates (Partial) ✅
+
+### 8.1 Update PersonPropertiesModel Event Handling ✅ COMPLETED
+**File:** `pkdiagram/models/personpropertiesmodel.py:78-106`
+
+**Status:** ✅ Already using EventKind enums
+
+**Implementation:**
+```python
+def onEventProperty(self, prop):
+    if prop.name() == "dateTime":
+        if prop.item.kind() == EventKind.Birth:
+            self.refreshProperty("birthDateTime")
+        elif prop.item.kind() == EventKind.Adopted:
+            self.refreshProperty("adoptedDateTime")
+        elif prop.item.kind() == EventKind.Death:
+            self.refreshProperty("deceasedDateTime")
+    # ... location handling uses same pattern
+```
+
+**Completed Action Items:**
+- ✅ Replaced `uniqueId()` with `kind()` in PersonPropertiesModel (lines 80, 82, 84)
+- ✅ Replaced string comparisons with EventKind enums (lines 80-92, 98-106)
+- ✅ EventKind imported on line 9
+
+---
+
+### 8.2 Update MarriagePropertiesModel Event Handling ✅ COMPLETED
+**File:** `pkdiagram/models/marriagepropertiesmodel.py:6-78`
+
+**Status:** ✅ Already using EventKind enums
+
+**Implementation:**
+```python
+def _anyMarriedEvents(marriage: Marriage):
+    return any(x for x in marriage.events()
+               if x.kind() == EventKind.Married
+               and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()})
+
+def onEventsChanged(self, event):
+    if event.kind() == EventKind.Married:
+        self.refreshProperty("anyMarriedEvents")
+    elif event.kind() == EventKind.Separated:
+        self.refreshProperty("anySeparatedEvents")
+    elif event.kind() == EventKind.Divorced:
+        self.refreshProperty("anyDivorcedEvents")
+```
+
+**Completed Action Items:**
+- ✅ Replaced `uniqueId()` with `kind()` in MarriagePropertiesModel
+- ✅ Replaced string comparisons with EventKind enums (lines 10, 19, 28, 68, 71, 74)
+- ✅ EventKind imported on line 2
+
+---
+
+## PHASE 9: Scene Data Format ✅ COMPLETED
+
+Update Scene serialization format. **Both sub-phases completed in Phase 6.5.**
+
+### 9.1 Update Scene.write() ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:851-927`
+
+**Status:** ✅ COMPLETED in Phase 6.5
+
+**Implementation:**
+Scene.write() has been fully updated to use typed arrays:
+
+```python
+# Initialize typed arrays (lines 858-866)
+data["people"] = []
+data["marriages"] = []
+data["emotions"] = []
+data["events"] = []  # NEW: top-level events array
+data["layers"] = []
+data["layerItems"] = []
+data["multipleBirths"] = []
+data["items"] = []  # For future unknown types
+
+# Route items to appropriate arrays (lines 880-917)
+if item.isEvent:
+    chunk["kind"] = "Event"
+    item.write(chunk)
+    data["events"].append(chunk)
+elif item.isPerson:
+    chunk["kind"] = "Person"
+    item.write(chunk)
+    data["people"].append(chunk)
+# ... etc
+```
+
+**Completed Action Items:**
+- ✅ Updated `Scene.write()` to separate events from other items
+- ✅ Created `data["events"]` array
+- ✅ Removed events from `data["people"]` and `data["marriages"]`
+- ✅ Unknown item types preserved in `data["items"]` for forward compatibility
+
+---
+
+### 9.2 Update Scene.read() ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:704-788`
+
+**Status:** ✅ COMPLETED in Phase 6.5
+
+**Implementation:**
+Scene.read() implements two-phase loading with typed arrays:
+
+```python
+# Phase 1: Load events FIRST (lines 706-711)
+for chunk in data.get("events", []):
+    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
+    item.id = chunk["id"]
+    items.append(item)
+    itemChunks.append((item, chunk))
+
+# Then load people, marriages, emotions... (lines 713-761)
+
+# Phase 2: Resolve all dependencies via byId (lines 777-788)
+for item, chunk in itemChunks:
+    item.read(chunk, byId)  # Resolves event.person via byId lookup
+```
+
+**Completed Action Items:**
+- ✅ Implemented two-phase loading in Scene.read()
+- ✅ Events loaded FIRST in phase 1 (before people who query events)
+- ✅ Event.person references resolved in phase 2
+- ✅ Backward compatibility with `data.get("items", [])` fallback (lines 763-789)
+
+---
+
+## PHASE 8.3: Remove EmotionPropertiesModel Date Editors ✅
+
+**File:** `pkdiagram/models/emotionpropertiesmodel.py`
+
+**Goal:** Remove date/time properties that should be on Event
+
+**Changes:**
+```python
+# Remove these properties (now on Event):
+# - startDateTime
+# - endDateTime
+# - startDateUnsure
+# - endDateUnsure
+
+# Keep these:
+# - personAId / personBId (or migrate to person/target?)
+# - dyadic
+# - itemName
+```
+
+**Completed Action Items:**
+- ✅ Remove date/time properties from EmotionPropertiesModel
+- ✅ Add link to edit Event instead
+- ✅ Update QML to show Event properties via link
+
+---
+
+## PHASE 8.4: Update SearchModel ✅
+
+**File:** `pkdiagram/models/searchmodel.py:118`
+
+**Goal:** Add type hints to clarify SearchModel expects Event objects
+
+**Previous Code:**
+```python
+def shouldHide(self, event):
+    """Search kernel."""
+    nullLoggedDate = bool(
+        not event.loggedDateTime() or event.loggedDateTime().isNull()
+    )
+```
+
+**Updated Code:**
+```python
+def shouldHide(self, event: Event) -> bool:
+    """Determine if event should be hidden based on search criteria."""
+    # ... existing logic ...
+```
+
+**Completed Action Items:**
+- ✅ Add type hints to SearchModel.shouldHide()
+- ✅ Ensure it works with Event objects (not TimelineRow)
 
 ---
 

@@ -453,7 +453,7 @@ class Person(PathItem):
         return self.fullNameOrAlias()
 
     def birthDateTime(self) -> QDateTime:
-        for event in self.events():
+        for event in self.eventsFor(self):
             if event.kind() == EventKind.Birth:
                 return event.dateTime()
         return QDateTime()
@@ -461,13 +461,13 @@ class Person(PathItem):
     def deceased(self) -> bool:
         if self.prop("deceased").get():
             return True
-        for event in self.events():
+        for event in self.eventsFor(self):
             if event.kind() == EventKind.Death:
                 return True
         return False
 
     def deceasedDateTime(self) -> QDateTime:
-        for event in self.events():
+        for event in self.eventsFor(self):
             if event.kind() == EventKind.Death:
                 return event.dateTime()
         return QDateTime()
@@ -756,33 +756,11 @@ class Person(PathItem):
 
     ## Events
 
-    def events(self) -> list[Event]:
-        if self.scene():
-            return [x for x in self.scene().events() if x.person() == self]
-        else:
-            return []
-
-    def emotions(self) -> list[Emotion]:
-        if self.scene():
-            return [
-                x for x in self.scene().events() if self in (x.person(), x.target())
-            ]
-        else:
-            return []
-
-    def marriages(self) -> list[Marriage]:
-        if self.scene():
-            return [
-                x for x in self.scene().events() if self in (x.personA(), x.personB())
-            ]
-        else:
-            return []
-
     def updateEvents(self):
         """handle add|remove changes."""
         added = []
         removed = []
-        newEvents = self.events()
+        newEvents = self.eventsFor(self)
         oldEvents = self._eventsCache
         for newEvent in newEvents:
             if not newEvent in oldEvents:
@@ -836,6 +814,8 @@ class Person(PathItem):
         if prop.isDynamic:
             self.variablesDatabase.set(prop.attr, prop.item.dateTime(), prop.get())
 
+    # Showing / Hiding
+
     @util.fblocked  # needed to avoid recursion in multiple births
     def updatePathItemVisible(self):
         """Override."""
@@ -861,7 +841,7 @@ class Person(PathItem):
 
     def updateVariablesDatabase(self):
         self.variablesDatabase.clear()
-        for event in self.events():
+        for event in self.eventsFor(self):
             for prop in event.dynamicProperties:
                 if event.dateTime() and prop.isset():
                     self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())

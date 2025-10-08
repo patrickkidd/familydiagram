@@ -374,241 +374,46 @@ PK.Drawer {
                             }
                         }
                         
-                        // Born Date
+                        PK.GroupBox {
 
-                        PK.Text { text: "Born" }
-
-                        PK.DatePickerButtons {
-                            id: birthDateButtons
-                            datePicker: birthDatePicker
-                            timePicker: birthTimePicker
-                            dateTime: personModel.birthDateTime
-                            enabled: !root.isReadOnly
-                            backTabItem: ageBox
-                            tabItem: birthLocationEdit
-                            onDateTimeChanged: personModel.birthDateTime = dateTime
-                            onUnsureChanged: personModel.birthDateUnsure = unsure
+                            title: "Provisional Settings"
                             Layout.columnSpan: 2
-                            Layout.preferredHeight: implicitHeight - 10
-                            Connections {
-                                target: personModel
-                                function onBirthDateTimeChanged() { birthDateButtons.dateTime = personModel.birthDateTime }
-                                function onBirthDateUnsureChanged() { birthDateButtons.unsure = personModel.birthDateUnsure }
+                            Layout.bottomMargin: margin
+                            Layout.fillWidth: true
+
+                            ColumnLayout {
+                                anchors.fill: parent
+
+                                PK.CheckBox {
+                                    id: adoptedBox
+                                    objectName: 'adoptedBox'
+                                    text: "Show Adopted'
+                                    enabled: !personModel.anyMarriedEvents && !personModel.everAdopted
+                                    checkState: personModel.adopted
+                                    Layout.columnSpan: 2
+                                    KeyNavigation.tab: separatedBox
+                                    onCheckStateChanged: personModel.adopted = checkState
+                                }
+
+                                PK.CheckBox {
+                                    id: deceasedBox
+                                    objectName: 'deceasedBox'
+                                    text: "Show Deceased"
+                                    enabled: !personModel.anySeparatedEvents && !personModel.everDivorced
+                                    checkState: personModel.deceased
+                                    Layout.columnSpan: 2
+                                    KeyNavigation.tab: diagramNotesEdit
+                                    onCheckStateChanged: personModel.deceased = checkState
+                                }
+
+                                PK.Text {
+                                    text: "These options show adopted and deceased status prior to adding adopted and death events to this person. These options are unavailable as soon as at least one of the respective events are added to this person."
+                                    font.pixelSize: util.HELP_FONT_SIZE
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                               }
                             }
-                        }
 
-                        PK.DatePicker {
-                            id: birthDatePicker
-                            dateTime: personModel.birthDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            onDateTimeChanged: personModel.birthDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onBirthDateTimeChanged() { birthDatePicker.dateTime = personModel.birthDateTime }
-                            }                            
-                        }
-
-                        PK.TimePicker {
-                            id: birthTimePicker
-                            dateTime: personModel.birthDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            onDateTimeChanged: personModel.birthDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onBirthDateTimeChanged() { birthTimePicker.dateTime = personModel.birthDateTime }
-                            }
-                        }
-
-                        // Birth Location
-
-                        Rectangle { width: 10; height: 10; color: 'transparent' }
-
-                        PK.TextField {
-                            id: birthLocationEdit
-                            text: personModel.birthLocation
-                            enabled: !root.isReadOnly
-                            Layout.fillWidth: true
-                            KeyNavigation.tab: adoptedBox
-                            KeyNavigation.backtab: birthDateButtons.lastTabItem
-                            placeholderText: 'Location'
-                            onEditingFinished: personModel.birthLocation = (text ? text : undefined)
-                        }
-
-                        Rectangle { width: 10; height: 10; color: 'transparent' }
-
-                        // Adopted Date
-                        
-                        PK.CheckBox {
-                            id: adoptedBox
-                            text: 'Adopted'
-                            checkState: personModel.adopted
-                            enabled: !root.isReadOnly
-                            KeyNavigation.tab: adoptedBox.checked ? adoptedDateButtons.textInput : deceasedBox
-                            onClicked: personModel.adopted = checkState
-                        }
-                        
-                        PK.DatePickerButtons {
-                            id: adoptedDateButtons
-                            datePicker: adoptedDatePicker
-                            timePicker: adoptedTimePicker
-                            dateTime: personModel.adoptedDateTime
-                            enabled: adoptedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
-                            Layout.columnSpan: 2
-                            Layout.preferredHeight: implicitHeight - 10
-                            backTabItem: adoptedBox
-                            tabItem: deceasedBox
-                            onDateTimeChanged: personModel.adoptedDateTime = dateTime
-                            onUnsureChanged: personModel.adoptedDateUnsure = unsure
-                            Connections {
-                                target: personModel
-                                function onAdoptedDateTimeChanged() { adoptedDateButtons.dateTime = personModel.adoptedDateTime }
-                                function onAdoptedDateUnsureChanged() { adoptedDateButtons.unsure = personModel.adoptedDateUnsure }
-                            }
-                        }
-
-                        PK.DatePicker {
-                            id: adoptedDatePicker
-                            dateTime: personModel.adoptedDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            state: adoptedBox.checkState != Qt.Unchecked && shouldShow ? 'shown' : 'hidden'
-                            onDateTimeChanged: personModel.adoptedDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onAdoptedDateTimeChanged() { adoptedDatePicker.dateTime = personModel.adoptedDateTime }
-                            }                            
-                        }
-                       
-                        PK.TimePicker {
-                            id: adoptedTimePicker
-                            dateTime: personModel.adoptedDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            state: adoptedBox.checkState != Qt.Unchecked && shouldShow ? 'shown' : 'hidden'
-                            onDateTimeChanged: personModel.adoptedDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onAdoptedDateTimeChanged() { adoptedTimePicker.dateTime = personModel.adoptedDateTime }
-                            }                            
-                        } 
-                        // Deceased
-                        
-                        PK.CheckBox {
-                            id: deceasedBox
-                            text: 'Deceased'
-                            checkState: personModel.deceased
-                            enabled: !root.isReadOnly
-                            KeyNavigation.tab: deceasedBox.checked ? deceasedDateButtons.textInput : deceasedLocationEdit
-                            onClicked: personModel.deceased = checkState
-                        }
-                        
-                        PK.DatePickerButtons {
-                            id: deceasedDateButtons
-                            datePicker: deceasedDatePicker
-                            timePicker: deceasedTimePicker
-                            dateTime: personModel.deceasedDateTime
-                            enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
-                            Layout.columnSpan: 2
-                            Layout.preferredHeight: implicitHeight - 10
-                            backTabItem: deceasedBox
-                            tabItem: deceasedReasonEdit
-                            onDateTimeChanged: personModel.deceasedDateTime = dateTime
-                            onUnsureChanged: personModel.deceasedDateUnsure = unsure
-                            Connections {
-                                target: personModel
-                                function onDeceasedDateTimeChanged() { deceasedDateButtons.dateTime = personModel.deceasedDateTime }
-                                function onDeceasedDateUnsureChanged() { deceasedDateButtons.unsure = personModel.deceasedDateUnsure }
-                            }
-                        }
-
-                        PK.DatePicker {
-                            id: deceasedDatePicker
-                            dateTime: personModel.deceasedDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            onDateTimeChanged: personModel.deceasedDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onDeceasedDateTimeChanged() { deceasedDatePicker.dateTime = personModel.deceasedDateTime }
-                            }                            
-                        }
-
-                        PK.TimePicker {
-                            id: deceasedTimePicker
-                            dateTime: personModel.deceasedDateTime
-                            Layout.columnSpan: 3
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: implicitHeight
-                            onDateTimeChanged: personModel.deceasedDateTime = dateTime
-                            Connections {
-                                target: personModel
-                                function onDeceasedDateTimeChanged() { deceasedTimePicker.dateTime = personModel.deceasedDateTime }
-                            }                            
-                        }                    
-                        
-                        // Deceased Reason
-
-                        Rectangle {
-                            width: 1; height: 1
-                            color: 'transparent'
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                        }
-
-                        PK.TextField {
-                            id: deceasedReasonEdit
-                            text: personModel.deceasedReason
-                            enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                            placeholderText: 'Cause of death'
-                            KeyNavigation.tab: deceasedLocationEdit
-                            KeyNavigation.backtab: deceasedDateButtons.lastTabItem
-                            onEditingFinished: personModel.deceasedReason = (text ? text : undefined)
-                        }
-
-                        Rectangle {
-                            width: 10; height: 10
-                            color: 'transparent'
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                        }
-
-                        // Deceased Location
-
-                        Rectangle {
-                            width: 1; height: 1
-                            color: 'transparent'
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                        }
-
-                        PK.TextField {
-                            id: deceasedLocationEdit
-                            text: personModel.deceasedLocation
-                            enabled: deceasedBox.checkState != Qt.Unchecked && !sceneModel.readOnly
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                            placeholderText: 'Location'
-                            Layout.fillWidth: true
-                            KeyNavigation.tab: diagramNotesEdit
-                            KeyNavigation.backtab: deceasedReasonEdit
-                            onEditingFinished: personModel.deceasedLocation = (text ? text : undefined)
-                        }
-
-                        Rectangle {
-                            width: 10; height: 10
-                            color: 'transparent'
-                            visible: deceasedBox.checkState != Qt.Unchecked
-                       }
 
                         // Spacer line
 
