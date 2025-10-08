@@ -41,11 +41,13 @@ def test_undoStackDateTimes(scene):
     assert scene._undoStack.index() == 1
     assert scene._undoStackDateTimes == {0: QDateTime()}
 
-    event1 = 
-    scene.addItem(Event(
-        kind=EventKind.Shift,
-        person, description="First datetime", dateTime=util.Date(2001, 1, 1)
-    ), undo=True)
+    event1 = Event(
+        EventKind.Shift,
+        person,
+        description="First datetime",
+        dateTime=util.Date(2001, 1, 1),
+    )
+    scene.addItem(event1, undo=True)
     assert scene._undoStack.index() == 2
     assert scene.currentDateTime() == event1.dateTime()
     assert scene._undoStackDateTimes == {0: QDateTime(), 1: QDateTime()}

@@ -133,7 +133,7 @@ def test_anonymize():
     e3 = Event(EventKind.Shift, bob, description="Patrick came home with bob")
     scene.additems(e1, e2, e3)
     distance = Emotion(
-        kind=RelationshipKind.Distance,
+        RelationshipKind.Distance,
         bob,
         person=patrick,
         notes="""
