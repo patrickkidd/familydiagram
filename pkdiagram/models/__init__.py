@@ -5,7 +5,7 @@ from .localfilemanagermodel import LocalFileManagerModel
 from .serverfilemanagermodel import ServerFileManagerModel
 from .scenelayermodel import SceneLayerModel
 from .peoplemodel import PeopleModel
-from .timelinemodel import TimelineModel, selectedEvents
+from .timelinemodel import TimelineModel, TimelineRow, selectedEvents
 from .scenevariablesmodel import SceneVariablesModel
 from .eventvariablesmodel import EventVariablesModel
 from .emotionpropertiesmodel import EmotionPropertiesModel

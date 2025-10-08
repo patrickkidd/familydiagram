@@ -416,7 +416,7 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
     assert dv.currentDrawer == dv.eventForm
 
     dv.setShowGraphicalTimeline(True)
-    dv.graphicalTimelineView.timeline.canvas._selectEvents([])
+    dv.graphicalTimelineView.timeline.canvas.selectRowsInRect(QRect())
     assert dv.currentDrawer == dv.eventForm
 
 

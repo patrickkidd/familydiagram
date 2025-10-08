@@ -49,7 +49,8 @@
 - **[Phase 7](#phase-7-test-fixes-)** - Test Fixes
   - [7.1 ⬜ Fix Event() Constructor Calls](#71-fix-event-constructor-calls) (18 test files)
   - [7.3 ⬜ Fix Emotion Construction](#73-fix-emotion-construction) (13 files)
-  - [7.4 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
+  - [7.4 ⬜ Graphical timeline tests](#75-graphical-timeline-tests)
+  - [7.5 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
 
 ### Phase 13: Documentation 🟡
 - **[Phase 13](#phase-13-documentation-)** - Documentation
@@ -315,11 +316,11 @@ if self.scene:
 ```
 
 **Action Items:**
-- [ ] Remove call to non-existent `TimelineModel.events()` method
-- [ ] Decide: Access `TimelineModel._rows` directly OR reconstruct from `Scene.events()`
-- [ ] Update `self._events` to store `TimelineRow` objects or keep separate list
-- [ ] Update `dateTimeRange()` method to work with TimelineRow objects
-- [ ] Update tag filtering logic to work with TimelineRow objects (line 127)
+- [x] Remove call to non-existent `TimelineModel.events()` method
+- [x] Decide: Access `TimelineModel._rows` directly OR reconstruct from `Scene.events()`
+- [x] Update `self._events` to store `TimelineRow` objects or keep separate list
+- [x] Update `dateTimeRange()` method to work with TimelineRow objects
+- [x] Update tag filtering logic to work with TimelineRow objects (line 127)
 
 ---
 
@@ -351,10 +352,9 @@ for timeline_row in self._rows_data:
 ```
 
 **Action Items:**
-- [ ] Update paint methods to work with TimelineRow objects
-- [ ] Add visual distinction for end markers vs start markers
-- [ ] Ensure hover/tooltip shows correct dateTime (start vs end)
-- [ ] Test rendering with events that have date ranges
+- [x] Update paint methods to work with TimelineRow objects
+- [ ] ~~Add visual distinction for end markers vs start markers~~
+- [ ] ~~Ensure hover/tooltip shows correct dateTime (start vs end)~~
 
 ---
 
@@ -380,11 +380,10 @@ select_event(event)
 ```
 
 **Action Items:**
-- [ ] Update mouse click handlers to work with TimelineRow objects
-- [ ] Ensure selecting an end marker selects the underlying Event
-- [ ] Update selection visual to highlight both start/end markers
-- [ ] Test selection with rubber band on events with date ranges
-- [ ] Verify double-click to inspect works with both start/end markers
+- [x] Update mouse click handlers to work with TimelineRow objects
+- [x] Update selection visual to highlight both start/end markers
+- [x] Test selection with rubber band on events with date ranges
+- [x] Verify double-click to inspect works with both start/end markers
 
 ---
 
@@ -1258,9 +1257,14 @@ scene.addItem(emotion)
 - [ ] Add both event and emotion to scene explicitly
 - [ ] Verify scene.py:720 Emotion loading works with event=None placeholder
 
+### 7.4 Graphical Timeline Tests
+- [ ] Add prelim test suite
+- [ ] Test rendering with events that have date ranges
+- [ ] Ensure selecting an end marker selects the underlying Event
+
 ---
 
-### 7.4 Run Full Test Suite and Fix Failures
+### 7.5 Run Full Test Suite and Fix Failures
 **Action Items:**
 - [ ] Run `python -m pytest -vv` and collect all failures
 - [ ] Fix test failures by category (Event, Emotion, Marriage, Scene, etc.)

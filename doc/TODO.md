@@ -77,7 +77,6 @@ Cleanup
 ------------------------------------------------
 
 
-
 BUGS
 ------------------------------------
 - View tag, add R symbol, lots of things are hidden
@@ -90,6 +89,7 @@ BUGS
 
 IDEAS
 ------------------------------------
+- Add visual distinction between start and end markers in the graphical timeline
 - Automatically add a person to the Person Picker and focus it if none exists when choosing event type.
 - Rename event "Description" to "summary"
 - For reciprocity

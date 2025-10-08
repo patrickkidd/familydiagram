@@ -253,7 +253,7 @@ class GraphicalTimeline(QScrollArea):
     def onCanvasDateTimeClicked(self, dateTime: QDateTime):
         if self.scene:
             firstDateTime, lastDateTime = self.canvas.dateTimeRange(
-                events=self.canvas._events
+                self.canvas._tagRows
             )
             if dateTime > lastDateTime:
                 dateTime = lastDateTime
@@ -362,21 +362,3 @@ class GraphicalTimeline(QScrollArea):
                 )
             p.drawImage(targetRect, image, sourceRect)
             p.end()
-
-
-def __test__(scene, parent):
-    from .graphicaltimelineview import SearchModel
-
-    scene.setTags(["Tag 1", "Tag 2"])
-    for i, event in enumerate(scene.events()):
-        if i % 2:
-            event.setTag("Tag 1")
-        else:
-            event.setTag("Tag 2")
-    w = GraphicalTimeline(parent)
-    model = SearchModel()
-    model.tags = scene.tags()
-    w.setScene(scene)
-    w.show()
-    parent.resize(800, 600)
-    return w

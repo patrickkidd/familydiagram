@@ -610,6 +610,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if row >= 0:
             return self.index(row, 0)
 
+    def rowIndexFor(self, timelineRow: TimelineRow) -> int:
+        return self._rows.index(timelineRow)
+
     @pyqtSlot(int, result=QDateTime)
     def dateTimeForRow(self, row):
         if row >= 0 and row < len(self._rows):
