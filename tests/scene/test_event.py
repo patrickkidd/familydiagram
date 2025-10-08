@@ -4,10 +4,10 @@ from pkdiagram import util
 from pkdiagram.scene import EventKind, RelationshipKind, Event, Person
 
 
-def test_init():
+def test_init(scene):
     """Try to break ctor."""
-    person = Person()
-    event = Event(EventKind.Shift, person)
+    person = scene.addItem(Person())
+    event = scene.addItem(Event(EventKind.Shift, person))
     assert event in person.events()
 
 
@@ -18,19 +18,19 @@ def test_setParent(scene, undo):
     """
     personA, personB = Person(), Person()
     scene.addItems(personA, personB)
-    event = Event(EventKind.Shift, personB)
-    scene.addItem(event)
+    event = scene.addItem(Event(EventKind.Shift, personA))
+    assert event in personA.events()
     #
     event.setPerson(personB, undo=undo)
-    assert event in personA.events()
-    assert event not in personB.events()
+    assert event in personB.events()
+    assert event not in personA.events()
     scene.undo()
     if undo:
-        assert event not in personA.events()
-        assert event in personB.events()
-    else:
-        assert event in personA.events()
         assert event not in personB.events()
+        assert event in personA.events()
+    else:
+        assert event in personB.events()
+        assert event not in personA.events()
 
 
 def __test___lt__():
@@ -213,7 +213,8 @@ def test_variables(scene, attr, value):
     scene.addEventProperty(util.ATTR_ANXIETY)
     scene.addEventProperty(util.ATTR_RELATIONSHIP)
     scene.addEventProperty(util.ATTR_FUNCTIONING)
-    event = scene.addItem(Event(EventKind.Shift, Person()))
+    person = scene.addItem(Person())
+    event = scene.addItem(Event(EventKind.Shift, person))
     getattr(event, f"set{attr.capitalize()}")(value)
     assert getattr(event, attr)() == value
 

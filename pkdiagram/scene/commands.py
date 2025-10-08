@@ -486,7 +486,7 @@ class SetEventPerson(QUndoCommand):
 
     def __init__(self, event, person):
         super().__init__(f"Set event {event.itemName()} person to {person.itemName()}")
-        self.was_person = event.person
+        self.was_person = event.person()
         self.event = event
         self.person = person
 

@@ -190,6 +190,7 @@ class Event(Item):
             was.onEventRemoved()
         if person:
             person.onEventAdded()
+        self.prop("person").set(person.id)
         wasDescription = self.description()
         wasNotes = self.notes()
         self.updateDescription()  # Anonymize
@@ -226,11 +227,8 @@ class Event(Item):
             person.onEventProperty(prop)
 
     def scene(self) -> "Scene":
-        if self.person():
-            if self.person().isScene:
-                return self.person()
-            else:
-                return self.person().scene()
+        # Events are top-level items in the scene, use standard scene() lookup
+        return super().scene()
 
     def kind(self) -> EventKind:
         value = self.prop("kind").get()

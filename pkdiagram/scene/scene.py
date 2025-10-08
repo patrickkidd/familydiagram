@@ -358,6 +358,7 @@ class Scene(QGraphicsScene, Item):
         elif self.itemRegistry.get(item.id, None) is item:  # already registered
             return
         self.itemRegistry[item.id] = item
+        item.onRegistered(self)
         ## Signals
         if item.isPathItem:
             if not self.isBatchAddingRemovingItems():
@@ -446,7 +447,6 @@ class Scene(QGraphicsScene, Item):
         elif item.isItemDetails:
             self._itemDetails.append(item)
         item.addPropertyListener(self)
-        item.onRegistered(self)
         if item.isPathItem:  # after geometries are updated.
             if not self.isBatchAddingRemovingItems():
                 self.checkPrintRectChanged()
@@ -510,7 +510,6 @@ class Scene(QGraphicsScene, Item):
         if not item.id in self.itemRegistry:
             return
         del self.itemRegistry[item.id]
-        item.onDeregistered(self)
         item.removePropertyListener(self)
         # I think it's ok to skip signals when deinitializing
         if self.isDeinitializing:
@@ -574,6 +573,7 @@ class Scene(QGraphicsScene, Item):
                 self.checkPrintRectChanged()
         if self.isBatchAddingRemovingItems() and not item in self._batchRemovedItems:
             self._batchRemovedItems.append(item)
+        item.onDeregistered(self)
         self.itemRemoved.emit(item)
 
     def resortLayersFromOrder(self):

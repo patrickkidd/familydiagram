@@ -191,8 +191,6 @@ event = Event(person)  # FAILS: missing kind argument
 **New Pattern (from test_event.py:10):**
 ```python
 event = Event(EventKind.Shift, person)  # Positional
-# OR
-event = Event(kind=EventKind.Birth, person=person)  # Keyword
 ```
 
 **Action Items:**

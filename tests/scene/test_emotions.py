@@ -4,6 +4,7 @@ from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel
+from pkdiagram.scene.relationshipkind import RelationshipKind
 
 
 @pytest.fixture
@@ -439,7 +440,7 @@ def test_descriptions_same_dates():
 def test_descriptions_no_dates():
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(personA, personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(RelationshipKind.Conflict, personA, personB)
     assert conflict.startEvent.description() == None
     assert conflict.endEvent.description() == None
 

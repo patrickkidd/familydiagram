@@ -1174,7 +1174,7 @@ class Emotion(PathItem):
                 "default": util.DEFAULT_EMOTION_INTENSITY,
                 "onset": "updateGeometry",
             },
-            {"attr": "event", "type": int, "default": None},   # Store event ID
+            {"attr": "event", "type": int, "default": None},  # Store event ID
             {"attr": "target", "type": int, "default": None},  # Store target ID
             {"attr": "color", "default": _new_color()},
             {"attr": "notes"},
@@ -1226,7 +1226,7 @@ class Emotion(PathItem):
         """
         Event could be none when drawing on the diagram.
         """
-        super().__init__(kind=kind, **kwargs)
+        super().__init__(kind=kind.value, **kwargs)
         assert event.kind() == EventKind.Shift
 
         self.isInit = False
@@ -1315,7 +1315,7 @@ class Emotion(PathItem):
             return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
         else:
             return super().notesIconPos()
-        
+
     # def parentName(self):
     #     if self.shouldShowAliases():
     #         if (
