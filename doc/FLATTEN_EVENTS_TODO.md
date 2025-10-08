@@ -10,12 +10,6 @@
 
 ## 📋 TABLE OF CONTENTS
 
-### Phase 15: ItemMode Enum Migration 🟡
-- **[Phase 15](#phase-15-itemmode-enum-migration-)** - ItemMode Enum Migration
-  - [15.1 ⬜ Create ItemMode Enum](#151-create-itemmode-enum)
-  - [15.2 ⬜ Update Scene and Mouse Handlers](#152-update-scene-and-mouse-handlers)
-  - [15.3 ⬜ Update DocumentController](#153-update-documentcontroller)
-  - [15.4 ⬜ Update QML Exposure](#154-update-qml-exposure)
 
 ### Phase 11: Commands/Undo 🟡
 - **[Phase 11](#phase-11-commandsundo-)** - Commands/Undo
@@ -56,29 +50,23 @@
 
 ## 🚨 QUICK START - Critical Path
 
-**Priority order:** Phase 10 → 10.5 → 15 → 11 → 12 → 7 → 13 → 14
+**Priority order:** Phase 11 → 12 → 7 → 13 → 14
 
 **Next Steps:**
-1. Update QML/UI (Phase 10)
-2. Refactor GraphicalTimeline to use TimelineRow (Phase 10.5)
-3. ItemMode enum migration (Phase 15 - optional code quality)
-4. Fix Commands/Undo and Clone (Phases 11, 12)
-5. Fix remaining test failures (Phase 7)
-6. Polish and release (Phases 13, 14)
+1. Fix Commands/Undo and Clone (Phases 11, 12)
+2. Fix remaining test failures (Phase 7)
+3. Polish and release (Phases 13, 14)
 
 **Completed:**
-- ✅ Phases 0.1, 1, 2, 3, 4, 5, 6, 7.0, 7.2 (see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md))
+- ✅ Phases 0.1, 1, 2, 3, 4, 5, 6, 7.0, 7.2, 10, 10.5, 15 (see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md))
 - ✅ Phases 0.2, 0.3, 8.1, 8.2, 8.3, 8.4, 9.1, 9.2 (completed in Phase 6.5 or Phase 8)
-- ✅ Phase 10 (QML/UI Updates)
 
 **Estimated Effort Remaining:**
-- Phase 10.5: 3 hours (GraphicalTimeline refactor)
-- Phase 15: 2-3 hours (ItemMode enum - optional code quality)
 - Phases 11, 12: 4 hours (commands and clone)
 - Phase 7: 4 hours (test fixes)
 - Phase 13: 1 hour (documentation)
 - Phase 14: 2 hours (version bump)
-- **Total: ~16-17 hours of focused work**
+- **Total: ~11 hours of focused work**
 
 **Testing Strategy:**
 After each phase:
@@ -211,6 +199,7 @@ class ItemMode(enum.Enum):
 - [ ] Create `pkdiagram/scene/itemmode.py` with ItemMode enum
 - [ ] Add helper methods (isEmotion, isPerson, isRelationship)
 - [ ] Use string values (like EventKind) instead of integers
+- [ ] Add migration logic to compat.py to convert old int's to enum value
 
 ---
 

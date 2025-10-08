@@ -274,6 +274,10 @@ def update_data(data):
                     chunk["notes"] = chunk["startEvent"]["notes"]
 
     if UP_TO(data, "2.0.12b1"):
+        # Normalize emotion kind strings to match convention Old format used
+        # capitalized strings like "Conflict", "Reciprocity" These need to stay
+        # as-is for the initial splitting phase
+
         # Phase 6.1: Split mixed items into separate top-level arrays
         # Initialize typed arrays
         data.setdefault("people", [])
@@ -294,7 +298,9 @@ def update_data(data):
                     data["people"].append(chunk)
                 elif kind == "Marriage":
                     data["marriages"].append(chunk)
-                elif kind and kind.lower() in [s.lower() for s in Emotion.kindSlugs()]:  # All emotion types (case-insensitive)
+                elif kind and kind.lower() in [
+                    s.lower() for s in Emotion.kindSlugs()
+                ]:  # All emotion types (case-insensitive)
                     data["emotions"].append(chunk)
                 elif kind == "Event":
                     data["events"].append(chunk)
@@ -432,7 +438,39 @@ def update_data(data):
 
         # 3. Extract and merge Emotion start/end events
         for emotion_chunk in data.get("emotions", []):
-            # Phase 6.3: Migrate Emotion.kind from int to RelationshipKind string value
+            # Phase 6.3: Migrate Emotion.kind string to RelationshipKind enum value
+            # Convert old capitalized string kinds to RelationshipKind enum values
+            if "kind" in emotion_chunk and isinstance(emotion_chunk["kind"], str):
+                old_kind = emotion_chunk["kind"]
+                # Map old capitalized strings to RelationshipKind enum values
+                STRING_2_ENUM_VALUE = {
+                    "Fusion": RelationshipKind.Fusion.value,  # "fusion"
+                    "Cutoff": RelationshipKind.Cutoff.value,  # "cutoff"
+                    "Conflict": RelationshipKind.Conflict.value,  # "conflict"
+                    "Projection": RelationshipKind.Projection.value,  # "projection"
+                    "Distance": RelationshipKind.Distance.value,  # "distance"
+                    "DefinedSelf": RelationshipKind.DefinedSelf.value,  # "defined-self"
+                    "Toward": RelationshipKind.Toward.value,  # "toward"
+                    "Away": RelationshipKind.Away.value,  # "away"
+                    "Inside": RelationshipKind.Inside.value,  # "inside"
+                    "Outside": RelationshipKind.Outside.value,  # "outside"
+                    "Reciprocity": RelationshipKind.Underfunctioning.value,  # "underfunctioning" (default for reciprocity)
+                    "Overfunctioning": RelationshipKind.Overfunctioning.value,  # "overfunctioning"
+                    "Underfunctioning": RelationshipKind.Underfunctioning.value,  # "underfunctioning"
+                }
+                if old_kind in STRING_2_ENUM_VALUE:
+                    emotion_chunk["kind"] = STRING_2_ENUM_VALUE[old_kind]
+                    if old_kind != STRING_2_ENUM_VALUE[old_kind]:
+                        _log.info(
+                            f"Migrated emotion kind from '{old_kind}' to '{emotion_chunk['kind']}'"
+                        )
+                elif old_kind not in [rk.value for rk in RelationshipKind]:
+                    # If it's not already a valid enum value, default to conflict
+                    _log.warning(
+                        f"Unknown emotion kind: '{old_kind}', defaulting to 'conflict'"
+                    )
+                    emotion_chunk["kind"] = RelationshipKind.Conflict.value
+
             if "startEvent" in emotion_chunk:
                 start_event = emotion_chunk.pop("startEvent")
                 end_event = emotion_chunk.pop("endEvent", None)
