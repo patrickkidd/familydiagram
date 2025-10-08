@@ -23,13 +23,13 @@
 
 ### 🟡 PENDING - Model/View Layer
 - **[Phase 8](#phase-8-modelview-updates-)** - Model/View Updates
-  - [8.1 ⬜ Update PersonPropertiesModel Event Handling](#81-update-personpropertiesmodel-event-handling)
-  - [8.2 ⬜ Update MarriagePropertiesModel Event Handling](#82-update-marriagepropertiesmodel-event-handling)
+  - [8.1 ✅ Update PersonPropertiesModel Event Handling](#81-update-personpropertiesmodel-event-handling---completed)
+  - [8.2 ✅ Update MarriagePropertiesModel Event Handling](#82-update-marriagepropertiesmodel-event-handling---completed)
   - [8.3 ⬜ Remove EmotionPropertiesModel Date Editors](#83-remove-emotionpropertiesmodel-date-editors)
   - [8.4 ⬜ Update SearchModel](#84-update-searchmodel)
 - **[Phase 9](#phase-9-scene-data-format-)** - Scene Data Format
-  - [9.1 ⬜ Update Scene.write()](#91-update-scenewrite) (overlaps with Phase 0.3)
-  - [9.2 ⬜ Update Scene.read()](#92-update-sceneread) (overlaps with Phase 0.2)
+  - [9.1 ✅ Update Scene.write()](#91-update-scenewrite---completed) (Completed in Phase 6.5)
+  - [9.2 ✅ Update Scene.read()](#92-update-sceneread---completed) (Completed in Phase 6.5)
 - **[Phase 10](#phase-10-qmlui-updates-)** - QML/UI Updates
   - [10.1 ⬜ Update EventForm](#101-update-eventform) (add includeOnDiagram, color picker)
   - [10.2 ⬜ Update EmotionProperties](#102-update-emotionproperties) (remove ~300 lines of date pickers)
@@ -280,16 +280,16 @@ scene.addItem(emotion)
 
 ---
 
-## PHASE 8: Model/View Updates 🟢
+## PHASE 8: Model/View Updates 🟡
 
 Update models to work with new structure.
 
-### 8.1 Update PersonPropertiesModel Event Handling
-**File:** `pkdiagram/models/personpropertiesmodel.py:77-106`
+### 8.1 Update PersonPropertiesModel Event Handling ✅ COMPLETED
+**File:** `pkdiagram/models/personpropertiesmodel.py:78-106`
 
-**Current Code:** Uses `event.uniqueId()` strings
+**Status:** ✅ Already using EventKind enums
 
-**New Code:**
+**Implementation:**
 ```python
 def onEventProperty(self, prop):
     if prop.name() == "dateTime":
@@ -299,23 +299,41 @@ def onEventProperty(self, prop):
             self.refreshProperty("adoptedDateTime")
         elif prop.item.kind() == EventKind.Death:
             self.refreshProperty("deceasedDateTime")
-    # ... etc
+    # ... location handling uses same pattern
 ```
 
-**Action Items:**
-- [ ] Replace `uniqueId()` with `kind()` in PersonPropertiesModel
-- [ ] Replace string comparisons with EventKind enums
+**Completed Action Items:**
+- ✅ Replaced `uniqueId()` with `kind()` in PersonPropertiesModel (lines 80, 82, 84)
+- ✅ Replaced string comparisons with EventKind enums (lines 80-92, 98-106)
+- ✅ EventKind imported on line 9
 
 ---
 
-### 8.2 Update MarriagePropertiesModel Event Handling
-**File:** `pkdiagram/models/marriagepropertiesmodel.py:40-50`
+### 8.2 Update MarriagePropertiesModel Event Handling ✅ COMPLETED
+**File:** `pkdiagram/models/marriagepropertiesmodel.py:6-78`
 
-**Current Code:** Uses `event.uniqueId()` strings
+**Status:** ✅ Already using EventKind enums
 
-**Action Items:**
-- [ ] Replace `uniqueId()` with `kind()` in MarriagePropertiesModel
-- [ ] Replace string comparisons with EventKind enums
+**Implementation:**
+```python
+def _anyMarriedEvents(marriage: Marriage):
+    return any(x for x in marriage.events()
+               if x.kind() == EventKind.Married
+               and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()})
+
+def onEventsChanged(self, event):
+    if event.kind() == EventKind.Married:
+        self.refreshProperty("anyMarriedEvents")
+    elif event.kind() == EventKind.Separated:
+        self.refreshProperty("anySeparatedEvents")
+    elif event.kind() == EventKind.Divorced:
+        self.refreshProperty("anyDivorcedEvents")
+```
+
+**Completed Action Items:**
+- ✅ Replaced `uniqueId()` with `kind()` in MarriagePropertiesModel
+- ✅ Replaced string comparisons with EventKind enums (lines 10, 19, 28, 68, 71, 74)
+- ✅ EventKind imported on line 2
 
 ---
 
@@ -370,63 +388,77 @@ def shouldHide(self, event: Event) -> bool:
 
 ---
 
-## PHASE 9: Scene Data Format 🟢
+## PHASE 9: Scene Data Format ✅ COMPLETED
 
-Update Scene serialization format.
+Update Scene serialization format. **Both sub-phases completed in Phase 6.5.**
 
-### 9.1 Update Scene.write()
-**File:** `pkdiagram/scene/scene.py`
+### 9.1 Update Scene.write() ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:851-927`
 
-**Current Format:**
-```json
-{
-  "items": [...]  // Mixed people, marriages, emotions
-}
+**Status:** ✅ COMPLETED in Phase 6.5
+
+**Implementation:**
+Scene.write() has been fully updated to use typed arrays:
+
+```python
+# Initialize typed arrays (lines 858-866)
+data["people"] = []
+data["marriages"] = []
+data["emotions"] = []
+data["events"] = []  # NEW: top-level events array
+data["layers"] = []
+data["layerItems"] = []
+data["multipleBirths"] = []
+data["items"] = []  # For future unknown types
+
+# Route items to appropriate arrays (lines 880-917)
+if item.isEvent:
+    chunk["kind"] = "Event"
+    item.write(chunk)
+    data["events"].append(chunk)
+elif item.isPerson:
+    chunk["kind"] = "Person"
+    item.write(chunk)
+    data["people"].append(chunk)
+# ... etc
 ```
 
-**New Format:**
-```json
-{
-  "people": [...],
-  "events": [...],  // NEW: top-level events
-  "marriages": [...],
-  "emotions": [...],
-  "layerItems": [...],
-  "layers": [...]
-}
-```
-
-**Action Items:**
-- [ ] Update `Scene.write()` to separate events from other items
-- [ ] Create `data["events"]` array
-- [ ] Remove events from `data["people"]` and `data["marriages"]`
+**Completed Action Items:**
+- ✅ Updated `Scene.write()` to separate events from other items
+- ✅ Created `data["events"]` array
+- ✅ Removed events from `data["people"]` and `data["marriages"]`
+- ✅ Unknown item types preserved in `data["items"]` for forward compatibility
 
 ---
 
-### 9.2 Update Scene.read()
-**File:** `pkdiagram/scene/scene.py`
+### 9.2 Update Scene.read() ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:704-788`
 
-**Two-Phase Loading (per CLAUDE.md):**
+**Status:** ✅ COMPLETED in Phase 6.5
+
+**Implementation:**
+Scene.read() implements two-phase loading with typed arrays:
+
 ```python
-def read(self, data, byId):
-    # Phase 1: Instantiate all items with ID map
-    for event_chunk in data.get("events", []):
-        event = Event(id=event_chunk["id"])
-        byId[event.id] = event
-        self._events.append(event)
+# Phase 1: Load events FIRST (lines 706-711)
+for chunk in data.get("events", []):
+    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
+    item.id = chunk["id"]
+    items.append(item)
+    itemChunks.append((item, chunk))
 
-    # ... instantiate people, marriages, emotions ...
+# Then load people, marriages, emotions... (lines 713-761)
 
-    # Phase 2: Resolve dependencies
-    for event in self._events:
-        event.read(event_chunk, byId)  # Sets event.person via byId lookup
+# Phase 2: Resolve all dependencies via byId (lines 777-788)
+for item, chunk in itemChunks:
+    item.read(chunk, byId)  # Resolves event.person via byId lookup
 ```
 
-**Action Items:**
-- [ ] Implement two-phase loading in Scene.read()
-- [ ] Load events in phase 1
-- [ ] Resolve event.person references in phase 2
-- [ ] Handle backward compatibility with compat.py
+**Completed Action Items:**
+- ✅ Implemented two-phase loading in Scene.read()
+- ✅ Events loaded FIRST in phase 1 (before people who query events)
+- ✅ Event.person references resolved in phase 2
+- ✅ Backward compatibility with `data.get("items", [])` fallback (lines 763-789)
 
 ---
 
@@ -1344,20 +1376,22 @@ def test_migrate_uniqueId_to_kind():
 - ✅ Phase 6 (Data Compatibility - compat.py with 11 tests passing)
 - ✅ Phase 0.2 (Scene.read() Event loading - completed in Phase 6.5)
 - ✅ Phase 0.3 (Scene.write() Event separation - completed in Phase 6.5)
+- ✅ Phase 9 (Scene Data Format - Scene.read()/write() typed arrays - completed in Phase 6.5)
 
 **Next Steps:**
 1. Fix Phase 7.1, 7.3 (Update test Event() and Emotion() constructor calls)
 2. Fix Phase 7.4 (Run full test suite and fix failures)
-3. Continue with Phases 8-14
+3. Continue with Phases 8, 10-14
 
 **Estimated Effort:**
 - ~~Phase 6: 8 hours (compat.py - CRITICAL)~~ ✅ COMPLETED
 - ~~Phase 0.2, 0.3: 4 hours (Scene read/write)~~ ✅ COMPLETED
+- ~~Phase 9: 4 hours (Scene data format)~~ ✅ COMPLETED (already done in Phase 6.5)
 - Phase 7: 4 hours (remaining tests)
-- Phase 8-13: 10 hours (polish)
+- Phase 8, 10-13: 8 hours (polish)
 - Phase 14: 2 hours (version bump)
 
-**Total Remaining:** ~16 hours of focused work (down from 28 hours!)
+**Total Remaining:** ~14 hours of focused work (down from 28 hours!)
 
 ---
 
