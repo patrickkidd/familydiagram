@@ -56,6 +56,15 @@
   - [10.5.2 ✅ Update Event Drawing Logic](#1052-update-event-drawing-logic--completed)
   - [10.5.3 ✅ Update Event Selection](#1053-update-event-selection--completed)
 
+### ✅ COMPLETED - Code Quality
+- **[Phase 15](#phase-15-itemmode-enum-migration--completed)** - ItemMode Enum Migration
+  - [15.1 ✅ Create ItemMode Enum](#151-create-itemmode-enum--completed)
+  - [15.2 ✅ Update Scene and Mouse Handlers](#152-update-scene-and-mouse-handlers--completed)
+  - [15.3 ✅ Update DocumentController](#153-update-documentcontroller--completed)
+  - [15.4 ✅ Update QML Exposure](#154-update-qml-exposure--completed)
+  - [15.5 ✅ Update RelationshipKind Conversions](#155-update-relationshipkind-conversions--completed)
+  - [15.6 ✅ Testing](#156-testing--completed)
+
 
 ---
 
@@ -1087,5 +1096,83 @@ select_event(event)
 - [x] Test selection with rubber band on events with date ranges
 - [x] Verify double-click to inspect works with both start/end markers
 
+
+---
+
+## PHASE 15: ItemMode Enum Migration ✅ COMPLETED
+
+**Goal:** Replace integer constants (`util.ITEM_*`) with an `ItemMode` enum for type safety and clarity. This is a code quality improvement, not a functional requirement.
+
+**Priority:** MEDIUM - This refactor improves code maintainability and should be done before Commands/Undo work to avoid confusion with ITEM_* vs ItemMode in that code.
+
+**Status:** ✅ COMPLETED - All subsections implemented and working.
+
+---
+
+### 15.1 Create ItemMode Enum ✅ COMPLETED
+**File:** `pkdiagram/scene/itemmode.py`
+
+**Implementation:** Created enum matching existing constants with string values instead of integers.
+
+**Completed Work:**
+- ✅ Created `pkdiagram/scene/itemmode.py` with ItemMode enum
+- ✅ Added helper methods (isEmotion, isPerson, isRelationship)
+- ✅ Used string values (like EventKind) instead of integers
+- ✅ Migration logic in compat.py to convert old integers to enum values
+
+---
+
+### 15.2 Update Scene and Mouse Handlers ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py`
+
+**Completed Work:**
+- ✅ Replaced all `util.ITEM_*` references with `ItemMode.*` in scene.py
+- ✅ Updated method signatures with ItemMode type hints
+- ✅ Used `itemMode().isPerson()` instead of `itemMode() in [ITEM_MALE, ITEM_FEMALE]`
+- ✅ Used `itemMode().isEmotion()` instead of `itemMode() in emotionItemModes()`
+- ✅ Removed `util.emotionItemModes()` function (replaced by ItemMode.isEmotion())
+
+---
+
+### 15.3 Update DocumentController ✅ COMPLETED
+**File:** `pkdiagram/documentview/documentcontroller.py`
+
+**Completed Work:**
+- ✅ Replaced all `util.ITEM_*` with `ItemMode.*` in documentcontroller.py
+- ✅ Updated `onSceneItemMode()` to use ItemMode enum
+
+---
+
+### 15.4 Update QML Exposure ✅ COMPLETED
+**File:** `pkdiagram/app/qmlutil.py`
+
+**Decision:** Used Option A - Keep integer constants for QML compatibility, use ItemMode enum in Python code.
+
+**Completed Work:**
+- ✅ Kept util.ITEM_* constants for QML compatibility
+- ✅ Added ItemMode ↔ int conversion methods
+- ✅ QML continues to use `Util.ITEM_CUTOFF` without changes
+
+---
+
+### 15.5 Update RelationshipKind Conversions ✅ COMPLETED
+**File:** `pkdiagram/scene/relationshipkind.py`
+
+**Completed Work:**
+- ✅ Updated RelationshipKind.itemMode() return type to ItemMode
+- ✅ Updated RelationshipKind.fromItemMode() parameter type to ItemMode
+- ✅ Updated mapping dictionary keys from util.ITEM_* to ItemMode.*
+
+---
+
+### 15.6 Testing ✅ COMPLETED
+**Files:** Test files updated to use ItemMode
+
+**Completed Work:**
+- ✅ Updated test files that reference util.ITEM_* constants
+- ✅ Ran full test suite to verify drawing functionality
+- ✅ Manual testing: Toolbar buttons for drawing people, emotions, relationships
+
+---
 
 **END OF COMPLETED PHASES**

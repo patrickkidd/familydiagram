@@ -449,39 +449,6 @@ class ResetProperty(QUndoCommand):
                 prop.onActiveLayersChanged()
 
 
-class SetEmotionPerson(QUndoCommand):
-
-    def __init__(self, emotion, personA=None, personB=None):
-        super().__init__("Set emotion person")
-        self.emotion = emotion
-        self.personA = personA
-        self.personB = personB
-        self.was_personA = emotion.personA()
-        self.was_personB = emotion.personB()
-        if personA == self.was_personB and personB == self.was_personA:
-            self.swap = True
-        else:
-            self.swap = False
-
-    def redo(self):
-        if self.swap:
-            self.emotion.swapPeople()
-        else:
-            if self.personA:
-                self.emotion.setPersonA(self.personA)
-            if self.personB:
-                self.emotion.setPersonB(self.personB)
-
-    def undo(self):
-        if self.swap:
-            self.emotion.swapPeople()
-        else:
-            if self.was_personA != self.emotion.personA():
-                self.emotion.setPersonA(self.was_personA)
-            if self.was_personB != self.emotion.personB():
-                self.emotion.setPersonB(self.was_personB)
-
-
 class SetEventPerson(QUndoCommand):
 
     def __init__(self, event, person):

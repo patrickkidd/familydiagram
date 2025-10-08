@@ -24,7 +24,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item
-from pkdiagram.scene.commands import SetEmotionPerson, SetProperty
+from pkdiagram.scene.commands import SetProperty
 
 
 DEBUG = False
