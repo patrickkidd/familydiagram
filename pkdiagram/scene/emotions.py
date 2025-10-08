@@ -1,7 +1,6 @@
 import logging
 
 from _pkdiagram import CUtil
-from stripe import Person
 from pkdiagram.pyqt import (
     pyqtSignal,
     Qt,
@@ -23,7 +22,7 @@ from pkdiagram.pyqt import (
     QPainter,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item
+from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item, Person
 from pkdiagram.scene.commands import SetProperty
 
 

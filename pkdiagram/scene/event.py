@@ -3,11 +3,9 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from stripe import Person
-
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
-from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
+from pkdiagram.scene import EventKind, RelationshipKind, Item, Property, Person
 from pkdiagram.scene.commands import SetEventPerson
 
 if TYPE_CHECKING:
