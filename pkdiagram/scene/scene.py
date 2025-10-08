@@ -334,7 +334,9 @@ class Scene(QGraphicsScene, Item):
     def setScaleFactor(self, *args, **kwargs):
         self.prop("scaleFactor").set(*args, **kwargs)
 
-    def addItem(self, item, undo=False) -> Item:
+    def addItem(
+        self, item, undo=False
+    ) -> Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]:
         if undo:
             self.push(AddItem(self, item))
         else:
@@ -416,9 +418,6 @@ class Scene(QGraphicsScene, Item):
                     self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
-            item.person()._emotions.append(item)
-            if item.target():
-                item.target()._emotions.append(item)
             if not self.isBatchAddingRemovingItems():
                 self.emotionAdded.emit(item)
         elif item.isLayer:
@@ -458,7 +457,9 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(self, *args, batch=True, undo=False) -> list:
+    def addItems(
+        self, *args, batch=True, undo=False
+    ) -> list[Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]]:
         ret = []
         with self.macro("Adding items", undo=undo, batchAddRemove=batch):
             for item in args:
@@ -559,9 +560,6 @@ class Scene(QGraphicsScene, Item):
                 ):
                     self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
-            item.person()._events.remove(item)
-            if item.target():
-                item.target()._events.remove(item)
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
         elif item.isLayer:

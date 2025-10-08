@@ -106,6 +106,7 @@ class Event(Item):
             self.setRelationshipTargets(relationshipTargets)
         if relationshipTriangles:
             self.setRelationshipTriangles(relationshipTriangles)
+        self.updateDescription()
 
     def itemName(self):
         if self.person():
@@ -267,19 +268,18 @@ class Event(Item):
         prop = self.prop("description")
         wasDescription = prop.get()
         newDescription = None
-        if self.person():
-            if self.kind() == EventKind.Moved:
-                newDescription = (
-                    "Moved to %s" % self.location() if self.location() else "Moved"
-                )
-            else:
-                newDescription = self.kind().menuLabel()
+        if self.kind() == EventKind.Moved:
+            newDescription = (
+                "Moved to %s" % self.location() if self.location() else "Moved"
+            )
+        else:
+            newDescription = self.kind().menuLabel()
 
-            if wasDescription != newDescription:
-                if newDescription:
-                    prop.set(newDescription, undo=undo)
-                else:
-                    prop.reset(undo=undo)
+        if wasDescription != newDescription:
+            if newDescription:
+                prop.set(newDescription, undo=undo)
+            else:
+                prop.reset(undo=undo)
         scene = self.scene()
         if prop.get() is not None and scene:
             self._aliasDescription = scene.anonymize(prop.get())

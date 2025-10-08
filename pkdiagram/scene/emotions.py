@@ -372,10 +372,10 @@ class FannedBox(QGraphicsObject):
         self.setPos(rect.center())
 
     def jigFor(self, emotion, widthScale=1.0):
-        size = util.sizeForPeople(emotion.personA(), emotion.personB())
+        size = util.sizeForPeople(emotion.person(), emotion.target())
         scale = util.scaleForPersonSize(size)
         width = Jig.WIDTH * scale * widthScale
-        jig = Jig(emotion.personA(), emotion.personB(), None, width=width)
+        jig = Jig(emotion.person(), emotion.target(), None, width=width)
         return jig
 
     def _steps(self):
@@ -441,14 +441,14 @@ class FannedBox(QGraphicsObject):
         """Called on anim tick and person move."""
         if not self.entries:
             return
-        firstPersonA = list(self.entries.keys())[0].personA()
+        firstPersonA = list(self.entries.keys())[0].person()
         for emotion, entry in self.entries.items():
             entry["endPosDelta"] = self.endPosDeltaFor(emotion)
 
     def endPosDeltaFor(self, emotion):
         if emotion in self._toRemoveAfterAnim:
             return QPointF(0, 0)
-        firstPersonA = list(self.emotions)[0].personA()
+        firstPersonA = list(self.emotions)[0].person()
         if emotion in self.entries:
             alt = self.entries[emotion]["alt"]
             if alt is None:
@@ -457,7 +457,7 @@ class FannedBox(QGraphicsObject):
             for _emotion, alt in self._steps():
                 if _emotion is emotion:
                     break
-        if emotion.personA() != firstPersonA:
+        if emotion.person() != firstPersonA:
             # entries where the person order is backwards need to be moved in reverse direction
             alt *= -1
         jig = self.jigFor(emotion)
@@ -1159,7 +1159,7 @@ class Emotion(PathItem):
 
     PathItem.registerProperties(
         [
-            {"attr": "kind", "type": int, "default": -1, "onset": "updateGeometry"},
+            {"attr": "kind", "type": str, "default": "", "onset": "updateGeometry"},
             {
                 "attr": "intensity",
                 "type": int,
@@ -1221,11 +1221,13 @@ class Emotion(PathItem):
         Event could be none when drawing on the diagram.
         """
         super().__init__(kind=kind.value, **kwargs)
-        assert event.kind() == EventKind.Shift
-        if person:
-            assert event is None, "Either person or event can be passed, but not both"
-        else:
+        if event:
+            assert (
+                event.kind() == EventKind.Shift
+            ), f"Event kind must be Shift, got {event.kind()}"
             assert person is None, "Either person or event can be passed, but not both"
+        elif person:
+            assert event is None, "Either person or event can be passed, but not both"
 
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
@@ -1254,7 +1256,7 @@ class Emotion(PathItem):
         if not "id" in exclude:
             exclude.append("id")
         exclude.append("kind")
-        props = {"kindLabel": self.kindLabel()}
+        props = {"kind": self.kind().value if self.kind() else ""}
         for prop in self.props:
             if not prop.layered and prop.get() != prop.default:
                 props[prop.attr] = prop.get()
@@ -1266,13 +1268,17 @@ class Emotion(PathItem):
     def __lt__(self, other):
         if other.isEvent:
             return False
-        elif self.startDateTime() and not other.startDateTime():
+        # Compare by event dateTime if events exist
+        self_dt = self._event.dateTime() if self._event else None
+        other_dt = other.event().dateTime() if other.event() else None
+
+        if self_dt and not other_dt:
             return True
-        elif not self.startDateTime() and other.startDateTime():
+        elif not self_dt and other_dt:
             return False
-        elif self.startDateTime() and other.startDateTime():
-            return self.startDateTime() < other.startDateTime()
-        elif not self.startDateTime() and not other.startDateTime():
+        elif self_dt and other_dt:
+            return self_dt < other_dt
+        else:  # neither has dateTime
             if self.id and not other.id:
                 return True
             elif not self.id and other.id:
@@ -1285,17 +1291,26 @@ class Emotion(PathItem):
     def event(self) -> Event:
         return self._event
 
-    def setEvent(self, event: Event):
-        assert event.kind() == EventKind.Shift
-        assert event.relationship() == self.kind()
+    def setEvent(self, event: Event | None):
+        if event:
+            assert (
+                event.kind() == EventKind.Shift
+            ), f"Event kind must be Shift, got {event.kind()}"
+            assert (
+                event.relationship() == self.kind()
+            ), f"Event relationship {event.relationship()} must match emotion kind {self.kind()}"
         self._event = event
-        self._person = None
+        if event:
+            self._person = None
 
     def intensity(self) -> int:
         if self._event:
-            return self._event.relationshipIntensity()
+            intensity = self._event.relationshipIntensity()
+            return (
+                intensity if intensity is not None else util.DEFAULT_EMOTION_INTENSITY
+            )
         else:
-            return 0
+            return self.prop("intensity").get()
 
     def color(self) -> str:
         if self._event:
@@ -1323,7 +1338,10 @@ class Emotion(PathItem):
         """
         Still makes sense to show note icon when start event has the notes?
         """
-        if self.isDyadic() and self.kind() != RelationshipKind.Reciprocity:
+        if self.isDyadic() and self.kind() not in (
+            RelationshipKind.Overfunctioning,
+            RelationshipKind.Underfunctioning,
+        ):
             return QPointF(0, self._notesIcon.boundingRect().height() * -0.25)
         else:
             return super().notesIconPos()
@@ -1417,26 +1435,36 @@ class Emotion(PathItem):
             return True
         if self.scene().hideEmotionalProcess() is True:
             return False
-        for person in self.people:
-            if (
-                person
-                and person.shouldShowFor(dateTime, tags=tags, layers=layers) is False
-            ):
-                return False
+        # Check if person and target should be shown
+        if self.person() and not self.person().shouldShowFor(
+            dateTime, tags=tags, layers=layers
+        ):
+            return False
+        if self.target() and not self.target().shouldShowFor(
+            dateTime, tags=tags, layers=layers
+        ):
+            return False
         if not self.hasTags(tags):
             return False
+        # Check date range via event if present
         on = False
-        if not self.startDateTime() and not self.endDateTime():
+        if not self._event:
+            # No event means undated emotion, always show
             on = True
-        elif self.startDateTime() and not self.endDateTime():
-            on = self.startDateTime() <= dateTime
-        elif not self.startDateTime() and self.endDateTime():
-            on = self.endDateTime() > dateTime
-        elif self.startDateTime() and self.endDateTime():
-            if self.startDateTime() == self.endDateTime():
-                on = dateTime == self.startDateTime()
-            else:
-                on = self.startDateTime() <= dateTime and self.endDateTime() > dateTime
+        else:
+            start_dt = self._event.dateTime()
+            end_dt = self._event.endDateTime()
+            if not start_dt and not end_dt:
+                on = True
+            elif start_dt and not end_dt:
+                on = start_dt <= dateTime
+            elif not start_dt and end_dt:
+                on = end_dt > dateTime
+            elif start_dt and end_dt:
+                if start_dt == end_dt:
+                    on = dateTime == start_dt
+                else:
+                    on = start_dt <= dateTime and end_dt > dateTime
         return on
 
     def updatePathItemVisible(self):
@@ -1451,7 +1479,8 @@ class Emotion(PathItem):
             self.setPathItemVisible(False)
         else:
             opacity = 1.0
-            for person in self.people:
+            # Check opacity of person and target
+            for person in [self.person(), self.target()]:
                 if not person:
                     continue
                 o = person.itemOpacity()
@@ -1503,8 +1532,8 @@ class Emotion(PathItem):
                 self.setScale(scale)
             path = self.pathFor(
                 self.kind(),
-                person=self.person(),
-                target=self.target(),
+                personA=self.person(),
+                personB=self.target(),
                 intensity=self.intensity(),
             )
             if self.isDyadic():  # cutoff stays @ (0, 0)
@@ -1559,9 +1588,11 @@ class Emotion(PathItem):
             for emotion in self.scene().emotionsFor(person):
                 _canFanOut = emotion.canFanOut()
                 _notSelf = emotion is not self
-                _samePeople = len(set(emotion.people) & set(self.people)) == len(
-                    self.people
-                )
+                # Check if emotion involves same people (person and target)
+                _samePeople = {emotion.person(), emotion.target()} == {
+                    self.person(),
+                    self.target(),
+                }
                 _shouldShow = emotion.shouldShowRightNow()
                 if (
                     _canFanOut

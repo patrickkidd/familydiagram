@@ -178,15 +178,14 @@ def test_FannedBox_peers_multiple():
     scene = Scene()
     personA = Person()
     personB = Person()
-    personA.birthEvent.setDateTime(util.Date(2001, 1, 1))
     fusionEvent = Event(
         EventKind.Shift,
         personA,
         relationship=RelationshipKind.Fusion,
         relationshipTargets=[personB],
         dateTime=util.Date(2001, 2, 1),
+        endDateTime=util.Date(2001, 4, 2),
     )
-    fusionEvent.setEndDateTime(util.Date(2001, 4, 2))
     fusion = Emotion(RelationshipKind.Fusion, personB, event=fusionEvent)
     projectionEvent = Event(
         EventKind.Shift,
@@ -370,8 +369,8 @@ def test_honors_searchModel_tags_plus_dates():
         relationship=RelationshipKind.Conflict,
         relationshipTargets=[personB],
         dateTime=util.Date(2000, 1, 1),
+        endDateTime=util.Date(2001, 1, 1),
     )
-    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
     conflict = Emotion(
         RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
     )
@@ -409,8 +408,8 @@ def test_persons_hidden_tags_shown():
         relationship=RelationshipKind.Conflict,
         relationshipTargets=[personB],
         dateTime=util.Date(2000, 1, 1),
+        endDateTime=util.Date(2001, 1, 1),
     )
-    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
     conflict = Emotion(
         RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
     )
@@ -429,44 +428,33 @@ def test_persons_hidden_tags_shown():
     assert conflict.isVisible() == False
 
 
-def test_descriptions_diff_dates():
-    personA = Person(name="A")
-    personB = Person(name="B")
-    conflictEvent = Event(
+def test_descriptions_diff_dates(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = Event(
         EventKind.Shift,
         personA,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=[personB],
         dateTime=util.Date(2000, 1, 1),
+        endDateTime=util.Date(2001, 1, 1),
     )
-    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
-    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
-    assert conflict.startEvent.description() == "Conflict began"
-    assert conflict.endEvent.description() == "Conflict ended"
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=event)
+    assert conflict.event().description() == "Shift"
 
 
 def test_descriptions_same_dates():
     personA = Person(name="A")
     personB = Person(name="B")
-    conflictEvent = Event(
+    event = Event(
         EventKind.Shift,
         personA,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=[personB],
         dateTime=util.Date(2000, 1, 1),
+        endDateTime=util.Date(2000, 1, 1),
     )
-    conflictEvent.setEndDateTime(util.Date(2000, 1, 1))
-    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
-    assert conflict.startEvent.description() == "Conflict"
-    assert conflict.endEvent.description() == None
-
-
-def test_descriptions_no_dates():
-    personA = Person(name="A")
-    personB = Person(name="B")
-    conflict = Emotion(RelationshipKind.Conflict, personA, personB)
-    assert conflict.startEvent.description() == None
-    assert conflict.endEvent.description() == None
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=event)
+    assert conflict.event().description() == "Shift"
 
 
 def test_add_emotion_sets_scene_currentDate():
@@ -476,54 +464,33 @@ def test_add_emotion_sets_scene_currentDate():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflictEvent = Event(
+    event = Event(
         EventKind.Shift,
         personA,
         relationship=RelationshipKind.Conflict,
         relationshipTargets=[personB],
         dateTime=START_DATETIME,
     )
-    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
-    scene.addItems(conflictEvent, conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=event)
+    scene.addItems(event, conflict)
     assert scene.currentDateTime() == START_DATETIME
-
-
-def test_mirror_notes_set_from_item():
-    NOTES = "bleh"
-
-    personA, personB = Person(), Person()
-    emotion = Emotion(RelationshipKind.Conflict, personB, person=personA)
-    scene = Scene()
-    scene.addItem(emotion)
-    emotion.setNotes(NOTES)
-    assert emotion.startEvent.notes() == NOTES
-
-
-def test_mirror_notes_set_from_startEvent():
-    NOTES = "bleh"
-
-    personA, personB = Person(), Person()
-    emotion = Emotion(RelationshipKind.Conflict, personB, person=personA)
-    scene = Scene()
-    scene.addItem(emotion)
-    emotion.startEvent.setNotes(NOTES)
-    assert emotion.notes() == NOTES
 
 
 def test_emotion_intensity_defers_to_event():
     scene = Scene()
-    personA = Person(name="A")
-    personB = Person(name="B")
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
 
-    event = Event(
-        kind=EventKind.Shift,
-        person=personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            relationshipIntensity=75,
+        )
     )
-    event.setRelationshipIntensity(75)
-
-    emotion = Emotion(RelationshipKind.Conflict, personB, event=event)
+    emotion = scene.emotionsFor(event)[0]
+    emotion.prop("relationshipIntensity").set(100)
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -536,15 +503,17 @@ def test_emotion_color_defers_to_event():
     personA = Person(name="A")
     personB = Person(name="B")
 
-    event = Event(
-        kind=EventKind.Shift,
-        person=personA,
-        relationship=RelationshipKind.Distance,
-        relationshipTargets=[personB],
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Distance,
+            relationshipTargets=[personB],
+            color="#FF5733",
+        )
     )
-    event.setColor("#FF5733")
-
-    emotion = Emotion(RelationshipKind.Distance, personB, event=event)
+    emotion = scene.addItem(Emotion(RelationshipKind.Distance, personB, event=event))
+    emotion.prop("color").set("#FF000")
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -556,16 +525,19 @@ def test_emotion_notes_defers_to_event():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
+    scene.addItems(personA, personB)
 
-    event = Event(
-        kind=EventKind.Shift,
-        person=personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            notes="Important relationship notes",
+        )
     )
-    event.setNotes("Important relationship notes")
 
-    emotion = Emotion(RelationshipKind.Conflict, personB, event=event)
+    emotion = scene.addItem(Emotion(RelationshipKind.Conflict, personB, event=event))
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -577,12 +549,13 @@ def test_emotion_properties_fallback_without_event():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
+    scene.addItems(personA, personB)
 
-    emotion = Emotion(RelationshipKind.Conflict, personB)
-    emotion.prop("color").set("#123456")
-    emotion.prop("notes").set("Local notes")
-
-    scene.addItems(personA, personB, emotion)
+    emotion = scene.addItem(
+        Emotion(
+            RelationshipKind.Conflict, personB, color="#123456", notes="Local notes"
+        )
+    )
 
     assert emotion.color() == "#123456"
     assert emotion.notes() == "Local notes"
