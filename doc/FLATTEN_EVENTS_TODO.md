@@ -11,10 +11,10 @@
 ## 📋 TABLE OF CONTENTS
 
 
-### Phase 11: Commands/Undo 🟡
+### ✅ Phase 11: Commands/Undo (COMPLETED - See FLATTEN_EVENTS_DONE.md)
 - **[Phase 11](#phase-11-commandsundo-)** - Commands/Undo
   - [11.1 ✅ Remove commands.SetEmotionPerson](#111-remove-commandssetemotionperson)
-  - [11.2 ⬜ Update AddItem Command](#112-update-additem-command)
+  - [11.2 ✅ Update AddItem Command](#112-update-additem-command)
   - [11.3 ✅ Update RemoveItems Command](#113-update-removeitems-command---critical-refactor-needed-) (CRITICAL REFACTOR)
 
 ### Phase 12: Clone/Remap Refactor 🟡
@@ -58,15 +58,14 @@
 3. Polish and release (Phases 13, 14)
 
 **Completed:**
-- ✅ Phases 0.1, 1, 2, 3, 4, 5, 6, 7.0, 7.2, 10, 10.5, 15 (see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md))
-- ✅ Phases 0.2, 0.3, 8.1, 8.2, 8.3, 8.4, 9.1, 9.2 (completed in Phase 6.5 or Phase 8)
+- ✅ Phases 0, 1, 2, 3, 4, 5, 6, 7.0, 7.2, 8, 9, 10, 10.5, 11, 15 (see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md))
 
 **Estimated Effort Remaining:**
-- Phases 11, 12: 4 hours (commands and clone)
+- Phase 12: 2 hours (clone)
 - Phase 7: 4 hours (test fixes)
 - Phase 13: 1 hour (documentation)
 - Phase 14: 2 hours (version bump)
-- **Total: ~11 hours of focused work**
+- **Total: ~9 hours of focused work**
 
 **Testing Strategy:**
 After each phase:
@@ -86,221 +85,19 @@ Before final commit:
 
 
 
-## PHASE 11: Commands/Undo 🟢
+## PHASE 11: Commands/Undo ✅ COMPLETED
 
-Update undo commands to work with Scene-owned events.
+**Status:** ✅ Completed - See [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md#phase-11-commandsundo--completed) for full details.
 
-### 11.1 Remove commands.SetEmotionPerson
-**File:** `pkdiagram/scene/commands.py`
+**Summary:**
+- Updated RemoveItems command to work with Scene-owned events
+- Fixed event/emotion mapping to use IDs instead of object references
+- Updated person deletion logic to delete associated events/emotions
+- Fixed restoration order (events after people, emotions after events)
+- Updated Person/Marriage to use Scene query methods (eventsFor, emotionsFor)
+- Created comprehensive test suite (96 tests across 7 files) covering all RemoveItems scenarios
 
-**Rationale:** Emotion.person is now computed from Emotion.event.person, so can't be set directly.
-
-**Action Items:**
-- [x] Delete `SetEmotionPerson` command class
-- [x] Update code that used it to use `SetProperty` on Event instead
-
----
-
-### 11.2 Update AddItem Command
-**File:** `pkdiagram/scene/commands.py`
-
-**Ensure:** AddItem properly adds events to Scene._events
-
-**Action Items:**
-- [ ] ~~Verify AddItem calls Scene.addItem() which handles events~~
-
----
-
-### 11.3 Update RemoveItems Command - CRITICAL REFACTOR NEEDED 🔴
-**File:** `pkdiagram/scene/commands.py:47-347`
-
-**Problem:** `RemoveItems` has deep coupling to OLD event/emotion ownership model. The refactor breaks this command in multiple ways.
-
-#### Current Issues:
-
-**Issue 1: Event Ownership Confusion**
-```python
-# Line 154-155: Assumes person owns events
-for event in list(item.events()):  # Now queries Scene, not cache
-    mapEvent(event)
-```
-
-After refactor, `person.events()` returns scene-queried events, not owned events. The mapping is fine, but the redo/undo logic assumes wrong ownership.
-
-**Issue 2: Event Person Restoration (Line 307-311)**
-```python
-for entry in self._unmapped["events"]:
-    if entry["dateTime"]:
-        entry["event"].setDateTime(entry["dateTime"])
-    else:
-        entry["event"].setPerson(entry["person"])  # WRONG: person may not exist yet!
-```
-
-**Problem:** Events might get restored BEFORE their person is restored, causing crash when trying to call `person.onEventAdded()`.
-
-**Issue 3: Emotion Person Cache Calls (Lines 200, 240, 314, 317)**
-```python
-# Line 200 (redo):
-person._onRemoveEmotion(emotion)  # No longer exists after Phase 2
-
-# Line 314-318 (undo):
-entry["people"][0]._onAddEmotion(entry["emotion"])  # No longer exists
-entry["emotion"].setPersonA(entry["people"][0])     # Obsolete - uses event.person now
-entry["people"][1]._onAddEmotion(entry["emotion"])  # No longer exists
-entry["emotion"].setPersonB(entry["people"][1])     # Obsolete - uses emotion.target now
-```
-
-**Problem:** All `_onAddEmotion()` and `_onRemoveEmotion()` calls will break after Phase 2 removes emotion caching.
-
-**Issue 4: Event Mapping Stores Wrong Data (Line 109-115)**
-```python
-def mapEvent(item):
-    self._unmapped["events"].append(
-        {"event": item, "person": item.person, "dateTime": item.dateTime()}
-    )
-```
-
-**Problem:**
-- Stores `person` object reference, but person might be deleted/recreated
-- Should store `person.id` instead
-- Missing `spouse`, `child`, `relationshipTargets`, `relationshipTriangles` IDs
-
-**Issue 5: Emotion Mapping Obsolete (Line 117-126)**
-```python
-def mapEmotion(item):
-    self._unmapped["emotions"].append({
-        "emotion": item,
-        "people": list(item.people),  # WRONG: emotion.people no longer exists
-    })
-```
-
-**Problem:** `emotion.people` is obsolete. Should map `emotion.event.id` and `emotion.target.id`.
-
-**Issue 6: Person Deletion Removes Events/Emotions (Lines 189-201)**
-```python
-if item.isPerson:
-    for emotion in list(item.emotions()):  # Queries all scene emotions
-        for person in list(emotion.people):  # Obsolete
-            person._onRemoveEmotion(emotion)  # Obsolete
-        self.scene.removeItem(emotion)  # DELETES emotion when person deleted!
-```
-
-**Problem:** Currently deletes ALL emotions when person is deleted. With new model, should emotions survive person deletion? Need policy decision.
-
-#### Required Changes:
-
-**CHANGE 1: Update Event Mapping**
-```python
-def mapEvent(item):
-    for entry in self._unmapped["events"]:
-        if entry["event"] is item:
-            return
-
-    # Store IDs, not object references
-    mapping = {
-        "event": item,
-        "personId": item.person().id if item.person() else None,
-        "spouseId": item.spouse().id if item.spouse() else None,
-        "childId": item.child().id if item.child() else None,
-        "targetIds": [p.id for p in item.relationshipTargets()],
-        "triangleIds": [p.id for p in item.relationshipTriangles()],
-        "dateTime": item.dateTime(),
-    }
-    self._unmapped["events"].append(mapping)
-```
-
-**CHANGE 2: Update Event Undo Restoration**
-```python
-# MUST restore events AFTER people are restored
-for entry in self._unmapped["events"]:
-    # Don't try to restore person reference yet - it happens in event.read()
-    # Just ensure event is in scene
-    if not entry["event"].scene():
-        self.scene.addItem(entry["event"])
-```
-
-**CHANGE 3: Update Emotion Mapping**
-```python
-def mapEmotion(item):
-    for entry in self._unmapped["emotions"]:
-        if entry["emotion"] is item:
-            return
-
-    mapping = {
-        "emotion": item,
-        "eventId": item.event().id if item.event() else None,
-        "targetId": item.target().id if item.target() else None,
-    }
-    self._unmapped["emotions"].append(mapping)
-```
-
-**CHANGE 4: Remove Obsolete Emotion Cache Calls**
-```python
-# DELETE all of these:
-# person._onAddEmotion()
-# person._onRemoveEmotion()
-# emotion.setPersonA()
-# emotion.setPersonB()
-# emotion.people
-
-# REPLACE with simple scene add/remove:
-elif item.isEmotion:
-    self.scene.removeItem(item)  # Scene handles notification
-```
-
-**CHANGE 5: Update Emotion Undo Restoration**
-```python
-for entry in self._unmapped["emotions"]:
-    # Emotion references are via event, not direct person
-    if not entry["emotion"].scene():
-        self.scene.addItem(entry["emotion"])
-```
-
-**CHANGE 6: Decide Person Deletion Policy**
-
-**Option A: Keep current behavior (delete events/emotions with person)**
-```python
-if item.isPerson:
-    # Delete all events for this person
-    for event in list(self.scene.events()):
-        if event.person() == item:
-            self.scene.removeItem(event)
-
-    # Delete all emotions involving this person
-    for emotion in list(self.scene.emotions()):
-        if emotion.person() == item or emotion.target() == item:
-            self.scene.removeItem(emotion)
-```
-
-**Option B: Allow orphaned events (just remove person reference)**
-```python
-if item.isPerson:
-    # Orphan events - they remain in scene but lose person reference
-    for event in list(self.scene.events()):
-        if event.person() == item:
-            event.prop("person").set(None)  # Orphan it
-
-    # Delete only emotions where this person is the subject
-    # Keep emotions where they're just a target? Or orphan those too?
-```
-
-**Recommendation:** Use Option A for now (delete with person), add Option B as future enhancement if needed.
-
-#### Action Items:
-
-- [x] **DECIDED:** Delete events/emotions when person deleted (Option A)
-- [x] Update `mapEvent()` to store person/spouse/child/target/triangle IDs, not objects
-- [x] Update `mapEmotion()` to store event ID and target ID, not people list
-- [x] Remove all `_onAddEmotion()` and `_onRemoveEmotion()` calls
-- [x] Remove all `emotion.setPersonA()` and `emotion.setPersonB()` calls
-- [x] Fix event restoration order - events AFTER people in undo()
-- [x] Fix emotion restoration order - emotions AFTER events in undo()
-- [x] Update person deletion logic (lines 189-201) per chosen policy
-- [x] Update emotion deletion logic (lines 237-241)
-- [x] Add missing Person.events() and Person.emotions() methods
-- [ ] Add test: delete person with events, undo, verify events restored (test needs updating for new Emotion API)
-- [ ] Add test: delete emotion, undo, verify emotion + event restored (test needs updating for new Emotion API)
-- [ ] Add test: delete event, verify emotion stays but is orphaned (or deleted?)
+**Next Phase:** Phase 12 (Clone/Remap Refactor)
 
 ---
 

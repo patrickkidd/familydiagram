@@ -1175,4 +1175,128 @@ select_event(event)
 
 ---
 
+## PHASE 11: Commands/Undo ✅ COMPLETED
+
+Update undo commands to work with Scene-owned events.
+
+### 11.1 Remove commands.SetEmotionPerson ✅ COMPLETED
+**File:** `pkdiagram/scene/commands.py`
+
+**Rationale:** Emotion.person is now computed from Emotion.event.person, so can't be set directly.
+
+**Completed Action Items:**
+- ✅ Delete `SetEmotionPerson` command class
+- ✅ Update code that used it to use `SetProperty` on Event instead
+
+---
+
+### 11.2 Update AddItem Command ✅ COMPLETED
+**File:** `pkdiagram/scene/commands.py`
+
+**Ensure:** AddItem properly adds events to Scene._events
+
+**Note:** AddItem calls Scene.addItem() which handles events correctly. No changes needed.
+
+---
+
+### 11.3 Update RemoveItems Command ✅ COMPLETED
+**File:** `pkdiagram/scene/commands.py:47-347`
+
+**Problem:** `RemoveItems` had deep coupling to OLD event/emotion ownership model. The refactor broke this command in multiple ways.
+
+**Solution Implemented:**
+
+**CHANGE 1: Update Event Mapping**
+```python
+def mapEvent(item):
+    for entry in self._unmapped["events"]:
+        if entry["event"] is item:
+            return
+
+    # Store IDs, not object references
+    mapping = {
+        "event": item,
+        "personId": item.person().id if item.person() else None,
+        "spouseId": item.spouse().id if item.spouse() else None,
+        "childId": item.child().id if item.child() else None,
+        "targetIds": [p.id for p in item.relationshipTargets()],
+        "triangleIds": [p.id for p in item.relationshipTriangles()],
+        "dateTime": item.dateTime(),
+    }
+    self._unmapped["events"].append(mapping)
+```
+
+**CHANGE 2: Update Emotion Mapping**
+```python
+def mapEmotion(item):
+    for entry in self._unmapped["emotions"]:
+        if entry["emotion"] is item:
+            return
+
+    mapping = {
+        "emotion": item,
+        "eventId": item.event().id if item.event() else None,
+        "targetId": item.target().id if item.target() else None,
+    }
+    self._unmapped["emotions"].append(mapping)
+```
+
+**CHANGE 3: Remove Obsolete Emotion Cache Calls**
+- Removed all `person._onAddEmotion()` and `person._onRemoveEmotion()` calls
+- Removed all `emotion.setPersonA()` and `emotion.setPersonB()` calls
+- Removed obsolete `emotion.people` references
+- Scene.addItem/removeItem now handles notification
+
+**CHANGE 4: Update Person Deletion Logic**
+```python
+if item.isPerson:
+    # Delete all events for this person
+    for event in list(self.scene.eventsFor(item)):
+        self.scene.removeItem(event)
+
+    # Delete all emotions involving this person (as subject or target)
+    for emotion in list(self.scene.emotionsFor(item)):
+        self.scene.removeItem(emotion)
+```
+
+**CHANGE 5: Fix Restoration Order**
+- Events must be restored AFTER people in undo()
+- Emotions must be restored AFTER events in undo()
+- Ensures references exist before items are added
+
+**CHANGE 6: Use Scene Query Methods**
+- Updated Person, Marriage, and commands.py to use `scene.eventsFor()` and `scene.emotionsFor()`
+- Removed attempts to add `events()` and `emotions()` methods to Person class
+- Scene is the authoritative source for item relationships
+- Fixed `Scene.emotionsFor()` bug (was calling `e.item()` instead of `e.person()`)
+
+**Completed Action Items:**
+- ✅ **DECIDED:** Delete events/emotions when person deleted (Option A)
+- ✅ Update `mapEvent()` to store person/spouse/child/target/triangle IDs, not objects
+- ✅ Update `mapEmotion()` to store event ID and target ID, not people list
+- ✅ Remove all `_onAddEmotion()` and `_onRemoveEmotion()` calls
+- ✅ Remove all `emotion.setPersonA()` and `emotion.setPersonB()` calls
+- ✅ Fix event restoration order - events AFTER people in undo()
+- ✅ Fix emotion restoration order - emotions AFTER events in undo()
+- ✅ Update person deletion logic per chosen policy
+- ✅ Update emotion deletion logic
+- ✅ Update Person/Marriage to use Scene query methods (eventsFor, emotionsFor)
+- ✅ Fix Scene.emotionsFor() bug
+- ✅ Comprehensive test suite created for RemoveItems undo/redo
+
+**Test Coverage:**
+- Created 96 tests across 7 test files in `tests/commands/`:
+  - `test_remove_people_events.py` (7 tests) - Person and Event removal
+  - `test_remove_emotions.py` (16 tests) - Emotion removal scenarios
+  - `test_remove_nondyadic_emotions.py` (6 tests) - Non-dyadic emotion parent item handling
+  - `test_remove_children.py` (17 tests) - ChildOf, MultipleBirth, BirthPartners logic
+  - `test_remove_layers.py` (18 tests) - Layer, LayerItem, orphan handling
+  - `test_remove_cross_dependencies.py` (11 tests) - Complex scenarios, already-deleted items
+  - `test_remove_pairbond_events.py` (21 tests) - All PairBond event types (Bonded, Married, Separated, Divorced, Adopted, SeparatedBirth, Moved)
+  - `README.md` - Comprehensive documentation
+
+**TDD Approach:** Tests specify intended behavior regardless of current bugs in scene.py. Tests will guide bug fixes in subsequent implementation phase.
+
+---
+
 **END OF COMPLETED PHASES**
