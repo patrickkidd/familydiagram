@@ -54,7 +54,9 @@ def test_undoStackDateTimes(scene):
 
     event2 = Event(
         EventKind.Shift,
-        person, description="Second datetime", dateTime=util.Date(2002, 1, 1)
+        person,
+        description="Second datetime",
+        dateTime=util.Date(2002, 1, 1),
     )
     scene.addItem(event2, undo=True)
     assert scene._undoStack.index() == 3
@@ -546,7 +548,9 @@ def test_remove_last_event_sets_currentDateTime(scene):
 def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
-    event= scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)))
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
+    )
     assert scene.currentDateTime() == event.dateTime()
 
     person.setSelected(True)
@@ -557,7 +561,9 @@ def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
 def test_remove_all_events_clears_currentDateTime(scene):
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
-    event = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)))
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
+    )
     assert scene.currentDateTime() == event.dateTime()
 
     scene.removeItem(event)
