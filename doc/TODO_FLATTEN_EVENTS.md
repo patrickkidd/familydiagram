@@ -10,10 +10,10 @@
 
 ## 📋 TABLE OF CONTENTS
 
-### 🔴 CRITICAL - Must Fix for App to Run
+### ✅ COMPLETED - Critical Infrastructure
 - **[Phase 0](#phase-0-critical-infrastructure-blockers--highest-priority)** - Critical Infrastructure Blockers
-  - [0.2 🔴 Scene.read() Missing Events](#02-sceneread-missing-event-loading-code--critical) (BLOCKER - events never loaded!)
-  - [0.3 🔴 Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--critical) (BLOCKER - events not saved correctly!)
+  - [0.2 ✅ Scene.read() Missing Events](#02-sceneread-missing-event-loading-code--completed) (Completed in Phase 6.5)
+  - [0.3 ✅ Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--completed) (Completed in Phase 6.5)
 
 ### 🟡 PENDING - Test Infrastructure
 - **[Phase 7](#phase-7-test-fixes-)** - Test Fixes
@@ -21,7 +21,7 @@
   - [7.3 ⬜ Fix Emotion Construction](#73-fix-emotion-construction) (13 files)
   - [7.4 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
 
-### 🟢 PENDING - Model/View Layer
+### 🟡 PENDING - Model/View Layer
 - **[Phase 8](#phase-8-modelview-updates-)** - Model/View Updates
   - [8.1 ⬜ Update PersonPropertiesModel Event Handling](#81-update-personpropertiesmodel-event-handling)
   - [8.2 ⬜ Update MarriagePropertiesModel Event Handling](#82-update-marriagepropertiesmodel-event-handling)
@@ -35,7 +35,7 @@
   - [10.2 ⬜ Update EmotionProperties](#102-update-emotionproperties) (remove ~300 lines of date pickers)
   - [10.3 ⬜ Update PersonProperties](#103-update-personproperties---major-removal) (remove ~165 lines of date pickers)
 
-### 🟢 PENDING - Commands & Clone
+### 🟡 PENDING - Commands & Clone
 - **[Phase 11](#phase-11-commandsundo-)** - Commands/Undo
   - [11.1 ⬜ Remove commands.SetEmotionPerson](#111-remove-commandssetemotionperson)
   - [11.2 ⬜ Update AddItem Command](#112-update-additem-command)
@@ -46,7 +46,7 @@
   - [12.3 ⬜ Update Marriage.clone()](#123-update-marriageclone---events-handling)
   - [12.4 ⬜ Test Clone/Paste Workflow](#124-test-clonepaste-workflow)
 
-### 🟢 PENDING - Polish & Documentation
+### 🟡 PENDING - Polish & Documentation
 - **[Phase 13](#phase-13-documentation-)** - Documentation
   - [13.1 ⬜ Update CLAUDE.md](#131-update-claudemd)
   - [13.2 ⬜ Add Architecture Diagram](#132-add-architecture-diagram)
@@ -69,127 +69,79 @@
 
 **To get app running and tests passing:**
 
-1. **Fix Phase 6** - Implement compat.py migrations (uniqueId → kind, flatten hierarchy)
-2. **Fix Phase 0.2** - Add Event loading to Scene.read() (lines 704-724)
-3. **Fix Phase 0.3** - Add Event separation to Scene.write() (check `isEvent`)
+1. ✅ **Phase 6** - Implement compat.py migrations (COMPLETED)
+2. ✅ **Phase 0.2** - Add Event loading to Scene.read() (COMPLETED in Phase 6.5)
+3. ✅ **Phase 0.3** - Add Event separation to Scene.write() (COMPLETED in Phase 6.5)
 4. **Fix Phase 7.1, 7.3** - Update test Event() and Emotion() constructor calls
 5. **Run tests** - `python -m pytest -vv` and fix remaining failures
 
-**Priority order:** Phase 0.2 → 0.3 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+**Priority order:** Phase 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
 
-**Note:** Phase 6 (Data Compatibility) is ✅ COMPLETED - see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md)
+**Note:** Phases 0.2, 0.3, and 6 are ✅ COMPLETED - see [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md)
 
 ---
 
-## PHASE 0: Critical Infrastructure Blockers 🔴 HIGHEST PRIORITY
+## PHASE 0: Critical Infrastructure Blockers ✅ COMPLETED
 
-These issues prevent tests from running and files from loading. Must be fixed before any other work.
+These critical blockers have been resolved as part of Phase 6.5.
 
-### 0.2 Scene.read() Missing Event Loading Code 🔴 CRITICAL
-**File:** `pkdiagram/scene/scene.py:676-755`
+### 0.2 Scene.read() Missing Event Loading Code ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:704-788`
 
-**Problem:** Scene.read() has NO code to load Event objects from saved files!
+**Status:** ✅ COMPLETED in Phase 6.5
 
-**Current Code (lines 704-724):**
+**Implementation:**
+- ✅ Events loaded FIRST from `data.get("events", [])` before people (lines 706-711)
+- ✅ People loaded from `data.get("people", [])` (lines 713-718)
+- ✅ Marriages loaded from `data.get("marriages", [])` (lines 720-725)
+- ✅ Emotions loaded from `data.get("emotions", [])` (lines 727-734)
+- ✅ Layers, layerItems, multipleBirths loaded from typed arrays (lines 736-761)
+- ✅ Backward compatibility maintained with `data.get("items", [])` fallback (lines 763-789)
+
+**Key Implementation:**
 ```python
-for chunk in data.get("items", []):
-    if chunk["kind"] == "Person":
-        item = Person()
-    elif chunk["kind"] == "Marriage":
-        item = Marriage()
-    elif chunk["kind"] == "MultipleBirth":
-        item = MultipleBirth()
-    # ... other items ...
-    # ← NO EVENT LOADING!
-```
-
-**Impact:** Saved diagrams cannot be opened because events are never loaded from `data["events"]`.
-
-**Required Fix:**
-```python
-# Phase 1: Load events from data["events"] (new top-level array)
+# Load events FIRST (before people, since people query events)
 for chunk in data.get("events", []):
-    # Create Event with minimal params (will be filled in phase 2)
-    item = Event(kind=EventKind.Shift, person=None)  # Placeholder values
+    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
     item.id = chunk["id"]
     items.append(item)
     itemChunks.append((item, chunk))
-
-# Phase 2: Resolve event.person references via byId lookup
-# (Already exists for other items at line 746-750)
 ```
-
-**Action Items:**
-- [ ] Add Event loading loop in Scene.read() before Person loading
-- [ ] Create Event with placeholder kind=EventKind.Shift, person=None
-- [ ] Store Event in itemMap for phase 2 dependency resolution
-- [ ] Ensure Event.read(chunk, byId) resolves person/spouse/child references
-- [ ] Test loading old file format after compat.py migration (Phase 6)
 
 ---
 
-### 0.3 Scene.write() Not Separating Events 🔴 CRITICAL
-**File:** `pkdiagram/scene/scene.py:789-828`
+### 0.3 Scene.write() Not Separating Events ✅ COMPLETED
+**File:** `pkdiagram/scene/scene.py:851-927`
 
-**Problem:** Scene.write() outputs everything to `data["items"]` - it doesn't check for `isEvent` or create `data["events"]`.
+**Status:** ✅ COMPLETED in Phase 6.5
 
-**Current Code (lines 805-822):**
+**Implementation:**
+- ✅ All typed arrays initialized (lines 858-866): `people`, `marriages`, `emotions`, `events`, `layers`, `layerItems`, `multipleBirths`, `items`
+- ✅ Events routed to `data["events"]` array (lines 880-883)
+- ✅ People routed to `data["people"]` (lines 884-887)
+- ✅ Marriages routed to `data["marriages"]` (lines 888-891)
+- ✅ Emotions routed to `data["emotions"]` with kind as string (lines 892-895)
+- ✅ Layers, layerItems, multipleBirths routed correctly (lines 896-913)
+- ✅ Unknown types preserved in `data["items"]` for forward compatibility (lines 914-917)
+- ✅ Future items retained (lines 920-922)
+
+**Key Implementation:**
 ```python
-if item.isPerson:
+# Initialize typed arrays
+data["events"] = []
+# ... other arrays ...
+
+# Route to appropriate array
+if item.isEvent:
+    chunk["kind"] = "Event"
+    item.write(chunk)
+    data["events"].append(chunk)
+elif item.isPerson:
     chunk["kind"] = "Person"
-elif item.isMarriage:
-    chunk["kind"] = "Marriage"
-elif item.isPencilStroke:
-    chunk["kind"] = "PencilStroke"
-# ... etc ...
-# ← NO CHECK FOR isEvent!
+    item.write(chunk)
+    data["people"].append(chunk)
+# ... etc
 ```
-
-**Impact:** Events are not being written to files at all, OR they're being written incorrectly.
-
-**Required Fix:**
-```python
-def write(self, data, selectionOnly=False):
-    super().write(data)
-    data["version"] = version.VERSION
-    data["versionCompat"] = version.VERSION_COMPAT
-    data["items"] = []
-    data["events"] = []  # NEW: separate events array
-
-    items = []
-    for id, item in self.itemRegistry.items():
-        if selectionOnly and item.isPathItem and not item.isSelected():
-            continue
-        else:
-            items.append(item)
-
-    for item in items:
-        chunk = {}
-
-        # NEW: Handle events separately
-        if item.isEvent:
-            chunk["kind"] = "Event"
-            item.write(chunk)
-            data["events"].append(chunk)
-            continue  # Don't add to items
-
-        # Existing item handling
-        if item.isPerson:
-            chunk["kind"] = "Person"
-        elif item.isMarriage:
-            chunk["kind"] = "Marriage"
-        # ... etc ...
-
-        item.write(chunk)
-        data["items"].append(chunk)
-```
-
-**Action Items:**
-- [ ] Add `data["events"] = []` initialization in Scene.write()
-- [ ] Add `if item.isEvent:` check before other item type checks
-- [ ] Write events to `data["events"]` instead of `data["items"]`
-- [ ] Test save/load round-trip with events
-- [ ] Ensure backward compatibility via compat.py (Phase 6)
 
 ---
 
@@ -1387,25 +1339,27 @@ def test_migrate_uniqueId_to_kind():
 
 ## Progress Tracking
 
-**Current Status:** Phase 6 in progress, critical blockers (0.2, 0.3) pending
+**Current Status:** Critical infrastructure complete! Ready for test fixes.
 
-**Completed:** Phases 0.1, 1, 2, 3, 4, 5, 7.0, 7.2 (archived in FLATTEN_EVENTS_DONE.md)
+**Completed:**
+- ✅ Phases 0.1, 1, 2, 3, 4, 5, 7.0, 7.2 (archived in FLATTEN_EVENTS_DONE.md)
+- ✅ Phase 6 (Data Compatibility - compat.py with 11 tests passing)
+- ✅ Phase 0.2 (Scene.read() Event loading - completed in Phase 6.5)
+- ✅ Phase 0.3 (Scene.write() Event separation - completed in Phase 6.5)
 
 **Next Steps:**
-1. Complete Phase 6 (compat.py migrations)
-2. Fix Phase 0.2 (Scene.read() Event loading)
-3. Fix Phase 0.3 (Scene.write() Event separation)
-4. Fix remaining tests (Phase 7.1, 7.3, 7.4)
-5. Continue with Phases 8-14
+1. Fix Phase 7.1, 7.3 (Update test Event() and Emotion() constructor calls)
+2. Fix Phase 7.4 (Run full test suite and fix failures)
+3. Continue with Phases 8-14
 
 **Estimated Effort:**
-- Phase 6: 8 hours (compat.py - CRITICAL)
-- Phase 0.2, 0.3: 4 hours (Scene read/write)
+- ~~Phase 6: 8 hours (compat.py - CRITICAL)~~ ✅ COMPLETED
+- ~~Phase 0.2, 0.3: 4 hours (Scene read/write)~~ ✅ COMPLETED
 - Phase 7: 4 hours (remaining tests)
 - Phase 8-13: 10 hours (polish)
 - Phase 14: 2 hours (version bump)
 
-**Total Remaining:** ~28 hours of focused work
+**Total Remaining:** ~16 hours of focused work (down from 28 hours!)
 
 ---
 
