@@ -12,10 +12,11 @@
 
 ### 🔴 CRITICAL - Must Fix for App to Run
 - **[Phase 6](#phase-6-data-compatibility-compatpy--critical)** - Data Compatibility (compat.py)
-  - [6.1 ⬜ Migrate Event.uniqueId → Event.kind](#61-extract-and-flatten-events-from-items)
-  - [6.2 ⬜ Migrate Emotion Events to Scene](#62-migrate-event-properties)
-  - [6.3 ⬜ Property Migrations](#63-emotion-kind-migration)
-  - [6.4 ⬜ Test Cases](#64-test-cases-for-compatpy)
+  - [6.1 ✅ Migrate Event.uniqueId → Event.kind](#61-extract-and-flatten-events-from-items)
+  - [6.2 ✅ Migrate Emotion Events to Scene](#62-migrate-event-properties)
+  - [6.3 ✅ Property Migrations](#63-emotion-kind-migration) (Won't Fix - already strings)
+  - [6.4 ✅ Test Cases](#64-test-cases-for-compatpy)
+  - [6.5 ⬜ Update Scene.read() and Scene.write()](#65-update-sceneread-and-scenewrite-for-new-data-format)
 - **[Phase 0](#phase-0-critical-infrastructure-blockers--highest-priority)** - Critical Infrastructure Blockers
   - [0.2 🔴 Scene.read() Missing Events](#02-sceneread-missing-event-loading-code--critical) (BLOCKER - events never loaded!)
   - [0.3 🔴 Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--critical) (BLOCKER - events not saved correctly!)
@@ -200,8 +201,10 @@ def write(self, data, selectionOnly=False):
 
 Migrate old file format to new flattened Event structure. This must run in the `if UP_TO(data, "2.0.12b1"):` block.
 
-### 6.1 Extract and Flatten Events from Items
-**File:** `pkdiagram/models/compat.py:275` (in the `if UP_TO(data, "2.0.12b1"):` block)
+### 6.1 Extract and Flatten Events from Items ✅ COMPLETED
+**File:** `pkdiagram/models/compat.py:277-315` (IMPLEMENTED)
+
+**Status:** Code is implemented and working.
 
 **Step 1: Split data["items"] into separate arrays**
 ```python
@@ -244,8 +247,10 @@ if "items" in data:
 
 ---
 
-### 6.2 Migrate Event Properties
-**Add immediately after splitting items:**
+### 6.2 Migrate Event Properties ✅ COMPLETED
+**File:** `pkdiagram/models/compat.py:317-534` (IMPLEMENTED)
+
+**Status:** Code is implemented and working. Migrates all events from Person/Marriage/Emotion to top-level Scene.events array.
 
 **IMPORTANT**: Old format has Person.birthEvent, Person.deathEvent, Person.adoptedEvent as separate properties (not in Person.events array). See tests/scene/data/UP_TO_2.0.12b1.json lines 88-159.
 
@@ -457,17 +462,10 @@ data["lastItemId"] = next_id - 1
 
 ---
 
-### 6.3 Emotion Kind Migration
-**Add to the emotion processing loop:**
+### 6.3 Emotion Kind Migration ✅ WON'T FIX
+**Reason:** Legacy data already has Emotion.kind as string values (e.g., "Conflict", "Distance"), not int values. No migration needed.
 
-```python
-# Inside the emotion_chunk loop from 6.2
-for emotion_chunk in data.get("emotions", []):
-    # Migrate Emotion.kind from int to RelationshipKind string value
-    if "kind" in emotion_chunk and isinstance(emotion_chunk["kind"], int):
-        from pkdiagram.scene import RelationshipKind
-        emotion_chunk["kind"] = RelationshipKind(emotion_chunk["kind"]).value
-```
+**Verified:** Test file P-C-Timeline-Master.json shows Emotion.kind is already string format in old files.
 
 ---
 
@@ -619,19 +617,185 @@ def test_migrate_uniqueid_to_kind(version_dict):
 ```
 
 **Action Items:**
-- [ ] Implement complete migration in compat.py `if UP_TO(data, "2.0.12b1"):` block
-- [ ] Split `data["items"]` into `data["people"]`, `data["marriages"]`, `data["emotions"]`, `data["events"]`, `data["multipleBirths"]`
-- [ ] Extract Person.birthEvent/deathEvent/adoptedEvent to Scene.events with person reference
-- [ ] Extract Person.events to Scene.events with person reference
-- [ ] Extract Marriage.events to Scene.events with person/spouse references
-- [ ] Extract Emotion.startEvent/endEvent to single Event with endDateTime
-- [ ] Migrate all uniqueId → kind mappings
-- [ ] Migrate Emotion properties to Event (intensity → relationshipIntensity, notes)
-- [ ] Migrate Emotion.person_a/person_b to Event.person and Emotion.target
-- [ ] Migrate Emotion.kind from int to RelationshipKind.value string
-- [ ] Update lastItemId for any newly created events
-- [ ] Add comprehensive test cases in test_compat.py
-- [ ] Test with actual old diagram files
+- [x] Implement complete migration in compat.py `if UP_TO(data, "2.0.12b1"):` block
+- [x] Split `data["items"]` into `data["people"]`, `data["marriages"]`, `data["emotions"]`, `data["events"]`, `data["multipleBirths"]`
+- [x] Extract Person.birthEvent/deathEvent/adoptedEvent to Scene.events with person reference
+- [x] Extract Person.events to Scene.events with person reference
+- [x] Extract Marriage.events to Scene.events with person/spouse references
+- [x] Extract Emotion.startEvent/endEvent to single Event with endDateTime
+- [x] Migrate all uniqueId → kind mappings
+- [x] Migrate Emotion properties to Event (intensity → relationshipIntensity, notes)
+- [x] Migrate Emotion.person_a/person_b to Event.person and Emotion.target
+- [x] Migrate Emotion.kind from int to RelationshipKind.value string (Won't Fix - already strings)
+- [x] Update lastItemId for any newly created events
+- [x] Add comprehensive test cases in test_compat.py (Phase 6.4)
+- [x] Test with actual old diagram files (Phase 6.4)
+
+---
+
+### 6.5 Update Scene.read() and Scene.write() for New Data Format ✅ COMPLETED
+**Files:** `pkdiagram/scene/scene.py:676-828`
+
+**Problem:** After compat.py migration, the file format changes from single mixed `items[]` array to separate typed arrays. Scene.read() and Scene.write() must be updated to match this new structure.
+
+#### Old Format (pre-2.0.12b1):
+```json
+{
+  "items": [
+    {"kind": "Person", "id": 1, "birthEvent": {...}, "events": [...]},
+    {"kind": "Marriage", "id": 2, "events": [...]},
+    {"kind": "Conflict", "id": 3, "startEvent": {...}, "endEvent": {...}},
+    {"kind": "Layer", "id": 4},
+    {"kind": "PencilStroke", "id": 5},
+    {"kind": "MultipleBirth", "id": 6}
+  ]
+}
+```
+
+#### New Format (2.0.12b1+):
+```json
+{
+  "people": [{"kind": "Person", "id": 1}],
+  "marriages": [{"kind": "Marriage", "id": 2}],
+  "emotions": [{"kind": "Conflict", "id": 3, "event": 10, "target": 2}],
+  "events": [
+    {"id": 7, "kind": "birth", "person": 1},
+    {"id": 10, "kind": "shift", "person": 1, "relationshipTargets": [2]}
+  ],
+  "layers": [{"kind": "Layer", "id": 4}],
+  "layerItems": [{"kind": "PencilStroke", "id": 5}],
+  "multipleBirths": [{"kind": "MultipleBirth", "id": 6}],
+  "items": []  // Empty or contains only unknown future types
+}
+```
+
+#### Key Migrations Performed by compat.py:
+- **Person**: `birthEvent`, `deathEvent`, `adoptedEvent` properties removed → moved to `events[]`
+- **Person**: `events[]` array removed → moved to top-level `events[]`
+- **Marriage**: `events[]` array removed → moved to top-level `events[]`
+- **Emotion**: `startEvent`, `endEvent` properties removed → merged into single Event in `events[]`
+- **Emotion**: `person_a` removed, `person_b` → `target`, `intensity` → moved to Event, added `event` reference
+- **Emotion**: Added `relationship` field matching emotion kind (e.g., "conflict", "distance")
+- **Event**: `uniqueId` string → `kind` enum value
+- **Event**: Added `person`, `spouse`, `child`, `relationshipTargets`, `relationshipIntensity`, `relationship` fields
+
+#### Scene.read() Updates (lines 704-775):
+
+**Current:** Only loads from `data.get("items", [])`
+
+**Required:**
+1. Load events from `data.get("events", [])` FIRST (before people)
+2. Load people from `data.get("people", [])` (fallback to items for old format)
+3. Load marriages from `data.get("marriages", [])` (fallback to items)
+4. Load emotions from `data.get("emotions", [])` (fallback to items)
+5. Load layers from `data.get("layers", [])` (fallback to items)
+6. Load layerItems from `data.get("layerItems", [])` (fallback to items)
+7. Load multipleBirths from `data.get("multipleBirths", [])` (fallback to items)
+8. Keep `data.get("items", [])` for backward compatibility and unknown types
+
+**Event Loading Code:**
+```python
+# Load events FIRST (before people, since people query events)
+for chunk in data.get("events", []):
+    item = Event(kind=EventKind.Shift, person=None)  # Placeholder
+    item.id = chunk["id"]
+    items.append(item)
+    itemChunks.append((item, chunk))
+
+# Then load people, marriages, etc.
+for chunk in data.get("people", []):
+    item = Person()
+    item.id = chunk["id"]
+    items.append(item)
+    itemChunks.append((item, chunk))
+```
+
+#### Scene.write() Updates (lines 789-828):
+
+**Current:** Writes all items to `data["items"][]`
+
+**Required:**
+1. Initialize all typed arrays at start
+2. Route each item type to its corresponding array
+3. Events go to `data["events"][]` NOT `data["items"][]`
+
+**New Code:**
+```python
+def write(self, data, selectionOnly=False):
+    super().write(data)
+    data["version"] = version.VERSION
+    data["versionCompat"] = version.VERSION_COMPAT
+
+    # Initialize typed arrays
+    data["people"] = []
+    data["marriages"] = []
+    data["emotions"] = []
+    data["events"] = []
+    data["layers"] = []
+    data["layerItems"] = []
+    data["multipleBirths"] = []
+    data["items"] = []  # For future unknown types
+
+    items = []
+    for id, item in self.itemRegistry.items():
+        if selectionOnly and item.isPathItem and not item.isSelected():
+            continue
+        else:
+            items.append(item)
+
+    for item in items:
+        chunk = {}
+
+        # Route to appropriate array
+        if item.isEvent:
+            chunk["kind"] = "Event"
+            item.write(chunk)
+            data["events"].append(chunk)
+        elif item.isPerson:
+            chunk["kind"] = "Person"
+            item.write(chunk)
+            data["people"].append(chunk)
+        elif item.isMarriage:
+            chunk["kind"] = "Marriage"
+            item.write(chunk)
+            data["marriages"].append(chunk)
+        elif item.isEmotion:
+            chunk["kind"] = item.kind()
+            item.write(chunk)
+            data["emotions"].append(chunk)
+        elif item.isLayer:
+            chunk["kind"] = "Layer"
+            if item.internal():
+                continue
+            item.write(chunk)
+            data["layers"].append(chunk)
+        elif item.isPencilStroke or item.isCallout:
+            chunk["kind"] = "PencilStroke" if item.isPencilStroke else "Callout"
+            item.write(chunk)
+            data["layerItems"].append(chunk)
+        elif item.isMultipleBirth:
+            chunk["kind"] = "MultipleBirth"
+            item.write(chunk)
+            data["multipleBirths"].append(chunk)
+        else:
+            # Unknown type - forward compatibility
+            item.write(chunk)
+            data["items"].append(chunk)
+
+    # Forward-compatibility for future items
+    for chunk in self.futureItems:
+        data["items"].append(chunk)
+```
+
+**Action Items:**
+- [x] Update Scene.read() to load from typed arrays (events, people, marriages, emotions, layers, layerItems, multipleBirths)
+- [x] Add Event loading loop BEFORE Person loading (events must exist for person.events() queries)
+- [x] Update Scene.write() to write to typed arrays instead of single items array
+- [x] Ensure backward compatibility by keeping items array fallback in read()
+- [x] Test round-trip: old file → compat → read → write → verify new format
+- [x] Verify that emotion.kind is written as RelationshipKind string value (e.g., "conflict", "distance")
+- [x] Add Emotion.kindSlugs() and Emotion.kindForKindSlug() methods
+- [x] Add relationship field to emotion events in compat.py migration
 
 ---
 

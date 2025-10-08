@@ -275,15 +275,16 @@ def update_data(data):
 
     if UP_TO(data, "2.0.12b1"):
         # Phase 6.1: Split mixed items into separate top-level arrays
-        if "items" in data:
-            data["people"] = []
-            data["marriages"] = []
-            data["emotions"] = []
-            data["events"] = []
-            data["layerItems"] = []
-            data["layers"] = []
-            data["multipleBirths"] = []
+        # Initialize typed arrays
+        data.setdefault("people", [])
+        data.setdefault("marriages", [])
+        data.setdefault("emotions", [])
+        data.setdefault("events", [])
+        data.setdefault("layerItems", [])
+        data.setdefault("layers", [])
+        data.setdefault("multipleBirths", [])
 
+        if "items" in data:
             # Keep remaining items array for any unknown types
             remaining_items = []
 
@@ -293,7 +294,7 @@ def update_data(data):
                     data["people"].append(chunk)
                 elif kind == "Marriage":
                     data["marriages"].append(chunk)
-                elif kind in Emotion.kindSlugs():  # All emotion types
+                elif kind and kind.lower() in [s.lower() for s in Emotion.kindSlugs()]:  # All emotion types (case-insensitive)
                     data["emotions"].append(chunk)
                 elif kind == "Event":
                     data["events"].append(chunk)
@@ -321,9 +322,9 @@ def update_data(data):
         # Collect all events from nested locations
         all_events = []
 
-        # 1a. Extract Person built-in events (birthEvent, deathEvent, adoptedEvent)
+        # 1a. Extract Person built-in events (birthEvent, adoptedEvent, deathEvent)
         for person_chunk in data.get("people", []):
-            for event_attr in ["birthEvent", "deathEvent", "adoptedEvent"]:
+            for event_attr in ["birthEvent", "adoptedEvent", "deathEvent"]:
                 if event_attr in person_chunk:
                     event_chunk = person_chunk.pop(event_attr)
 
@@ -467,6 +468,13 @@ def update_data(data):
                 # Set relationship targets
                 if "person_b" in emotion_chunk:
                     start_event["relationshipTargets"] = [emotion_chunk["person_b"]]
+
+                # Set relationship field matching emotion kind
+                if "kind" in emotion_chunk:
+                    # Convert emotion kind (e.g., "Conflict" or "conflict") to lowercase
+                    emotion_kind = emotion_chunk["kind"]
+                    if isinstance(emotion_kind, str):
+                        start_event["relationship"] = emotion_kind.lower()
 
                 # Handle endEvent/isDateRange
                 if end_event and end_event.get("dateTime"):

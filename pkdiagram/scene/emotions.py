@@ -1201,6 +1201,19 @@ class Emotion(PathItem):
         pathFunc = Emotion.KIND_MAP[kind]
         return pathFunc(*args, **kwargs)
 
+    @staticmethod
+    def kindSlugs() -> list[str]:
+        """Return list of all emotion kind slugs (string values)."""
+        return [kind.value for kind in RelationshipKind]
+
+    @staticmethod
+    def kindForKindSlug(slug: str) -> RelationshipKind:
+        """Convert a kind slug string to RelationshipKind enum."""
+        for kind in RelationshipKind:
+            if kind.value == slug:
+                return kind
+        raise ValueError(f"Unknown emotion kind slug: {slug}")
+
     ITEM_Z = util.EMOTION_Z
 
     def __init__(

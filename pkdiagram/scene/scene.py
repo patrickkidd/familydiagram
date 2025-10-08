@@ -41,6 +41,7 @@ from pkdiagram.scene import (
     EmotionalUnit,
     Property,
     Event,
+    EventKind,
     Item,
     PathItem,
     Person,
@@ -701,6 +702,65 @@ class Scene(QGraphicsScene, Item):
             itemChunks = []
             self.futureItems = []
             items = []
+
+            # Load events FIRST (before people, since people query events)
+            for chunk in data.get("events", []):
+                item = Event(kind=EventKind.Shift, person=None)  # Placeholder
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load people
+            for chunk in data.get("people", []):
+                item = Person()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load marriages
+            for chunk in data.get("marriages", []):
+                item = Marriage()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load emotions
+            for chunk in data.get("emotions", []):
+                kind = Emotion.kindForKindSlug(chunk["kind"])
+                # Provide placeholder values - will be overwritten by item.read(chunk, byId)
+                item = Emotion(kind=kind, target=None, event=None)
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load layers
+            for chunk in data.get("layers", []):
+                item = Layer()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load layer items (PencilStroke, Callout)
+            for chunk in data.get("layerItems", []):
+                if chunk["kind"] == "PencilStroke":
+                    item = PencilStroke()
+                elif chunk["kind"] == "Callout":
+                    item = Callout()
+                else:
+                    log.warning(f"Unknown layerItem kind: {chunk['kind']}")
+                    continue
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load multiple births
+            for chunk in data.get("multipleBirths", []):
+                item = MultipleBirth()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load items (backward compatibility and unknown types)
             for chunk in data.get("items", []):
                 if chunk["kind"] == "Person":
                     item = Person()
@@ -718,6 +778,8 @@ class Scene(QGraphicsScene, Item):
                     kind = Emotion.kindForKindSlug(chunk["kind"])
                     # Provide placeholder values - will be overwritten by item.read(chunk, byId)
                     item = Emotion(kind=kind, target=None, event=None)
+                elif chunk["kind"] == "Event":
+                    item = Event(kind=EventKind.Shift, person=None)
                 else:
                     log.warning(f"Retaining future item: {chunk}")
                     self.futureItems.append(chunk)
@@ -792,7 +854,17 @@ class Scene(QGraphicsScene, Item):
         data["versionCompat"] = (
             version.VERSION_COMPAT
         )  # oldest version this scene can be opened in
-        data["items"] = []
+
+        # Initialize typed arrays
+        data["people"] = []
+        data["marriages"] = []
+        data["emotions"] = []
+        data["events"] = []
+        data["layers"] = []
+        data["layerItems"] = []
+        data["multipleBirths"] = []
+        data["items"] = []  # For future unknown types
+
         data["name"] = self.name()
         items = []
         for id, item in self.itemRegistry.items():
@@ -800,29 +872,51 @@ class Scene(QGraphicsScene, Item):
                 continue
             else:
                 items.append(item)
+
         for item in items:
             chunk = {}
-            if item.isPerson:
+
+            # Route to appropriate array
+            if item.isEvent:
+                chunk["kind"] = "Event"
+                item.write(chunk)
+                data["events"].append(chunk)
+            elif item.isPerson:
                 chunk["kind"] = "Person"
+                item.write(chunk)
+                data["people"].append(chunk)
             elif item.isMarriage:
                 chunk["kind"] = "Marriage"
-            elif item.isPencilStroke:
-                chunk["kind"] = "PencilStroke"
+                item.write(chunk)
+                data["marriages"].append(chunk)
+            elif item.isEmotion:
+                chunk["kind"] = item.kind()
+                item.write(chunk)
+                data["emotions"].append(chunk)
             elif item.isLayer:
                 chunk["kind"] = "Layer"
                 if item.internal():
                     continue
+                item.write(chunk)
+                data["layers"].append(chunk)
+            elif item.isPencilStroke:
+                chunk["kind"] = "PencilStroke"
+                item.write(chunk)
+                data["layerItems"].append(chunk)
             elif item.isCallout:
                 chunk["kind"] = "Callout"
-            elif item.isEmotion:
-                chunk["kind"] = item.kind()
+                item.write(chunk)
+                data["layerItems"].append(chunk)
             elif item.isMultipleBirth:
                 chunk["kind"] = "MultipleBirth"
+                item.write(chunk)
+                data["multipleBirths"].append(chunk)
             else:
-                continue
-            item.write(chunk)
-            data["items"].append(chunk)
-        # forward-compatibility
+                # Unknown type - forward compatibility
+                item.write(chunk)
+                data["items"].append(chunk)
+
+        # Forward-compatibility for future items
         for chunk in self.futureItems:
             data["items"].append(chunk)
             log.warning(f"Retained future item: {chunk}")
