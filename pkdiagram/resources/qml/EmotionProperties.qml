@@ -14,6 +14,7 @@ Page {
     signal cancel
     signal done
     signal resize
+    signal editEvent
 
 
     property int margin: util.QML_MARGINS
@@ -162,6 +163,15 @@ Page {
                         //     KeyNavigation.tab: personBox
                         //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
                         // }
+
+                        PK.Text { text: " " }
+
+                        PK.Button {
+                            id: editEventButton
+                            text: "→ Edit Event"
+                            visible: emotionModel.startDateTime
+                            onClicked: root.editEvent()
+                        }
 
                         Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 1 }
 

@@ -457,10 +457,13 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(self, *args, batch=True, undo=False):
+    def addItems(self, *args, batch=True, undo=False) -> list:
+        ret = []
         with self.macro("Adding items", undo=undo, batchAddRemove=batch):
             for item in args:
                 self.addItem(item, undo=undo)
+                ret.append(item)
+        return ret
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem

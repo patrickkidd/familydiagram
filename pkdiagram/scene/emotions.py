@@ -1,4 +1,4 @@
-import random, collections, logging
+import logging
 
 from _pkdiagram import CUtil
 from stripe import Person
@@ -478,13 +478,6 @@ class FannedBox(QGraphicsObject):
                 del self.entries[emotion]
                 emotion.fannedBox = None
         self._toRemoveAfterAnim = []
-
-
-def _new_color():
-    colorName = random.choice(util.ABLETON_COLORS)
-    color = QColor(colorName)
-    # color.setAlpha(150)
-    return color.name()
 
 
 def pathFor_Conflict(
@@ -1176,7 +1169,7 @@ class Emotion(PathItem):
             },
             {"attr": "event", "type": int, "default": None},  # Store event ID
             {"attr": "target", "type": int, "default": None},  # Store target ID
-            {"attr": "color", "default": _new_color()},
+            {"attr": "color", "default": Item.newColor},
             {"attr": "notes"},
         ]
     )
@@ -1286,16 +1279,28 @@ class Emotion(PathItem):
     def event(self) -> Event:
         return self._event
 
-    def intensity(self) -> int:
-        if self._event:
-            return self._event.relationshipIntensity()
-        else:
-            self.intensity()
-
     def setEvent(self, event: Event):
         assert event.kind() == EventKind.Shift
         assert event.relationship() == self.kind()
         self._event = event
+
+    def intensity(self) -> int:
+        if self._event:
+            return self._event.relationshipIntensity()
+        else:
+            return 0
+
+    def color(self) -> str:
+        if self._event:
+            return self._event.color()
+        else:
+            return self.prop("color").get()
+
+    def notes(self) -> str:
+        if self._event:
+            return self._event.notes()
+        else:
+            return self.prop("notes").get()
 
     def isDyadic(self):
         return self.kind() != RelationshipKind.Cutoff

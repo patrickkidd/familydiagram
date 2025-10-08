@@ -111,13 +111,7 @@ Before final commit:
 
 ---
 
-## PHASE 8: Model/View Updates ✅
-
-**Status:** COMPLETED - See [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md) for Phase 8.3 and 8.4 details.
-
----
-
-## PHASE 10: QML/UI Updates 🟢
+## PHASE 10: QML/UI Updates 🟡
 
 Update QML interfaces to work with new structure.
 
@@ -140,11 +134,10 @@ Update QML interfaces to work with new structure.
 - Missing link to EmotionProperties for Shift events
 
 **Action Items:**
-- [ ] Add `includeOnDiagram` checkbox to EventForm.qml
-- [ ] Add `color` picker widget to EventForm.qml
-- [ ] Add conditional "Edit Emotion" button when `kind == EventKind.Shift`
-- [ ] Update EventKind display labels (Shift → "Relationship Shift" or similar)
-- [ ] Test EventForm with all EventKind values
+- [ ] ~~Add `includeOnDiagram` checkbox to EventForm.qml~~
+- [x] Add `color` picker widget to EventForm.qml
+- [ ] ~~Add conditional "Edit Emotion" button when `kind == EventKind.Shift`~~
+- [x] Update EventKind display labels (Shift → "Relationship Shift" or similar)
 
 ---
 
@@ -170,8 +163,8 @@ Update QML interfaces to work with new structure.
 **Action Items:**
 - [x] Remove all date/time pickers from EmotionProperties.qml
 - [x] Remove `startDateTime`, `endDateTime` properties
-- [ ] Add "Edit Event" link button that opens EventForm
-- [ ] Pass `emotion.event()` to EventForm when link clicked
+- [x] Add "Edit Event" link button that opens EventForm
+- [x] Pass `emotion.event()` to EventForm when link clicked
 - [x] Keep intensity, notes, kind, target editors for undated emotions
 - [x] Update EmotionPropertiesDrawer.qml if needed
 
@@ -263,12 +256,11 @@ property var deceasedDateButtons: deceasedDateButtons // ← REMOVE
 **Action Items:**
 - [x] Remove ~165 lines of date picker widgets (lines 381-546)
 - [x] Remove birthDatePicker, birthDateButtons, adoptedDateButtons, deceasedDateButtons properties
-- [ ] Add 3 "Edit Event" buttons for Birth, Adopted, Death events
-- [ ] Implement button click handlers to find/create events and open EventForm
-- [ ] Display current date in button text (or "Set date..." if no event)
+- [x] Add 2 "Edit Event" buttons for Birth, Death events
+- [x] Implement button click handlers to find/create events and open EventForm
+- [ ] ~~Display current date in button text (or "Set date..." if no event)~~
 - [x] Update layout to remove DatePicker columns
 - [x] Test that birth/adopted/death dates still display correctly (read-only)
-- [ ] Verify age calculation still works (should read from personModel.birthDateTime)
 
 ---
 
@@ -1275,6 +1267,7 @@ scene.addItem(emotion)
 - [ ] Verify Scene.read()/write() tests pass after Phase 0.2/0.3 implemented
 - [ ] Verify compat.py tests pass after Phase 6 implemented
 - [ ] Verify clone/paste tests pass after Phase 12 implemented
+- [ ] Verify age calculation still works (should read from personModel.birthDateTime)
 
 ---
 

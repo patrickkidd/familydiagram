@@ -49,6 +49,7 @@ def test_init(qmlEngine, view, editorMode):
     qmlEngine.sceneModel.onEditorMode(editorMode)
     assert view.item.property("kind") == None
     assert view.kindBox.property("currentIndex") == -1
+    assert view.colorBox.property("color") == None
     assert view.tagsEdit.property("isDirty") == False
     assert view.tagsEdit.property("visible") == editorMode
     assert view.rootProp("tagsLabel").property("visible") == editorMode
@@ -63,6 +64,7 @@ def test_attrs(scene, view, kind: EventKind):
     view.set_startDateTime(START_DATETIME)
     view.set_location("Somewhere")
     view.set_notes("Some notes")
+    view.set_color("#ff0000")
     view.clickSaveButton()
 
     child = mother.marriages[0].children[0]
@@ -72,6 +74,7 @@ def test_attrs(scene, view, kind: EventKind):
     assert event.description() == kind.name
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
+    assert event.color() == "#ff0000"
     if kind == EventKind.Birth:
         assert child.birthDateTime() == START_DATETIME
     elif kind == EventKind.Adopted:

@@ -90,6 +90,7 @@ class TestEventForm:
 
         # Meta
 
+        self.colorBox = self.item.property("colorBox")
         self.tagsEdit = self.item.property("tagsEdit")
 
     # QmlWidgetHelper passthrough
@@ -336,6 +337,11 @@ class TestEventForm:
 
     def set_functioning(self, x):
         self.view.setVariable("functioning", x)
+
+    # Meta
+
+    def set_color(self, color: str):
+        self.view.clickComboBoxItem(self.colorBox, color, force=False)
 
     def add_tag(self, tag: str):
         self.view.scrollChildToVisible(self.item.property("addPage"), self.tagsEdit)

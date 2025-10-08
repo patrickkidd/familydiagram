@@ -12,6 +12,8 @@ PK.Drawer {
     id: root
 
     signal toggleExpand
+    signal editBirthEvent
+    signal editDeathEvent
 
     property bool isDrawerOpen: false
     property var resetItemPosButton: resetItemPosButton
@@ -374,6 +376,24 @@ PK.Drawer {
                             }
                         }
                         
+                        PK.Text { text: " " }
+
+                        PK.Button {
+                            id: editBirthEventButton
+                            text: "→ Edit Birth Event"
+                            visible: personModel.birthDateTime
+                            onClicked: root.editBirthEvent()
+                        }
+
+                        PK.Text { text: " " }
+
+                        PK.Button {
+                            id: editDeathEventButton
+                            text: "→ Edit Death Event"
+                            visible: personModel.deceasedDateTime
+                            onClicked: root.editDeathEvent()
+                        }
+
                         PK.GroupBox {
 
                             title: "Provisional Settings"

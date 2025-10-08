@@ -97,6 +97,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dynamic Properties**: Scene items use `QObjectHelper.registerQtProperties()` for automatic Qt property generation
 - **Property Types**: Supports conversion between Python types and Qt types (QDateTime, Qt.CheckState, etc.)
 - **Property Persistence**: Scene items can be serialized/deserialized with full property state
+- **Python Object Model**: Adding properties declaratively via Item.registerProperties automatically adds getter and set*() setter methods to the class.
 
 ### Build Configuration
 - **Multi-platform**: Supports macOS, Windows, and iOS builds with platform-specific configurations

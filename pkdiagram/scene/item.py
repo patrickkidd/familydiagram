@@ -1,6 +1,7 @@
+import random
 import copy
 
-from pkdiagram.pyqt import QDateTime
+from pkdiagram.pyqt import QDateTime, QColor
 from pkdiagram import util
 from pkdiagram.scene import Property
 
@@ -55,6 +56,13 @@ class Item:
             if not found:
                 entries.append(newEntry)
         return entries
+
+    @staticmethod
+    def newColor() -> str:
+        colorName = random.choice(util.ABLETON_COLORS)
+        color = QColor(colorName)
+        # color.setAlpha(150)
+        return color.name()
 
     registerProperties.__get__(object)(
         (

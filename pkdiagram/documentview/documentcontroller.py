@@ -31,7 +31,16 @@ from pkdiagram.pyqt import (
     QPointF,
 )
 from pkdiagram import util
-from pkdiagram.scene import Property, Person, Emotion, Event, LayerItem, Layer, ChildOf
+from pkdiagram.scene import (
+    EventKind,
+    Property,
+    Person,
+    Emotion,
+    Event,
+    LayerItem,
+    Layer,
+    ChildOf,
+)
 from pkdiagram.models import selectedEvents
 from pkdiagram.widgets import Drawer
 from pkdiagram.documentview import RightDrawerView
@@ -69,6 +78,11 @@ class DocumentController(QObject):
         self.ui = self.dv.ui
 
         self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
+
+        self.dv.personProps.editBirthEvent.connect(self.onEditPersonBirthEvent)
+        self.dv.personProps.editDeathEvent.connect(self.onEditPersonDeathEvent)
+
+        self.dv.emotionProps.editEvent.connect(self.onEditEmotionEvent)
 
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
@@ -342,6 +356,29 @@ class DocumentController(QObject):
         elif not on and tag in tags:
             tags.remove(tag)
         self.dv.searchModel.tags = tags
+
+    def onEditPersonBirthEvent(self):
+        personModel = self.dv.personProps.getPropSheetModel()
+        person = personModel.items[0]
+        for event in self.scene.eventsFor(person):
+            if event.kind() == EventKind.Birth:
+                self.dv.showEventForm(event)
+                return
+
+    def onEditPersonDeathEvent(self):
+        personModel = self.dv.personProps.getPropSheetModel()
+        person = personModel.items[0]
+        for event in self.scene.eventsFor(person):
+            if event.kind() == EventKind.Death:
+                self.dv.showEventForm(event)
+                return
+
+    def onEditEmotionEvent(self):
+        emotionModel = self.dv.emotionProps.getPropSheetModel()
+        emotion = emotionModel.items[0]
+        event = emotion.event()
+        if event:
+            self.dv.showEventForm(event)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):
@@ -836,15 +873,13 @@ class DocumentController(QObject):
                 ret = False
         return ret
 
+    def inspectEvents(self, events: list[Event]):
+        self.dv.session.trackView("Edit event(s)")
+        self.dv.setCurrentDrawer(self.dv.eventForm)
+        self.dv.eventForm.editEvents(events)
+
     def onInspect(self, tab=None):
         """duplicated in canInspect"""
-
-        def _inspectEvents(events: list[Event]):
-            if isinstance(events, QJSValue):
-                events = events.toVariant()
-            self.dv.setCurrentDrawer(self.dv.eventForm)
-            self.dv.eventForm.editEvents(events)
-            self.dv.session.trackView("Edit event(s)")
 
         fw = QApplication.focusWidget()
         if isinstance(fw, QQuickWidget):
@@ -853,14 +888,18 @@ class DocumentController(QObject):
                 and self.dv.caseProps.currentTab() == "timeline"
             ):
                 events = self.dv.caseProps.selectedEvents()
-                _inspectEvents(events)
+                if isinstance(events, QJSValue):
+                    events = events.toVariant()
+                self.inspectEvents(events)
             elif hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
         elif fw is self.dv.graphicalTimelineView.timeline:
             events = selectedEvents(
                 self.dv.timelineModel, self.dv.timelineSelectionModel
             )
-            _inspectEvents(events)
+            if isinstance(events, QJSValue):
+                events = events.toVariant()
+            self.inspectEvents(events)
         else:  # scene
             self.dv.inspectSelection(tab=tab)
 

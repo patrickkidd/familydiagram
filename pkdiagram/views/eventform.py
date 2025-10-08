@@ -1,4 +1,5 @@
 import logging
+from turtle import color
 
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -167,7 +168,6 @@ class EventForm(QmlDrawer):
         self.clear()
         self.item.setProperty("isEditing", True)
         self._events = events
-        self._tagsModel.items = events
 
         person = util.sameOf(events, lambda e: e.person)
         if person:
@@ -270,6 +270,12 @@ class EventForm(QmlDrawer):
                 self.item.property("trianglesPicker").setExistingPeopleIds(
                     [x.id for x in triangles]
                 )
+
+        color = util.sameOf(events, lambda e: e.color())
+        if color:
+            self.item.property("colorBox").setProperty("color", color)
+
+        self._tagsModel.items = events
 
     def onDone(self):
 
@@ -492,7 +498,7 @@ class EventForm(QmlDrawer):
         notes = self.item.property("notes")
 
         # Meta
-
+        color = self.item.property("colorBox").property("color")
         checkedTags = self._tagsModel.checkedTags()
         uncheckedTags = self._tagsModel.uncheckedTags()
         isEditing = self.item.property("isEditing")
@@ -630,6 +636,8 @@ class EventForm(QmlDrawer):
 
                 event = self.scene.addItem(Event(), undo=True)
 
+        # Set event properties
+
         if isEditing:
             events = self._events
         else:
@@ -662,6 +670,8 @@ class EventForm(QmlDrawer):
                 event.setLocation(location, undo=True)
             if notes:
                 event.setNotes(notes, undo=True)
+            if color:
+                event.setColor(color, undo=True)
             # Tags
             if not isEditing:
                 event.setTags(checkedTags, undo=True)

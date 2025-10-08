@@ -40,10 +40,8 @@ PK.Drawer {
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
     property var isDateRangeDirty: isDateRangeBox.dirty
-    property var startDateButtons: startDateButtons
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
-    property var endDateButtons: endDateButtons
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
     property var location: locationEdit.text
@@ -51,8 +49,10 @@ PK.Drawer {
     property var anxiety: anxietyField.value
     property var relationship: relationshipField.value
     property var functioning: functioningField.value
+    property var color: color
     property var notes: notesEdit.text
     property var tagsModel: tagsModel
+
 
     // Who
 
@@ -87,6 +87,9 @@ PK.Drawer {
 
     // When
 
+    property var startDateButtons: startDateButtons
+    property var endDateButtons: endDateButtons
+
     property var startDateTimeLabel: startDateTimeLabel
     property var endDateTimeLabel: endDateTimeLabel
     property var isDateRangeLabel: isDateRangeLabel
@@ -107,6 +110,7 @@ PK.Drawer {
 
     // Meta
 
+    property var colorBox: colorBox
     property var tagsEdit: tagsEditItem
     property var tagsLabel: tagsLabel
 
@@ -352,7 +356,7 @@ PK.Drawer {
                     PK.ComboBox {
                         id: kindBox
                         model: ListModel {
-                            ListElement { label: "Shift"; value: 'variable-shift' }
+                            ListElement { label: "Shift"; value: 'shift' }
                             //
                             ListElement { label: "Birth"; value: 'birth' }
                             ListElement { label: "Adopted"; value: 'adopted' }
@@ -947,7 +951,7 @@ PK.Drawer {
                     PK.FormField {
                         id: notesField
                         height: notesFrame.height
-                        tabItem: tagsField.firstTabItem
+                        tabItem: colorBox
                         backTabItem: locationField.lastTabItem
                         Layout.minimumHeight: notesFrame.height
                         Layout.maximumHeight: notesFrame.height
@@ -1002,6 +1006,15 @@ PK.Drawer {
                         Layout.columnSpan: 2
                         visible: sceneModel.isInEditorMode
                     }
+
+                    PK.Text { text: "Color" }
+
+                    PK.ColorPicker {
+                        id: colorBox
+                        KeyNavigation.tab: tagsField.firstTabItem
+                        KeyNavigation.backtab: notesField.lastTabItem
+                        onCurrentIndexChanged: root.color = model[currentIndex]
+                    }
                     
                     PK.Text {
                         id: tagsLabel
@@ -1016,7 +1029,7 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
-                        backTabItem: notesEdit
+                        backTabItem: tagsField.firstTabItem
                         visible: sceneModel.isInEditorMode
 
                         PK.ActiveListEdit {

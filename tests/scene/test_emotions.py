@@ -479,3 +479,88 @@ def test_mirror_notes_set_from_startEvent():
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)
     assert emotion.notes() == NOTES
+
+
+def test_emotion_intensity_defers_to_event():
+    from pkdiagram.scene import Event, EventKind
+
+    scene = Scene()
+    personA = Person(name="A")
+    personB = Person(name="B")
+
+    event = Event(
+        kind=EventKind.Shift,
+        person=personA,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+    )
+    event.setRelationshipIntensity(75)
+
+    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB, event=event)
+
+    scene.addItems(personA, personB, event, emotion)
+
+    assert emotion.intensity() == 75
+    assert emotion.intensity() == event.relationshipIntensity()
+
+
+def test_emotion_color_defers_to_event():
+    from pkdiagram.scene import Event, EventKind
+
+    scene = Scene()
+    personA = Person(name="A")
+    personB = Person(name="B")
+
+    event = Event(
+        kind=EventKind.Shift,
+        person=personA,
+        relationship=RelationshipKind.Distance,
+        relationshipTargets=[personB],
+    )
+    event.setColor("#FF5733")
+
+    emotion = Emotion(kind=RelationshipKind.Distance, target=personB, event=event)
+
+    scene.addItems(personA, personB, event, emotion)
+
+    assert emotion.color() == "#FF5733"
+    assert emotion.color() == event.color()
+
+
+def test_emotion_notes_defers_to_event():
+    from pkdiagram.scene import Event, EventKind
+
+    scene = Scene()
+    personA = Person(name="A")
+    personB = Person(name="B")
+
+    event = Event(
+        kind=EventKind.Shift,
+        person=personA,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+    )
+    event.setNotes("Important relationship notes")
+
+    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB, event=event)
+
+    scene.addItems(personA, personB, event, emotion)
+
+    assert emotion.notes() == "Important relationship notes"
+    assert emotion.notes() == event.notes()
+
+
+def test_emotion_properties_fallback_without_event():
+    scene = Scene()
+    personA = Person(name="A")
+    personB = Person(name="B")
+
+    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB)
+    emotion.prop("color").set("#123456")
+    emotion.prop("notes").set("Local notes")
+
+    scene.addItems(personA, personB, emotion)
+
+    assert emotion.color() == "#123456"
+    assert emotion.notes() == "Local notes"
+    assert emotion.intensity() == 0

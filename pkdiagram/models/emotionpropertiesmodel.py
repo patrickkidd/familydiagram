@@ -13,6 +13,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             {"attr": "intensityIndex", "type": int, "default": -1},
             {"attr": "itemName"},
             {"attr": "dyadic", "type": bool},
+            {"attr": "canEditEvent", "type": bool, "default": False},
         ],
     )
 
@@ -45,8 +46,8 @@ class EmotionPropertiesModel(QObject, ModelHelper):
         elif attr == "endDateTime":
             x = util.sameOf(self._items, lambda item: item.endEvent.dateTime())
             ret = self.getterConvertTo(attr, x)
-        elif attr == "startEventId":
-            ret = util.sameOf(self._items, lambda item: item.startEvent.id)
+        elif attr == "canEditEvent":
+            ret = util.sameOf(self._items, lambda item: item.event())
         elif attr == "endEventId":
             ret = util.sameOf(self._items, lambda item: item.endEvent.id)
         elif attr == "parentName":

@@ -16,10 +16,31 @@ class MyNumItem(Item):
     Item.registerProperties(({"attr": "num", "default": -1},))
 
 
+_lastNum = 0
+
+
+def someDefault() -> int:
+    global _lastNum
+    _lastNum += 1
+    return _lastNum
+
+
+class MyCallableDefaultItem(Item):
+    Item.registerProperties(({"attr": "num", "type": int, "default": someDefault}))
+
+
+def test_default_is_callable(scene):
+
+    item1 = scene.addItem(MyCallableDefaultItem())
+    assert item1.num() == 1
+
+    item2 = scene.addItem(MyCallableDefaultItem())
+    assert item2.num() == 2
+
+
 @pytest.mark.parametrize("undo", [False, True])
 def test_property_setter(scene, undo):
-    item = MyNumItem(num=123)
-    scene.addItem(item)
+    item = scene.addItem(MyNumItem(num=123))
     assert item.num() == 123
 
     item.setNum(456, undo=undo)
@@ -30,8 +51,7 @@ def test_property_setter(scene, undo):
 
 
 def test_property_set_with_undo(scene):
-    item = MyNumItem(num=123)
-    scene.addItem(item)
+    item = scene.addItem(MyNumItem(num=123))
     assert item.num() == 123
 
     item.setNum(456, undo=True)  # 1
@@ -46,8 +66,7 @@ def test_property_set_with_undo(scene):
 
 @pytest.mark.parametrize("undo", [False, True])
 def test_property_resetter(scene, undo):
-    item = MyNumItem(num=123)
-    scene.addItem(item)
+    item = scene.addItem(MyNumItem(num=123))
     assert item.num() == 123
 
     item.prop("num").reset(undo=undo)
@@ -55,8 +74,7 @@ def test_property_resetter(scene, undo):
 
 
 def test_property_reset_with_undo(scene):
-    item = MyNumItem(num=123)
-    scene.addItem(item)
+    item = scene.addItem(MyNumItem(num=123))
     assert item.num() == 123  # 0
 
     item.prop("num").reset(undo=True)  # 1
