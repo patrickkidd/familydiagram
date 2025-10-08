@@ -274,19 +274,264 @@ def update_data(data):
                     chunk["notes"] = chunk["startEvent"]["notes"]
 
     if UP_TO(data, "2.0.12b1"):
-        for chunk in data.get("items", []):
-            if chunk["kind"] in Emotion.kindSlugs():
-                if chunk.get("startEvent"):
-                    chunk["startEvent"]["uniqueId"] = EventKind.Shift.value
-                    chunk["startEvent"]["relationship"] = RelationshipKind.fromItemMode(
-                        Emotion.kindForKindSlug(chunk["kind"])
-                    ).value
-                    chunk["relationshipTargets"] = (
-                        [chunk.get("person_b")] if chunk.get("person_b") else []
+        # Phase 6.1: Split mixed items into separate top-level arrays
+        if "items" in data:
+            data["people"] = []
+            data["marriages"] = []
+            data["emotions"] = []
+            data["events"] = []
+            data["layerItems"] = []
+            data["layers"] = []
+            data["multipleBirths"] = []
+
+            # Keep remaining items array for any unknown types
+            remaining_items = []
+
+            for chunk in data["items"]:
+                kind = chunk.get("kind")
+                if kind == "Person":
+                    data["people"].append(chunk)
+                elif kind == "Marriage":
+                    data["marriages"].append(chunk)
+                elif kind in Emotion.kindSlugs():  # All emotion types
+                    data["emotions"].append(chunk)
+                elif kind == "Event":
+                    data["events"].append(chunk)
+                elif kind == "Layer":
+                    data["layers"].append(chunk)
+                elif kind in ("Callout", "PencilStroke"):
+                    data["layerItems"].append(chunk)
+                elif kind == "MultipleBirth":
+                    data["multipleBirths"].append(chunk)
+                else:
+                    # Unknown item type - keep in items array
+                    remaining_items.append(chunk)
+
+            # Replace items with only unknown types (if any)
+            if remaining_items:
+                data["items"] = remaining_items
+            else:
+                # Remove items array entirely if empty
+                del data["items"]
+
+        # Phase 6.2: Migrate Event Properties
+        # Track next available ID for new events
+        next_id = data.get("lastItemId", -1) + 1
+
+        # Collect all events from nested locations
+        all_events = []
+
+        # 1a. Extract Person built-in events (birthEvent, deathEvent, adoptedEvent)
+        for person_chunk in data.get("people", []):
+            for event_attr in ["birthEvent", "deathEvent", "adoptedEvent"]:
+                if event_attr in person_chunk:
+                    event_chunk = person_chunk.pop(event_attr)
+
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "birth":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif uid == "adopted":
+                            event_chunk["kind"] = EventKind.Adopted.value
+                        elif uid == "death":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif uid in ("CustomIndividual", "", None):
+                            event_chunk["kind"] = EventKind.Shift.value
+                        else:
+                            event_chunk["kind"] = uid
+
+                    # Ensure kind is set (fallback if no uniqueId)
+                    if "kind" not in event_chunk:
+                        if event_attr == "birthEvent":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif event_attr == "deathEvent":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif event_attr == "adoptedEvent":
+                            event_chunk["kind"] = EventKind.Adopted.value
+
+                    # Ensure event has ID
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Set person reference
+                    event_chunk["person"] = person_chunk["id"]
+
+                    all_events.append(event_chunk)
+
+        # 1b. Extract custom events from Person.events array
+        for person_chunk in data.get("people", []):
+            if "events" in person_chunk:
+                for event_chunk in person_chunk["events"]:
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "birth":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif uid == "adopted":
+                            event_chunk["kind"] = EventKind.Adopted.value
+                        elif uid == "death":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif uid in (
+                            "CustomIndividual",
+                            "emotionStartEvent",
+                            "emotionEndEvent",
+                            "",
+                            None,
+                        ):
+                            event_chunk["kind"] = EventKind.Shift.value
+                        else:
+                            event_chunk["kind"] = uid
+
+                    # Ensure event has ID
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Set person reference
+                    event_chunk["person"] = person_chunk["id"]
+
+                    all_events.append(event_chunk)
+
+                # Remove events from person
+                del person_chunk["events"]
+
+        # 2. Extract events from Marriage.events
+        for marriage_chunk in data.get("marriages", []):
+            if "events" in marriage_chunk:
+                for event_chunk in marriage_chunk["events"]:
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "married":
+                            event_chunk["kind"] = EventKind.Married.value
+                        elif uid == "bonded":
+                            event_chunk["kind"] = EventKind.Bonded.value
+                        elif uid == "separated":
+                            event_chunk["kind"] = EventKind.Separated.value
+                        elif uid == "divorced":
+                            event_chunk["kind"] = EventKind.Divorced.value
+                        elif uid == "moved":
+                            event_chunk["kind"] = EventKind.Moved.value
+                        else:
+                            event_chunk["kind"] = EventKind.Shift.value
+
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Marriage events: person = personA, spouse = personB
+                    event_chunk["person"] = marriage_chunk["person_a"]
+                    event_chunk["spouse"] = marriage_chunk["person_b"]
+
+                    all_events.append(event_chunk)
+
+                del marriage_chunk["events"]
+
+        # 3. Extract and merge Emotion start/end events
+        for emotion_chunk in data.get("emotions", []):
+            # Phase 6.3: Migrate Emotion.kind from int to RelationshipKind string value
+            if "startEvent" in emotion_chunk:
+                start_event = emotion_chunk.pop("startEvent")
+                end_event = emotion_chunk.pop("endEvent", None)
+
+                # Migrate startEvent uniqueId
+                if "uniqueId" in start_event:
+                    uid = start_event.pop("uniqueId")
+                    if uid in ("emotionStartEvent", "CustomIndividual", "", None):
+                        start_event["kind"] = EventKind.Shift.value
+                    else:
+                        start_event["kind"] = uid
+
+                # Ensure kind is set
+                if "kind" not in start_event:
+                    start_event["kind"] = EventKind.Shift.value
+
+                if "id" not in start_event:
+                    start_event["id"] = next_id
+                    next_id += 1
+
+                # Set person from emotion
+                if "person_a" in emotion_chunk:
+                    start_event["person"] = emotion_chunk["person_a"]
+
+                # Migrate emotion properties to event
+                if "intensity" in emotion_chunk:
+                    start_event["relationshipIntensity"] = emotion_chunk.pop(
+                        "intensity"
                     )
-                    # no relationshipTriangles
-                if chunk.get("endEvent"):
-                    chunk["endEvent"]["uniqueId"] = "variable-end"
+                if "notes" in emotion_chunk:
+                    start_event["notes"] = emotion_chunk.pop("notes")
+
+                # Set relationship targets
+                if "person_b" in emotion_chunk:
+                    start_event["relationshipTargets"] = [emotion_chunk["person_b"]]
+
+                # Handle endEvent/isDateRange
+                if end_event and end_event.get("dateTime"):
+                    start_event["endDateTime"] = end_event["dateTime"]
+                elif emotion_chunk.get("isDateRange"):
+                    # Mark that this event should have an endDateTime
+                    start_event["endDateTime"] = None
+
+                all_events.append(start_event)
+
+                # Update emotion to reference the event
+                emotion_chunk["event"] = start_event["id"]
+
+                # Migrate person_b → target
+                if "person_b" in emotion_chunk:
+                    emotion_chunk["target"] = emotion_chunk.pop("person_b")
+
+                # Clean up old fields
+                emotion_chunk.pop("person_a", None)
+                emotion_chunk.pop("isDateRange", None)
+                emotion_chunk.pop("isSingularDate", None)
+
+        # 4. Process existing events already in data["events"]
+        for event_chunk in data.get("events", []):
+            # Migrate uniqueId → kind
+            if "uniqueId" in event_chunk:
+                uid = event_chunk.pop("uniqueId")
+                if uid == "birth":
+                    event_chunk["kind"] = EventKind.Birth.value
+                elif uid == "adopted":
+                    event_chunk["kind"] = EventKind.Adopted.value
+                elif uid == "death":
+                    event_chunk["kind"] = EventKind.Death.value
+                elif uid == "married":
+                    event_chunk["kind"] = EventKind.Married.value
+                elif uid == "bonded":
+                    event_chunk["kind"] = EventKind.Bonded.value
+                elif uid == "separated":
+                    event_chunk["kind"] = EventKind.Separated.value
+                elif uid == "divorced":
+                    event_chunk["kind"] = EventKind.Divorced.value
+                elif uid == "moved":
+                    event_chunk["kind"] = EventKind.Moved.value
+                elif uid in (
+                    "CustomIndividual",
+                    "emotionStartEvent",
+                    "emotionEndEvent",
+                    "",
+                    None,
+                ):
+                    event_chunk["kind"] = EventKind.Shift.value
+                else:
+                    event_chunk["kind"] = EventKind.Shift.value
+
+            # Ensure kind is never None
+            if not event_chunk.get("kind"):
+                event_chunk["kind"] = EventKind.Shift.value
+
+            all_events.append(event_chunk)
+
+        # 5. Add all collected events to data["events"]
+        data["events"] = all_events
+
+        # 6. Update lastItemId
+        data["lastItemId"] = next_id - 1
 
         # Event.
 

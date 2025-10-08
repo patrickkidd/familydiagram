@@ -4,49 +4,25 @@
 
 **Status:** In progress (progress commit: 235dc569)
 
+**Archive:** Completed phases moved to [FLATTEN_EVENTS_DONE.md](./FLATTEN_EVENTS_DONE.md)
+
 ---
 
 ## 📋 TABLE OF CONTENTS
 
 ### 🔴 CRITICAL - Must Fix for App to Run
+- **[Phase 6](#phase-6-data-compatibility-compatpy--critical)** - Data Compatibility (compat.py)
+  - [6.1 ⬜ Migrate Event.uniqueId → Event.kind](#61-extract-and-flatten-events-from-items)
+  - [6.2 ⬜ Migrate Emotion Events to Scene](#62-migrate-event-properties)
+  - [6.3 ⬜ Property Migrations](#63-emotion-kind-migration)
+  - [6.4 ⬜ Test Cases](#64-test-cases-for-compatpy)
 - **[Phase 0](#phase-0-critical-infrastructure-blockers--highest-priority)** - Critical Infrastructure Blockers
-  - [0.1 ✅ Circular Import in marriage.py](#01-circular-import-in-marriagepy--completed) (FIXED)
   - [0.2 🔴 Scene.read() Missing Events](#02-sceneread-missing-event-loading-code--critical) (BLOCKER - events never loaded!)
   - [0.3 🔴 Scene.write() Not Separating Events](#03-scenewrite-not-separating-events--critical) (BLOCKER - events not saved correctly!)
 
-### ✅ COMPLETED - Architecture Changes
-- **[Phase 1](#phase-1-fix-critical-blockers--urgent)** - Fix Critical Blockers
-  - [1.1 ✅ Event.kind Property Initialization](#11-eventkind-property-initialization--notes-in-claudemd)
-  - [1.2 ✅ Emotion Constructor Crash](#12-emotion-constructor-crash--completed)
-  - [1.3 ✅ Scene Event Signal Wiring](#13-scene-event-signal-wiring--completed)
-- **[Phase 2](#phase-2-remove-event-reference-caching-)** - Remove Event Reference Caching
-  - [2.1 ✅ Remove Person._events Cache](#21-remove-person_events-cache--completed)
-  - [2.2 ✅ Remove Marriage._events Cache](#22-remove-marriage_events-cache--completed)
-  - [2.3 ✅ Simplify Event._do_setPerson()](#23-simplify-event_do_setperson--completed)
-  - [2.4 ✅ Update Event.onProperty()](#24-update-eventonproperty-to-notify-person--completed)
-- **[Phase 3](#phase-3-timelinemodel-refactor-)** - TimelineModel Refactor
-  - [3.1 ✅ Create TimelineRow Data Class](#31-create-timelinerow-data-class--completed)
-  - [3.2 ✅ Update TimelineModel to Use TimelineRow](#32-update-timelinemodel-to-use-timelinerow--completed)
-  - [3.3 ✅ Remove TimelineModel._shouldHide() Emotion Logic](#33-remove-timelinemodel_shouldhide-emotion-logic--completed)
-- **[Phase 4](#phase-4-emotion-event-relationship-cleanup-)** - Emotion-Event Relationship Cleanup
-  - [4.1 ✅ Remove Event.emotions() Factory](#41-remove-eventemotions-factory--completed)
-  - [4.2 ✅ Clarify Emotion.person() vs Emotion.target()](#42-clarify-emotionperson-vs-emotiontarget--completed)
-  - [4.3 ✅ Emotion Property Delegation Pattern](#43-emotion-property-delegation-pattern--decision-keep-both)
-- **[Phase 5](#phase-5-eventkind-enum-cleanup-)** - EventKind Enum Cleanup
-  - [5.1 ✅ Fix String Comparisons](#51-fix-string-comparisons--completed)
-  - [5.2 ✅ Update Marriage.separationStatusFor()](#52-update-marriageseparationstatusfor--completed)
-
-### 🔴 CRITICAL - Data Migration & Persistence
-- **[Phase 6](#phase-6-data-compatibility-compatpy--critical)** - Data Compatibility (compat.py)
-  - [6.1 ⬜ Migrate Event.uniqueId → Event.kind](#61-migrate-eventuniqueid--eventkind)
-  - [6.2 ⬜ Migrate Emotion Events to Scene](#62-migrate-emotion-events-to-scene)
-  - [6.3 ⬜ Property Migrations](#63-property-migrations)
-
 ### 🟡 PENDING - Test Infrastructure
 - **[Phase 7](#phase-7-test-fixes-)** - Test Fixes
-  - [7.0 ✅ Fix Tests That Can Now Run](#70-fix-tests-that-can-now-run--completed)
   - [7.1 ⬜ Fix Event() Constructor Calls](#71-fix-event-constructor-calls) (18 test files)
-  - [7.2 ✅ Fix event.uniqueId() Calls](#72-fix-eventuniqueid-calls--already-done) (already done)
   - [7.3 ⬜ Fix Emotion Construction](#73-fix-emotion-construction) (13 files)
   - [7.4 ⬜ Run Full Test Suite and Fix Failures](#74-run-full-test-suite-and-fix-failures)
 
@@ -61,7 +37,7 @@
   - [9.2 ⬜ Update Scene.read()](#92-update-sceneread) (overlaps with Phase 0.2)
 - **[Phase 10](#phase-10-qmlui-updates-)** - QML/UI Updates
   - [10.1 ⬜ Update EventForm](#101-update-eventform) (add includeOnDiagram, color picker)
-  - [10.2 ⬜ Update EmotionProperties](#102-update-emotionproperties) (remove 300+ lines of date pickers)
+  - [10.2 ⬜ Update EmotionProperties](#102-update-emotionproperties) (remove ~300 lines of date pickers)
   - [10.3 ⬜ Update PersonProperties](#103-update-personproperties---major-removal) (remove ~165 lines of date pickers)
 
 ### 🟢 PENDING - Commands & Clone
@@ -98,33 +74,19 @@
 
 **To get app running and tests passing:**
 
-1. **Fix Phase 0.2** - Add Event loading to Scene.read() (lines 704-724)
-2. **Fix Phase 0.3** - Add Event separation to Scene.write() (check `isEvent`)
-3. **Fix Phase 6** - Implement compat.py migrations (uniqueId → kind, flatten hierarchy)
+1. **Fix Phase 6** - Implement compat.py migrations (uniqueId → kind, flatten hierarchy)
+2. **Fix Phase 0.2** - Add Event loading to Scene.read() (lines 704-724)
+3. **Fix Phase 0.3** - Add Event separation to Scene.write() (check `isEvent`)
 4. **Fix Phase 7.1, 7.3** - Update test Event() and Emotion() constructor calls
 5. **Run tests** - `python -m pytest -vv` and fix remaining failures
 
-**Priority order:** Phase 0.2 → 0.3 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+**Priority order:** Phase 6 → 0.2 → 0.3 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
 
 ---
 
 ## PHASE 0: Critical Infrastructure Blockers 🔴 HIGHEST PRIORITY
 
 These issues prevent tests from running and files from loading. Must be fixed before any other work.
-
-### 0.1 Circular Import in marriage.py ✅ COMPLETED
-**File:** `pkdiagram/scene/marriage.py:26` (FIXED)
-
-**Problem:** Production code was importing from test code:
-```python
-from tests.views.test_marriageproperties import marriage  # ← WRONG
-```
-
-**Impact:** Prevented ALL tests from running with circular import error.
-
-**Resolution:** User removed the import. Tests can now run.
-
----
 
 ### 0.2 Scene.read() Missing Event Loading Code 🔴 CRITICAL
 **File:** `pkdiagram/scene/scene.py:676-755`
@@ -234,579 +196,448 @@ def write(self, data, selectionOnly=False):
 
 ---
 
-## PHASE 1: Fix Critical Blockers 🔴 URGENT
-
-These issues prevent the app from running at all.
-
-### 1.1 Event.kind Property Initialization ✅ NOTES IN CLAUDE.MD
-**File:** `pkdiagram/scene/event.py:222`
-
-**Problem:** `Event.kind()` crashes when property is `None`:
-```python
-def kind(self) -> EventKind:
-    return EventKind(self.prop("kind").get())  # ValueError: None is not a valid EventKind
-```
-
-**Root Cause:** Event constructor always calls `updateDescription()` which calls `kind()` before kind is set.
-
-**Solution:**
-```python
-# Option 1: Allow None (per CLAUDE.md - for TimelineModel dummy events)
-def kind(self) -> EventKind | None:
-    value = self.prop("kind").get()
-    return EventKind(value) if value else None
-
-# Option 2: Require kind in constructor
-def __init__(self, kind: EventKind, **kwargs):
-    if not kind:
-        raise TypeError("Event() requires kind= argument")
-    super().__init__(kind=kind.value, **kwargs)
-```
-
-**Decision:** Use Option 1 per CLAUDE.md note about TimelineModel dummy events.
-
-**Action Items:**
-- [ ] Change `Event.kind()` to return `EventKind | None`
-- [ ] Update all `Event.__init__()` calls in tests to include `kind=`
-- [ ] Add validation in `Event.updateDescription()` to handle `kind=None` case
-
----
-
-### 1.2 Emotion Constructor Crash ✅ COMPLETED
-**File:** `pkdiagram/scene/emotions.py:1206-1233`
-
-**Problem:** `Emotion.__init__()` requires `event: Event` but `event` might be None during construction.
-
-**Solution Implemented:**
-- Constructor now accepts `kind`, `target`, and optional `event`
-- Properties registered for `event` and `target` as IDs (lines 1177-1178)
-- File loading updated to provide placeholder values (scene.py:713)
-- All Emotion() constructor calls updated
-
-**Action Items:**
-- [x] Make `event` and `kind` required parameters in `Emotion.__init__()`
-- [x] Update all `Emotion()` calls to include both parameters
-- [x] Add assertions to validate event.kind() == EventKind.Shift
-
----
-
-### 1.3 Scene Event Signal Wiring ✅ COMPLETED
-**File:** `pkdiagram/scene/scene.py`
-
-**Problem:** Scene declares `eventAdded/eventRemoved` signals but never emits them when events are added via `addItem()`.
-
-**Solution Implemented:**
-- Line 389: `item.person().onEventAdded()` called when event added
-- Line 406: `self.eventAdded.emit(item)` emits signal when event added
-- Line 540: `item.person().onEventRemoved()` called when event removed
-- Line 542: `self.eventRemoved.emit(item)` emits signal when event removed
-- TimelineModel connects to `scene.eventAdded[Event]` signal (line 348)
-
-**Action Items:**
-- [x] Update `Scene.addItem()` to emit `eventAdded` signal
-- [x] Update `Scene.removeItem()` to emit `eventRemoved` signal
-- [x] Update `Scene.addItem()` to call `item.person.onEventAdded(item)`
-- [x] Update `Scene.removeItem()` to call `item.person.onEventRemoved(item)`
-- [x] Connect `TimelineModel` to `scene.eventAdded[Event]` signal
-
----
-
-## PHASE 2: Remove Event Reference Caching 🟡
-
-Replace cached event lists with computed properties that query Scene.
-
-### 2.1 Remove Person._events Cache ✅ COMPLETED
-**File:** `pkdiagram/scene/person.py:787-789`
-
-**Solution Implemented:**
-- `Person._events` attribute removed
-- `Person._onAddEvent()` and `Person._onRemoveEvent()` methods removed
-- `Person.events()` now queries `self.scene()._events`
-- Callback methods implemented: `onEventAdded()`, `onEventRemoved()`, `onEventChanged()`
-- Scene calls these callbacks when events are added/removed/changed (see Phase 1.3)
-
-**Action Items:**
-- [x] Remove `Person._events` attribute
-- [x] Remove `Person._onAddEvent()` method
-- [x] Remove `Person._onRemoveEvent()` method
-- [x] Change `Person.events()` to computed property (query scene)
-- [x] Add `Person.onEventAdded(event)` callback method
-- [x] Add `Person.onEventRemoved(event)` callback method
-- [x] Add `Person.onEventChanged(event, prop)` callback method
-- [x] Update `Person.updateEvents()` to query `self.events()` instead of using cache
-
----
-
-### 2.2 Remove Marriage._events Cache ✅ COMPLETED
-**File:** `pkdiagram/scene/marriage.py:387-395`
-
-**Solution Implemented:**
-- ✅ Marriage.events() correctly queries Scene by {person, spouse} pair (line 387-395)
-- ✅ Marriage.onEventAdded() callback added (line 399-401)
-- ✅ Marriage.onEventRemoved() callback added (line 403-405)
-- ✅ Scene.addItem() notifies marriages when marriage events added
-- ✅ Scene.removeItem() notifies marriages when marriage events removed
-
-**Implementation:**
-```python
-# Line 387-395 - Query Scene for events
-def events(self) -> list[Event]:
-    if self.scene():
-        return [
-            x
-            for x in self.scene().events()
-            if {x.person(), x.spouse()} == {self.personA(), self.personB()}
-        ]
-    else:
-        return []
-
-# Line 399-405 - Callbacks for immediate visual feedback
-def onEventAdded(self):
-    self.updateDetails()  # Displays event dates (line 526-573)
-    self.updateGeometry()  # Updates separation indicator
-
-def onEventRemoved(self):
-    self.updateDetails()
-    self.updateGeometry()
-```
-
-**Action Items:**
-- [x] Add `Marriage.onEventAdded(event)` callback method
-- [x] Add `Marriage.onEventRemoved(event)` callback method
-- [x] Update `Scene.addItem()` to detect `event.spouse()` and notify marriages
-- [x] Update `Scene.removeItem()` to notify marriages before removing event
-- [x] Note: Marriage.events() is ALREADY correctly implemented (no changes needed)
-
----
-
-### 2.3 Simplify Event._do_setPerson() ✅ COMPLETED
-**File:** `pkdiagram/scene/event.py:167-187`
-
-**Solution Implemented:**
-- Event._do_setPerson() updated to call new callback methods
-- Calls `onEventRemoved()` on old person, `onEventAdded()` on new person
-- Property change notifications emitted correctly
-
-**Action Items:**
-- [x] Update `Event._do_setPerson()` to call `onEventRemoved()/onEventAdded()` instead of `_onRemoveEvent()/_onAddEvent()`
-- [x] Ensure property change notifications are emitted
-
----
-
-### 2.4 Update Event.onProperty() to Notify Person ✅ COMPLETED
-**File:** `pkdiagram/scene/event.py:199-212`
-
-**Solution Implemented:**
-- Event.onProperty() updated to call person.onEventChanged(self, prop)
-- Person receives notifications for all event property changes
-- Obsolete methods removed
-
-**Action Items:**
-- [x] Update `Event.onProperty()` to call `person.onEventChanged(self, prop)`
-- [x] Remove obsolete `person.onEventProperty()` method if it exists
-
----
-
-## PHASE 3: TimelineModel Refactor 🟡
-
-Replace phantom Event objects with TimelineRow data class.
-
-### 3.1 Create TimelineRow Data Class ✅ COMPLETED
-**File:** `pkdiagram/models/timelinemodel.py`
-
-**Solution Implemented:**
-- TimelineRow dataclass created as presentation object
-- Accessor methods for kind(), person(), id() added
-- Proper sorting via __lt__ implementation
-
-**Action Items:**
-- [x] Create `TimelineRow` dataclass in `timelinemodel.py`
-- [x] Add accessor methods for common Event properties
-
----
-
-### 3.2 Update TimelineModel to Use TimelineRow ✅ COMPLETED
-**File:** `pkdiagram/models/timelinemodel.py:100-169`
-
-**Solution Implemented:**
-- Replaced `self._events` with `self._rows` (SortedList of TimelineRow)
-- Removed `self._endEvents` dict (phantom events eliminated)
-- Updated `_ensureEvent()` to create 1-2 TimelineRow objects
-- Updated `_removeEvent()` to remove all rows for an event
-- Updated `rowCount()`, `data()`, and `eventForRow()` methods
-
-**Action Items:**
-- [x] Replace `self._events` with `self._rows` (SortedList of TimelineRow)
-- [x] Remove `self._endEvents` dict
-- [x] Update `_ensureEvent()` to create 1-2 TimelineRow objects
-- [x] Update `_removeEvent()` to remove all rows for an event
-- [x] Update `rowCount()` to return `len(self._rows)`
-- [x] Update `data()` method to work with TimelineRow objects
-- [x] Update `eventForRow()` to return `row.source_event`
-
----
-
-### 3.3 Remove TimelineModel._shouldHide() Emotion Logic ✅ COMPLETED
-**File:** `pkdiagram/models/timelinemodel.py:123-144`
-
-**Solution Implemented:**
-- Removed obsolete Emotion.endEvent logic from `_shouldHide()`
-- Simplified logic to check dateTime validity and search model
-- Singular-date relationship handling moved to `_ensureEvent()`
-
-**Action Items:**
-- [x] Remove obsolete Emotion.endEvent logic from `_shouldHide()`
-- [x] Handle singular-date relationships in `_ensureEvent()` instead
-
----
-
-## PHASE 4: Emotion-Event Relationship Cleanup 🟢
-
-Clarify the Emotion ↔ Event relationship per Option 1 (Emotion owns Event reference).
-
-### 4.1 Remove Event.emotions() Factory ✅ COMPLETED
-**File:** `pkdiagram/scene/event.py:481-505`
-
-**Solution Implemented:**
-- Removed Event._emotions cache attribute
-- Event.emotions() now queries scene._emotions for emotions referencing this event
-- Emotion creation is now explicit (not auto-created by Event)
-- Scene.addItem() no longer auto-creates emotions from events
-
-**Action Items:**
-- [x] Remove `Event._emotions` cache attribute
-- [x] Change `Event.emotions()` to query `scene._emotions`
-- [x] Update all code that calls `Event.emotions()` to handle explicit creation
-- [x] Update `Scene.addItem()` to NOT auto-create emotions from events
-
----
-
-### 4.2 Clarify Emotion.person() vs Emotion.target() ✅ COMPLETED
-**File:** `pkdiagram/scene/emotions.py:1654-1658`
-
-**Solution Implemented:**
-- Emotion.person() delegates to event.person() (subject of relationship)
-- Emotion.target() returns target person (object of relationship)
-- Pattern is correct and documented
-
-**Action Items:**
-- [x] Add docstrings to clarify `person()` = subject, `target()` = object
-- [x] Ensure all Emotion creation sets both `event` and `target`
-
----
-
-### 4.3 Emotion Property Delegation Pattern ✅ DECISION: Keep Both
-**File:** `pkdiagram/scene/emotions.py:1168-1180`
-
-**Decision:** Keep BOTH Emotion and Event properties - they serve distinct use cases with no overlap.
-
-**Use Case Architecture:**
-1. **Dated Emotions (with Event)**: Properties stored on Event, Emotion getters delegate to Event
-2. **Undated Emotions (manual drawing, no Event)**: Properties stored on Emotion directly
-
-**Rationale:**
-- User manually adds undated Emotions to diagram via EmotionProperties without dates
-- These undated Emotions have no Event (event=None) and will NEVER get dates added later
-- Dated Emotions always reference an Event, so properties live on Event
-- No duplication because these are mutually exclusive cases
-
-**Implementation Pattern:**
-```python
-PathItem.registerProperties([
-    {"attr": "intensity", ...},  # Used for undated emotions
-    {"attr": "notes"},           # Used for undated emotions
-    {"attr": "color", ...},      # Used for undated emotions
-    {"attr": "event", "type": int},  # Event ID reference
-    {"attr": "target", "type": int}, # Target person ID
-])
-
-def notes(self) -> str:
-    """Return notes from Event if exists, else from Emotion."""
-    if self.event():
-        return self.event().notes()
-    return self.prop("notes").get()
-
-def intensity(self) -> int:
-    """Return intensity from Event if exists, else from Emotion."""
-    if self.event():
-        return self.event().relationshipIntensity()
-    return self.prop("intensity").get()
-
-def color(self) -> str:
-    """Return color from Event if exists, else from Emotion."""
-    if self.event():
-        return self.event().color()
-    return self.prop("color").get()
-```
-
-**Action Items:**
-- [x] **DECIDED:** Keep both sets of properties for distinct use cases
-- [x] Emotion properties serve undated manual diagram drawing
-- [x] Event properties serve dated timeline events
-- [x] Getters check if event exists and delegate appropriately
-- [x] No migration path needed (undated emotions won't become dated)
-
----
-
-## PHASE 5: EventKind Enum Cleanup 🟢
-
-Fix string vs enum comparison issues.
-
-### 5.1 Fix String Comparisons ✅ COMPLETED
-**Files:** Multiple
-
-**Solution Implemented:**
-- Replaced all string comparisons with EventKind enum comparisons
-- Replaced `uniqueId()` calls with `kind()` calls
-- Updated all string literals to use EventKind enum
-
-**Action Items:**
-- [x] Search for `kind == "` and replace with `kind == EventKind.`
-- [x] Search for `uniqueId() ==` and replace with `kind() ==`
-- [x] Update all string literals to use EventKind enum
-
----
-
-### 5.2 Update Marriage.separationStatusFor() ✅ COMPLETED
-**File:** `pkdiagram/scene/marriage.py:64`
-
-**Solution Implemented:**
-- Replaced `.value` comparisons with direct enum comparisons
-- Updated all separation status logic to use EventKind enums directly
-
-**Action Items:**
-- [x] Replace `.value` comparisons with direct enum comparisons
-- [x] Update all separation status logic
-
-**Note:** Event.getDescriptionForKind() was removed - event description is now computed differently.
-
----
-
 ## PHASE 6: Data Compatibility (compat.py) 🔴 CRITICAL
 
-Migrate old file format to new Event structure.
+Migrate old file format to new flattened Event structure. This must run in the `if UP_TO(data, "2.0.12b1"):` block.
 
-### 6.1 Migrate Event.uniqueId → Event.kind
-**File:** `pkdiagram/models/compat.py:291`
+### 6.1 Extract and Flatten Events from Items
+**File:** `pkdiagram/models/compat.py:275` (in the `if UP_TO(data, "2.0.12b1"):` block)
 
-**Current Code:**
+**Step 1: Split data["items"] into separate arrays**
 ```python
-# Event.
-# (empty!)
-```
+# Split mixed items into separate top-level arrays
+if "items" in data:
+    data["people"] = []
+    data["marriages"] = []
+    data["emotions"] = []
+    data["events"] = []
+    data["layerItems"] = []
+    data["layers"] = []
+    data["multipleBirths"] = []
 
-**New Code:**
-```python
-# Migrate Event.uniqueId to Event.kind
-for chunk in data.get("events", []):
-    if "uniqueId" in chunk:
-        uid = chunk["uniqueId"]
+    remaining_items = []
 
-        # Map old string IDs to EventKind values
-        if uid == "birth":
-            chunk["kind"] = EventKind.Birth.value
-        elif uid == "adopted":
-            chunk["kind"] = EventKind.Adopted.value
-        elif uid == "death":
-            chunk["kind"] = EventKind.Death.value
-        elif uid == "married":
-            chunk["kind"] = EventKind.Married.value
-        elif uid == "bonded":
-            chunk["kind"] = EventKind.Bonded.value
-        elif uid == "separated":
-            chunk["kind"] = EventKind.Separated.value
-        elif uid == "divorced":
-            chunk["kind"] = EventKind.Divorced.value
-        elif uid == "moved":
-            chunk["kind"] = EventKind.Moved.value
-        elif uid == "emotionStartEvent" or uid == "emotionEndEvent" or uid == "CustomIndividual" or uid == "" or uid is None:
-            chunk["kind"] = EventKind.Shift.value
+    for chunk in data["items"]:
+        kind = chunk.get("kind")
+        if kind == "Person":
+            data["people"].append(chunk)
+        elif kind == "Marriage":
+            data["marriages"].append(chunk)
+        elif kind in Emotion.kindSlugs():  # All emotion types
+            data["emotions"].append(chunk)
+        elif kind == "Event":
+            data["events"].append(chunk)
+        elif kind == "Layer":
+            data["layers"].append(chunk)
+        elif kind in ("Callout", "PencilStroke"):
+            data["layerItems"].append(chunk)
+        elif kind == "MultipleBirth":
+            data["multipleBirths"].append(chunk)
         else:
-            log.warning(f"Unknown uniqueId: {uid}, defaulting to Shift")
-            chunk["kind"] = EventKind.Shift.value
+            remaining_items.append(chunk)
 
-        del chunk["uniqueId"]
+    if remaining_items:
+        data["items"] = remaining_items
+    else:
+        del data["items"]
 ```
-
-**Action Items:**
-- [ ] Implement uniqueId → kind migration in compat.py
-- [ ] Map all old uniqueId strings to EventKind enums
-- [ ] Set blank/CustomIndividual to EventKind.Shift (per CLAUDE.md)
-- [ ] Delete uniqueId field after migration
 
 ---
 
-### 6.2 Migrate Emotion Events to Scene
-**File:** `pkdiagram/models/compat.py`
+### 6.2 Migrate Event Properties
+**Add immediately after splitting items:**
 
-**Current Data Structure:**
-```json
-{
-  "people": [
-    {
-      "id": 1,
-      "events": [...]  // OLD: events stored in person
-    }
-  ],
-  "marriages": [
-    {
-      "id": 2,
-      "events": [...]  // OLD: events stored in marriage
-    }
-  ],
-  "emotions": [
-    {
-      "id": 3,
-      "startEvent": {...},  // OLD: event as child
-      "endEvent": {...}     // OLD: event as child
-    }
-  ]
-}
-```
+**IMPORTANT**: Old format has Person.birthEvent, Person.deathEvent, Person.adoptedEvent as separate properties (not in Person.events array). See tests/scene/data/UP_TO_2.0.12b1.json lines 88-159.
 
-**New Data Structure:**
-```json
-{
-  "events": [  // NEW: all events at top level
-    {"id": 10, "kind": "birth", "person": 1, ...},
-    {"id": 11, "kind": "variable-shift", "person": 1, "endDateTime": "...", ...}
-  ],
-  "people": [
-    {"id": 1, ...}  // No more events array
-  ],
-  "marriages": [
-    {"id": 2, ...}  // No more events array
-  ],
-  "emotions": [
-    {"id": 3, "event": 11, "target": 2, ...}  // Reference to event ID
-  ]
-}
-```
-
-**Migration Code:**
 ```python
-def update_data(data):
-    # ... existing migrations ...
+# Track next available ID for new events
+next_id = data.get("lastItemId", -1) + 1
 
-    # Collect all events from people/marriages/emotions
-    all_events = []
-    next_event_id = data.get("lastItemId", -1) + 1
+# Collect all events from nested locations
+all_events = []
 
-    # Migrate person events
-    for person_chunk in data.get("people", []):
-        for event_chunk in person_chunk.pop("events", []):
+# 1a. Extract Person built-in events (birthEvent, deathEvent, adoptedEvent - separate properties)
+for person_chunk in data.get("people", []):
+    for event_attr in ["birthEvent", "deathEvent", "adoptedEvent"]:
+        if event_attr in person_chunk:
+            event_chunk = person_chunk.pop(event_attr)
+
+            # Migrate uniqueId → kind
+            if "uniqueId" in event_chunk:
+                uid = event_chunk.pop("uniqueId")
+                if uid == "birth":
+                    event_chunk["kind"] = EventKind.Birth.value
+                elif uid == "adopted":
+                    event_chunk["kind"] = EventKind.Adopted.value
+                elif uid == "death":
+                    event_chunk["kind"] = EventKind.Death.value
+                elif uid in ("CustomIndividual", "", None):
+                    event_chunk["kind"] = EventKind.Shift.value
+                else:
+                    event_chunk["kind"] = uid
+
+            # Ensure kind is set (fallback if no uniqueId)
+            if "kind" not in event_chunk:
+                if event_attr == "birthEvent":
+                    event_chunk["kind"] = EventKind.Birth.value
+                elif event_attr == "deathEvent":
+                    event_chunk["kind"] = EventKind.Death.value
+                elif event_attr == "adoptedEvent":
+                    event_chunk["kind"] = EventKind.Adopted.value
+
+            # Ensure event has ID
+            if "id" not in event_chunk:
+                event_chunk["id"] = next_id
+                next_id += 1
+
+            # Set person reference
             event_chunk["person"] = person_chunk["id"]
-            if "id" not in event_chunk:
-                event_chunk["id"] = next_event_id
-                next_event_id += 1
+
             all_events.append(event_chunk)
 
-    # Migrate marriage events
-    for marriage_chunk in data.get("marriages", []):
-        for event_chunk in marriage_chunk.pop("events", []):
-            event_chunk["person"] = marriage_chunk["id"]  # Marriage is the "person"
+# 1b. Extract custom events from Person.events array
+for person_chunk in data.get("people", []):
+    if "events" in person_chunk:
+        for event_chunk in person_chunk["events"]:
+            # Migrate uniqueId → kind
+            if "uniqueId" in event_chunk:
+                uid = event_chunk.pop("uniqueId")
+                if uid == "birth":
+                    event_chunk["kind"] = EventKind.Birth.value
+                elif uid == "adopted":
+                    event_chunk["kind"] = EventKind.Adopted.value
+                elif uid == "death":
+                    event_chunk["kind"] = EventKind.Death.value
+                elif uid in ("CustomIndividual", "emotionStartEvent", "emotionEndEvent", "", None):
+                    event_chunk["kind"] = EventKind.Shift.value
+                else:
+                    event_chunk["kind"] = uid  # Pass through unknown values
+
+            # Ensure event has ID
             if "id" not in event_chunk:
-                event_chunk["id"] = next_event_id
-                next_event_id += 1
+                event_chunk["id"] = next_id
+                next_id += 1
+
+            # Set person reference
+            event_chunk["person"] = person_chunk["id"]
+
             all_events.append(event_chunk)
 
-    # Migrate emotion events
-    for emotion_chunk in data.get("emotions", []):
-        # Convert start/end events to single event with endDateTime
-        if "startEvent" in emotion_chunk:
-            start = emotion_chunk.pop("startEvent")
-            end = emotion_chunk.pop("endEvent", None)
+        # Remove events from person
+        del person_chunk["events"]
 
-            event_chunk = start
+# 2. Extract events from Marriage.events
+for marriage_chunk in data.get("marriages", []):
+    if "events" in marriage_chunk:
+        for event_chunk in marriage_chunk["events"]:
+            # Migrate uniqueId → kind
+            if "uniqueId" in event_chunk:
+                uid = event_chunk.pop("uniqueId")
+                if uid == "married":
+                    event_chunk["kind"] = EventKind.Married.value
+                elif uid == "bonded":
+                    event_chunk["kind"] = EventKind.Bonded.value
+                elif uid == "separated":
+                    event_chunk["kind"] = EventKind.Separated.value
+                elif uid == "divorced":
+                    event_chunk["kind"] = EventKind.Divorced.value
+                elif uid == "moved":
+                    event_chunk["kind"] = EventKind.Moved.value
+                else:
+                    event_chunk["kind"] = EventKind.Shift.value
+
+            if "id" not in event_chunk:
+                event_chunk["id"] = next_id
+                next_id += 1
+
+            # Marriage events: person = personA, spouse = personB
+            event_chunk["person"] = marriage_chunk["person_a"]
+            event_chunk["spouse"] = marriage_chunk["person_b"]
+
+            all_events.append(event_chunk)
+
+        del marriage_chunk["events"]
+
+# 3. Extract and merge Emotion start/end events
+for emotion_chunk in data.get("emotions", []):
+    if "startEvent" in emotion_chunk:
+        start_event = emotion_chunk.pop("startEvent")
+        end_event = emotion_chunk.pop("endEvent", None)
+
+        # Migrate startEvent uniqueId
+        if "uniqueId" in start_event:
+            uid = start_event.pop("uniqueId")
+            if uid in ("emotionStartEvent", "CustomIndividual", "", None):
+                start_event["kind"] = EventKind.Shift.value
+            else:
+                start_event["kind"] = uid
+
+        # Ensure kind is set
+        if "kind" not in start_event:
+            start_event["kind"] = EventKind.Shift.value
+
+        if "id" not in start_event:
+            start_event["id"] = next_id
+            next_id += 1
+
+        # Set person from emotion
+        if "person_a" in emotion_chunk:
+            start_event["person"] = emotion_chunk["person_a"]
+
+        # Migrate emotion properties to event
+        if "intensity" in emotion_chunk:
+            start_event["relationshipIntensity"] = emotion_chunk.pop("intensity")
+        if "notes" in emotion_chunk:
+            start_event["notes"] = emotion_chunk.pop("notes")
+
+        # Set relationship targets
+        if "person_b" in emotion_chunk:
+            start_event["relationshipTargets"] = [emotion_chunk["person_b"]]
+
+        # Handle endEvent/isDateRange
+        if end_event and end_event.get("dateTime"):
+            start_event["endDateTime"] = end_event["dateTime"]
+        elif emotion_chunk.get("isDateRange"):
+            # Mark that this event should have an endDateTime (to be filled in UI)
+            start_event["endDateTime"] = None
+
+        all_events.append(start_event)
+
+        # Update emotion to reference the event
+        emotion_chunk["event"] = start_event["id"]
+
+        # Migrate person_b → target
+        if "person_b" in emotion_chunk:
+            emotion_chunk["target"] = emotion_chunk.pop("person_b")
+
+        # Clean up old fields
+        emotion_chunk.pop("person_a", None)
+        emotion_chunk.pop("isDateRange", None)
+        emotion_chunk.pop("isSingularDate", None)
+
+# 4. Process existing events already in data["events"]
+for event_chunk in data.get("events", []):
+    # Migrate uniqueId → kind
+    if "uniqueId" in event_chunk:
+        uid = event_chunk.pop("uniqueId")
+        # Full mapping...
+        if uid == "birth":
+            event_chunk["kind"] = EventKind.Birth.value
+        elif uid == "adopted":
+            event_chunk["kind"] = EventKind.Adopted.value
+        elif uid == "death":
+            event_chunk["kind"] = EventKind.Death.value
+        elif uid == "married":
+            event_chunk["kind"] = EventKind.Married.value
+        elif uid == "bonded":
+            event_chunk["kind"] = EventKind.Bonded.value
+        elif uid == "separated":
+            event_chunk["kind"] = EventKind.Separated.value
+        elif uid == "divorced":
+            event_chunk["kind"] = EventKind.Divorced.value
+        elif uid == "moved":
+            event_chunk["kind"] = EventKind.Moved.value
+        elif uid in ("CustomIndividual", "emotionStartEvent", "emotionEndEvent", "", None):
             event_chunk["kind"] = EventKind.Shift.value
-            event_chunk["person"] = emotion_chunk.get("person_a")  # Subject
+        else:
+            event_chunk["kind"] = EventKind.Shift.value
 
-            # Migrate isDateRange to endDateTime
-            if end and end.get("dateTime"):
-                event_chunk["endDateTime"] = end["dateTime"]
+    # Ensure kind is never None
+    if not event_chunk.get("kind"):
+        event_chunk["kind"] = EventKind.Shift.value
 
-            # Migrate emotion-specific properties
-            if "intensity" in emotion_chunk:
-                event_chunk["relationshipIntensity"] = emotion_chunk["intensity"]
-            if "notes" in emotion_chunk:
-                event_chunk["notes"] = emotion_chunk["notes"]
+    all_events.append(event_chunk)
 
-            # Set relationship targets
-            if "person_b" in emotion_chunk:
-                event_chunk["relationshipTargets"] = [emotion_chunk["person_b"]]
+# 5. Add all collected events to data["events"]
+data["events"] = all_events
 
-            if "id" not in event_chunk:
-                event_chunk["id"] = next_event_id
-                next_event_id += 1
-
-            all_events.append(event_chunk)
-
-            # Update emotion to reference event
-            emotion_chunk["event"] = event_chunk["id"]
-            emotion_chunk["target"] = emotion_chunk.pop("person_b", None)
-
-            # Clean up old fields
-            emotion_chunk.pop("person_a", None)
-            emotion_chunk.pop("intensity", None)
-            emotion_chunk.pop("notes", None)
-
-    # Add all events to top-level
-    data["events"] = all_events
-    data["lastItemId"] = next_event_id - 1
+# 6. Update lastItemId
+data["lastItemId"] = next_id - 1
 ```
-
-**Action Items:**
-- [ ] Implement full event migration in compat.py
-- [ ] Migrate `Person.events` → `Scene.events`
-- [ ] Migrate `Marriage.events` → `Scene.events`
-- [ ] Migrate `Emotion.startEvent/endEvent` → single Event with `endDateTime`
-- [ ] Update `Emotion` chunks to reference event ID
-- [ ] Clean up old fields from person/marriage/emotion chunks
-- [ ] Update `lastItemId` counter
 
 ---
 
-### 6.3 Property Migrations
-**File:** `pkdiagram/models/compat.py`
+### 6.3 Emotion Kind Migration
+**Add to the emotion processing loop:**
 
-**Migrations Needed:**
 ```python
-# Emotion property migrations
+# Inside the emotion_chunk loop from 6.2
 for emotion_chunk in data.get("emotions", []):
-    # Emotion.kind (int) -> RelationshipKind enum value (str)
+    # Migrate Emotion.kind from int to RelationshipKind string value
     if "kind" in emotion_chunk and isinstance(emotion_chunk["kind"], int):
+        from pkdiagram.scene import RelationshipKind
         emotion_chunk["kind"] = RelationshipKind(emotion_chunk["kind"]).value
+```
 
-    # person_a -> event.person (handled in 6.2)
-    # person_b -> target
-    # intensity -> event.relationshipIntensity (handled in 6.2)
-    # notes -> event.notes (handled in 6.2)
+---
+
+### 6.4 Test Cases for compat.py
+**File:** `tests/scene/test_compat.py` (add to existing test file)
+
+```python
+def test_migrate_events_to_top_level(version_dict):
+    """Test that Person/Marriage events are extracted to Scene.events."""
+    data = {
+        "version": "2.0.11",
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "events": [
+                    {"id": 10, "uniqueId": "birth", "dateTime": "2000-01-01"},
+                    {"id": 11, "uniqueId": "death", "dateTime": "2080-01-01"}
+                ]
+            },
+            {
+                "kind": "Marriage",
+                "id": 2,
+                "person_a": 1,
+                "person_b": 3,
+                "events": [
+                    {"id": 20, "uniqueId": "married", "dateTime": "2020-06-01"}
+                ]
+            }
+        ]
+    }
+
+    compat.update_data(data)
+
+    # Should have separate arrays now
+    assert "people" in data
+    assert "marriages" in data
+    assert "events" in data
+
+    # Check events were extracted
+    assert len(data["events"]) == 3
+
+    # Check person events
+    birth_event = next(e for e in data["events"] if e["id"] == 10)
+    assert birth_event["kind"] == EventKind.Birth.value
+    assert birth_event["person"] == 1
+    assert "uniqueId" not in birth_event
+
+    death_event = next(e for e in data["events"] if e["id"] == 11)
+    assert death_event["kind"] == EventKind.Death.value
+    assert death_event["person"] == 1
+
+    # Check marriage event
+    marriage_event = next(e for e in data["events"] if e["id"] == 20)
+    assert marriage_event["kind"] == EventKind.Married.value
+    assert marriage_event["person"] == 1  # personA
+    assert marriage_event["spouse"] == 3  # personB
+
+    # Check events removed from people/marriages
+    assert "events" not in data["people"][0]
+    assert "events" not in data["marriages"][0]
+
+
+def test_migrate_emotion_events(version_dict):
+    """Test Emotion start/end events merged into single Event."""
+    data = {
+        "emotions": [
+            {
+                "id": 30,
+                "kind": 1,  # Old int format for RelationshipKind
+                "person_a": 1,
+                "person_b": 2,
+                "intensity": 5,
+                "notes": "Test relationship",
+                "isDateRange": True,
+                "startEvent": {
+                    "id": 40,
+                    "uniqueId": "emotionStartEvent",
+                    "dateTime": "2020-01-01"
+                },
+                "endEvent": {
+                    "id": 41,
+                    "uniqueId": "emotionEndEvent",
+                    "dateTime": "2020-12-31"
+                }
+            }
+        ],
+        "events": [],
+        "lastItemId": 50
+    }
+
+    compat.update_data(data)
+
+    # Check event was created
+    assert len(data["events"]) == 1
+    event = data["events"][0]
+
+    # Check event properties
+    assert event["id"] == 40
+    assert event["kind"] == EventKind.Shift.value
+    assert event["person"] == 1
+    assert event["relationshipTargets"] == [2]
+    assert event["relationshipIntensity"] == 5
+    assert event["notes"] == "Test relationship"
+    assert event["dateTime"] == "2020-01-01"
+    assert event["endDateTime"] == "2020-12-31"
+
+    # Check emotion was updated
+    emotion = data["emotions"][0]
+    assert emotion["event"] == 40
+    assert emotion["target"] == 2
+    assert "person_a" not in emotion
+    assert "person_b" not in emotion
+    assert "intensity" not in emotion
+    assert "notes" not in emotion
+    assert "startEvent" not in emotion
+    assert "endEvent" not in emotion
+    assert "isDateRange" not in emotion
+
+    # Check emotion kind was migrated to string
+    assert emotion["kind"] == RelationshipKind.Conflict.value  # Assuming 1 maps to Conflict
+
+
+def test_migrate_uniqueid_to_kind(version_dict):
+    """Test Event.uniqueId string → Event.kind enum."""
+    data = {
+        "events": [
+            {"id": 1, "uniqueId": "birth"},
+            {"id": 2, "uniqueId": "CustomIndividual"},
+            {"id": 3, "uniqueId": ""},
+            {"id": 4, "uniqueId": None},
+            {"id": 5},  # No uniqueId
+            {"id": 6, "uniqueId": "unknown_value"}
+        ]
+    }
+
+    compat.update_data(data)
+
+    assert data["events"][0]["kind"] == EventKind.Birth.value
+    assert data["events"][1]["kind"] == EventKind.Shift.value  # CustomIndividual → Shift
+    assert data["events"][2]["kind"] == EventKind.Shift.value  # Empty → Shift
+    assert data["events"][3]["kind"] == EventKind.Shift.value  # None → Shift
+    assert data["events"][4]["kind"] == EventKind.Shift.value  # Missing → Shift
+    assert data["events"][5]["kind"] == EventKind.Shift.value  # Unknown → Shift
+
+    # Check uniqueId was removed
+    for event in data["events"]:
+        assert "uniqueId" not in event
 ```
 
 **Action Items:**
-- [ ] Migrate `Emotion.kind` int → RelationshipKind.value string
-- [ ] Migrate `Emotion.isDateRange` → `Event.endDateTime`
-- [ ] Migrate `Emotion.person_a` → `Event.person`
-- [ ] Migrate `Emotion.person_b` → `Emotion.target`
-- [ ] Migrate `Emotion.intensity` → `Event.relationshipIntensity`
-- [ ] Migrate `Emotion.notes` → `Event.notes`
+- [ ] Implement complete migration in compat.py `if UP_TO(data, "2.0.12b1"):` block
+- [ ] Split `data["items"]` into `data["people"]`, `data["marriages"]`, `data["emotions"]`, `data["events"]`, `data["multipleBirths"]`
+- [ ] Extract Person.birthEvent/deathEvent/adoptedEvent to Scene.events with person reference
+- [ ] Extract Person.events to Scene.events with person reference
+- [ ] Extract Marriage.events to Scene.events with person/spouse references
+- [ ] Extract Emotion.startEvent/endEvent to single Event with endDateTime
+- [ ] Migrate all uniqueId → kind mappings
+- [ ] Migrate Emotion properties to Event (intensity → relationshipIntensity, notes)
+- [ ] Migrate Emotion.person_a/person_b to Event.person and Emotion.target
+- [ ] Migrate Emotion.kind from int to RelationshipKind.value string
+- [ ] Update lastItemId for any newly created events
+- [ ] Add comprehensive test cases in test_compat.py
+- [ ] Test with actual old diagram files
 
 ---
 
 ## PHASE 7: Test Fixes 🟡
 
 Update tests to work with new Event structure.
-
-### 7.0 Fix Tests That Can Now Run ✅ COMPLETED
-**Blocker Removed:** Circular import in marriage.py:26 has been fixed.
-
-**Tests can now run.** However, many will fail due to refactor changes.
-
-**Git Diff Shows 35 Files Changed:**
-- 18 test files modified
-- Most common issues: Event() constructor calls, uniqueId() removal, Emotion() constructor
-
----
 
 ### 7.1 Fix Event() Constructor Calls
 **Files Changed (from git diff):**
@@ -857,17 +688,6 @@ event.setPerson(personB, undo=undo)  # Switch to personB
 assert event not in personA.events()  # No longer in personA
 assert event in personB.events()  # Now in personB
 ```
-
----
-
-### 7.2 Fix event.uniqueId() Calls ✅ ALREADY DONE
-**Result from grep:** NO files found with `uniqueId()` calls!
-
-**Conclusion:** All uniqueId() calls have already been replaced with kind() calls.
-
-**Action Items:**
-- [x] Replace `event.uniqueId()` with `event.kind()` - DONE
-- [x] Replace string comparisons with EventKind enums - DONE
 
 ---
 
@@ -1722,7 +1542,7 @@ def clone(self, scene):
 
 ---
 
-### 12.2 Handle Marriage Events
+### 13.2 Handle Marriage Events
 **Question:** How does Event.person work for Marriage events?
 
 **Current Code:** Marriage events set `event.person = marriage`
@@ -1738,7 +1558,7 @@ def clone(self, scene):
 
 ---
 
-### 12.3 Event Validation
+### 13.3 Event Validation
 **Add validation to catch errors early:**
 
 ```python
@@ -1939,16 +1759,16 @@ def test_migrate_uniqueId_to_kind():
 
 **From First Response:**
 
-1. ✅ Event.kind initialization - **Addressed in Phase 1.1**
-2. ✅ Dual event hierarchy (Person._events vs Scene._events) - **Addressed in Phase 2**
-3. ✅ Emotion-Event relationship confusion - **Addressed in Phase 4**
-4. ✅ Event.endDateTime vs Emotion start/end - **Addressed in Phase 3 (TimelineRow)**
-5. ✅ Missing Scene event management - **Addressed in Phase 1.3**
-6. ✅ EventKind vs uniqueId - **Addressed in Phase 5**
-7. ✅ Emotion property duplication - **Addressed in Phase 4.3**
-8. ✅ Test infrastructure breaks - **Addressed in Phase 7**
-9. ✅ Data migration incomplete - **Addressed in Phase 6**
-10. ✅ TimelineModel phantom events - **Addressed in Phase 3**
+1. ✅ Event.kind initialization - **Addressed in Phase 1.1** (archived in FLATTEN_EVENTS_DONE.md)
+2. ✅ Dual event hierarchy (Person._events vs Scene._events) - **Addressed in Phase 2** (archived)
+3. ✅ Emotion-Event relationship confusion - **Addressed in Phase 4** (archived)
+4. ✅ Event.endDateTime vs Emotion start/end - **Addressed in Phase 3 (TimelineRow)** (archived)
+5. ✅ Missing Scene event management - **Addressed in Phase 1.3** (archived)
+6. ✅ EventKind vs uniqueId - **Addressed in Phase 5** (archived)
+7. ✅ Emotion property duplication - **Addressed in Phase 4.3** (archived)
+8. ✅ Test infrastructure breaks - **Addressed in Phase 7.0, 7.2** (archived)
+9. ⬜ Data migration incomplete - **Addressed in Phase 6** (in progress)
+10. ✅ TimelineModel phantom events - **Addressed in Phase 3** (archived)
 
 ---
 
@@ -1986,24 +1806,25 @@ def test_migrate_uniqueId_to_kind():
 
 ## Progress Tracking
 
-**Current Status:** Planning phase complete, ready for implementation
+**Current Status:** Phase 6 in progress, critical blockers (0.2, 0.3) pending
+
+**Completed:** Phases 0.1, 1, 2, 3, 4, 5, 7.0, 7.2 (archived in FLATTEN_EVENTS_DONE.md)
 
 **Next Steps:**
-1. Start with Phase 1 (Critical Blockers)
-2. Run tests after each phase
-3. Commit working state after each phase completes
+1. Complete Phase 6 (compat.py migrations)
+2. Fix Phase 0.2 (Scene.read() Event loading)
+3. Fix Phase 0.3 (Scene.write() Event separation)
+4. Fix remaining tests (Phase 7.1, 7.3, 7.4)
+5. Continue with Phases 8-14
 
 **Estimated Effort:**
-- Phase 1: 4 hours (blockers)
-- Phase 2: 6 hours (remove caches)
-- Phase 3: 4 hours (TimelineRow)
-- Phase 4: 3 hours (Emotion cleanup)
-- Phase 5: 2 hours (EventKind)
 - Phase 6: 8 hours (compat.py - CRITICAL)
-- Phase 7: 4 hours (tests)
+- Phase 0.2, 0.3: 4 hours (Scene read/write)
+- Phase 7: 4 hours (remaining tests)
 - Phase 8-13: 10 hours (polish)
+- Phase 14: 2 hours (version bump)
 
-**Total:** ~40 hours of focused work
+**Total Remaining:** ~28 hours of focused work
 
 ---
 

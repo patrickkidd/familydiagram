@@ -24,6 +24,7 @@ from pkdiagram.pyqt import (
     QDialog,
     QJSValue,
     QDateTime,
+    QDate,
     QSize,
     QSizeF,
     QPoint,
@@ -1160,6 +1161,10 @@ class DocumentController(QObject):
                     if obj.isNull():
                         return None
                     return obj.toString("yyyy-MM-ddTHH:mm:ss")
+                elif isinstance(obj, QDate):
+                    if obj.isNull():
+                        return None
+                    return obj.toString("yyyy-MM-dd")
                 elif isinstance(obj, QColor):
                     return obj.name()
                 elif isinstance(obj, (QSize, QSizeF)):

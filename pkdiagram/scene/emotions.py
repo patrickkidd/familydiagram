@@ -1213,7 +1213,7 @@ class Emotion(PathItem):
         """
         Event could be none when drawing on the diagram.
         """
-        super().__init__(kind: RelationshipKind, **kwargs)
+        super().__init__(kind=kind, **kwargs)
         assert event.kind() == EventKind.Shift
 
         self.isInit = False
