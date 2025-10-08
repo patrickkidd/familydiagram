@@ -28,7 +28,6 @@ from pkdiagram.scene import (
     EventKind,
     PathItem,
     ItemDetails,
-    Marriage,
     ChildOf,
     MultipleBirth,
     VariablesDatabase,
@@ -611,7 +610,7 @@ class Person(PathItem):
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
 
-    def setParents(self, target: Union[Marriage, ChildOf], undo=False):
+    def setParents(self, target: "Union[Marriage, ChildOf]", undo=False):
         if undo:
             self.scene().push(SetParents(self, target))
         else:

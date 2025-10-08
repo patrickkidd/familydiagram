@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
-from pkdiagram.scene import EventKind, RelationshipKind, Item, Property, Person
+from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
 from pkdiagram.scene.commands import SetEventPerson
 
 if TYPE_CHECKING:

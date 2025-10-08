@@ -8,7 +8,7 @@ def test_init(scene):
     """Try to break ctor."""
     person = scene.addItem(Person())
     event = scene.addItem(Event(EventKind.Shift, person))
-    assert event in person.events()
+    assert event in scene.eventsFor(person)
 
 
 @pytest.mark.parametrize("undo", [True, False])
@@ -19,18 +19,18 @@ def test_setParent(scene, undo):
     personA, personB = Person(), Person()
     scene.addItems(personA, personB)
     event = scene.addItem(Event(EventKind.Shift, personA))
-    assert event in personA.events()
+    assert event in scene.eventsFor(personA)
     #
     event.setPerson(personB, undo=undo)
-    assert event in personB.events()
-    assert event not in personA.events()
+    assert event in scene.eventsFor(personB)
+    assert event not in scene.eventsFor(personA)
     scene.undo()
     if undo:
-        assert event not in personB.events()
-        assert event in personA.events()
+        assert event not in scene.eventsFor(personB)
+        assert event in scene.eventsFor(personA)
     else:
-        assert event in personB.events()
-        assert event not in personA.events()
+        assert event in scene.eventsFor(personB)
+        assert event not in scene.eventsFor(personA)
 
 
 def __test___lt__():

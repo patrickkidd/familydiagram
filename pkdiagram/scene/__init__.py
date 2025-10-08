@@ -14,9 +14,9 @@ from .layeritem import LayerItem
 from .layer import Layer
 from .childof import ChildOf
 from .multiplebirth import MultipleBirth
+from .person import Person
 from .marriage import Marriage
 from .emotions import Emotion
-from .person import Person
 from .pencilstroke import PencilStroke
 from .callout import Callout
 from .scene import Scene
