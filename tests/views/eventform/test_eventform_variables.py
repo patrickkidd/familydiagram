@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram import util
-from pkdiagram.scene import Person, EventKind, RelationshipKind
+from pkdiagram.scene import Person, EventKind, RelationshipKind, ItemMode
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
 
@@ -85,6 +85,6 @@ def test_triangle(scene, view):
     view.set_startDateTime(START_DATETIME)
     view.clickSaveButton()
     emotion = person.emotions()[0]
-    assert emotion.kind() == util.ITEM_INSIDE
+    assert emotion.kind() == ItemMode.Inside
     assert emotion.startEvent.relationshipTargets() == [inside]
     assert emotion.endEvent.relationshipTriangles() == [outside]

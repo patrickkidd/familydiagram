@@ -44,6 +44,7 @@ from pkdiagram.scene import (
     Event,
     EventKind,
     Item,
+    ItemMode,
     PathItem,
     Person,
     ChildOf,
@@ -221,7 +222,7 @@ class Scene(QGraphicsScene, Item):
         self._document = (
             document  # for self.name() (windowTitle) and item.documentsPath
         )
-        self._itemMode = util.ITEM_NONE
+        self._itemMode = None
         self._stopOnAllEvents = True
         self._showNotesIcons = False
         self._serverDiagram = None
@@ -981,9 +982,9 @@ class Scene(QGraphicsScene, Item):
 
     def pencilEvent(self, e, pos, pressure):
         """Shared by touch events and mouse events."""
-        if self.itemMode() != util.ITEM_PENCIL:
+        if self.itemMode() != ItemMode.Pencil:
             if AUTO_PENCIL_MODE:
-                self.setItemMode(util.ITEM_PENCIL)
+                self.setItemMode(ItemMode.Pencil)
             else:
                 e.ignore()
                 return False
@@ -1076,7 +1077,7 @@ class Scene(QGraphicsScene, Item):
     #         QEvent.TouchCancel,
     #     ]:
     #         touch = e.touchPoints()[0]
-    #         if self.itemMode() == util.ITEM_PENCIL:
+    #         if self.itemMode() == ItemMode.Pencil:
     #             if e.type() == QEvent.TouchBegin:
     #                 return self.pencilEvent(e, touch.scenePos(), pressure)
     #             elif e.type() == QEvent.TouchUpdate:
@@ -1092,7 +1093,7 @@ class Scene(QGraphicsScene, Item):
     ## events until an item has been added. Very annoying, no idea why.
     ## I worked around this 'cleaner' by adding and removing a dummy item in setFD
     # def event(self, e):
-    #     if e.type() == QEvent.TouchUpdate and self.itemMode != util.ITEM_NONE:
+    #     if e.type() == QEvent.TouchUpdate and self.itemMode != None:
     #         self.updateMouseCursorItem() # bug fix where mouse move events don't get sent before adding a person.
     #     return super().event(e)
 
@@ -1109,33 +1110,33 @@ class Scene(QGraphicsScene, Item):
             item = _item
             break
         # item = next(iter(self.items(e.scenePos())), None)
-        if self.itemMode() == util.ITEM_CALLOUT:
+        if self.itemMode() == ItemMode.Callout:
             people = self.selectedItems(type=Person)
             if len(people) == 1:
                 self.calloutParent = people[0]
             else:
                 self.calloutParent = None
-        elif self.itemMode() in [util.ITEM_MALE, util.ITEM_FEMALE]:
+        elif self.itemMode() in [ItemMode.Male, ItemMode.Female]:
             if (
                 item
                 and not isinstance(item, Marriage)
                 and not isinstance(item, QGraphicsPathItem)
             ):
                 e.accept()
-                self.setItemMode(util.ITEM_NONE)
+                self.setItemMode(None)
         elif self.itemMode() in [
-            util.ITEM_MARRY,
-            util.ITEM_CHILD,
-            util.ITEM_CONFLICT,
-            util.ITEM_PROJECTION,
-            util.ITEM_FUSION,
-            util.ITEM_DISTANCE,
-            util.ITEM_AWAY,
-            util.ITEM_TOWARD,
-            util.ITEM_DEFINED_SELF,
-            util.ITEM_RECIPROCITY,
-            util.ITEM_INSIDE,
-            util.ITEM_OUTSIDE,
+            ItemMode.Marry,
+            ItemMode.Child,
+            ItemMode.Conflict,
+            ItemMode.Projection,
+            ItemMode.Fusion,
+            ItemMode.Distance,
+            ItemMode.Away,
+            ItemMode.Toward,
+            ItemMode.DefinedSelf,
+            ItemMode.Reciprocity,
+            ItemMode.Inside,
+            ItemMode.Outside,
         ]:
             e.accept()
             if isinstance(item, Person):
@@ -1145,8 +1146,8 @@ class Scene(QGraphicsScene, Item):
                 self.addItem(self.dragCreateItem)
                 # self.dragCreateItem.setPen(self.dragStartItem.pen())
             else:
-                self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_PENCIL:
+                self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Pencil:
             self.pencilEvent(e, e.scenePos(), mousePressure())
         else:
             draggable = self.draggableUnder(e.scenePos())
@@ -1168,17 +1169,17 @@ class Scene(QGraphicsScene, Item):
         if self.dragStartItem:
             e.accept()
             hoverMe = None
-            if self.itemMode() is util.ITEM_MARRY:
+            if self.itemMode() is ItemMode.Marry:
                 path = Marriage.pathFor(self.dragStartItem, pos=e.scenePos())
                 hoverMe = self.personUnder(e.scenePos())
-            elif self.itemMode() is util.ITEM_CHILD:
+            elif self.itemMode() is ItemMode.Child:
                 path = ChildOf.pathFor(self.dragStartItem, endPos=e.scenePos())
                 hoverMe = self.marriageUnder(e.scenePos())
                 if not hoverMe:
                     hoverMe = self.childOfUnder(e.scenePos())
                     if not hoverMe:
                         hoverMe = self.multipleBirthUnder(e.scenePos())
-            elif self.itemMode() in util.emotionItemModes():
+            elif self.itemMode() and self.itemMode().isRelationship():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
                     kind=self.itemMode(),
@@ -1205,7 +1206,7 @@ class Scene(QGraphicsScene, Item):
             if hoverMe and hoverMe != self.dragStartItem:
                 hoverMe.setHover(True)
                 self.hoverItem = hoverMe
-        elif self.itemMode() == util.ITEM_PENCIL and self.pencilCanvas.isDrawing():
+        elif self.itemMode() == ItemMode.Pencil and self.pencilCanvas.isDrawing():
             self.pencilEvent(e, e.scenePos(), mousePressure())
         elif self.mousePressOnDraggable:  # dragging item; handle kb modifiers
             if e.modifiers() & Qt.ShiftModifier:
@@ -1223,7 +1224,7 @@ class Scene(QGraphicsScene, Item):
     def mouseReleaseEvent(self, e):
         if e.button() != Qt.LeftButton:
             return
-        if self.itemMode() == util.ITEM_MALE:
+        if self.itemMode() == ItemMode.Male:
             e.accept()
             self.addItem(
                 Person(
@@ -1233,8 +1234,8 @@ class Scene(QGraphicsScene, Item):
                 ),
                 undo=True,
             )
-            self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_FEMALE:
+            self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Female:
             e.accept()
             self.addItem(
                 Person(
@@ -1244,29 +1245,28 @@ class Scene(QGraphicsScene, Item):
                 ),
                 undo=True,
             )
-            self.setItemMode(util.ITEM_NONE)
-        elif (
-            self.itemMode()
-            in [util.ITEM_MARRY, util.ITEM_CHILD] + util.emotionItemModes()
+            self.setItemMode(None)
+        elif self.itemMode() and (
+            self.itemMode().isOffSpring() or self.itemMode().isRelationship()
         ):
             e.accept()
             success = False
-            if self.itemMode() is util.ITEM_MARRY:
+            if self.itemMode() is ItemMode.Marry:
                 person = self.personUnder(e.scenePos())
                 if person and person is not self.dragStartItem:
                     self.addItem(Marriage(self.dragStartItem, person), undo=True)
                     success = True
-            elif self.itemMode() is util.ITEM_CHILD:
+            elif self.itemMode() is ItemMode.Child:
                 parentItem = self.itemUnder(
                     e.scenePos(), types=[Marriage, ChildOf, MultipleBirth]
                 )
                 if parentItem:
                     self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
-            elif self.itemMode() in util.emotionItemModes():
+            elif self.itemMode() and self.itemMode().isRelationship():
                 person = self.personUnder(e.scenePos())
                 kind = Emotion.KIND_MAP[self.itemMode()]
-                if self.itemMode() == util.ITEM_CUTOFF:  # monadic
+                if self.itemMode() == ItemMode.Cutoff:  # monadic
                     emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic
                     emotion = Emotion(
@@ -1289,8 +1289,8 @@ class Scene(QGraphicsScene, Item):
                 self.hoverItem.setHover(False)
                 self.hoverItem = None
             if success:
-                self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_CALLOUT:
+                self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Callout:
             e.accept()
             callout = Callout()
             self.addItem(callout)
@@ -1302,11 +1302,11 @@ class Scene(QGraphicsScene, Item):
             self.push(AddItem(self, callout))
             self.addItem(callout, undo=True)
             callout.setSelected(True)
-            self.setItemMode(util.ITEM_NONE)
+            self.setItemMode(None)
             self.calloutParent = None
-        elif self.itemMode() is util.ITEM_PENCIL:
+        elif self.itemMode() is ItemMode.Pencil:
             self.pencilEvent(e, e.scenePos(), 0)
-            self.setItemMode(util.ITEM_NONE)
+            self.setItemMode(None)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
             changedPos = [
@@ -1333,22 +1333,22 @@ class Scene(QGraphicsScene, Item):
     def updateMouseCursorItem(self):
         scale = None
         if self.itemMode() not in [
-            util.ITEM_MALE,
-            util.ITEM_FEMALE,
-            util.ITEM_CUTOFF,
-            util.ITEM_CALLOUT,
+            ItemMode.Male,
+            ItemMode.Female,
+            ItemMode.Cutoff,
+            ItemMode.Callout,
         ]:
             return
-        if self.itemMode() is util.ITEM_MALE:
+        if self.itemMode() is ItemMode.Male:
             path = Person.pathFor("male", pos=QPointF(0, 0))
             scale = self.newPersonScale()
-        elif self.itemMode() is util.ITEM_FEMALE:
+        elif self.itemMode() is ItemMode.Female:
             path = Person.pathFor("female", pos=QPointF(0, 0))
             scale = self.newPersonScale()
-        elif self.itemMode() == util.ITEM_CUTOFF:
-            path = Emotion.pathFor(util.ITEM_CUTOFF, person=QPointF(0, 0))
+        elif self.itemMode() == ItemMode.Cutoff:
+            path = Emotion.pathFor(ItemMode.Cutoff, person=QPointF(0, 0))
             scale = (1 / self.scaleFactor()) * 0.6
-        elif self.itemMode() == util.ITEM_CALLOUT:
+        elif self.itemMode() == ItemMode.Callout:
             path = Callout(scale=self.newPersonScale()).path()
         if scale is not None and scale != self.mouseCursorItem.scale():
             self.mouseCursorItem.setScale(scale)
@@ -1367,10 +1367,10 @@ class Scene(QGraphicsScene, Item):
             return
         self._itemMode = mode
         if self.itemMode() in [
-            util.ITEM_MALE,
-            util.ITEM_FEMALE,
-            util.ITEM_CUTOFF,
-            util.ITEM_CALLOUT,
+            ItemMode.Male,
+            ItemMode.Female,
+            ItemMode.Cutoff,
+            ItemMode.Callout,
         ]:
             self.mouseCursorItem.setPen(util.HOVER_PEN)
             if self.mouseCursorItem.scene() is not self:
@@ -1787,8 +1787,8 @@ class Scene(QGraphicsScene, Item):
             self.layerItemChanged.emit(prop)
         elif item.isLayer:
             if prop.name() == "active":
-                if self.itemMode() in [util.ITEM_CALLOUT, util.ITEM_PENCIL]:
-                    self.setItemMode(util.ITEM_NONE)
+                if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
+                    self.setItemMode(None)
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():

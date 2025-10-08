@@ -14,6 +14,7 @@ from pkdiagram.scene import (
     MultipleBirth,
     Layer,
     EventKind,
+    ItemMode,
 )
 from pkdiagram.models import SceneLayerModel
 
@@ -30,11 +31,11 @@ def test_hide_emotional_process(simpleScene):
     p2 = s.query1(name="p2")
     p = s.query1(name="p")
 
-    e1 = Emotion(p1, p2, kind=util.ITEM_CONFLICT)
+    e1 = Emotion(p1, p2, kind=ItemMode.Conflict)
     s.addItem(e1)
-    e2 = Emotion(p2, p1, kind=util.ITEM_PROJECTION)
+    e2 = Emotion(p2, p1, kind=ItemMode.Projection)
     s.addItem(e2)
-    e3 = Emotion(p1, p, kind=util.ITEM_DISTANCE)
+    e3 = Emotion(p1, p, kind=ItemMode.Distance)
     s.addItem(e3)
 
     assert e1.isVisible() == True

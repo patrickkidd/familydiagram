@@ -33,6 +33,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util
 from pkdiagram.scene import (
     EventKind,
+    ItemMode,
     Property,
     Person,
     Emotion,
@@ -138,26 +139,26 @@ class DocumentController(QObject):
         self.itemModeActionGroup.addAction(self.ui.actionCallout)
         self.itemModeActionGroup.addAction(self.ui.actionPencilStroke)
         self.itemModeActionGroup.triggered[QAction].connect(self.onItemModeAction)
-        self.ui.actionMale.setData(util.ITEM_MALE)
-        self.ui.actionFemale.setData(util.ITEM_FEMALE)
-        self.ui.actionMarriage.setData(util.ITEM_MARRY)
-        self.ui.actionChild_Of.setData(util.ITEM_CHILD)
+        self.ui.actionMale.setData(ItemMode.Male)
+        self.ui.actionFemale.setData(ItemMode.Female)
+        self.ui.actionMarriage.setData(ItemMode.Marry)
+        self.ui.actionChild_Of.setData(ItemMode.Child)
         self.ui.actionParents_to_Selection.triggered.connect(
             self.view.addParentsToSelection
         )
-        self.ui.actionConflict.setData(util.ITEM_CONFLICT)
-        self.ui.actionProjection.setData(util.ITEM_PROJECTION)
-        self.ui.actionFusion.setData(util.ITEM_FUSION)
-        self.ui.actionPrimary_Cutoff.setData(util.ITEM_CUTOFF)
-        self.ui.actionDistance.setData(util.ITEM_DISTANCE)
-        self.ui.actionReciprocity.setData(util.ITEM_RECIPROCITY)
-        self.ui.actionAway.setData(util.ITEM_AWAY)
-        self.ui.actionToward.setData(util.ITEM_TOWARD)
-        self.ui.actionDefined_Self.setData(util.ITEM_DEFINED_SELF)
-        self.ui.actionInside.setData(util.ITEM_INSIDE)
-        self.ui.actionOutside.setData(util.ITEM_OUTSIDE)
-        self.ui.actionCallout.setData(util.ITEM_CALLOUT)
-        self.ui.actionPencilStroke.setData(util.ITEM_PENCIL)
+        self.ui.actionConflict.setData(ItemMode.Conflict)
+        self.ui.actionProjection.setData(ItemMode.Projection)
+        self.ui.actionFusion.setData(ItemMode.Fusion)
+        self.ui.actionPrimary_Cutoff.setData(ItemMode.Cutoff)
+        self.ui.actionDistance.setData(ItemMode.Distance)
+        self.ui.actionReciprocity.setData(ItemMode.Reciprocity)
+        self.ui.actionAway.setData(ItemMode.Away)
+        self.ui.actionToward.setData(ItemMode.Toward)
+        self.ui.actionDefined_Self.setData(ItemMode.DefinedSelf)
+        self.ui.actionInside.setData(ItemMode.Inside)
+        self.ui.actionOutside.setData(ItemMode.Outside)
+        self.ui.actionCallout.setData(ItemMode.Callout)
+        self.ui.actionPencilStroke.setData(ItemMode.Pencil)
         # View
         self.ui.actionDelete.setEnabled(False)
         self.ui.actionDelete.triggered.connect(self.onDelete)
@@ -782,7 +783,7 @@ class DocumentController(QObject):
                 layer.setActive(False, undo=True)
 
     def onSceneItemMode(self):
-        if self.scene.itemMode() is util.ITEM_NONE:
+        if self.scene.itemMode() is None:
             for action in self.itemModeActionGroup.actions():
                 if action.isChecked():
                     action.setChecked(False)
@@ -792,7 +793,7 @@ class DocumentController(QObject):
         if on:
             itemMode = action.data()
         else:
-            itemMode = util.ITEM_NONE
+            itemMode = None
         self.scene.setItemMode(itemMode)
 
     def onGraphicalTimelineViewExpandedOrContracted(self):

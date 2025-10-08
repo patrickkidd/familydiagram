@@ -20,7 +20,18 @@ from pkdiagram.pyqt import (
     QDialog,
 )
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Layer, Event, Emotion, Marriage, Callout
+from pkdiagram.scene import (
+    Scene,
+    Person,
+    Layer,
+    Event,
+    Emotion,
+    Marriage,
+    Callout,
+    ItemMode,
+    EventKind,
+    RelationshipKind
+)
 from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
@@ -99,23 +110,23 @@ def test_set_item_mode(qtbot, dv):
         dv.controller.updateActions()
 
     for buttonName, itemMode in (
-        ("maleButton", util.ITEM_MALE),
-        ("femaleButton", util.ITEM_FEMALE),
-        ("marriageButton", util.ITEM_MARRY),
-        ("childButton", util.ITEM_CHILD),
-        ("pencilButton", util.ITEM_PENCIL),
-        ("fusionButton", util.ITEM_FUSION),
-        ("cutoffButton", util.ITEM_CUTOFF),
-        ("conflictButton", util.ITEM_CONFLICT),
-        ("projectionButton", util.ITEM_PROJECTION),
-        ("distanceButton", util.ITEM_DISTANCE),
-        ("towardButton", util.ITEM_TOWARD),
-        ("awayButton", util.ITEM_AWAY),
-        ("definedSelfButton", util.ITEM_DEFINED_SELF),
-        ("calloutButton", util.ITEM_CALLOUT),
-        ("reciprocityButton", util.ITEM_RECIPROCITY),
-        ("insideButton", util.ITEM_INSIDE),
-        ("outsideButton", util.ITEM_OUTSIDE),
+        ("maleButton", ItemMode.Male),
+        ("femaleButton", ItemMode.Female),
+        ("marriageButton", ItemMode.Marry),
+        ("childButton", ItemMode.Child),
+        ("pencilButton", ItemMode.Pencil),
+        ("fusionButton", ItemMode.Fusion),
+        ("cutoffButton", ItemMode.Cutoff),
+        ("conflictButton", ItemMode.Conflict),
+        ("projectionButton", ItemMode.Projection),
+        ("distanceButton", ItemMode.Distance),
+        ("towardButton", ItemMode.Toward),
+        ("awayButton", ItemMode.Away),
+        ("definedSelfButton", ItemMode.DefinedSelf),
+        ("calloutButton", ItemMode.Callout),
+        ("reciprocityButton", ItemMode.Reciprocity),
+        ("insideButton", ItemMode.Inside),
+        ("outsideButton", ItemMode.Outside),
         # ('actionMale', util.ITEM_ERASER),
     ):
         button = dv.view.itemToolBar.findChild(QWidget, buttonName)
@@ -129,7 +140,7 @@ def test_set_item_mode(qtbot, dv):
 
 def test_add_person(qtbot, dv):
     assert dv.view.noItemsCTALabel.isVisible() == True
-    dv.scene.setItemMode(util.ITEM_MALE)
+    dv.scene.setItemMode(ItemMode.Male)
     qtbot.mouseClick(
         dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, dv.view.rect().center()
     )
@@ -151,9 +162,9 @@ def test_remove_person(qtbot, dv, scene):
 
 def test_undo_remove_event(dv, scene):
     person = Person(name="Hey")
-    event1 = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    event1 = Event(EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1))
     scene.addItems(person)  # batch add remove
-    event2 = Event(person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    event2 = Event(EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1))
     scene.addItem(event2)
     scene.setCurrentDateTime(
         util.Date(2003, 1, 1)
@@ -169,7 +180,7 @@ def test_undo_remove_event(dv, scene):
 def test_undo_remove_undated_emotion(dv, scene):
     personA = Person(name="PersonA", birthDateTime=util.Date(2001, 1, 1))
     personB = Person(name="PersonB")
-    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    emotion = Emotion(ItemMode.Conflict, personB, person=personA)
     scene.addItems(personA, personB, emotion, batch=False)
     assert dv.isGraphicalTimelineShown() == True
 
@@ -184,9 +195,9 @@ def test_undo_remove_emotion_no_other_events(dv, scene):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
     emotion = Emotion(
-        personA=personA,
-        personB=personB,
-        kind=util.ITEM_CONFLICT,
+        RelationshipKind.Conflict,
+        personB.
+        person=personA,
         startDateTime=util.Date(2002, 1, 1),
     )
     scene.addItems(personA, personB, emotion, batch=False)
@@ -203,7 +214,7 @@ def test_add_callout_from_mouse(qtbot, scene, dv):
     layerItemAdded = util.Condition(scene.layerItemAdded)
     layerItemRemoved = util.Condition(scene.layerItemRemoved)
     scene.addItem(Layer(name="Here we are", active=True))
-    scene.setItemMode(util.ITEM_CALLOUT)
+    scene.setItemMode(ItemMode.Callout)
     qtbot.mouseClick(
         dv.view.viewport(),
         Qt.LeftButton,
@@ -223,7 +234,7 @@ def test_add_callout_from_mouse_to_person(qtbot, scene, dv):
     scene.addItem(Layer(name="Here we are", active=True))
     person = Person(name="Here I am")
     scene.addItem(person)
-    scene.setItemMode(util.ITEM_CALLOUT)
+    scene.setItemMode(ItemMode.Callout)
     person.setSelected(True)
     qtbot.mouseClick(
         dv.view.viewport(),
@@ -315,7 +326,7 @@ def test_remove_last_event(scene, dv):
         DocumentView, "setShowGraphicalTimeline", _setShowGraphicalTimeline
     ):
         person = dv.scene.addItem(Person(name="person"))
-        event = Event(person, dateTime=util.Date(2001, 1, 1))
+        event = Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
         scene.addItem(event)
         assert dv.timelineModel.events() == [event]
         assert_UIHasAnyEvents(dv, True)
@@ -352,8 +363,8 @@ def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView):
 
 def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     person = Person(name="person")
-    event_2 = Event(person, description="Event 2", dateTime=util.Date(2002, 1, 1))
-    event_1 = Event(person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    event_1 = Event(EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1))
     dv.scene.addItem(person)
     dv.timelineSelectionModel.select(
         QItemSelection(
@@ -373,8 +384,12 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
 def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
-    emotion1 = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
-    emotion2 = Emotion(personA=personA, personB=personB, kind=util.ITEM_PROJECTION)
+    emotion1 = Emotion(RelationshipKind.Conflict, personA=personA, personB=personB)
+    emotion2 = Emotion(
+        RelationshipKind.Projection,
+        personB,
+        person=personA
+    )
     scene.addItems(personA, personB, emotion1, emotion2)
     personA.setItemPos(QPointF(-200, -200))
     personB.setItemPos(QPointF(200, 200))
@@ -400,8 +415,8 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
     scene.addItems(personA, personB)
-    event_1 = Event(personA, dateTime=util.Date(2001, 1, 1))
-    event_2 = Event(personB, dateTime=util.Date(2002, 1, 1))
+    event_1 = Event(EventKind.Shift, personA, dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(EventKind.Shift, personB, dateTime=util.Date(2002, 1, 1))
     scene.addItems(event_1, event_2)
     dv.timelineSelectionModel.select(
         QItemSelection(
@@ -425,8 +440,8 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
     scene.addItems(personA, personB)
-    event_1 = Event(personA, dateTime=util.Date(2001, 1, 1))
-    event_2 = Event(personB, dateTime=util.Date(2002, 1, 1))
+    event_1 = Event(EventKind.Shift, personA, dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(EventKind.Shift, personB, dateTime=util.Date(2002, 1, 1))
     scene.addItems(event_1, event_2)
     dv.caseProps.qml.setFocus(True)
     dv.timelineSelectionModel.select(
@@ -489,9 +504,9 @@ def test_toggle_search_tag_via_model(scene, dv):
     person = Person()
     person.birthEvent.setDateTime(util.Date(2001, 1, 1))
     scene.addItem(person)
-    event_1 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
-    event_2 = Event(person, dateTime=util.Date(2002, 1, 1), tags=["you"])
-    event_3 = Event(person, dateTime=util.Date(2003, 1, 1), tags=["you"])
+    event_1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"])
+    event_2 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"])
+    event_3 = Event(EventKind.Shift, person, dateTime=util.Date(2003, 1, 1), tags=["you"])
     scene.addItems(event_1, event_2, event_3)
     scene.setTags(["here", "you", "are"])
 
@@ -632,7 +647,7 @@ def test_deselect_all_layers(dv):
 def test_retain_tab_between_selections(qtbot, mw, test_session):
     # _init_mw(mw, test_session)
     personA, personB = Person(), Person(kind="female")
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(personA=personA, personB=personB, kind=RelationshipKind.Conflict)
     mw.scene.addItems(personA, personB, conflict)
     personA.setPos(-100, 0)
     personB.setPos(100, 0)
@@ -682,7 +697,8 @@ def test_show_events_from_timeline_callout(qtbot, scene, dv: DocumentView):
     )
     events = [
         Event(
-            parent=person,
+            EventKind.Shift,
+            person,
             dateTime=util.Date(2000 + i, 1, 1),
             description=f"Event {i}",
         )
@@ -713,11 +729,11 @@ def test_nextTaggedDate_prevTaggedDateTime(scene, dv: DocumentView):
     person1 = Person()
     person1.setBirthDateTime(util.Date(2000, 1, 1))  # 0
     scene.addItem(person1)
-    event1 = Event(parent=person1, dateTime=util.Date(2001, 1, 1))  # 1
+    event1 = Event(EventKind.Shift, person1, dateTime=util.Date(2001, 1, 1))  # 1
     scene.addItem(event1)
     event1.dynamicProperty("var-1").set("One")
-    event2 = Event(parent=person1, dateTime=util.Date(2002, 1, 1))  # 2
-    event3 = Event(parent=person1, dateTime=util.Date(2003, 1, 1))  # 3
+    event2 = Event(EventKind.Shift, person1, dateTime=util.Date(2002, 1, 1))  # 2
+    event3 = Event(EventKind.Shift, person1, dateTime=util.Date(2003, 1, 1))  # 3
     scene.addItems(event2, event3)
     event3.dynamicProperty("var-2").set("Two")
     scene.setCurrentDateTime(person1.birthDateTime())  # 0
@@ -850,10 +866,12 @@ def test_writePDF(tmp_path, scene, dv: DocumentView):
 
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
-        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
+       EventKind.Shift, 
+       person, datetime=util.Date(2001, 1, 1), description="Something happened"
     )
     event2 = Event(
-        parent=person,
+        EventKind.Shift, 
+        person,
         datetime=util.Date(2002, 1, 1),
         description="Something happened again",
     )
@@ -885,10 +903,12 @@ def test_writeExcel(tmp_path, scene, dv: DocumentView):
 
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
-        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
+        EventKind.Shift, 
+        person, datetime=util.Date(2001, 1, 1), description="Something happened"
     )
     event2 = Event(
-        parent=person,
+        EventKind.Shift, 
+        person,
         datetime=util.Date(2002, 1, 1),
         description="Something happened again",
     )
@@ -902,16 +922,17 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
     scene.addItems(person1, person2)
     kinds = itertools.cycle(
         [
-            util.ITEM_CUTOFF,
-            util.ITEM_CONFLICT,
-            util.ITEM_PROJECTION,
-            util.ITEM_DISTANCE,
-            util.ITEM_TOWARD,
-            util.ITEM_AWAY,
-            util.ITEM_DEFINED_SELF,
-            util.ITEM_RECIPROCITY,
-            util.ITEM_INSIDE,
-            util.ITEM_OUTSIDE,
+            RelationshipKind.Cutoff,
+            RelationshipKind.Conflict,
+            RelationshipKind.Projection,
+            RelationshipKind.Distance,
+            RelationshipKind.Toward,
+            RelationshipKind.Away,
+            RelationshipKind.DefinedSelf,
+            RelationshipKind.Underfunctioning,
+            RelationshipKind.OverFunctioning,
+            RelationshipKind.Inside,
+            RelationshipKind.Outside,
         ]
     )
     iDay = 0
@@ -922,7 +943,8 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
             iDay += stride
             dateTime = firstDate.addDays(iDay)
             event = Event(
-                parent=parent, description="Test event %i" % iDay, dateTime=dateTime
+                EventKind.Shift, 
+                parent, description="Test event %i" % iDay, dateTime=dateTime
             )
             scene.addItem(event)
         iDay += stride
@@ -937,7 +959,7 @@ def test_add_emotion_adds_tags(dv: DocumentView):
     person1, person2 = Person(), Person()
     dv.scene.addItems(person1, person2)
     dv.searchModel.setTags(["conflict"])
-    emotion = Emotion(personA=person1, personB=person2, kind=util.ITEM_CONFLICT)
+    emotion = Emotion(RelationshipKind.Conflict, person2, person=person1)
     dv.scene.addItem(emotion)
     assert emotion.tags() == ["conflict"]
 
@@ -996,10 +1018,12 @@ def test_write_JSON(tmp_path, dv: DocumentView):
 
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
-        parent=person, datetime=util.Date(2001, 1, 1), description="Something happened"
+        EventKind.Shift,
+        person, datetime=util.Date(2001, 1, 1), description="Something happened"
     )
     event2 = Event(
-        parent=person,
+        EventKind.Shift,
+        person,
         datetime=util.Date(2002, 1, 1),
         description="Something happened again",
     )

@@ -1167,8 +1167,9 @@ class Emotion(PathItem):
                 "default": util.DEFAULT_EMOTION_INTENSITY,
                 "onset": "updateGeometry",
             },
-            {"attr": "event", "type": int, "default": None},  # Store event ID
-            {"attr": "target", "type": int, "default": None},  # Store target ID
+            {"attr": "event", "type": int, "default": None},  # dated mode
+            {"attr": "target", "type": int, "default": None},
+            {"attr": "person", "type": int, "default": None},  # drawing mode
             {"attr": "color", "default": Item.newColor},
             {"attr": "notes"},
         ]
@@ -1213,6 +1214,7 @@ class Emotion(PathItem):
         self,
         kind: RelationshipKind,
         target: "Person",
+        person: "Person | None" = None,
         event: Event | None = None,
         **kwargs,
     ):
@@ -1221,6 +1223,10 @@ class Emotion(PathItem):
         """
         super().__init__(kind=kind.value, **kwargs)
         assert event.kind() == EventKind.Shift
+        if person:
+            assert event is None, "Either person or event can be passed, but not both"
+        else:
+            assert person is None, "Either person or event can be passed, but not both"
 
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
@@ -1229,9 +1235,10 @@ class Emotion(PathItem):
         self.isCreating = (
             False  # don't hide if not initially part of selected scenetags
         )
-        self._event: Event | None = event
+        self._event: Event | None = event  # Dated mode
         self.setEvent(event)
         self._target: "Person | None" = target
+        self._person: "Person | None" = person  # Drawing mode
         # self.hoverTimer = QTimer(self)
         # self.hoverTimer.setInterval(500)
         # self.hoverTimer.timeout.connect(self.onHoverTimer)
@@ -1283,6 +1290,7 @@ class Emotion(PathItem):
         assert event.kind() == EventKind.Shift
         assert event.relationship() == self.kind()
         self._event = event
+        self._person = None
 
     def intensity(self) -> int:
         if self._event:
@@ -1368,9 +1376,11 @@ class Emotion(PathItem):
         super().write(chunk)
         chunk["target"] = self._target.id if self._target else None
         chunk["event"] = self._event.id if self._event else None
+        chunk["person"] = self._person.id if self._person else None
 
     def read(self, chunk, byId):
         super().read(chunk, byId)
+        self._person = byId(chunk.get("person", None))
         self._target = byId(chunk.get("target", None))
         self._event = byId(chunk.get("event", None))
 
@@ -1665,7 +1675,10 @@ class Emotion(PathItem):
             self.prop("kind").set(x.value)
 
     def person(self) -> "Person":
-        return self._event.person()
+        if self._person:  # when drawing, can't convert to dated later so this is ok.
+            return self._person
+        else:
+            return self._event.person()
 
     def target(self) -> "Person":
         return self._target

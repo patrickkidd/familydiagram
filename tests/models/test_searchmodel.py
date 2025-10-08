@@ -2,7 +2,17 @@ import pytest
 
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Event, Layer, Emotion, Marriage
+from pkdiagram.scene import (
+    EventKind,
+    Scene,
+    Person,
+    Event,
+    Layer,
+    Emotion,
+    Marriage,
+    ItemMode,
+    RelationshipKind,
+)
 from pkdiagram.models import TimelineModel, SearchModel, EmotionalUnitsModel
 
 
@@ -17,19 +27,22 @@ def model():
     scene = Scene()
     person = Person()
     event1 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 1, 10),
+        EventKind.Shift,
+        person,
         dateTime=util.Date(1900, 1, 1),
+        loggedDateTime=util.Date(2000, 1, 10),
     )
     event2 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 2, 10),
+        EventKind.Shift,
+        person,
         dateTime=util.Date(1900, 1, 1),
+        loggedDateTime=util.Date(2000, 2, 10),
     )
     event3 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 3, 10),
+        EventKind.Shift,
+        person,
         dateTime=util.Date(1900, 1, 1),
+        loggedDateTime=util.Date(2000, 3, 10),
     )
     scene.addItem(person)
     searchModel = SearchModel()
@@ -189,16 +202,17 @@ def emotionModel():
     person = Person(name="Person A")
     target = Person(name="Person B")
     startEvent = Event(
-        person=person,
+        EventKind.Shift,
+        person,
         spouse=target,
         dateTime=util.Date(2010, 1, 10),
         endDateTime=util.Date(2010, 2, 10),
         loggedDateTime=util.Date(2000, 1, 10),
     )
     conflict = Emotion(
+        RelationshipKind.Conflict,
+        target,
         event=startEvent,
-        target=target,
-        kind=util.ITEM_CONFLICT,
     )
     scene.addItems(person, target, conflict)
     searchModel = SearchModel()

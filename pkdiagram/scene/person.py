@@ -36,6 +36,7 @@ from pkdiagram.scene import (
     MultipleBirth,
     VariablesDatabase,
     random_names,
+    ItemMode,
 )
 from pkdiagram.scene.commands import SetParents
 
@@ -735,7 +736,7 @@ class Person(PathItem):
         elif prop.name() == "primary":
             self._delegate.setPrimary(prop.get())
             for emotion in self.emotions():
-                if emotion.kind() == util.ITEM_CUTOFF:
+                if emotion.kind() == RelationshipKind.Cutoff:
                     emotion.updateGeometry()
         elif prop.name() == "layers":
             if self.scene():
@@ -1432,7 +1433,7 @@ class Person(PathItem):
     def onUpdateAll(self):
         super().onUpdateAll()
         for emotion in self.emotions():
-            if emotion.kind() == util.ITEM_CUTOFF:
+            if emotion.kind() == RelationshipKind.Cutoff:
                 emotion.setParentItem(self)
         self.onAgeChanged()
 

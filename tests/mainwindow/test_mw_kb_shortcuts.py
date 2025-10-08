@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, Emotion
+from pkdiagram.scene import Person, Marriage, Emotion, ItemMode
 from pkdiagram.documentview import RightDrawerView
 
 pytestmark = [
@@ -102,7 +102,7 @@ def test_emotion_kb_shortcut_item(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -117,7 +117,7 @@ def test_emotion_kb_shortcut_notes(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -132,7 +132,7 @@ def test_emotion_kb_shortcut_meta(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"

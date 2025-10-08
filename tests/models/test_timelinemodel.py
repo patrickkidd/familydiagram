@@ -13,6 +13,7 @@ from pkdiagram.scene import (
     EventKind,
     Marriage,
     RelationshipKind,
+    ItemMode,
 )
 from pkdiagram.models import SearchModel, TimelineModel
 
@@ -230,7 +231,7 @@ def test_flags(timelineScene, model):
 
     timelineScene.addItem(
         Event(
-            kind=util.ITEM_FUSION,
+            kind=ItemMode.Fusion,
             event=Event(
                 dateTime=util.Date(1980, 5, 11), endDateTime=util.Date(2015, 1, 1)
             ),

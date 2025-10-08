@@ -14,6 +14,7 @@ from pkdiagram.scene import (
     MultipleBirth,
     Layer,
     EventKind,
+    ItemMode,
 )
 from pkdiagram.models import SceneLayerModel
 
@@ -127,7 +128,7 @@ def test_anonymize():
     e2 = Event(parent=patrick, description="robby came home, took Robby's place")
     e3 = Event(parent=bob, description="Patrick came home with bob")
     distance = Emotion(
-        kind=util.ITEM_DISTANCE,
+        kind=ItemMode.Distance,
         personA=patrick,
         personB=bob,
         notes="""

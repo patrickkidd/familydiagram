@@ -1,6 +1,4 @@
-Flattening Events
-------------------------------------
-Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
+Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
 
 Spec
@@ -37,6 +35,7 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.
 - event.includeOnDiagram
 - Event.color
 - Add link to edit emotion if kind == Shift

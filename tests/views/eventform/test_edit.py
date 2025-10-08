@@ -10,6 +10,7 @@ from pkdiagram.scene import (
     Event,
     Marriage,
     Emotion,
+    ItemMode,
 )
 from pkdiagram.views.eventform import EventForm
 
@@ -89,7 +90,7 @@ def test_init_Shift_Conflict(scene, view):
     father = scene.addItem(Person(name="Father"))
     conflict = scene.addItem(
         Emotion(
-            kind=util.ITEM_CONFLICT,
+            kind=ItemMode.Conflict,
             personA=mother,
             personB=father,
             startDateTime=START_DATETIME,
@@ -116,7 +117,7 @@ def test_init_Shift_Triangle(scene, view):
     lover = scene.addItem(Person(name="Lover"))
     triangle = scene.addItem(
         Emotion(
-            kind=util.ITEM_INSIDE,
+            kind=ItemMode.Inside,
             personA=mother,
             personB=lover,
             personC=father,

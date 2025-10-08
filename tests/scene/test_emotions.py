@@ -1,7 +1,7 @@
 import pytest
 from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Emotion, Layer
+from pkdiagram.scene import Scene, Person, Emotion, Layer, ItemMode
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel
 from pkdiagram.scene.relationshipkind import RelationshipKind
@@ -108,8 +108,8 @@ def test_FannedBox_add(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
+    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
     scene.addItems(personA, personB, fusion, projection)
 
     assert fusion.fannedBox is not None
@@ -122,9 +122,9 @@ def test_FannedBox_add_multiple(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
-    toward = Emotion(kind=util.ITEM_TOWARD, personA=personA, personB=personB)
+    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
+    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
+    toward = Emotion(kind=ItemMode.Toward, personA=personA, personB=personB)
     scene.addItem(personA, personB)
     # Add these one at a time to better simulate clicking
     scene.addItem(fusion)
@@ -152,8 +152,8 @@ def test_FannedBox_remove(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
+    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
     scene.addItems(personA, personB, fusion, projection)
     scene.removeItem(projection)
     assert fusion.fannedBox is not None
@@ -179,21 +179,21 @@ def test_FannedBox_peers_multiple():
     personB = Person()
     personA.birthEvent.setDateTime(util.Date(2001, 1, 1))
     fusion = Emotion(
-        kind=util.ITEM_FUSION,
+        kind=ItemMode.Fusion,
         personA=personA,
         personB=personB,
         startDateTime=util.Date(2001, 2, 1),
         endDateTime=util.Date(2001, 4, 2),
     )
     projection = Emotion(
-        kind=util.ITEM_PROJECTION,
+        kind=ItemMode.Projection,
         personA=personA,
         personB=personB,
         isDateRange=True,
         startDateTime=util.Date(2001, 3, 1),
     )
     toward = Emotion(
-        kind=util.ITEM_TOWARD,
+        kind=ItemMode.Toward,
         personA=personA,
         personB=personB,
         isDateRange=True,
@@ -235,9 +235,9 @@ def test_FannedBox_peers_different_tags():
     searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
+    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
     projection = Emotion(
-        kind=util.ITEM_PROJECTION, personA=personA, personB=personB, tags=["tag-1"]
+        kind=ItemMode.Projection, personA=personA, personB=personB, tags=["tag-1"]
     )
     scene.addItems(personA, personB, fusion, projection)
     assert fusion.peers() == {projection}
@@ -264,8 +264,8 @@ def test_FannedBox_posDelta_adapt():
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=util.ITEM_FUSION, personA=personA, personB=personB)
-    projection = Emotion(kind=util.ITEM_PROJECTION, personA=personA, personB=personB)
+    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
+    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
     scene.addItems(personA, personB, fusion, projection)
     personA.setPos(100, 100)
     personB.setPos(-100, -100)
@@ -285,7 +285,7 @@ def test_shouldShowFor():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(personA, personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(personA, personB, kind=ItemMode.Conflict)
     scene.addItems(personA, personB, conflict)
 
     # No tags
@@ -330,7 +330,7 @@ def test_honors_searchModel_tags():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(personA, personB, kind=util.ITEM_CONFLICT, tags=TAGS)
+    conflict = Emotion(personA, personB, kind=ItemMode.Conflict, tags=TAGS)
     scene.addItems(personA, personB, conflict)
     searchModel = SearchModel()
     searchModel.scene = scene
@@ -353,7 +353,7 @@ def test_honors_searchModel_tags_plus_dates():
     conflict = Emotion(
         personA,
         personB,
-        kind=util.ITEM_CONFLICT,
+        kind=ItemMode.Conflict,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
         tags=TAGS,
@@ -389,7 +389,7 @@ def test_persons_hidden_tags_shown():
     conflict = Emotion(
         personA,
         personB,
-        kind=util.ITEM_CONFLICT,
+        kind=ItemMode.Conflict,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
         tags=TAGS,
@@ -415,7 +415,7 @@ def test_descriptions_diff_dates():
     conflict = Emotion(
         personA,
         personB,
-        kind=util.ITEM_CONFLICT,
+        kind=ItemMode.Conflict,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
     )
@@ -429,7 +429,7 @@ def test_descriptions_same_dates():
     conflict = Emotion(
         personA,
         personB,
-        kind=util.ITEM_CONFLICT,
+        kind=ItemMode.Conflict,
         startDateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2000, 1, 1),
     )
@@ -453,7 +453,7 @@ def test_add_emotion_sets_scene_currentDate():
     personA = Person(name="A")
     personB = Person(name="B")
     conflict = Emotion(
-        personA, personB, kind=util.ITEM_CONFLICT, startDateTime=START_DATETIME
+        personA, personB, kind=ItemMode.Conflict, startDateTime=START_DATETIME
     )
     scene.addItem(conflict)
     assert scene.currentDateTime() == START_DATETIME
@@ -463,7 +463,7 @@ def test_mirror_notes_set_from_item():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    emotion = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
     scene = Scene()
     scene.addItem(emotion)
     emotion.setNotes(NOTES)
@@ -474,7 +474,7 @@ def test_mirror_notes_set_from_startEvent():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    emotion = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
     scene = Scene()
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)

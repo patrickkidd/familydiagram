@@ -1,6 +1,6 @@
 import enum
 
-from pkdiagram import util
+from pkdiagram.scene.itemmode import ItemMode
 
 
 class RelationshipKind(enum.Enum):
@@ -18,47 +18,43 @@ class RelationshipKind(enum.Enum):
     Outside = "outside"
     Cutoff = "cutoff"
 
-    def itemMode(self) -> int:
-        # if kind == self.Fusion:
-        #     return util.ITEM_FUSION
+    def itemMode(self) -> ItemMode:
         if self == self.Cutoff:
-            return util.ITEM_CUTOFF
+            return ItemMode.Cutoff
         elif self == self.Conflict:
-            return util.ITEM_CONFLICT
+            return ItemMode.Conflict
         elif self == self.Distance:
-            return util.ITEM_DISTANCE
+            return ItemMode.Distance
         elif self in (self.Underfunctioning, self.Overfunctioning):
-            return util.ITEM_RECIPROCITY
+            return ItemMode.Reciprocity
         elif self == self.Projection:
-            return util.ITEM_PROJECTION
+            return ItemMode.Projection
         elif self == self.Toward:
-            return util.ITEM_TOWARD
+            return ItemMode.Toward
         elif self == self.Away:
-            return util.ITEM_AWAY
+            return ItemMode.Away
         elif self == self.Inside:
-            return util.ITEM_INSIDE
+            return ItemMode.Inside
         elif self == self.Outside:
-            return util.ITEM_OUTSIDE
+            return ItemMode.Outside
         elif self == self.DefinedSelf:
-            return util.ITEM_DEFINED_SELF
+            return ItemMode.DefinedSelf
         else:
             raise KeyError(f"No ITEM_MODE for: {self}")
 
     @staticmethod
-    def fromItemMode(itemMode: int) -> "RelationshipKind":
+    def fromItemMode(itemMode: ItemMode) -> "RelationshipKind":
         mapping = {
-            # util.ITEM_FUSION: RelationshipKind.Fusion,
-            util.ITEM_CONFLICT: RelationshipKind.Conflict,
-            util.ITEM_DISTANCE: RelationshipKind.Distance,
-            util.ITEM_RECIPROCITY: RelationshipKind.Underfunctioning,  # or Underfunctioning
-            util.ITEM_RECIPROCITY: RelationshipKind.Overfunctioning,  # or Underfunctioning
-            util.ITEM_PROJECTION: RelationshipKind.Projection,
-            util.ITEM_DEFINED_SELF: RelationshipKind.DefinedSelf,
-            util.ITEM_TOWARD: RelationshipKind.Toward,
-            util.ITEM_AWAY: RelationshipKind.Away,
-            util.ITEM_INSIDE: RelationshipKind.Inside,
-            util.ITEM_OUTSIDE: RelationshipKind.Outside,
-            util.ITEM_CUTOFF: RelationshipKind.Cutoff,
+            ItemMode.Conflict: RelationshipKind.Conflict,
+            ItemMode.Distance: RelationshipKind.Distance,
+            ItemMode.Reciprocity: RelationshipKind.Underfunctioning,
+            ItemMode.Projection: RelationshipKind.Projection,
+            ItemMode.DefinedSelf: RelationshipKind.DefinedSelf,
+            ItemMode.Toward: RelationshipKind.Toward,
+            ItemMode.Away: RelationshipKind.Away,
+            ItemMode.Inside: RelationshipKind.Inside,
+            ItemMode.Outside: RelationshipKind.Outside,
+            ItemMode.Cutoff: RelationshipKind.Cutoff,
         }
         if itemMode in mapping:
             return mapping[itemMode]

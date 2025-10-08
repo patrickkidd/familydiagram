@@ -18,6 +18,7 @@ from pkdiagram.scene import (
     Callout,
     EventKind,
     RelationshipKind,
+    ItemMode,
 )
 
 pytestmark = [
@@ -375,7 +376,7 @@ def test_remove_emotion(scene, undo):
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Emotion(person1, person2, kind=util.ITEM_CONFLICT)
+    emotion = Emotion(person1, person2, kind=ItemMode.Conflict)
     scene.addItems(person1, person2)
     scene.addItem(emotion)
     scene.removeItem(emotion, undo=undo)
@@ -577,7 +578,7 @@ def test_drag_create_emotion(qtbot):
         name="B", pos=QPointF(-50, 50)
     )
     scene.addItems(personA, personB)
-    scene.setItemMode(util.ITEM_CONFLICT)
+    scene.setItemMode(ItemMode.Conflict)
     qtbot.mousePress(
         view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personA.pos())
     )
@@ -589,4 +590,4 @@ def test_drag_create_emotion(qtbot):
     emotion = scene.emotions()[0]
     assert emotion.personA() == personA
     assert emotion.personB() == personB
-    assert emotion.kind() == util.ITEM_CONFLICT
+    assert emotion.kind() == ItemMode.Conflict
