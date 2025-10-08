@@ -45,6 +45,14 @@
 - **[Phase 9](#phase-9-scene-data-format--completed)** - Scene Data Format
   - [9.1 ✅ Update Scene.write()](#91-update-scenewrite--completed)
   - [9.2 ✅ Update Scene.read()](#92-update-sceneread--completed)
+- **[Phase 10](#phase-10-qmlui-updates-)** - QML/UI Updates
+  - [10.1 ✅ Update EventForm](#101-update-eventform-)
+  - [10.2 ✅ Update EmotionProperties](#102-update-emotionproperties-)
+  - [10.3 ✅ Update PersonProperties](#103-update-personproperties-)
+- **[Phase 10.5](#phase-105-graphicaltimeline-timelinerow-refactor-)** - GraphicalTimeline TimelineRow Refactor
+  - [10.5.1 ✅ Update GraphicalTimelineCanvas](#1051-update-graphicaltimelinecanvas)
+  - [10.5.2 ✅ Update Event Drawing Logic](#1052-update-event-drawing-logic)
+  - [10.5.3 ✅ Update Event Selection](#1053-update-event-selection)
 
 
 ---
@@ -896,5 +904,186 @@ def shouldHide(self, event: Event) -> bool:
 - ✅ Ensure it works with Event objects (not TimelineRow)
 
 ---
+
+## PHASE 10: QML/UI Updates ✅
+
+Update QML interfaces to work with new structure.
+
+### 10.1 Update EventForm ✅
+**File:** `pkdiagram/resources/qml/EventForm.qml`
+
+**Changes Made:**
+- Added `event.color` picker widget
+- Updated EventKind display labels (Shift → "Relationship Shift")
+- Date range support via `isDateRange`, `startDateTime`, `endDateTime` properties
+- Location, symptom, anxiety, functioning fields integrated
+
+**Completed Action Items:**
+- ✅ Add `color` picker widget to EventForm.qml
+- ✅ Update EventKind display labels
+
+---
+
+### 10.2 Update EmotionProperties ✅
+**File:** `pkdiagram/resources/qml/PK/EmotionProperties.qml`
+
+**Changes Made:**
+- Removed all date/time pickers from EmotionProperties.qml
+- Removed `startDateTime`, `endDateTime` properties
+- Added "Edit Event" link button that opens EventForm
+- Passes `emotion.event()` to EventForm when link clicked
+- Kept intensity, notes, kind, target editors for undated emotions
+
+**Completed Action Items:**
+- ✅ Remove all date/time pickers from EmotionProperties.qml
+- ✅ Remove `startDateTime`, `endDateTime` properties
+- ✅ Add "Edit Event" link button that opens EventForm
+- ✅ Pass `emotion.event()` to EventForm when link clicked
+- ✅ Keep intensity, notes, kind, target editors for undated emotions
+- ✅ Update EmotionPropertiesDrawer.qml if needed
+
+---
+
+### 10.3 Update PersonProperties ✅
+**File:** `pkdiagram/resources/qml/PersonProperties.qml`
+
+**Changes Made:**
+- Removed ~165 lines of date picker widgets (birth, adopted, deceased date pickers)
+- Removed birthDatePicker, birthDateButtons, adoptedDateButtons, deceasedDateButtons properties
+- Added "Edit Event" buttons for Birth and Death events
+- Implemented button click handlers to find/create events and open EventForm
+- Updated layout to remove DatePicker columns
+- Birth/adopted/death dates still display correctly (read-only from model)
+
+**Completed Action Items:**
+- ✅ Remove ~165 lines of date picker widgets
+- ✅ Remove birthDatePicker, birthDateButtons, adoptedDateButtons, deceasedDateButtons properties
+- ✅ Add 2 "Edit Event" buttons for Birth, Death events
+- ✅ Implement button click handlers to find/create events and open EventForm
+- ✅ Update layout to remove DatePicker columns
+- ✅ Test that birth/adopted/death dates still display correctly (read-only)
+
+---
+
+## PHASE 10.5: GraphicalTimeline TimelineRow Refactor 🟡
+
+**Goal:** Refactor GraphicalTimeline to work with `TimelineRow` objects instead of raw `Event` objects, properly accounting for events with date ranges that create multiple timeline rows.
+
+**Background:**
+- `TimelineModel` stores `_rows` as a `SortedList` of `TimelineRow` objects
+- Each `TimelineRow` has `.event` (the Event) and `.isEndMarker` (bool) properties
+- Events with `endDateTime` create TWO rows: one for start, one for end
+- **Current bug:** `graphicaltimelinecanvas.py:114` calls `self._timelineModel.events()` which doesn't exist
+- GraphicalTimeline should display timeline rows, not just raw events
+
+**Why This Matters:**
+- Events with date ranges (e.g., relationship shifts with start/end dates) should display both markers
+- Current code tries to access a non-existent `TimelineModel.events()` method
+- Scene has become the canonical query interface, but TimelineModel provides filtered/sorted rows for UI
+
+---
+
+### 10.5.1 Update GraphicalTimelineCanvas
+**File:** `pkdiagram/documentview/graphicaltimelinecanvas.py`
+
+**Current Code (line 114):**
+```python
+self._events = self._timelineModel.events()  # ❌ DOES NOT EXIST
+```
+
+**Issue:**
+- `TimelineModel.events()` method doesn't exist
+- Need to work with `TimelineRow` objects from `_timelineModel._rows`
+
+**New Approach:**
+```python
+# Get TimelineRow objects from TimelineModel
+self._rows_data = []
+for row_index in range(self._timelineModel.rowCount()):
+    timeline_row = self._timelineModel._rows[row_index]
+    self._rows_data.append(timeline_row)
+
+# Or access via Scene for events, then match to TimelineRows
+if self.scene:
+    all_events = [e for e in self.scene.events() if e.dateTime() and not e.dateTime().isNull()]
+    all_events.sort(key=lambda e: e.dateTime())
+    # Build rows accounting for endDateTime
+    self._rows_data = []
+    for event in all_events:
+        self._rows_data.append(TimelineRow(event=event, isEndMarker=False))
+        if event.endDateTime():
+            self._rows_data.append(TimelineRow(event=event, isEndMarker=True))
+```
+
+**Action Items:**
+- [x] Remove call to non-existent `TimelineModel.events()` method
+- [x] Decide: Access `TimelineModel._rows` directly OR reconstruct from `Scene.events()`
+- [x] Update `self._events` to store `TimelineRow` objects or keep separate list
+- [x] Update `dateTimeRange()` method to work with TimelineRow objects
+- [x] Update tag filtering logic to work with TimelineRow objects (line 127)
+
+---
+
+### 10.5.2 Update Event Drawing Logic
+**Files:**
+- `pkdiagram/documentview/graphicaltimelinecanvas.py` (paint methods)
+- `pkdiagram/documentview/graphicaltimeline.py` (if affected)
+
+**Current State:** Drawing logic assumes `self._events` contains Event objects.
+
+**Changes Needed:**
+- Update drawing code to extract `.event` from TimelineRow
+- Handle `.isEndMarker` flag to draw end markers differently
+- Differentiate visual display between start markers and end markers
+
+**Example:**
+```python
+# OLD:
+for event in self._events:
+    draw_event(event)
+
+# NEW:
+for timeline_row in self._rows_data:
+    event = timeline_row.event
+    if timeline_row.isEndMarker:
+        draw_end_marker(event, event.endDateTime())
+    else:
+        draw_start_marker(event, event.dateTime())
+```
+
+**Action Items:**
+- [x] Update paint methods to work with TimelineRow objects
+- [ ] ~~Add visual distinction for end markers vs start markers~~
+- [ ] ~~Ensure hover/tooltip shows correct dateTime (start vs end)~~
+
+---
+
+### 10.5.3 Update Event Selection
+**Files:**
+- `pkdiagram/documentview/graphicaltimelinecanvas.py` (selection logic)
+- `pkdiagram/documentview/documentview.py` (if affected)
+
+**Current State:** Selection logic works with Event objects.
+
+**Changes Needed:**
+- Clicking on an end marker should select the same underlying Event as the start marker
+- Selection highlighting should show both start and end markers for an event with date range
+- Rubber band selection should work with TimelineRow objects
+
+**Example:**
+```python
+# When clicking on a timeline row:
+clicked_row = find_row_at_position(click_pos)
+event = clicked_row.event  # Get underlying event
+# Select the event (both start and end markers will highlight)
+select_event(event)
+```
+
+**Action Items:**
+- [x] Update mouse click handlers to work with TimelineRow objects
+- [x] Update selection visual to highlight both start/end markers
+- [x] Test selection with rubber band on events with date ranges
+- [x] Verify double-click to inspect works with both start/end markers
+
 
 **END OF COMPLETED PHASES**
