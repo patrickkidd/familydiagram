@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from stripe import Person
 
@@ -8,7 +9,9 @@ from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
 from pkdiagram.scene.commands import SetEventPerson
-from pkdiagram.scene.marriage import Marriage
+
+if TYPE_CHECKING:
+    from pkdiagram.scene.marriage import Marriage
 
 
 _log = logging.getLogger(__name__)

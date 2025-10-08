@@ -217,7 +217,12 @@ def test_access_data_after_deinit():
     model.scene = scene
     personA, personB = Person(name="A"), Person(name="B")
     pairBond = Marriage(personA=personA, personB=personB)
-    Event(parent=pairBond, description="Married", dateTime=util.Date(2000, 1, 1))
+    Event(
+        EventKind.Married,
+        pairBond,
+        description="Married",
+        dateTime=util.Date(2000, 1, 1),
+    )
     scene.addItems(personA, personB, pairBond)
     assert model.rowCount() == 1
     model.scene = None
@@ -296,7 +301,7 @@ def test_add_person_marriage():
     model.items = [personA]
 
     marriage = Marriage(personA=personA, personB=personB)
-    married = Event(parent=marriage, date=util.Date(2001, 1, 1), kind=EventKind.Married)
+    married = Event(EventKind.Married, marriage, dateTime=util.Date(2001, 1, 1))
     scene.addItem(marriage)
 
     assert model.rowForEvent(married) != None

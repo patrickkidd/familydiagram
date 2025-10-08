@@ -252,7 +252,12 @@ def test_married_separated_divorced_disabled_with_events(scene, marriage, mp):
     assert mp.itemProp("separatedBox", "enabled") == True
     assert mp.itemProp("divorcedBox", "enabled") == True
 
-    event = Event(parent=marriage, description="Something happened")
+    event = Event(
+        EventKind.Shift,
+        marriage.personA(),
+        spouse=marriage.personB(),
+        description="Something happened",
+    )
     scene.addItem(event)
     assert mp.itemProp("marriedBox", "enabled") == False
     assert mp.itemProp("separatedBox", "enabled") == False

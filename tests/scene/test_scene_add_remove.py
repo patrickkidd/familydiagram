@@ -41,16 +41,18 @@ def test_undoStackDateTimes(scene):
     assert scene._undoStack.index() == 1
     assert scene._undoStackDateTimes == {0: QDateTime()}
 
-    event1 = Event(
-        parent=person, description="First datetime", dateTime=util.Date(2001, 1, 1)
-    )
-    scene.addItem(event1, undo=True)
+    event1 = 
+    scene.addItem(Event(
+        kind=EventKind.Shift,
+        person, description="First datetime", dateTime=util.Date(2001, 1, 1)
+    ), undo=True)
     assert scene._undoStack.index() == 2
     assert scene.currentDateTime() == event1.dateTime()
     assert scene._undoStackDateTimes == {0: QDateTime(), 1: QDateTime()}
 
     event2 = Event(
-        parent=person, description="Second datetime", dateTime=util.Date(2002, 1, 1)
+        EventKind.Shift,
+        person, description="Second datetime", dateTime=util.Date(2002, 1, 1)
     )
     scene.addItem(event2, undo=True)
     assert scene._undoStack.index() == 3
@@ -136,15 +138,16 @@ def test_add_emotion(scene, undo):
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Event(
-        kind=EventKind.Shift,
-        startDateTime=util.Date(2001, 1, 1),
-        person=person1,
+    event = Event(
+        EventKind.Shift,
+        person1,
+        dateTime=util.Date(2001, 1, 1),
         relationship=RelationshipKind.Conflict,
-        relationshipTargets=person2,
+        relationshipTargets=[person2],
     )
+    emotion = Emotion(RelationshipKind.Conflict, person2, event=event)
     scene.addItems(person1, person2)
-    scene.addItem(emotion, undo=undo)
+    scene.addItems(event, emotion, undo=undo)
     assert eventAdded.callCount == 1
     assert emotionAdded.callCount == 1
     assert scene.people() == [person1, person2]
@@ -156,7 +159,7 @@ def test_add_emotion(scene, undo):
         assert emotionRemoved.callCount == 1
         assert scene.emotions() == []
     else:
-        assert scene.currentDateTime() == emotion.dateTime()
+        assert scene.currentDateTime() == event.dateTime()
         assert eventRemoved.callCount == 0
         assert emotionRemoved.callCount == 0
         assert scene.emotions() == [emotion]
@@ -376,7 +379,7 @@ def test_remove_emotion(scene, undo):
     emotionRemoved = util.Condition(scene.emotionRemoved)
     person1 = Person(name="person1")
     person2 = Person(name="person2")
-    emotion = Emotion(person1, person2, kind=ItemMode.Conflict)
+    emotion = Emotion(RelationshipKind.Conflict, person2, target=person1)
     scene.addItems(person1, person2)
     scene.addItem(emotion)
     scene.removeItem(emotion, undo=undo)
@@ -521,30 +524,27 @@ def test_undo_remove_child_selected(scene):
 def test_add_events_sets_currentDateTime(scene):
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
-    event_1 = Event(parent=person, dateTime=util.Date(2001, 1, 1))
+    event_1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     scene.addItem(event_1)
     assert scene.currentDateTime() == event_1.dateTime()
 
-    event_2 = Event(parent=person, dateTime=util.Date(2002, 1, 1))
+    event_2 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1))
     scene.addItem(event_2)
     assert scene.currentDateTime() == event_2.dateTime()
 
 
 def test_remove_last_event_sets_currentDateTime(scene):
-    person = Person(name="p1")
-    event = Event(parent=person, dateTime=util.Date(2001, 1, 1))
-    scene.addItem(person)
-    assert scene.currentDateTime() == event.dateTime()
+    person = cene.addItem(Person(name="p1", birthDateTime=util.Date(2001, 1, 1)))
+    assert scene.currentDateTime() == person.birthEvent.dateTime()
 
-    event.setDateTime(QDateTime())
+    person.birthEvent.setDateTime(QDateTime())
     assert scene.currentDateTime() == QDateTime()
 
 
 def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
-    event = Event(parent=person, dateTime=util.Date(2001, 1, 1))
-    scene.addItem(event)
+    event= scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)))
     assert scene.currentDateTime() == event.dateTime()
 
     person.setSelected(True)
@@ -555,11 +555,10 @@ def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
 def test_remove_all_events_clears_currentDateTime(scene):
     person = Person(name="Hey", lastName="You")
     scene.addItem(person)
-    event_1 = Event(parent=person, dateTime=util.Date(2001, 1, 1))
-    scene.addItem(event_1)
-    assert scene.currentDateTime() == event_1.dateTime()
+    event = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)))
+    assert scene.currentDateTime() == event.dateTime()
 
-    scene.removeItem(event_1)
+    scene.removeItem(event)
     assert Scene().currentDateTime().isNull()
 
 

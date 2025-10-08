@@ -8,9 +8,9 @@ def test_init_deinit():
     scene.addEventProperty("var2")
     scene.addEventProperty("var3")
     person = Person(name="p1")
-    event1 = Event(parent=person)
-    event2 = Event(parent=person)
-    event3 = Event(parent=person)
+    event1 = Event(EventKind.Shift, person)
+    event2 = Event(EventKind.Shift, person)
+    event3 = Event(EventKind.Shift, person)
     scene.addItem(person)
 
     event1.dynamicProperty("var1").set("here")
@@ -40,8 +40,8 @@ def test_init_deinit():
 def test_set_value():
     scene = Scene()
     parent = Person()
-    event1 = Event(parent=parent)
-    event2 = Event(parent=parent)
+    event1 = Event(EventKind.Shift, parent)
+    event2 = Event(EventKind.Shift, parent)
     scene.addItem(parent)
     scene.addEventProperty("var1")
     model = EventVariablesModel()

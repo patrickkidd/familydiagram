@@ -32,9 +32,9 @@ Spec
 - Remove dateTime editors from PersonProperties in favor of a button to edit those singleton events, just like EmotionProperties.
 
 
-
 Edit events with EventForm
 ------------------------------------
+- Migrate CustomPairBond events to VariableShift for person/spouse
 - Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.
 - event.includeOnDiagram
 - Event.color

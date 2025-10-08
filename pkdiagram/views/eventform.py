@@ -1,5 +1,4 @@
 import logging
-from turtle import color
 
 from pkdiagram.pyqt import (
     pyqtSignal,

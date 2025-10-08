@@ -10,6 +10,7 @@ from pkdiagram.scene import (
     Layer,
     Person,
     Event,
+    EventKind,
 )
 
 
@@ -310,7 +311,7 @@ def test_new_event_adds_variable_values(scene):
     scene.addItems(person)
 
     # Simulate AddEventDialog setup.
-    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
+    event = Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11))
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
@@ -358,7 +359,7 @@ def test_draw_builtin_vars(kind, attr, value):
     person = Person(kind=kind)
     scene.addItems(person)
 
-    event = Event(parent=person, dateTime=DATE)
+    event = Event(EventKind.Shift, person, dateTime=DATE)
     event.addDynamicProperty(attr)
     event.dynamicProperties[0].set(value)
     person.updateGeometry()

@@ -23,7 +23,7 @@ from pkdiagram.pyqt import (
     QPainter,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind
+from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item
 from pkdiagram.scene.commands import SetEmotionPerson, SetProperty
 
 

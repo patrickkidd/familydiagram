@@ -26,7 +26,7 @@ def someDefault() -> int:
 
 
 class MyCallableDefaultItem(Item):
-    Item.registerProperties(({"attr": "num", "type": int, "default": someDefault}))
+    Item.registerProperties([{"attr": "num", "type": int, "default": someDefault}])
 
 
 def test_default_is_callable(scene):

@@ -30,7 +30,7 @@ from pkdiagram.scene import (
     Callout,
     ItemMode,
     EventKind,
-    RelationshipKind
+    RelationshipKind,
 )
 from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
@@ -162,9 +162,13 @@ def test_remove_person(qtbot, dv, scene):
 
 def test_undo_remove_event(dv, scene):
     person = Person(name="Hey")
-    event1 = Event(EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    event1 = Event(
+        EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1)
+    )
     scene.addItems(person)  # batch add remove
-    event2 = Event(EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1))
+    event2 = Event(
+        EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1)
+    )
     scene.addItem(event2)
     scene.setCurrentDateTime(
         util.Date(2003, 1, 1)
@@ -180,7 +184,7 @@ def test_undo_remove_event(dv, scene):
 def test_undo_remove_undated_emotion(dv, scene):
     personA = Person(name="PersonA", birthDateTime=util.Date(2001, 1, 1))
     personB = Person(name="PersonB")
-    emotion = Emotion(ItemMode.Conflict, personB, person=personA)
+    emotion = Emotion(RelationshipKind.Conflict, personB, person=personA)
     scene.addItems(personA, personB, emotion, batch=False)
     assert dv.isGraphicalTimelineShown() == True
 
@@ -194,13 +198,15 @@ def test_undo_remove_undated_emotion(dv, scene):
 def test_undo_remove_emotion_no_other_events(dv, scene):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
-    emotion = Emotion(
-        RelationshipKind.Conflict,
-        personB.
-        person=personA,
-        startDateTime=util.Date(2002, 1, 1),
+    event = Event(
+        EventKind.Shift,
+        personA,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2002, 1, 1),
     )
-    scene.addItems(personA, personB, emotion, batch=False)
+    emotion = Emotion(RelationshipKind.Conflict, personB, event=event)
+    scene.addItems(personA, personB, event, emotion, batch=False)
     assert dv.isGraphicalTimelineShown() == True
 
     scene.removeItem(emotion, undo=True)
@@ -363,8 +369,12 @@ def test_inspect_to_person_props_to_hide(qtbot, dv: DocumentView):
 
 def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
     person = Person(name="person")
-    event_2 = Event(EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1))
-    event_1 = Event(EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1))
+    event_2 = Event(
+        EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1)
+    )
+    event_1 = Event(
+        EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1)
+    )
     dv.scene.addItem(person)
     dv.timelineSelectionModel.select(
         QItemSelection(
@@ -384,12 +394,8 @@ def test_inspect_events_from_graphical_timeline(qtbot, dv: DocumentView):
 def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     personA = Person(name="PersonA")
     personB = Person(name="PersonB")
-    emotion1 = Emotion(RelationshipKind.Conflict, personA=personA, personB=personB)
-    emotion2 = Emotion(
-        RelationshipKind.Projection,
-        personB,
-        person=personA
-    )
+    emotion1 = Emotion(RelationshipKind.Conflict, personB, person=personA)
+    emotion2 = Emotion(RelationshipKind.Projection, personB, person=personA)
     scene.addItems(personA, personB, emotion1, emotion2)
     personA.setItemPos(QPointF(-200, -200))
     personB.setItemPos(QPointF(200, 200))
@@ -504,9 +510,15 @@ def test_toggle_search_tag_via_model(scene, dv):
     person = Person()
     person.birthEvent.setDateTime(util.Date(2001, 1, 1))
     scene.addItem(person)
-    event_1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"])
-    event_2 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"])
-    event_3 = Event(EventKind.Shift, person, dateTime=util.Date(2003, 1, 1), tags=["you"])
+    event_1 = Event(
+        EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"]
+    )
+    event_2 = Event(
+        EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"]
+    )
+    event_3 = Event(
+        EventKind.Shift, person, dateTime=util.Date(2003, 1, 1), tags=["you"]
+    )
     scene.addItems(event_1, event_2, event_3)
     scene.setTags(["here", "you", "are"])
 
@@ -647,7 +659,7 @@ def test_deselect_all_layers(dv):
 def test_retain_tab_between_selections(qtbot, mw, test_session):
     # _init_mw(mw, test_session)
     personA, personB = Person(), Person(kind="female")
-    conflict = Emotion(personA=personA, personB=personB, kind=RelationshipKind.Conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     personA.setPos(-100, 0)
     personB.setPos(100, 0)
@@ -866,11 +878,13 @@ def test_writePDF(tmp_path, scene, dv: DocumentView):
 
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
-       EventKind.Shift, 
-       person, datetime=util.Date(2001, 1, 1), description="Something happened"
+        EventKind.Shift,
+        person,
+        datetime=util.Date(2001, 1, 1),
+        description="Something happened",
     )
     event2 = Event(
-        EventKind.Shift, 
+        EventKind.Shift,
         person,
         datetime=util.Date(2002, 1, 1),
         description="Something happened again",
@@ -903,11 +917,13 @@ def test_writeExcel(tmp_path, scene, dv: DocumentView):
 
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
-        EventKind.Shift, 
-        person, datetime=util.Date(2001, 1, 1), description="Something happened"
+        EventKind.Shift,
+        person,
+        datetime=util.Date(2001, 1, 1),
+        description="Something happened",
     )
     event2 = Event(
-        EventKind.Shift, 
+        EventKind.Shift,
         person,
         datetime=util.Date(2002, 1, 1),
         description="Something happened again",
@@ -943,13 +959,24 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
             iDay += stride
             dateTime = firstDate.addDays(iDay)
             event = Event(
-                EventKind.Shift, 
-                parent, description="Test event %i" % iDay, dateTime=dateTime
+                EventKind.Shift,
+                parent,
+                description="Test event %i" % iDay,
+                dateTime=dateTime,
             )
             scene.addItem(event)
         iDay += stride
         dateTime = firstDate.addDays(iDay)
-        Emotion(personA=person1, personB=person2, kind=next(kinds), dateTime=dateTime)
+        kind = next(kinds)
+        event = Event(
+            EventKind.Shift,
+            person1,
+            relationship=kind,
+            relationshipTargets=[person2],
+            dateTime=dateTime,
+        )
+        emotion = Emotion(kind, person2, event=event)
+        scene.addItems(event, emotion)
     # util.printModel(dv.timelineModel)
     filePath = os.path.join(tmp_path, "test.xlsx")
     dv.controller.writeExcel(filePath)
@@ -1019,7 +1046,9 @@ def test_write_JSON(tmp_path, dv: DocumentView):
     person = dv.scene.addItem(Person(name="person"))
     event1 = Event(
         EventKind.Shift,
-        person, datetime=util.Date(2001, 1, 1), description="Something happened"
+        person,
+        datetime=util.Date(2001, 1, 1),
+        description="Something happened",
     )
     event2 = Event(
         EventKind.Shift,

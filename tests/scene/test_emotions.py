@@ -4,6 +4,7 @@ from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer, ItemMode
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel
+from pkdiagram.scene import EventKind, Event
 from pkdiagram.scene.relationshipkind import RelationshipKind
 
 
@@ -108,8 +109,8 @@ def test_FannedBox_add(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
-    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
+    fusion = Emotion(RelationshipKind.Fusion, personB, person=personA)
+    projection = Emotion(RelationshipKind.Projection, personB, person=personA)
     scene.addItems(personA, personB, fusion, projection)
 
     assert fusion.fannedBox is not None
@@ -122,9 +123,9 @@ def test_FannedBox_add_multiple(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
-    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
-    toward = Emotion(kind=ItemMode.Toward, personA=personA, personB=personB)
+    fusion = Emotion(RelationshipKind.Fusion, personB, person=personA)
+    projection = Emotion(RelationshipKind.Projection, personB, person=personA)
+    toward = Emotion(RelationshipKind.Toward, personB, person=personA)
     scene.addItem(personA, personB)
     # Add these one at a time to better simulate clicking
     scene.addItem(fusion)
@@ -152,8 +153,8 @@ def test_FannedBox_remove(TestFannedBox):
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
-    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
+    fusion = Emotion(RelationshipKind.Fusion, personB, person=personA)
+    projection = Emotion(RelationshipKind.Projection, personB, person=personA)
     scene.addItems(personA, personB, fusion, projection)
     scene.removeItem(projection)
     assert fusion.fannedBox is not None
@@ -178,28 +179,41 @@ def test_FannedBox_peers_multiple():
     personA = Person()
     personB = Person()
     personA.birthEvent.setDateTime(util.Date(2001, 1, 1))
-    fusion = Emotion(
-        kind=ItemMode.Fusion,
-        personA=personA,
-        personB=personB,
-        startDateTime=util.Date(2001, 2, 1),
-        endDateTime=util.Date(2001, 4, 2),
+    fusionEvent = Event(
+        EventKind.Shift,
+        personA,
+        relationship=RelationshipKind.Fusion,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2001, 2, 1),
     )
-    projection = Emotion(
-        kind=ItemMode.Projection,
-        personA=personA,
-        personB=personB,
-        isDateRange=True,
-        startDateTime=util.Date(2001, 3, 1),
+    fusionEvent.setEndDateTime(util.Date(2001, 4, 2))
+    fusion = Emotion(RelationshipKind.Fusion, personB, event=fusionEvent)
+    projectionEvent = Event(
+        EventKind.Shift,
+        personA,
+        relationship=RelationshipKind.Projection,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2001, 3, 1),
     )
-    toward = Emotion(
-        kind=ItemMode.Toward,
-        personA=personA,
-        personB=personB,
-        isDateRange=True,
-        startDateTime=util.Date(2001, 4, 1),
+    projection = Emotion(RelationshipKind.Projection, personB, event=projectionEvent)
+    towardEvent = Event(
+        EventKind.Shift,
+        personA,
+        relationship=RelationshipKind.Toward,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2001, 4, 1),
     )
-    scene.addItems(personA, personB, fusion, projection, toward)
+    toward = Emotion(RelationshipKind.Toward, personB, event=towardEvent)
+    scene.addItems(
+        personA,
+        personB,
+        fusionEvent,
+        fusion,
+        projectionEvent,
+        projection,
+        towardEvent,
+        toward,
+    )
 
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
     assert fusion.peers() == set()
@@ -235,9 +249,9 @@ def test_FannedBox_peers_different_tags():
     searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
+    fusion = Emotion(RelationshipKind.Fusion, personB, person=personA)
     projection = Emotion(
-        kind=ItemMode.Projection, personA=personA, personB=personB, tags=["tag-1"]
+        RelationshipKind.Projection, personB, person=personA, tags=["tag-1"]
     )
     scene.addItems(personA, personB, fusion, projection)
     assert fusion.peers() == {projection}
@@ -264,8 +278,8 @@ def test_FannedBox_posDelta_adapt():
     scene = Scene()
     personA = Person()
     personB = Person()
-    fusion = Emotion(kind=ItemMode.Fusion, personA=personA, personB=personB)
-    projection = Emotion(kind=ItemMode.Projection, personA=personA, personB=personB)
+    fusion = Emotion(RelationshipKind.Fusion, personB, person=personA)
+    projection = Emotion(RelationshipKind.Projection, personB, person=personA)
     scene.addItems(personA, personB, fusion, projection)
     personA.setPos(100, 100)
     personB.setPos(-100, -100)
@@ -285,7 +299,7 @@ def test_shouldShowFor():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(personA, personB, kind=ItemMode.Conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     scene.addItems(personA, personB, conflict)
 
     # No tags
@@ -330,7 +344,7 @@ def test_honors_searchModel_tags():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(personA, personB, kind=ItemMode.Conflict, tags=TAGS)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA, tags=TAGS)
     scene.addItems(personA, personB, conflict)
     searchModel = SearchModel()
     searchModel.scene = scene
@@ -350,15 +364,18 @@ def test_honors_searchModel_tags_plus_dates():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(
+    conflictEvent = Event(
+        EventKind.Shift,
         personA,
-        personB,
-        kind=ItemMode.Conflict,
-        startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1),
-        tags=TAGS,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2000, 1, 1),
     )
-    scene.addItems(personA, personB, conflict)
+    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
+    conflict = Emotion(
+        RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
+    )
+    scene.addItems(personA, personB, conflictEvent, conflict)
     scene.setCurrentDateTime(util.Date(1990, 1, 1))
     assert conflict.isVisible() == False
 
@@ -386,16 +403,19 @@ def test_persons_hidden_tags_shown():
     searchModel.scene = scene
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(
+    conflictEvent = Event(
+        EventKind.Shift,
         personA,
-        personB,
-        kind=ItemMode.Conflict,
-        startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1),
-        tags=TAGS,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2000, 1, 1),
+    )
+    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
+    conflict = Emotion(
+        RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
     )
     layer = Layer(name="View 1")
-    scene.addItems(personA, personB, conflict, layer)
+    scene.addItems(personA, personB, conflictEvent, conflict, layer)
     personA.setLayers([layer.id])
     searchModel.setTags(TAGS)
     scene.setCurrentDateTime(util.Date(2000, 5, 1))  # during conflict
@@ -412,13 +432,15 @@ def test_persons_hidden_tags_shown():
 def test_descriptions_diff_dates():
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(
+    conflictEvent = Event(
+        EventKind.Shift,
         personA,
-        personB,
-        kind=ItemMode.Conflict,
-        startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1),
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2000, 1, 1),
     )
+    conflictEvent.setEndDateTime(util.Date(2001, 1, 1))
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
     assert conflict.startEvent.description() == "Conflict began"
     assert conflict.endEvent.description() == "Conflict ended"
 
@@ -426,13 +448,15 @@ def test_descriptions_diff_dates():
 def test_descriptions_same_dates():
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(
+    conflictEvent = Event(
+        EventKind.Shift,
         personA,
-        personB,
-        kind=ItemMode.Conflict,
-        startDateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2000, 1, 1),
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=util.Date(2000, 1, 1),
     )
+    conflictEvent.setEndDateTime(util.Date(2000, 1, 1))
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
     assert conflict.startEvent.description() == "Conflict"
     assert conflict.endEvent.description() == None
 
@@ -452,10 +476,15 @@ def test_add_emotion_sets_scene_currentDate():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflict = Emotion(
-        personA, personB, kind=ItemMode.Conflict, startDateTime=START_DATETIME
+    conflictEvent = Event(
+        EventKind.Shift,
+        personA,
+        relationship=RelationshipKind.Conflict,
+        relationshipTargets=[personB],
+        dateTime=START_DATETIME,
     )
-    scene.addItem(conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, event=conflictEvent)
+    scene.addItems(conflictEvent, conflict)
     assert scene.currentDateTime() == START_DATETIME
 
 
@@ -463,7 +492,7 @@ def test_mirror_notes_set_from_item():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
+    emotion = Emotion(RelationshipKind.Conflict, personB, person=personA)
     scene = Scene()
     scene.addItem(emotion)
     emotion.setNotes(NOTES)
@@ -474,7 +503,7 @@ def test_mirror_notes_set_from_startEvent():
     NOTES = "bleh"
 
     personA, personB = Person(), Person()
-    emotion = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
+    emotion = Emotion(RelationshipKind.Conflict, personB, person=personA)
     scene = Scene()
     scene.addItem(emotion)
     emotion.startEvent.setNotes(NOTES)
@@ -482,8 +511,6 @@ def test_mirror_notes_set_from_startEvent():
 
 
 def test_emotion_intensity_defers_to_event():
-    from pkdiagram.scene import Event, EventKind
-
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
@@ -496,7 +523,7 @@ def test_emotion_intensity_defers_to_event():
     )
     event.setRelationshipIntensity(75)
 
-    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB, event=event)
+    emotion = Emotion(RelationshipKind.Conflict, personB, event=event)
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -505,8 +532,6 @@ def test_emotion_intensity_defers_to_event():
 
 
 def test_emotion_color_defers_to_event():
-    from pkdiagram.scene import Event, EventKind
-
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
@@ -519,7 +544,7 @@ def test_emotion_color_defers_to_event():
     )
     event.setColor("#FF5733")
 
-    emotion = Emotion(kind=RelationshipKind.Distance, target=personB, event=event)
+    emotion = Emotion(RelationshipKind.Distance, personB, event=event)
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -528,8 +553,6 @@ def test_emotion_color_defers_to_event():
 
 
 def test_emotion_notes_defers_to_event():
-    from pkdiagram.scene import Event, EventKind
-
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
@@ -542,7 +565,7 @@ def test_emotion_notes_defers_to_event():
     )
     event.setNotes("Important relationship notes")
 
-    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB, event=event)
+    emotion = Emotion(RelationshipKind.Conflict, personB, event=event)
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -555,7 +578,7 @@ def test_emotion_properties_fallback_without_event():
     personA = Person(name="A")
     personB = Person(name="B")
 
-    emotion = Emotion(kind=RelationshipKind.Conflict, target=personB)
+    emotion = Emotion(RelationshipKind.Conflict, personB)
     emotion.prop("color").set("#123456")
     emotion.prop("notes").set("Local notes")
 

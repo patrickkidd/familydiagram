@@ -102,7 +102,7 @@ def test_emotion_kb_shortcut_item(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -117,7 +117,7 @@ def test_emotion_kb_shortcut_notes(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -132,7 +132,7 @@ def test_emotion_kb_shortcut_meta(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=ItemMode.Conflict)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"

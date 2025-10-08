@@ -15,6 +15,7 @@ from pkdiagram.scene import (
     Layer,
     EventKind,
     ItemMode,
+    RelationshipKind,
 )
 from pkdiagram.models import SceneLayerModel
 
@@ -124,13 +125,17 @@ def test_anonymize():
     scene = Scene()
     patrick = Person(name="Patrick", alias="Marco", notes="Patrick Bob")
     bob = Person(name="Bob", nickName="Robby", alias="John")
-    e1 = Event(parent=patrick, description="Bob came home")
-    e2 = Event(parent=patrick, description="robby came home, took Robby's place")
-    e3 = Event(parent=bob, description="Patrick came home with bob")
+    scene.addItems(patrick, bob)
+    e1 = Event(EventKind.Shift, patrick, description="Bob came home")
+    e2 = Event(
+        EventKind.Shift, patrick, description="robby came home, took Robby's place"
+    )
+    e3 = Event(EventKind.Shift, bob, description="Patrick came home with bob")
+    scene.additems(e1, e2, e3)
     distance = Emotion(
-        kind=ItemMode.Distance,
-        personA=patrick,
-        personB=bob,
+        kind=RelationshipKind.Distance,
+        bob,
+        person=patrick,
         notes="""
 Here is a story about Patrick
 and Bob
