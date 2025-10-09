@@ -248,6 +248,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self.refreshAllProperties()
         self.modelReset.emit()
 
+    def rows(self) -> list[TimelineRow]:
+        return list(self._rows)
+
     def onSearchChanged(self):
         self._refreshRows()
 

@@ -80,11 +80,6 @@ class DocumentController(QObject):
 
         self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
 
-        self.dv.personProps.editBirthEvent.connect(self.onEditPersonBirthEvent)
-        self.dv.personProps.editDeathEvent.connect(self.onEditPersonDeathEvent)
-
-        self.dv.emotionProps.editEvent.connect(self.onEditEmotionEvent)
-
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
         )

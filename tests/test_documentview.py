@@ -489,8 +489,8 @@ def test_load_reload(qtbot, dv):
 
 def test_prevTaggedDateTime(dv):
     person = Person()
-    person.birthEvent.setDateTime(util.Date(2001, 1, 1))
     dv.scene.addItem(person)
+    dv.scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
     dv.scene.setCurrentDateTime(util.Date(2002, 1, 1))
     dv.controller.onPrevEvent()
     assert dv.scene.currentDateTime() == util.Date(2001, 1, 1)
@@ -498,8 +498,8 @@ def test_prevTaggedDateTime(dv):
 
 def test_nextTaggedDateTime(dv):
     person = Person()
-    person.birthEvent.setDateTime(util.Date(2000, 1, 1))
     dv.scene.addItem(person)
+    dv.scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2000, 1, 1)))
     dv.scene.setCurrentDateTime(util.Date(1990, 1, 1))
     dv.controller.onNextEvent()
     assert dv.scene.currentDateTime() == util.Date(2000, 1, 1)
@@ -508,8 +508,8 @@ def test_nextTaggedDateTime(dv):
 def test_toggle_search_tag_via_model(scene, dv):
     """Was bombing on setCurrentDate."""
     person = Person()
-    person.birthEvent.setDateTime(util.Date(2001, 1, 1))
     scene.addItem(person)
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
     event_1 = Event(
         EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"]
     )
@@ -799,8 +799,8 @@ def test_nextTaggedDate_uses_search_tags(scene, dv: DocumentView):
     assert scene.currentDateTime() == person3.birthDateTime()
 
     # then test after setting tags
-    person1.birthEvent.setTags(tags)
-    person3.birthEvent.setTags(tags)
+    scene.eventsFor(person1, kinds=EventKind.Birth)[0].setTags(tags)
+    scene.eventsFor(person3, kinds=EventKind.Birth)[0].setTags(tags)
     dv.searchModel.setTags(tags)
 
     taggedEvents = [e for e in scene.events() if e.hasTags(tags)]
@@ -849,8 +849,8 @@ def test_nextTaggedDate_uses_searchModel(dv: DocumentView):
     assert scene.currentDateTime() == person3.birthDateTime()
 
     # then test after setting tags
-    person1.birthEvent.setTags(tags)
-    person3.birthEvent.setTags(tags)
+    scene.eventsFor(person1, kinds=EventKind.Birth)[0].setTags(tags)
+    scene.eventsFor(person3, kinds=EventKind.Birth)[0].setTags(tags)
     dv.searchModel.setTags(tags)
 
     taggedEvents = [e for e in scene.events() if e.hasTags(tags)]

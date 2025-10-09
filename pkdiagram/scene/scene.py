@@ -58,6 +58,7 @@ from pkdiagram.scene import (
     ItemGarbage,
     ItemDetails,
     clipboard,
+    RelationshipKind,
 )
 from pkdiagram.scene.commands import (
     AddItem,
@@ -1361,7 +1362,7 @@ class Scene(QGraphicsScene, Item):
             path = Person.pathFor("female", pos=QPointF(0, 0))
             scale = self.newPersonScale()
         elif self.itemMode() == ItemMode.Cutoff:
-            path = Emotion.pathFor(ItemMode.Cutoff, person=QPointF(0, 0))
+            path = Emotion.pathFor(RelationshipKind.Cutoff, person=QPointF(0, 0))
             scale = (1 / self.scaleFactor()) * 0.6
         elif self.itemMode() == ItemMode.Callout:
             path = Callout(scale=self.newPersonScale()).path()
@@ -1551,18 +1552,27 @@ class Scene(QGraphicsScene, Item):
             ret = [x for x in ret if x.dateTime()]
         return ret
 
-    def eventsFor(self, item: Person | Marriage) -> list[Event]:
+    def eventsFor(
+        self, item: Person | Marriage, kinds: EventKind | list[EventKind] = None
+    ) -> list[Event]:
         if isinstance(item, Person):
-            return sorted([e for e in self._events if e.person() is item])
+            events = [e for e in self._events if e.person() is item]
         elif isinstance(item, Marriage):
-            return sorted(
-                [
-                    x
-                    for x in self.events()
-                    if {x.person(), x.spouse()} == {item.personA(), item.personB()}
-                ]
-            )
-        raise TypeError("item must be Person or Marriage")
+            events = [
+                x
+                for x in self.events()
+                if {x.person(), x.spouse()} == {item.personA(), item.personB()}
+            ]
+        else:
+            raise TypeError("item must be Person or Marriage")
+
+        if kinds is not None:
+            if isinstance(kinds, list):
+                events = [e for e in events if e.kind() in kinds]
+            else:
+                events = [e for e in events if e.kind() == kinds]
+
+        return sorted(events)
 
     def marriageFor(self, personA: Person, personB: Person) -> Marriage | None:
         for m in self._marriages:
@@ -2062,7 +2072,7 @@ class Scene(QGraphicsScene, Item):
                         iFiles = iFiles + 1
                 iPeople = iPeople + 1
             if item.isPerson or item.isMarriage:
-                iEvents += len(item.events())
+                iEvents += len(self.eventsFor(item))
         if iFiles > 0:
             btn = QMessageBox.question(
                 QApplication.activeWindow(),

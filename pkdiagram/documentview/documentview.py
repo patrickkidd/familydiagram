@@ -135,6 +135,21 @@ class DocumentView(QWidget):
             drawer.canInspectChanged.connect(self.qmlSelectionChanged.emit)
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
             drawer.qmlFocusItemChanged.connect(self.controller.onQmlFocusItemChanged)
+
+        def _init_personProps():
+            self.personProps.qml.rootObject().editBirthEvent.connect(
+                self.onEditPersonBirthEvent
+            )
+            self.personProps.qml.rootObject().editDeathEvent.connect(
+                self.onEditPersonDeathEvent
+            )
+
+        self.personProps.qmlInitialized.connect(_init_personProps)
+        self.emotionProps.qmlInitialized.connect(
+            lambda: self.emotionProps.qml.rootObject().editEvent.connect(
+                self.onEditEmotionEvent
+            )
+        )
         self.eventForm.doneEditing.connect(self.controller.onEventFormDoneEditing)
         self._forceSceneUpdate = False  # fix for scene update bug
 
