@@ -43,33 +43,27 @@ def test_phase_6_2_extract_person_builtin_events():
                 "birthEvent": {
                     "id": 2,
                     "uniqueId": "birth",
-                    "dateTime": "2000-01-01T00:00:00"
+                    "dateTime": "2000-01-01T00:00:00",
                 },
                 "adoptedEvent": {
                     "id": 3,
                     "uniqueId": "adopted",
-                    "dateTime": "2005-06-15T00:00:00"
+                    "dateTime": "2005-06-15T00:00:00",
                 },
                 "deathEvent": {
                     "id": 4,
                     "uniqueId": "death",
-                    "dateTime": "2080-01-01T00:00:00"
+                    "dateTime": "2080-01-01T00:00:00",
                 },
-                "events": []
+                "events": [],
             }
-        ]
+        ],
     }
 
     expected = {
         "version": "2.0.11",
         "lastItemId": 10,
-        "people": [
-            {
-                "kind": "Person",
-                "id": 1,
-                "name": "Alice"
-            }
-        ],
+        "people": [{"kind": "Person", "id": 1, "name": "Alice"}],
         "marriages": [],
         "emotions": [],
         "events": [
@@ -77,24 +71,24 @@ def test_phase_6_2_extract_person_builtin_events():
                 "id": 2,
                 "kind": EventKind.Birth.value,
                 "dateTime": "2000-01-01T00:00:00",
-                "person": 1
+                "person": 1,
             },
             {
                 "id": 3,
                 "kind": EventKind.Adopted.value,
                 "dateTime": "2005-06-15T00:00:00",
-                "person": 1
+                "person": 1,
             },
             {
                 "id": 4,
                 "kind": EventKind.Death.value,
                 "dateTime": "2080-01-01T00:00:00",
-                "person": 1
-            }
+                "person": 1,
+            },
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -113,7 +107,7 @@ def test_phase_6_1_split_items_into_separate_arrays():
             {"kind": "Layer", "id": 5, "name": "Layer 1"},
             {"kind": "Callout", "id": 6},
             {"kind": "MultipleBirth", "id": 7},
-        ]
+        ],
     }
 
     expected = {
@@ -121,11 +115,11 @@ def test_phase_6_1_split_items_into_separate_arrays():
         "lastItemId": 7,
         "people": [{"kind": "Person", "id": 1, "name": "Alice"}],
         "marriages": [{"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3}],
-        "emotions": [{"kind": "Conflict", "id": 3}],
+        "emotions": [{"kind": RelationshipKind.Conflict.value, "id": 3}],
         "events": [{"id": 4, "kind": EventKind.Birth.value}],
         "layers": [{"kind": "Layer", "id": 5, "name": "Layer 1"}],
         "layerItems": [{"kind": "Callout", "id": 6}],
-        "multipleBirths": [{"kind": "MultipleBirth", "id": 7}]
+        "multipleBirths": [{"kind": "MultipleBirth", "id": 7}],
     }
 
     compat.update_data(data)
@@ -142,10 +136,14 @@ def test_phase_6_2_extract_person_custom_events():
                 "id": 1,
                 "name": "Alice",
                 "events": [
-                    {"id": 5, "uniqueId": "CustomIndividual", "dateTime": "2020-05-01T00:00:00"}
-                ]
+                    {
+                        "id": 5,
+                        "uniqueId": "CustomIndividual",
+                        "dateTime": "2020-05-01T00:00:00",
+                    }
+                ],
             }
-        ]
+        ],
     }
 
     expected = {
@@ -159,12 +157,12 @@ def test_phase_6_2_extract_person_custom_events():
                 "id": 5,
                 "kind": EventKind.Shift.value,
                 "dateTime": "2020-05-01T00:00:00",
-                "person": 1
+                "person": 1,
             }
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -183,13 +181,30 @@ def test_phase_6_2_extract_marriage_events():
                 "person_b": 2,
                 "events": [
                     {"id": 15, "uniqueId": "bonded", "dateTime": "2015-06-01T00:00:00"},
-                    {"id": 16, "uniqueId": "married", "dateTime": "2016-06-01T00:00:00"},
-                    {"id": 17, "uniqueId": "moved", "dateTime": "2018-03-15T00:00:00", "location": "NYC"},
-                    {"id": 18, "uniqueId": "separated", "dateTime": "2019-09-01T00:00:00"},
-                    {"id": 19, "uniqueId": "divorced", "dateTime": "2020-06-01T00:00:00"}
-                ]
+                    {
+                        "id": 16,
+                        "uniqueId": "married",
+                        "dateTime": "2016-06-01T00:00:00",
+                    },
+                    {
+                        "id": 17,
+                        "uniqueId": "moved",
+                        "dateTime": "2018-03-15T00:00:00",
+                        "location": "NYC",
+                    },
+                    {
+                        "id": 18,
+                        "uniqueId": "separated",
+                        "dateTime": "2019-09-01T00:00:00",
+                    },
+                    {
+                        "id": 19,
+                        "uniqueId": "divorced",
+                        "dateTime": "2020-06-01T00:00:00",
+                    },
+                ],
             }
-        ]
+        ],
     }
 
     expected = {
@@ -199,15 +214,46 @@ def test_phase_6_2_extract_marriage_events():
         "marriages": [{"kind": "Marriage", "id": 10, "person_a": 1, "person_b": 2}],
         "emotions": [],
         "events": [
-            {"id": 15, "kind": EventKind.Bonded.value, "dateTime": "2015-06-01T00:00:00", "person": 1, "spouse": 2},
-            {"id": 16, "kind": EventKind.Married.value, "dateTime": "2016-06-01T00:00:00", "person": 1, "spouse": 2},
-            {"id": 17, "kind": EventKind.Moved.value, "dateTime": "2018-03-15T00:00:00", "location": "NYC", "person": 1, "spouse": 2},
-            {"id": 18, "kind": EventKind.Separated.value, "dateTime": "2019-09-01T00:00:00", "person": 1, "spouse": 2},
-            {"id": 19, "kind": EventKind.Divorced.value, "dateTime": "2020-06-01T00:00:00", "person": 1, "spouse": 2}
+            {
+                "id": 15,
+                "kind": EventKind.Bonded.value,
+                "dateTime": "2015-06-01T00:00:00",
+                "person": 1,
+                "spouse": 2,
+            },
+            {
+                "id": 16,
+                "kind": EventKind.Married.value,
+                "dateTime": "2016-06-01T00:00:00",
+                "person": 1,
+                "spouse": 2,
+            },
+            {
+                "id": 17,
+                "kind": EventKind.Moved.value,
+                "dateTime": "2018-03-15T00:00:00",
+                "location": "NYC",
+                "person": 1,
+                "spouse": 2,
+            },
+            {
+                "id": 18,
+                "kind": EventKind.Separated.value,
+                "dateTime": "2019-09-01T00:00:00",
+                "person": 1,
+                "spouse": 2,
+            },
+            {
+                "id": 19,
+                "kind": EventKind.Divorced.value,
+                "dateTime": "2020-06-01T00:00:00",
+                "person": 1,
+                "spouse": 2,
+            },
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -230,15 +276,15 @@ def test_phase_6_2_extract_emotion_events_with_date_range():
                 "startEvent": {
                     "id": 25,
                     "uniqueId": "emotionStartEvent",
-                    "dateTime": "2020-01-01T00:00:00"
+                    "dateTime": "2020-01-01T00:00:00",
                 },
                 "endEvent": {
                     "id": 26,
                     "uniqueId": "emotionEndEvent",
-                    "dateTime": "2020-12-31T00:00:00"
-                }
+                    "dateTime": "2020-12-31T00:00:00",
+                },
             }
-        ]
+        ],
     }
 
     expected = {
@@ -248,10 +294,10 @@ def test_phase_6_2_extract_emotion_events_with_date_range():
         "marriages": [],
         "emotions": [
             {
-                "kind": "Conflict",
+                "kind": RelationshipKind.Conflict.value,
                 "id": 20,
                 "event": 25,
-                "target": 2
+                "target": 2,
             }
         ],
         "events": [
@@ -264,12 +310,12 @@ def test_phase_6_2_extract_emotion_events_with_date_range():
                 "relationshipTargets": [2],
                 "relationshipIntensity": 7,
                 "relationship": RelationshipKind.Conflict.value,
-                "notes": "Test conflict"
+                "notes": "Test conflict",
             }
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -290,10 +336,10 @@ def test_phase_6_2_extract_emotion_events_singular_date():
                 "startEvent": {
                     "id": 25,
                     "uniqueId": "emotionStartEvent",
-                    "dateTime": "2020-01-01T00:00:00"
-                }
+                    "dateTime": "2020-01-01T00:00:00",
+                },
             }
-        ]
+        ],
     }
 
     expected = {
@@ -303,10 +349,10 @@ def test_phase_6_2_extract_emotion_events_singular_date():
         "marriages": [],
         "emotions": [
             {
-                "kind": "Distance",
+                "kind": RelationshipKind.Distance.value,
                 "id": 20,
                 "event": 25,
-                "target": 2
+                "target": 2,
             }
         ],
         "events": [
@@ -317,12 +363,12 @@ def test_phase_6_2_extract_emotion_events_singular_date():
                 "person": 1,
                 "relationshipTargets": [2],
                 "relationshipIntensity": 3,
-                "relationship": RelationshipKind.Distance.value
+                "relationship": RelationshipKind.Distance.value,
             }
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -348,7 +394,7 @@ def test_phase_6_2_migrate_uniqueid_to_kind():
             {"id": 11, "uniqueId": ""},
             {"id": 12, "uniqueId": None},
             {"id": 13},
-        ]
+        ],
     }
 
     expected = {
@@ -374,7 +420,7 @@ def test_phase_6_2_migrate_uniqueid_to_kind():
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -389,18 +435,10 @@ def test_phase_6_2_assign_event_ids():
             {
                 "kind": "Person",
                 "id": 1,
-                "birthEvent": {
-                    "uniqueId": "birth",
-                    "dateTime": "2000-01-01T00:00:00"
-                },
-                "events": [
-                    {
-                        "uniqueId": "moved",
-                        "dateTime": "2020-01-01T00:00:00"
-                    }
-                ]
+                "birthEvent": {"uniqueId": "birth", "dateTime": "2000-01-01T00:00:00"},
+                "events": [{"uniqueId": "moved", "dateTime": "2020-01-01T00:00:00"}],
             }
-        ]
+        ],
     }
 
     expected = {
@@ -410,12 +448,22 @@ def test_phase_6_2_assign_event_ids():
         "marriages": [],
         "emotions": [],
         "events": [
-            {"id": 6, "kind": EventKind.Birth.value, "dateTime": "2000-01-01T00:00:00", "person": 1},
-            {"id": 7, "kind": EventKind.Moved.value, "dateTime": "2020-01-01T00:00:00", "person": 1}
+            {
+                "id": 6,
+                "kind": EventKind.Birth.value,
+                "dateTime": "2000-01-01T00:00:00",
+                "person": 1,
+            },
+            {
+                "id": 7,
+                "kind": EventKind.Moved.value,
+                "dateTime": "2020-01-01T00:00:00",
+                "person": 1,
+            },
         ],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
@@ -430,7 +478,7 @@ def test_phase_6_unknown_item_types_preserved():
             {"kind": "Person", "id": 1},
             {"kind": "UnknownFutureType", "id": 2},
             {"kind": "AnotherUnknown", "id": 3},
-        ]
+        ],
     }
 
     expected = {
@@ -445,8 +493,8 @@ def test_phase_6_unknown_item_types_preserved():
         "multipleBirths": [],
         "items": [
             {"kind": "UnknownFutureType", "id": 2},
-            {"kind": "AnotherUnknown", "id": 3}
-        ]
+            {"kind": "AnotherUnknown", "id": 3},
+        ],
     }
 
     compat.update_data(data)
@@ -460,8 +508,8 @@ def test_phase_6_empty_arrays_handling():
         "items": [
             {"kind": "Person", "id": 1, "events": []},
             {"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3, "events": []},
-            {"kind": "Conflict", "id": 3}
-        ]
+            {"kind": "Conflict", "id": 3},
+        ],
     }
 
     expected = {
@@ -469,11 +517,11 @@ def test_phase_6_empty_arrays_handling():
         "lastItemId": 5,
         "people": [{"kind": "Person", "id": 1}],
         "marriages": [{"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3}],
-        "emotions": [{"kind": "Conflict", "id": 3}],
+        "emotions": [{"kind": RelationshipKind.Conflict.value, "id": 3}],
         "events": [],
         "layerItems": [],
         "layers": [],
-        "multipleBirths": []
+        "multipleBirths": [],
     }
 
     compat.update_data(data)
