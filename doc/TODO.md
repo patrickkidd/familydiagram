@@ -34,6 +34,8 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Test out adding events with tags, setting tags on Emotion. See if it feels right.
+  - Kind of like editing color + notes on either item
 - Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Migrate CustomPairBond events to VariableShift for person/spouse
 - Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.

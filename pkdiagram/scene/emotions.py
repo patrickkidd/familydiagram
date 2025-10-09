@@ -488,6 +488,8 @@ def pathFor_Conflict(
     width = Jig.WIDTH * scale
     step = Jig.STEP * scale
     main = Jig(personA, personB, pointB, step=step, width=width)
+    if intensity is None:
+        intensity = 1
     for jig in main.divideBy(intensity):
         x = QPainterPath()
         x.moveTo(jig.p4)
@@ -1169,8 +1171,8 @@ class Emotion(PathItem):
             {"attr": "event", "type": int, "default": None},  # dated mode
             {"attr": "target", "type": int, "default": None},
             {"attr": "person", "type": int, "default": None},  # drawing mode
-            {"attr": "color", "default": Item.newColor},
-            {"attr": "notes"},
+            {"attr": "color", "type": str, "default": Item.newColor},
+            {"attr": "notes", "type": str, "default": ""},
         ]
     )
 
@@ -1707,8 +1709,10 @@ class Emotion(PathItem):
     def person(self) -> "Person":
         if self._person:  # when drawing, can't convert to dated later so this is ok.
             return self._person
-        else:
+        elif self._event:
             return self._event.person()
+        else:
+            return None
 
     def target(self) -> "Person":
         return self._target

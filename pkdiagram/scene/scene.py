@@ -396,15 +396,14 @@ class Scene(QGraphicsScene, Item):
             for target in item.relationshipTargets():
                 emotion = self.addItem(
                     Emotion(
-                        kind=self.relationship(),
+                        kind=item.relationship(),
                         target=target,
-                        event=self,
-                        tags=self.tags(),
-                        **kwargs,
+                        event=item,
+                        tags=item.tags(),
                     ),
                     undo=True,
                 )
-                self.do_addItem(emotion)
+                self._do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])

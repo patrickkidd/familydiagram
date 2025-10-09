@@ -169,50 +169,46 @@ def test_FannedBox_remove(TestFannedBox):
     assert TestFannedBox.test_getCount() == 1
 
 
-def test_FannedBox_peers_multiple():
+def test_FannedBox_peers_multiple(scene):
     """
     fusion  [2001/02/01 - 2001/04/02]
     proj            [2001/03/01 - ]
     toward              [2001/04/01 - ]
     """
-    scene = Scene()
-    personA = Person()
-    personB = Person()
-    fusionEvent = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Fusion,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2001, 2, 1),
-        endDateTime=util.Date(2001, 4, 2),
+    personA, personB = scene.addItems(Person(), Person())
+    fusionEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Fusion,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2001, 2, 1),
+            endDateTime=util.Date(2001, 4, 2),
+        )
     )
-    fusion = Emotion(RelationshipKind.Fusion, personB, event=fusionEvent)
-    projectionEvent = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Projection,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2001, 3, 1),
+    fusion = scene.emotionsFor(fusionEvent)[0]
+
+    projectionEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Projection,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2001, 3, 1),
+        )
     )
-    projection = Emotion(RelationshipKind.Projection, personB, event=projectionEvent)
-    towardEvent = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Toward,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2001, 4, 1),
+    projection = scene.emotionsFor(projectionEvent)[0]
+
+    towardEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Toward,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2001, 4, 1),
+        )
     )
-    toward = Emotion(RelationshipKind.Toward, personB, event=towardEvent)
-    scene.addItems(
-        personA,
-        personB,
-        fusionEvent,
-        fusion,
-        projectionEvent,
-        projection,
-        towardEvent,
-        toward,
-    )
+    toward = scene.emotionsFor(towardEvent)[0]
 
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
     assert fusion.peers() == set()
@@ -395,26 +391,26 @@ def test_honors_searchModel_tags_plus_dates():
     assert conflict.isVisible() == False
 
 
-def test_persons_hidden_tags_shown():
+def test_persons_hidden_tags_shown(scene):
     TAGS = ["triangle"]
-    scene = Scene()
     searchModel = SearchModel()
     searchModel.scene = scene
-    personA = Person(name="A")
-    personB = Person(name="B")
-    conflictEvent = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1),
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+            endDateTime=util.Date(2001, 1, 1),
+        )
     )
-    conflict = Emotion(
-        RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
-    )
-    layer = Layer(name="View 1")
-    scene.addItems(personA, personB, conflictEvent, conflict, layer)
+    conflict = scene.emotionsFor(event)[0]
+    conflict.prop("tags").set(TAGS)
+
+    layer = scene.addItem(Layer(name="View 1"))
+
     personA.setLayers([layer.id])
     searchModel.setTags(TAGS)
     scene.setCurrentDateTime(util.Date(2000, 5, 1))  # during conflict
@@ -442,19 +438,20 @@ def test_descriptions_diff_dates(scene):
     assert conflict.event().description() == "Shift"
 
 
-def test_descriptions_same_dates():
-    personA = Person(name="A")
-    personB = Person(name="B")
-    event = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2000, 1, 1),
+def test_descriptions_same_dates(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+            endDateTime=util.Date(2000, 1, 1),
+        )
     )
-    conflict = Emotion(RelationshipKind.Conflict, personB, event=event)
-    assert conflict.event().description() == "Shift"
+    conflict = scene.emotionsFor(event)[0]
+    assert event.description() == "Shift"
 
 
 def test_add_emotion_sets_scene_currentDate():
@@ -462,17 +459,16 @@ def test_add_emotion_sets_scene_currentDate():
     START_DATETIME = util.Date(2001, 1, 1, 6, 7)
 
     scene = Scene()
-    personA = Person(name="A")
-    personB = Person(name="B")
-    event = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
-        dateTime=START_DATETIME,
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=START_DATETIME,
+        )
     )
-    conflict = Emotion(RelationshipKind.Conflict, personB, event=event)
-    scene.addItems(event, conflict)
     assert scene.currentDateTime() == START_DATETIME
 
 
@@ -486,15 +482,13 @@ def test_emotion_intensity_defers_to_event():
             personA,
             relationship=RelationshipKind.Conflict,
             relationshipTargets=[personB],
-            relationshipIntensity=75,
+            relationshipIntensity=1,
         )
     )
     emotion = scene.emotionsFor(event)[0]
-    emotion.prop("relationshipIntensity").set(100)
+    emotion.prop("intensity").set(2)
 
-    scene.addItems(personA, personB, event, emotion)
-
-    assert emotion.intensity() == 75
+    assert emotion.intensity() == 1  # Should defer to event
     assert emotion.intensity() == event.relationshipIntensity()
 
 
@@ -502,6 +496,7 @@ def test_emotion_color_defers_to_event():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
+    scene.addItems(personA, personB)
 
     event = scene.addItem(
         Event(
@@ -512,12 +507,10 @@ def test_emotion_color_defers_to_event():
             color="#FF5733",
         )
     )
-    emotion = scene.addItem(Emotion(RelationshipKind.Distance, personB, event=event))
-    emotion.prop("color").set("#FF000")
+    emotion = scene.emotionsFor(event)[0]
+    emotion.prop("color").set("#FF000")  # Set local property, should be ignored
 
-    scene.addItems(personA, personB, event, emotion)
-
-    assert emotion.color() == "#FF5733"
+    assert emotion.color() == "#FF5733"  # Should defer to event
     assert emotion.color() == event.color()
 
 
@@ -537,7 +530,8 @@ def test_emotion_notes_defers_to_event():
         )
     )
 
-    emotion = scene.addItem(Emotion(RelationshipKind.Conflict, personB, event=event))
+    emotion = scene.emotionsFor(event)[0]
+    emotion.prop("notes").set("some other notes")
 
     scene.addItems(personA, personB, event, emotion)
 
@@ -559,4 +553,6 @@ def test_emotion_properties_fallback_without_event():
 
     assert emotion.color() == "#123456"
     assert emotion.notes() == "Local notes"
-    assert emotion.intensity() == 0
+    assert (
+        emotion.intensity() == util.DEFAULT_EMOTION_INTENSITY
+    )  # Uses local property default
