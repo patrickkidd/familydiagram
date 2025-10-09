@@ -243,6 +243,10 @@ class Event(Item):
             person = self.person()
             if person:
                 person.onEventProperty(prop)
+            if self.spouse():
+                marriage = self.marriage()
+                if marriage and hasattr(marriage, "onEventProperty"):
+                    marriage.onEventProperty(prop)
 
     def scene(self) -> "Scene":
         # Events are top-level items in the scene, use standard scene() lookup
@@ -278,10 +282,14 @@ class Event(Item):
             newDescription = (
                 "Moved to %s" % self.location() if self.location() else "Moved"
             )
+        elif self.kind() == EventKind.Shift:
+            # For Shift events, only auto-generate if description isn't already set
+            if not wasDescription:
+                newDescription = self.kind().menuLabel()
         else:
             newDescription = self.kind().menuLabel()
 
-        if wasDescription != newDescription:
+        if wasDescription != newDescription and newDescription is not None:
             if newDescription:
                 prop.set(newDescription, undo=undo)
             else:

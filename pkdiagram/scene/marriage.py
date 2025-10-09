@@ -372,6 +372,11 @@ class Marriage(PathItem):
         self.updateDetails()
         self.updateGeometry()
 
+    def onEventProperty(self, prop):
+        """Called when an event property changes."""
+        if prop.name() in ("includeOnDiagram", "dateTime", "description", "location"):
+            self.updateDetails()
+
     # Internal Data
 
     def notesIconPos(self):

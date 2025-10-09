@@ -2,7 +2,7 @@
     "python.testing.pytestArgs": [
         "tests",
         "-svv",
-        "--log-cli-level=DEBUG"
+        "--log-cli-level=INFO"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
