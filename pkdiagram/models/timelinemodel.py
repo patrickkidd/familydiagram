@@ -429,22 +429,16 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.DESCRIPTION):
             ret = event.description()
         elif self.isColumn(index, self.PARENT):
-            if event.parent.isEmotion:
-                ret = (
-                    event.parent.parentName()
-                )  # Direct translation - Maybe just use event.parentName()?
-            else:
-                ret = event.parentName()
+            ret = event.fullNameOrAlias()
         elif self.isColumn(index, self.LOCATION):
             ret = event.location()
         elif self.isColumn(index, self.LOGGED):
             ret = util.dateString(event.loggedDateTime())
         elif self.isColumn(index, self.COLOR):
-            if event.parent.isEmotion:
-                ret = event.parent.color()
+            return event.color()
         elif self.isColumn(index, self.TAGS):
             ret = ", ".join(event.tags())
-        elif not event.parent.isScene:
+        else:
             attr = self.dynamicPropertyAttr(index)
             if attr:
                 prop = event.dynamicProperty(attr)
@@ -457,16 +451,17 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if self._settingData:
             return False
         self._settingData = True  # block onItemChanged
-        event = self._rows[index.row()]
+        event = self._rows[index.row()].event
         success = True
         forceBlockEmit = False
         if self.isColumn(index, self.PARENT):
             if role in (Qt.DisplayRole, Qt.EditRole):
                 success = False  # maybe set by searching for name?
             elif role == self.ParentIdRole:
-                if event.parent is None or value != event.parent.id:
-                    person = self._scene.find(id=value)
-                    event.setParent(person, undo=True)
+                person = event.person()
+                if person is None or value != person.id:
+                    newPerson = self._scene.find(id=value))
+                    event.setPerson(newPerson, undo=True)
                 else:
                     success = False
         elif self.isColumn(index, self.NODAL):
@@ -523,7 +518,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def flags(self, index):
         ret = 0
         try:
-            event = self._rows[index.row()]
+            event = self._rows[index.row()].event
         except IndexError:
             return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
@@ -531,7 +526,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, label=self.BUDDIES):
             pass
         else:
-            if event.parent is None:  # being removed, so pass
+            if event.person() is None:  # being removed, so pass
                 pass
             elif self.dynamicPropertyAttr(index):
                 ret |= Qt.ItemIsEditable

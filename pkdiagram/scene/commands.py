@@ -352,7 +352,9 @@ class RemoveItems(QUndoCommand):
             if item.isPathItem:
                 item.flash()
             elif item.isEvent:
-                item.parent.flash()
+                person = item.person()
+                if person:
+                    person.flash()
 
 
 class SetItemPos(QUndoCommand):

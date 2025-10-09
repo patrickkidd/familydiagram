@@ -124,7 +124,7 @@ class SearchModel(QObject, QObjectHelper):
         hidden = False
         if self.nodal and not event.nodal():
             hidden = True
-        elif self.hideRelationships and event.parent.isEmotion:
+        elif self.hideRelationships and event.relationship():
             hidden = True
         elif not event.dateTime() or event.dateTime().isNull():
             hidden = True
@@ -148,12 +148,5 @@ class SearchModel(QObject, QObjectHelper):
         ):
             hidden = True
         elif self.tags and not event.hasTags(self.tags):  # ignore search model tags
-            hidden = True
-        elif (
-            event.parent
-            and event.parent.isEmotion
-            and event is event.parent.endEvent
-            and event.parent.isSingularDate()
-        ):
             hidden = True
         return hidden

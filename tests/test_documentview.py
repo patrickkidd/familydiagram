@@ -165,7 +165,7 @@ def test_undo_remove_event(dv, scene):
     event1 = Event(
         EventKind.Shift, person, description="Event 1", dateTime=util.Date(2001, 1, 1)
     )
-    scene.addItems(person)  # batch add remove
+    scene.addItems(person, event1)  # batch add remove
     event2 = Event(
         EventKind.Shift, person, description="Event 2", dateTime=util.Date(2002, 1, 1)
     )

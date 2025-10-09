@@ -154,7 +154,7 @@ class GraphicalTimelineCanvas(QWidget):
             last = None
             for row in reversed(timelineRows):
                 if row.dateTime() and row.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    last = event.dateTime()
+                    last = row.dateTime()
                     break
         return first, last
 
