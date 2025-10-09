@@ -14,14 +14,9 @@ from pkdiagram.scene import (
 )
 
 
-def test_init():
-    person = Person(name="personA")
-    assert person.birthEvent not in person.events()
-
-
-def test_write_read():
+def test_write_read(scene):
     chunk = {}
-    person1 = Person(name="personA", lastName="bleh")
+    person1 = scene.addItem(Person(name="personA", lastName="bleh"))
     person1.write(chunk)
     person2 = Person()
     person2.read(chunk, lambda id: None)
@@ -45,24 +40,25 @@ def test_childItem_parent():
             assert person.childOf.parentItem() is not None
 
 
-def test_Cutoff_parent():
+def test_Cutoff_parent(scene):
     """
     Cutoff.parentItem() was being reset by Scene.addItem if it was listed before
     it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
     """
     data = {
-        "items": [
+        "emotions": [
             # put the cutoff first so that addItem() clears the parentItem added.
             {"id": 2, "kind": "Cutoff", "person_a": 1, "notes": ""},
+        ],
+        "people": [
             {"id": 1, "kind": "Person", "notes": ""},
-        ]
+        ],
     }
-    scene = Scene()
     assert scene.read(data) == None
 
     person = scene.find(1)
     cutoff = scene.find(2)
-    assert cutoff in person.emotions()
+    assert cutoff in scene.emotionsFor(person)
     assert cutoff.scene() is scene
     assert person.scene() is scene
     assert cutoff.parentItem() is person

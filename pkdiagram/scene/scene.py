@@ -409,9 +409,16 @@ class Scene(QGraphicsScene, Item):
                     item.addDynamicProperty(entry["attr"])
             if not self.isBatchAddingRemovingItems():
                 item.person().onEventAdded()
-                if item.kind().isPairBond():
+                if item.spouse():
                     marriage = self.marriageFor(item.person(), item.spouse())
-                    marriage.onEventAdded()
+                    if item.kind().isPairBond() and not marriage:
+                        raise ValueError(
+                            f"Cannot add {item.kind().menuLabel()} event for "
+                            f"{item.person().itemName()} and {item.spouse().itemName()} "
+                            f"without a Marriage object. Create the Marriage first."
+                        )
+                    if marriage:
+                        marriage.onEventAdded()
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
@@ -551,7 +558,8 @@ class Scene(QGraphicsScene, Item):
                 item.person().onEventRemoved()
                 if item.kind().isPairBond():
                     marriage = self.marriageFor(item.person(), item.spouse())
-                    marriage.onEventAdded()
+                    if marriage:
+                        marriage.onEventRemoved()
                 self.eventRemoved.emit(item)
                 if (
                     not [x for x in self._events if x.dateTime()]
@@ -655,14 +663,17 @@ class Scene(QGraphicsScene, Item):
 
         pruned = []
         for chunk in list(data["items"]):
-            if chunk["kind"] == "Marriage":
-                for eventChunk in list(chunk["events"]):
+            kind = chunk.get("kind")
+            if not kind:
+                continue
+            if kind == "Marriage":
+                for eventChunk in list(chunk.get("events", [])):
                     dateTime = eventChunk.get("dateTime", eventChunk.get("date"))
                     if not dateTime:
                         chunk["events"].remove(eventChunk)
                         pruned.append(eventChunk)
-            elif chunk["kind"] == "MultipleBirth":
-                for childId in chunk["children"]:
+            elif kind == "MultipleBirth":
+                for childId in chunk.get("children", []):
                     if not childId in by_ids:
                         log.warning(
                             f"Removing MultipleBirth with stale ref to child {childId}"
@@ -765,23 +776,26 @@ class Scene(QGraphicsScene, Item):
 
             # Load items (backward compatibility and unknown types)
             for chunk in data.get("items", []):
-                if chunk["kind"] == "Person":
+                kind = chunk.get("kind")
+                if not kind:
+                    continue
+                if kind == "Person":
                     item = Person()
-                elif chunk["kind"] == "Marriage":
+                elif kind == "Marriage":
                     item = Marriage()
-                elif chunk["kind"] == "MultipleBirth":
+                elif kind == "MultipleBirth":
                     item = MultipleBirth()
-                elif chunk["kind"] == "PencilStroke":
+                elif kind == "PencilStroke":
                     item = PencilStroke()
-                elif chunk["kind"] == "Layer":
+                elif kind == "Layer":
                     item = Layer()
-                elif chunk["kind"] == "Callout":
+                elif kind == "Callout":
                     item = Callout()
-                elif chunk["kind"] in Emotion.kindSlugs():
-                    kind = Emotion.kindForKindSlug(chunk["kind"])
+                elif kind in Emotion.kindSlugs():
+                    emotionKind = Emotion.kindForKindSlug(kind)
                     # Provide placeholder values - will be overwritten by item.read(chunk, byId)
-                    item = Emotion(kind=kind, target=None, event=None)
-                elif chunk["kind"] == "Event":
+                    item = Emotion(kind=emotionKind, target=None, event=None)
+                elif kind == "Event":
                     item = Event(kind=EventKind.Shift, person=None)
                 else:
                     log.warning(f"Retaining future item: {chunk}")
@@ -1535,13 +1549,15 @@ class Scene(QGraphicsScene, Item):
 
     def eventsFor(self, item: Person | Marriage) -> list[Event]:
         if isinstance(item, Person):
-            return [e for e in self._events if e.person() is item]
+            return sorted([e for e in self._events if e.person() is item])
         elif isinstance(item, Marriage):
-            return [
-                x
-                for x in self.events()
-                if {x.person(), x.spouse()} == {item.personA(), item.personB()}
-            ]
+            return sorted(
+                [
+                    x
+                    for x in self.events()
+                    if {x.person(), x.spouse()} == {item.personA(), item.personB()}
+                ]
+            )
         raise TypeError("item must be Person or Marriage")
 
     def marriageFor(self, personA: Person, personB: Person) -> Marriage | None:

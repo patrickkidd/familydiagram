@@ -76,11 +76,14 @@ class Event(Item):
                 f"Event() requires kind=EventKind, got {type(kind).__name__}"
             )
 
-        if not isinstance(person, Person):
+        # Allow person=None during file loading (when 'id' is in kwargs)
+        if person is not None and not isinstance(person, Person):
             raise TypeError(
                 f"Event() requires person=Person, got {type(person).__name__}"
             )
-        super().__init__(kind=kind.value, person=person.id, **kwargs)
+        super().__init__(
+            kind=kind.value, person=person.id if person else None, **kwargs
+        )
         self.isEvent = True
         self.dynamicProperties = []  # { 'attr': 'symptom', 'name': '𝚫 Symptom' }
         if "id" in kwargs:
@@ -106,7 +109,9 @@ class Event(Item):
             self.setRelationshipTargets(relationshipTargets)
         if relationshipTriangles:
             self.setRelationshipTriangles(relationshipTriangles)
-        self.updateDescription()
+        # Skip updateDescription when person=None (during file loading)
+        if person is not None:
+            self.updateDescription()
 
     def itemName(self):
         if self.person():
@@ -234,9 +239,10 @@ class Event(Item):
         #     QUndoEvent. elif prop.name() == "kind":
         #     self.updateDescription()
         super().onProperty(prop)
-        person = self.person()
-        if person:
-            person.onEventProperty(prop)
+        if self.scene():
+            person = self.person()
+            if person:
+                person.onEventProperty(prop)
 
     def scene(self) -> "Scene":
         # Events are top-level items in the scene, use standard scene() lookup
@@ -375,7 +381,7 @@ class Event(Item):
 
     def person(self) -> "Person":
         id = self.prop("person").get()
-        return self.scene().find(id=id) if id and self.scene() else None
+        return self.scene().find(id=id) if id else None
 
     # Pair-Bond Events
 
@@ -391,7 +397,7 @@ class Event(Item):
         from pkdiagram.scene import Person
 
         id = self.prop("spouse").get()
-        return self.scene().find(id=id, types=Person) if self.scene() else None
+        return self.scene().find(id=id, types=Person) if id else None
 
     def setChild(self, person: "Person", notify=True, undo=False):
         self.prop("child").set(person.id, notify=notify, undo=undo)
@@ -400,7 +406,7 @@ class Event(Item):
         from pkdiagram.scene import Person
 
         id = self.prop("child").get()
-        return self.scene().find(id=id, types=Person) if self.scene() else None
+        return self.scene().find(id=id, types=Person) if id else None
 
     ## Variables
 
