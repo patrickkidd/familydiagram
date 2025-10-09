@@ -105,14 +105,13 @@ def test_detailsText_visible_at_pos():
 def detailsText_person(scene):
     scene.addEventProperty("varX")
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
-    person = Person(name="Roger")
-    scene.addItem(person)
+    person = scene.addItem(Person(name="Roger"))
     person.setDiagramNotes("here are some notes")
-    person.setBirthDateTime(util.Date(2001, 1, 1))
-    event = Event(person, dateTime=scene.currentDateTime())
-    scene.addItem(event)
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=scene.currentDateTime())
+    )
     event.dynamicProperty("varx").set("123")
-    scene.addItem(event)
     person.updateDetails()
     return person
 
@@ -165,17 +164,15 @@ def test_detailsText_hideVariables(detailsText_person):
     assert "varX" not in person.detailsText.text()
 
 
-def test_hide_age_when_no_deceased_date():
-    person = Person()
-    scene = Scene()
-    scene.addItem(person)
+def test_hide_age_when_no_deceased_date(scene):
+    person = scene.addItem(Person())
     scene.setCurrentDateTime(QDateTime.currentDateTime())
-    person.setBirthDateTime(util.Date(1990, 1, 1))
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(1990, 1, 1)))
     person.setDeceased(True)
     assert person.ageItem.text() == ""
     assert person.ageItem.isVisible() == False
 
-    person.setDeceasedDateTime(util.Date(2000, 1, 1))
+    scene.addItem(Event(EventKind.Death, person, dateTime=util.Date(2000, 1, 1)))
     assert person.ageItem.text() == "10"
     assert person.ageItem.isVisible() == True
 

@@ -1055,23 +1055,21 @@ def dataFile(fpath):
 
 
 @pytest.fixture
-def simpleScene(request):
-    s = Scene()
-    p1 = Person(name="p1")
-    p2 = Person(name="p2")
-    m = Marriage(p1, p2)
-    p = Person(name="p")
+def simpleScene(request, scene):
+    p1, p2 = scene.addItems(Person(name="p1"), Person(name="p2"))
+    m = scene.addItem(Marriage(p1, p2))
+    p = scene.addItem(Person(name="p"))
     p.setParents(m)
-    s.addItem(p1)
-    s.addItem(p2)
-    s.addItem(m)
-    s.addItem(p)
+    scene.addItem(p1)
+    scene.addItem(p2)
+    scene.addItem(m)
+    scene.addItem(p)
 
     def cleanup():
-        s.deinit()
+        scene.deinit()
 
     request.addfinalizer(cleanup)
-    return s
+    return scene
 
 
 @pytest.fixture
