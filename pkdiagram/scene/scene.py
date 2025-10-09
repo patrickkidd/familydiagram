@@ -831,12 +831,16 @@ class Scene(QGraphicsScene, Item):
                 "Adding items during read file", undo=False, batchAddRemove=True
             ):
                 for item in items:
-                    if item.isEmotion and item.person() is None:
+                    if item.isEmotion and item.prop("person").get() is None:
                         log.warning(
                             f"Emotion {item} has no personA, skipping loading..."
                         )
                         continue
-                    elif item.isEmotion and item.isDyadic() and item.target() is None:
+                    elif (
+                        item.isEmotion
+                        and item.isDyadic()
+                        and item.prop("target").get() is None
+                    ):
                         log.warning(
                             f"Emotion {item} has no personB, skipping loading..."
                         )

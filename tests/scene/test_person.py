@@ -48,7 +48,7 @@ def test_Cutoff_parent(scene):
     data = {
         "emotions": [
             # put the cutoff first so that addItem() clears the parentItem added.
-            {"id": 2, "kind": "Cutoff", "person_a": 1, "notes": ""},
+            {"id": 2, "kind": "Cutoff", "person": 1, "notes": ""},
         ],
         "people": [
             {"id": 1, "kind": "Person", "notes": ""},
