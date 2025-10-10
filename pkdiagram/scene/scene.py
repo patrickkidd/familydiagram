@@ -394,17 +394,18 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            for target in item.relationshipTargets():
-                emotion = self.addItem(
-                    Emotion(
-                        kind=item.relationship(),
-                        target=target,
-                        event=item,
-                        tags=item.tags(),
-                    ),
-                    undo=True,
-                )
-                self._do_addItem(emotion)
+            if not self._isUndoRedoing:
+                for target in item.relationshipTargets():
+                    emotion = self.addItem(
+                        Emotion(
+                            kind=item.relationship(),
+                            target=target,
+                            event=item,
+                            tags=item.tags(),
+                        ),
+                        undo=True,
+                    )
+                    self._do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
@@ -653,35 +654,42 @@ class Scene(QGraphicsScene, Item):
         self.checkPrintRectChanged()
 
     def prune(self, data):
-        """Delete any references to items containing stale references.
+        """
+        Delete any references to items containing stale references.
         Returns any chunks that were removed, otherwise None.
         """
         if not data.get("items"):
             return
         by_ids = {}
-        for chunk in data["items"]:
+        for chunk in (
+            data["events"]
+            + data["people"]
+            + data["marriages"]
+            + data["emotions"]
+            + data["multipleBirths"]
+            + data["layers"]
+            + data["layerItems"]
+        ):
             by_ids[chunk["id"]] = chunk
 
         pruned = []
-        for chunk in list(data["items"]):
-            kind = chunk.get("kind")
-            if not kind:
-                continue
-            if kind == "Marriage":
-                for eventChunk in list(chunk.get("events", [])):
-                    dateTime = eventChunk.get("dateTime", eventChunk.get("date"))
-                    if not dateTime:
-                        chunk["events"].remove(eventChunk)
-                        pruned.append(eventChunk)
-            elif kind == "MultipleBirth":
-                for childId in chunk.get("children", []):
-                    if not childId in by_ids:
-                        log.warning(
-                            f"Removing MultipleBirth with stale ref to child {childId}"
-                        )
-                        data["items"].remove(chunk)
-                        pruned.append(chunk)
-                        break
+
+        for chunk in data["events"]:
+            if not chunk["dateTime"]:
+                personChunk = by_ids.get(chunk.get("person_id"))
+                log.warning(
+                    f"Removing Event with person {personChunk} and no dateTime set."
+                )
+                data["events"].remove(chunk)
+                pruned.append(chunk)
+        for chunk in data["multipleBirths"]:
+            for childId in chunk.get("children", []):
+                if not childId in by_ids:
+                    log.warning(
+                        f"Removing MultipleBirth with stale ref to child {childId}"
+                    )
+                    data["items"].remove(chunk)
+                    pruned.append(chunk)
         if pruned:
             return pruned
         else:
@@ -1195,7 +1203,7 @@ class Scene(QGraphicsScene, Item):
                     hoverMe = self.childOfUnder(e.scenePos())
                     if not hoverMe:
                         hoverMe = self.multipleBirthUnder(e.scenePos())
-            elif self.itemMode() and self.itemMode().isRelationship():
+            elif self.itemMode() and self.itemMode().toRelationship():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
                     kind=self.itemMode(),
@@ -1263,7 +1271,7 @@ class Scene(QGraphicsScene, Item):
             )
             self.setItemMode(None)
         elif self.itemMode() and (
-            self.itemMode().isOffSpring() or self.itemMode().isRelationship()
+            self.itemMode().isOffSpring() or self.itemMode().toRelationship()
         ):
             e.accept()
             success = False
@@ -1279,9 +1287,9 @@ class Scene(QGraphicsScene, Item):
                 if parentItem:
                     self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
-            elif self.itemMode() and self.itemMode().isRelationship():
+            elif self.itemMode() and self.itemMode().toRelationship():
                 person = self.personUnder(e.scenePos())
-                kind = Emotion.KIND_MAP[self.itemMode()]
+                kind = Emotion.KIND_MAP[self.itemMode().toRelationship()]
                 if self.itemMode() == ItemMode.Cutoff:  # monadic
                     emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic
@@ -1556,7 +1564,12 @@ class Scene(QGraphicsScene, Item):
         self, item: Person | Marriage, kinds: EventKind | list[EventKind] = None
     ) -> list[Event]:
         if isinstance(item, Person):
-            events = [e for e in self._events if e.person() is item]
+            eventPeople = (
+                lambda e: [e.person(), e.spouse(), e.child()]
+                + e.relationshipTargets()
+                + e.relationshipTriangles()
+            )
+            events = [e for e in self._events if item in eventPeople(e)]
         elif isinstance(item, Marriage):
             events = [
                 x

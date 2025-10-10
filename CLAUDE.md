@@ -35,16 +35,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Key Modules
 - **Scene System** (`pkdiagram/scene/`): Core data model / QGraphicsItem types (Person, Event, Marriage, etc.) with property system
-  - There are two major ways Emotions / Person gets created:
-    1) Drawing like a chalk board without an Event via Scene
-    2) Created to represent a dated Event via EditForm
-  - The Scene is the authoratative source for storing and querying Events.
+  - The Scene is the authoratative source for storing and querying Item objects.
     However, Efficient diagram drawing requires caching references to Item
     objects. Sometimes these references are circular.
     - For example, sometimes Person needs to develop a dependency graph of ItemDetails, Emotion, etc for redraws when that Person is moved.
     - Circular references are handled when loading the diagram file in two
       phases; 1) instantiate all the items with a map of their id's, then 2)
       resolve all dependencies via passing the map to each Item's read() method.
+  - There are two major ways that Emotion objects gets created, which determines
+    how instantiations and cascaded deletes work;
+    1) Drawing like a chalk board without an Event via Scene, where the scene
+       owns the Emotion
+    2) Created to represent a dated Event via EditForm, where the event owns the
+       emotion
   - The Scene is the authoratitive source for querying Item relationships, e.g.
     though eventsFor, emotionsFor, marriageFor, etc
   - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value

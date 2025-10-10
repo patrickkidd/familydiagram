@@ -275,8 +275,8 @@ class DocumentController(QObject):
             lastRow = self.dv.timelineModel.lastRowForDateTime(prop.get())
             if firstRow > -1 and lastRow > -1:
                 for row in range(firstRow, lastRow + 1):
-                    event = self.dv.timelineModel.eventForRow(row)
-                    if not self.dv.searchModel.shouldHide(event):
+                    timelineRow = self.dv.timelineModel.timelineRow(row)
+                    if not self.dv.searchModel.shouldHide(timelineRow):
                         self.onFlashTimelineRow(row)
 
         elif prop.name() == "hideDateSlider":

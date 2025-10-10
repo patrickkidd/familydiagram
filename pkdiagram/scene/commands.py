@@ -11,7 +11,15 @@ state from the object required to undo the underlying api call.
 import os, shutil, logging
 
 from pkdiagram.pyqt import QUndoCommand
-
+from pkdiagram.scene import (
+    Event,
+    Emotion,
+    Person,
+    Marriage,
+    Layer,
+    LayerItem,
+    MultipleBirth,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -106,7 +114,7 @@ class RemoveItems(QUndoCommand):
             for child in list(item.children):
                 mapChildOf(child.childOf)
 
-        def mapEvent(item):
+        def mapEvent(item: Event):
             for entry in self._unmapped["events"]:
                 if entry["event"] is item:
                     return
@@ -121,8 +129,10 @@ class RemoveItems(QUndoCommand):
                 "dateTime": item.dateTime(),
             }
             self._unmapped["events"].append(mapping)
+            for emotion in self.scene.emotionsFor(item):
+                mapEmotion(emotion)
 
-        def mapEmotion(item):
+        def mapEmotion(item: Emotion):
             for entry in self._unmapped["emotions"]:
                 if entry["emotion"] is item:
                     return
@@ -192,23 +202,42 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
+
+        def _removeEvent(event: Event):
+            docsPath = event.documentsPath()
+            if docsPath and os.path.isdir(docsPath):  # this cannot be undone
+                shutil.rmtree(docsPath)
+            for emotion in self.scene.emotionsFor(event):
+                self.scene.removeItem(emotion)
+            self.scene.removeItem(event)
+
+        def _removeEmotion(emotion: Emotion):
+            self.scene.removeItem(emotion)
+
+        def _removeMarriage(marriage: Marriage):
+            for child in list(marriage.children):
+                child.setParents(None)
+            for person in list(marriage.people):
+                person._onRemoveMarriage(marriage)
+            self.scene.removeItem(marriage)
+
         for item in self.items:
 
             if item.isPerson:
+                # Delete all marriages involving this person (as subject or target)
                 for marriage in list(item.marriages):
-                    for child in list(marriage.children):
-                        child.setParents(None)
-                    for person in list(marriage.people):
-                        person._onRemoveMarriage(marriage)
-                    self.scene.removeItem(marriage)
+                    _removeMarriage(marriage)
 
                 # Delete all events for this person
                 for event in list(self.scene.eventsFor(item)):
-                    self.scene.removeItem(event)
+                    _removeEvent(event)
 
-                # Delete all emotions involving this person (as subject or target)
+                # Delete all emotions involving this person (as subject or
+                # target) After events so that emotions owned by events are
+                # deleted with their events. Implying any emotions left has no
+                # date and is owned by the scene.
                 for emotion in list(self.scene.emotionsFor(item)):
-                    self.scene.removeItem(emotion)
+                    _removeEmotion(emotion)
 
                 if item.childOf:
                     item.setParents(None)
@@ -232,20 +261,13 @@ class RemoveItems(QUndoCommand):
                     child.setParents(None)
 
             elif item.isMarriage:
-                for child in list(item.children):  # after undo setup
-                    child.setParents(None)
-                for person in list(item.people):
-                    person._onRemoveMarriage(item)
-                self.scene.removeItem(item)
+                _removeMarriage(item)
 
             elif item.isEvent:
-                docsPath = item.documentsPath()
-                if docsPath and os.path.isdir(docsPath):  # this cannot be undone
-                    shutil.rmtree(docsPath)
-                self.scene.removeItem(item)
+                _removeEvent(item)
 
             elif item.isEmotion:
-                self.scene.removeItem(item)
+                _removeEmotion(item)
 
             elif item.isLayerItem:
                 self.scene.removeItem(item)

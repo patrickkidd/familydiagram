@@ -23,7 +23,6 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item, Person
-from pkdiagram.scene.commands import SetProperty
 
 
 DEBUG = False
@@ -1702,6 +1701,8 @@ class Emotion(PathItem):
         if self.kind() == x:
             return
         if undo:
+            from pkdiagram.scene.commands import SetProperty
+
             self.scene().push(SetProperty(prop, x))
         else:
             self.prop("kind").set(x.value)

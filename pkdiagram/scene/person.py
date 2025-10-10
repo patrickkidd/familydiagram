@@ -34,7 +34,6 @@ from pkdiagram.scene import (
     random_names,
     RelationshipKind,
 )
-from pkdiagram.scene.commands import SetParents
 
 
 _log = logging.getLogger(__name__)
@@ -612,6 +611,8 @@ class Person(PathItem):
 
     def setParents(self, target: "Union[Marriage, ChildOf]", undo=False):
         if undo:
+            from pkdiagram.scene.commands import SetParents
+
             self.scene().push(SetParents(self, target))
         else:
             self._do_setParents(target)

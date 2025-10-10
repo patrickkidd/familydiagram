@@ -1,7 +1,5 @@
 import enum
 
-from pkdiagram.scene.itemmode import ItemMode
-
 
 class RelationshipKind(enum.Enum):
     Fusion = "fusion"
@@ -18,7 +16,9 @@ class RelationshipKind(enum.Enum):
     Outside = "outside"
     Cutoff = "cutoff"
 
-    def itemMode(self) -> ItemMode:
+    def itemMode(self) -> "ItemMode":
+        from pkdiagram.scene.itemmode import ItemMode
+
         if self == self.Cutoff:
             return ItemMode.Cutoff
         elif self == self.Conflict:
@@ -43,7 +43,7 @@ class RelationshipKind(enum.Enum):
             raise KeyError(f"No ITEM_MODE for: {self}")
 
     @staticmethod
-    def fromItemMode(itemMode: ItemMode) -> "RelationshipKind":
+    def fromItemMode(itemMode: "ItemMode") -> "RelationshipKind":
         mapping = {
             ItemMode.Conflict: RelationshipKind.Conflict,
             ItemMode.Distance: RelationshipKind.Distance,

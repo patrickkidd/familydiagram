@@ -149,7 +149,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     ## Rows
 
-    def _shouldHide(self, event):
+    def _shouldHide(self, row: TimelineRow):
+        """Check if a timeline row should be hidden based on filters."""
+        event = row.event
         hidden = False
         if event.dateTime() is None or event.dateTime().isNull():
             hidden = True
@@ -158,11 +160,24 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif (
             event.kind() == EventKind.Shift
             and event.relationship()
-            and event.isEndEvent
-            and event.emotion().isSingularDate()
+            and row.isEndMarker
+            and self._scene.emotionsFor(event)
         ):
-            hidden = True
-        elif self._searchModel and self._searchModel.shouldHide(event):
+            # Hide end markers for single-date emotions with Shift events
+            emotions = self._scene.emotionsFor(event)
+            if emotions:
+                # Check if any emotion for this event is a singular date
+                # (start and end are the same or no end date)
+                for emotion in emotions:
+                    if emotion.event() == event:
+                        emotion_event = emotion.event()
+                        if emotion_event:
+                            start_dt = emotion_event.dateTime()
+                            end_dt = emotion_event.endDateTime()
+                            if not end_dt or (start_dt and start_dt == end_dt):
+                                hidden = True
+                                break
+        elif self._searchModel and self._searchModel.shouldHide(row):
             hidden = True
         return hidden
 
@@ -170,25 +185,30 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         for row in self._rows:
             if row.event == event:
                 return
-        if not self._shouldHide(event):
+        # Check start event row
+        startRow = TimelineRow(event=event, isEndMarker=False)
+        if not self._shouldHide(startRow):
             newRow = self._rows.bisect_right(
                 event
             )  # SortedList.add uses &.bisect_right()
             if emit:
                 self.beginInsertRows(QModelIndex(), newRow, newRow)
-            self._rows.add(TimelineRow(event=event, isEndMarker=False))
+            self._rows.add(startRow)
             if emit:
                 self.endInsertRows()
 
+        # Check end event row
         if event.endDateTime():
-            newRow = self._rows.bisect_right(
-                event
-            )  # SortedList.add uses &.bisect_right()
-            if emit:
-                self.beginInsertRows(QModelIndex(), newRow, newRow)
-            self._rows.add(TimelineRow(event=event, isEndMarker=True))
-            if emit:
-                self.endInsertRows()
+            endRow = TimelineRow(event=event, isEndMarker=True)
+            if not self._shouldHide(endRow):
+                newRow = self._rows.bisect_right(
+                    event
+                )  # SortedList.add uses &.bisect_right()
+                if emit:
+                    self.beginInsertRows(QModelIndex(), newRow, newRow)
+                self._rows.add(endRow)
+                if emit:
+                    self.endInsertRows()
 
     def _removeEvent(self, event):
         rows = [x for x in self._rows if x.event == event]
@@ -412,7 +432,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             else:
                 ret = False
         elif role == self.ParentIdRole:
-            return event.parent.id
+            person = event.person()
+            return person.id if person else None
         elif role == self.HasNotesRole:
             ret = bool(event.notes())
         elif self.isColumn(index, self.BUDDIES):
@@ -429,7 +450,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.DESCRIPTION):
             ret = event.description()
         elif self.isColumn(index, self.PARENT):
-            ret = event.fullNameOrAlias()
+            person = event.person()
+            ret = person.fullNameOrAlias() if person else ""
         elif self.isColumn(index, self.LOCATION):
             ret = event.location()
         elif self.isColumn(index, self.LOGGED):
@@ -460,7 +482,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             elif role == self.ParentIdRole:
                 person = event.person()
                 if person is None or value != person.id:
-                    newPerson = self._scene.find(id=value))
+                    newPerson = self._scene.find(id=value)
                     event.setPerson(newPerson, undo=True)
                 else:
                     success = False
@@ -583,7 +605,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(int, result=QVariant)
     def itemForRow(self, row):
         if row >= 0 and row < len(self._rows):
-            return self._rows[row].parent
+            event = self._rows[row].event
+            return event.person() if event else None
 
     def rowForEvent(self, event):
         """Only used in tests."""
@@ -596,6 +619,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def eventForRow(self, row):
         if row >= 0 and row < len(self._rows):
             return self._rows[row].event
+
+    def timelineRow(self, row: int) -> TimelineRow:
+        return self._rows[row]
 
     def endRowForEvent(self, event: Event) -> TimelineRow:
         """Return the date buddy to this one."""

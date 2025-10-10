@@ -1,5 +1,7 @@
 import enum
 
+from pkdiagram.scene import RelationshipKind
+
 
 class ItemMode(enum.Enum):
     """Drawing modes for creating items on the diagram."""
@@ -30,20 +32,23 @@ class ItemMode(enum.Enum):
     Eraser = "eraser"
     Callout = "callout"
 
-    def isRelationship(self) -> bool:
+    def toRelationship(self) -> RelationshipKind:
         """Check if this mode creates an emotion."""
-        return self in [
-            self.Projection,
-            self.Conflict,
-            self.Cutoff,
-            self.Distance,
-            self.Toward,
-            self.Away,
-            self.DefinedSelf,
-            self.Reciprocity,
-            self.Inside,
-            self.Outside,
-        ]
+        map = {
+            self.Projection: RelationshipKind.Projection,
+            self.Conflict: RelationshipKind.Conflict,
+            self.Cutoff: RelationshipKind.Cutoff,
+            self.Distance: RelationshipKind.Distance,
+            self.Toward: RelationshipKind.Toward,
+            self.Away: RelationshipKind.Away,
+            self.DefinedSelf: RelationshipKind.DefinedSelf,
+            self.Reciprocity: RelationshipKind.Underfunctioning,
+            self.Inside: RelationshipKind.Inside,
+            self.Outside: RelationshipKind.Outside,
+        }
+        if not self in map:
+            raise ValueError(f"{self} does not map to a RelationshipKind")
+        return map[self]
 
     def isPerson(self) -> bool:
         """Check if this mode creates a person."""

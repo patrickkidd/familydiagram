@@ -24,9 +24,7 @@ class TestRemovePersonWithEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         assert len(scene.emotionsFor(person1)) == 1
         assert len(scene.emotionsFor(person2)) == 1
@@ -57,9 +55,7 @@ class TestRemovePersonWithEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         scene.removeItem(person2, undo=True)
 
@@ -77,7 +73,7 @@ class TestRemovePersonWithEmotions:
         person1, person2, person3 = scene.addItems(
             Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
         )
-        event1 = scene.addItem(
+        scene.addItem(
             Event(
                 EventKind.Shift,
                 person1,
@@ -86,11 +82,8 @@ class TestRemovePersonWithEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
 
-        event2 = scene.addItem(
+        scene.addItem(
             Event(
                 EventKind.Shift,
                 person3,
@@ -99,17 +92,18 @@ class TestRemovePersonWithEmotions:
                 relationshipTargets=[person1],
             )
         )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Cutoff, event=event2, target=person1)
-        )
 
         assert len(scene.emotionsFor(person1)) == 2
+
+        assert len(scene.people()) == 3
+        assert len(scene.emotions()) == 2
+        assert len(scene.events()) == 2
 
         scene.removeItem(person1, undo=True)
 
         assert len(scene.people()) == 2
         assert len(scene.emotions()) == 0
-        assert len(scene.events()) == 0
+        assert len(scene.events()) == 1
 
         scene.undo()
 
@@ -119,7 +113,7 @@ class TestRemovePersonWithEmotions:
 
     def test_remove_person_with_bidirectional_emotions(self, scene):
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
-        event1 = scene.addItem(
+        scene.addItem(
             Event(
                 EventKind.Shift,
                 person1,
@@ -128,11 +122,8 @@ class TestRemovePersonWithEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
 
-        event2 = scene.addItem(
+        scene.addItem(
             Event(
                 EventKind.Shift,
                 person2,
@@ -140,9 +131,6 @@ class TestRemovePersonWithEmotions:
                 relationship=RelationshipKind.Conflict,
                 relationshipTargets=[person1],
             )
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event2, target=person1)
         )
 
         assert len(scene.emotions()) == 2
@@ -172,9 +160,7 @@ class TestRemoveEventWithEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Fusion, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         assert len(scene.emotions()) == 1
 
@@ -203,12 +189,7 @@ class TestRemoveEventWithEmotions:
                 relationshipTargets=[person2, person3],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person2)
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person3)
-        )
+        emotion1, emotion2 = scene.emotionsFor(event)
 
         assert len(scene.emotions()) == 2
         assert len(scene.emotionsFor(event)) == 2
@@ -237,9 +218,7 @@ class TestRemoveEmotionDirectly:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Fusion, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         assert len(scene.emotions()) == 1
 
@@ -269,9 +248,7 @@ class TestRemoveEmotionDirectly:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Cutoff, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         scene.removeItem(emotion, undo=True)
 
@@ -293,12 +270,7 @@ class TestRemoveEmotionDirectly:
                 relationshipTargets=[person2, person3],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person2)
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person3)
-        )
+        emotion1, emotion2 = scene.emotionsFor(event)
 
         assert len(scene.emotions()) == 2
 
@@ -329,9 +301,7 @@ class TestRemoveMultipleEmotions:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
+        emotion1 = scene.emotionsFor(event1)[0]
 
         event2 = scene.addItem(
             Event(
@@ -342,9 +312,7 @@ class TestRemoveMultipleEmotions:
                 relationshipTargets=[person3],
             )
         )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event2, target=person3)
-        )
+        emotion2 = scene.emotionsFor(event2)[0]
 
         assert len(scene.emotions()) == 2
 
@@ -375,13 +343,11 @@ class TestComplexEmotionScenarios:
                 relationshipTriangles=[person3],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Inside, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
-        initial_people = len(scene.people())
-        initial_events = len(scene.events())
-        initial_emotions = len(scene.emotions())
+        assert len(scene.people()) == 3
+        assert len(scene.events()) == 1
+        assert len(scene.emotions()) == 1
 
         scene.removeItem(person1, undo=True)
 
@@ -391,9 +357,9 @@ class TestComplexEmotionScenarios:
 
         scene.undo()
 
-        assert len(scene.people()) == initial_people
-        assert len(scene.events()) == initial_events
-        assert len(scene.emotions()) == initial_emotions
+        assert len(scene.people()) == 3
+        assert len(scene.events()) == 1
+        assert len(scene.emotions()) == 1
 
     def test_sequential_emotion_operations(self, scene):
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
@@ -406,9 +372,7 @@ class TestComplexEmotionScenarios:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
+        emotion1 = scene.emotionsFor(event1)[0]
 
         event2 = scene.addItem(
             Event(
@@ -419,9 +383,7 @@ class TestComplexEmotionScenarios:
                 relationshipTargets=[person2],
             )
         )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event2, target=person2)
-        )
+        emotion2 = scene.emotionsFor(event2)[0]
 
         assert len(scene.emotions()) == 2
 
@@ -451,9 +413,6 @@ class TestComplexEmotionScenarios:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
 
         event2 = scene.addItem(
             Event(
@@ -463,9 +422,6 @@ class TestComplexEmotionScenarios:
                 relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person3],
             )
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Cutoff, event=event2, target=person3)
         )
 
         assert len(scene.events()) == 2
@@ -481,3 +437,4 @@ class TestComplexEmotionScenarios:
 
         assert len(scene.events()) == 2
         assert len(scene.emotions()) == 2
+        assert len(scene.people()) == 3

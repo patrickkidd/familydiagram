@@ -1,5 +1,5 @@
 from pkdiagram import util
-from pkdiagram.scene import Scene, Marriage, Person, Layer
+from pkdiagram.scene import Scene, Marriage, Person, Layer, Event, EventKind
 
 
 def _add_unit(scene: Scene, children=True):
@@ -105,14 +105,13 @@ def test_ignores_custom_layers():
 
 def test_sort():
     scene = Scene()
-    marriage_1 = Marriage(
-        personA=Person(name="A", birthDateTime=util.Date(2001, 1, 1)),
-        personB=Person(name="B"),
+    personA, personB, personC = scene.addItems(
+        Person(name="A"), Person(name="B"), Person(name="C")
     )
-    marriage_2 = Marriage(
-        personA=Person(name="B"),
-        personB=Person(name="C", birthDateTime=util.Date(2000, 1, 1)),
-    )
+    scene.addItem(Event(EventKind.Birth, personA, dateTime=util.Date(2001, 1, 1)))
+    scene.addItem(Event(EventKind.Birth, personC, dateTime=util.Date(2000, 1, 1)))
+    marriage_1 = Marriage(personA=personA, personB=personB)
+    marriage_2 = Marriage(personA=personB, personB=personC)
     scene.addItems(marriage_1, marriage_2)
     emotionalUnit_1 = marriage_1.emotionalUnit()
     emotionalUnit_2 = marriage_2.emotionalUnit()

@@ -117,7 +117,7 @@ class SearchModel(QObject, QObjectHelper):
 
     def shouldHide(self, row: "TimelineRow") -> bool:
         """Search kernel."""
-        event = row.event()
+        event = row.event
         nullLoggedDate = bool(
             not event.loggedDateTime() or event.loggedDateTime().isNull()
         )

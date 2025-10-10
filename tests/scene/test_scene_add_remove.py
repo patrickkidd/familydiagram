@@ -140,16 +140,17 @@ def test_add_emotion(scene, undo):
     eventRemoved = util.Condition(scene.eventRemoved)
     emotionAdded = util.Condition(scene.emotionAdded)
     emotionRemoved = util.Condition(scene.emotionRemoved)
-    person1 = Person(name="person1")
-    person2 = Person(name="person2")
-    event = Event(
-        EventKind.Shift,
-        person1,
-        dateTime=util.Date(2001, 1, 1),
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[person2],
+    person1, person2 = scene.addItems(Person(name="person1"), Person(name="person2"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person1,
+            dateTime=util.Date(2001, 1, 1),
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[person2],
+        )
     )
-    emotion = Emotion(RelationshipKind.Conflict, person2, event=event)
+    emotion = scene.emotionsFor(event)[0]
     scene.addItems(person1, person2)
     scene.addItems(event, emotion, undo=undo)
     assert eventAdded.callCount == 1
@@ -581,10 +582,9 @@ def test_drag_create_emotion(qtbot):
     view.resize(600, 800)
     view.show()
     view.setScene(scene)
-    personA, personB = Person(name="A", pos=QPointF(50, 50)), Person(
-        name="B", pos=QPointF(-50, 50)
+    personA, personB = scene.addItems(
+        Person(name="A", pos=QPointF(50, 50)), Person(name="B", pos=QPointF(-50, 50))
     )
-    scene.addItems(personA, personB)
     scene.setItemMode(ItemMode.Conflict)
     qtbot.mousePress(
         view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personA.pos())
