@@ -54,6 +54,9 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
     def documentView(self):
         return self._documentView
 
+    def getPropSheetModel(self):
+        return self.rootProp(self.propSheetModel)
+
     def onInitQml(self):
         super().onInitQml()
         self.layout().addWidget(self.qml)

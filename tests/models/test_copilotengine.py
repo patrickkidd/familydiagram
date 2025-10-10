@@ -105,17 +105,15 @@ def test_ask_with_tags(scene, qmlEngine, copilot, llm_response):
             description="Bonded",
             people=["Alice", "Bob"],
             tags=[TAG_1],
-            dynamicProperties={
-                "anxiety": "down",
-                "symptom": "up",
-            },
+            anxiety="down",
+            symptom="up",
         ),
         Event(
             dateTime=util.Date(2022, 1, 1),
             description="First argument",
             people=["Alice", "Bob"],
             tags=[TAG_1],
-            dynamicProperties={"anxiety": "up"},
+            anxiety="up",
         ),
     ]
     scene.addItems(*events)

@@ -19,9 +19,9 @@ PK.Drawer {
     signal eventPropertiesTemplateIndexChanged(int index)
 
     property int margin: util.QML_MARGINS
-    property bool isDrawerOpen: eventPropertiesDrawer.visible
-    property bool canRemove: tabBar.currentIndex == 0 && timelineView.canRemove
-    property bool canInspect: tabBar.currentIndex == 0 && timelineView.canInspect
+    property bool isDrawerOpen: false
+    property bool canRemove: false // tabBar.currentIndex == 0 && timelineView.canRemove
+    property bool canInspect: false // tabBar.currentIndex == 0 && timelineView.canInspect
     property bool notJustFreeLicense: {
         sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
@@ -31,19 +31,7 @@ PK.Drawer {
     property var variablesList: variablesList
     property var variablesCrudButtons: variablesCrudButtons
     property var timelineView: timelineView
-    property var eventProperties: eventProperties
     property var copilotView: copilotView
-
-    Connections {
-        target: sceneModel
-        function onSceneChanged() {
-            eventPropertiesDrawer.hide()
-        }
-    }
-
-    onHidden: {
-        eventPropertiesDrawer.hide()
-    }
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -70,22 +58,13 @@ PK.Drawer {
         }[tabBar.currentIndex]
     }
     
-    function inspectEvents(events) {
-        session.trackView('Edit timeline events')
-        eventProperties.eventModel.items = events
-        eventPropertiesDrawer.visible = true
-    }
-
-    function onInspect(tab) {
-        if(canInspect && timelineView.selectedEvents.length) {
-            if(tab !== undefined) {
-                eventProperties.setCurrentTab(tab)
-            } else {
-                eventProperties.setCurrentTab('item')
-            }
-            root.inspectEvents(timelineView.selectedEvents)
-        }
-    }
+    // function onInspect() {
+    //     print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
+    //     if(canInspect && timelineView.selectedEvents.length) {
+    //         print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
+    //         root.inspectEvents(timelineView.selectedEvents)
+    //     }
+    // }
 
     function onInspectNotes(row) {
         session.trackView('Edit event notes')
@@ -101,35 +80,6 @@ PK.Drawer {
 
     function scrollTimelineToDateTime(dateTime) {
         timelineView.scrollToDateTime(dateTime, true)
-    }
-
-    QQC.Drawer {
-
-        id: eventPropertiesDrawer
-        width: util.DRAWER_OVER_WIDTH
-        height: root.height
-        dragMargin: 0
-        edge: Qt.RightEdge
-        PK.EventProperties {
-            id: eventProperties
-            anchors.fill: parent
-        }
-        background: Rectangle {
-            Rectangle {
-                height: parent.height
-                width: 1
-                color: util.QML_ITEM_BORDER_COLOR
-            }
-        }
-        onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
-        Connections {
-            target: eventProperties
-            function onDone() { eventPropertiesDrawer.visible = false }
-        }
-        function hide() {
-            position = 0
-            visible = false
-        }
     }
     
     header: PK.ToolBar {
@@ -214,11 +164,6 @@ PK.Drawer {
             onSelectionChanged: {
                 sceneModel.selectionChanged()
                 root.flashTimelineSelection(timelineView.selectionModel)
-                // Added for when changing selection from graphical timeline,
-                // but I guess makes sense all the time anyway.
-                if(eventPropertiesDrawer.visible && ! eventProperties.eventModel.isSetting) {
-                    eventPropertiesDrawer.visible = false
-                }
             }
             onRowClicked: function(row) {
                 root.flashTimelineRow(row)

@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, Emotion
+from pkdiagram.scene import Person, Marriage, Emotion, ItemMode
 from pkdiagram.documentview import RightDrawerView
 
 pytestmark = [
@@ -50,7 +50,7 @@ def test_person_kb_shortcut_timeline(qtbot, create_ac_mw):
     person.setSelected(True)
     qtbot.keyClick(mw, Qt.Key_T, Qt.ShiftModifier | Qt.ControlModifier)
     assert mw.documentView.personProps.isVisible() == True
-    assert mw.documentView.personProps.currentTab() == RightDrawerView.Timeline.value
+    assert mw.documentView.personProps.currentTab() == "item"
 
 
 def test_marriage_kb_shortcut_item(qtbot, create_ac_mw):
@@ -95,14 +95,14 @@ def test_marriage_kb_shortcut_timeline(qtbot, create_ac_mw):
     marriage.setSelected(True)
     qtbot.keyClick(mw, Qt.Key_T, Qt.ShiftModifier | Qt.ControlModifier)
     assert mw.documentView.marriageProps.isVisible() == True
-    assert mw.documentView.marriageProps.currentTab() == RightDrawerView.Timeline.value
+    assert mw.documentView.marriageProps.currentTab() == "item"
 
 
 def test_emotion_kb_shortcut_item(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -117,7 +117,7 @@ def test_emotion_kb_shortcut_notes(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"
@@ -132,7 +132,7 @@ def test_emotion_kb_shortcut_meta(qtbot, create_ac_mw):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
-    conflict = Emotion(personA=personA, personB=personB, kind=util.ITEM_CONFLICT)
+    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
     assert mw.documentView.emotionProps.currentTab() == "item"

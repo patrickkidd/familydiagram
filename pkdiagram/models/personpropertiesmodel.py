@@ -6,8 +6,30 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util, scene
-from pkdiagram.scene import EventKind
+from pkdiagram.scene import EventKind, Person, Event
 from pkdiagram.models import ModelHelper
+
+
+def _birthEvent(person: Person) -> Event | None:
+    for event in person.scene().eventsFor(person):
+        if event.kind() == EventKind.Birth and event.person() == person:
+            return event
+    return None
+
+
+def _anyAdoptedEvents(person: Person):
+    return any(
+        x
+        for x in person.scene().eventsFor(person)
+        if x.kind() == EventKind.Adopted and x.person() == person
+    )
+
+
+def _deathEvent(person: Person) -> Event | None:
+    for event in person.scene().eventsFor(person):
+        if event.kind() == EventKind.Death and event.person() == person:
+            return event
+    return None
 
 
 class PersonPropertiesModel(QObject, ModelHelper):
@@ -77,31 +99,31 @@ class PersonPropertiesModel(QObject, ModelHelper):
 
     def onEventProperty(self, prop):
         if prop.name() == "dateTime":
-            if prop.item.uniqueId() == EventKind.Birth.value:
+            if prop.item.kind() == EventKind.Birth:
                 self.refreshProperty("birthDateTime")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
+            elif prop.item.kind() == EventKind.Adopted:
                 self.refreshProperty("adoptedDateTime")
-            elif prop.item.uniqueId() == EventKind.Death.value:
+            elif prop.item.kind() == EventKind.Death:
                 self.refreshProperty("deceasedDateTime")
         elif prop.name() == "location":
-            if prop.item.uniqueId() == EventKind.Birth.value:
+            if prop.item.kind() == EventKind.Birth:
                 self.refreshProperty("birthLocation")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
+            elif prop.item.kind() == EventKind.Adopted:
                 self.refreshProperty("adoptedLocation")
-            elif prop.item.uniqueId() == EventKind.Death.value:
+            elif prop.item.kind() == EventKind.Death:
                 self.refreshProperty("deceasedLocation")
 
     def onItemEventAddedOrRemoved(self, event):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == EventKind.Birth.value:
+        if event.kind() == EventKind.Birth:
             self.refreshProperty("birthDateTime")
             self.refreshProperty("birthLocation")
-        elif event.uniqueId() == EventKind.Adopted.value:
+        elif event.kind() == EventKind.Adopted:
             self.refreshProperty("adoptedDateTime")
             self.refreshProperty("adoptedLocation")
-        elif event.uniqueId() == EventKind.Death.value:
+        elif event.kind() == EventKind.Death:
             self.refreshProperty("deceasedDateTime")
             self.refreshProperty("deceasedLocation")
 

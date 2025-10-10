@@ -16,7 +16,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
 from pkdiagram.widgets import TimelineCallout, Drawer
-from pkdiagram.views import AddAnythingDialog, SearchDialog, QmlDrawer, CaseProperties
+from pkdiagram.views import EventForm, SearchDialog, QmlDrawer, CaseProperties
 from pkdiagram.documentview import (
     View,
     QmlEngine,
@@ -100,7 +100,7 @@ class DocumentView(QWidget):
         )
         self.emotionProps = QmlDrawer(
             self._qmlEngine,
-            "qml/EmotionPropertiesDrawer.qml",
+            "qml/EmotionProperties.qml",
             parent=self,
             resizable=False,
             propSheetModel="emotionModel",
@@ -117,14 +117,14 @@ class DocumentView(QWidget):
         #
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
-        self.addAnythingDialog = AddAnythingDialog(self._qmlEngine, self)
+        self.eventForm = EventForm(self._qmlEngine, self)
         QWidget.hide(self.caseProps)
         QWidget.hide(self.personProps)
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
         self.drawers = [
-            self.addAnythingDialog,
+            self.eventForm,
             self.caseProps,
             self.personProps,
             self.marriageProps,
@@ -135,6 +135,22 @@ class DocumentView(QWidget):
             drawer.canInspectChanged.connect(self.qmlSelectionChanged.emit)
             drawer.manuallyResized.connect(self.onDrawerManuallyResized)
             drawer.qmlFocusItemChanged.connect(self.controller.onQmlFocusItemChanged)
+
+        def _init_personProps():
+            self.personProps.qml.rootObject().editBirthEvent.connect(
+                self.onEditPersonBirthEvent
+            )
+            self.personProps.qml.rootObject().editDeathEvent.connect(
+                self.onEditPersonDeathEvent
+            )
+
+        self.personProps.qmlInitialized.connect(_init_personProps)
+        self.emotionProps.qmlInitialized.connect(
+            lambda: self.emotionProps.qml.rootObject().editEvent.connect(
+                self.onEditEmotionEvent
+            )
+        )
+        self.eventForm.doneEditing.connect(self.controller.onEventFormDoneEditing)
         self._forceSceneUpdate = False  # fix for scene update bug
 
         # This one shows/hides it all together.
@@ -212,7 +228,7 @@ class DocumentView(QWidget):
         self.marriageProps.deinit()
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
-        self.addAnythingDialog.deinit()
+        self.eventForm.deinit()
         self.searchDialog.deinit()
         self._qmlEngine.deinit()
 
@@ -252,7 +268,7 @@ class DocumentView(QWidget):
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
-        self.addAnythingDialog.hide(animate=False)
+        self.eventForm.hide(animate=False)
         self.currentDrawer = None
         self.controller.setScene(None)
         if self.scene:
@@ -265,7 +281,7 @@ class DocumentView(QWidget):
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
-            if self.scene.hideDateSlider() or len(self.timelineModel.events()) == 0:
+            if self.scene.hideDateSlider() or self.timelineModel.rowCount() == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:
                 self.graphicalTimelineShim.setFixedHeight(
@@ -273,7 +289,7 @@ class DocumentView(QWidget):
                 )
             self.drawerShim.setFixedWidth(0)
         self.view.setScene(scene)
-        self.addAnythingDialog.setScene(scene)
+        self.eventForm.setScene(scene)
         self.caseProps.setScene(scene)
         self.personProps.setScene(scene)
         self.emotionProps.setScene(scene)
@@ -394,10 +410,7 @@ class DocumentView(QWidget):
             return
         self._settingCurrentDrawer = True
 
-        if (
-            drawer != self.addAnythingDialog
-            and self.view.ui.actionAdd_Anything.isChecked()
-        ):
+        if drawer != self.eventForm and self.view.ui.actionAdd_Anything.isChecked():
             self.view.ui.actionAdd_Anything.setChecked(False)
 
         if self.view.ui.actionShow_Timeline.isChecked() and (
@@ -637,10 +650,10 @@ class DocumentView(QWidget):
         if self.scene:
             self.scene.update()
 
-    def showAddAnything(self, on: bool):
+    def showEventForm(self, on: bool):
         if on:
-            self.setCurrentDrawer(self.addAnythingDialog)
-            self.addAnythingDialog.initForSelection(self.scene.selectedItems())
+            self.setCurrentDrawer(self.eventForm)
+            self.eventForm.addEvent(self.scene.selectedItems())
         else:
             self.setCurrentDrawer(None)
 

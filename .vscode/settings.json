@@ -1,4 +1,4 @@
-{
+{    
     "python.testing.pytestArgs": [
         "tests",
         "-svv",

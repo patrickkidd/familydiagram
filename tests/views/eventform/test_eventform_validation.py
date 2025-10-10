@@ -5,10 +5,10 @@ from mock import patch
 
 from pkdiagram import util
 from pkdiagram.scene import Person, EventKind, RelationshipKind
-from pkdiagram.views import AddAnythingDialog
+from pkdiagram.views import EventForm
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person
-from .test_addanythingdialog import (
+from .test_eventform import (
     view,
     START_DATETIME,
     END_DATETIME,
@@ -17,7 +17,7 @@ from .test_addanythingdialog import (
 log = logging.getLogger(__name__)
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 
@@ -26,8 +26,8 @@ def test_required_fields_kind(view):
     view.expectedFieldLabel(view.item.property("kindLabel"))
 
 
-def test_required_fields_VariableShift(view):
-    view.set_kind(EventKind.VariableShift)
+def test_required_fields_Shift(view):
+    view.set_kind(EventKind.Shift)
 
     view.expectedFieldLabel(view.item.property("personLabel"))
     view.personPicker.set_new_person("John Doe")
@@ -42,13 +42,13 @@ def test_required_fields_VariableShift(view):
     view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
     view.set_startDateTime(START_DATETIME)
 
-    view.clickAddButton()
+    view.clickSaveButton()
 
 
 @pytest.mark.parametrize("endDateTime", [None, END_DATETIME])
 def test_required_fields_Relationship(view, endDateTime):
 
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_relationship(RelationshipKind.Conflict)
 
@@ -66,7 +66,7 @@ def test_required_fields_Relationship(view, endDateTime):
     if endDateTime:
         view.set_endDateTime(endDateTime)
 
-    view.clickAddButton()
+    view.clickSaveButton()
 
 
 def test_required_field_PairBond(view):
@@ -79,7 +79,7 @@ def test_required_field_PairBond(view):
     view.expectedFieldLabel(view.item.property("startDateTimeLabel"))
     view.set_startDateTime(START_DATETIME)
 
-    view.clickAddButton()
+    view.clickSaveButton()
 
 
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
@@ -99,8 +99,8 @@ def test_confirm_replace_singular_events(qtbot, scene, view, kind):
         view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
     with patch("PyQt5.QtWidgets.QMessageBox.question") as question:
-        view.clickAddButton()
-    assert question.call_args[0][2] == AddAnythingDialog.S_REPLACE_EXISTING.format(
+        view.clickSaveButton()
+    assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
         n_existing=1, kind=kind.name
     )
     if kind == EventKind.Birth:
@@ -115,7 +115,7 @@ def test_confirm_replace_singular_events(qtbot, scene, view, kind):
 
 
 def test_person_unsubmitted_personPicker(view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(RelationshipKind.Inside)
     view.personPicker.set_new_person("John Doe", returnToFinish=False)
     view.pickerNotSubmitted(view.item.property("personLabel"))
@@ -165,7 +165,7 @@ def test_person_unsubmitted_Bonded_personBPicker(view):
 
 
 def test_person_unsubmitted_Triangle_targetsPicker(view):
-    view.set_kind(EventKind.VariableShift)
+    view.set_kind(EventKind.Shift)
     view.set_relationship(RelationshipKind.Inside)
     view.personPicker.set_new_person("John Doe")
     view.targetsPicker.add_new_person("Jane Doe", returnToFinish=False)

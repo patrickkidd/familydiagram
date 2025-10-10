@@ -62,9 +62,9 @@ class SearchDialog(Dialog, QmlWidgetHelper):
         #     itemName = ""
         #     parentName = ""
         # _log.info(
-        #     f"AddAnythingDialog.onActiveFocusItemChanged: {parentName}.{itemName}"
+        #     f"EventForm.onActiveFocusItemChanged: {parentName}.{itemName}"
         # )
         # className = item.metaObject().className() if item else ""
         # _log.info(
-        #     f"AddAnythingDialog.onActiveFocusItemChanged: {className}[{item.objectName() if item else ''}]"
+        #     f"EventForm.onActiveFocusItemChanged: {className}[{item.objectName() if item else ''}]"
         # )

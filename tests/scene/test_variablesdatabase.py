@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram import util, slugify
-from pkdiagram.scene import Scene, Person, VariablesDatabase, Event
+from pkdiagram.scene import Scene, Person, VariablesDatabase, Event, EventKind
 
 
 VAR_1 = "Var 1"
@@ -58,15 +58,18 @@ def test_set_get(mock):
 def test_person_init(mock, scene):
     data, (d0, d1, d2, d3) = mock
     scene.replaceEventProperties([VAR_1, VAR_2])
-    person = Person()
-    event0 = Event(parent=person, dateTime=d0)
-    event1 = Event(parent=person, dateTime=d1)
-    event2 = Event(parent=person, dateTime=d3)
-    scene.addItem(person)
+    person = scene.addItem(Person())
+    event0, event1, event2 = scene.addItems(
+        Event(EventKind.Shift, person, dateTime=d0),
+        Event(EventKind.Shift, person, dateTime=d1),
+        Event(EventKind.Shift, person, dateTime=d3),
+    )
 
     for attr, dateTime, value in data:
         if value is not None:
-            event = next(x for x in person.events() if x.dateTime() == dateTime)
+            event = next(
+                x for x in (event0, event1, event2) if x.dateTime() == dateTime
+            )
             event.dynamicProperty(attr).set(value)
 
     assert_mock(person.variablesDatabase, mock)

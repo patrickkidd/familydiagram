@@ -5,12 +5,12 @@ import pytest
 from pkdiagram.scene import EventKind, Person
 
 from tests.widgets import waitForPersonPickers
-from tests.views.test_addanythingdialog import view
+from tests.views.eventform.test_eventform import view
 
 _log = logging.getLogger(__name__)
 
 pytestmark = [
-    pytest.mark.component("AddAnythingDialog"),
+    pytest.mark.component("EventForm"),
     pytest.mark.depends_on("Scene"),
 ]
 

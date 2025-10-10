@@ -35,7 +35,15 @@
 		},
 		"makefile.configureOnOpen": false,
 		// "python.languageServer": "Pylance",
+
 		"python.analysis.typeCheckingMode": "off",
+		// "python.analysis.diagnosticMode": "workspace",
+		"python.analysis.diagnosticSeverityOverrides": {
+			"reportOptionalMemberAccess": "none",
+			"reportOptionalSubscript": "none",
+			"reportOptionalCall": "none"
+		},
+
 		"python.testing.pytestEnabled": false,
 		"python.analysis.extraPaths": [
 			".",

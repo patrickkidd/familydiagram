@@ -100,10 +100,10 @@ PRISCILLA_SCENE = {
                 "id": 1525,
                 "dateTime": util.Date(2002, 11, 25),
                 "parentName": None,
-                "uniqueId": EventKind.Death.value,
+                "kind": EventKind.Death.value,
             },
             "deceased": True,
-            "kind": "Person",
+            "kind": "Event",
             "lastName": "Friesen",
             "name": "Elsie",
         }

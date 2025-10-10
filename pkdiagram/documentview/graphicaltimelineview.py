@@ -314,21 +314,3 @@ class GraphicalTimelineView(QFrame):
         self.timeline._freezeScroll = freezeScroll
         self.timeline.setGeometry(new)
         self.timeline._freezeScroll = False
-
-
-def __test__(scene, parent):
-    scene.setTags(["Tag 1", "Tag 2"])
-    for i, event in enumerate(scene.events()):
-        if i % 2:
-            event.setTag("Tag 1")
-        else:
-            event.setTag("Tag 2")
-    w = GraphicalTimelineView(parent)
-    w.setScene(scene)
-    w.expand()
-    # w.onSearch()
-    w.show()
-    parent.layout().addWidget(w)
-    parent.resize(800, 600)
-    w.adjust()
-    return w

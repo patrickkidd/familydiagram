@@ -35,6 +35,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Key Modules
 - **Scene System** (`pkdiagram/scene/`): Core data model / QGraphicsItem types (Person, Event, Marriage, etc.) with property system
+  - The Scene is the authoratative source for storing and querying Item objects.
+    However, Efficient diagram drawing requires caching references to Item
+    objects. Sometimes these references are circular.
+    - For example, sometimes Person needs to develop a dependency graph of ItemDetails, Emotion, etc for redraws when that Person is moved.
+    - Circular references are handled when loading the diagram file in two
+      phases; 1) instantiate all the items with a map of their id's, then 2)
+      resolve all dependencies via passing the map to each Item's read() method.
+  - There are two major ways that Emotion objects gets created, which determines
+    how instantiations and cascaded deletes work;
+    1) Drawing like a chalk board without an Event via Scene, where the scene
+       owns the Emotion
+    2) Created to represent a dated Event via EditForm, where the event owns the
+       emotion
+  - The Scene is the authoratitive source for querying Item relationships, e.g.
+    though eventsFor, emotionsFor, marriageFor, etc
+  - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
+  - `Event` has mandatory `EventKind` as:
+    - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,
+      `Divorced` are "PairBond" categories that reflect the pairbond/marriage's
+      life cycle. All include a spouse and potentially a child.
+    - `Shift` category that indicates a change in the app's four key
+      variables: (S)ymptom, (A)nxiety, (R)elationship and (F)unctioning.
+        - R changes always occur in relation to one or more targets. 
+        - R changes pertaining to triangles (`RelationShipKind.Inside`,
+          `RelationshipKind.Outside`) also pertain to one or more other people
+          to complete the triangle.
+    - `Death` only pertains to the Event's `person`.
 - **Models** (`pkdiagram/models/`): Qt model classes for QML data binding using QObjectHelper pattern
 - **Document/View** (`pkdiagram/documentview/`): Document management, QML engine, and main canvas view
 - **QML Engine** (`pkdiagram/documentview/qmlengine.py`): Manages QML context properties and model instances
@@ -75,6 +102,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dynamic Properties**: Scene items use `QObjectHelper.registerQtProperties()` for automatic Qt property generation
 - **Property Types**: Supports conversion between Python types and Qt types (QDateTime, Qt.CheckState, etc.)
 - **Property Persistence**: Scene items can be serialized/deserialized with full property state
+- **Python Object Model**: Adding properties declaratively via Item.registerProperties automatically adds getter and set*() setter methods to the class.
 
 ### Build Configuration
 - **Multi-platform**: Supports macOS, Windows, and iOS builds with platform-specific configurations

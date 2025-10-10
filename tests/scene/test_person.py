@@ -10,17 +10,13 @@ from pkdiagram.scene import (
     Layer,
     Person,
     Event,
+    EventKind,
 )
 
 
-def test_init():
-    person = Person(name="personA")
-    assert person.birthEvent not in person.events()
-
-
-def test_write_read():
+def test_write_read(scene):
     chunk = {}
-    person1 = Person(name="personA", lastName="bleh")
+    person1 = scene.addItem(Person(name="personA", lastName="bleh"))
     person1.write(chunk)
     person2 = Person()
     person2.read(chunk, lambda id: None)
@@ -44,23 +40,25 @@ def test_childItem_parent():
             assert person.childOf.parentItem() is not None
 
 
-def test_Cutoff_parent():
-    """Cutoff.parentItem() was being reset by Scene.addItem if it was listed
-    before it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
+def test_Cutoff_parent(scene):
+    """
+    Cutoff.parentItem() was being reset by Scene.addItem if it was listed before
+    it's Person. Fixed by adding Cutoff.setParent() in Person.updateAll().
     """
     data = {
-        "items": [
+        "emotions": [
             # put the cutoff first so that addItem() clears the parentItem added.
-            {"id": 2, "kind": "Cutoff", "person_a": 1, "notes": ""},
+            {"id": 2, "kind": "Cutoff", "person": 1, "notes": ""},
+        ],
+        "people": [
             {"id": 1, "kind": "Person", "notes": ""},
-        ]
+        ],
     }
-    scene = Scene()
     assert scene.read(data) == None
 
     person = scene.find(1)
     cutoff = scene.find(2)
-    assert cutoff in person.emotions()
+    assert cutoff in scene.emotionsFor(person)
     assert cutoff.scene() is scene
     assert person.scene() is scene
     assert cutoff.parentItem() is person
@@ -107,14 +105,13 @@ def test_detailsText_visible_at_pos():
 def detailsText_person(scene):
     scene.addEventProperty("varX")
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
-    person = Person(name="Roger")
-    scene.addItem(person)
+    person = scene.addItem(Person(name="Roger"))
     person.setDiagramNotes("here are some notes")
-    person.setBirthDateTime(util.Date(2001, 1, 1))
-    event = Event(person, dateTime=scene.currentDateTime())
-    scene.addItem(event)
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=scene.currentDateTime())
+    )
     event.dynamicProperty("varx").set("123")
-    scene.addItem(event)
     person.updateDetails()
     return person
 
@@ -167,24 +164,22 @@ def test_detailsText_hideVariables(detailsText_person):
     assert "varX" not in person.detailsText.text()
 
 
-def test_hide_age_when_no_deceased_date():
-    person = Person()
-    scene = Scene()
-    scene.addItem(person)
+def test_hide_age_when_no_deceased_date(scene):
+    person = scene.addItem(Person())
     scene.setCurrentDateTime(QDateTime.currentDateTime())
-    person.setBirthDateTime(util.Date(1990, 1, 1))
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(1990, 1, 1)))
     person.setDeceased(True)
     assert person.ageItem.text() == ""
     assert person.ageItem.isVisible() == False
 
-    person.setDeceasedDateTime(util.Date(2000, 1, 1))
+    scene.addItem(Event(EventKind.Death, person, dateTime=util.Date(2000, 1, 1)))
     assert person.ageItem.text() == "10"
     assert person.ageItem.isVisible() == True
 
 
 def test_updateAll_layer_props_init():
     """itemOpacity was not set directly in Person.updateAll()."""
-    data = {
+    DATA = {
         "items": [
             {"id": 1, "kind": "Person", "size": 5, "layers": [2]},
             {
@@ -198,7 +193,7 @@ def test_updateAll_layer_props_init():
         ]
     }
     scene = Scene()
-    assert scene.read(data) == None
+    assert scene.read(DATA) == None
 
     person = scene.find(1)
     layer = scene.find(2)
@@ -309,7 +304,7 @@ def test_new_event_adds_variable_values(scene):
     scene.addItems(person)
 
     # Simulate AddEventDialog setup.
-    event = Event(parent=person, dateTime=util.Date(2021, 5, 11))
+    event = Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11))
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
@@ -357,7 +352,7 @@ def test_draw_builtin_vars(kind, attr, value):
     person = Person(kind=kind)
     scene.addItems(person)
 
-    event = Event(parent=person, dateTime=DATE)
+    event = Event(EventKind.Shift, person, dateTime=DATE)
     event.addDynamicProperty(attr)
     event.dynamicProperties[0].set(value)
     person.updateGeometry()

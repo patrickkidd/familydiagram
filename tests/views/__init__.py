@@ -1,1 +1,1 @@
-from .testaddanythingdialog import TestAddAnythingDialog
+from .eventform.testeventform import TestEventForm

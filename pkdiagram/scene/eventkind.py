@@ -2,27 +2,28 @@ import enum
 
 
 class EventKind(enum.Enum):
-    """
-    Canonical Event uniqueId values. An Event has a uniqueId if it has a
-    specific visual representation somewhere in the app, usually the diagram.
-    """
 
     Bonded = "bonded"
     Married = "married"
-    Separated = "separated"
-    Divorced = "divorced"
-    Moved = "moved"
-
-    # isOffspring
     Birth = "birth"
     Adopted = "adopted"
+    Moved = "moved"
+    Separated = "separated"
+    Divorced = "divorced"
 
+    Shift = "shift"
     Death = "death"
 
-    VariableShift = "variable-shift"
-
-    def isOffspring(self) -> bool:
-        return self in (self.Birth, self.Adopted)
+    def isPairBond(self) -> bool:
+        return self in (
+            self.Bonded,
+            self.Married,
+            self.Birth,
+            self.Adopted,
+            self.Moved,
+            self.Separated,
+            self.Divorced,
+        )
 
     def menuLabel(self) -> str:
         labels = {
@@ -34,6 +35,6 @@ class EventKind(enum.Enum):
             self.Birth: "Birth",
             self.Adopted: "Adopted",
             self.Death: "Death",
-            self.VariableShift: "Variable Shift",
+            self.Shift: "Shift",
         }
         return labels[self]

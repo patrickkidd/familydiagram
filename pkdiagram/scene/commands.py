@@ -11,7 +11,15 @@ state from the object required to undo the underlying api call.
 import os, shutil, logging
 
 from pkdiagram.pyqt import QUndoCommand
-
+from pkdiagram.scene import (
+    Event,
+    Emotion,
+    Person,
+    Marriage,
+    Layer,
+    LayerItem,
+    MultipleBirth,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -106,30 +114,34 @@ class RemoveItems(QUndoCommand):
             for child in list(item.children):
                 mapChildOf(child.childOf)
 
-        def mapEvent(item):
+        def mapEvent(item: Event):
             for entry in self._unmapped["events"]:
                 if entry["event"] is item:
                     return
-            if item.uniqueId():  # just clear date for built-in events
-                parent = None
-                dateTime = item.dateTime()
-            else:
-                parent = item.parent
-                dateTime = None
-            self._unmapped["events"].append(
-                {"event": item, "parent": parent, "dateTime": dateTime}
-            )
+            # Store IDs, not object references
+            mapping = {
+                "event": item,
+                "personId": item.person().id if item.person() else None,
+                "spouseId": item.spouse().id if item.spouse() else None,
+                "childId": item.child().id if item.child() else None,
+                "targetIds": [p.id for p in item.relationshipTargets()],
+                "triangleIds": [p.id for p in item.relationshipTriangles()],
+                "dateTime": item.dateTime(),
+            }
+            self._unmapped["events"].append(mapping)
+            for emotion in self.scene.emotionsFor(item):
+                mapEmotion(emotion)
 
-        def mapEmotion(item):
+        def mapEmotion(item: Emotion):
             for entry in self._unmapped["emotions"]:
                 if entry["emotion"] is item:
                     return
-            self._unmapped["emotions"].append(
-                {
-                    "emotion": item,
-                    "people": list(item.people),
-                }
-            )
+            mapping = {
+                "emotion": item,
+                "eventId": item.event().id if item.event() else None,
+                "targetId": item.target().id if item.target() else None,
+            }
+            self._unmapped["emotions"].append(mapping)
 
         def mapItem(item):
             for layer in scene.layers():
@@ -155,9 +167,9 @@ class RemoveItems(QUndoCommand):
             if item.isPerson:
                 for marriage in list(item.marriages):
                     mapMarriage(marriage)
-                for emotion in list(item.emotions()):
+                for emotion in list(scene.emotionsFor(item)):
                     mapEmotion(emotion)
-                for event in list(item.events()):
+                for event in list(scene.eventsFor(item)):
                     mapEvent(event)
                 if item.childOf:
                     mapChildOf(item.childOf)
@@ -190,21 +202,42 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
+
+        def _removeEvent(event: Event):
+            docsPath = event.documentsPath()
+            if docsPath and os.path.isdir(docsPath):  # this cannot be undone
+                shutil.rmtree(docsPath)
+            for emotion in self.scene.emotionsFor(event):
+                self.scene.removeItem(emotion)
+            self.scene.removeItem(event)
+
+        def _removeEmotion(emotion: Emotion):
+            self.scene.removeItem(emotion)
+
+        def _removeMarriage(marriage: Marriage):
+            for child in list(marriage.children):
+                child.setParents(None)
+            for person in list(marriage.people):
+                person._onRemoveMarriage(marriage)
+            self.scene.removeItem(marriage)
+
         for item in self.items:
 
             if item.isPerson:
+                # Delete all marriages involving this person (as subject or target)
                 for marriage in list(item.marriages):
-                    for child in list(marriage.children):
-                        child.setParents(None)
-                    for person in list(marriage.people):
-                        person._onRemoveMarriage(marriage)
-                    self.scene.removeItem(marriage)
+                    _removeMarriage(marriage)
 
-                for emotion in list(item.emotions()):
-                    for person in list(emotion.people):
-                        if person:  # ! dyadic
-                            person._onRemoveEmotion(emotion)
-                    self.scene.removeItem(emotion)
+                # Delete all events for this person
+                for event in list(self.scene.eventsFor(item)):
+                    _removeEvent(event)
+
+                # Delete all emotions involving this person (as subject or
+                # target) After events so that emotions owned by events are
+                # deleted with their events. Implying any emotions left has no
+                # date and is owned by the scene.
+                for emotion in list(self.scene.emotionsFor(item)):
+                    _removeEmotion(emotion)
 
                 if item.childOf:
                     item.setParents(None)
@@ -228,27 +261,13 @@ class RemoveItems(QUndoCommand):
                     child.setParents(None)
 
             elif item.isMarriage:
-                for child in list(item.children):  # after undo setup
-                    child.setParents(None)
-                for person in list(item.people):
-                    person._onRemoveMarriage(item)
-                self.scene.removeItem(item)
+                _removeMarriage(item)
 
             elif item.isEvent:
-                docsPath = item.documentsPath()
-                if docsPath and os.path.isdir(docsPath):  # this cannot be undone
-                    shutil.rmtree(docsPath)
-                if item.uniqueId() and not item.parent.isMarriage:
-                    item.prop("dateTime").reset()
-                else:
-                    item.setParent(None)
-                    self.scene.removeItem(item)
+                _removeEvent(item)
 
             elif item.isEmotion:
-                for person in list(item.people):
-                    if person:
-                        person._onRemoveEmotion(item)
-                        self.scene.removeItem(item)
+                _removeEmotion(item)
 
             elif item.isLayerItem:
                 self.scene.removeItem(item)
@@ -315,20 +334,22 @@ class RemoveItems(QUndoCommand):
             entry["person"].setParents(entry["parents"])
         #
         for entry in self._unmapped["events"]:
-            if entry["dateTime"]:
-                entry["event"].setDateTime(entry["dateTime"])
-            else:
-                entry["event"].setParent(entry["parent"])
+            # Events are restored via scene.addItem - person references will be resolved
+            # Just ensure event is in scene
+            if not entry["event"].scene():
+                self.scene.addItem(entry["event"])
         #
         for entry in self._unmapped["emotions"]:
-            entry["people"][0]._onAddEmotion(entry["emotion"])
-            entry["emotion"].setPersonA(entry["people"][0])
-            if entry["people"][1]:  # ! dyadic
-                entry["people"][1]._onAddEmotion(entry["emotion"])
-                entry["emotion"].setPersonB(entry["people"][1])
-            if not entry["emotion"].isDyadic():
-                entry["emotion"].setParentItem(entry["people"][0])
-            self.scene.addItem(entry["emotion"])
+            # Emotion references are via event, not direct person
+            if not entry["emotion"].scene():
+                self.scene.addItem(entry["emotion"])
+            # Update parent item for non-dyadic emotions
+            if (
+                not entry["emotion"].isDyadic()
+                and entry["emotion"].event()
+                and entry["emotion"].event().person()
+            ):
+                entry["emotion"].setParentItem(entry["emotion"].event().person())
         #
         for entry in self._unmapped["layers"]:  # before layer items
             for layerItem in entry["layerItems"]:
@@ -353,7 +374,9 @@ class RemoveItems(QUndoCommand):
             if item.isPathItem:
                 item.flash()
             elif item.isEvent:
-                item.parent.flash()
+                person = item.person()
+                if person:
+                    person.flash()
 
 
 class SetItemPos(QUndoCommand):
@@ -459,52 +482,19 @@ class ResetProperty(QUndoCommand):
                 prop.onActiveLayersChanged()
 
 
-class SetEmotionPerson(QUndoCommand):
+class SetEventPerson(QUndoCommand):
 
-    def __init__(self, emotion, personA=None, personB=None):
-        super().__init__("Set emotion person")
-        self.emotion = emotion
-        self.personA = personA
-        self.personB = personB
-        self.was_personA = emotion.personA()
-        self.was_personB = emotion.personB()
-        if personA == self.was_personB and personB == self.was_personA:
-            self.swap = True
-        else:
-            self.swap = False
-
-    def redo(self):
-        if self.swap:
-            self.emotion.swapPeople()
-        else:
-            if self.personA:
-                self.emotion.setPersonA(self.personA)
-            if self.personB:
-                self.emotion.setPersonB(self.personB)
-
-    def undo(self):
-        if self.swap:
-            self.emotion.swapPeople()
-        else:
-            if self.was_personA != self.emotion.personA():
-                self.emotion.setPersonA(self.was_personA)
-            if self.was_personB != self.emotion.personB():
-                self.emotion.setPersonB(self.was_personB)
-
-
-class SetEventParent(QUndoCommand):
-
-    def __init__(self, event, parent):
-        super().__init__(f"Set event {event.itemName()} parent to {parent.itemName()}")
-        self.was_parent = event.parent
+    def __init__(self, event, person):
+        super().__init__(f"Set event {event.itemName()} person to {person.itemName()}")
+        self.was_person = event.person()
         self.event = event
-        self.parent = parent
+        self.person = person
 
     def redo(self):
-        self.event._do_setParent(self.parent)
+        self.event._do_setPerson(self.person)
 
     def undo(self):
-        self.event._do_setParent(self.was_parent)
+        self.event._do_setPerson(self.was_person)
 
 
 # class SetEventKind(QUndoCommand):

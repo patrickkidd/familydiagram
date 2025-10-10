@@ -13,7 +13,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram.scene import EventKind, Person, Marriage, PathItem
 from pkdiagram.scene.relationshipkind import RelationshipKind
-from pkdiagram.views import AddAnythingDialog
+from pkdiagram.views import EventForm
 
 from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
 
@@ -21,9 +21,9 @@ from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
 _log = logging.getLogger(__name__)
 
 
-class TestAddAnythingDialog:
+class TestEventForm:
 
-    def __init__(self, view: AddAnythingDialog):
+    def __init__(self, view: EventForm):
         self.view = view
         self.item = view.qml.rootObject()
 
@@ -90,6 +90,7 @@ class TestAddAnythingDialog:
 
         # Meta
 
+        self.colorBox = self.item.property("colorBox")
         self.tagsEdit = self.item.property("tagsEdit")
 
     # QmlWidgetHelper passthrough
@@ -99,7 +100,7 @@ class TestAddAnythingDialog:
 
     # Methods
 
-    def clickAddButton(self):
+    def clickSaveButton(self):
         self.view.mouseClickItem(self.addButton)
 
     def clickClearButton(self):
@@ -108,11 +109,11 @@ class TestAddAnythingDialog:
     def clickCancelButton(self):
         self.view.mouseClickItem(self.cancelButton)
 
-    def initForSelection(self, selection: list[PathItem]):
-        if Marriage.marriageForSelection(selection):
-            self.view.initForSelection(selection)
+    def addEvent(self, selection: list[PathItem] = None):
+        if self.view.marriageForSelection(selection):
+            self.view.addEvent(selection)
         else:
-            self.view.initForSelection(selection)
+            self.view.addEvent(selection)
 
     def set_person_picker_gender(self, personPicker, genderLabel):
         genderBox = self.personPicker.property("genderBox")
@@ -304,7 +305,7 @@ class TestAddAnythingDialog:
         name = expectedTextLabel.property("text")
         expectedText = self.view.S_REQUIRED_FIELD_ERROR.format(name=name)
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
-            self.clickAddButton()
+            self.clickSaveButton()
             assert warning.call_count == 1
             assert warning.call_args[0][0] == self.view
             assert warning.call_args[0][2] == expectedText
@@ -315,7 +316,7 @@ class TestAddAnythingDialog:
             pickerLabel=name
         )
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
-            self.clickAddButton()
+            self.clickSaveButton()
             assert warning.call_count == 1
             assert warning.call_args[0][0] == self.view
             assert warning.call_args[0][2] == expectedText
@@ -337,6 +338,11 @@ class TestAddAnythingDialog:
     def set_functioning(self, x):
         self.view.setVariable("functioning", x)
 
+    # Meta
+
+    def set_color(self, color: str):
+        self.view.clickComboBoxItem(self.colorBox, color, force=False)
+
     def add_tag(self, tag: str):
         self.view.scrollChildToVisible(self.item.property("addPage"), self.tagsEdit)
         tagsEdit = TestActiveListEdit(self.view, self.tagsEdit)
@@ -354,7 +360,7 @@ class TestAddAnythingDialog:
         self.set_kind(EventKind.Birth)
         self.personPicker.set_new_person(personName)
         self.set_startDateTime(startDateTime)
-        self.clickAddButton()
+        self.clickSaveButton()
         person = self.view.scene.query1(methods={"fullNameOrAlias": personName})
         return person
 
@@ -364,7 +370,7 @@ class TestAddAnythingDialog:
         self.set_existing_person(self.personAPicker, person)
         self.personBPicker.set_new_person(spouseName)
         self.set_startDateTime(startDateTime)
-        self.clickAddButton()
+        self.clickSaveButton()
         spouse = self.view.scene.query1(methods={"fullNameOrAlias": spouseName})
         return (set(person.marriages) - pre_marriages).pop()
 
@@ -374,5 +380,5 @@ class TestAddAnythingDialog:
         self.set_existing_person(self.personAPicker, marriage.personA())
         self.set_existing_person(self.personBPicker, marriage.personB())
         self.set_startDateTime(startDateTime)
-        self.clickAddButton()
+        self.clickSaveButton()
         return (set(marriage.events()) - pre_events).pop()

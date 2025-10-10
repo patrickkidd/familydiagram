@@ -37,7 +37,7 @@ from pkdiagram.pyqt import (
     QGraphicsOpacityEffect,
 )
 from pkdiagram import util
-from pkdiagram.scene import Person, PathItem, Callout, Property
+from pkdiagram.scene import Person, PathItem, Callout, Property, ItemMode
 from pkdiagram.widgets import PixmapPushButton
 from pkdiagram.documentview import (
     Legend,
@@ -709,7 +709,7 @@ class View(QGraphicsView):
         #     # self.escape.emit()
         #     # if self.scene():
         #     #     self.scene().clearSelection()
-        #     #     self.scene().setItemMode(util.ITEM_NONE)
+        #     #     self.scene().setItemMode(None)
         #     super().keyPressEvent(e)
         if e.key() in (
             Qt.Key_Up,
@@ -1259,13 +1259,3 @@ class View(QGraphicsView):
     def showItemsWithNotes(self, on):
         if self.scene():
             self.scene().setShowNotesIcons(on)
-
-
-def __test__(scene, parent):
-    w = View(parent, None)
-    w.init()
-    w.setScene(scene)
-    w.show()
-    parent.resize(800, 600)
-    scene.setItemMode(util.ITEM_MALE)
-    return w

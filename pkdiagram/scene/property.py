@@ -42,6 +42,8 @@ class Property:
         self.attr = kwargs["attr"]
         self.onset = kwargs.get("onset", None)
         self.default = kwargs.get("default", None)
+        if callable(self.default):
+            self.default = self.default()
         if isinstance(self.default, (list, dict)):
             self.default = copy.deepcopy(self.default)
         self.isDynamic = kwargs.get("dynamic", False)

@@ -1,5 +1,6 @@
 import os, sys, re, logging
 import contextlib
+from typing import Union
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -41,7 +42,9 @@ from pkdiagram.scene import (
     EmotionalUnit,
     Property,
     Event,
+    EventKind,
     Item,
+    ItemMode,
     PathItem,
     Person,
     ChildOf,
@@ -53,7 +56,9 @@ from pkdiagram.scene import (
     LayerItem,
     Callout,
     ItemGarbage,
+    ItemDetails,
     clipboard,
+    RelationshipKind,
 )
 from pkdiagram.scene.commands import (
     AddItem,
@@ -218,7 +223,7 @@ class Scene(QGraphicsScene, Item):
         self._document = (
             document  # for self.name() (windowTitle) and item.documentsPath
         )
-        self._itemMode = util.ITEM_NONE
+        self._itemMode = None
         self._stopOnAllEvents = True
         self._showNotesIcons = False
         self._serverDiagram = None
@@ -330,7 +335,9 @@ class Scene(QGraphicsScene, Item):
     def setScaleFactor(self, *args, **kwargs):
         self.prop("scaleFactor").set(*args, **kwargs)
 
-    def addItem(self, item, undo=False) -> Item:
+    def addItem(
+        self, item, undo=False
+    ) -> Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]:
         if undo:
             self.push(AddItem(self, item))
         else:
@@ -357,6 +364,7 @@ class Scene(QGraphicsScene, Item):
         elif self.itemRegistry.get(item.id, None) is item:  # already registered
             return
         self.itemRegistry[item.id] = item
+        item.onRegistered(self)
         ## Signals
         if item.isPathItem:
             if not self.isBatchAddingRemovingItems():
@@ -386,22 +394,40 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
+            if not self._isUndoRedoing:
+                for target in item.relationshipTargets():
+                    emotion = self.addItem(
+                        Emotion(
+                            kind=item.relationship(),
+                            target=target,
+                            event=item,
+                            tags=item.tags(),
+                        ),
+                        undo=True,
+                    )
+                    self._do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
-            if item.dateTime() and not self.isBatchAddingRemovingItems():
+            if not self.isBatchAddingRemovingItems():
+                item.person().onEventAdded()
+                if item.spouse():
+                    marriage = self.marriageFor(item.person(), item.spouse())
+                    if item.kind().isPairBond() and not marriage:
+                        raise ValueError(
+                            f"Cannot add {item.kind().menuLabel()} event for "
+                            f"{item.person().itemName()} and {item.spouse().itemName()} "
+                            f"without a Marriage object. Create the Marriage first."
+                        )
+                    if marriage:
+                        marriage.onEventAdded()
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
-            item.personA()._onAddEmotion(item)
-            if item.personB():
-                item.personB()._onAddEmotion(item)
             if not self.isBatchAddingRemovingItems():
                 self.emotionAdded.emit(item)
-                if item.startDateTime() and not self._isUndoRedoing:
-                    self.setCurrentDateTime(item.startDateTime())
         elif item.isLayer:
             self._layers.append(item)
             item.setScene(self)
@@ -431,7 +457,6 @@ class Scene(QGraphicsScene, Item):
         elif item.isItemDetails:
             self._itemDetails.append(item)
         item.addPropertyListener(self)
-        item.onRegistered(self)
         if item.isPathItem:  # after geometries are updated.
             if not self.isBatchAddingRemovingItems():
                 self.checkPrintRectChanged()
@@ -440,10 +465,15 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(self, *args, batch=True, undo=False):
+    def addItems(
+        self, *args, batch=True, undo=False
+    ) -> list[Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]]:
+        ret = []
         with self.macro("Adding items", undo=undo, batchAddRemove=batch):
             for item in args:
                 self.addItem(item, undo=undo)
+                ret.append(item)
+        return ret
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
@@ -495,7 +525,6 @@ class Scene(QGraphicsScene, Item):
         if not item.id in self.itemRegistry:
             return
         del self.itemRegistry[item.id]
-        item.onDeregistered(self)
         item.removePropertyListener(self)
         # I think it's ok to skip signals when deinitializing
         if self.isDeinitializing:
@@ -527,17 +556,19 @@ class Scene(QGraphicsScene, Item):
             item.person.setParents(None)
         elif item.isEvent:
             self._events.remove(item)
-            self.eventRemoved.emit(item)
-            if (
-                not [x for x in self._events if x.dateTime()]
-                and not self.isBatchAddingRemovingItems()
-                and not self._isUndoRedoing
-            ):
-                self.setCurrentDateTime(QDateTime())
+            if not self.isBatchAddingRemovingItems():
+                item.person().onEventRemoved()
+                if item.kind().isPairBond():
+                    marriage = self.marriageFor(item.person(), item.spouse())
+                    if marriage:
+                        marriage.onEventRemoved()
+                self.eventRemoved.emit(item)
+                if (
+                    not [x for x in self._events if x.dateTime()]
+                    and not self._isUndoRedoing
+                ):
+                    self.setCurrentDateTime(QDateTime())
         elif item.isEmotion:
-            item.personA()._onRemoveEmotion(item)
-            if item.personB():
-                item.personB()._onRemoveEmotion(item)
             self._emotions.remove(item)
             self.emotionRemoved.emit(item)
         elif item.isLayer:
@@ -555,6 +586,7 @@ class Scene(QGraphicsScene, Item):
                 self.checkPrintRectChanged()
         if self.isBatchAddingRemovingItems() and not item in self._batchRemovedItems:
             self._batchRemovedItems.append(item)
+        item.onDeregistered(self)
         self.itemRemoved.emit(item)
 
     def resortLayersFromOrder(self):
@@ -622,32 +654,42 @@ class Scene(QGraphicsScene, Item):
         self.checkPrintRectChanged()
 
     def prune(self, data):
-        """Delete any references to items containing stale references.
+        """
+        Delete any references to items containing stale references.
         Returns any chunks that were removed, otherwise None.
         """
         if not data.get("items"):
             return
         by_ids = {}
-        for chunk in data["items"]:
+        for chunk in (
+            data["events"]
+            + data["people"]
+            + data["marriages"]
+            + data["emotions"]
+            + data["multipleBirths"]
+            + data["layers"]
+            + data["layerItems"]
+        ):
             by_ids[chunk["id"]] = chunk
 
         pruned = []
-        for chunk in list(data["items"]):
-            if chunk["kind"] == "Marriage":
-                for eventChunk in list(chunk["events"]):
-                    dateTime = eventChunk.get("dateTime", eventChunk.get("date"))
-                    if not dateTime:
-                        chunk["events"].remove(eventChunk)
-                        pruned.append(eventChunk)
-            elif chunk["kind"] == "MultipleBirth":
-                for childId in chunk["children"]:
-                    if not childId in by_ids:
-                        log.warning(
-                            f"Removing MultipleBirth with stale ref to child {childId}"
-                        )
-                        data["items"].remove(chunk)
-                        pruned.append(chunk)
-                        break
+
+        for chunk in data["events"]:
+            if not chunk["dateTime"]:
+                personChunk = by_ids.get(chunk.get("person_id"))
+                log.warning(
+                    f"Removing Event with person {personChunk} and no dateTime set."
+                )
+                data["events"].remove(chunk)
+                pruned.append(chunk)
+        for chunk in data["multipleBirths"]:
+            for childId in chunk.get("children", []):
+                if not childId in by_ids:
+                    log.warning(
+                        f"Removing MultipleBirth with stale ref to child {childId}"
+                    )
+                    data["items"].remove(chunk)
+                    pruned.append(chunk)
         if pruned:
             return pruned
         else:
@@ -683,22 +725,87 @@ class Scene(QGraphicsScene, Item):
             itemChunks = []
             self.futureItems = []
             items = []
-            for chunk in data.get("items", []):
-                if chunk["kind"] == "Person":
-                    item = Person()
-                elif chunk["kind"] == "Marriage":
-                    item = Marriage()
-                elif chunk["kind"] == "MultipleBirth":
-                    item = MultipleBirth()
-                elif chunk["kind"] == "PencilStroke":
+
+            # Load events FIRST (before people, since people query events)
+            for chunk in data.get("events", []):
+                item = Event(kind=EventKind.Shift, person=None)  # Placeholder
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load people
+            for chunk in data.get("people", []):
+                item = Person()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load marriages
+            for chunk in data.get("marriages", []):
+                item = Marriage()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load emotions
+            for chunk in data.get("emotions", []):
+                kind = Emotion.kindForKindSlug(chunk["kind"])
+                # Provide placeholder values - will be overwritten by item.read(chunk, byId)
+                item = Emotion(kind=kind, target=None, event=None)
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load layers
+            for chunk in data.get("layers", []):
+                item = Layer()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load layer items (PencilStroke, Callout)
+            for chunk in data.get("layerItems", []):
+                if chunk["kind"] == "PencilStroke":
                     item = PencilStroke()
-                elif chunk["kind"] == "Layer":
-                    item = Layer()
                 elif chunk["kind"] == "Callout":
                     item = Callout()
-                elif chunk["kind"] in Emotion.kindSlugs():
-                    kind = Emotion.kindForKindSlug(chunk["kind"])
-                    item = Emotion(kind=kind)
+                else:
+                    log.warning(f"Unknown layerItem kind: {chunk['kind']}")
+                    continue
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load multiple births
+            for chunk in data.get("multipleBirths", []):
+                item = MultipleBirth()
+                item.id = chunk["id"]
+                items.append(item)
+                itemChunks.append((item, chunk))
+
+            # Load items (backward compatibility and unknown types)
+            for chunk in data.get("items", []):
+                kind = chunk.get("kind")
+                if not kind:
+                    continue
+                if kind == "Person":
+                    item = Person()
+                elif kind == "Marriage":
+                    item = Marriage()
+                elif kind == "MultipleBirth":
+                    item = MultipleBirth()
+                elif kind == "PencilStroke":
+                    item = PencilStroke()
+                elif kind == "Layer":
+                    item = Layer()
+                elif kind == "Callout":
+                    item = Callout()
+                elif kind in Emotion.kindSlugs():
+                    emotionKind = Emotion.kindForKindSlug(kind)
+                    # Provide placeholder values - will be overwritten by item.read(chunk, byId)
+                    item = Emotion(kind=emotionKind, target=None, event=None)
+                elif kind == "Event":
+                    item = Event(kind=EventKind.Shift, person=None)
                 else:
                     log.warning(f"Retaining future item: {chunk}")
                     self.futureItems.append(chunk)
@@ -733,12 +840,16 @@ class Scene(QGraphicsScene, Item):
                 "Adding items during read file", undo=False, batchAddRemove=True
             ):
                 for item in items:
-                    if item.isEmotion and item.personA() is None:
+                    if item.isEmotion and item.prop("person").get() is None:
                         log.warning(
                             f"Emotion {item} has no personA, skipping loading..."
                         )
                         continue
-                    elif item.isEmotion and item.isDyadic() and item.personB() is None:
+                    elif (
+                        item.isEmotion
+                        and item.isDyadic()
+                        and item.prop("target").get() is None
+                    ):
                         log.warning(
                             f"Emotion {item} has no personB, skipping loading..."
                         )
@@ -773,7 +884,17 @@ class Scene(QGraphicsScene, Item):
         data["versionCompat"] = (
             version.VERSION_COMPAT
         )  # oldest version this scene can be opened in
-        data["items"] = []
+
+        # Initialize typed arrays
+        data["people"] = []
+        data["marriages"] = []
+        data["emotions"] = []
+        data["events"] = []
+        data["layers"] = []
+        data["layerItems"] = []
+        data["multipleBirths"] = []
+        data["items"] = []  # For future unknown types
+
         data["name"] = self.name()
         items = []
         for id, item in self.itemRegistry.items():
@@ -781,29 +902,51 @@ class Scene(QGraphicsScene, Item):
                 continue
             else:
                 items.append(item)
+
         for item in items:
             chunk = {}
-            if item.isPerson:
+
+            # Route to appropriate array
+            if item.isEvent:
+                chunk["kind"] = "Event"
+                item.write(chunk)
+                data["events"].append(chunk)
+            elif item.isPerson:
                 chunk["kind"] = "Person"
+                item.write(chunk)
+                data["people"].append(chunk)
             elif item.isMarriage:
                 chunk["kind"] = "Marriage"
-            elif item.isPencilStroke:
-                chunk["kind"] = "PencilStroke"
+                item.write(chunk)
+                data["marriages"].append(chunk)
+            elif item.isEmotion:
+                chunk["kind"] = item.kind()
+                item.write(chunk)
+                data["emotions"].append(chunk)
             elif item.isLayer:
                 chunk["kind"] = "Layer"
                 if item.internal():
                     continue
+                item.write(chunk)
+                data["layers"].append(chunk)
+            elif item.isPencilStroke:
+                chunk["kind"] = "PencilStroke"
+                item.write(chunk)
+                data["layerItems"].append(chunk)
             elif item.isCallout:
                 chunk["kind"] = "Callout"
-            elif item.isEmotion:
-                chunk["kind"] = item.kind()
+                item.write(chunk)
+                data["layerItems"].append(chunk)
             elif item.isMultipleBirth:
                 chunk["kind"] = "MultipleBirth"
+                item.write(chunk)
+                data["multipleBirths"].append(chunk)
             else:
-                continue
-            item.write(chunk)
-            data["items"].append(chunk)
-        # forward-compatibility
+                # Unknown type - forward compatibility
+                item.write(chunk)
+                data["items"].append(chunk)
+
+        # Forward-compatibility for future items
         for chunk in self.futureItems:
             data["items"].append(chunk)
             log.warning(f"Retained future item: {chunk}")
@@ -863,9 +1006,9 @@ class Scene(QGraphicsScene, Item):
 
     def pencilEvent(self, e, pos, pressure):
         """Shared by touch events and mouse events."""
-        if self.itemMode() != util.ITEM_PENCIL:
+        if self.itemMode() != ItemMode.Pencil:
             if AUTO_PENCIL_MODE:
-                self.setItemMode(util.ITEM_PENCIL)
+                self.setItemMode(ItemMode.Pencil)
             else:
                 e.ignore()
                 return False
@@ -958,7 +1101,7 @@ class Scene(QGraphicsScene, Item):
     #         QEvent.TouchCancel,
     #     ]:
     #         touch = e.touchPoints()[0]
-    #         if self.itemMode() == util.ITEM_PENCIL:
+    #         if self.itemMode() == ItemMode.Pencil:
     #             if e.type() == QEvent.TouchBegin:
     #                 return self.pencilEvent(e, touch.scenePos(), pressure)
     #             elif e.type() == QEvent.TouchUpdate:
@@ -974,7 +1117,7 @@ class Scene(QGraphicsScene, Item):
     ## events until an item has been added. Very annoying, no idea why.
     ## I worked around this 'cleaner' by adding and removing a dummy item in setFD
     # def event(self, e):
-    #     if e.type() == QEvent.TouchUpdate and self.itemMode != util.ITEM_NONE:
+    #     if e.type() == QEvent.TouchUpdate and self.itemMode != None:
     #         self.updateMouseCursorItem() # bug fix where mouse move events don't get sent before adding a person.
     #     return super().event(e)
 
@@ -991,33 +1134,33 @@ class Scene(QGraphicsScene, Item):
             item = _item
             break
         # item = next(iter(self.items(e.scenePos())), None)
-        if self.itemMode() == util.ITEM_CALLOUT:
+        if self.itemMode() == ItemMode.Callout:
             people = self.selectedItems(type=Person)
             if len(people) == 1:
                 self.calloutParent = people[0]
             else:
                 self.calloutParent = None
-        elif self.itemMode() in [util.ITEM_MALE, util.ITEM_FEMALE]:
+        elif self.itemMode() in [ItemMode.Male, ItemMode.Female]:
             if (
                 item
                 and not isinstance(item, Marriage)
                 and not isinstance(item, QGraphicsPathItem)
             ):
                 e.accept()
-                self.setItemMode(util.ITEM_NONE)
+                self.setItemMode(None)
         elif self.itemMode() in [
-            util.ITEM_MARRY,
-            util.ITEM_CHILD,
-            util.ITEM_CONFLICT,
-            util.ITEM_PROJECTION,
-            util.ITEM_FUSION,
-            util.ITEM_DISTANCE,
-            util.ITEM_AWAY,
-            util.ITEM_TOWARD,
-            util.ITEM_DEFINED_SELF,
-            util.ITEM_RECIPROCITY,
-            util.ITEM_INSIDE,
-            util.ITEM_OUTSIDE,
+            ItemMode.Marry,
+            ItemMode.Child,
+            ItemMode.Conflict,
+            ItemMode.Projection,
+            ItemMode.Fusion,
+            ItemMode.Distance,
+            ItemMode.Away,
+            ItemMode.Toward,
+            ItemMode.DefinedSelf,
+            ItemMode.Reciprocity,
+            ItemMode.Inside,
+            ItemMode.Outside,
         ]:
             e.accept()
             if isinstance(item, Person):
@@ -1027,8 +1170,8 @@ class Scene(QGraphicsScene, Item):
                 self.addItem(self.dragCreateItem)
                 # self.dragCreateItem.setPen(self.dragStartItem.pen())
             else:
-                self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_PENCIL:
+                self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Pencil:
             self.pencilEvent(e, e.scenePos(), mousePressure())
         else:
             draggable = self.draggableUnder(e.scenePos())
@@ -1050,21 +1193,21 @@ class Scene(QGraphicsScene, Item):
         if self.dragStartItem:
             e.accept()
             hoverMe = None
-            if self.itemMode() is util.ITEM_MARRY:
+            if self.itemMode() is ItemMode.Marry:
                 path = Marriage.pathFor(self.dragStartItem, pos=e.scenePos())
                 hoverMe = self.personUnder(e.scenePos())
-            elif self.itemMode() is util.ITEM_CHILD:
+            elif self.itemMode() is ItemMode.Child:
                 path = ChildOf.pathFor(self.dragStartItem, endPos=e.scenePos())
                 hoverMe = self.marriageUnder(e.scenePos())
                 if not hoverMe:
                     hoverMe = self.childOfUnder(e.scenePos())
                     if not hoverMe:
                         hoverMe = self.multipleBirthUnder(e.scenePos())
-            elif self.itemMode() in Emotion.kinds():
+            elif self.itemMode() and self.itemMode().toRelationship():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
                     kind=self.itemMode(),
-                    personA=self.dragStartItem,
+                    person=self.dragStartItem,
                     pointB=e.scenePos(),
                     hoverPerson=hoverMe,
                 )
@@ -1087,7 +1230,7 @@ class Scene(QGraphicsScene, Item):
             if hoverMe and hoverMe != self.dragStartItem:
                 hoverMe.setHover(True)
                 self.hoverItem = hoverMe
-        elif self.itemMode() == util.ITEM_PENCIL and self.pencilCanvas.isDrawing():
+        elif self.itemMode() == ItemMode.Pencil and self.pencilCanvas.isDrawing():
             self.pencilEvent(e, e.scenePos(), mousePressure())
         elif self.mousePressOnDraggable:  # dragging item; handle kb modifiers
             if e.modifiers() & Qt.ShiftModifier:
@@ -1105,7 +1248,7 @@ class Scene(QGraphicsScene, Item):
     def mouseReleaseEvent(self, e):
         if e.button() != Qt.LeftButton:
             return
-        if self.itemMode() == util.ITEM_MALE:
+        if self.itemMode() == ItemMode.Male:
             e.accept()
             self.addItem(
                 Person(
@@ -1115,8 +1258,8 @@ class Scene(QGraphicsScene, Item):
                 ),
                 undo=True,
             )
-            self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_FEMALE:
+            self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Female:
             e.accept()
             self.addItem(
                 Person(
@@ -1126,29 +1269,32 @@ class Scene(QGraphicsScene, Item):
                 ),
                 undo=True,
             )
-            self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() in [util.ITEM_MARRY, util.ITEM_CHILD] + Emotion.kinds():
+            self.setItemMode(None)
+        elif self.itemMode() and (
+            self.itemMode().isOffSpring() or self.itemMode().toRelationship()
+        ):
             e.accept()
             success = False
-            if self.itemMode() is util.ITEM_MARRY:
+            if self.itemMode() is ItemMode.Marry:
                 person = self.personUnder(e.scenePos())
                 if person and person is not self.dragStartItem:
                     self.addItem(Marriage(self.dragStartItem, person), undo=True)
                     success = True
-            elif self.itemMode() is util.ITEM_CHILD:
+            elif self.itemMode() is ItemMode.Child:
                 parentItem = self.itemUnder(
                     e.scenePos(), types=[Marriage, ChildOf, MultipleBirth]
                 )
                 if parentItem:
                     self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
-            elif self.itemMode() in Emotion.kinds():
+            elif self.itemMode() and self.itemMode().toRelationship():
                 person = self.personUnder(e.scenePos())
-                if self.itemMode() == util.ITEM_CUTOFF:  # monadic
-                    emotion = Emotion(kind=self.itemMode(), personA=person)
+                kind = Emotion.KIND_MAP[self.itemMode().toRelationship()]
+                if self.itemMode() == ItemMode.Cutoff:  # monadic
+                    emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic
                     emotion = Emotion(
-                        kind=self.itemMode(), personA=self.dragStartItem, personB=person
+                        kind=kind, person=self.dragStartItem, target=person
                     )
                 else:
                     emotion = None
@@ -1167,8 +1313,8 @@ class Scene(QGraphicsScene, Item):
                 self.hoverItem.setHover(False)
                 self.hoverItem = None
             if success:
-                self.setItemMode(util.ITEM_NONE)
-        elif self.itemMode() == util.ITEM_CALLOUT:
+                self.setItemMode(None)
+        elif self.itemMode() == ItemMode.Callout:
             e.accept()
             callout = Callout()
             self.addItem(callout)
@@ -1180,11 +1326,11 @@ class Scene(QGraphicsScene, Item):
             self.push(AddItem(self, callout))
             self.addItem(callout, undo=True)
             callout.setSelected(True)
-            self.setItemMode(util.ITEM_NONE)
+            self.setItemMode(None)
             self.calloutParent = None
-        elif self.itemMode() is util.ITEM_PENCIL:
+        elif self.itemMode() is ItemMode.Pencil:
             self.pencilEvent(e, e.scenePos(), 0)
-            self.setItemMode(util.ITEM_NONE)
+            self.setItemMode(None)
         if self.mousePressOnDraggable:
             self.checkPrintRectChanged()
             changedPos = [
@@ -1211,22 +1357,22 @@ class Scene(QGraphicsScene, Item):
     def updateMouseCursorItem(self):
         scale = None
         if self.itemMode() not in [
-            util.ITEM_MALE,
-            util.ITEM_FEMALE,
-            util.ITEM_CUTOFF,
-            util.ITEM_CALLOUT,
+            ItemMode.Male,
+            ItemMode.Female,
+            ItemMode.Cutoff,
+            ItemMode.Callout,
         ]:
             return
-        if self.itemMode() is util.ITEM_MALE:
+        if self.itemMode() is ItemMode.Male:
             path = Person.pathFor("male", pos=QPointF(0, 0))
             scale = self.newPersonScale()
-        elif self.itemMode() is util.ITEM_FEMALE:
+        elif self.itemMode() is ItemMode.Female:
             path = Person.pathFor("female", pos=QPointF(0, 0))
             scale = self.newPersonScale()
-        elif self.itemMode() == util.ITEM_CUTOFF:
-            path = Emotion.pathFor(util.ITEM_CUTOFF, personA=QPointF(0, 0))
+        elif self.itemMode() == ItemMode.Cutoff:
+            path = Emotion.pathFor(RelationshipKind.Cutoff, person=QPointF(0, 0))
             scale = (1 / self.scaleFactor()) * 0.6
-        elif self.itemMode() == util.ITEM_CALLOUT:
+        elif self.itemMode() == ItemMode.Callout:
             path = Callout(scale=self.newPersonScale()).path()
         if scale is not None and scale != self.mouseCursorItem.scale():
             self.mouseCursorItem.setScale(scale)
@@ -1245,10 +1391,10 @@ class Scene(QGraphicsScene, Item):
             return
         self._itemMode = mode
         if self.itemMode() in [
-            util.ITEM_MALE,
-            util.ITEM_FEMALE,
-            util.ITEM_CUTOFF,
-            util.ITEM_CALLOUT,
+            ItemMode.Male,
+            ItemMode.Female,
+            ItemMode.Cutoff,
+            ItemMode.Callout,
         ]:
             self.mouseCursorItem.setPen(util.HOVER_PEN)
             if self.mouseCursorItem.scene() is not self:
@@ -1399,10 +1545,10 @@ class Scene(QGraphicsScene, Item):
         else:
             return ret
 
-    def marriages(self):
+    def marriages(self) -> list[Marriage]:
         return list(self._marriages)
 
-    def itemDetails(self):
+    def itemDetails(self) -> list[ItemDetails]:
         return list(self._itemDetails)
 
     def events(self, tags=[], onlyDated=False) -> list[Event]:
@@ -1414,8 +1560,50 @@ class Scene(QGraphicsScene, Item):
             ret = [x for x in ret if x.dateTime()]
         return ret
 
-    def emotions(self):
+    def eventsFor(
+        self, item: Person | Marriage, kinds: EventKind | list[EventKind] = None
+    ) -> list[Event]:
+        if isinstance(item, Person):
+            eventPeople = (
+                lambda e: [e.person(), e.spouse(), e.child()]
+                + e.relationshipTargets()
+                + e.relationshipTriangles()
+            )
+            events = [e for e in self._events if item in eventPeople(e)]
+        elif isinstance(item, Marriage):
+            events = [
+                x
+                for x in self.events()
+                if {x.person(), x.spouse()} == {item.personA(), item.personB()}
+            ]
+        else:
+            raise TypeError("item must be Person or Marriage")
+
+        if kinds is not None:
+            if isinstance(kinds, list):
+                events = [e for e in events if e.kind() in kinds]
+            else:
+                events = [e for e in events if e.kind() == kinds]
+
+        return sorted(events)
+
+    def marriageFor(self, personA: Person, personB: Person) -> Marriage | None:
+        for m in self._marriages:
+            if {personA, personB} == {m.personA(), m.personB()}:
+                return m
+        return None
+
+    def marriagesFor(self, person: Person) -> list[Marriage]:
+        return [m for m in self._marriages if person in (m.personA(), m.personB())]
+
+    def emotions(self) -> list[Emotion]:
         return list(self._emotions)
+
+    def emotionsFor(self, item: Union[Person, Event]) -> list[Emotion]:
+        if isinstance(item, Person):
+            return [e for e in self._emotions if item in (e.person(), e.target())]
+        elif isinstance(item, Event):
+            return [e for e in self._emotions if e.event() is item]
 
     def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:
@@ -1639,8 +1827,8 @@ class Scene(QGraphicsScene, Item):
             self.layerItemChanged.emit(prop)
         elif item.isLayer:
             if prop.name() == "active":
-                if self.itemMode() in [util.ITEM_CALLOUT, util.ITEM_PENCIL]:
-                    self.setItemMode(util.ITEM_NONE)
+                if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
+                    self.setItemMode(None)
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():
@@ -1897,7 +2085,7 @@ class Scene(QGraphicsScene, Item):
                         iFiles = iFiles + 1
                 iPeople = iPeople + 1
             if item.isPerson or item.isMarriage:
-                iEvents += len(item.events())
+                iEvents += len(self.eventsFor(item))
         if iFiles > 0:
             btn = QMessageBox.question(
                 QApplication.activeWindow(),
@@ -1989,8 +2177,6 @@ class Scene(QGraphicsScene, Item):
                 return True
             elif item.isEvent:
                 if item.anyDynamicPropertiesSet():
-                    return True
-                elif item.uniqueId():
                     return True
                 elif item.includeOnDiagram():
                     return True

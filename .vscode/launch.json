@@ -247,7 +247,7 @@
                 "-m",
                 "pytest",
                 "-svv",
-                "tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2"
+                "tests/test_eventform_scripts.py::test_blow_up_ItemDetails_2"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

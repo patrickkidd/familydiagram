@@ -35,13 +35,13 @@ PK.Drawer {
 
     // State
 
+    property var isEditing: false
     property var kind: null
     property var description: descriptionEdit.text
     property var isDateRange: isDateRangeBox.checked
-    property var startDateButtons: startDateButtons
+    property var isDateRangeDirty: isDateRangeBox.dirty
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
-    property var endDateButtons: endDateButtons
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
     property var location: locationEdit.text
@@ -49,8 +49,10 @@ PK.Drawer {
     property var anxiety: anxietyField.value
     property var relationship: relationshipField.value
     property var functioning: functioningField.value
+    property var color: color
     property var notes: notesEdit.text
-    property var eventModel: EventPropertiesModel {}
+    property var tagsModel: tagsModel
+
 
     // Who
 
@@ -85,6 +87,9 @@ PK.Drawer {
 
     // When
 
+    property var startDateButtons: startDateButtons
+    property var endDateButtons: endDateButtons
+
     property var startDateTimeLabel: startDateTimeLabel
     property var endDateTimeLabel: endDateTimeLabel
     property var isDateRangeLabel: isDateRangeLabel
@@ -105,6 +110,7 @@ PK.Drawer {
 
     // Meta
 
+    property var colorBox: colorBox
     property var tagsEdit: tagsEditItem
     property var tagsLabel: tagsLabel
 
@@ -122,7 +128,6 @@ PK.Drawer {
 
     function onStartDateTimeChanged() {
         startDatePicker.dateTime = startDateTime
-        print('onStartDateTimeChanged: ' + startDateTime)
     }
 
     readonly property var fieldWidth: 231
@@ -154,6 +159,7 @@ PK.Drawer {
         startDatePicker.clear()
         endDatePicker.clear()
         isDateRangeBox.checked = false
+        isDateRangeBox.dirty = false // Checkboxes need their own dirty attr
 
         // Where
 
@@ -164,7 +170,6 @@ PK.Drawer {
 
         addPage.scrollToTop()
         tagsEditItem.clear()
-        eventModel.tags = []
         personPicker.focusTextEdit()
         root.dirty = false;
     }
@@ -174,7 +179,6 @@ PK.Drawer {
 
     function initWithPerson(personId) {
         var person = sceneModel.item(personId)
-        print('initWithPerson: ' + person + ', ' + personId)
         personPicker.setExistingPerson(person)
         tagsEdit.isDirty = false
     }
@@ -190,6 +194,10 @@ PK.Drawer {
         // util.debug('>>> initPeoplePicker() callback')
         personPicker.focusTextEdit()
         // util.debug('<<< initPeoplePicker() callback')
+    }
+
+    function setKind(x) {
+        kindBox.setCurrentValue(x)
     }
 
     function setVariable(attr, x) {
@@ -238,6 +246,7 @@ PK.Drawer {
             id: clearButton
             text: "Clear"
             x: cancelButton.x + width + margin
+            visible: root.isEditing == false
             onClicked: root.clear()
         }
         PK.Label {
@@ -251,7 +260,7 @@ PK.Drawer {
         }
         PK.ToolButton {
             id: addButton
-            text: 'Add'
+            text: root.isEditing ? 'Save' : 'Add'
             anchors.right: parent.right
             anchors.rightMargin: margin
             onClicked: {
@@ -312,6 +321,7 @@ PK.Drawer {
                     PK.FormField {
                         id: personField
                         visible: personLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: notesField.lastTabItem
                         tabItem: kindBox
                         Layout.minimumHeight: personPicker.height
@@ -346,7 +356,7 @@ PK.Drawer {
                     PK.ComboBox {
                         id: kindBox
                         model: ListModel {
-                            ListElement { label: "Variable Shift"; value: 'variable-shift' }
+                            ListElement { label: "Shift"; value: 'shift' }
                             //
                             ListElement { label: "Birth"; value: 'birth' }
                             ListElement { label: "Adopted"; value: 'adopted' }
@@ -359,6 +369,7 @@ PK.Drawer {
                             //
                             ListElement { label: "Death"; value: 'death' }
                         }
+                        enabled: ! isEditing
                         textRole: "label"
                         property var lastCurrentIndex: -1
                         Layout.maximumWidth: root.fieldWidth
@@ -389,7 +400,17 @@ PK.Drawer {
                                 root.kind = currentValue()
                             }
                         }
-                        function setCurrentValue(value) { currentIndex = valuesForIndex.indexOf(value)}
+                        function setCurrentValue(value) {
+                            for (var i = 0; i < model.count; i++) {
+                                // print('setCurrentValue: ' + i + ' / ' + model.get(i).value + ' == ' + value)
+                                if (model.get(i).value === value) {
+                                    currentIndex = i;
+                                    print
+                                    return;
+                                }
+                            }
+                            currentIndex = -1;
+                        }
                         function clear() { currentIndex = -1 }
                         function currentValue() {
                             if(currentIndex == -1) {
@@ -425,6 +446,7 @@ PK.Drawer {
                     PK.FormField {
                         id: spouseField
                         visible: spouseLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: kindBox
                         tabItem: childField.firstTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -456,6 +478,7 @@ PK.Drawer {
                     PK.FormField {
                         id: childField
                         visible: childLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: targetsField.lastTabItem
                         tabItem: spouseField.firstTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -477,12 +500,12 @@ PK.Drawer {
                     PK.Text {
                         id: descriptionLabel
                         text: "Summary"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.FormField {
                         id: descriptionField
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         tabItem: symptomField.firstTabItem
                         backTabItem: childField.lastTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
@@ -493,7 +516,7 @@ PK.Drawer {
                             Layout.minimumWidth: root.fieldWidth
                             property Item firstTabItem: this
                             property Item lastTabItem: this
-                            property bool isDirty: text != ''
+                            property bool isDirty: text != '' 
                             function clear() { text = '' }
                         }
                     }
@@ -510,13 +533,13 @@ PK.Drawer {
                     PK.Text {
                         id: symptomLabel
                         text: "Δ Symptom"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: symptomField
                         objectName: "symptomField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: spouseField.lastTabItem
                         tabItem: anxietyField.firstTabItem
@@ -524,7 +547,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_SYMPTOM_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
@@ -534,13 +557,13 @@ PK.Drawer {
                     PK.Text {
                         id: anxietyLabel
                         text: "Δ Anxiety"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: anxietyField
                         objectName: "anxietyField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: symptomField.lastTabItem
                         tabItem: relationshipField
@@ -548,7 +571,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_ANXIETY_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
@@ -558,7 +581,7 @@ PK.Drawer {
                     PK.Text {
                         id: relationshipLabel
                         text: "Δ Relationship"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
@@ -625,7 +648,7 @@ PK.Drawer {
                                 "Other(s)"
                             }
                         }
-                        visible: root.kind == util.EventKind.VariableShift && root.relationship != null
+                        visible: root.kind == util.EventKind.Shift && root.relationship != null
                     }
 
                     Rectangle {
@@ -638,6 +661,7 @@ PK.Drawer {
                     PK.FormField {
                         id: targetsField
                         visible: targetsLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: relationshipField
                         tabItem: trianglesField.firstTabItem
                         Layout.fillHeight: true
@@ -685,6 +709,7 @@ PK.Drawer {
                     PK.FormField {
                         id: trianglesField
                         visible: trianglesLabel.visible
+                        enabled: ! root.isEditing
                         backTabItem: targetsField
                         tabItem: functioningField.firstTabItem
                         Layout.fillHeight: true
@@ -714,13 +739,13 @@ PK.Drawer {
                     PK.Text {
                         id: functioningLabel
                         text: "Δ Functioning"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                     }
 
                     PK.VariableField {
                         id: functioningField
                         objectName: "functioningField"
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.fillWidth: true
                         backTabItem: targetsField.lastTabItem
                         tabItem: startDateButtons.firstTabItem
@@ -728,7 +753,7 @@ PK.Drawer {
 
                     PK.HelpText {
                         text: util.S_FUNCTIONING_HELP_TEXT
-                        visible: root.kind == util.EventKind.VariableShift
+                        visible: root.kind == util.EventKind.Shift
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                     }
@@ -861,8 +886,9 @@ PK.Drawer {
 
                     PK.CheckBox {
                         id: isDateRangeBox
-                        text: "Is Date Range" 
+                        text: "Is Date Range"
                         visible: isDateRangeLabel.visible
+                        property var dirty: false
                         KeyNavigation.backtab: endDateButtons.lastTabItem
                         KeyNavigation.tab: locationField
                         Layout.fillWidth: true
@@ -870,6 +896,7 @@ PK.Drawer {
                         onCheckedChanged: {
                             if(root.isDateRange != checked) {
                                 root.isDateRange = checked
+                                dirty = true
                             }
                         }
                     }
@@ -924,7 +951,7 @@ PK.Drawer {
                     PK.FormField {
                         id: notesField
                         height: notesFrame.height
-                        tabItem: tagsField.firstTabItem
+                        tabItem: colorBox
                         backTabItem: locationField.lastTabItem
                         Layout.minimumHeight: notesFrame.height
                         Layout.maximumHeight: notesFrame.height
@@ -979,6 +1006,15 @@ PK.Drawer {
                         Layout.columnSpan: 2
                         visible: sceneModel.isInEditorMode
                     }
+
+                    PK.Text { text: "Color" }
+
+                    PK.ColorPicker {
+                        id: colorBox
+                        KeyNavigation.tab: tagsField.firstTabItem
+                        KeyNavigation.backtab: notesField.lastTabItem
+                        onCurrentIndexChanged: root.color = model[currentIndex]
+                    }
                     
                     PK.Text {
                         id: tagsLabel
@@ -993,9 +1029,8 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_ITEM_HEIGHT * 15
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
-                        backTabItem: notesEdit
+                        backTabItem: tagsField.firstTabItem
                         visible: sceneModel.isInEditorMode
-                        onVisibleChanged: print('tagsField visible: ' + visible)
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -1004,7 +1039,6 @@ PK.Drawer {
                             model: TagsModel {
                                 id: tagsModel
                                 scene: sceneModel ? sceneModel.scene : undefined
-                                items: eventModel.items
                                 onDataChanged: {
                                     tagsEditItem.isDirty = true
                                 }

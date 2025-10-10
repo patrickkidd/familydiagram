@@ -108,15 +108,15 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         layer = Layer(name=name)
         self._scene.addItem(layer, undo=True)
 
-    @pyqtSlot(int)
-    def duplicateRow(self, row):
-        oldLayer = self._layers[row]
-        newLayer = oldLayer.clone(self._scene)
-        tmpl = oldLayer.name() + " %i"
-        name = util.newNameOf(self._layers, tmpl=tmpl, key=lambda x: x.name())
-        newLayer.setName(name)
-        self._scene.addItem(newLayer, undo=True)
-        self._scene.tidyLayerOrder()
+    # @pyqtSlot(int)
+    # def duplicateRow(self, row):
+    #     oldLayer = self._layers[row]
+    #     newLayer = oldLayer.clone(self._scene)
+    #     tmpl = oldLayer.name() + " %i"
+    #     name = util.newNameOf(self._layers, tmpl=tmpl, key=lambda x: x.name())
+    #     newLayer.setName(name)
+    #     self._scene.addItem(newLayer, undo=True)
+    #     self._scene.tidyLayerOrder()
 
     @pyqtSlot(int)
     def removeRow(self, row):

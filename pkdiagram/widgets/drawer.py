@@ -21,6 +21,7 @@ from pkdiagram.pyqt import (
     QAbstractAnimation,
 )
 from pkdiagram import util
+from pkdiagram.scene import Scene
 
 
 class Drawer(QFrame):
@@ -47,7 +48,7 @@ class Drawer(QFrame):
         super().__init__(parent)
         super().hide()
 
-        self.scene = None  # convenience
+        self.scene: Scene = None  # convenience
 
         self.setAutoFillBackground(True)
         Layout = QVBoxLayout(self)

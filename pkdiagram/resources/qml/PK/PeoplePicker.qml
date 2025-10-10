@@ -99,6 +99,15 @@ PK.GroupBox {
         return entries
     }
 
+    function setExistingPeopleIds(personIds) {
+        print(root.objectName + '.setExistingPeopleIds: ' + personIds.length)
+        var people = []
+        for(var i = 0; i < personIds.length; i++) {
+            people.push(sceneModel.item(personIds[i]))
+        }
+        root.setExistingPeople(people)
+    }
+
     function setExistingPeople(people) {
         // print(root.objectName + '.setExistingPeople: ' + people.length)
         for(var i = 0; i < people.length; i++) {

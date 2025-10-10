@@ -9,7 +9,7 @@ from pkdiagram.pyqt import (
     QItemSelectionModel,
 )
 from pkdiagram import util
-from pkdiagram.scene import Scene, Event, Person
+from pkdiagram.scene import Scene, Event, Person, EventKind
 from pkdiagram.models import SearchModel, TimelineModel
 from pkdiagram.documentview import GraphicalTimelineView
 
@@ -118,9 +118,9 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
 
     for i, person in enumerate(scene.people()):
         if i % 2 == 0:
-            person.birthEvent.setTags([TAG_1])
+            scene.eventsFor(person, kinds=EventKind.Birth)[0].setTags([TAG_1])
         else:
-            person.birthEvent.setTags([TAG_2])
+            scene.eventsFor(person, kinds=EventKind.Birth)[0].setTags([TAG_2])
 
     person_2 = scene.query1(name="person_2")
     person_3 = scene.query1(name="person_3")
@@ -165,15 +165,17 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2)
     assert len(events_for_selectionChanged) == 1
-    assert events_for_selectionChanged[0] == {person_2.birthEvent}
+    assert events_for_selectionChanged[0] == {
+        scene.eventsFor(person_2, kinds=EventKind.Birth)[0]
+    }
 
     qtbot.mouseMove(canvas, pos=lowerRight)
     assert canvas._rubberBand.isVisible() == True
     assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight)
     assert len(events_for_selectionChanged) == 2
     assert events_for_selectionChanged[1] == {
-        person_3.birthEvent,
-        person_2.birthEvent,
+        scene.eventsFor(person_3, kinds=EventKind.Birth)[0],
+        scene.eventsFor(person_2, kinds=EventKind.Birth)[0],
     }
 
     qtbot.mouseMove(canvas, pos=drag_naught)
