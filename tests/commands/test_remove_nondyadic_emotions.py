@@ -21,13 +21,11 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Conflict,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         # Verify it's non-dyadic
         assert not emotion.isDyadic()
@@ -54,13 +52,11 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Distance,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         assert not emotion.isDyadic()
 
@@ -86,13 +82,11 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Fusion,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Fusion, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         original_parent = emotion.parentItem()
 
@@ -117,26 +111,22 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Conflict,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
+        emotion1 = scene.emotionsFor(event1)[0]
 
         event2 = scene.addItem(
             Event(
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 2, 1),
-                relationship=RelationshipKind.Distance,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person3],
             )
         )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event2, target=person3)
-        )
+        emotion2 = scene.emotionsFor(event2)[0]
 
         assert emotion1.parentItem() == person1
         assert emotion2.parentItem() == person1
@@ -161,14 +151,12 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Inside,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
                 relationshipTriangles=[person3],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Inside, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         assert not emotion.isDyadic()
         assert emotion.parentItem() == person1
@@ -191,13 +179,11 @@ class TestRemoveNonDyadicEmotions:
                 EventKind.Shift,
                 person1,
                 dateTime=util.Date(2020, 1, 1),
-                relationship=RelationshipKind.Conflict,
+                relationship=RelationshipKind.Cutoff,
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
+        emotion1 = scene.emotionsFor(event1)[0]
 
         event2 = scene.addItem(
             Event(
@@ -208,9 +194,7 @@ class TestRemoveNonDyadicEmotions:
                 relationshipTargets=[person3],
             )
         )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Cutoff, event=event2, target=person3)
-        )
+        emotion2 = scene.emotionsFor(event2)[0]
 
         scene.push(RemoveItems(scene, [emotion1, emotion2]))
 

@@ -103,7 +103,9 @@ class TestRemovePersonWithEmotions:
 
         assert len(scene.people()) == 2
         assert len(scene.emotions()) == 0
-        assert len(scene.events()) == 1
+        # Both events removed: person1's event (as owner) and person3's event
+        # (references person1 in targets)
+        assert len(scene.events()) == 0
 
         scene.undo()
 
@@ -139,6 +141,8 @@ class TestRemovePersonWithEmotions:
 
         assert len(scene.people()) == 1
         assert len(scene.emotions()) == 0
+        # Both events removed: person1's event (as owner) and person2's event
+        # (references person1 in targets)
         assert len(scene.events()) == 0
 
         scene.undo()

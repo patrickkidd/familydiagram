@@ -367,10 +367,9 @@ def test_honors_searchModel_tags_plus_dates():
         dateTime=util.Date(2000, 1, 1),
         endDateTime=util.Date(2001, 1, 1),
     )
-    conflict = Emotion(
-        RelationshipKind.Conflict, personB, event=conflictEvent, tags=TAGS
-    )
-    scene.addItems(personA, personB, conflictEvent, conflict)
+    scene.addItems(personA, personB, conflictEvent)
+    conflict = scene.emotionsFor(conflictEvent)[0]
+    conflict.setTags(TAGS)
     scene.setCurrentDateTime(util.Date(1990, 1, 1))
     assert conflict.isVisible() == False
 

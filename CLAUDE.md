@@ -38,18 +38,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - The Scene is the authoratative source for storing and querying Item objects.
     However, Efficient diagram drawing requires caching references to Item
     objects. Sometimes these references are circular.
-    - For example, sometimes Person needs to develop a dependency graph of ItemDetails, Emotion, etc for redraws when that Person is moved.
+    - For example, sometimes Person needs to develop a dependency graph of
+      ItemDetails, Emotion, etc for redraws when that Person is moved.
     - Circular references are handled when loading the diagram file in two
       phases; 1) instantiate all the items with a map of their id's, then 2)
       resolve all dependencies via passing the map to each Item's read() method.
-  - There are two major ways that Emotion objects gets created, which determines
-    how instantiations and cascaded deletes work;
+  - There are two major ways that Person/Marriage/Emotion objects gets created,
+    which determines how instantiations and cascaded deletes work;
     1) Drawing like a chalk board without an Event via Scene, where the scene
-       owns the Emotion
-    2) Created to represent a dated Event via EditForm, where the event owns the
-       emotion
+       "owns" the Item.
+    2) Created to represent a dated Event via EditForm, where the event "owns"
+       the Item.
   - The Scene is the authoratitive source for querying Item relationships, e.g.
-    though eventsFor, emotionsFor, marriageFor, etc
+    though eventsFor, emotionsFor, marriageFor, etc.
+    - Item reference getters, e.g. `Event.spouse()`, that require `self.scene()`
+      should never return None just because `self.scene()` is None, they should
+      fail with an `AttributeError` on the return value of `self.scene()` and
+      the calling code should be fixed to ensure the Item is added to the scene
+      before using the getter.
   - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
   - `Event` has mandatory `EventKind` as:
     - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,

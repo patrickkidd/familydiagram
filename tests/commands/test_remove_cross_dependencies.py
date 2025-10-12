@@ -46,10 +46,8 @@ class TestRemovePersonWithEverything:
             )
         )
 
-        # Alice has emotions
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event2, target=partner)
-        )
+        # Alice has emotions (implicitly created by event2)
+        emotion = scene.emotionsFor(event2)[0]
 
         # Alice has layer properties
         parent1.setLayers([layer.id])
@@ -140,9 +138,7 @@ class TestRemovePersonWithEverything:
         parent_marriage = scene.addItem(Marriage(parent1, parent2))
 
         # Children
-        child1, child2 = scene.addItems(
-            Person(name="Alice"), Person(name="Bob")
-        )
+        child1, child2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
         childOf1 = scene.addItem(ChildOf(child1, parent_marriage))
         childOf2 = scene.addItem(ChildOf(child2, parent_marriage))
 
@@ -155,9 +151,6 @@ class TestRemovePersonWithEverything:
                 relationship=RelationshipKind.Distance,
                 relationshipTargets=[parent2],
             )
-        )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=parent2)
         )
 
         # Remove middle generation (Mom)
@@ -209,9 +202,7 @@ class TestAlreadyDeletedItems:
                 relationshipTargets=[person2],
             )
         )
-        emotion = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event, target=person2)
-        )
+        emotion = scene.emotionsFor(event)[0]
 
         # Remove event (cascades to emotion)
         scene.removeItem(event, undo=True)
@@ -248,9 +239,6 @@ class TestCircularDependencies:
                 relationshipTargets=[person2],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event1, target=person2)
-        )
 
         event2 = scene.addItem(
             Event(
@@ -260,9 +248,6 @@ class TestCircularDependencies:
                 relationship=RelationshipKind.Conflict,
                 relationshipTargets=[person1],
             )
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Conflict, event=event2, target=person1)
         )
 
         scene.removeItem(person1, undo=True)
@@ -295,9 +280,6 @@ class TestCircularDependencies:
                 relationshipTriangles=[person3],
             )
         )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Inside, event=event1, target=person2)
-        )
 
         # Bob feels Outside with Alice, Inside Charlie
         event2 = scene.addItem(
@@ -309,9 +291,6 @@ class TestCircularDependencies:
                 relationshipTargets=[person1],
                 relationshipTriangles=[person3],
             )
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Outside, event=event2, target=person1)
         )
 
         scene.removeItem(person1, undo=True)
@@ -330,9 +309,7 @@ class TestCircularDependencies:
         parent1, parent2, parent3 = scene.addItems(
             Person(name="Alice"), Person(name="Bob"), Person(name="Carol")
         )
-        child1, child2 = scene.addItems(
-            Person(name="Charlie"), Person(name="Diana")
-        )
+        child1, child2 = scene.addItems(Person(name="Charlie"), Person(name="Diana"))
 
         # Alice + Bob = Charlie
         marriage1 = scene.addItem(Marriage(parent1, parent2))
@@ -342,7 +319,7 @@ class TestCircularDependencies:
         marriage2 = scene.addItem(Marriage(parent1, parent3))
         childOf2 = scene.addItem(ChildOf(child2, marriage2))
 
-        # Emotions between all family members
+        # Emotions between all family members (event creates 2 emotions implicitly)
         event = scene.addItem(
             Event(
                 EventKind.Shift,
@@ -351,12 +328,6 @@ class TestCircularDependencies:
                 relationship=RelationshipKind.Distance,
                 relationshipTargets=[parent2, parent3],
             )
-        )
-        emotion1 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=parent2)
-        )
-        emotion2 = scene.addItem(
-            Emotion(kind=RelationshipKind.Distance, event=event, target=parent3)
         )
 
         scene.removeItem(parent1, undo=True)

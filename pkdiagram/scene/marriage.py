@@ -571,6 +571,8 @@ class Marriage(PathItem):
     ## Scene Events
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
+        if not self.scene():
+            return False
         # 1
         if (
             self.isSelected()

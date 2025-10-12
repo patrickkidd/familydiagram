@@ -228,7 +228,8 @@ class RemoveItems(QUndoCommand):
                 for marriage in list(item.marriages):
                     _removeMarriage(marriage)
 
-                # Delete all events for this person
+                # Delete all events involving this person in any role
+                # (person, spouse, child, relationshipTargets, relationshipTriangles)
                 for event in list(self.scene.eventsFor(item)):
                     _removeEvent(event)
 
