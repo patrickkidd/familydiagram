@@ -51,6 +51,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
        the Item.
   - The Scene is the authoratitive source for querying Item relationships, e.g.
     though eventsFor, emotionsFor, marriageFor, etc.
+    - Scene.find() takes spcial kwargs like `ids=`, `types=`, Scene.query
+      matches Item property values.
     - Item reference getters, e.g. `Event.spouse()`, that require `self.scene()`
       should never return None just because `self.scene()` is None, they should
       fail with an `AttributeError` on the return value of `self.scene()` and

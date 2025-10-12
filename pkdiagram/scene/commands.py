@@ -188,14 +188,16 @@ class RemoveItems(QUndoCommand):
                     {"item": item, "parent": item.parentItem()}
                 )
             elif item.isLayer:
+                # Store all items (not just LayerItems) that reference this layer
+                itemsWithLayer = []
+                for sceneItem in self.scene.itemRegistry.values():
+                    if hasattr(sceneItem, "layers") and callable(sceneItem.layers):
+                        if item.id in sceneItem.layers():
+                            itemsWithLayer.append(sceneItem)
                 self._unmapped["layers"].append(
                     {
                         "layer": item,
-                        "layerItems": [
-                            li
-                            for li in self.scene.layerItems()
-                            if item.id in li.layers()
-                        ],
+                        "itemsWithLayer": itemsWithLayer,
                     }
                 )
 
@@ -274,9 +276,15 @@ class RemoveItems(QUndoCommand):
                 self.scene.removeItem(item)
 
             elif item.isLayer:
+                # Remove layer from all items that reference it
+                for sceneItem in self.scene.itemRegistry.values():
+                    if hasattr(sceneItem, "layers") and callable(sceneItem.layers):
+                        layersList = sceneItem.layers()
+                        if item.id in layersList:
+                            layersList.remove(item.id)
+                            sceneItem.setLayers(layers_list)
+                # Check if any LayerItems are now orphaned
                 for layerItem in self.scene.layerItems():
-                    if item.id in layerItem.layers():
-                        layerItem.layers().remove(item.id)
                     if not layerItem.layers():  # orphaned now
                         self.scene.removeItem(layerItem)
                 self.scene.removeItem(item)
@@ -353,16 +361,18 @@ class RemoveItems(QUndoCommand):
                 entry["emotion"].setParentItem(entry["emotion"].event().person())
         #
         for entry in self._unmapped["layers"]:  # before layer items
-            for layerItem in entry["layerItems"]:
-                layers = layerItem.layers()
-                readd = not layers
+            # Restore layer to all items that had it
+            for sceneItem in entry["itemsWithLayer"]:
+                layers = sceneItem.layers()
+                readd = sceneItem.isLayerItem and not layers
                 layers.append(entry["layer"].id)
-                layerItem.setLayers(layers)
+                sceneItem.setLayers(layers)
                 if readd:
-                    self.scene.addItem(layerItem)
-                self.scene.addItem(entry["layer"])
+                    self.scene.addItem(sceneItem)
+            self.scene.addItem(entry["layer"])
         #
         for entry in self._unmapped["layerItems"]:
+            self.scene.addItem(entry["item"])
             entry["item"].setParentItem(entry["parent"])
         # again, after others are updated
         for entry in self._unmapped["children"]:
