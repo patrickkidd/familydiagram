@@ -3,14 +3,10 @@ from pkdiagram.scene import Scene, Marriage, Person, Layer, Event, EventKind
 
 
 def _add_unit(scene: Scene, children=True):
-    personA, personB = Person(name="A"), Person(name="B")
-    scene.addItems(personA, personB)
-    marriage = Marriage(personA=personA, personB=personB)
-    scene.addItem(marriage)
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    marriage = scene.addItem(Marriage(personA=personA, personB=personB))
     if children:
-        child_1 = Person(name="C")
-        child_2 = Person(name="D")
-        scene.addItems(child_1, child_2)
+        child_1, child_2 = scene.addItems(Person(name="C"), Person(name="D"))
         child_1.setParents(marriage)
         child_2.setParents(marriage)
     return marriage
