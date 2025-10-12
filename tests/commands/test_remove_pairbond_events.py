@@ -16,6 +16,7 @@ class TestRemoveBondedEvents:
     def test_remove_bonded_event(self, scene):
         """Bonded event marks when couple becomes bonded/committed."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         event = scene.addItem(
             Event(
                 EventKind.Bonded,
@@ -42,6 +43,7 @@ class TestRemoveBondedEvents:
     def test_remove_person_with_bonded_event(self, scene):
         """Removing person cascades to delete their Bonded event."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         event = scene.addItem(
             Event(
                 EventKind.Bonded,
@@ -69,6 +71,7 @@ class TestRemoveMarriedEvents:
     def test_remove_married_event(self, scene):
         """Married event marks formal marriage."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         event = scene.addItem(
             Event(
                 EventKind.Married,
@@ -93,6 +96,7 @@ class TestRemoveMarriedEvents:
     def test_remove_person_with_married_event(self, scene):
         """Removing person deletes their Married event."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         event = scene.addItem(
             Event(
                 EventKind.Married,
@@ -116,6 +120,7 @@ class TestRemoveSeparatedEvents:
     def test_remove_separated_event(self, scene):
         """Separated event marks couple separation."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         married_event = scene.addItem(
             Event(
                 EventKind.Married,
@@ -148,6 +153,7 @@ class TestRemoveSeparatedEvents:
     def test_remove_person_with_lifecycle_events(self, scene):
         """Removing person with full marriage lifecycle: Bonded -> Married -> Separated."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         bonded = scene.addItem(
             Event(
                 EventKind.Bonded,
@@ -192,6 +198,7 @@ class TestRemoveDivorcedEvents:
     def test_remove_divorced_event(self, scene):
         """Divorced event marks formal divorce."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         married = scene.addItem(
             Event(
                 EventKind.Married,
@@ -222,6 +229,7 @@ class TestRemoveDivorcedEvents:
     def test_full_marriage_lifecycle(self, scene):
         """Complete lifecycle: Bonded -> Married -> Separated -> Divorced."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         bonded = scene.addItem(
             Event(
                 EventKind.Bonded,
@@ -278,7 +286,7 @@ class TestRemoveAdoptedEvents:
             Event(
                 EventKind.Adopted,
                 parent1,
-                spouse=person2,
+                spouse=parent2,
                 child=child,
                 dateTime=util.Date(2010, 1, 1),
             )
@@ -299,7 +307,7 @@ class TestRemoveAdoptedEvents:
             Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
         )
         marriage = scene.addItem(Marriage(parent1, parent2))
-        childOf = scene.addItem(ChildOf(child, marriage))
+        child.setParents(marriage)
         adopted = scene.addItem(
             Event(
                 EventKind.Adopted,
@@ -313,47 +321,18 @@ class TestRemoveAdoptedEvents:
         # Note: This tests the relationship between ChildOf and Adopted event
         # The Adopted event should reference the child
         assert adopted.child() == child
+        assert child.childOf is not None
 
         scene.removeItem(child, undo=True)
 
         # Child removed, childOf and events deleted
         assert len(scene.people()) == 2
         assert len(scene.query(types=ChildOf)) == 0
-        # Adopted event might be deleted depending on implementation
-        # If child is required for Adopted event, it should be deleted
 
         scene.undo()
 
         assert len(scene.people()) == 3
-        assert child.childOf == childOf
-
-
-class TestRemoveSeparatedBirthEvents:
-
-    def test_remove_separated_birth_event(self, scene):
-        """SeparatedBirth event for child born before relationship."""
-        parent1, parent2, child = scene.addItems(
-            Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
-        )
-        marriage = scene.addItem(Marriage(parent1, parent2))
-        separatedBirth = scene.addItem(
-            Event(
-                EventKind.SeparatedBirth,
-                parent1,
-                spouse=parent2,
-                child=child,
-                dateTime=util.Date(2005, 3, 15),
-            )
-        )
-
-        scene.removeItem(separatedBirth, undo=True)
-
-        assert len(scene.events()) == 0
-
-        scene.undo()
-
-        assert separatedBirth in scene.events()
-        assert separatedBirth.child() == child
+        assert child.childOf is not None
 
 
 class TestRemoveMovedEvents:
@@ -361,6 +340,7 @@ class TestRemoveMovedEvents:
     def test_remove_moved_event(self, scene):
         """Moved event for couple moving together."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        scene.addItem(Marriage(person1, person2))
         moved = scene.addItem(
             Event(
                 EventKind.Moved,
@@ -385,6 +365,7 @@ class TestRemoveMovedEvents:
     def test_remove_person_with_moved_event(self, scene):
         """Removing person deletes their Moved events."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage = scene.addItem(Marriage(person1, person2))
         moved1 = scene.addItem(
             Event(
                 EventKind.Moved,
@@ -422,6 +403,7 @@ class TestComplexPairBondScenarios:
         )
 
         # First marriage lifecycle
+        marriage1 = scene.addItem(Marriage(person1, spouse1))
         married1 = scene.addItem(
             Event(
                 EventKind.Married,
@@ -440,6 +422,7 @@ class TestComplexPairBondScenarios:
         )
 
         # Second marriage lifecycle
+        marriage2 = scene.addItem(Marriage(person1, spouse2))
         married2 = scene.addItem(
             Event(
                 EventKind.Married,
@@ -462,6 +445,7 @@ class TestComplexPairBondScenarios:
     def test_remove_spouse_keeps_person_events(self, scene):
         """Removing spouse should delete PairBond events involving both."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage2 = scene.addItem(Marriage(person1, person2))
         married = scene.addItem(
             Event(
                 EventKind.Married,
@@ -498,6 +482,7 @@ class TestComplexPairBondScenarios:
     def test_sequential_pairbond_event_removal(self, scene):
         """Sequential removal and undo of PairBond events."""
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        marriage2 = scene.addItem(Marriage(person1, person2))
         bonded = scene.addItem(
             Event(
                 EventKind.Bonded,

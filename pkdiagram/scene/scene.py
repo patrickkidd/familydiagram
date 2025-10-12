@@ -377,6 +377,10 @@ class Scene(QGraphicsScene, Item):
                 item.setLayers([x.id for x in self.activeLayers()])
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
+            if self.marriageFor(item.personA(), item.personB()):
+                raise ValueError(
+                    f"There is already a Marriage item added for {item.personA()} and {item.personB()}"
+                )
             self._marriages.append(item)
             # Add an unnamed layer but don't register it or notify anything
             layer = Layer(internal=True)

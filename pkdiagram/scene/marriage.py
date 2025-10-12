@@ -139,6 +139,8 @@ class Marriage(PathItem):
     )
 
     def __init__(self, personA=None, personB=None, **kwargs):
+        if not personA or not personB:
+            raise ValueError(f"Marriage objects myst have two people")
         super().__init__(**kwargs)
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.prop("itemPos").setLayered(False)

@@ -282,7 +282,7 @@ class RemoveItems(QUndoCommand):
                         layersList = sceneItem.layers()
                         if item.id in layersList:
                             layersList.remove(item.id)
-                            sceneItem.setLayers(layers_list)
+                            sceneItem.setLayers(layersList)
                 # Check if any LayerItems are now orphaned
                 for layerItem in self.scene.layerItems():
                     if not layerItem.layers():  # orphaned now

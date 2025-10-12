@@ -30,10 +30,12 @@ Spec
             ))
   ```
 - Remove dateTime editors from PersonProperties in favor of a button to edit those singleton events, just like EmotionProperties.
+- Make `Event.spouse` optional for `EventKind.Moved`m show on `Marriage` when spouse is present.
 
 
 Edit events with EventForm
 ------------------------------------
+- Remove redundant PairBond RemoveItem tests
 - Test out adding events with tags, setting tags on Emotion. See if it feels right.
   - Kind of like editing color + notes on either item
 - Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
