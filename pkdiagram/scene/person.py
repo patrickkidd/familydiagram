@@ -609,13 +609,14 @@ class Person(PathItem):
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
 
-    def setParents(self, target: "Union[Marriage, ChildOf]", undo=False):
+    def setParents(self, target: "Union[Marriage, ChildOf]", undo=False) -> ChildOf:
         if undo:
             from pkdiagram.scene.commands import SetParents
 
             self.scene().push(SetParents(self, target))
         else:
             self._do_setParents(target)
+        return self.childOf
 
     def _onAddMarriage(self, m):
         if not m in self.marriages:

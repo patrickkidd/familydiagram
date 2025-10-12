@@ -27,7 +27,7 @@ class TestRemovePersonWithEverything:
 
         # Alice marries Bob, has child Charlie
         marriage1 = scene.addItem(Marriage(parent1, parent2))
-        childOf = scene.addItem(ChildOf(child, marriage1))
+        childOf = child.setParents(marriage1)
 
         # Alice later marries Diana
         marriage2 = scene.addItem(Marriage(parent1, partner))
@@ -55,7 +55,7 @@ class TestRemovePersonWithEverything:
 
         initial_people = len(scene.people())
         initial_marriages = len(scene.marriages())
-        initial_children = len(scene.query(types=ChildOf))
+        initial_children = len(scene.find(types=ChildOf))
         initial_events = len(scene.events())
         initial_emotions = len(scene.emotions())
 
@@ -64,7 +64,7 @@ class TestRemovePersonWithEverything:
         # Everything cascades
         assert len(scene.people()) == 3  # Bob, Charlie, Diana remain
         assert len(scene.marriages()) == 0  # Both marriages deleted
-        assert len(scene.query(types=ChildOf)) == 0  # Child relationship deleted
+        assert len(scene.find(types=ChildOf)) == 0  # Child relationship deleted
         assert len(scene.events()) == 0  # All Alice's events deleted
         assert len(scene.emotions()) == 0  # All emotions involving Alice deleted
 
@@ -73,7 +73,7 @@ class TestRemovePersonWithEverything:
         # Everything restored
         assert len(scene.people()) == initial_people
         assert len(scene.marriages()) == initial_marriages
-        assert len(scene.query(types=ChildOf)) == initial_children
+        assert len(scene.find(types=ChildOf)) == initial_children
         assert len(scene.events()) == initial_events
         assert len(scene.emotions()) == initial_emotions
         assert parent1 in scene.people()
@@ -97,30 +97,27 @@ class TestRemovePersonWithEverything:
         marriage = scene.addItem(Marriage(parent1, parent2))
 
         # Regular children
-        childOf1 = scene.addItem(ChildOf(child1, marriage))
-        childOf2 = scene.addItem(ChildOf(child2, marriage))
+        childOf1 = child1.setParents(marriage)
+        childOf2 = child2.setParents(marriage)
 
         # Twins
-        childOf3 = scene.addItem(ChildOf(twin1, marriage))
-        childOf4 = scene.addItem(ChildOf(twin2, marriage))
-        multipleBirth = scene.addItem(MultipleBirth(marriage))
-        childOf3.setMultipleBirth(multipleBirth)
-        childOf4.setMultipleBirth(multipleBirth)
+        childOf3 = twin1.setParents(marriage)
+        childOf4 = twin2.setParents(twin1.childOf)
 
         scene.removeItem(marriage, undo=True)
 
         assert len(scene.marriages()) == 0
-        assert len(scene.query(types=ChildOf)) == 0
-        assert len(scene.query(types=MultipleBirth)) == 0
+        assert len(scene.find(types=ChildOf)) == 0
+        assert len(scene.find(types=MultipleBirth)) == 0
         assert len(scene.people()) == 6  # Everyone remains
 
         scene.undo()
 
         assert len(scene.marriages()) == 1
-        assert len(scene.query(types=ChildOf)) == 4
-        assert len(scene.query(types=MultipleBirth)) == 1
-        assert twin1.childOf.multipleBirth == multipleBirth
-        assert twin2.childOf.multipleBirth == multipleBirth
+        assert len(scene.find(types=ChildOf)) == 4
+        assert len(scene.find(types=MultipleBirth)) == 1
+        assert twin1.childOf.multipleBirth is not None
+        assert twin2.childOf.multipleBirth is not None
 
     def test_complex_family_tree_removal(self, scene):
         """Complex family with multiple generations."""
@@ -132,15 +129,15 @@ class TestRemovePersonWithEverything:
 
         # Parents (children of grandparents)
         parent1, parent2 = scene.addItems(Person(name="Mom"), Person(name="Dad"))
-        childOf_parent1 = scene.addItem(ChildOf(parent1, grandparent_marriage))
+        childOf_parent1 = parent1.setParents(grandparent_marriage)
 
         # Parents marry
         parent_marriage = scene.addItem(Marriage(parent1, parent2))
 
         # Children
         child1, child2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
-        childOf1 = scene.addItem(ChildOf(child1, parent_marriage))
-        childOf2 = scene.addItem(ChildOf(child2, parent_marriage))
+        childOf1 = child1.setParents(parent_marriage)
+        childOf2 = child2.setParents(parent_marriage)
 
         # Events
         event = scene.addItem(
@@ -159,7 +156,7 @@ class TestRemovePersonWithEverything:
         # Cascading deletes
         assert len(scene.people()) == 5  # Everyone except Mom
         assert len(scene.marriages()) == 1  # Only grandparent marriage remains
-        assert len(scene.query(types=ChildOf)) == 0  # All child relationships gone
+        assert len(scene.find(types=ChildOf)) == 0  # All child relationships gone
         assert len(scene.events()) == 0
         assert len(scene.emotions()) == 0
 
@@ -168,7 +165,7 @@ class TestRemovePersonWithEverything:
         # Everything restored
         assert len(scene.people()) == 6
         assert len(scene.marriages()) == 2
-        assert len(scene.query(types=ChildOf)) == 3
+        assert len(scene.find(types=ChildOf)) == 3
 
 
 class TestAlreadyDeletedItems:
@@ -216,12 +213,12 @@ class TestAlreadyDeletedItems:
             Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
         )
         marriage = scene.addItem(Marriage(parent1, parent2))
-        childOf = scene.addItem(ChildOf(child, marriage))
+        childOf = child.setParents(marriage)
 
         # Remove marriage (cascades to childOf)
         scene.removeItem(marriage, undo=True)
 
-        assert childOf not in scene.query(types=ChildOf)
+        assert childOf not in scene.find(types=ChildOf)
         assert child.childOf is None
 
 
@@ -313,11 +310,11 @@ class TestCircularDependencies:
 
         # Alice + Bob = Charlie
         marriage1 = scene.addItem(Marriage(parent1, parent2))
-        childOf1 = scene.addItem(ChildOf(child1, marriage1))
+        childOf1 = child1.setParents(marriage1)
 
         # Alice + Carol = Diana
         marriage2 = scene.addItem(Marriage(parent1, parent3))
-        childOf2 = scene.addItem(ChildOf(child2, marriage2))
+        childOf2 = child2.setParents(marriage2)
 
         # Emotions between all family members (event creates 2 emotions implicitly)
         event = scene.addItem(
@@ -334,13 +331,13 @@ class TestCircularDependencies:
 
         # Both marriages, all child relationships, all emotions deleted
         assert len(scene.marriages()) == 0
-        assert len(scene.query(types=ChildOf)) == 0
+        assert len(scene.find(types=ChildOf)) == 0
         assert len(scene.emotions()) == 0
         assert len(scene.events()) == 0
 
         scene.undo()
 
         assert len(scene.marriages()) == 2
-        assert len(scene.query(types=ChildOf)) == 2
+        assert len(scene.find(types=ChildOf)) == 2
         assert len(scene.emotions()) == 2
         assert len(scene.events()) == 1

@@ -327,7 +327,7 @@ class TestRemoveAdoptedEvents:
 
         # Child removed, childOf and events deleted
         assert len(scene.people()) == 2
-        assert len(scene.query(types=ChildOf)) == 0
+        assert len(scene.find(types=ChildOf)) == 0
 
         scene.undo()
 

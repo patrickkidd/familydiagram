@@ -35,6 +35,7 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
 - Remove redundant PairBond RemoveItem tests
 - Test out adding events with tags, setting tags on Emotion. See if it feels right.
   - Kind of like editing color + notes on either item
