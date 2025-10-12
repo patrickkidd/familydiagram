@@ -267,8 +267,11 @@ class RemoveItems(QUndoCommand):
                     item._undo_mapping["person"].setParents(None)
 
             elif item.isMultipleBirth:
+                # Just remove the MultipleBirth; children's ChildOf relationships remain
                 for child in item._undo_mapping["children"]:
-                    child.setParents(None)
+                    if child.childOf:
+                        child.childOf.multipleBirth = None
+                self.scene.removeItem(item)
 
             elif item.isMarriage:
                 _removeMarriage(item)

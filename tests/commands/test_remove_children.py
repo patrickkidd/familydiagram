@@ -103,7 +103,6 @@ class TestRemoveBirthPartners:
         childOf1 = twin1.setParents(marriage)
         childOf2 = twin2.setParents(marriage)
         childOf3 = twin3.setParents(marriage)
-        childOf3 = twin3.setParents(marriage)
         twin2.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
         twin3.setParents(multipleBirth)
@@ -133,13 +132,12 @@ class TestRemoveBirthPartners:
         marriage = scene.addItem(Marriage(parent1, parent2))
         childOf1 = twin1.setParents(marriage)
         childOf2 = twin2.setParents(marriage)
-        childOf2 = twin2.setParents(marriage)
         twin2.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
 
-        # Remove twin1, now twin2 is alone
+        # Remove twin1, now twin2 is alone - MultipleBirth auto-removed (need 2+ for multiple birth)
         scene.removeItem(twin1, undo=True)
-        assert twin2.childOf.multipleBirth is not None
+        assert twin2.childOf.multipleBirth is None
 
         # Remove twin2, multipleBirth should have no children
         scene.removeItem(twin2, undo=True)
@@ -163,7 +161,6 @@ class TestRemoveBirthPartners:
         childOf1 = twin1.setParents(marriage)
         childOf2 = twin2.setParents(marriage)
         childOf3 = twin3.setParents(marriage)
-        childOf3 = twin3.setParents(marriage)
         twin2.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
         twin3.setParents(multipleBirth)
@@ -171,7 +168,9 @@ class TestRemoveBirthPartners:
         scene.push(RemoveItems(scene, [twin1, twin2]))
 
         assert len(scene.people()) == 3
-        assert twin3.childOf.multipleBirth is not None
+        # MultipleBirth auto-removed when only 1 child remains (need 2+ for
+        # multiple birth)
+        assert twin3.childOf.multipleBirth is None
 
         scene.undo()
 
@@ -207,7 +206,6 @@ class TestRemoveMultipleBirth:
         marriage = scene.addItem(Marriage(parent1, parent2))
         childOf1 = twin1.setParents(marriage)
         childOf2 = twin2.setParents(marriage)
-        childOf2 = twin2.setParents(marriage)
         twin2.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
 
@@ -232,7 +230,6 @@ class TestRemoveMultipleBirth:
         twin1, twin2 = scene.addItems(Person(name="Charlie"), Person(name="Diana"))
         marriage = scene.addItem(Marriage(parent1, parent2))
         childOf1 = twin1.setParents(marriage)
-        childOf2 = twin2.setParents(marriage)
         childOf2 = twin2.setParents(marriage)
         twin2.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
@@ -262,22 +259,22 @@ class TestRemoveMultipleBirth:
         twin3.setParents(twin1.childOf)
         multipleBirth = twin2.childOf.multipleBirth
 
-        assert len(scene.people()) == 3
+        assert len(scene.people()) == 5
         assert len(scene.find(types=MultipleBirth)) == 1
-        assert len(scene.find(types=ChildOf)) == 1
+        assert len(scene.find(types=ChildOf)) == 3
 
         scene.removeItem(twin1, undo=True)
-
-        assert len(scene.people()) == 3
-        assert len(scene.find(types=MultipleBirth)) == 1
-        assert len(scene.find(types=ChildOf)) == 1
-        assert twin2.childOf.multipleBirth is not None
-
-        scene.undo()
 
         assert len(scene.people()) == 4
         assert len(scene.find(types=MultipleBirth)) == 1
         assert len(scene.find(types=ChildOf)) == 2
+        assert twin2.childOf.multipleBirth is not None
+
+        scene.undo()
+
+        assert len(scene.people()) == 5
+        assert len(scene.find(types=MultipleBirth)) == 1
+        assert len(scene.find(types=ChildOf)) == 3
 
     def test_remove_triplets_multiple_birth(self, scene):
         parent1, parent2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
@@ -285,13 +282,12 @@ class TestRemoveMultipleBirth:
             Person(name="Charlie"), Person(name="Diana"), Person(name="Eve")
         )
         marriage = scene.addItem(Marriage(parent1, parent2))
-        childOf1 = scene.addItem(ChildOf(triplet1, marriage))
-        childOf2 = scene.addItem(ChildOf(triplet2, marriage))
-        childOf3 = scene.addItem(ChildOf(triplet3, marriage))
-        childOf3 = scene.addItem(ChildOf(triplet3, marriage))
-        twin2.setParents(twin1.childOf)
-        multipleBirth = twin2.childOf.multipleBirth
-        twin3.setParents(multipleBirth)
+        childOf1 = triplet1.setParents(marriage)
+        childOf2 = triplet2.setParents(marriage)
+        childOf3 = triplet3.setParents(marriage)
+        triplet2.setParents(triplet1.childOf)
+        multipleBirth = triplet2.childOf.multipleBirth
+        triplet3.setParents(multipleBirth)
 
         assert len(multipleBirth.children()) == 3
 
