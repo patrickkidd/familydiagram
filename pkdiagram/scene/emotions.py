@@ -1175,7 +1175,7 @@ class Emotion(PathItem):
         ]
     )
 
-    KIND_MAP = {
+    KIND_2_PATH = {
         RelationshipKind.Conflict: pathFor_Conflict,
         RelationshipKind.Distance: pathFor_Distance,
         RelationshipKind.Underfunctioning: pathFor_Reciprocity,
@@ -1192,7 +1192,7 @@ class Emotion(PathItem):
 
     @staticmethod
     def pathFor(kind, *args, **kwargs) -> QPainterPath:
-        pathFunc = Emotion.KIND_MAP[kind]
+        pathFunc = Emotion.KIND_2_PATH[kind]
         return pathFunc(*args, **kwargs)
 
     @staticmethod

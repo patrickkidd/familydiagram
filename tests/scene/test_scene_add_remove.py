@@ -152,7 +152,7 @@ def test_add_emotion(scene, undo):
     )
     emotion = scene.emotionsFor(event)[0]
     scene.addItems(person1, person2)
-    scene.addItems(event, emotion, undo=undo)
+    scene.addItem(event, undo=undo)
     assert eventAdded.callCount == 1
     assert emotionAdded.callCount == 1
     assert scene.people() == [person1, person2]
@@ -306,10 +306,14 @@ def test_remove_event(scene, undo):
     scene.addItem(person)
     eventAdded = util.Condition(scene.eventAdded)
     eventRemoved = util.Condition(scene.eventRemoved)
-    event = Event(
-        parent=person, description="Something happened", dateTime=util.Date(2001, 1, 1)
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            description="Something happened",
+            dateTime=util.Date(2001, 1, 1),
+        )
     )
-    scene.addItem(event)
     assert eventAdded.callCount == 1
     assert eventRemoved.callCount == 0
     assert scene.events(onlyDated=True) == [event]
@@ -326,28 +330,37 @@ def test_remove_event(scene, undo):
 
 
 def test_remove_event_with_events_remaining(scene):
-    person = Person(name="person", birthDateTime=util.Date(2000, 1, 1))
-    scene.addItem(person)
-    eventRemoved = util.Condition(scene.eventRemoved)
-    event = Event(
-        parent=person, description="Something happened", dateTime=util.Date(2001, 1, 1)
+    person = scene.addItem(Person(name="person"))
+    birthEvent = scene.addItem(
+        Event(EventKind.Birth, person, dateTime=util.Date(2000, 1, 1))
     )
-    scene.addItem(event)
+    eventRemoved = util.Condition(scene.eventRemoved)
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            description="Something happened",
+            dateTime=util.Date(2001, 1, 1),
+        )
+    )
     currentDateTime = scene.currentDateTime()
     scene.removeItem(event, undo=False)
     assert eventRemoved.callCount == 1
-    assert scene.events(onlyDated=True) == [person.birthEvent]
+    assert scene.events(onlyDated=True) == [birthEvent]
     assert scene.currentDateTime() == currentDateTime
 
 
 def test_remove_event_no_events_remaining(scene):
-    person = Person(name="person")
-    scene.addItem(person)
+    person = scene.addItem(Person(name="person"))
     eventRemoved = util.Condition(scene.eventRemoved)
-    event = Event(
-        parent=person, description="Something happened", dateTime=util.Date(2001, 1, 1)
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            description="Something happened",
+            dateTime=util.Date(2001, 1, 1),
+        )
     )
-    scene.addItem(event)
     scene.removeItem(event, undo=False)
     assert eventRemoved.callCount == 1
     assert scene.events(onlyDated=True) == []
@@ -357,10 +370,8 @@ def test_remove_event_no_events_remaining(scene):
 def test_remove_marriage(scene, undo):
     marriageAdded = util.Condition(scene.marriageAdded)
     marriageRemoved = util.Condition(scene.marriageRemoved)
-    person1 = Person(name="person1")
-    person2 = Person(name="person2")
-    marriage = Marriage(person1, person2)
-    scene.addItems(person1, person2, marriage)
+    person1, person2 = scene.addItems(Person(name="person1"), Person(name="person2"))
+    marriage = scene.addItem(Marriage(person1, person2))
     scene.removeItem(marriage, undo=undo)
     assert marriageAdded.callCount == 1
     assert marriageRemoved.callCount == 1
@@ -382,11 +393,10 @@ def test_remove_marriage(scene, undo):
 def test_remove_emotion(scene, undo):
     emotionAdded = util.Condition(scene.emotionAdded)
     emotionRemoved = util.Condition(scene.emotionRemoved)
-    person1 = Person(name="person1")
-    person2 = Person(name="person2")
-    emotion = Emotion(RelationshipKind.Conflict, person2, target=person1)
-    scene.addItems(person1, person2)
-    scene.addItem(emotion)
+    person1, person2 = scene.addItems(Person(name="person1"), Person(name="person2"))
+    emotion = scene.addItem(
+        Emotion(RelationshipKind.Conflict, target=person2, person=person1)
+    )
     scene.removeItem(emotion, undo=undo)
     assert emotionAdded.callCount == 1
     assert emotionRemoved.callCount == 1
@@ -496,15 +506,10 @@ def test_remove_nuclear_family_with_MultipleBirth():
 def test_undo_remove_child_selected(scene):
     """People and pair-bond were selected but not child items after delete and undo."""
 
-    person1 = Person(name="person1")
-    person2 = Person(name="person2")
-    marriage = Marriage(person1, person2)
-    person3 = Person(name="person3")
+    person1, person2 = scene.addItems(Person(name="person1"), Person(name="person2"))
+    marriage = scene.addItem(Marriage(person1, person2))
+    person3 = scene.addItem(Person(name="person3"))
     person3.setParents(marriage)
-    scene.addItem(person1)
-    scene.addItem(person2)
-    scene.addItem(marriage)
-    scene.addItem(person3)
 
     assert person3.childOf is not None
 
@@ -539,10 +544,13 @@ def test_add_events_sets_currentDateTime(scene):
 
 
 def test_remove_last_event_sets_currentDateTime(scene):
-    person = cene.addItem(Person(name="p1", birthDateTime=util.Date(2001, 1, 1)))
-    assert scene.currentDateTime() == person.birthEvent.dateTime()
+    person = scene.addItem(Person(name="p1"))
+    birthEvent = scene.addItem(
+        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+    )
+    assert scene.currentDateTime() == birthEvent.dateTime()
 
-    person.birthEvent.setDateTime(QDateTime())
+    birthEvent.setDateTime(QDateTime())
     assert scene.currentDateTime() == QDateTime()
 
 
@@ -560,8 +568,7 @@ def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
 
 
 def test_remove_all_events_clears_currentDateTime(scene):
-    person = Person(name="Hey", lastName="You")
-    scene.addItem(person)
+    person = scene.addItem(Person(name="Hey", lastName="You"))
     event = scene.addItem(
         Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
@@ -595,6 +602,6 @@ def test_drag_create_emotion(qtbot):
     )
     assert len(scene.emotions()) == 1
     emotion = scene.emotions()[0]
-    assert emotion.personA() == personA
-    assert emotion.personB() == personB
-    assert emotion.kind() == ItemMode.Conflict
+    assert emotion.person() == personA
+    assert emotion.target() == personB
+    assert emotion.kind() == RelationshipKind.Conflict

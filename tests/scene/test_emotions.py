@@ -359,15 +359,17 @@ def test_honors_searchModel_tags_plus_dates():
     scene = Scene()
     personA = Person(name="A")
     personB = Person(name="B")
-    conflictEvent = Event(
-        EventKind.Shift,
-        personA,
-        relationship=RelationshipKind.Conflict,
-        relationshipTargets=[personB],
-        dateTime=util.Date(2000, 1, 1),
-        endDateTime=util.Date(2001, 1, 1),
+    scene.addItems(personA, personB)
+    conflictEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+            endDateTime=util.Date(2001, 1, 1),
+        )
     )
-    scene.addItems(personA, personB, conflictEvent)
     conflict = scene.emotionsFor(conflictEvent)[0]
     conflict.setTags(TAGS)
     scene.setCurrentDateTime(util.Date(1990, 1, 1))

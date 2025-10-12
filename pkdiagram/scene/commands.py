@@ -32,6 +32,9 @@ class AddItem(QUndoCommand):
         self._layerOrders = self.scene.layers() if item.isLayer else []
         self._calloutParentId = item.parentId() if item.isCallout else None
         self._calloutItemPos = item.itemPos() if item.isCallout else None
+        self._eventEmotions = (
+            scene.emotionsFor(item) if (item.isEvent and item.relationship()) else []
+        )
 
     def redo(self):
         self.scene._do_addItem(self.item)
@@ -42,6 +45,8 @@ class AddItem(QUndoCommand):
         elif self.item.isCallout:
             self.item.setParentId(self._calloutParentId)
             self.item.setItemPosNow(self._calloutItemPos)
+        if self._eventEmotions:
+            self.scene.addItems(self._eventEmotions)
 
     def undo(self):
         self.scene._do_removeItem(self.item)
@@ -50,6 +55,8 @@ class AddItem(QUndoCommand):
                 layer.setOrder(i, notify=False)
         elif self.item.isCallout and self.item.parentId():
             self.item.setParentId(None)  # disable callbacks in Person.itemChange
+        for emotion in self._eventEmotions:
+            self.scene.removeItem(emotion)
 
 
 class RemoveItems(QUndoCommand):

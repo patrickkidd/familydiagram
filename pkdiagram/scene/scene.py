@@ -400,14 +400,15 @@ class Scene(QGraphicsScene, Item):
             self._events.append(item)
             if not self._isUndoRedoing:
                 for target in item.relationshipTargets():
+                    # Dated emotions are owned by the Event and deleted along
+                    # with it.
                     emotion = self.addItem(
                         Emotion(
                             kind=item.relationship(),
                             target=target,
                             event=item,
                             tags=item.tags(),
-                        ),
-                        undo=True,
+                        )
                     )
                     self._do_addItem(emotion)
             for entry in self.eventProperties():
@@ -1293,7 +1294,7 @@ class Scene(QGraphicsScene, Item):
                     success = True
             elif self.itemMode() and self.itemMode().toRelationship():
                 person = self.personUnder(e.scenePos())
-                kind = Emotion.KIND_MAP[self.itemMode().toRelationship()]
+                kind = self.itemMode().toRelationship()
                 if self.itemMode() == ItemMode.Cutoff:  # monadic
                     emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic

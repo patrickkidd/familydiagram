@@ -108,6 +108,11 @@ class Event(Item):
             self.setRelationshipTargets(relationshipTargets)
         if relationshipTriangles:
             self.setRelationshipTriangles(relationshipTriangles)
+        for person in [spouse, child] + relationshipTargets + relationshipTriangles:
+            if person and person.id is None:
+                raise ValueError(
+                    f"All referenced people must be added to the scene before passed to Event() or they won't have valid id's."
+                )
         # Skip updateDescription when person=None (during file loading)
         if person is not None:
             self.updateDescription()
