@@ -1,17 +1,15 @@
-from pkdiagram.scene import Scene, Person, Event
+from pkdiagram.scene import Person, Event, EventKind
 from pkdiagram.models import EventVariablesModel
 
 
-def test_init_deinit():
-    scene = Scene()
+def test_init_deinit(scene):
     scene.addEventProperty("var1")
     scene.addEventProperty("var2")
     scene.addEventProperty("var3")
-    person = Person(name="p1")
-    event1 = Event(EventKind.Shift, person)
-    event2 = Event(EventKind.Shift, person)
-    event3 = Event(EventKind.Shift, person)
-    scene.addItem(person)
+    person = scene.addItem(Person(name="p1"))
+    event1 = scene.addItem(Event(EventKind.Shift, person))
+    event2 = scene.addItem(Event(EventKind.Shift, person))
+    event3 = scene.addItem(Event(EventKind.Shift, person))
 
     event1.dynamicProperty("var1").set("here")
     event2.dynamicProperty("var1").set("here")
@@ -37,12 +35,10 @@ def test_init_deinit():
     assert model.data(model.index(2, 3)) == None
 
 
-def test_set_value():
-    scene = Scene()
-    parent = Person()
-    event1 = Event(EventKind.Shift, parent)
-    event2 = Event(EventKind.Shift, parent)
-    scene.addItem(parent)
+def test_set_value(scene):
+    parent = scene.addItem(Person())
+    event1 = scene.addItem(Event(EventKind.Shift, parent))
+    event2 = scene.addItem(Event(EventKind.Shift, parent))
     scene.addEventProperty("var1")
     model = EventVariablesModel()
     model.scene = scene
