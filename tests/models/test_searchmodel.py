@@ -13,7 +13,12 @@ from pkdiagram.scene import (
     ItemMode,
     RelationshipKind,
 )
-from pkdiagram.models import TimelineModel, SearchModel, EmotionalUnitsModel
+from pkdiagram.models import (
+    TimelineModel,
+    TimelineRow,
+    SearchModel,
+    EmotionalUnitsModel,
+)
 
 
 pytestmark = [
@@ -24,31 +29,38 @@ pytestmark = [
 
 @pytest.fixture
 def model():
+    from pkdiagram.models.timelinemodel import TimelineRow
+
     scene = Scene()
-    person = Person()
-    event1 = Event(
-        EventKind.Shift,
-        person,
-        dateTime=util.Date(1900, 1, 1),
-        loggedDateTime=util.Date(2000, 1, 10),
+    person = scene.addItem(Person())
+    event1, event2, event3 = scene.addItems(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(1900, 1, 1),
+            loggedDateTime=util.Date(2000, 1, 10),
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(1900, 1, 1),
+            loggedDateTime=util.Date(2000, 2, 10),
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(1900, 1, 1),
+            loggedDateTime=util.Date(2000, 3, 10),
+        ),
     )
-    event2 = Event(
-        EventKind.Shift,
-        person,
-        dateTime=util.Date(1900, 1, 1),
-        loggedDateTime=util.Date(2000, 2, 10),
-    )
-    event3 = Event(
-        EventKind.Shift,
-        person,
-        dateTime=util.Date(1900, 1, 1),
-        loggedDateTime=util.Date(2000, 3, 10),
-    )
-    scene.addItem(person)
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.items = [person]
-    return searchModel, event1, event2, event3
+    # Wrap events in TimelineRow for testing
+    row1 = TimelineRow(event=event1)
+    row2 = TimelineRow(event=event2)
+    row3 = TimelineRow(event=event3)
+    return searchModel, row1, row2, row3
 
 
 def test_isBlank_separate(model):
@@ -182,8 +194,8 @@ def test_ignores_layer_tags(model):
     def num_shown():
         total = 0
         for row in range(timelineModel.rowCount()):
-            event = timelineModel.eventForRow(row)
-            if not model.shouldHide(event):
+            timelineRow = timelineModel.timelineRow(row)
+            if not model.shouldHide(timelineRow):
                 total += 1
         return total
 
@@ -197,28 +209,38 @@ def test_ignores_layer_tags(model):
 
 
 @pytest.fixture
-def emotionModel():
-    scene = Scene()
-    person = Person(name="Person A")
-    target = Person(name="Person B")
-    startEvent = Event(
-        EventKind.Shift,
-        person,
-        spouse=target,
-        dateTime=util.Date(2010, 1, 10),
-        endDateTime=util.Date(2010, 2, 10),
-        loggedDateTime=util.Date(2000, 1, 10),
+def emotionModel(scene):
+
+    person, target = scene.addItems(Person(name="Person A"), Person(name="Person B"))
+    startEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            spouse=target,
+            relationship=RelationshipKind.Conflict,
+            dateTime=util.Date(2010, 1, 10),
+            endDateTime=util.Date(2010, 2, 10),
+            loggedDateTime=util.Date(2000, 1, 10),
+        )
     )
-    conflict = Emotion(
-        RelationshipKind.Conflict,
-        target,
-        event=startEvent,
+    # Create a separate event for the end marker to test logged end dates
+    endEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            spouse=target,
+            relationship=RelationshipKind.Conflict,
+            dateTime=util.Date(2010, 2, 10),
+            loggedDateTime=util.Date(2000, 2, 10),
+        )
     )
-    scene.addItems(person, target, conflict)
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.items = scene
-    return searchModel, startEvent
+    # Wrap events in TimelineRow for testing
+    startRow = TimelineRow(event=startEvent)
+    endRow = TimelineRow(event=endEvent)
+    return searchModel, startRow, endRow
 
 
 def test_loggedStartDateTime_emotions(emotionModel):
