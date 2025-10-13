@@ -36,6 +36,7 @@ snapshottest = "*"
 mock = "*"
 pyqtdeploy = { index="riverbank" }
 fdserver = { index="familydiagram" }
+btcopilot = { index="familydiagram" }
 pypdf = "*"
 langchain = "*"
 langchain-huggingface = "*"
