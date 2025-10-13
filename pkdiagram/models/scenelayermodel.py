@@ -119,7 +119,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     #     self._scene.tidyLayerOrder()
 
     @pyqtSlot(int)
-    def removeRow(self, row):
+    def removeRow(self, row: int):
         layer = self._layers[row]
         nItems = 0
         for item in self.scene.find(types=LayerItem):

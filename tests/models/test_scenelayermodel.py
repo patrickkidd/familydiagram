@@ -1,6 +1,7 @@
 import pytest
+from mock import patch
 
-from pkdiagram.pyqt import Qt
+from pkdiagram.pyqt import Qt, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Scene, Layer, Marriage, Person
 from pkdiagram.models import SceneLayerModel
@@ -75,25 +76,28 @@ def test_add_layer_personModel():
     assert model.data(model.index(1, 0)) == (model.NEW_NAME_TMPL % 2)
 
 
-def test_remove_layer(qtbot):
+def test_remove_layer(qtbot, scene):
     model = SceneLayerModel()
-    scene = Scene()
     model.scene = scene
     model.addRow()
     model.addRow()
-    rowsRemoved = util.Condition()
-    model.rowsRemoved.connect(rowsRemoved)
-    qtbot.clickYesAfter(lambda: model.removeRow(0))
-
-    assert rowsRemoved.callCount == 1
+    rowsRemoved = util.Condition(model.rowsRemoved)
+    with (
+        patch(
+            "pkdiagram.models.scenelayermodel.QMessageBox.question",
+            return_value=QMessageBox.Yes,
+        ) as question,
+    ):
+        model.removeRow(0)
+    assert question.call_count == 1
     assert model.rowCount() == 1
     assert model.data(model.index(0, 0)) == (model.NEW_NAME_TMPL % 2)
     assert model.data(model.index(0, 0), model.ActiveRole) == Qt.Unchecked
+    assert rowsRemoved.callCount == 1
 
 
-def test_set_active_sceneModel():
+def test_set_active_sceneModel(scene):
     model = SceneLayerModel()
-    scene = Scene()
     layer1 = Layer(name="View 1")
     layer2 = Layer(name="View 2")
     layer3 = Layer(name="View 3")
