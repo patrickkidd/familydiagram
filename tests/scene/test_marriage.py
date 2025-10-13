@@ -26,16 +26,14 @@ def test_no_dupe_events_from_fd(simpleMarriage):
 
 @pytest.fixture
 def marriage(scene, request):
-    personA, personB = Person(), Person()
-    marriage = Marriage(personA=personA, personB=personB)
-    scene.addItems(personA, personB, marriage)
+    personA, personB = scene.addItems(Person(), Person())
+    marriage = scene.addItem(Marriage(personA=personA, personB=personB))
     return marriage
 
 
 @pytest.fixture
 def marriage2Children(scene, marriage):
-    childA, childB = Person(), Person()
-    scene.addItems(childA, childB)
+    childA, childB = scene.addItems(Person(), Person())
     childA.setParents(marriage)
     childB.setParents(marriage)
     return marriage
@@ -43,9 +41,8 @@ def marriage2Children(scene, marriage):
 
 @pytest.fixture
 def simpleMarriage(scene):
-    person, spouse = Person(), Person()
-    marriage = Marriage(personA=person, personB=spouse)
-    scene.addItems(person, spouse, marriage)
+    person, spouse = scene.addItems(Person(), Person())
+    marriage = scene.addItem(Marriage(personA=person, personB=spouse))
     scene.addItem(
         Event(
             EventKind.Bonded,
@@ -108,10 +105,8 @@ def simpleMarriage(scene):
 
 def test_olderBirth():
     scene = Scene()
-    personA = Person()
-    personB = Person()
-    marriage_1 = Marriage(personA, personB)
-    scene.addItems(personA, personB, marriage_1)
+    personA, personB = scene.addItems(Person(), Person())
+    marriage_1 = scene.addItem(Marriage(personA, personB))
     scene.addItem(Event(EventKind.Birth, personA, dateTime=util.Date(2001, 1, 1)))
     scene.addItem(Event(EventKind.Birth, personB, dateTime=util.Date(2002, 1, 1)))
     assert marriage_1.olderBirth() == util.Date(2001, 1, 1)
@@ -119,17 +114,13 @@ def test_olderBirth():
 
 def test_sort():
     scene = Scene()
-    personA1 = Person()
-    personB1 = Person()
-    marriage_1 = Marriage(personA1, personB1)
-    scene.addItems(personA1, personB1, marriage_1)
+    personA1, personB1 = scene.addItems(Person(), Person())
+    marriage_1 = scene.addItem(Marriage(personA1, personB1))
     scene.addItem(Event(EventKind.Birth, personA1, dateTime=util.Date(2001, 1, 1)))
     scene.addItem(Event(EventKind.Birth, personB1, dateTime=util.Date(2002, 1, 1)))
 
-    personA2 = Person()
-    personB2 = Person()
-    marriage_2 = Marriage(personA2, personB2)
-    scene.addItems(personA2, personB2, marriage_2)
+    personA2, personB2 = scene.addItems(Person(), Person())
+    marriage_2 = scene.addItem(Marriage(personA2, personB2))
     scene.addItem(Event(EventKind.Birth, personA2, dateTime=util.Date(2001, 1, 1)))
     scene.addItem(Event(EventKind.Birth, personB2, dateTime=util.Date(2000, 1, 1)))
     assert marriage_2 < marriage_1
@@ -142,8 +133,7 @@ def test_marriageFor_one(scene, marriage):
 
 def test_marriagesFor_none(scene, marriage):
     personA, personB = marriage.people
-    personC = Person(name="Person C")
-    scene.addItem(personC)
+    personC = scene.addItem(Person(name="Person C"))
     assert scene.marriageFor(personA, personC) == None
 
 
@@ -875,9 +865,8 @@ def test_detailsText_lines(simpleMarriage):
 def detailsText_marriage():
     scene = Scene()
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
-    personA, personB = Person(name="Roger"), Person(name="Sally")
-    marriage = Marriage(personA, personB, diagramNotes="here are some notes")
-    scene.addItems(personA, personB, marriage)
+    personA, personB = scene.addItems(Person(name="Roger"), Person(name="Sally"))
+    marriage = scene.addItem(Marriage(personA, personB, diagramNotes="here are some notes"))
     scene.addItem(
         Event(
             EventKind.Married, personA, spouse=personB, dateTime=scene.currentDateTime()

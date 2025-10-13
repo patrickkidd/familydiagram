@@ -751,11 +751,6 @@ def test_ChildOf_delete_undo_redo(qtbot):
     twinA = Person(name="twinA")
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
-    marriedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=QDateTime(util.Date(1900, 1, 1)),
-    )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
     scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
@@ -806,11 +801,6 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
     twinA = Person(name="twinA")
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
-    marriedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=QDateTime(util.Date(1900, 1, 1)),
-    )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
     scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
@@ -861,11 +851,6 @@ def test_hide_ChildOf_honor_marriage_tags():
     parentB = Person(name="parentB")
     childA = Person(name="childA")
     marriage = Marriage(parentA, parentB)
-    marriedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=util.Date(1900, 1, 1),
-    )
     layer = Layer(name="View 1", tags=["here"])
     childA.setParents(marriage)
 
@@ -893,11 +878,6 @@ def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     twinB = Person(name="twinB")
     twinC = Person(name="twinC")
     marriage = Marriage(parentA, parentB)
-    marriedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=util.Date(1900, 1, 1),
-    )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
     twinC.setParents(twinB.multipleBirth())
@@ -923,11 +903,6 @@ def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     twinA = Person(name="twinA")
     twinB = Person(name="twinB")
     marriage = Marriage(parentA, parentB)
-    marriedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Married,
-        dateTime=util.Date(1900, 1, 1),
-    )
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
     scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0

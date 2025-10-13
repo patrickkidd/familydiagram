@@ -64,8 +64,8 @@ class Event(Item):
         symptom: str | None = None,
         relationship: RelationshipKind | None = None,
         functioning: str | None = None,
-        relationshipTargets: "list[Person]" = [],
-        relationshipTriangles: "list[Person]" = [],
+        relationshipTargets: "Person | list[Person] | None" = None,
+        relationshipTriangles: "Person | list[Person] | None" = None,
         **kwargs,
     ):
         from pkdiagram.scene import Person
@@ -104,10 +104,22 @@ class Event(Item):
             self.addDynamicProperty(util.ATTR_RELATIONSHIP).set(relationship.value)
         if functioning is not None:
             self.addDynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
-        if relationshipTargets:
+
+        # Normalize relationshipTargets and relationshipTriangles to lists
+        if relationshipTargets is not None:
+            if not isinstance(relationshipTargets, list):
+                relationshipTargets = [relationshipTargets]
             self.setRelationshipTargets(relationshipTargets)
-        if relationshipTriangles:
+        else:
+            relationshipTargets = []
+
+        if relationshipTriangles is not None:
+            if not isinstance(relationshipTriangles, list):
+                relationshipTriangles = [relationshipTriangles]
             self.setRelationshipTriangles(relationshipTriangles)
+        else:
+            relationshipTriangles = []
+
         for person in [spouse, child] + relationshipTargets + relationshipTriangles:
             if person and person.id is None:
                 raise ValueError(

@@ -17,7 +17,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, EventKind
+from pkdiagram.scene import Event, EventKind, Property
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 
@@ -214,10 +214,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         rows = [x for x in self._rows if x.event == event]
         if not rows:
             return
-        for row in rows:
-            row = self._rows.index(row)
-            self.beginRemoveRows(QModelIndex(), row, row)
-            self._rows.remove(event)
+        for timelineRow in rows:
+            rowIndex = self._rows.index(timelineRow)
+            self.beginRemoveRows(QModelIndex(), rowIndex, rowIndex)
+            self._rows.remove(timelineRow)
             self.endRemoveRows()
 
     def refreshColumnHeaders(self, columnHeaders=None):
@@ -259,6 +259,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def _refreshRows(self):
         """The core method to collect all the events from people, pair-bonds, and emotions."""
         if not self._scene:
+            self._rows = SortedList()
+            self.refreshAllProperties()
+            self.modelReset.emit()
             return
         # sort and filter
         self._rows = SortedList()
@@ -367,13 +370,16 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 self._scene.eventAdded[Event].disconnect(self.onEventAdded)
                 self._scene.eventChanged[Event].disconnect(self.onEventChanged)
                 self._scene.eventRemoved[Event].disconnect(self.onEventRemoved)
+                self._scene.propertyChanged[Property].disconnect(self.onSceneProperty)
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
                 self._scene.eventAdded[Event].connect(self.onEventAdded)
                 self._scene.eventChanged[Event].connect(self.onEventChanged)
                 self._scene.eventRemoved[Event].connect(self.onEventRemoved)
-            self._rows = SortedList()
+                self._scene.propertyChanged[Property].connect(self.onSceneProperty)
+            self.refreshColumnHeaders()
+            self._refreshRows()
 
     ## Qt Virtuals
 
@@ -404,32 +410,36 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return QVariant()
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        event = self._rows[index.row()].event
+        # Return None if index is out of bounds or rows is empty
+        if index.row() < 0 or index.row() >= len(self._rows):
+            return None
+        timelineRow = self._rows[index.row()]
+        event = timelineRow.event
         ret = None
         if not self._scene:
             ret = None
         elif role == self.FlagsRole:
             ret = self.flags(index)
         elif role == self.DateTimeRole:
-            ret = event.dateTime()
+            ret = timelineRow.dateTime()
         elif role == self.NodalRole:
             ret = event.nodal()
         elif role == self.NodalRole:
             ret = ", ".join(event.tags())
         elif role == self.ColorRole:
             return event.color()
-        elif role == self.FirstBuddyRole:
-            buddyRow = self.dateBuddyForRow(index.row())
-            if buddyRow is not None and buddyRow > index.row():
-                ret = True
-            else:
-                ret = False
-        elif role == self.SecondBuddyRole:
-            buddyRow = self.dateBuddyForRow(index.row())
-            if buddyRow is not None and buddyRow < index.row():
-                ret = True
-            else:
-                ret = False
+        # elif role == self.FirstBuddyRole:
+        #     buddyRow = self.dateBuddyForRow(index.row())
+        #     if buddyRow is not None and buddyRow > index.row():
+        #         ret = True
+        #     else:
+        #         ret = False
+        # elif role == self.SecondBuddyRole:
+        #     buddyRow = self.dateBuddyForRow(index.row())
+        #     if buddyRow is not None and buddyRow < index.row():
+        #         ret = True
+        #     else:
+        #         ret = False
         elif role == self.ParentIdRole:
             person = event.person()
             return person.id if person else None
@@ -441,9 +451,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             ret = event.nodal()
         elif self.isColumn(index, self.DATETIME):
             if role == Qt.DisplayRole:
-                ret = util.dateString(event.dateTime())
+                ret = util.dateString(timelineRow.dateTime())
             elif role in (self.DisplayExpandedRole, self.DateTimeRole):
-                ret = util.dateTimeString(event.dateTime())
+                ret = util.dateTimeString(timelineRow.dateTime())
         elif self.isColumn(index, self.UNSURE):
             ret = event.unsure()
         elif self.isColumn(index, self.DESCRIPTION):
@@ -467,7 +477,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):
-        if not self._items:
+        if not self._scene:
             return super().setData(index, value, role)
         if self._settingData:
             return False
@@ -609,10 +619,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     def rowForEvent(self, event):
         """Only used in tests."""
-        try:
-            return self._rows.index(event)
-        except ValueError:
-            return -1
+        for i, row in enumerate(self._rows):
+            if row.event == event and not row.isEndMarker:
+                return i
+        return -1
 
     @pyqtSlot(int, result=QVariant)
     def eventForRow(self, row):
@@ -709,11 +719,22 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if self._rows:
             return self._rows[-1].dateTime()
 
-    def dateBuddyForRow(self, row):
-        """Return the emotion row that is a date buddy to this one."""
-        row = self._rows[row]
-        if row.endDateTime():
-            return row.endDateTime()
+    # def dateBuddyForRow(self, rowIndex):
+    #     """Return the row index of the date buddy to this one."""
+    #     timelineRow = self._rows[rowIndex]
+    #     event = timelineRow.event
+
+    #     # If this is a start marker, find the end marker
+    #     if not timelineRow.isEndMarker and event.endDateTime():
+    #         for i, row in enumerate(self._rows):
+    #             if row.event == event and row.isEndMarker:
+    #                 return i
+    #     # If this is an end marker, find the start marker
+    #     elif timelineRow.isEndMarker:
+    #         for i, row in enumerate(self._rows):
+    #             if row.event == event and not row.isEndMarker:
+    #                 return i
+    #     return None
 
     # def dateBuddiesInternal(self):
     #     ret = set()

@@ -53,12 +53,13 @@ def __test___lt__():
     assert not (death < eventA)
 
 
-def test_sorted_every_other():
+def test_sorted_every_other(scene):
     """Test sorting a list where every other has no date."""
     dateTime = util.Date(2001, 1, 1)
     events = []
     for i in range(10):
-        event = Event(EventKind.Shift, person=Person())
+        person = scene.addItem(Person())
+        event = scene.addItem(Event(EventKind.Shift, person))
         if i % 2:
             event.setDateTime(dateTime)
             dateTime = dateTime.addDays(1)
@@ -136,66 +137,66 @@ def test_QDate_lt_eq():
     assert not (d1 <= d2)
 
 
-def test_lt():
-    person = Person()
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
+def test_lt(scene):
+    person = scene.addItem(Person())
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2)))
     assert not (d1 < d2)
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 < d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 < d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 < d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert not (d1 < d2)
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5)))
     assert not (d1 < d2)
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert not (d1 < d2)
 
 
 @pytest.mark.skip("__le__ not supported yet")
-def test_lt_eq():
-    person = Person()
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2))
+def test_lt_eq(scene):
+    person = scene.addItem(Person())
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 2)))
     assert d1 <= d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 4)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 <= d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 <= d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert d1 <= d2
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2002, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert not (d1 <= d2)
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 11, 5)))
     assert not (d1 <= d2)
 
-    d1 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6))
-    d2 = Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5))
+    d1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 6)))
+    d2 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 12, 5)))
     assert not (d1 <= d2)
 
 

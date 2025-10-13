@@ -46,24 +46,24 @@ def test_query_multiple():
 
 
 def test_query_methods():
-    people = [
+    scene = Scene()
+    scene.addItems(
         Person(name="John", lastName="Doe"),
         Person(name="Jane", lastName="Doe"),
         Person(name="John", lastName="Smith"),
-    ]
-    scene = Scene()
-    scene.addItems(*people)
+    )
     people = scene.query(methods={"fullNameOrAlias": "John Doe"})
     assert len(people) == 1
     assert people[0].fullNameOrAlias() == "John Doe"
 
 
 def test_find_by_ids():
-    person_1 = Person(name="John", lastName="Doe")
-    person_2 = Person(name="Jane", lastName="Doe")
-    person_3 = Person(name="John", lastName="Smith")
     scene = Scene()
-    scene.addItems(person_1, person_2, person_3)
+    person_1, person_2, person_3 = scene.addItems(
+        Person(name="John", lastName="Doe"),
+        Person(name="Jane", lastName="Doe"),
+        Person(name="John", lastName="Smith"),
+    )
 
     items = scene.find(ids=[person_1.id, person_2.id])
     assert len(items) == 2

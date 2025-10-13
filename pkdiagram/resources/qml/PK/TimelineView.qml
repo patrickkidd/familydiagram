@@ -506,39 +506,39 @@ ColumnLayout {
 
         }
 
-        Rectangle {
-            id: buddyItem
-            x: 0; y: 0; z: 2
-            width: root.columnWidthProvider(0)
-            height: table.contentHeight
-            visible: width > 0
-            color: 'transparent'
-            Repeater {
-                model: table.model ? table.model.dateBuddies : []
-                id: repeater
-                Shape {
-                    id: box
-//                    x: -width // no idea
-                    y: modelData.startRow * util.QML_ITEM_HEIGHT
-                    height: (modelData.endRow - modelData.startRow + 1) * util.QML_ITEM_HEIGHT
-                    width: parent.width
-                    ShapePath {
-                        id: bracket
-                        startX: box.width
-                        startY: 0
-                        strokeColor: modelData.color
-                        strokeWidth: 1
-                        fillColor: 'transparent'
-                        PathQuad {
-                            x: box.width
-                            y: box.height
-                            controlX: -box.width + 2
-                            controlY: box.height / 2
-                        }
-                    }
-                }
-            }
-        }
+//         Rectangle {
+//             id: buddyItem
+//             x: 0; y: 0; z: 2
+//             width: root.columnWidthProvider(0)
+//             height: table.contentHeight
+//             visible: width > 0
+//             color: 'transparent'
+//             Repeater {
+//                 model: table.model ? table.model.dateBuddies : []
+//                 id: repeater
+//                 Shape {
+//                     id: box
+// //                    x: -width // no idea
+//                     y: modelData.startRow * util.QML_ITEM_HEIGHT
+//                     height: (modelData.endRow - modelData.startRow + 1) * util.QML_ITEM_HEIGHT
+//                     width: parent.width
+//                     ShapePath {
+//                         id: bracket
+//                         startX: box.width
+//                         startY: 0
+//                         strokeColor: modelData.color
+//                         strokeWidth: 1
+//                         fillColor: 'transparent'
+//                         PathQuad {
+//                             x: box.width
+//                             y: box.height
+//                             controlX: -box.width + 2
+//                             controlY: box.height / 2
+//                         }
+//                     }
+//                 }
+//             }
+//         }
 
         Connections {
             target: root.model
@@ -616,14 +616,14 @@ ColumnLayout {
                 width: parent.width
                 height: 1
                 visible: thisColumn > 0 && util.ENABLE_DATE_BUDDIES
-                color: (root.expanded && model.color != undefined && model.firstBuddy) ? model.color : 'transparent'
+                color: (root.expanded && model.color != undefined) ? model.color : 'transparent'
             }
             Rectangle { // border-bottom
                 y: parent.height - 1
                 width: parent.width
                 height: 1
                 visible: thisColumn > 0 && util.ENABLE_DATE_BUDDIES
-                color: (root.expanded && model.color != undefined && model.secondBuddy) ? model.color : 'transparent'
+                color: (root.expanded && model.color != undefined) ? model.color : 'transparent'
             }
 
             Rectangle { // border-left

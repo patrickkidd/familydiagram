@@ -302,16 +302,14 @@ def test_person_setLayers():
 def test_new_event_adds_variable_values(scene):
     scene.addEventProperty("var1")
 
-    person = Person()
-    scene.addItems(person)
+    person = scene.addItem(Person())
 
     # Simulate AddEventDialog setup.
-    event = Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11))
+    event = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11)))
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]
     prop.set("123")
-    scene.addItem(event)
 
     assert person.variablesDatabase.get("var1", event.dateTime().addYears(-1)) == (
         None,
@@ -351,10 +349,9 @@ def test_draw_builtin_vars(kind, attr, value):
     scene.addEventProperty(attr)
     scene.setCurrentDateTime(DATE)
 
-    person = Person(kind=kind)
-    scene.addItems(person)
+    person = scene.addItem(Person(kind=kind))
 
-    event = Event(EventKind.Shift, person, dateTime=DATE)
+    event = scene.addItem(Event(EventKind.Shift, person, dateTime=DATE))
     event.addDynamicProperty(attr)
     event.dynamicProperties[0].set(value)
     person.updateGeometry()

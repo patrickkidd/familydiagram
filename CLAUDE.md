@@ -34,42 +34,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **PyQt Bridge**: `pkdiagram/pyqt.py` - centralized PyQt5 imports and platform detection
 
 ### Key Modules
-- **Scene System** (`pkdiagram/scene/`): Core data model / QGraphicsItem types (Person, Event, Marriage, etc.) with property system
-  - The Scene is the authoratative source for storing and querying Item objects.
-    However, Efficient diagram drawing requires caching references to Item
-    objects. Sometimes these references are circular.
-    - For example, sometimes Person needs to develop a dependency graph of
-      ItemDetails, Emotion, etc for redraws when that Person is moved.
-    - Circular references are handled when loading the diagram file in two
-      phases; 1) instantiate all the items with a map of their id's, then 2)
-      resolve all dependencies via passing the map to each Item's read() method.
-  - There are two major ways that Person/Marriage/Emotion objects gets created,
-    which determines how instantiations and cascaded deletes work;
-    1) Drawing like a chalk board without an Event via Scene, where the scene
-       "owns" the Item.
-    2) Created to represent a dated Event via EditForm, where the event "owns"
-       the Item.
-  - The Scene is the authoratitive source for querying Item relationships, e.g.
-    though eventsFor, emotionsFor, marriageFor, etc.
-    - Scene.find() takes spcial kwargs like `ids=`, `types=`, Scene.query
-      matches Item property values.
-    - Item reference getters, e.g. `Event.spouse()`, that require `self.scene()`
-      should never return None just because `self.scene()` is None, they should
-      fail with an `AttributeError` on the return value of `self.scene()` and
-      the calling code should be fixed to ensure the Item is added to the scene
-      before using the getter.
-  - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
-  - `Event` has mandatory `EventKind` as:
-    - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,
-      `Divorced` are "PairBond" categories that reflect the pairbond/marriage's
-      life cycle. All include a spouse and potentially a child.
-    - `Shift` category that indicates a change in the app's four key
-      variables: (S)ymptom, (A)nxiety, (R)elationship and (F)unctioning.
-        - R changes always occur in relation to one or more targets. 
-        - R changes pertaining to triangles (`RelationShipKind.Inside`,
-          `RelationshipKind.Outside`) also pertain to one or more other people
-          to complete the triangle.
-    - `Death` only pertains to the Event's `person`.
+- **Scene System** (`pkdiagram/scene/`): Core data model / QGraphicsItem types
+  (Person, Event, Marriage, etc.) with property system. See
+  `pkdiagram/scene/CLAUDE.md`
 - **Models** (`pkdiagram/models/`): Qt model classes for QML data binding using QObjectHelper pattern
 - **Document/View** (`pkdiagram/documentview/`): Document management, QML engine, and main canvas view
 - **QML Engine** (`pkdiagram/documentview/qmlengine.py`): Manages QML context properties and model instances
@@ -92,6 +59,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Scene Testing**: Comprehensive scene manipulation and property testing
 - **Model Testing**: Qt model behavior verification with mock data
 - **Snapshot Testing**: Uses snapshottest for regression testing
+- **Updating test suite to new scene api**: Test suite in `./tests` needs to be
+  updated to the new scene API. That means:
+  - using the new Event() constructor params
+  - Creating Item objects in a scene.addItems call like `personA, personB = scene.addItems(Person(), Person())` instead of
+  - understanding the new implicit Emotion creation modes creating the items and
+  then adding them later
+  - Not using composed special events like person.birthEvent and instead adding
+    an event with the proper `EventKind` and then using `Scene.eventsFor(item,
+    kinds=...)`
+  - Using `Scene.find(...)` api where possible, etc.
 
 ### External Dependencies
 - **Server Integration**: Connects to btcopilot (separate Flask application) for cloud features
