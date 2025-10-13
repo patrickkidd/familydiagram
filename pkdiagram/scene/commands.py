@@ -213,7 +213,7 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
-        self.scene.removeItems(self.items, undo=False)
+        self.scene.removeItems(*self.items, undo=False)
 
     def undo(self):
         for item in self.items:

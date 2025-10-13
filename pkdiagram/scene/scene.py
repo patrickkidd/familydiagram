@@ -263,6 +263,8 @@ class Scene(QGraphicsScene, Item):
         self._layers = []
         self._activeLayers = []
         self._activeTags = []
+        self._batchAddedItems = []
+        self._batchRemovedItems = []
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -304,6 +306,10 @@ class Scene(QGraphicsScene, Item):
 
     def deinit(self, garbage=None):
         from pkdiagram.scene.emotions import FannedBox
+
+        # Clear batch lists first to prevent accessing deleted objects
+        self._batchAddedItems = []
+        self._batchRemovedItems = []
 
         for item in self.items():
             if isinstance(item, FannedBox):
@@ -610,7 +616,6 @@ class Scene(QGraphicsScene, Item):
             # If part of a MultipleBirth, handle the conversion back to single child
             if item.multipleBirth:
                 multipleBirth = item.multipleBirth
-                parents = multipleBirth.parents()
                 # Get all children except the one being removed
                 remainingChildren = [
                     c for c in multipleBirth.children() if c != item.person
@@ -700,9 +705,10 @@ class Scene(QGraphicsScene, Item):
 
     def setBatchAddingRemovingItems(self, on):
         if on:
+            if self._batchAddRemoveStackLevel == 0:
+                self._batchAddedItems = []
+                self._batchRemovedItems = []
             self._batchAddRemoveStackLevel += 1
-            self._batchAddedItems = []
-            self._batchRemovedItems = []
         else:
             self._batchAddRemoveStackLevel -= 1
             assert self._batchAddRemoveStackLevel >= 0
