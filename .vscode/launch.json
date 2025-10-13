@@ -190,15 +190,6 @@
             ]
         },
         {
-            "name": "update_build_info.py",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/update_build_info.py",
-            "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "justMyCode": false,
-        },
-        {
             "name": "sip-build (_pkdiagram)",
             "type": "debugpy",
             "request": "launch",
@@ -210,9 +201,10 @@
         {
             "name": "Debug Unit Test",
             "type": "debugpy",
-            "purpose": "debug-test",
+            "request": "launch",
+            "purpose": ["debug-test"],
+            "console": "integratedTerminal",
             "justMyCode": false,
-            "skipFiles": [],
             "args": [
                 "-svvx"
             ],

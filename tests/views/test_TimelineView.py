@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import QVBoxLayout, QWidget
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Event
+from pkdiagram.scene import Scene, Person, Event, EventKind
 from pkdiagram.widgets import QmlWidgetHelper
 
 
@@ -51,11 +51,15 @@ def test_init(tv, qmlEngine):
 
 def test_some_events_shown(tv, qmlEngine):
     scene = qmlEngine.sceneModel.scene
-    person = Person(name="Hey", lastName="There")
-    event = Event(
-        parent=person, dateTime=util.Date(2001, 1, 1), description="Something happened"
+    person = scene.addItem(Person(name="Hey", lastName="There"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2001, 1, 1),
+            description="Something happened",
+        )
     )
-    scene.addItem(person)
     util.waitALittle()
     assert tv.itemProp("table", "visible") == True
     assert tv.itemProp("noEventsLabel", "visible") == False
@@ -68,16 +72,18 @@ def test_no_events(tv):
 
 def test_some_events_filtered_out(tv, qmlEngine):
     scene = qmlEngine.sceneModel.scene
-    person = Person(name="Hey", lastName="You")
-    events = [
-        Event(
-            parent=person,
-            description="Something happened {i}".format(i=i),
-            dateTime=util.Date(2010, 5, 1 + i),
-        )
-        for i in range(3)
-    ]
-    scene.addItem(person)
+    person = scene.addItem(Person(name="Hey", lastName="You"))
+    events = scene.addItems(
+        *[
+            Event(
+                EventKind.Shift,
+                person,
+                description="Something happened {i}".format(i=i),
+                dateTime=util.Date(2010, 5, 1 + i),
+            )
+            for i in range(3)
+        ]
+    )
     qmlEngine.searchModel.startDateTime = util.Date(2020, 1, 1)
     util.waitALittle()
     assert tv.itemProp("noEventsLabel", "visible") == True

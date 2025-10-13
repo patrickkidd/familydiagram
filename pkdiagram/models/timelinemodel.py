@@ -263,8 +263,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         # sort and filter
         self._rows = SortedList()
         for event in self._scene.events():
-            if not self._shouldHide(event):
-                self._ensureEvent(event, emit=False)
+            self._ensureEvent(event, emit=False)
         self.refreshAllProperties()
         self.modelReset.emit()
 
@@ -648,8 +647,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def firstRowForDateTime(self, dateTime):
         # entries = self._dateItemCache.get(date, None)
         row = -1
-        for i, row in enumerate(self._rows):
-            if row.dateTime() == dateTime:
+        for i, timelineRow in enumerate(self._rows):
+            if timelineRow.dateTime() == dateTime:
                 row = i
                 break
         return row
@@ -657,8 +656,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(QDateTime, result=int)
     def lastRowForDateTime(self, dateTime):
         row = -1
-        for i, row in enumerate(reversed(self._rows)):
-            if row.dateTime() == dateTime:
+        for i, timelineRow in enumerate(reversed(self._rows)):
+            if timelineRow.dateTime() == dateTime:
                 row = len(self._rows) - 1 - i
                 break
         return row

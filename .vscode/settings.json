@@ -1,4 +1,7 @@
-{    
+{
+    // "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    // "python.terminal.activateEnvironment": true,
+    "python.experiments.enabled": false,
     "python.testing.pytestArgs": [
         "tests",
         "-svv",
@@ -13,15 +16,5 @@
     "black-formatter.importStrategy": "fromEnvironment",
     "search.exclude": {
         "lib/": true
-    },
-    "python-envs.pythonProjects": [
-        {
-            "path": "",
-            "envManager": "ms-python.python:pipenv",
-            "packageManager": "ms-python.python:pip"
-        }
-    ],
-    // "black-formatter.interpreter": [
-    //     ".venv/bin/python"
-    // ]
+    }
 }
