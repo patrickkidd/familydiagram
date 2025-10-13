@@ -598,13 +598,36 @@ class Scene(QGraphicsScene, Item):
         elif item.isEmotion:
             _removeEmotion(item)
         elif item.isMultipleBirth:
-            pass
+            # Detach all children from their parents by removing their ChildOf relationships
+            # Save children before any cleanup that might clear the list
+            for child in item._children:
+                # Clear the multipleBirth reference first to avoid recursive cleanup issues
+                if child.childOf:
+                    child.childOf.multipleBirth = None
+                child.setParents(None)
+            _deregisterItem(item)
         elif item.isChildOf:
+            # If part of a MultipleBirth, handle the conversion back to single child
             if item.multipleBirth:
-                item.multipleBirth._onRemoveChild(item.person)
+                multipleBirth = item.multipleBirth
+                parents = multipleBirth.parents()
+                # Get all children except the one being removed
+                remainingChildren = [
+                    c for c in multipleBirth.children() if c != item.person
+                ]
+                # Remove this child from the multipleBirth
+                multipleBirth._onRemoveChild(item.person)
+                # If only one child remains, convert them back to a regular ChildOf
+                if len(remainingChildren) == 1:
+                    remainingChildren[0].setParents(parents)
+                # If no children remain, remove the MultipleBirth
+                elif len(remainingChildren) == 0:
+                    self.removeItem(multipleBirth)
             layer = item.parents().emotionalUnit().layer()
             item.person.setLayers([x for x in item.person.layers() if x != layer.id])
             item.parents().emotionalUnit().update()
+            # Remove the person from the marriage's children list
+            item.parents()._onRemoveChild(item.person)
             # Clear the person's childOf reference
             item.person.childOf = None
             # NOTE: Do NOT call setParents(None) here - that would cause infinite recursion
