@@ -69,7 +69,7 @@ def test_remove_people():
     assert marriage.emotionalUnit().people() == [personA, personB, child_2]
     assert child_1.layers() == []
 
-    personA._onRemoveMarriage(marriage)
+    personA.onRemoveMarriage(marriage)
     child_2.setParents(None)
     scene.removeItem(marriage)
     assert scene.emotionalUnits() == []

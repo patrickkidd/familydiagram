@@ -618,11 +618,11 @@ class Person(PathItem):
             self._do_setParents(target)
         return self.childOf
 
-    def _onAddMarriage(self, m):
+    def onAddMarriage(self, m):
         if not m in self.marriages:
             self.marriages.append(m)
 
-    def _onRemoveMarriage(self, m):
+    def onRemoveMarriage(self, m):
         if m in self.marriages:
             self.marriages.remove(m)
 

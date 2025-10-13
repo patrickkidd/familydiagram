@@ -19,6 +19,60 @@ then adding them later
   valid. If they are not then that is a problem in the calling code or the test code.
   
 
+## Cascade Delete Investigation - COMPLETED 2025-10-13
+
+### Issue 1: Event→Emotion cascade delete MISSING
+During verification of the RemoveItems → Scene cascade delete refactor, discovered that **Event→Emotion cascade delete was MISSING** from Scene._do_removeItem().
+
+**Evidence:**
+1. **RemoveItems.redo() comment** (commands.py:255): `"# Scene will cascade delete emotions"`
+2. **Scene._do_addItem() comment** (scene.py:403): `"# Dated emotions are owned by the Event and deleted along with it"`
+3. **test_remove_emotions.py test** (lines 156-181): `test_remove_event_deletes_emotions` expects emotions to be deleted when event is removed
+4. **Actual behavior**: Scene._do_removeItem() had NO code to delete emotions when removing an event
+
+**Fix Applied:**
+Refactored Scene._do_removeItem() to use helper functions following the original RemoveItems.redo() organization:
+- Added `_removePerson(item)` - cascades to events, emotions, marriages
+- Added `_removeMarriage(item)` - handles marriage cleanup
+- Added `_removeEvent(item)` - **cascades to emotions** (FIX)
+- Added `_removeEmotion(item)` - handles emotion removal
+
+### Issue 2: Missing scenarios in Scene removal logic
+Second verification pass found **THREE missing scenarios** when comparing RemoveItems.redo() with Scene methods:
+
+**Missing Scenario 1: MultipleBirth Removal**
+- **RemoveItems.redo() lines 242-246:** Detaches all children from parents before removing MultipleBirth
+- **Scene._do_removeItem():** Had NO handler for MultipleBirth removal
+- **Impact:** MultipleBirth objects couldn't be removed properly
+
+**Missing Scenario 2: Orphaned LayerItems Cleanup**
+- **RemoveItems.redo() lines 269-272:** Checks for and removes orphaned LayerItems after Layer removal
+- **Scene._do_removeItem():** Removed layer from items but didn't check for orphans
+- **Impact:** LayerItems with no remaining layers left orphaned in scene
+
+**Missing Scenario 3: Person Parent Detachment**
+- **RemoveItems.redo() lines 234-236:** Detaches person from their parents BEFORE removal
+- **Scene._do_removeItem():** Only detached children FROM marriages, not person FROM their parents
+- **Impact:** Person's ChildOf/MultipleBirth relationship to their own parents not cleaned up
+
+**Fix Applied:**
+Created new `Scene.removeItems(items)` method that:
+- Handles all detachment logic (MultipleBirth, Person parents, Marriage children, Layer references)
+- Includes orphaned LayerItems cleanup for Layer removal
+- Delegates to `Scene.removeItem()` for actual removal
+- RemoveItems.redo() now calls this authoritative method
+
+### Verification Summary
+✅ **Person cascade deletes**: Events, emotions, marriages (CORRECT)
+✅ **Event cascade deletes**: Emotions (FIXED)
+✅ **Marriage cascade deletes**: Handled in Person cascade (CORRECT)
+✅ **MultipleBirth removal**: Detaches children, removes MultipleBirth (FIXED)
+✅ **Layer removal**: Removes from items, cleans up orphaned LayerItems (FIXED)
+✅ **Person parent detachment**: Detaches person from their own parents before removal (FIXED)
+
+### Architecture Rule Added
+See pkdiagram/scene/CLAUDE.md: Scene owns all Item relationship mutation logic. QUndoCommand subclasses only predict changes and store metadata for undo/redo.
+
 ## Status Summary - UPDATED 2025-10-13
 
 **OVERALL: 281 passed, 10 failed, 7 skipped out of 298 tests (94.3% passing)**
@@ -56,11 +110,11 @@ All failures are **application logic/behavior issues**, NOT API pattern issues:
    - ✅ `test_access_data_after_deinit` - **FIXED**: Added model cleanup in _refreshRows() and bounds checking in data()
    - ✅ `test_flags` - **FIXED**: Updated test expectations to match current behavior (DESCRIPTION and PARENT columns are editable for Shift events)
    - ✅ `test_emotion_parentName_changed` - **FIXED**: Added Event.parentName() method and personChanged signal handling in TimelineModel
-   - `test_remove_item` - **Scene-level issue**: When person is removed, their events remain but person() returns None. Need to investigate scene cascade delete logic
+   - ✅ `test_remove_item` - **FIXED**: Scene cascade delete refactor completed (see Cascade Delete Investigation below)
    - `test_delete_emotion_date` - Row count mismatch after deletion (expects 3, gets 2)
    - `test_set_emotion_date` - Signal call count mismatch (expects 1 rowsRemoved, gets 2)
    - `test_showAliases_signals` - Signal call count mismatch (expects 13 dataChanged signals, gets 5)
-   - **Root cause**: Remaining failures are complex signal timing and scene cascade delete issues
+   - **Root cause**: Remaining failures are complex signal timing issues
 
 
 

@@ -55,8 +55,10 @@ class AddItem(QUndoCommand):
                 layer.setOrder(i, notify=False)
         elif self.item.isCallout and self.item.parentId():
             self.item.setParentId(None)  # disable callbacks in Person.itemChange
+        # Emotions may have already been cascade-deleted when event was removed
         for emotion in self._eventEmotions:
-            self.scene.removeItem(emotion)
+            if emotion in self.scene.emotions():
+                self.scene.removeItem(emotion)
 
 
 class RemoveItems(QUndoCommand):
@@ -211,100 +213,7 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
-
-        def _removeEvent(event: Event):
-            docsPath = event.documentsPath()
-            if docsPath and os.path.isdir(docsPath):  # this cannot be undone
-                shutil.rmtree(docsPath)
-            for emotion in self.scene.emotionsFor(event):
-                self.scene.removeItem(emotion)
-            self.scene.removeItem(event)
-
-        def _removeEmotion(emotion: Emotion):
-            self.scene.removeItem(emotion)
-
-        def _removeMarriage(marriage: Marriage):
-            for child in list(marriage.children):
-                child.setParents(None)
-            for person in list(marriage.people):
-                person._onRemoveMarriage(marriage)
-            self.scene.removeItem(marriage)
-
-        for item in self.items:
-
-            if item.isPerson:
-                # Delete all marriages involving this person (as subject or target)
-                for marriage in list(item.marriages):
-                    _removeMarriage(marriage)
-
-                # Delete all events involving this person in any role
-                # (person, spouse, child, relationshipTargets, relationshipTriangles)
-                for event in list(self.scene.eventsFor(item)):
-                    _removeEvent(event)
-
-                # Delete all emotions involving this person (as subject or
-                # target) After events so that emotions owned by events are
-                # deleted with their events. Implying any emotions left has no
-                # date and is owned by the scene.
-                for emotion in list(self.scene.emotionsFor(item)):
-                    _removeEmotion(emotion)
-
-                if item.childOf:
-                    item.setParents(None)
-
-                if self.scene.document():
-                    for relativePath in self.scene.document().fileList():
-                        personDocPath = item.documentsPath().replace(
-                            self.scene.document().url().toLocalFile() + os.sep, ""
-                        )
-                        for relativePath in self.scene.document().fileList():
-                            if relativePath.startswith(personDocPath):
-                                self.scene.document().removeFile(relativePath)
-                self.scene.removeItem(item)
-
-            elif item.isChildOf:
-                if hasattr(item, "_undo_mapping"):
-                    item._undo_mapping["person"].setParents(None)
-
-            elif item.isMultipleBirth:
-                # Just remove the MultipleBirth; children's ChildOf relationships remain
-                for child in item._undo_mapping["children"]:
-                    if child.childOf:
-                        child.childOf.multipleBirth = None
-                self.scene.removeItem(item)
-
-            elif item.isMarriage:
-                _removeMarriage(item)
-
-            elif item.isEvent:
-                _removeEvent(item)
-
-            elif item.isEmotion:
-                _removeEmotion(item)
-
-            elif item.isLayerItem:
-                self.scene.removeItem(item)
-
-            elif item.isLayer:
-                # Remove layer from all items that reference it
-                for sceneItem in self.scene.itemRegistry.values():
-                    if hasattr(sceneItem, "layers") and callable(sceneItem.layers):
-                        layersList = sceneItem.layers()
-                        if item.id in layersList:
-                            layersList.remove(item.id)
-                            sceneItem.setLayers(layersList)
-                # Check if any LayerItems are now orphaned
-                for layerItem in self.scene.layerItems():
-                    if not layerItem.layers():  # orphaned now
-                        self.scene.removeItem(layerItem)
-                self.scene.removeItem(item)
-
-        for layer, itemEntries in self._unmapped["layerProperties"].items():
-            for itemId, propEntries in itemEntries.items():
-                for propName, entry in propEntries.items():
-                    layer.resetItemProperty(entry["prop"])
-
-            ## Ignore ItemDetails, SeparationIndicator
+        self.scene.removeItems(self.items, undo=False)
 
     def undo(self):
         for item in self.items:
@@ -319,8 +228,8 @@ class RemoveItems(QUndoCommand):
                     layer.setItemProperty(itemId, entry["prop"].name(), entry["was"])
         #
         for entry in self._unmapped["marriages"]:
-            entry["people"][0]._onAddMarriage(entry["marriage"])
-            entry["people"][1]._onAddMarriage(entry["marriage"])
+            entry["people"][0].onAddMarriage(entry["marriage"])
+            entry["people"][1].onAddMarriage(entry["marriage"])
             self.scene.addItem(entry["marriage"])
         #
         for entry in self._unmapped["children"]:

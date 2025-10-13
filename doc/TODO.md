@@ -271,7 +271,7 @@ THINGS TO TEST:
   Traceback (most recent call last):
     File ":/pkdiagram/graphicaltimelineview.pyo", line 122, in onSearch
   AttributeError: 'DocumentView' object has no attribute 'showSearchView'
-- AttributeError 'NoneType' object has no attribute '_onAddMarriage' 
+- AttributeError 'NoneType' object has no attribute 'onAddMarriage' 
     pkdiagram\commands.pyo:480 redo
 - AttributeError 'NoneType' object has no attribute 'itemOpacity' 
     pkdiagram\objects\marriage.pyo:589 updatePathItemVisible
@@ -295,7 +295,7 @@ THINGS TO TEST:
   - 'NoneType' object has no attribute 'itemOpacity'
   - https://app.bugsnag.com/vedana-media/family-diagram-python/errors/617adf5ccf85a30007fe4a5c?event_id=617adf5c008941e277920000&i=em&m=nw
 - AttributeErrorpkdiagram\commands.pyo:480
-  - 'NoneType' object has no attribute '_onAddMarriage'
+  - 'NoneType' object has no attribute 'onAddMarriage'
   - https://app.bugsnag.com/vedana-media/family-diagram-python/errors/617adea79f80210008294d0b?filters[event.since]=30d&filters[error.status]=open&pivot_tab=event
 - Manual Testing Ideas:
   - Open via 1) Double click in Finder, 2) drop on Dock icon, 3) Double-click in Windows

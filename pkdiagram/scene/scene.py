@@ -1,6 +1,7 @@
 import os, sys, re, logging
 import contextlib
 from typing import Union
+import shutil
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -336,7 +337,9 @@ class Scene(QGraphicsScene, Item):
         self.prop("scaleFactor").set(*args, **kwargs)
 
     def addItem(
-        self, item, undo=False
+        self,
+        item: Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem],
+        undo=False,
     ) -> Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]:
         if undo:
             self.push(AddItem(self, item))
@@ -344,11 +347,35 @@ class Scene(QGraphicsScene, Item):
             self._do_addItem(item)
         return item
 
-    def removeItem(self, item, undo=False):
+    def addItems(
+        self, *args, batch=True, undo=False
+    ) -> list[Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]]:
+        ret = []
+        with self.macro("Adding items", undo=undo, batchAddRemove=batch):
+            for item in args:
+                self.addItem(item, undo=undo)
+                ret.append(item)
+        return ret
+
+    def removeItem(
+        self,
+        item: Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem],
+        undo=False,
+    ):
         if undo:
             self.push(RemoveItems(self, item))
         else:
             self._do_removeItem(item)
+
+    def removeItems(self, *items, undo=False):
+        if undo:
+            self.push(RemoveItems(self, items))
+        else:
+            with self.macro("Adding items", undo=False, batchAddRemove=True):
+                for item in items:
+                    self._do_removeItem(item)
+
+    # Internal add/remove implementations
 
     def _do_addItem(self, item):
         if (
@@ -390,7 +417,7 @@ class Scene(QGraphicsScene, Item):
             if not self.isBatchAddingRemovingItems():
                 item.emotionalUnit().update()
             for person in item.people:
-                person._onAddMarriage(item)
+                person.onAddMarriage(item)
             item.updateGeometry()
             self.marriageAdded[Marriage].emit(item)
         elif item.isChildOf:
@@ -470,15 +497,177 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
-    def addItems(
-        self, *args, batch=True, undo=False
-    ) -> list[Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]]:
-        ret = []
-        with self.macro("Adding items", undo=undo, batchAddRemove=batch):
-            for item in args:
-                self.addItem(item, undo=undo)
-                ret.append(item)
-        return ret
+    def _do_removeItem(self, item):
+        if isinstance(item, QGraphicsItem) and item.scene() is self:
+            super().removeItem(item)
+        if not isinstance(item, Item):
+            return
+
+        if not item.id in self.itemRegistry:
+            return
+
+        def _deregisterItem(item: Item):
+            if item.id in self.itemRegistry:
+                del self.itemRegistry[item.id]
+                item.removePropertyListener(self)
+
+        # I think it's ok to skip signals when deinitializing
+        if self.isDeinitializing:
+            _deregisterItem(item)
+            return
+
+        removed_emotions = []
+        removed_events = []
+        removed_marriages = []
+        removed_people = []
+
+        def _removeEvent(event: Event):
+            docsPath = event.documentsPath()
+            if docsPath and os.path.isdir(docsPath):
+                shutil.rmtree(docsPath)
+
+            for emotion in list(self.emotionsFor(event)):
+                _removeEmotion(emotion)
+            if event in self._events:
+                self._events.remove(event)
+                removed_events.append(event)
+                # Deregister from itemRegistry
+                _deregisterItem(event)
+
+        def _removeEmotion(emotion: Emotion):
+            if emotion in self._emotions:
+                self._emotions.remove(emotion)
+                removed_emotions.append(emotion)
+                _deregisterItem(emotion)
+
+        def _removeMarriage(marriage: Marriage):
+            for child in list(marriage.children):
+                child.setParents(None)
+            for person in marriage.people:
+                person.onRemoveMarriage(marriage)
+            emotionalUnit = marriage.emotionalUnit()
+            marriage.personA().setLayers(
+                [
+                    x
+                    for x in marriage.personA().layers()
+                    if x != emotionalUnit.layer().id
+                ]
+            )
+            marriage.personB().setLayers(
+                [
+                    x
+                    for x in marriage.personB().layers()
+                    if x != emotionalUnit.layer().id
+                ]
+            )
+            self.removeItem(emotionalUnit.layer())
+            emotionalUnit.update()
+            if marriage in self._marriages:
+                self._marriages.remove(marriage)
+                removed_marriages.append(marriage)
+                # Deregister from itemRegistry
+                _deregisterItem(marriage)
+
+        ## Cascade delete BEFORE deregistering so that event.person() etc still work
+        if item.isPerson:
+            if self.document():
+                personDocPath = item.documentsPath().replace(
+                    self.document().url().toLocalFile() + os.sep, ""
+                )
+                for relativePath in self.document().fileList():
+                    if relativePath.startswith(personDocPath):
+                        self.document().removeFile(relativePath)
+
+            for event in list(self.eventsFor(item)):
+                _removeEvent(event)
+            for emotion in list(self.emotionsFor(item)):
+                _removeEmotion(emotion)
+            for marriage in list(item.marriages):
+                for child in list(marriage.children):
+                    child.setParents(None)
+                for p in list(marriage.people):
+                    p.onRemoveMarriage(marriage)
+                _removeMarriage(marriage)
+            if item in self._people:
+                self._people.remove(item)
+                removed_people.append(item)
+        elif item.isMarriage:
+            _removeMarriage(item)
+        elif item.isEvent:
+            _removeEvent(item)
+        elif item.isEmotion:
+            _removeEmotion(item)
+        elif item.isMultipleBirth:
+            pass
+        elif item.isChildOf:
+            if item.multipleBirth:
+                item.multipleBirth._onRemoveChild(item.person)
+            layer = item.parents().emotionalUnit().layer()
+            item.person.setLayers([x for x in item.person.layers() if x != layer.id])
+            item.parents().emotionalUnit().update()
+            # Clear the person's childOf reference
+            item.person.childOf = None
+            # NOTE: Do NOT call setParents(None) here - that would cause infinite recursion
+            # since setParents(None) itself calls removeItem(childOf)
+        elif item.isLayer:
+            # Remove layer from all items that reference it
+            for sceneItem in self.itemRegistry.values():
+                if hasattr(sceneItem, "layers") and callable(sceneItem.layers):
+                    layersList = sceneItem.layers()
+                    if item.id in layersList:
+                        layersList.remove(item.id)
+                        sceneItem.setLayers(layersList)
+            # Check if any LayerItems are now orphaned
+            for layerItem in self.layerItems():
+                if not layerItem.layers():
+                    self.removeItem(layerItem)
+            self._layers.remove(item)
+            if not item.internal():
+                self.tidyLayerOrder()
+            self.layerRemoved.emit(item)
+        elif item.isLayerItem:
+            self._layerItems.remove(item)
+            self.layerItemRemoved.emit(item)
+        elif item.isItemDetails:
+            self._itemDetails.remove(item)
+
+        # deregister AFTER cascade so lookups still work during cascade
+        _deregisterItem(item)
+
+        if item.isPathItem:  # so far only for details/sep items
+            if not self.isBatchAddingRemovingItems():
+                self.checkPrintRectChanged()
+        if self.isBatchAddingRemovingItems() and not item in self._batchRemovedItems:
+            self._batchRemovedItems.append(item)
+        item.onDeregistered(self)
+        self.itemRemoved.emit(item)
+
+        if not self.isBatchAddingRemovingItems():
+            # Emit in order: emotions, events, marriages, people
+            for emotion in removed_emotions:
+                self.emotionRemoved.emit(emotion)
+            for event in removed_events:
+                # Get person before emitting since event may be deregistered
+                person = self.find(id=event.prop("person").get())
+                if person:
+                    person.onEventRemoved()
+                if event.kind().isPairBond():
+                    spouse = self.find(id=event.prop("spouse").get())
+                    if spouse:
+                        marriage = self.marriageFor(person, spouse)
+                        if marriage:
+                            marriage.onEventRemoved()
+                self.eventRemoved.emit(event)
+            for marriage in removed_marriages:
+                self.marriageRemoved[Marriage].emit(marriage)
+            for person in removed_people:
+                self.personRemoved.emit(person)
+
+        ## Global side effects - execute once at the end
+        if not self.isBatchAddingRemovingItems() and not self._isUndoRedoing:
+            # Reset currentDateTime if no events remain (all events have dateTime)
+            if not self._events:
+                self.setCurrentDateTime(QDateTime())
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
@@ -520,79 +709,6 @@ class Scene(QGraphicsScene, Item):
                 )
                 self._batchAddedItems = []
                 self._batchRemovedItems = []
-
-    def _do_removeItem(self, item):
-        if isinstance(item, QGraphicsItem) and item.scene() is self:
-            super().removeItem(item)
-        if not isinstance(item, Item):
-            return
-        # deregister
-        if not item.id in self.itemRegistry:
-            return
-        del self.itemRegistry[item.id]
-        item.removePropertyListener(self)
-        # I think it's ok to skip signals when deinitializing
-        if self.isDeinitializing:
-            return
-        ## Signals
-        if item.isPerson:
-            self._people.remove(item)
-            self.personRemoved.emit(item)
-        elif item.isMarriage:
-            for person in item.people:
-                person._onRemoveMarriage(item)
-            emotionalUnit = item.emotionalUnit()
-            item.personA().setLayers(
-                [x for x in item.personA().layers() if x != emotionalUnit.layer().id]
-            )
-            item.personB().setLayers(
-                [x for x in item.personB().layers() if x != emotionalUnit.layer().id]
-            )
-            self.removeItem(item.emotionalUnit().layer())
-            item.emotionalUnit().update()
-            self._marriages.remove(item)
-            self.marriageRemoved[Marriage].emit(item)
-        elif item.isChildOf:
-            if item.multipleBirth:
-                item.multipleBirth()._onRemoveChild(item.person)
-            layer = item.parents().emotionalUnit().layer()
-            item.person.setLayers([x for x in item.person.layers() if x != layer.id])
-            item.parents().emotionalUnit().update()
-            item.person.setParents(None)
-        elif item.isEvent:
-            self._events.remove(item)
-            if not self.isBatchAddingRemovingItems():
-                item.person().onEventRemoved()
-                if item.kind().isPairBond():
-                    marriage = self.marriageFor(item.person(), item.spouse())
-                    if marriage:
-                        marriage.onEventRemoved()
-                self.eventRemoved.emit(item)
-                if (
-                    not [x for x in self._events if x.dateTime()]
-                    and not self._isUndoRedoing
-                ):
-                    self.setCurrentDateTime(QDateTime())
-        elif item.isEmotion:
-            self._emotions.remove(item)
-            self.emotionRemoved.emit(item)
-        elif item.isLayer:
-            self._layers.remove(item)
-            if not item.internal():
-                self.tidyLayerOrder()
-            self.layerRemoved.emit(item)
-        elif item.isLayerItem:
-            self._layerItems.remove(item)
-            self.layerItemRemoved.emit(item)
-        elif item.isItemDetails:
-            self._itemDetails.remove(item)
-        if item.isPathItem:  # so far only for details/sep items
-            if not self.isBatchAddingRemovingItems():
-                self.checkPrintRectChanged()
-        if self.isBatchAddingRemovingItems() and not item in self._batchRemovedItems:
-            self._batchRemovedItems.append(item)
-        item.onDeregistered(self)
-        self.itemRemoved.emit(item)
 
     def resortLayersFromOrder(self):
         # re-sort iternal layer list.

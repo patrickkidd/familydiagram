@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Linting and Type Checking
 - **Configurations**: pyrightconfig.json configures Pyright/Pylance
 - **Always run linting**: Check for type errors and imports before committing code
-- **Always run black formatter**: `black <filename>`
+- **Always run black formatter**: `pipenv run black <filename>`
 
 ## Architecture Overview
 
@@ -100,7 +100,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **QML Integration**: Context properties exposed via QmlEngine for data binding
 - **Model Updates**: Use `refreshAllProperties()` to sync model changes to QML bindings
 
-## Code Style & Conventions
+## Code Rules
 
 - Keep all names, e.g. variables, functions, classes, methods, modules, etc, as
   short, accurate, and precise as possible.

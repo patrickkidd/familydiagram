@@ -43,3 +43,32 @@ though eventsFor, emotionsFor, marriageFor, etc.
 - `Death` only pertains to the Event's `person`.
 - Item CRUD signals like personAdded, eventChanged, etc should only be added to
   the scene, not other Item classes.
+
+## Separation of Concerns: Scene vs QUndoCommand
+
+**Critical Architectural Rule**: The Scene object is the authoritative source for all logic required to maintain relationships between the Item objects it owns. QUndoCommand subclasses should ONLY:
+1. Predict what changes Scene will make (for undo metadata)
+2. Store any metadata required to undo/redo those changes
+3. Execute the reversion of those changes
+
+**What this means in practice**:
+- Scene owns all cascade delete logic (e.g., removing Person cascades to Events, Emotions, Marriages)
+- Scene owns all implicit item creation (e.g., creating Emotions when adding Events with relationships)
+- Scene owns all relationship maintenance (e.g., updating references when items are added/removed)
+- QUndoCommand classes (AddItem, RemoveItems, etc.) delegate to Scene._do_* methods
+- QUndoCommand classes store metadata about what will change, NOT how to change it
+
+**Example - Cascade Delete**:
+- ❌ WRONG: RemoveItems.redo() implements cascade delete logic inline
+- ✅ CORRECT: RemoveItems.redo() calls scene.removeItem(), which delegates to Scene._do_removeItem()
+- ✅ CORRECT: Scene._do_removeItem() contains ALL cascade delete logic via helper functions:
+  - Scene._removePerson() - cascades to events, emotions, marriages
+  - Scene._removeEvent() - cascades to emotions
+  - Scene._removeMarriage() - handles marriage cleanup
+  - Scene._removeEmotion() - handles emotion removal
+
+This separation ensures:
+- Single source of truth for relationship logic (Scene)
+- Consistent behavior whether changes are undoable or not
+- QUndoCommand classes remain simple and focused on state capture/restore
+- No duplicate logic between command classes and Scene

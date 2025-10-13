@@ -151,10 +151,10 @@ def test_add_emotion(scene, undo):
             dateTime=util.Date(2001, 1, 1),
             relationship=RelationshipKind.Conflict,
             relationshipTargets=[person2],
-        )
+        ),
+        undo=undo,
     )
     emotion = scene.emotionsFor(event)[0]
-    scene.addItems(event, undo=undo)
     assert eventAdded.callCount == 1
     assert emotionAdded.callCount == 1
     assert scene.people() == [person1, person2]
@@ -213,6 +213,7 @@ def test_add_multipleBirth_read_file(scene):
     marriage = scene.addItem(Marriage(person1, person2))
     person3.setParents(marriage)
     person4.setParents(person3.childOf)
+    multipleBirth = person3.childOf.multipleBirth
     assert person3.childOf.multipleBirth == multipleBirth
     assert person4.childOf.multipleBirth == multipleBirth
     assert multipleBirth.children() == [person3, person4]

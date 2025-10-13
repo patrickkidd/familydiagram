@@ -165,9 +165,9 @@ class Marriage(PathItem):
         self.separationIndicator.hide()
         self.penCapStyle = Qt.FlatCap
         if personA:
-            personA._onAddMarriage(self)
+            personA.onAddMarriage(self)
         if personB:
-            personB._onAddMarriage(self)
+            personB.onAddMarriage(self)
         self.isInit = True
 
     def __lt__(self, other) -> bool:
