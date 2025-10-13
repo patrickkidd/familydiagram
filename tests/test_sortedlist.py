@@ -1,8 +1,8 @@
 from pkdiagram import util
+from sortedcontainers import SortedList
 
 
 def test_SortedList():
-    from sortedcontainers import SortedList
 
     d1 = util.Date(1955, 12, 3)
     d2 = util.Date(1980, 5, 11)

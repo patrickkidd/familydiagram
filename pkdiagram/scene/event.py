@@ -357,9 +357,6 @@ class Event(Item):
         else:
             return self.prop("notes").get()
 
-    def personName(self) -> str:
-        return self.person().alias()
-
     def toText(self):
         return str(self)
 

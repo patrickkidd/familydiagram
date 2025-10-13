@@ -17,7 +17,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, EventKind, Property
+from pkdiagram.scene import Event, EventKind, Property, Person
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 
@@ -230,7 +230,27 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def onSceneProperty(self, prop):
         # if prop.name() == "currentDateTime":
         #     self._refreshRows()
-        if prop.name() == "eventProperties":
+        if prop.name() == "showAliases":
+            # When showAliases changes, emit dataChanged for columns that display names/aliases
+            # Only emit if the display value actually changes
+            descCol = self.COLUMNS.index(self.DESCRIPTION)
+            parentCol = self.COLUMNS.index(self.PARENT)
+            for row_idx in range(len(self._rows)):
+                timelineRow = self._rows[row_idx]
+                event = timelineRow.event
+
+                # Check if DESCRIPTION column would change (only for user-entered descriptions)
+                if event.description() and not event.relationship():
+                    # User-entered description that may contain names
+                    self.dataChanged.emit(
+                        self.index(row_idx, descCol), self.index(row_idx, descCol)
+                    )
+
+                # Check if PARENT column would change (always, as it displays person names)
+                self.dataChanged.emit(
+                    self.index(row_idx, parentCol), self.index(row_idx, parentCol)
+                )
+        elif prop.name() == "eventProperties":
             prevColumns = list(self._columnHeaders)
             newColumns = self.getColumnHeaders()
             addedIndexes = [i for i, x in enumerate(newColumns) if not x in prevColumns]
@@ -288,7 +308,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             startRow = self._rows.index(event)
         except ValueError:
             row = -1
-        if prop.name() == "dateTime" or prop.name() == "endDateTime":
+        if prop.name() == "person":
+            # When person changes (including to None), re-evaluate visibility
+            self._removeEvent(event)
+            self._ensureEvent(event)
+        elif prop.name() == "dateTime" or prop.name() == "endDateTime":
             self._removeEvent(event)
             self._ensureEvent(event)
             self.refreshProperty("dateBuddies")
@@ -339,6 +363,34 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def onEventRemoved(self, event):
         self._removeEvent(event)
 
+    def onPersonRemoved(self, person):
+        self._refreshRows()
+
+    def onPersonChanged(self, prop):
+        # When person name/alias changes, update PARENT column for all affected events
+        if prop.name() in (
+            "name",
+            "nickName",
+            "alias",
+            "lastName",
+            "firstName",
+            "middleName",
+        ):
+            person = prop.item
+            col = self.COLUMNS.index(self.PARENT)
+            # Find all rows with events involving this person
+            for row_idx, timelineRow in enumerate(self._rows):
+                event = timelineRow.event
+                # Check if this person is involved in the event
+                if (
+                    event.person() == person
+                    or event.spouse() == person
+                    or person in event.relationshipTargets()
+                ):
+                    self.dataChanged.emit(
+                        self.index(row_idx, col), self.index(row_idx, col)
+                    )
+
     def eventsAt(self, dateTime: QDateTime):
         return [x.event for x in self._rows if x.dateTime() == dateTime]
 
@@ -368,15 +420,19 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if attr == "scene":
             if self._scene:
                 self._scene.eventAdded[Event].disconnect(self.onEventAdded)
-                self._scene.eventChanged[Event].disconnect(self.onEventChanged)
+                self._scene.eventChanged[Property].disconnect(self.onEventChanged)
                 self._scene.eventRemoved[Event].disconnect(self.onEventRemoved)
+                self._scene.personRemoved[Person].disconnect(self.onPersonRemoved)
+                self._scene.personChanged[Property].disconnect(self.onPersonChanged)
                 self._scene.propertyChanged[Property].disconnect(self.onSceneProperty)
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
                 self._scene.eventAdded[Event].connect(self.onEventAdded)
-                self._scene.eventChanged[Event].connect(self.onEventChanged)
+                self._scene.eventChanged[Property].connect(self.onEventChanged)
                 self._scene.eventRemoved[Event].connect(self.onEventRemoved)
+                self._scene.personRemoved[Person].connect(self.onPersonRemoved)
+                self._scene.personChanged[Property].connect(self.onPersonChanged)
                 self._scene.propertyChanged[Property].connect(self.onSceneProperty)
             self.refreshColumnHeaders()
             self._refreshRows()
@@ -457,10 +513,33 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.UNSURE):
             ret = event.unsure()
         elif self.isColumn(index, self.DESCRIPTION):
-            ret = event.description()
+            # For relationship events with end markers, show "X began" / "X ended"
+            if event.relationship() and (event.dateTime() or event.endDateTime()):
+                relationship_name = event.relationship().name
+                if timelineRow.isEndMarker:
+                    ret = f"{relationship_name} ended"
+                else:
+                    ret = f"{relationship_name} began"
+            else:
+                ret = event.description()
         elif self.isColumn(index, self.PARENT):
+            # Display combined names for relationship events (marriage or emotion events)
             person = event.person()
-            ret = person.fullNameOrAlias() if person else ""
+            if not person:
+                ret = ""
+            else:
+                # Check for spouse (marriage events)
+                spouse = event.spouse()
+                if spouse:
+                    ret = f"{person.fullNameOrAlias()} & {spouse.fullNameOrAlias()}"
+                else:
+                    # Check for relationship targets (emotion events)
+                    targets = event.relationshipTargets()
+                    if targets:
+                        ret = f"{person.fullNameOrAlias()} & {targets[0].fullNameOrAlias()}"
+                    else:
+                        # Regular event - just the person
+                        ret = person.fullNameOrAlias()
         elif self.isColumn(index, self.LOCATION):
             ret = event.location()
         elif self.isColumn(index, self.LOGGED):
@@ -768,36 +847,37 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(QItemSelectionModel)
     def removeSelection(self, selectionModel):
         """Convenience for lack of a qml API for QItemSelectionModel."""
-        events = set()
+        # Collect timeline rows (not just events) to distinguish start/end markers
+        rows_to_delete = []
         for index in selectionModel.selectedIndexes():
             if index.column() > 0:
                 continue
-            event = self.eventForRow(index.row())
-            events.add(event)
-        # for event in events:
-        #     if event.kind() is not None:
-        #         events.append(event)
-        #         docsPath = event.documentsPath()
-        #         if docsPath:
-        #             eventDocPath = docsPath.replace(self.document().url().toLocalFile() + os.sep, '')
-        #             for relativePath in self.document().fileList():
-        #                 if relativePath.startswith(eventDocPath):
-        #                         nFiles = nFiles + 1
-        # btn = QMessageBox.question(self.view().mw, "Are you sure?",
-        #                            "Are you sure you want to delete %i events and their %i files? You can undo the deletion of the event, but any files will still be deleted." % (len(events), nFiles))
-        # if btn == QMessageBox.No:
-        #     return
+            if index.row() >= 0 and index.row() < len(self._rows):
+                rows_to_delete.append(self._rows[index.row()])
+
+        if not rows_to_delete:
+            return
+
+        # Count unique events for confirmation message
+        unique_events = set(row.event for row in rows_to_delete)
         btn = QMessageBox.question(
             QApplication.activeWindow(),
             "Are you sure?",
-            "Are you sure you want to delete %i events?" % len(events),
+            "Are you sure you want to delete %i events?" % len(unique_events),
         )
         if btn == QMessageBox.No:
             return
-        if events:
-            with self._scene.macro("Delete selected events"):
-                for event in events:
-                    self._scene.removeItem(event, undo=True)
+
+        with self._scene.macro("Delete selected events"):
+            for timelineRow in rows_to_delete:
+                event = timelineRow.event
+                if timelineRow.isEndMarker:
+                    # Deleting end marker - clear endDateTime
+                    if event.endDateTime():
+                        event.prop("endDateTime").reset(undo=True)
+                else:
+                    # Deleting start marker - remove the event from the scene
+                    self._scene.removeItem(event)
 
 
 qmlRegisterType(TimelineModel, "PK.Models", 1, 0, "TimelineModel")

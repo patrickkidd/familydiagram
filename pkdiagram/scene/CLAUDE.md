@@ -41,3 +41,5 @@ though eventsFor, emotionsFor, marriageFor, etc.
         `RelationshipKind.Outside`) also pertain to one or more other people
         to complete the triangle.
 - `Death` only pertains to the Event's `person`.
+- Item CRUD signals like personAdded, eventChanged, etc should only be added to
+  the scene, not other Item classes.
