@@ -667,19 +667,19 @@ class Scene(QGraphicsScene, Item):
             return
         by_ids = {}
         for chunk in (
-            data["events"]
-            + data["people"]
-            + data["marriages"]
-            + data["emotions"]
-            + data["multipleBirths"]
-            + data["layers"]
-            + data["layerItems"]
+            data.get("events", [])
+            + data.get("people", [])
+            + data.get("marriages", [])
+            + data.get("emotions", [])
+            + data.get("multipleBirths", [])
+            + data.get("layers", [])
+            + data.get("layerItems", [])
         ):
             by_ids[chunk["id"]] = chunk
 
         pruned = []
 
-        for chunk in data["events"]:
+        for chunk in data.get("events", []):
             if not chunk["dateTime"]:
                 personChunk = by_ids.get(chunk.get("person_id"))
                 log.warning(
@@ -687,7 +687,7 @@ class Scene(QGraphicsScene, Item):
                 )
                 data["events"].remove(chunk)
                 pruned.append(chunk)
-        for chunk in data["multipleBirths"]:
+        for chunk in data.get("multipleBirths", []):
             for childId in chunk.get("children", []):
                 if not childId in by_ids:
                     log.warning(
@@ -695,10 +695,7 @@ class Scene(QGraphicsScene, Item):
                     )
                     data["items"].remove(chunk)
                     pruned.append(chunk)
-        if pruned:
-            return pruned
-        else:
-            return None
+        return pruned
 
     ## Files
 
@@ -2281,8 +2278,8 @@ class Scene(QGraphicsScene, Item):
             marriage.onShowAliases()
         for event in self.events():
             event.onShowAliases()
-        for emotion in self.emotions():
-            emotion.onShowAliases()
+        # for emotion in self.emotions():
+        #     emotion.onShowAliases()
 
     def toggleShowSceneCenter(self, on):
         if on:

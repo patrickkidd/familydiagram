@@ -91,7 +91,10 @@ def test_find_by_tags(simpleScene):
     p = simpleScene.query1(name="p")
     p1.setTags(["hello"])
     p.setTags(["hello"])
-    p1.birthEvent.setTags(["hello"])
+    event = simpleScene.addItem(
+        Event(EventKind.Birth, p1, dateTime=util.Date(2025, 7, 7))
+    )
+    event.setTags(["hello"])
 
     items = simpleScene.find(tags="hello")
     assert len(items) == 3
@@ -106,7 +109,10 @@ def test_find_by_types_and_tags(simpleScene):
     p = simpleScene.query1(name="p")
     p1.setTags(["hello"])
     p.setTags(["hello"])
-    p1.birthEvent.setTags(["hello"])
+    event = simpleScene.addItem(
+        Event(EventKind.Birth, p1, dateTime=util.Date(2025, 7, 7))
+    )
+    event.setTags(["hello"])
 
     items = simpleScene.find(tags="hello", types=Event)
     assert len(items) == 1

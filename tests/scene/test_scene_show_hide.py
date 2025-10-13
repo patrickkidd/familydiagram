@@ -15,6 +15,7 @@ from pkdiagram.scene import (
     Layer,
     EventKind,
     ItemMode,
+    RelationshipKind,
 )
 from pkdiagram.models import SceneLayerModel
 
@@ -31,11 +32,11 @@ def test_hide_emotional_process(simpleScene):
     p2 = s.query1(name="p2")
     p = s.query1(name="p")
 
-    e1 = Emotion(p1, p2, kind=ItemMode.Conflict)
+    e1 = Emotion(RelationshipKind.Conflict, p1, person=p2)
     s.addItem(e1)
-    e2 = Emotion(p2, p1, kind=ItemMode.Projection)
+    e2 = Emotion(RelationshipKind.Projection, p2, person=p1)
     s.addItem(e2)
-    e3 = Emotion(p1, p, kind=ItemMode.Distance)
+    e3 = Emotion(RelationshipKind.Distance, p1, person=p)
     s.addItem(e3)
 
     assert e1.isVisible() == True
@@ -55,14 +56,17 @@ def test_hide_emotional_process(simpleScene):
     assert e3.isVisible() == True
 
 
-def test_hide_names():
-    scene = Scene()
-    person = Person(name="Person A")
-    person.setDiagramNotes(
-        """A multi-line
-string"""
+def test_hide_names(scene):
+    person = scene.addItem(
+        Person(
+            name="Person A",
+            diagramNotes="""A multi-line
+string""",
+        )
     )
-    person.birthEvent.setDateTime(util.Date(2001, 1, 1))
+    event = scene.addItem(
+        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+    )
     scene.addItem(person)
     assert (
         person.detailsText.text()

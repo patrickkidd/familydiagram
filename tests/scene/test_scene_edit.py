@@ -4,7 +4,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt, QGraphicsView, QDateTime, QPoint
 from pkdiagram import util
-from pkdiagram.scene import Scene, Item, Person
+from pkdiagram.scene import Scene, Item, Person, Event, EventKind
 
 
 class View(QGraphicsView):
@@ -32,12 +32,14 @@ def test_renameTag():
 
 
 def test_reset_last_event_resets_currentDateTime():
-    person = Person(name="p1", birthDateTime=util.Date(2001, 1, 1))
     scene = Scene()
-    scene.addItem(person)
-    assert scene.currentDateTime() == person.birthDateTime()
+    person = scene.addItem(Person(name="p1"))
+    birthEvent = scene.addItem(
+        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+    )
+    assert scene.currentDateTime() == birthEvent.dateTime()
 
-    person.birthEvent.prop("dateTime").reset()
+    birthEvent.prop("dateTime").reset()
     assert scene.currentDateTime() == QDateTime()
 
 

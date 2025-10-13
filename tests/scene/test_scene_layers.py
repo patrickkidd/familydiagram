@@ -98,19 +98,21 @@ def test_layers_includeInternal():
     assert set(scene.layers(includeInternal=False)) == set([layer3])
 
 
-def test_layered_properties():
+def test_layered_properties(scene):
     """Ensure correct layered prop updates for marriage+marriage-indicators."""
-    scene = Scene()
-    male = Person(name="Male", kind="male")
-    female = Person(name="Female", kind="female")
-    marriage = Marriage(personA=male, personB=female)
-    divorcedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Divorced,
-        dateTime=util.Date(1900, 1, 1),
+    male, female = scene.addItems(
+        Person(name="Male", kind="male"), Person(name="Female", kind="female")
     )
-    layer = Layer(name="View 1")
-    scene.addItems(male, female, marriage, layer)
+    marriage = scene.addItem(Marriage(personA=male, personB=female))
+    divorcedEvent = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            person=male,
+            spouse=female,
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    layer = scene.addItem(Layer(name="View 1"))
     #
     unlayered = {
         "male": QPointF(-100, -50),
@@ -186,18 +188,20 @@ def test_layered_properties():
     assert marriage.separationIndicator.pos() == unlayered["marriageSep"]
 
 
-def test_undo_add_remove_layered_item_props(qtbot):
-    scene = Scene()
-    male = Person(name="Male", kind="male")
-    female = Person(name="Female", kind="female")
-    marriage = Marriage(personA=male, personB=female)
-    divorcedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Divorced,
-        dateTime=util.Date(1900, 1, 1),
+def test_undo_add_remove_layered_item_props(qtbot, scene):
+    male, female = scene.addItems(
+        Person(name="Female", kind="female"), Person(name="Male", kind="male")
     )
-    layer = Layer(name="View 1")
-    scene.addItems(male, female, marriage, layer)
+    marriage = scene.addItem(Marriage(male, female))
+    divorcedEvent = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            male,
+            target=female,
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    layer = scene.addItem(Layer(name="View 1"))
     #
     unlayered = {
         "male": QPointF(-100, -50),
@@ -306,19 +310,22 @@ def test_exclusiveLayerSelection():
 
 def test_layered_setPathItemVisible():
     scene = Scene(exclusiveLayerSelection=True)
-    layer1 = Layer(name="View 1")
-    layer2 = Layer(name="View 2")
-    layer3 = Layer(name="View 3")
-    layer4 = Layer(name="View 4")
-    personA = Person(name="A")
-    personB = Person(name="B")
-    marriage = Marriage(personA=personA, personB=personB)
-    divorcedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Divorced,
-        dateTime=util.Date(1900, 1, 1),
+    layer1, layer2, layer3, layer4 = scene.addItems(
+        Layer(name="View 1"),
+        Layer(name="View 2"),
+        Layer(name="View 3"),
+        Layer(name="View 4"),
     )
-    scene.addItems(layer1, layer2, layer3, layer4, personA, personB, marriage)
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    marriage = scene.addItem(Marriage(personA, personB))
+    divorcedEvent = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            personA,
+            target=personB,
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
     personA.setLayers([layer2.id, layer4.id])
     personB.setLayers([layer3.id])
     layerModel = SceneLayerModel()
@@ -379,17 +386,17 @@ def test_layered_setPathItemVisible():
 
 def test_layered_setPathItemVisible_2():
     scene = Scene(exclusiveLayerSelection=True)
-    layer1 = Layer(name="View 1")
-    layer2 = Layer(name="View 2")
-    personA = Person(name="A")
-    personB = Person(name="B")
-    marriage = Marriage(personA=personA, personB=personB)
-    divorcedEvent = Event(
-        parent=marriage,
-        kind=EventKind.Divorced,
-        dateTime=util.Date(1900, 1, 1),
+    layer1, layer2 = scene.addItems(Layer(name="View 1"), Layer(name="View 2"))
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    marriage = scene.addItem(Marriage(personA, personB))
+    divorcedEvent = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            personA,
+            target=personB,
+            dateTime=util.Date(1900, 1, 1),
+        )
     )
-    scene.addItems(layer1, layer2, personA, personB, marriage)
     personA.setLayers([layer1.id, layer2.id])
     layerModel = SceneLayerModel()
     layerModel.scene = scene

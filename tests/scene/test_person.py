@@ -180,8 +180,10 @@ def test_hide_age_when_no_deceased_date(scene):
 def test_updateAll_layer_props_init():
     """itemOpacity was not set directly in Person.updateAll()."""
     DATA = {
-        "items": [
+        "people": [
             {"id": 1, "kind": "Person", "size": 5, "layers": [2]},
+        ],
+        "layers": [
             {
                 "id": 2,
                 "kind": "Layer",
@@ -190,7 +192,7 @@ def test_updateAll_layer_props_init():
                     1: {"itemOpacity": 0.1, "color": "#f0f0f0", "size": 3}
                 },
             },
-        ]
+        ],
     }
     scene = Scene()
     assert scene.read(DATA) == None
