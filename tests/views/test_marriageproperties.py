@@ -54,7 +54,7 @@ def test_show_init(mp, scene, marriage):
 
 def test_anyMarriedEvents(scene, model, marriage):
     model.items = [marriage]
-    assert model.anyMarriedEvents() == False
+    assert model.anyMarriedEvents == False
 
     scene.addItem(
         Event(
@@ -64,12 +64,12 @@ def test_anyMarriedEvents(scene, model, marriage):
             dateTime=util.Date(1900, 1, 1),
         )
     )
-    assert model.anyMarriedEvents() == True
+    assert model.anyMarriedEvents == True
 
 
 def test_anySeparatedEvents(scene, model, marriage):
     model.items = [marriage]
-    assert model.anySeparatedEvents() == False
+    assert model.anySeparatedEvents == False
 
     scene.addItem(
         Event(
@@ -79,7 +79,7 @@ def test_anySeparatedEvents(scene, model, marriage):
             dateTime=util.Date(1900, 1, 1),
         )
     )
-    assert model.anySeparatedEvents() == True
+    assert model.anySeparatedEvents == True
 
 
 def test_anyDivorcedEvents(scene, model, marriage):

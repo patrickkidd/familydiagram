@@ -320,6 +320,27 @@ class Marriage(PathItem):
         else:
             return None
 
+    def everMarried(self):
+        """Return True if `married` is checked or married events exist."""
+        return self.everDivorced() or self.married() or self.anyMarriedEvents()
+
+    def everSeparated(self):
+        """Return True if `separated` is checked or separated events exist."""
+        return self.separated() or self.anySeparatedEvents()
+
+    def everDivorced(self):
+        """Return True if `married` is checked or married events exist."""
+        return self.divorced() or self.anyDivorcedEvents()
+
+    def anyMarriedEvents(self):
+        return len(self.scene().eventsFor(self, kinds=EventKind.Married)) > 0
+
+    def anySeparatedEvents(self):
+        return len(self.scene().eventsFor(self, kinds=EventKind.Separated)) > 0
+
+    def anyDivorcedEvents(self):
+        return len(self.scene().eventsFor(self, kinds=EventKind.Divorced)) > 0
+
     def spouseOf(self, person):
         if person in self.people:
             if self.people[0] == person:

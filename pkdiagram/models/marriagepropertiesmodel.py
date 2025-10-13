@@ -3,33 +3,6 @@ from pkdiagram.scene import EventKind, Item, Marriage
 from pkdiagram.models import ModelHelper
 
 
-def _anyMarriedEvents(marriage: Marriage):
-    return any(
-        x
-        for x in marriage.scene().events()
-        if x.kind() == EventKind.Married
-        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
-    )
-
-
-def _anySeparatedEvents(marriage: Marriage):
-    return any(
-        x
-        for x in marriage.scene().events()
-        if x.kind() == EventKind.Separated
-        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
-    )
-
-
-def _anyDivorcedEvents(marriage: Marriage):
-    return any(
-        x
-        for x in marriage.scene().events()
-        if x.kind() == EventKind.Divorced
-        and {x.person(), x.spouse()} == {marriage.personA(), marriage.personB()}
-    )
-
-
 class MarriagePropertiesModel(QObject, ModelHelper):
 
     PROPERTIES = Item.adjustedClassProperties(
@@ -92,21 +65,17 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             elif attr == "personBId":
                 x = marriage.personB().id
             elif attr == "everMarried":
-                x = (
-                    marriage.everDivorced()
-                    or marriage.married()
-                    or _anyMarriedEvents(marriage)
-                )
+                x = marriage.everMarried()
             elif attr == "everSeparated":
-                x = marriage.separated() or _anySeparatedEvents(marriage)
+                x = marriage.everSeparated()
             elif attr == "everDivorced":
-                x = marriage.everDivorced() or _anyDivorcedEvents(marriage)
+                x = marriage.everDivorced()
             elif attr == "anyMarriedEvents":
-                ret = _anyMarriedEvents(marriage)
+                x = marriage.anyMarriedEvents()
             elif attr == "anySeparatedEvents":
-                ret = _anySeparatedEvents(marriage)
+                x = marriage.anySeparatedEvents()
             elif attr == "anyDivorcedEvents":
-                ret = _anyDivorcedEvents(marriage)
+                x = marriage.anyDivorcedEvents()
             if x is not None:
                 ret = self.getterConvertTo(attr, x)
             else:
