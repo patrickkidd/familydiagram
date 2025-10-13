@@ -4,7 +4,7 @@ import logging
 from pkdiagram.pyqt import pyqtSlot, pyqtSignal, QObject, QNetworkRequest, QNetworkReply
 from pkdiagram import util
 from pkdiagram.server_types import HTTPError
-from pkdiagram.scene import Scene
+from pkdiagram.scene import Scene, Event, EventKind
 
 
 _log = logging.getLogger(__name__)
@@ -14,6 +14,17 @@ def formatSources(sources: list) -> str:
     return "\n---------\n".join(
         f"{x['fd_title']}, {x['fd_authors']}:\n\n{x['passage']}" for x in sources
     )
+
+
+def _eventParentName(event: Event) -> str:
+    if event.kind() == EventKind.Bonded and event.person() and event.spouse():
+        return f"{event.person().name()} & {event.spouse().name()}"
+    elif event.person():
+        return event.person().name()
+    elif event.relationship() and event.relationshipTargets():
+        return f"{event.relationship().name()} with {', '.join(target.name() for target in event.relationshipTargets())}"
+    else:
+        return "Unknown"
 
 
 class CopilotEngine(QObject):
@@ -70,7 +81,7 @@ class CopilotEngine(QObject):
                 {
                     "dateTime": util.dateTimeString(event.dateTime()),
                     "description": event.description(),
-                    "people": event.parentName() if event.parentName() else "",
+                    "people": _eventParentName(event),
                     "variables": {
                         prop["attr"]: event.dynamicProperty(prop["attr"]).get()
                         for prop in self._scene.eventProperties()

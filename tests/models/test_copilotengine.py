@@ -10,7 +10,7 @@ from pkdiagram import util
 from pkdiagram.models import SearchModel
 from pkdiagram.models.copilotengine import CopilotEngine, formatSources
 from pkdiagram.app import Session
-from pkdiagram.scene import Person, Event, Marriage
+from pkdiagram.scene import Person, Event, Marriage, EventKind, RelationshipKind
 
 from btcopilot.tests.pro.copilot.conftest import llm_response
 
@@ -101,19 +101,24 @@ def test_ask_with_tags(scene, qmlEngine, copilot, llm_response):
     scene.addItems(person_a, person_b, marriage)
     events = [
         Event(
+            EventKind.Bonded,
+            person=person_a,
+            spouse=person_b,
             dateTime=util.Date(2021, 1, 1),
             description="Bonded",
-            people=["Alice", "Bob"],
             tags=[TAG_1],
-            anxiety="down",
-            symptom="up",
+            anxiety=util.VAR_ANXIETY_DOWN,
+            symptom=util.VAR_SYMPTOM_UP,
         ),
         Event(
+            EventKind.Shift,
+            person=person_a,
+            relationship=RelationshipKind.Conflict,
+            relationshipTarget=person_b,
             dateTime=util.Date(2022, 1, 1),
             description="First argument",
-            people=["Alice", "Bob"],
             tags=[TAG_1],
-            anxiety="up",
+            anxiety=util.VAR_ANXIETY_UP,
         ),
     ]
     scene.addItems(*events)
