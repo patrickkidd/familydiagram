@@ -3,7 +3,7 @@ import mock
 
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram.models import PersonPropertiesModel
-from pkdiagram.scene import Scene, Person
+from pkdiagram.scene import Scene, Person, Event, EventKind
 from pkdiagram import util
 
 
@@ -22,12 +22,12 @@ def model(scene):
 
 def test_read_checkStates(simpleScene):
 
-    personA = Person(showMiddleName=False)
-    personB = Person(showMiddleName=True)
-    simpleScene.addItem(personA)
-    simpleScene.addItem(personB)
+    personA, personB = simpleScene.addItems(
+        Person(showMiddleName=False), Person(showMiddleName=True)
+    )
 
     model = PersonPropertiesModel()
+    model.scene = simpleScene
     model.items = [personA, personB]
     assert model.showMiddleName == Qt.PartiallyChecked
 
@@ -81,15 +81,15 @@ def _test_prop_returns():
 
 @pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
 def test_set_age_on_deceased_one_person(scene, model, deceasedDateTime):
-    personA = Person(deceased=True)
-    personA.setDeceasedDateTime(deceasedDateTime)
-    scene.addItems(personA)
+    personA = scene.addItem(Person(deceased=True))
+    if deceasedDateTime.isValid():
+        scene.addItem(Event(EventKind.Death, personA, dateTime=deceasedDateTime))
     model.items = [personA]
     with mock.patch(
         "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
     ):
         model.age = 10
-    if deceasedDateTime:
+    if deceasedDateTime.isValid():
         assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
     else:
         assert personA.birthDateTime() == util.Date(1990, 1, 1)
@@ -97,17 +97,18 @@ def test_set_age_on_deceased_one_person(scene, model, deceasedDateTime):
 
 @pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
 def test_set_age_on_deceased_multiple_people(scene, model, deceasedDateTime):
-    personA = Person(deceased=True)
-    personB = Person(deceased=True)
-    personA.setDeceasedDateTime(deceasedDateTime)
-    personB.setDeceasedDateTime(deceasedDateTime)
-    scene.addItems(personA, personB)
+    personA, personB = scene.addItems(Person(deceased=True), Person(deceased=True))
+    if deceasedDateTime.isValid():
+        scene.addItems(
+            Event(EventKind.Death, personA, dateTime=deceasedDateTime),
+            Event(EventKind.Death, personB, dateTime=deceasedDateTime),
+        )
     model.items = [personA, personB]
     with mock.patch(
         "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
     ):
         model.age = 10
-    if deceasedDateTime:
+    if deceasedDateTime.isValid():
         assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
         assert personB.birthDateTime() == model.deceasedDateTime.addYears(-10)
     else:

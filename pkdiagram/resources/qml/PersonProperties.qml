@@ -46,15 +46,8 @@ PK.Drawer {
     property var lastNameEdit: lastNameEdit
     property var nickNameEdit: nickNameEdit
     property var birthNameEdit: birthNameEdit
-    property var birthDatePicker: birthDatePicker
-    property var birthDateButtons: birthDateButtons
-    property var birthLocationEdit: birthLocationEdit
     property var adoptedBox: adoptedBox
-    property var adoptedDateButtons: adoptedDateButtons
     property var deceasedBox: deceasedBox
-    property var deceasedReasonEdit: deceasedReasonEdit
-    property var deceasedLocationEdit: deceasedLocationEdit
-    property var deceasedDateButtons: deceasedDateButtons
     property var notesEdit: notesEdit
     property var deemphasizeBox: deemphasizeBox
     property var resetDeemphasizeButton: resetDeemphasizeButton
@@ -331,7 +324,7 @@ PK.Drawer {
                                 enabled: !root.isReadOnly
                                 palette.base: util.QML_ITEM_BG
                                 Layout.maximumWidth: 100
-                                KeyNavigation.tab: birthDateButtons.textInput
+                                KeyNavigation.tab: editBirthEventButton
                                 Keys.onReturnPressed: setAge()
                                 Keys.onEnterPressed: setAge()
                                 property bool blocked: false
@@ -344,7 +337,6 @@ PK.Drawer {
                                     }
                                     blocked = true
                                     personModel.age = years
-                                    personModel.birthDateUnsure = Qt.Checked
                                     blocked = false
                                 }
                                 inputMethodHints: Qt.ImhDigitsOnly
