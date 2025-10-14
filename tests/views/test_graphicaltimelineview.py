@@ -65,28 +65,32 @@ def test_is_slider_multiple_tags(scene, create_gtv):
     canvas.setIsSlider(False)
     canvas._searchModel.tags = [TAG_1, TAG_2]
 
-    person = Person()
-    event1 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 1, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item1",
-        tags=[TAG_1],
+    person = scene.addItem(Person())
+    event1, event2, event3 = scene.addItems(
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 1, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item1",
+            tags=[TAG_1],
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 2, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item2",
+            tags=[TAG_2],
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 3, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item3",
+        ),
     )
-    event2 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 2, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item2",
-        tags=[TAG_2],
-    )
-    event3 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 3, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item3",
-    )
-    scene.addItems(person)
 
 
 def test_scene_setCurrentDate_from_graphical_timeline_click(qtbot, scene, create_gtv):
@@ -117,10 +121,13 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
     selectionChanged = util.Condition(selectionModel.selectionChanged)
 
     for i, person in enumerate(scene.people()):
+        event = scene.addItem(
+            Event(EventKind.Birth, person, dateTime=util.Date(2000 + i, 1, 1))
+        )
         if i % 2 == 0:
-            scene.eventsFor(person, kinds=EventKind.Birth)[0].setTags([TAG_1])
+            event.setTags([TAG_1])
         else:
-            scene.eventsFor(person, kinds=EventKind.Birth)[0].setTags([TAG_2])
+            event.setTags([TAG_2])
 
     person_2 = scene.query1(name="person_2")
     person_3 = scene.query1(name="person_3")

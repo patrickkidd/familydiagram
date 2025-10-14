@@ -166,7 +166,6 @@ class GraphicalTimelineCanvas(QWidget):
                 if selectionRect.intersects(rectF.toRect())
             ]
         )
-        self._selectRows(timelineRows)
         selection = QItemSelection()
         for row in timelineRows:
             iRow = self._timelineModel.rowIndexFor(row)
@@ -200,7 +199,6 @@ class GraphicalTimelineCanvas(QWidget):
             self._rubberBand.setGeometry(
                 QRect(self._mousePressPos, self._mousePressPos).normalized()
             )
-            self.selectRowsInRect(self._rubberBand.geometry())
         else:
             self._rubberBand.hide()
             self.dateTimeClicked.emit(self._dateTimeForPoint(e.pos()))
@@ -564,7 +562,10 @@ class GraphicalTimelineCanvas(QWidget):
                         s = ""
                     else:
                         s = util.dateString(timelineRow.dateTime())
-                    s += ": " + timelineRow.event.description()
+                    description = timelineRow.event.description()
+                    if not description:
+                        description = timelineRow.event.kind().name
+                    s += ": " + description
                     painter.drawText(QPointF(5, 0), s)
                     painter.rotate(self.ANGLE)
                     painter.translate(-offset)

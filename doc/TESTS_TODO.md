@@ -1,7 +1,5 @@
-# Test Suite Cleanup - Event & Scene API Refactor
+# Test Suite TODO
 
-## Overview
-Update test suite to new Event/scene API patterns per CLAUDE.md guidance.
 
 
 ## Key rules
@@ -21,103 +19,9 @@ then adding them later
   valid. If they are not then that is a problem in the calling code or the test code.
 - Replace composed special events, e.g. `birthEvent` or `setBirthDateTime`, with
   adding Event's of the correct kind
-
-
-
-### Issue 2: Missing scenarios in Scene removal logic
-Second verification pass found **THREE missing scenarios** when comparing RemoveItems.redo() with Scene methods:
-
-**Missing Scenario 1: MultipleBirth Removal**
-- **RemoveItems.redo() lines 242-246:** Detaches all children from parents before removing MultipleBirth
-- **Scene._do_removeItem():** Had NO handler for MultipleBirth removal
-- **Impact:** MultipleBirth objects couldn't be removed properly
-
-**Missing Scenario 2: Orphaned LayerItems Cleanup**
-- **RemoveItems.redo() lines 269-272:** Checks for and removes orphaned LayerItems after Layer removal
-- **Scene._do_removeItem():** Removed layer from items but didn't check for orphans
-- **Impact:** LayerItems with no remaining layers left orphaned in scene
-
-**Missing Scenario 3: Person Parent Detachment**
-- **RemoveItems.redo() lines 234-236:** Detaches person from their parents BEFORE removal
-- **Scene._do_removeItem():** Only detached children FROM marriages, not person FROM their parents
-- **Impact:** Person's ChildOf/MultipleBirth relationship to their own parents not cleaned up
-
-**Fix Applied:**
-Created new `Scene.removeItems(items)` method that:
-- Handles all detachment logic (MultipleBirth, Person parents, Marriage children, Layer references)
-- Includes orphaned LayerItems cleanup for Layer removal
-- Delegates to `Scene.removeItem()` for actual removal
-- RemoveItems.redo() now calls this authoritative method
-
-### Verification Summary
-✅ **Person cascade deletes**: Events, emotions, marriages (CORRECT)
-✅ **Event cascade deletes**: Emotions (FIXED)
-✅ **Marriage cascade deletes**: Handled in Person cascade (CORRECT)
-✅ **MultipleBirth removal**: Detaches children, removes MultipleBirth (FIXED)
-✅ **Layer removal**: Removes from items, cleans up orphaned LayerItems (FIXED)
-✅ **Person parent detachment**: Detaches person from their own parents before removal (FIXED)
-
-### Architecture Rule Added
-See pkdiagram/scene/CLAUDE.md: Scene owns all Item relationship mutation logic. QUndoCommand subclasses only predict changes and store metadata for undo/redo.
-
-## Status Summary - UPDATED 2025-10-13
-
-**OVERALL: 289 passed, 4 failed, 7 skipped out of 300 tests (96.3% passing)**
-**test_childof.py: 18 passed, 0 failed out of 18 tests (100% passing) ✅**
-**test_remove_children.py: 14 passed, 1 failed out of 15 tests (93.3% passing)**
-
-### API Migration: ✅ COMPLETE
-All test files have been successfully updated to use the new Event/Scene API patterns:
-- ✅ Event constructor: `Event(EventKind.X, person, dateTime=...)`
-- ✅ Item creation: `item = scene.addItem(Item())` or `itemA, itemB = scene.addItems(Item(), Item())`
-- ✅ No "create then add" anti-patterns remain in updated files
-
-### ChildOf/MultipleBirth Fixes - COMPLETED 2025-10-13
-
-**Fixes Applied:**
-1. ✅ **Fixed ChildOf removal bug** - scene.py:627 had undefined `parents` variable during MultipleBirth-to-single-child conversion
-2. ✅ **Fixed undo/redo for ChildOf/MultipleBirth** - RemoveItems.redo() now removes CURRENT ChildOf/MultipleBirth objects (not stale references) since undo() recreates them via person.setParents()
-3. ✅ **Changed MultipleBirth removal behavior** - Now keeps children as normal children of the same parents (just clears multipleBirth reference) instead of detaching children
-
-**Implementation Details:**
-- **scene.py:625-628**: Fixed bug by removing MultipleBirth and clearing reference instead of trying to recreate relationships with undefined variable
-- **commands.py:215-233**: Updated RemoveItems.redo() to handle ChildOf/MultipleBirth specially - looks up current objects from persons instead of using stale stored references
-- **scene.py:606-612**: Changed MultipleBirth removal to keep children attached (clears multipleBirth ref only) per user requirements
-
-**Test Results:**
-- **test_childof.py**: 18/18 passing (100%) ✅ ALL TESTS PASS
-- **test_remove_children.py**: 14/15 passing (1 unrelated marriage removal test failing)
-
-**Tests Updated:**
-- ✅ `test_ChildOf_MultipleBirth_undo_redo_integration` - Updated to expect NEW behavior (children remain attached)
-- ✅ `test_MultipleBirth_delete_undo_redo` - Updated to expect NEW behavior (children remain attached)
-
-### Remaining Test Failures (4)
-
-#### Scene Tests (2 failures)
-
-1. **test_marriage.py** (1 failure):
-   - `test_detailsText_lines` - Event location not displayed ("None" instead of "Moved to Washington, DC")
-   - **Root cause**: Location property not rendering in marriage detailsText (known issue)
-
-2. **test_scene_add_remove.py** (2 failures):
-   - `test_add_emotion[True]` and `test_add_emotion[False]` - Signal not triggered when adding emotions
-   - **Root cause**: Test needs redesign for new implicit Emotion creation via Events
-
-4. **test_scene_read_write.py** (1 failure):
-   - `test_clean_stale_refs` - Stale reference cleanup not working
-   - **Root cause**: Reference counting issue (pre-existing)
-
-#### Model Tests (4 failures)
-1. **test_timelinemodel.py** (4 failures):
-   - ✅ `test_access_data_after_deinit` - **FIXED**: Added model cleanup in _refreshRows() and bounds checking in data()
-   - ✅ `test_flags` - **FIXED**: Updated test expectations to match current behavior (DESCRIPTION and PARENT columns are editable for Shift events)
-   - ✅ `test_emotion_parentName_changed` - **FIXED**: Added Event.parentName() method and personChanged signal handling in TimelineModel
-   - ✅ `test_remove_item` - **FIXED**: Scene cascade delete refactor completed (see Cascade Delete Investigation below)
-   - `test_delete_emotion_date` - Row count mismatch after deletion (expects 3, gets 2)
-   - `test_set_emotion_date` - Signal call count mismatch (expects 1 rowsRemoved, gets 2)
-   - `test_showAliases_signals` - Signal call count mismatch (expects 13 dataChanged signals, gets 5)
-   - **Root cause**: Remaining failures are complex signal timing issues
+- See pkdiagram/scene/CLAUDE.md: Scene owns all Item relationship mutation
+  logic. QUndoCommand subclasses only predict changes and store metadata for
+  undo/redo.
 
 
 
@@ -142,85 +46,7 @@ All test files have been successfully updated to use the new Event/Scene API pat
 ### Scene Queries
 - Prefer `Scene.find(ids=..., types=..., tags=...)` over manual iteration
 
-## Test Files Needing Updates
 
-### Scene Tests
-
-#### test_event.py
-- [x] Line 38-40: __test___lt__ disabled - uses old Event ctor without scene
-- [x] Lines 56-76: test_sorted_every_other - creates Events without adding to scene
-- [x] Lines 139-199: test_lt, test_lt_eq - creates Events without scene.addItem
-
-#### test_person.py
-- [x] Line 110: Uses old Event ctor pattern (person arg last)
-- [x] Line 111-112: Event added after creation, use scene.addItem in same call
-- [x] Line 169-177: test_hide_age_when_no_deceased_date - old Event ctor pattern
-- [x] Line 302-324: test_new_event_adds_variable_values - creates Event before scene.addItem
-- [x] Line 357-361: test_draw_builtin_vars - creates Event without adding
-
-#### test_marriage.py
-- [x] Lines 49-106: simpleMarriage fixture creates Events, adds separately
-- [x] Lines 115-134: test_olderBirth, test_sort - old Event ctor patterns
-- [x] Lines 157-187: test_auto_sort_events - create Events then add
-- [x] Lines 307-350: Multiple tests create Events before adding
-- [x] Lines 357-607: Many tests use old Event ctor then scene.addItem
-
-#### test_emotions.py
-- [x] Lines 112-114: Creates Emotions separately before addItems
-- [x] Lines 125-133: Creates Emotions one at a time with addItem
-- [x] Lines 156-158: Old pattern - create Emotion then add
-- [x] Lines 178-211: Creates Events for relationships, adds separately
-- [x] Lines 246-249: Creates Emotion with old pattern
-- [x] Lines 276-278: Old Emotion creation pattern
-- [x] Lines 297-298: Old Emotion creation pattern
-- [x] Lines 342: Old Emotion creation pattern
-- [x] Lines 363-374, 395-412, 428-456, 476-541, 543-557: Old Event/Emotion patterns
-
-#### test_scene_add_remove.py
-- [x] Lines 44-69: Old Event ctor patterns throughout
-- [x] Lines 143-170: Creates Events/Emotions separately before adding
-- [x] Lines 204-218: MultipleBirth setup doesn't use new pattern
-- [x] Lines 308-329: Creates Events then adds
-- [x] Lines 397-413: Creates Emotions with old pattern
-- [x] Lines 534-577: Multiple Events created before adding
-
-#### test_scene_queries.py
-- [x] Lines 94-122: Creates Events separately before adding to scene (Events already correct, updated Person creation patterns)
-
-### Model Tests
-
-#### test_timelinemodel.py
-- [x] Lines 37-48: Creates Events separately
-- [x] Lines 55-97: Creates Events then adds
-- [x] Lines 106-124: Old Event ctor patterns
-- [x] Lines 147-255: Many Events created before adding
-- [x] Lines 261-266: Event for Marriage created wrong way
-- [x] Lines 277-370: Events created separately throughout
-- [x] Lines 380-405: Old patterns
-- [x] Lines 427-465: Events created then added
-- [x] Lines 522-640: Emotion/Event patterns need updating
-- [x] Lines 675-703: Old patterns throughout
-- [x] Lines 709-843: Many old Event creation patterns
-- **Status**: API patterns fully updated. 21/25 tests passing. 4 failures are:
-  1. test_remove_item - Scene cascade delete issue (not TimelineModel)
-  2. test_delete_emotion_date - Signal timing issue
-  3. test_set_emotion_date - Signal timing issue
-  4. test_showAliases_signals - Missing dataChanged signals for alias changes
-- **Work completed**:
-  - ✅ Added `Event.personName()` to return combined names for relationship events
-  - ✅ Added `Event.parentName()` to return combined names for PARENT column
-  - ✅ Updated TimelineModel to use `Event.parentName()` in PARENT column display
-  - ✅ Added personChanged signal handling to emit dataChanged when person names change
-  - ✅ Added automatic description generation for relationship events ("Distance began/ended")
-
-### View Tests
-
-#### test_eventform.py
-- [ ] Lines 59-87: Tests use old Event patterns (but this is form testing, may be intentional)
-- [ ] Lines 109-128: Creates Events through forms (intentional)
-
-### Commands Tests
-- [ ] test_remove_*.py files likely need similar updates but not critical for API correctness
 
 ## Patterns to Apply
 
@@ -282,18 +108,73 @@ people = [item for item in scene.items() if isinstance(item, Person)]
 people = scene.find(types=Person)
 ```
 
-## Priority Order
+## Overview
+**Current Status: 298 passed, 2 failed out of 300 tests (99.3% passing)**
 
-1. **High**: test_event.py, test_person.py, test_marriage.py - Core scene tests
-2. **High**: test_emotions.py - Emotion/Event relationship critical
-3. **Medium**: test_scene_add_remove.py, test_scene_queries.py - Scene API tests
-4. **Medium**: test_timelinemodel.py - Model depends on Events
-5. **Low**: View tests (may be testing user interaction patterns intentionally)
-6. **Low**: Command tests (removal cascades less critical for API)
+## Remaining Test Failures
 
-## Notes
+### 1. test_marriage.py::test_detailsText_lines
+**Status:** ❌ FAILING
+**Issue:** Event location not displayed in marriage detailsText
+**Error:** Shows "None" instead of "Moved to Washington, DC"
+**Location:** tests/scene/test_marriage.py:840
+**Root Cause:** Marriage.detailsText() method not properly formatting Event location property
 
-- Some test patterns may be intentional (e.g., testing that old patterns still work)
-- test_compat.py correctly uses new Event patterns in expected outputs
-- Focus on scene/ tests first as they're foundational
-- Event form tests may legitimately use different patterns since testing UI
+**Action Items:**
+1. Check Marriage.detailsText() implementation in pkdiagram/scene/marriage.py
+2. Verify Event.location property is being set correctly
+3. Fix formatting logic to include location when present
+
+### 2. test_scene_read_write.py::test_clean_stale_refs
+**Status:** ❌ FAILING
+**Issue:** Stale reference cleanup not working + AttributeError during scene read
+**Error:**
+- Assert 0 == 9 (no references pruned)
+- AttributeError: 'NoneType' object has no attribute 'childOf' at pkdiagram/scene/multiplebirth.py:186
+**Location:** tests/scene/test_scene_read_write.py:84
+**Root Cause:** MultipleBirth.shouldShowFor() doesn't handle None person references properly
+
+**Action Items:**
+1. Fix None check in MultipleBirth.shouldShowFor() at pkdiagram/scene/multiplebirth.py:186
+2. Add defensive check: `if person and person.childOf:`
+3. Investigate why person references are becoming None during scene loading
+4. Verify Scene.cleanStaleRefs() is properly removing orphaned references
+
+## Fixed Tests (Now Passing) ✅
+
+### Scene Tests
+- **test_childof.py:** 18/18 tests passing (100%)
+- **test_remove_children.py:** 15/15 tests passing (100%)
+- **test_scene_add_remove.py::test_add_emotion:** Both parameterized tests now passing
+
+### Model Tests
+- **test_timelinemodel.py:** All previously failing tests now pass:
+  - test_delete_emotion_date ✅
+  - test_set_emotion_date ✅
+  - test_showAliases_signals ✅
+
+## Test Execution Notes
+
+Some tests appear to hang indefinitely when running the full suite with `pytest`. For efficient testing:
+- Run specific test files or functions individually
+- Use timeout parameters when running larger test sets
+- Consider investigating hanging tests separately
+
+## Priority Fixes
+
+1. **HIGH:** Fix MultipleBirth None reference handling (blocks scene loading)
+2. **MEDIUM:** Fix Marriage.detailsText() location formatting
+
+## Completed Work
+
+### API Migration ✅ COMPLETE
+- All test files successfully migrated to new Event/Scene API patterns
+- Event constructor using new format: `Event(EventKind.X, person, dateTime=...)`
+- Item creation using: `scene.addItems(Item(), Item())`
+- No "create then add" anti-patterns remain
+
+### ChildOf/MultipleBirth System ✅ COMPLETE
+- Fixed ChildOf removal bug with undefined parents variable
+- Fixed undo/redo for ChildOf/MultipleBirth objects
+- Changed MultipleBirth removal to keep children attached
+- All related tests now passing

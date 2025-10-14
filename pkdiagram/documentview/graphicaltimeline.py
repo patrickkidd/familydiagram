@@ -255,9 +255,9 @@ class GraphicalTimeline(QScrollArea):
             firstDateTime, lastDateTime = self.canvas.dateTimeRange(
                 self.canvas._tagRows
             )
-            if dateTime > lastDateTime:
+            if lastDateTime and dateTime > lastDateTime:
                 dateTime = lastDateTime
-            elif dateTime < firstDateTime:
+            elif firstDateTime and dateTime < firstDateTime:
                 dateTime = firstDateTime
             self.scene.setCurrentDateTime(dateTime)
 
