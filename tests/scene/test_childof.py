@@ -1,28 +1,18 @@
-import mock
+from ddtrace import patch
+from mock import patch
 
-from pkdiagram.pyqt import QDateTime, QMessageBox
-from pkdiagram import util
-from pkdiagram.scene import (
-    Scene,
-    PathItem,
-    Event,
-    Person,
-    Marriage,
-    ChildOf,
-    MultipleBirth,
-    Layer,
-    EventKind,
-)
+from pkdiagram.pyqt import QMessageBox
+from pkdiagram.scene import Scene, Person, Marriage, ChildOf, MultipleBirth, Layer
 
 
-def test_set_first_second_child():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    childB = Person(name="childB")
-    marriage = Marriage(personA=parentA, personB=parentB)
-    scene.addItems(parentA, parentB, childA, childB, marriage)
+def test_set_first_second_child(scene):
+    parentA, parentB, childA, childB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="childB"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
     assert marriage.children == []
     assert childA.childOf == None
     assert childB.childOf == None
@@ -57,15 +47,15 @@ def test_set_first_second_child():
     assert scene.find(types=MultipleBirth) == []
 
 
-def test_MultipleBirth_set_second_via_ChildOf():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    tripletA = Person(name="tripletA")
-    tripletB = Person(name="tripletB")
-    tripletC = Person(name="tripletC")
-    marriage = Marriage(personA=parentA, personB=parentB)
-    scene.addItems(parentA, parentB, tripletA, tripletB, tripletC, marriage)
+def test_MultipleBirth_set_second_via_ChildOf(scene):
+    parentA, parentB, tripletA, tripletB, tripletC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="tripletA"),
+        Person(name="tripletB"),
+        Person(name="tripletC"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
     tripletA.setParents(marriage)
     tripletB.setParents(tripletA.childOf)
     tripletC.setParents(tripletB.childOf)
@@ -82,15 +72,15 @@ def test_MultipleBirth_set_second_via_ChildOf():
     assert tripletA.multipleBirth().children() == [tripletA, tripletB, tripletC]
 
 
-def test_MultipleBirth_set_second_via_ChildOf_undo():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    tripletA = Person(name="tripletA")
-    tripletB = Person(name="tripletB")
-    tripletC = Person(name="tripletC")
-    marriage = Marriage(personA=parentA, personB=parentB)
-    scene.addItems(parentA, parentB, tripletA, tripletB, tripletC, marriage)
+def test_MultipleBirth_set_second_via_ChildOf_undo(scene):
+    parentA, parentB, tripletA, tripletB, tripletC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="tripletA"),
+        Person(name="tripletB"),
+        Person(name="tripletC"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
     tripletA.setParents(marriage)
     tripletB.setParents(tripletA.childOf)  # 0
 
@@ -122,16 +112,16 @@ def test_MultipleBirth_set_second_via_ChildOf_undo():
     assert scene.find(types=MultipleBirth) == [tripletA.multipleBirth()]
 
 
-def test_ChildOf_MultipleBirth_set_on_both():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    tripletB = Person(name="tripletB")
-    tripletC = Person(name="tripletC")
-    tripletD = Person(name="tripletD")
-    marriage = Marriage(personA=parentA, personB=parentB)
-    scene.addItems(parentA, parentB, childA, tripletB, tripletC, tripletD, marriage)
+def test_ChildOf_MultipleBirth_set_on_both(scene):
+    parentA, parentB, childA, tripletB, tripletC, tripletD = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="tripletB"),
+        Person(name="tripletC"),
+        Person(name="tripletD"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
 
     # add first normal child
     childA.setParents(marriage)
@@ -256,19 +246,16 @@ def test_ChildOf_MultipleBirth_set_on_both():
     assert scene.find(types=ChildOf) == []
 
 
-def test_ChildOf_MultipleBirth_set_on_both_undo():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    tripletB = Person(name="tripletB")
-    tripletC = Person(name="tripletC")
-    tripletD = Person(name="tripletD")
-    marriage = Marriage(personA=parentA, personB=parentB)
-
-    scene.addItems(
-        parentA, parentB, childA, tripletB, tripletC, tripletD, marriage
-    )  # 0
+def test_ChildOf_MultipleBirth_set_on_both_undo(scene):
+    parentA, parentB, childA, tripletB, tripletC, tripletD = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="tripletB"),
+        Person(name="tripletC"),
+        Person(name="tripletD"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))  # 0
 
     # add first normal child
     childA.setParents(marriage, undo=True)  # 1
@@ -393,17 +380,16 @@ def test_ChildOf_MultipleBirth_set_on_both_undo():
     assert scene.find(types=ChildOf) == []
 
 
-def test_ChildOf_set_reset_parents():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    marriageA = Marriage(personA=parentA, personB=parentB)
-    parentC = Person(name="parentC")
-    parentD = Person(name="parentD")
-    marriageB = Marriage(personA=parentC, personB=parentD)
-    child = Person(name="child")
-
-    scene.addItems(parentA, parentB, marriageA, parentC, parentD, marriageB, child)
+def test_ChildOf_set_reset_parents(scene):
+    parentA, parentB, parentC, parentD, child = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="parentC"),
+        Person(name="parentD"),
+        Person(name="child"),
+    )
+    marriageA = scene.addItem(Marriage(personA=parentA, personB=parentB))
+    marriageB = scene.addItem(Marriage(personA=parentC, personB=parentD))
     assert marriageA.children == []
     assert marriageB.children == []
 
@@ -429,15 +415,15 @@ def test_ChildOf_set_reset_parents():
     assert scene.find(types=ChildOf) == []
 
 
-def test_MultipleBirth_set_reset():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    twinB = Person(name="twinB")
-    twinC = Person(name="twinC")
-    marriage = Marriage(personA=parentA, personB=parentB)
-    scene.addItems(parentA, parentB, childA, twinB, twinC, marriage)
+def test_MultipleBirth_set_reset(scene):
+    parentA, parentB, childA, twinB, twinC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="twinB"),
+        Person(name="twinC"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
 
     childA.setParents(marriage)
     twinB.setParents(marriage)
@@ -455,24 +441,27 @@ def test_MultipleBirth_set_reset():
     assert scene.find(types=MultipleBirth) == [childA.multipleBirth()]
 
 
-def test_ChildOf_MultipleBirth_read_write():
-    personA = Person(name="personA")
-    personB = Person(name="personB")
-    marriage = Marriage(personA=personA, personB=personB)
-    childA = Person(name="childA")
-    childB = Person(name="childB")
-    twinC = Person(name="twinC")
-    twinD = Person(name="twinD")
+def test_ChildOf_MultipleBirth_read_write(scene):
+    personA, personB, childA, childB, twinC, twinD = scene.addItems(
+        Person(name="personA"),
+        Person(name="personB"),
+        Person(name="childA"),
+        Person(name="childB"),
+        Person(name="twinC"),
+        Person(name="twinD"),
+    )
+    marriage = scene.addItem(Marriage(personA=personA, personB=personB))
     childA.setParents(marriage)
     childB.setParents(marriage)
     twinC.setParents(marriage)
     twinD.setParents(twinC.childOf)
-    scene = Scene()
-    scene.addItems(personA, personB, marriage, childA, childB, twinC, twinD)
     data = {}
     scene.write(data)
 
-    scene = Scene()
+    with patch(
+        "pkdiagram.scene.scene.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        scene.clear()
     scene.read(data)
     personA = scene.query1(name="personA")
     personB = scene.query1(name="personB")
@@ -499,14 +488,13 @@ def test_ChildOf_MultipleBirth_read_write():
     assert twinC.multipleBirth().parents() == twinD.multipleBirth().parents()
 
 
-def test_ChildOf_set_undo_redo():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    marriage = Marriage(personA=parentA, personB=parentB)
-
-    scene.addItems(parentA, parentB, childA, marriage)  # 0
+def test_ChildOf_set_undo_redo(scene):
+    parentA, parentB, childA = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))  # 0
     assert marriage.children == []
     assert childA.childOf == None
     assert childA.multipleBirth() == None
@@ -534,15 +522,14 @@ def test_ChildOf_set_undo_redo():
     assert childA.multipleBirth() == None
 
 
-def test_MultipleBirth_undo_redo():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(personA=parentA, personB=parentB)
-
-    scene.addItems(parentA, parentB, twinA, twinB, marriage)  # 0
+def test_MultipleBirth_undo_redo(scene):
+    parentA, parentB, twinA, twinB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))  # 0
     assert marriage.children == []
     assert twinA.parents() == None
     assert twinA.childOf == None
@@ -608,18 +595,18 @@ def test_MultipleBirth_undo_redo():
     assert twinB.multipleBirth() == None
 
 
-def test_MultipleBirth_set_move_undo_redo():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    twinB = Person(name="twinB")
-    twinC = Person(name="twinC")
-    marriage = Marriage(personA=parentA, personB=parentB)
+def test_MultipleBirth_set_move_undo_redo(scene):
+    parentA, parentB, childA, twinB, twinC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="twinB"),
+        Person(name="twinC"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
     childA.setParents(marriage)
     twinB.setParents(marriage)
-    twinC.setParents(twinB.childOf)
-    scene.addItems(parentA, parentB, childA, twinB, twinC, marriage)  # 0
+    twinC.setParents(twinB.childOf)  # 0
     assert marriage.children == [childA, twinB, twinC]
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() != None
@@ -655,16 +642,15 @@ def test_MultipleBirth_set_move_undo_redo():
     assert scene.find(types=MultipleBirth) == [twinB.multipleBirth()]
 
 
-def test_ChildOf_MultipleBirth_undo_redo_integration():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    twinB = Person(name="twinB")
-    twinC = Person(name="twinC")
-    marriage = Marriage(personA=parentA, personB=parentB)
-
-    scene.addItems(parentA, parentB, childA, twinB, twinC, marriage)  # 0
+def test_ChildOf_MultipleBirth_undo_redo_integration(scene):
+    parentA, parentB, childA, twinB, twinC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="childA"),
+        Person(name="twinB"),
+        Person(name="twinC"),
+    )
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))  # 0
     assert marriage.children == []
     assert childA.multipleBirth() == None
     assert twinB.multipleBirth() == None
@@ -744,16 +730,16 @@ def test_ChildOf_MultipleBirth_undo_redo_integration():
     assert scene.find(types=MultipleBirth) == []
 
 
-def test_ChildOf_delete_undo_redo(qtbot):
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
+def test_ChildOf_delete_undo_redo(qtbot, scene):
+    parentA, parentB, twinA, twinB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
     twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
+    twinB.setParents(twinA.childOf)  # 0
 
     twinA.childOf.setSelected(True)
     qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
@@ -793,17 +779,16 @@ def test_ChildOf_delete_undo_redo(qtbot):
     assert twinB.parents() == marriage
 
 
-def test_MultipleBirth_delete_undo_redo(qtbot):
-
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
+def test_MultipleBirth_delete_undo_redo(qtbot, scene):
+    parentA, parentB, twinA, twinB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
     twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
+    twinB.setParents(twinA.childOf)  # 0
 
     twinA.multipleBirth().setSelected(True)
     qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
@@ -847,16 +832,16 @@ def test_MultipleBirth_delete_undo_redo(qtbot):
 
 def test_hide_ChildOf_honor_marriage_tags():
     scene = Scene(tags=["here"])
-    parentA = Person(name="parentA", tags=["here"])
-    parentB = Person(name="parentB")
-    childA = Person(name="childA")
-    marriage = Marriage(parentA, parentB)
-    layer = Layer(name="View 1", tags=["here"])
+    parentA, parentB, childA = scene.addItems(
+        Person(name="parentA", tags=["here"]),
+        Person(name="parentB"),
+        Person(name="childA"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
+    layer = scene.addItem(Layer(name="View 1", tags=["here"]))
     childA.setParents(marriage)
 
     # assert childA.shouldShowFor(QDateTime(), tags=['here']) == True
-
-    scene.addItems(parentA, parentB, marriage, childA, layer)
     assert scene.find(types=ChildOf) == [childA.childOf]
     assert childA.childOf != None
     assert childA.childOf.isVisible() == True
@@ -870,18 +855,18 @@ def test_hide_ChildOf_honor_marriage_tags():
     assert childA.childOf.isVisible() == True
 
 
-def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    twinC = Person(name="twinC")
-    marriage = Marriage(parentA, parentB)
+def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot, scene):
+    parentA, parentB, twinA, twinB, twinC = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+        Person(name="twinC"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
     twinA.setParents(marriage)
     twinB.setParents(twinA.childOf)
-    twinC.setParents(twinB.multipleBirth())
-    scene.addItems(parentA, parentB, marriage, twinA, twinB, twinC)  # 0
+    twinC.setParents(twinB.multipleBirth())  # 0
 
     twinA.childOf.setSelected(True)
     twinC.childOf.setSelected(True)
@@ -896,16 +881,16 @@ def test_multiple_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     assert len(scene.find(types=Person)) == 5
 
 
-def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
+def test_ChildOf_in_MultipleBirth_delete_undo(qtbot, scene):
+    parentA, parentB, twinA, twinB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
     twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
+    twinB.setParents(twinA.childOf)  # 0
 
     twinA.childOf.setSelected(True)
     qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
@@ -919,16 +904,16 @@ def test_ChildOf_in_MultipleBirth_delete_undo(qtbot):
     assert len(scene.find(types=Person)) == 4
 
 
-def test_MultipleBirth_pathFor_hidden_person():
-    scene = Scene()
-    parentA = Person(name="parentA")
-    parentB = Person(name="parentB")
-    twinA = Person(name="twinA")
-    twinB = Person(name="twinB")
-    marriage = Marriage(parentA, parentB)
+def test_MultipleBirth_pathFor_hidden_person(scene):
+    parentA, parentB, twinA, twinB = scene.addItems(
+        Person(name="parentA"),
+        Person(name="parentB"),
+        Person(name="twinA"),
+        Person(name="twinB"),
+    )
+    marriage = scene.addItem(Marriage(parentA, parentB))
     twinA.setParents(marriage)
-    twinB.setParents(twinA.childOf)
-    scene.addItems(parentA, parentB, marriage, twinA, twinB)  # 0
+    twinB.setParents(twinA.childOf)  # 0
 
     twinB.hide()
     twinB.childOf.updateGeometry()

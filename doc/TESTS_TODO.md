@@ -75,8 +75,9 @@ See pkdiagram/scene/CLAUDE.md: Scene owns all Item relationship mutation logic. 
 
 ## Status Summary - UPDATED 2025-10-13
 
-**OVERALL: 281 passed, 10 failed, 7 skipped out of 298 tests (94.3% passing)**
-**test_timelinemodel.py: 21 passed, 4 failed, 2 skipped out of 27 tests (77.8% passing)**
+**OVERALL: 287 passed, 6 failed, 7 skipped out of 300 tests (95.7% passing)**
+**test_childof.py: 16 passed, 2 failed out of 18 tests (88.9% passing)**
+**test_remove_children.py: 14 passed, 1 failed out of 15 tests (93.3% passing)**
 
 ### API Migration: ✅ COMPLETE
 All test files have been successfully updated to use the new Event/Scene API patterns:
@@ -84,14 +85,30 @@ All test files have been successfully updated to use the new Event/Scene API pat
 - ✅ Item creation: `item = scene.addItem(Item())` or `itemA, itemB = scene.addItems(Item(), Item())`
 - ✅ No "create then add" anti-patterns remain in updated files
 
-### Remaining Test Failures (10)
-All failures are **application logic/behavior issues**, NOT API pattern issues:
+### ChildOf/MultipleBirth Fixes - COMPLETED 2025-10-13
 
-#### Scene Tests (6 failures)
+**Fixes Applied:**
+1. ✅ **Fixed ChildOf removal bug** - scene.py:627 had undefined `parents` variable during MultipleBirth-to-single-child conversion
+2. ✅ **Fixed undo/redo for ChildOf/MultipleBirth** - RemoveItems.redo() now removes CURRENT ChildOf/MultipleBirth objects (not stale references) since undo() recreates them via person.setParents()
+3. ✅ **Changed MultipleBirth removal behavior** - Now keeps children as normal children of the same parents (just clears multipleBirth reference) instead of detaching children
+
+**Implementation Details:**
+- **scene.py:625-628**: Fixed bug by removing MultipleBirth and clearing reference instead of trying to recreate relationships with undefined variable
+- **commands.py:215-233**: Updated RemoveItems.redo() to handle ChildOf/MultipleBirth specially - looks up current objects from persons instead of using stale stored references
+- **scene.py:606-612**: Changed MultipleBirth removal to keep children attached (clears multipleBirth ref only) per user requirements
+
+**Test Results:**
+- **test_childof.py**: 16/18 passing (2 tests expect old MultipleBirth detach behavior)
+- **test_remove_children.py**: 14/15 passing (1 unrelated marriage removal test failing)
+
+### Remaining Test Failures (6)
+
+#### Scene Tests (4 failures)
 1. **test_childof.py** (2 failures):
-   - `test_ChildOf_MultipleBirth_undo_redo_integration` - MultipleBirth undo/redo logic issue
-   - `test_MultipleBirth_delete_undo_redo` - MultipleBirth deletion/undo issue
-   - **Root cause**: MultipleBirth state management bugs (not API related)
+   - `test_ChildOf_MultipleBirth_undo_redo_integration` - Expects children to be DETACHED when MultipleBirth removed
+   - `test_MultipleBirth_delete_undo_redo` - Expects children to be DETACHED when MultipleBirth removed
+   - **Root cause**: Tests expect OLD behavior (detach children). NEW behavior keeps children as normal children per user requirements
+   - **Resolution needed**: Update these 2 tests to expect children remain attached with multipleBirth=None
 
 2. **test_marriage.py** (1 failure):
    - `test_detailsText_lines` - Event location not displayed ("None" instead of "Moved to Washington, DC")

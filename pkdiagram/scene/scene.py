@@ -604,13 +604,11 @@ class Scene(QGraphicsScene, Item):
         elif item.isEmotion:
             _removeEmotion(item)
         elif item.isMultipleBirth:
-            # Detach all children from their parents by removing their ChildOf relationships
-            # Save children before any cleanup that might clear the list
+            # Keep all children as normal children of the same parents
+            # Just clear the multipleBirth reference from each child's ChildOf
             for child in item._children:
-                # Clear the multipleBirth reference first to avoid recursive cleanup issues
                 if child.childOf:
                     child.childOf.multipleBirth = None
-                child.setParents(None)
             _deregisterItem(item)
         elif item.isChildOf:
             # If part of a MultipleBirth, handle the conversion back to single child
@@ -622,9 +620,10 @@ class Scene(QGraphicsScene, Item):
                 ]
                 # Remove this child from the multipleBirth
                 multipleBirth._onRemoveChild(item.person)
-                # If only one child remains, convert them back to a regular ChildOf
+                # If only one child remains, remove MultipleBirth (child keeps ChildOf)
                 if len(remainingChildren) == 1:
-                    remainingChildren[0].setParents(parents)
+                    remainingChildren[0].childOf._onRemoveMultipleBirth()
+                    self.removeItem(multipleBirth)
                 # If no children remain, remove the MultipleBirth
                 elif len(remainingChildren) == 0:
                     self.removeItem(multipleBirth)

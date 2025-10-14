@@ -213,7 +213,24 @@ class RemoveItems(QUndoCommand):
             mapItem(item)
 
     def redo(self):
-        self.scene.removeItems(*self.items, undo=False)
+        # For ChildOf and MultipleBirth, we need to remove the CURRENT objects, not the original ones
+        # because undo() recreates them via person.setParents()
+        itemsToRemove = []
+        for item in self.items:
+            if item.isChildOf:
+                # Get the current ChildOf from the person (if still exists)
+                if hasattr(item, 'person') and item.person and item.person.childOf:
+                    itemsToRemove.append(item.person.childOf)
+            elif item.isMultipleBirth:
+                # Get the current MultipleBirth from any of the children
+                if hasattr(item, '_children'):
+                    for child in item._children:
+                        if child and child.multipleBirth():
+                            itemsToRemove.append(child.multipleBirth())
+                            break
+            else:
+                itemsToRemove.append(item)
+        self.scene.removeItems(*itemsToRemove, undo=False)
 
     def undo(self):
         for item in self.items:

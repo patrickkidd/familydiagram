@@ -427,7 +427,8 @@ def qApp():
 
     # from PyQt5.QtCore import QLoggingCategory
     # QLoggingCategory.setFilterRules("qt.quick.mouse.debug=true")
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    if not "QT_QPA_PLATFORM" in os.environ:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
