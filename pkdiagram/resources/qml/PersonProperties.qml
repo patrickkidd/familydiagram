@@ -5,6 +5,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.2
 import "./PK" 1.0 as PK
 import PK.Models 1.0
+import "js/Global.js" as Global
 
 
 PK.Drawer {
@@ -151,39 +152,37 @@ PK.Drawer {
                     onClicked: parent.forceActiveFocus()
                 }
 
-                ColumnLayout { // necessary to expand DatePicker
+                GridLayout {
 
-                    GridLayout {
-                        
-                        
-                        id: mainGrid
-                        columns: 3
-                        columnSpacing: util.QML_MARGINS / 2
-                        
-                        // First Name
-                        
-                        PK.Text {
-                            id: firstNameLabel
-                            text: qsTr("First Name")
-                        }
-                        
-                        PK.TextField {
-                            id: firstNameEdit
-                            Layout.fillWidth: true
-                            text: sceneModel.showAliases ? personModel.fullNameOrAlias : personModel.name
-                            enabled: !root.isReadOnly && !sceneModel.showAliases
-                            KeyNavigation.tab: middleNameEdit
-                            onEditingFinished: personModel.name = (text ? text : undefined)
-                        }
+                    id: mainGrid
+                    columns: 2
+                    columnSpacing: util.QML_MARGINS / 2
+                    width: personPageInner.width
+                    
+                    // First Name
+                    
+                    PK.Text {
+                        id: firstNameLabel
+                        text: qsTr("First Name")
+                    }
+                    
+                    PK.TextField {
+                        id: firstNameEdit
+                        Layout.fillWidth: true
+                        text: sceneModel.showAliases ? personModel.fullNameOrAlias : personModel.name
+                        enabled: !root.isReadOnly && !sceneModel.showAliases
+                        KeyNavigation.tab: middleNameEdit
+                        onEditingFinished: personModel.name = (text ? text : undefined)
+                    }
 
-                        Rectangle { width: 1; height: 1; color: 'transparent' }
+                    // Middle Name
 
-                        // Middle Name
+                    PK.Text {
+                        id: middleNameLabel
+                        text: qsTr("Middle Name")
+                    }
 
-                        PK.Text {
-                            id: middleNameLabel
-                            text: qsTr("Middle Name")
-                        }
+                    RowLayout {
 
                         PK.TextField {
                             id: middleNameEdit
@@ -201,14 +200,16 @@ PK.Drawer {
                             KeyNavigation.tab: lastNameEdit
                             onClicked: personModel.showMiddleName = checkState
                         }
+                    }
 
-                        // Last Name
+                    // Last Name
 
-                        PK.Text {
-                            id: lastNameLabel
-                            text: qsTr("Last Name")
-                        }
+                    PK.Text {
+                        id: lastNameLabel
+                        text: qsTr("Last Name")
+                    }
 
+                    RowLayout {
                         PK.TextField {
                             id: lastNameEdit
                             Layout.fillWidth: true
@@ -225,14 +226,16 @@ PK.Drawer {
                             KeyNavigation.tab: nickNameEdit
                             onClicked: personModel.showLastName = checkState
                         }
-                        
-                        // Nick Name
+                    }
+                    
+                    // Nick Name
 
-                        PK.Text {
-                            id: nickNameLabel
-                            text: qsTr("Nick Name")
-                        }
+                    PK.Text {
+                        id: nickNameLabel
+                        text: qsTr("Nick Name")
+                    }
 
+                    RowLayout {
                         PK.TextField {
                             id: nickNameEdit
                             Layout.fillWidth: true
@@ -250,288 +253,289 @@ PK.Drawer {
                             KeyNavigation.tab: birthNameEdit
                             onClicked: personModel.showNickName = checkState
                         }
-                        
-                        // Birth Name
+                    }
+                    
+                    // Birth Name
 
-                        PK.Text {
-                            id: birthNameLabel
-                            text: qsTr("Birth Name")
-                        }
+                    PK.Text {
+                        id: birthNameLabel
+                        text: qsTr("Birth Name")
+                    }
 
-                        PK.TextField {
-                            id: birthNameEdit
-                            Layout.fillWidth: true
-                            text: sceneModel.showAliases ? '' : personModel.birthName
-                            enabled: !root.isReadOnly && !sceneModel.showAliases
-                            KeyNavigation.tab: kindBox
-                            onEditingFinished: personModel.birthName = (text ? text : undefined)
-                        }
+                    PK.TextField {
+                        id: birthNameEdit
+                        Layout.fillWidth: true
+                        text: sceneModel.showAliases ? '' : personModel.birthName
+                        enabled: !root.isReadOnly && !sceneModel.showAliases
+                        KeyNavigation.tab: kindBox
+                        onEditingFinished: personModel.birthName = (text ? text : undefined)
+                    }
 
-                        Rectangle { width: 1; height: 20; color: 'transparent' }
+                    PK.FormDivider { Layout.columnSpan: 2 }
 
-                        PK.FormDivider { Layout.columnSpan: 3 }
-                        
-                        // Kind
+                    // Kind
 
-                        PK.Text {
-                            id: kindLabel
-                            text: qsTr("Kind")
-                        }
+                    PK.Text {
+                        id: kindLabel
+                        text: qsTr("Kind")
+                    }
 
-                        PK.ComboBox {
-                            id: kindBox
-                            enabled: !root.isReadOnly
-                            Layout.fillWidth: true
-                            model: util.PERSON_KIND_NAMES
-                            currentIndex: personModel.genderIndex
-                            KeyNavigation.tab: sizeBox
-                            onCurrentIndexChanged: personModel.genderIndex = currentIndex
-                        }
-                                                                        
-                        Rectangle { width: 1; height: 1; color: 'transparent' }
+                    PK.ComboBox {
+                        id: kindBox
+                        enabled: !root.isReadOnly
+                        Layout.fillWidth: true
+                        model: util.PERSON_KIND_NAMES
+                        currentIndex: personModel.genderIndex
+                        KeyNavigation.tab: sizeBox
+                        onCurrentIndexChanged: personModel.genderIndex = currentIndex
+                    }
+                                                                    
+                    // Size
 
-                        // Size
+                    PK.Text {
+                        id: sizeLabel
+                        text: qsTr("Size")
+                    }
 
-                        PK.Text {
-                            id: sizeLabel
-                            text: qsTr("Size")
-                        }
-
-                        PK.ComboBox {
-                            id: sizeBox
-                            Layout.fillWidth: true
-                            currentIndex: personModel.sizeIndex
-                            model: util.PERSON_SIZE_NAMES
-                            enabled: !root.isReadOnly
-                            KeyNavigation.tab: ageBox
-                            onCurrentIndexChanged: {
-                                if(currentIndex != personModel.sizeIndex) {
-                                    personModel.sizeIndex = currentIndex
-                                }
+                    PK.ComboBox {
+                        id: sizeBox
+                        Layout.fillWidth: true
+                        currentIndex: personModel.sizeIndex
+                        model: util.PERSON_SIZE_NAMES
+                        enabled: !root.isReadOnly
+                        KeyNavigation.tab: ageBox
+                        onCurrentIndexChanged: {
+                            if(currentIndex != personModel.sizeIndex) {
+                                personModel.sizeIndex = currentIndex
                             }
-                        }
-
-                        Rectangle { width: 1; height: 1; color: 'transparent' }
-
-                        // Age
-
-                        PK.Text { text: "Age" }
-
-                        RowLayout {
-                            Layout.columnSpan: 2
-                            PK.TextField {
-                                id: ageBox
-                                enabled: !root.isReadOnly
-                                palette.base: util.QML_ITEM_BG
-                                Layout.maximumWidth: 100
-                                KeyNavigation.tab: editBirthEventButton
-                                Keys.onReturnPressed: setAge()
-                                Keys.onEnterPressed: setAge()
-                                property bool blocked: false
-                                function setAge() {
-                                    if(blocked) // when setting age from personProps below
-                                        return
-                                    var years = parseInt(text)
-                                    if(isNaN(years)) {
-                                        return
-                                    }
-                                    blocked = true
-                                    personModel.age = years
-                                    blocked = false
-                                }
-                                inputMethodHints: Qt.ImhDigitsOnly
-                                function updateFromPerson() {
-                                    if(ageBox.blocked) {
-                                    } else if(personModel.age == -1) {
-                                        ageBox.text = ''
-                                    } else if(personModel.birthDateTime === undefined) {
-                                        ageBox.text = ''
-                                    } else if(isNaN(personModel.birthDateTime)) {
-                                        ageBox.text = ''
-                                    } else {
-                                        ageBox.text = personModel.age
-                                    }
-                                }
-                                Connections {
-                                    target: personModel
-                                    function onBirthDateTimeChanged() { ageBox.updateFromPerson() }
-                                    function onDeceasedDateTimeChanged() { ageBox.updateFromPerson() }
-                                    function onDeceasedChanged() { ageBox.updateFromPerson() }
-                                }
-                            }
-
-                            PK.Text {
-                                text: '(Press enter to estimate birth date)'
-                                wrapMode: Text.WordWrap
-                                font.pixelSize: util.HELP_FONT_SIZE
-                                Layout.maximumWidth: 120
-                            }
-                        }
-                        
-                        PK.Text { text: " " }
-
-                        PK.Button {
-                            id: editBirthEventButton
-                            text: "→ Edit Birth Event"
-                            visible: personModel.birthDateTime
-                            onClicked: root.editBirthEvent()
-                        }
-
-                        PK.Text { text: " " }
-
-                        PK.Button {
-                            id: editDeathEventButton
-                            text: "→ Edit Death Event"
-                            visible: personModel.deceasedDateTime
-                            onClicked: root.editDeathEvent()
-                        }
-
-                        PK.GroupBox {
-
-                            title: "Provisional Settings"
-                            Layout.columnSpan: 2
-                            Layout.bottomMargin: margin
-                            Layout.fillWidth: true
-
-                            ColumnLayout {
-                                anchors.fill: parent
-
-                                PK.CheckBox {
-                                    id: adoptedBox
-                                    objectName: 'adoptedBox'
-                                    text: "Show Adopted"
-                                    enabled: !personModel.anyMarriedEvents && !personModel.everAdopted
-                                    checkState: personModel.adopted
-                                    Layout.columnSpan: 2
-                                    KeyNavigation.tab: deceasedBox
-                                    onCheckStateChanged: personModel.adopted = checkState
-                                }
-
-                                PK.CheckBox {
-                                    id: deceasedBox
-                                    objectName: 'deceasedBox'
-                                    text: "Show Deceased"
-                                    enabled: !personModel.anySeparatedEvents && !personModel.everDeceased
-                                    checkState: personModel.deceased
-                                    Layout.columnSpan: 2
-                                    KeyNavigation.tab: diagramNotesEdit
-                                    onCheckStateChanged: personModel.deceased = checkState
-                                }
-
-                                PK.Text {
-                                    text: "These options show adopted and deceased status prior to adding adopted and death events to this person. These options are unavailable as soon as at least one of the respective events are added to this person."
-                                    font.pixelSize: util.HELP_FONT_SIZE
-                                    wrapMode: Text.WordWrap
-                                    Layout.fillWidth: true
-                               }
-                            }
-                        }
-
-                        // Spacer line
-
-                        Rectangle {
-                            height: 1
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 3
-                            Layout.topMargin: margin
-                            Layout.bottomMargin: margin
-                            color: util.QML_ITEM_BORDER_COLOR
-                        }
-
-                        ColumnLayout {
-                            Layout.columnSpan: 3
-
-                            PK.Label {
-                                text: 'Diagram Notes'
-                            }
-                            
-                            Rectangle { // for border
-                                Layout.fillWidth: true
-                                Layout.minimumHeight: 150
-                                Layout.maximumHeight: 150
-                                color: 'transparent'
-                                border {
-                                    width: 1
-                                    color: util.QML_ITEM_BORDER_COLOR
-                                }
-                                PK.TextEdit {
-                                    id: diagramNotesEdit
-                                    objectName: 'diagramNotesEdit'
-                                    text: personModel.diagramNotes
-                                    // wrapMode: TextEdit.Wrap
-                                    anchors.fill: parent
-                                    padding: margin
-                                    enabled: !root.isReadOnly
-                                    KeyNavigation.tab: primaryBox
-                                    onTextChanged: personModel.diagramNotes = (text ? text : undefined)
-                                }
-                            }
-                        }
-
-                        // Spacer line
-
-                        PK.FormDivider { Layout.columnSpan: 3 }
-
-                        Row {
-
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 3                            
-                        
-                            PK.CheckBox {
-                                id: primaryBox
-                                text: "Primary"
-                                enabled: !root.isReadOnly
-                                checkState: personModel.primary
-                                KeyNavigation.tab: bigFontBox
-                                onCheckStateChanged: personModel.primary = checkState
-                            }
-
-                            PK.CheckBox {
-                                id: bigFontBox
-                                text: "Big Font"
-                                enabled: !root.isReadOnly
-                                checkState: personModel.bigFont
-                                KeyNavigation.tab: hideDetailsBox
-                                onCheckStateChanged: personModel.bigFont = checkState
-                            }
-                        }
-
-                        Row {
-
-                            Layout.fillWidth: true
-                            Layout.columnSpan: 3                            
-                        
-                            PK.CheckBox {
-                                id: hideDetailsBox
-                                text: "Hide Details"
-                                enabled: !root.isReadOnly
-                                checkState: personModel.hideDetails
-                                KeyNavigation.tab: firstNameEdit
-                                onCheckStateChanged: personModel.hideDetails = checkState
-                            }
-
-                            PK.CheckBox {
-                                id: hideDatesBox
-                                text: "Hide Dates"
-                                enabled: !root.isReadOnly
-                                checkState: personModel.hideDates
-                                KeyNavigation.tab: firstNameEdit
-                                onCheckStateChanged: personModel.hideDates = checkState
-                            }
-
-                            PK.CheckBox {
-                                id: hideVariablesBox
-                                text: "Hide Variables"
-                                enabled: !root.isReadOnly
-                                checkState: personModel.hideVariables
-                                KeyNavigation.tab: firstNameEdit
-                                onCheckStateChanged: personModel.hideVariables = checkState
-                            }
-
                         }
                     }
 
+                    // Age
+
+                    PK.Text { text: "Age" }
+
+                    RowLayout {
+                        PK.TextField {
+                            id: ageBox
+                            enabled: !root.isReadOnly
+                            palette.base: util.QML_ITEM_BG
+                            Layout.maximumWidth: 100
+                            KeyNavigation.tab: editBirthEventButton
+                            Keys.onReturnPressed: setAge()
+                            Keys.onEnterPressed: setAge()
+                            property bool blocked: false
+                            function setAge() {
+                                if(blocked) // when setting age from personProps below
+                                    return
+                                var years = parseInt(text)
+                                if(isNaN(years)) {
+                                    return
+                                }
+                                blocked = true
+                                personModel.age = years
+                                blocked = false
+                            }
+                            inputMethodHints: Qt.ImhDigitsOnly
+                            function updateFromPerson() {
+                                if(ageBox.blocked) {
+                                } else if(personModel.age == -1) {
+                                    ageBox.text = ''
+                                } else if(personModel.birthDateTime === undefined) {
+                                    ageBox.text = ''
+                                } else if(isNaN(personModel.birthDateTime)) {
+                                    ageBox.text = ''
+                                } else {
+                                    ageBox.text = personModel.age
+                                }
+                            }
+                            Connections {
+                                target: personModel
+                                function onBirthDateTimeChanged() { ageBox.updateFromPerson() }
+                                function onDeceasedDateTimeChanged() { ageBox.updateFromPerson() }
+                                function onDeceasedChanged() { ageBox.updateFromPerson() }
+                            }
+                        }
+
+                        PK.Text {
+                            text: '(Press enter to estimate birth date)'
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: util.HELP_FONT_SIZE
+                            Layout.maximumWidth: 120
+                        }
+                    }
+
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                        Layout.topMargin: 0
+                        visible: editBirthEventButton.visible || editDeathEventButton.visible
+                    }
+
+                    PK.Text { text: " " }
+
+                    PK.Button {
+                        id: editBirthEventButton
+                        text: "→ Edit Birth Event"
+                        visible: Global.isValidDateTime(personModel.birthDateTime)
+                        Layout.topMargin: margin
+                        onClicked: root.editBirthEvent()
+                    }
+
+                    PK.Text { text: " " }
+
+                    PK.Button {
+                        id: editDeathEventButton
+                        text: "→ Edit Death Event"
+                        visible: Global.isValidDateTime(personModel.deceasedDateTime)
+                        onClicked: root.editDeathEvent()
+                    }
+
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                        Layout.topMargin: 0
+                        visible: provisionalSettingsBox.visible
+                    }
+
+                    PK.GroupBox {
+
+                        id: provisionalSettingsBox
+                        title: "Provisional Settings"
+                        Layout.bottomMargin: margin
+                        Layout.fillWidth: true
+                        Layout.columnSpan: 2;
+
+                        ColumnLayout {
+                            anchors.fill: parent
+
+                            PK.CheckBox {
+                                id: adoptedBox
+                                objectName: 'adoptedBox'
+                                text: "Show Adopted"
+                                checkState: personModel.adopted
+                                enabled: !personModel.everAdopted && !root.isReadOnly
+                                Layout.columnSpan: 2
+                                KeyNavigation.tab: deceasedBox
+                                onCheckStateChanged: personModel.adopted = checkState
+                            }
+
+                            PK.CheckBox {
+                                id: deceasedBox
+                                objectName: 'deceasedBox'
+                                text: "Show Deceased"
+                                enabled: ! Global.isValidDateTime(personModel.deceasedDateTime) && !root.isReadOnly
+                                checkState: personModel.deceased
+                                Layout.columnSpan: 2
+                                KeyNavigation.tab: diagramNotesEdit
+                                onCheckStateChanged: personModel.deceased = checkState
+                            }
+
+                            PK.Text {
+                                text: "These options show adopted and deceased status prior to adding adopted and death events to this person. These options are unavailable as soon as at least one of the respective events are added to this person."
+                                font.pixelSize: util.HELP_FONT_SIZE
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    PK.FormDivider {
+                        Layout.columnSpan: 2
+                        Layout.topMargin: 0
+                    }
+                    
+                    ColumnLayout {
+                        Layout.columnSpan: 2
+
+                        PK.Label {
+                            text: 'Diagram Notes'
+                        }
+                        
+                        Rectangle { // for border
+                            Layout.fillWidth: true
+                            Layout.minimumHeight: 150
+                            Layout.maximumHeight: 150
+                            color: 'transparent'
+                            border {
+                                width: 1
+                                color: util.QML_ITEM_BORDER_COLOR
+                            }
+                            PK.TextEdit {
+                                id: diagramNotesEdit
+                                objectName: 'diagramNotesEdit'
+                                text: personModel.diagramNotes
+                                // wrapMode: TextEdit.Wrap
+                                anchors.fill: parent
+                                padding: margin
+                                enabled: !root.isReadOnly
+                                KeyNavigation.tab: primaryBox
+                                onTextChanged: personModel.diagramNotes = (text ? text : undefined)
+                            }
+                        }
+                    }
+
+                    // Spacer line
+
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
+                    Row {
+
+                        Layout.fillWidth: true
+                        Layout.columnSpan: 2                            
+                    
+                        PK.CheckBox {
+                            id: primaryBox
+                            text: "Primary"
+                            enabled: !root.isReadOnly
+                            checkState: personModel.primary
+                            KeyNavigation.tab: bigFontBox
+                            onCheckStateChanged: personModel.primary = checkState
+                        }
+
+                        PK.CheckBox {
+                            id: bigFontBox
+                            text: "Big Font"
+                            enabled: !root.isReadOnly
+                            checkState: personModel.bigFont
+                            KeyNavigation.tab: hideDetailsBox
+                            onCheckStateChanged: personModel.bigFont = checkState
+                        }
+                    }
+
+                    Row {
+
+                        Layout.fillWidth: true
+                        Layout.columnSpan: 2                            
+                    
+                        PK.CheckBox {
+                            id: hideDetailsBox
+                            text: "Hide Details"
+                            enabled: !root.isReadOnly
+                            checkState: personModel.hideDetails
+                            KeyNavigation.tab: firstNameEdit
+                            onCheckStateChanged: personModel.hideDetails = checkState
+                        }
+
+                        PK.CheckBox {
+                            id: hideDatesBox
+                            text: "Hide Dates"
+                            enabled: !root.isReadOnly
+                            checkState: personModel.hideDates
+                            KeyNavigation.tab: firstNameEdit
+                            onCheckStateChanged: personModel.hideDates = checkState
+                        }
+
+                        PK.CheckBox {
+                            id: hideVariablesBox
+                            text: "Hide Variables"
+                            enabled: !root.isReadOnly
+                            checkState: personModel.hideVariables
+                            KeyNavigation.tab: firstNameEdit
+                            onCheckStateChanged: personModel.hideVariables = checkState
+                        }
+
+                    }
                 }
+
             }
         }
 

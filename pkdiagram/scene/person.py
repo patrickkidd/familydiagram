@@ -1298,7 +1298,6 @@ class Person(PathItem):
                 if self.childOf:
                     self.scene().removeItem(self.childOf)
                 self.scene().removeItem(self.detailsText)
-            self.updateDetails()
         elif change == QGraphicsItem.ItemSceneHasChanged:
             if self.scene():
                 if self.childOf:
@@ -1313,6 +1312,8 @@ class Person(PathItem):
                 else:
                     self.setFlag(QGraphicsItem.ItemIsMovable, True)
                 self.updateVariablesDatabase()
+            self.updateDetails()
+            x = 1
         elif change == QGraphicsItem.ItemPositionChange:
             if self.scene() and not self.scene().isInitializing:
                 if self.scene().mousePressOnDraggable:

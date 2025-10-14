@@ -20,6 +20,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
             {"attr": "showLastName", "convertTo": Qt.CheckState},
             {"attr": "showNickName", "convertTo": Qt.CheckState},
             {"attr": "adopted", "convertTo": Qt.CheckState},
+            {"attr": "everAdopted", "convertTo": Qt.CheckState},
             {"attr": "deceased", "convertTo": Qt.CheckState},
             {"attr": "primary", "convertTo": Qt.CheckState},
             {"attr": "hideDetails", "convertTo": Qt.CheckState},
@@ -86,6 +87,8 @@ class PersonPropertiesModel(QObject, ModelHelper):
 
         if event.kind() == EventKind.Birth:
             self.refreshProperty("birthDateTime")
+        elif event.kind() == EventKind.Adopted:
+            self.refreshProperty("everAdopted")
         elif event.kind() == EventKind.Death:
             self.refreshProperty("deceasedDateTime")
 
@@ -135,6 +138,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
                         )
             self.refreshProperty("age")
             self.refreshProperty("birthDateTime")
+
         return super().set(attr, value)
 
     def get(self, attr):
@@ -181,15 +185,33 @@ class PersonPropertiesModel(QObject, ModelHelper):
         elif attr == "age":
             ret = self.sameOf(attr, lambda item: item.age())
         elif attr == "birthDateTime":
+
             def get_birth_datetime(item):
-                events = item.scene().eventsFor(item, kinds=EventKind.Birth)
+                events = self._scene.eventsFor(item, kinds=EventKind.Birth)
                 return events[0].dateTime() if events else QDateTime()
+
             ret = self.sameOf(attr, get_birth_datetime)
+        elif attr == "everAdopted":
+            adoptedEvents = {
+                item: self._scene.eventsFor(item, kinds=EventKind.Adopted)
+                for item in self._items
+            }
+            ret = util.sameOf(
+                self._items,
+                lambda item: len(self._scene.eventsFor(item, kinds=EventKind.Adopted))
+                > 0,
+            )
+            if all(len(events) > 0 for events in adoptedEvents.values()):
+                ret = Qt.Checked
+            elif any(len(events) > 0 for events in adoptedEvents.values()):
+                ret = Qt.PartiallyChecked
+            else:
+                ret = Qt.Unchecked
         elif attr == "deceasedDateTime":
-            def get_death_datetime(item):
-                events = item.scene().eventsFor(item, kinds=EventKind.Death)
-                return events[0].dateTime() if events else QDateTime()
-            ret = self.sameOf(attr, get_death_datetime)
+            ret = util.sameOf(self._items, lambda x: x.deceasedDateTime())
+            if ret is None:
+                ret = QDateTime()
+            x = 1
         else:
             ret = super().get(attr)
         return ret
@@ -202,7 +224,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
         elif attr == "deemphasize":
             super().reset("itemOpacity")
         elif attr == "itemPos":
-            with self.scene.resettingSomeLayerProps():
+            with self._scene.resettingSomeLayerProps():
                 super().reset(attr)
         else:
             super().reset(attr)

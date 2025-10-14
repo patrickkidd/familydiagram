@@ -22,25 +22,7 @@ then adding them later
 - Replace composed special events, e.g. `birthEvent` or `setBirthDateTime`, with
   adding Event's of the correct kind
 
- 
 
-## Cascade Delete Investigation - COMPLETED 2025-10-13
-
-### Issue 1: Event→Emotion cascade delete MISSING
-During verification of the RemoveItems → Scene cascade delete refactor, discovered that **Event→Emotion cascade delete was MISSING** from Scene._do_removeItem().
-
-**Evidence:**
-1. **RemoveItems.redo() comment** (commands.py:255): `"# Scene will cascade delete emotions"`
-2. **Scene._do_addItem() comment** (scene.py:403): `"# Dated emotions are owned by the Event and deleted along with it"`
-3. **test_remove_emotions.py test** (lines 156-181): `test_remove_event_deletes_emotions` expects emotions to be deleted when event is removed
-4. **Actual behavior**: Scene._do_removeItem() had NO code to delete emotions when removing an event
-
-**Fix Applied:**
-Refactored Scene._do_removeItem() to use helper functions following the original RemoveItems.redo() organization:
-- Added `_removePerson(item)` - cascades to events, emotions, marriages
-- Added `_removeMarriage(item)` - handles marriage cleanup
-- Added `_removeEvent(item)` - **cascades to emotions** (FIX)
-- Added `_removeEmotion(item)` - handles emotion removal
 
 ### Issue 2: Missing scenarios in Scene removal logic
 Second verification pass found **THREE missing scenarios** when comparing RemoveItems.redo() with Scene methods:
