@@ -431,19 +431,18 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            if not self._isUndoRedoing:
-                for target in item.relationshipTargets():
-                    # Dated emotions are owned by the Event and deleted along
-                    # with it.
-                    emotion = self.addItem(
-                        Emotion(
-                            kind=item.relationship(),
-                            target=target,
-                            event=item,
-                            tags=item.tags(),
-                        )
+            for target in item.relationshipTargets():
+                # Dated emotions are owned by the Event and deleted along
+                # with it.
+                emotion = self.addItem(
+                    Emotion(
+                        kind=item.relationship(),
+                        target=target,
+                        event=item,
+                        tags=item.tags(),
                     )
-                    self._do_addItem(emotion)
+                )
+                self._do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])

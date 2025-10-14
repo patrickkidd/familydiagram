@@ -84,7 +84,7 @@ def test_triangle(scene, view):
     view.trianglesPicker.add_existing_person(outside)
     view.set_startDateTime(START_DATETIME)
     view.clickSaveButton()
-    emotion = person.emotions()[0]
+    emotion = scene.emotionsFor(person)[0]
     assert emotion.kind() == ItemMode.Inside
     assert emotion.startEvent.relationshipTargets() == [inside]
     assert emotion.endEvent.relationshipTriangles() == [outside]

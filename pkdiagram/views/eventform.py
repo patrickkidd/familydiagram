@@ -138,9 +138,7 @@ class EventForm(QmlDrawer):
             people = [x for x in selection if x.isPerson]
             if len(people) != 2:
                 return None
-            marriages = self.scene.marriageFor(people[0], people[1])
-            if marriages:
-                return marriages[0]
+            return self.scene.marriageFor(people[0], people[1])
         return None
 
     def addEvent(self, selection: list[Item] = None):
@@ -595,22 +593,58 @@ class EventForm(QmlDrawer):
         newMarriages = []
         newEmotions = []
 
-        if not isEditing:
+        if isEditing:
 
-            newEvent: Event = self.scene.addItem(Event(kind, person))
-            if kind == EventKind.Shift and relationship:
-                newEvent.setRelationshipTargets(targets)
-                newEvent.setRelationshipTriangles(triangles)
-                events = [newEvent]
+            for event in self._events:
+                if kind != event.kind():
+                    event.setKind(kind, undo=True)
+                if spouse != event.spouse():
+                    event.setSpouse(spouse, undo=True)
+                if child != event.child():
+                    event.setChild(child, undo=True)
+                if kind == EventKind.Adopted:
+                    event.child().setAdopted(True, undo=True)
+                event.setDateTime(startDateTime, undo=True)
+                if endDateTime != event.endDateTime():
+                    event.setEndDateTime(endDateTime, undo=True)
+                elif isDateRangeDirty and not isDateRange:
+                    event.setEndDateTime(QDateTime(), undo=True)
+                if symptom != event.symptom():
+                    event.setSymptom(symptom, undo=True)
+                if anxiety != event.anxiety():
+                    event.setAnxiety(anxiety, undo=True)
+                if relationship != event.relationship():
+                    event.setRelationship(relationship, undo=True)
+                    if targets:
+                        event.setRelationshipTargets(targets, undo=True)
+                    if relationship in (
+                        RelationshipKind.Inside,
+                        RelationshipKind.Outside,
+                    ):
+                        event.setRelationshipTriangles(triangles, undo=True)
+                if functioning != event.functioning():
+                    event.setFunctioning(functioning, undo=True)
+                if description != event.description():
+                    event.setDescription(description, undo=True)
+                if location != event.location():
+                    event.setLocation(location, undo=True)
+                if notes != event.notes():
+                    event.setNotes(notes, undo=True)
+                if color != event.color():
+                    event.setColor(color, undo=True)
+                # Tags
+                if not isEditing:
+                    event.setTags(checkedTags, undo=True)
+                else:
+                    current_tags = set(event.tags())
+                    current_tags -= set(uncheckedTags)
+                    current_tags |= set(checkedTags)
+                    event.setTags(list(current_tags), undo=True)
 
-            else:  # kind.isPairBond()
+        else:
 
-                # Default child if not added
-                if kind in (EventKind.Birth, EventKind.Adopted) and not child:
-
-                    child = self.scene.addItem(
-                        Person(size=self.scene.newPersonSize()), undo=True
-                    )
+            kwargs = {}
+            if kind.isPairBond():
 
                 # Default spouse if not added
                 if not spouse:
@@ -634,54 +668,50 @@ class EventForm(QmlDrawer):
                     marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
                     newMarriages.append(marriage)
 
-        # Set event properties
+                # Default child if not added
+                if kind in (EventKind.Birth, EventKind.Adopted):
+                    if not child:
 
-        if isEditing:
-            events = self._events
-        else:
-            events = [self.scene.addItem(Event(kind, person))]
+                        child = self.scene.addItem(
+                            Person(size=self.scene.newPersonSize()), undo=True
+                        )
 
-        for event in events:
-            event.setKind(kind, undo=True)
-            if spouse:
-                event.setSpouse(spouse, undo=True)
-            if child:
-                event.setChild(child, undo=True)
-            if kind == EventKind.Adopted:
-                event.child().setAdopted(True, undo=True)
-            event.setDateTime(startDateTime, undo=True)
+                    child.setParents(marriage, undo=True)
+
+                kwargs["child"] = child
+                kwargs["spouse"] = spouse
+
             if endDateTime:
-                event.setEndDateTime(endDateTime, undo=True)
-            elif isDateRangeDirty and not isDateRange:
-                event.setEndDateTime(QDateTime(), undo=True)
+                kwargs["endDateTime"] = endDateTime
             if symptom is not None:
-                event.setSymptom(symptom, undo=True)
+                kwargs["symptom"] = symptom
             if anxiety is not None:
-                event.setAnxiety(anxiety, undo=True)
+                kwargs["anxiety"] = anxiety
             if relationship is not None:
-                event.setRelationship(relationship, undo=True)
-                if relationshipTargets:
-                    event.setRelationshipTargets(targets, undo=True)
-                if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
-                    event.setRelationshipTriangles(triangles, undo=True)
+                kwargs["relationship"] = relationship
+                if targets:
+                    kwargs["relationshipTargets"] = targets
+                if relationship in (
+                    RelationshipKind.Inside,
+                    RelationshipKind.Outside,
+                ):
+                    kwargs["relationshipTriangles"] = triangles
             if functioning is not None:
-                event.setFunctioning(functioning, undo=True)
+                kwargs["functioning"] = functioning
             if description:
-                event.setDescription(description, undo=True)
+                kwargs["description"] = description
             if location:
-                event.setLocation(location, undo=True)
+                kwargs["location"] = location
             if notes:
-                event.setNotes(notes, undo=True)
+                kwargs["notes"] = notes
             if color:
-                event.setColor(color, undo=True)
-            # Tags
-            if not isEditing:
-                event.setTags(checkedTags, undo=True)
-            else:
-                current_tags = set(event.tags())
-                current_tags -= set(uncheckedTags)
-                current_tags |= set(checkedTags)
-                event.setTags(list(current_tags), undo=True)
+                kwargs["color"] = color
+            if checkedTags:
+                kwargs["tags"] = checkedTags
+
+            self.scene.addItem(
+                Event(kind, person, dateTime=startDateTime, **kwargs), undo=True
+            )
 
         # Arrange people
         spacing = (newPeople[0].sceneBoundingRect().width() * 2) if newPeople else 0
@@ -799,7 +829,7 @@ class EventForm(QmlDrawer):
         ):
             self.scene.setCurrentDateTime(startDateTime, undo=True)
         elif newEmotions:
-            self.scene.setCurrentDateTime(events[0].dateTime(), undo=True)
+            self.scene.setCurrentDateTime(newEmotions[0].startDateTime(), undo=True)
         elif self.scene.currentDateTime().isNull() and timelineModel.rowCount() > 0:
             self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:
