@@ -34,8 +34,9 @@ def test_add_pairbond_and_children(scene, view):
     spouse = birthEvent.spouse()
     spouse.setSelected(True)
     spouse.setName("Jane")
-    view.addEvent(scene.selectedItems())
-    QApplication.processEvents()
+
+    view.view.addEvent(scene.selectedItems())
+    util.waitALittle()
     view.set_kind(EventKind.Married)
     view.spousePicker.set_existing_person(spouse)
     view.set_startDateTime(START_DATETIME.addYears(25))
@@ -74,7 +75,7 @@ def test_mw_add_pairbond_and_children(scene, view):
     }
 
     # Add by marriage
-    view.addEvent([johnDoe])
+    view.view.addEvent([johnDoe])
     view.set_kind(EventKind.Married)
     view.personPicker.set_existing_person(johnDoe)
     view.childPicker.set_new_person(
@@ -91,7 +92,7 @@ def test_mw_add_pairbond_and_children(scene, view):
     assert janetDoran.marriages[0].events()[0].dateTime() == START_DATETIME.addYears(25)
 
     # Add first kid
-    view.addEvent([])
+    view.view.addEvent([])
     view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("Roberto Doe")
     view.personAPicker.set_existing_person(person=johnDoe)
@@ -225,13 +226,13 @@ def test_no_Marriage_DeferredDelete(data_root, scene, view):
     patrick = scene.query1(name="Patrick")
     bob = scene.query1(name="bob")
 
-    view.addEvent([patrick.marriages[0]])
+    view.view.addEvent([patrick.marriages[0]])
     view.set_kind(EventKind.CustomPairBond)
     view.set_startDateTime(QDateTime(1990, 1, 1, 0, 0))
     view.set_description("Something pair-bond-y")
     view.clickSaveButton()
 
-    view.addEvent([patrick])
+    view.view.addEvent([patrick])
     view.set_kind(EventKind.Birth)
     view.set_startDateTime(QDateTime(1900, 1, 1, 0, 0))
 

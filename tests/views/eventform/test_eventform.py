@@ -58,7 +58,7 @@ def test_init(qmlEngine, view, editorMode):
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
 def test_attrs(scene, view, kind: EventKind):
     mother = scene.addItem(Person(name="Mother"))
-    view.addEvent([])
+    view.view.addEvent([])
     view.set_kind(kind)
     view.personPicker.set_existing_person(mother)
     view.set_startDateTime(START_DATETIME)
@@ -79,7 +79,9 @@ def test_attrs(scene, view, kind: EventKind):
         assert child.birthDateTime() == START_DATETIME
     elif kind == EventKind.Adopted:
         assert child.adopted() == True
-        assert child.adoptedDateTime() == START_DATETIME
+        assert [
+            x.dateTime() for x in scene.eventsFor(child, kinds=EventKind.Adopted)
+        ] == [START_DATETIME]
     elif kind == EventKind.Death:
         assert child.deceased() == True
         assert child.deceasedDateTime() == START_DATETIME
@@ -88,7 +90,7 @@ def test_attrs(scene, view, kind: EventKind):
 
 def test_attrs_Death(scene, view):
     person = scene.addItem(Person(name="John Doe"))
-    view.addEvent([])
+    view.view.addEvent([])
     view.set_kind(EventKind.Death)
     view.personPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)

@@ -133,14 +133,6 @@ class EventForm(QmlDrawer):
     #         f"EventForm.onActiveFocusItemChanged: {parentName}.{itemName}[{itemClassName}]"
     #     )
 
-    def marriageForSelection(self, selection: list[Item]) -> Marriage | None:
-        if selection:
-            people = [x for x in selection if x.isPerson]
-            if len(people) != 2:
-                return None
-            return self.scene.marriageFor(people[0], people[1])
-        return None
-
     def addEvent(self, selection: list[Item] = None):
         self.clear()
         self.item.setProperty("isEditing", False)
@@ -148,12 +140,12 @@ class EventForm(QmlDrawer):
         self._events = [event]
         self._tagsModel.items = [event]
         if selection:
-            pairBond = self.marriageForSelection(selection)
-            if pairBond:
-                self.initWithPerson(pairBond.personA().id)
-            elif any(x.isPerson for x in selection):
-                id = next(x.id for x in selection if x.isPerson)
-                self.initWithPerson(id)
+            people = [x for x in selection if x.isPerson]
+            marriages = [x for x in selection if x.isMarriage]
+            if people:
+                self.initWithPerson(people[0].id)
+            elif marriages:
+                self.initWithPerson(marriages[0].personA().id)
             else:
                 self.initWithNoSelection()
         else:
@@ -600,7 +592,7 @@ class EventForm(QmlDrawer):
                     event.setKind(kind, undo=True)
                 if spouse != event.spouse():
                     event.setSpouse(spouse, undo=True)
-                if child != event.child():
+                if child and child != event.child():
                     event.setChild(child, undo=True)
                 if kind == EventKind.Adopted:
                     event.child().setAdopted(True, undo=True)
@@ -624,11 +616,11 @@ class EventForm(QmlDrawer):
                         event.setRelationshipTriangles(triangles, undo=True)
                 if functioning != event.functioning():
                     event.setFunctioning(functioning, undo=True)
-                if description != event.description():
+                if description and description != event.description():
                     event.setDescription(description, undo=True)
-                if location != event.location():
+                if location and location != event.location():
                     event.setLocation(location, undo=True)
-                if notes != event.notes():
+                if notes and notes != event.notes():
                     event.setNotes(notes, undo=True)
                 if color != event.color():
                     event.setColor(color, undo=True)
@@ -646,8 +638,12 @@ class EventForm(QmlDrawer):
             kwargs = {}
             if kind.isPairBond():
 
+                marriage = None
+                if spouse:
+                    marriage = self.scene.marriageFor(person, spouse)
+
                 # Default spouse if not added
-                if not spouse:
+                else:
                     if person.gender() == util.PERSON_KIND_MALE:
                         spouseKind = util.PERSON_KIND_FEMALE
                     elif person and person.gender() == util.PERSON_KIND_FEMALE:
@@ -663,7 +659,6 @@ class EventForm(QmlDrawer):
                     )
                     newPeople.append(spouse)
 
-                marriage = self.marriageForSelection([person, spouse])
                 if not marriage:
                     marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
                     newMarriages.append(marriage)
@@ -677,6 +672,9 @@ class EventForm(QmlDrawer):
                         )
 
                     child.setParents(marriage, undo=True)
+
+                if kind == EventKind.Adopted:
+                    child.setAdopted(True, undo=True)
 
                 kwargs["child"] = child
                 kwargs["spouse"] = spouse

@@ -109,12 +109,6 @@ class TestEventForm:
     def clickCancelButton(self):
         self.view.mouseClickItem(self.cancelButton)
 
-    def addEvent(self, selection: list[PathItem] = None):
-        if self.view.marriageForSelection(selection):
-            self.view.addEvent(selection)
-        else:
-            self.view.addEvent(selection)
-
     def set_person_picker_gender(self, personPicker, genderLabel):
         genderBox = self.personPicker.property("genderBox")
         assert genderBox is not None, f"Could not find genderBox for {personPicker}"
