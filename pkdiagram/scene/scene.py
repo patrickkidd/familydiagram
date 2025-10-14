@@ -660,6 +660,14 @@ class Scene(QGraphicsScene, Item):
         elif item.isItemDetails:
             self._itemDetails.remove(item)
 
+        # Clean up layer item properties for removed item
+        if item.id is not None:
+            for layer in self.layers(includeInternal=True):
+                itemProps = layer.itemProperties()
+                if item.id in itemProps:
+                    del itemProps[item.id]
+                    layer.setItemProperties(itemProps, notify=False)
+
         # deregister AFTER cascade so lookups still work during cascade
         _deregisterItem(item)
 

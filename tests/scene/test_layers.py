@@ -1,6 +1,7 @@
 import pytest
+from mock import patch
 
-from pkdiagram.pyqt import QPointF
+from pkdiagram.pyqt import QPointF, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Scene, Layer, PathItem, Person, Property, Callout
 
@@ -344,7 +345,8 @@ class LayeredPathItem(PathItem):
 
 
 def test_delete_layer_prop_with_items(qtbot, scene):
-    layer, item = scene.addItems(Layer(active=True), LayeredPathItem())
+    layer = scene.addItem(Layer(active=True))
+    item = scene.addItem(LayeredPathItem())
     item.setFlag(item.ItemIsSelectable, True)
     item.setSomething("here", undo=True)  # 0
     value, ok = layer.getItemProperty(item.id, "something")
@@ -353,7 +355,11 @@ def test_delete_layer_prop_with_items(qtbot, scene):
     assert len(layer.itemProperties().items()) == 1
 
     item.setSelected(True)
-    qtbot.clickYesAfter(lambda: scene.removeSelection())  # 1
+    with patch(
+        "pkdiagram.scene.scene.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as question:
+        scene.removeSelection()  # 1
+    assert question.call_count == 1
     value, ok = layer.getItemProperty(item.id, "something")
     assert ok == False
     assert value == None
@@ -539,7 +545,8 @@ def __test_dont_reset_positions_on_activate_layer(monkeypatch, scene):
 
 
 def tests_duplicate(scene):
-    layer1, item, callout = scene.addItems(Layer(active=True), PathItem(), Callout())
+    layer1 = scene.addItem(Layer(active=True))
+    item, callout = scene.addItems(PathItem(), Callout())
     assert layer1.id in callout.layers()
 
     layer2 = layer1.clone(scene)
