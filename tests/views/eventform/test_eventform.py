@@ -82,7 +82,7 @@ def test_attrs(scene, view, kind: EventKind):
         assert child.adoptedDateTime() == START_DATETIME
     elif kind == EventKind.Death:
         assert child.deceased() == True
-        assert child.deathDateTime() == START_DATETIME
+        assert child.deceasedDateTime() == START_DATETIME
     assert scene.currentDateTime() == START_DATETIME
 
 

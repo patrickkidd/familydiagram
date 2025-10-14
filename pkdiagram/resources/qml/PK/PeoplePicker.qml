@@ -100,7 +100,7 @@ PK.GroupBox {
     }
 
     function setExistingPeopleIds(personIds) {
-        print(root.objectName + '.setExistingPeopleIds: ' + personIds.length)
+        // print(root.objectName + '.setExistingPeopleIds: ' + personIds.length)
         var people = []
         for(var i = 0; i < personIds.length; i++) {
             people.push(sceneModel.item(personIds[i]))

@@ -27,8 +27,7 @@ def variables(scene):
 
 def test_init_Birth(scene, view):
     person = scene.addItem(Person(name="John Doe"))
-    event = scene.addItem(Event(EventKind.Birth, person))
-    event.setDateTime(START_DATETIME)
+    event = scene.addItem(Event(EventKind.Birth, person, dateTime=START_DATETIME))
     event.setLocation("Old Location")
     event.setNotes("Old Notes")
 
@@ -43,18 +42,13 @@ def test_init_Birth(scene, view):
 
 def test_init_Death(scene, view):
     person = scene.addItem(Person(name="John Doe"))
-    event = scene.addItem(
-        Event(person, kind=EventKind.Death, description=EventKind.Death.name)
-    )
-    event.setDateTime(START_DATETIME)
+    event = scene.addItem(Event(EventKind.Death, person, dateTime=START_DATETIME))
     event.setLocation("Old Location")
     event.setNotes("Old Notes")
-    person.setDeceased(True)
-    person.setDeceasedDateTime(START_DATETIME)
 
     view.view.editEvents([event])
     assert view.view.personEntry()["person"] == person
-    assert view.item.property("kind") == EventKind.Death
+    assert view.item.property("kind") == EventKind.Death.value
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Old Location"
     assert view.item.property("notes") == "Old Notes"
@@ -64,16 +58,16 @@ def test_init_Shift(scene, view):
     mother = scene.addItem(Person(name="Mother"))
     event = scene.addItem(
         Event(
-            parent=mother,
-            kind=EventKind.Shift,
-            location="Some Location",
-            notes="Some Notes",
+            EventKind.Shift,
+            mother,
             dateTime=START_DATETIME,
         )
     )
+    event.setLocation("Some Location")
+    event.setNotes("Some Notes")
     event.setDescription("Some Description")
     view.view.editEvents([event])
-    assert view.item.property("kind") == EventKind.Shift
+    assert view.item.property("kind") == EventKind.Shift.value
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries() == []
     assert view.view.trianglesEntries() == []
@@ -84,25 +78,27 @@ def test_init_Shift(scene, view):
 
 
 def test_init_Shift_Conflict(scene, view):
-    mother = scene.addItem(Person(name="Mother"))
-    father = scene.addItem(Person(name="Father"))
-    conflict = scene.addItem(
-        Emotion(
-            kind=ItemMode.Conflict,
-            personA=mother,
-            personB=father,
-            startDateTime=START_DATETIME,
+    mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
+    conflictEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            mother,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[father],
+            dateTime=START_DATETIME,
             endDateTime=END_DATETIME,
         )
     )
-    conflict.startEvent.setLocation("Some Location")
-    conflict.startEvent.setNotes("Some Notes")
-    view.view.editEvents([conflict.startEvent])
+    conflictEvent.setLocation("Some Location")
+    conflictEvent.setNotes("Some Notes")
+    conflictEvent.setDescription("Conflict began")
+    conflict = scene.emotionsFor(conflictEvent)[0]
+    view.view.editEvents([conflictEvent])
     util.waitALittle()
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.Shift
-    assert view.item.property("relationship") == RelationshipKind.Conflict
+    assert view.item.property("kind") == EventKind.Shift.value
+    assert view.item.property("relationship") == RelationshipKind.Conflict.value
     assert view.item.property("description") == "Conflict began"
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Some Location"
@@ -110,63 +106,74 @@ def test_init_Shift_Conflict(scene, view):
 
 
 def test_init_Shift_Triangle(scene, view):
-    mother = scene.addItem(Person(name="Mother"))
-    father = scene.addItem(Person(name="Father"))
-    lover = scene.addItem(Person(name="Lover"))
-    triangle = scene.addItem(
-        Emotion(
-            kind=ItemMode.Inside,
-            personA=mother,
-            personB=lover,
-            personC=father,
-            startDateTime=START_DATETIME,
+    mother, father, lover = scene.addItems(
+        Person(name="Mother"), Person(name="Father"), Person(name="Lover")
+    )
+    triangleEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            mother,
+            relationship=RelationshipKind.Inside,
+            relationshipTargets=[lover],
+            relationshipTriangles=[father],
+            dateTime=START_DATETIME,
             endDateTime=END_DATETIME,
         )
     )
-    triangle.startEvent.setRelationshipTriangles([father])
-    view.view.editEvents([triangle.startEvent])
+    triangle = scene.emotionsFor(triangleEvent)[0]
+    view.view.editEvents([triangleEvent])
     util.waitALittle()
     assert view.view.personEntry()["person"] == mother
     assert view.view.targetsEntries()[0]["person"] == lover
     assert view.view.trianglesEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.Shift
-    assert view.item.property("relationship") == RelationshipKind.Inside
+    assert view.item.property("kind") == EventKind.Shift.value
+    assert view.item.property("relationship") == RelationshipKind.Inside.value
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("endDateTime") == END_DATETIME
     assert view.item.property("isDateRange") is True
 
 
-@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
+@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
 def test_edit_isPerson(scene, view, kind):
-    person = scene.addItem(Person(name="John Doe"))
-    event = None
-    if kind == EventKind.Birth:
-        event = person.birthEvent
-    elif kind == EventKind.Adopted:
-        event = person.adoptedEvent
-        person.setAdopted(True)
-    elif kind == EventKind.Death:
-        event = person.deathEvent
-        person.setDeceased(True)
-    event.setDateTime(START_DATETIME)
+    person, spouse, child = scene.addItems(
+        Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Child")
+    )
+    marriage = scene.addItem(Marriage(person, spouse))
+    event = scene.addItem(
+        Event(kind, person, spouse=spouse, child=child, dateTime=START_DATETIME)
+    )
     view.view.editEvents([event])
     view.set_location("New Location")
     view.set_notes("New Notes")
     view.set_startDateTime(START_DATETIME)
-    if kind == EventKind.Death:
-        with patch(
-            "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
-        ) as question:
-            view.clickSaveButton()
-            assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
-                n_existing=1, kind=EventKind.Death.name
-            )
-    else:
-        view.clickSaveButton()
+    view.clickSaveButton()
 
-    assert len(person.events()) == 1
+    assert len(scene.eventsFor(marriage)) == 1
     assert event.kind() == kind
     assert event.description() == kind.name
+    assert event.location() == "New Location"
+    assert event.notes() == "New Notes"
+    assert event.dateTime() == START_DATETIME
+
+
+def test_edit_Death(scene, view):
+    person = scene.addItem(Person(name="John Doe"))
+    event = scene.addItem(Event(EventKind.Death, person, dateTime=START_DATETIME))
+    view.view.editEvents([event])
+    view.set_location("New Location")
+    view.set_notes("New Notes")
+    view.set_startDateTime(START_DATETIME)
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as question:
+        view.clickSaveButton()
+        assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
+            n_existing=1, kind=EventKind.Death.name
+        )
+
+    assert len(scene.eventsFor(person)) == 1
+    assert event.kind() == EventKind.Death
+    assert event.description() == None
     assert event.location() == "New Location"
     assert event.notes() == "New Notes"
     assert event.dateTime() == START_DATETIME
@@ -176,16 +183,11 @@ def test_edit_isPerson(scene, view, kind):
     "kind",
     [EventKind.Bonded, EventKind.Married, EventKind.Separated, EventKind.Divorced],
 )
-@pytest.mark.parametrize("legacy", [False, True])
-def test_edit_isPairBond(scene, view, kind: EventKind, legacy: bool):
-    person = scene.addItem(Person(name="John Doe"))
-    spouse = scene.addItem(Person(name="Jane Doe"))
+def test_edit_isPairBond(scene, view, kind: EventKind):
+    person, spouse = scene.addItems(Person(name="John Doe"), Person(name="Jane Doe"))
     marriage = scene.addItem(Marriage(person, spouse))
-    if legacy:
-        event = scene.addItem(Event(marriage, kind=kind))
-    else:
-        event = scene.addItem(Event(person, kind=kind))
-        event.setSpouse(spouse)
+    event = scene.addItem(Event(kind, person))
+    event.setSpouse(spouse)
     event.setRelationshipTargets([spouse])
     view.view.editEvents([event])
     view.set_startDateTime(START_DATETIME)
@@ -194,10 +196,5 @@ def test_edit_isPairBond(scene, view, kind: EventKind, legacy: bool):
     # assert len(person.events()) == 1
     assert event.kind() == kind
     assert event.dateTime() == START_DATETIME
-    if legacy:
-        assert event.parent == marriage
-        assert event.parent.personA() == person
-        assert event.parent.personB() == spouse
-    else:
-        assert event.parent == person
-        assert event.spouse() == spouse
+    assert event.person() == person
+    assert event.spouse() == spouse

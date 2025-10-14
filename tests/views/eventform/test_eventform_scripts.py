@@ -123,9 +123,7 @@ def test_mw_add_pairbond_and_children(scene, view):
 
 
 def test_add_pairbond_event_to_existing_pairbond(scene, view):
-    personA, personB = Person(name="John"), Person(name="Jane")
-    # marriage = Marriage(personA, personB)
-    scene.addItems(personA, personB)
+    personA, personB = scene.addItems(Person(name="John"), Person(name="Jane"))
 
     view.set_kind(EventKind.Married)
     view.personPicker.set_existing_person(person=personA)
@@ -182,8 +180,7 @@ def test_mw_add_birth_w_parents_and_birth(scene, view):
 
 
 def test_add_second_marriage_to_person(scene, view):
-    person = Person(name="John", lastName="Doe")
-    scene.addItem(person)
+    person = scene.addItem(Person(name="John", lastName="Doe"))
     view.set_kind(EventKind.Married)
     view.personPicker.set_existing_person(person=person)
     view.spousePicker.set_new_person("Jane Doe")

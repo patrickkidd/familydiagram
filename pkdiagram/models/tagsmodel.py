@@ -260,9 +260,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
                 # Emotions and their events are bound to the same tags.
                 # Added here to include prop changes in undo
                 todo = set(self._items)
-                for item in self._items:
-                    if item.isEvent and item.parent and item.parent.isEmotion:
-                        todo.add(item.parent)
                 # Do the value set
                 self._settingItemTags = True
                 with self._scene.macro(f"Set tag '{tag}' on items to {value}"):

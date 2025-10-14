@@ -663,7 +663,7 @@ class EventForm(QmlDrawer):
             if functioning is not None:
                 event.setFunctioning(functioning, undo=True)
             if kind:
-                event.setUniqueId(kind.value, undo=True)
+                event.setKind(kind, undo=True)
             if description:
                 event.setDescription(description, undo=True)
             if location:

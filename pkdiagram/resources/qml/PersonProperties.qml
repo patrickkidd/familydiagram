@@ -411,7 +411,7 @@ PK.Drawer {
                                     id: deceasedBox
                                     objectName: 'deceasedBox'
                                     text: "Show Deceased"
-                                    enabled: !personModel.anySeparatedEvents && !personModel.everDivorced
+                                    enabled: !personModel.anySeparatedEvents && !personModel.everDeceased
                                     checkState: personModel.deceased
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: diagramNotesEdit

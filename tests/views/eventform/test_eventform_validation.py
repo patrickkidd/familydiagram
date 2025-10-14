@@ -85,8 +85,10 @@ def test_required_field_PairBond(view):
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted, EventKind.Death])
 def test_confirm_replace_singular_events(qtbot, scene, view, kind):
     PRIOR_DATETIME = util.Date(2011, 1, 1)
-    parent = scene.addItem(Person(name="Parent", lastName="Doe"))
-    child = scene.addItem(Person(name="John", lastName="Doe"))
+    parent, child = scene.addItems(
+        Person(name="Parent", lastName="Doe"),
+        Person(name="John", lastName="Doe"),
+    )
     if kind == EventKind.Birth:
         child.setBirthDateTime(PRIOR_DATETIME)
     elif kind == EventKind.Adopted:

@@ -1099,11 +1099,9 @@ class Person(PathItem):
             if self.deceasedReason() and not ignoreDeath:
                 lines.append(self.deceasedReason())
         if not hideDates and self.adopted():
-            ignoreAdoption = (
-                self.adoptedDateTime() and self.adoptedDateTime() > currentDateTime
-            )
-            if self.adoptedDateTime() and not ignoreAdoption:
-                lines.append("a. " + util.dateString(self.adoptedDateTime()))
+            for event in self.scene().eventsFor(self, kinds=EventKind.Adopted):
+                if event.dateTime() <= currentDateTime:
+                    lines.append("a. " + util.dateString(event.dateTime()))
 
         # Compile Custom Details
         if not hideDetails and self.diagramNotes():

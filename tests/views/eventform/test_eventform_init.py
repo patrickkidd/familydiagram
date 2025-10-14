@@ -36,10 +36,11 @@ def test_init_with_existing_person(scene, view):
 
 
 def test_init_with_pairbond_people_selected(scene, view):
-    person = Person(name="Joseph", lastName="Donner")
-    spouse = Person(name="Josephina", lastName="Donner")
-    marriage = Marriage(personA=person, personB=spouse)
-    scene.addItems(person, spouse, marriage)
+    person, spouse = scene.addItems(
+        Person(name="Joseph", lastName="Donner"),
+        Person(name="Josephina", lastName="Donner"),
+    )
+    marriage = scene.addItem(Marriage(personA=person, personB=spouse))
     view.addEvent([person, spouse])
     assert view.item.property("kind") == None
     assert view.personPicker.item.property("person") == person
@@ -47,10 +48,11 @@ def test_init_with_pairbond_people_selected(scene, view):
 
 
 def test_init_with_pairbond_selected(scene, view):
-    person = Person(name="Joseph", lastName="Donner")
-    spouse = Person(name="Josephina", lastName="Donner")
-    marriage = Marriage(personA=person, personB=spouse)
-    scene.addItems(person, spouse, marriage)
+    person, spouse = scene.addItems(
+        Person(name="Joseph", lastName="Donner"),
+        Person(name="Josephina", lastName="Donner"),
+    )
+    marriage = scene.addItem(Marriage(personA=person, personB=spouse))
     view.addEvent([marriage])
     assert view.item.property("kind") == None
     assert view.personPicker.item.property("person") == person
@@ -58,11 +60,12 @@ def test_init_with_pairbond_selected(scene, view):
 
 
 def test_init_with_individuals_selected(scene, view):
-    personA = Person(name="Joseph", lastName="Donner")
-    personB = Person(name="Josephina", lastName="Donner")
-    personC = Person(name="Josephine", lastName="Donner")
-    personD = Person(name="Josephine", lastName="Donner")
-    scene.addItems(personA, personB, personC, personD)
+    personA, personB, personC, personD = scene.addItems(
+        Person(name="Joseph", lastName="Donner"),
+        Person(name="Josephina", lastName="Donner"),
+        Person(name="Josephine", lastName="Donner"),
+        Person(name="Josephine", lastName="Donner"),
+    )
     view.addEvent([personA, personB, personC])
     assert view.item.property("kind") == None
     assert view.view.personEntry()["person"] == personA
