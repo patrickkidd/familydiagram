@@ -111,7 +111,7 @@ Rectangle {
                         checkState: active
                         onClicked: onRowClicked(null, index)
                         onCheckStateChanged: {
-                            print(">>> iTag ", iTag, " active changed", active, ', name: ', name)
+                            // print(">>> iTag ", iTag, " active changed", active, ', name: ', name)
                             if(active != checkState) {
                                 active = checkState
                             }

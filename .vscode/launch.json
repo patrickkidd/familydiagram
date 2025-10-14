@@ -209,7 +209,7 @@
                 "-svvx"
             ],
             "env": {
-                // "QT_QPA_PLATFORM": "cocoa",
+                "QT_QPA_PLATFORM": "cocoa",
                 // "QML_LOGGING": "qt.quick.mouse",
                 // "QT_LOGGING_RULES": "qt.quick.*=true"
                 // "QT_LOGGING_RULES": "qt.qpa.*=true"

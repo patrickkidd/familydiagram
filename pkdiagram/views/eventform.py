@@ -739,7 +739,7 @@ class EventForm(QmlDrawer):
                 parentBPos = parentB.itemPos()
                 xLeft = min(parentAPos.x(), parentBPos.x())
                 xRight = max(parentAPos.x(), parentBPos.x())
-                marriage = self.scene().marriageFor(parentA, parentB)
+                marriage = self.scene.marriageFor(parentA, parentB)
                 siblings = [x for x in marriage.children if x != child]
                 if siblings:
                     newSiblings = list(

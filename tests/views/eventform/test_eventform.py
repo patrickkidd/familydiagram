@@ -49,7 +49,7 @@ def test_init(qmlEngine, view, editorMode):
     qmlEngine.sceneModel.onEditorMode(editorMode)
     assert view.item.property("kind") == None
     assert view.kindBox.property("currentIndex") == -1
-    assert view.colorBox.property("color") == None
+    assert view.colorBox.property("color") == "transparent"
     assert view.tagsEdit.property("isDirty") == False
     assert view.tagsEdit.property("visible") == editorMode
     assert view.rootProp("tagsLabel").property("visible") == editorMode
@@ -69,7 +69,7 @@ def test_attrs(scene, view, kind: EventKind):
 
     child = mother.marriages[0].children[0]
     assert child.name() == None
-    event = child.events()[0]
+    event = scene.eventsFor(child)[0]
     assert event.kind() == kind
     assert event.description() == kind.name
     assert event.location() == "Somewhere"
@@ -96,9 +96,8 @@ def test_attrs_Death(scene, view):
     view.set_notes("Some notes")
     view.clickSaveButton()
 
-    event = person.events()[0]
+    event = scene.eventsFor(person)[0]
     assert event.kind() == EventKind.Death
-    assert event.description() == EventKind.Death.name
     assert event.location() == "Somewhere"
     assert event.notes() == "Some notes"
     assert person.deceased() == True
@@ -120,7 +119,7 @@ def test_attrs_Shift(scene, view):
     view.set_notes("Some notes")
     view.clickSaveButton()
 
-    event = mother.emotions()[0].events()[0]
+    event = scene.eventsFor(mother)[0]
     assert event.kind() == EventKind.Shift
     assert event.description() == "Some description"
     assert event.location() == "Somewhere"

@@ -35,7 +35,7 @@ def test_add_variables(scene, view, isDateRange):
         util.ATTR_RELATIONSHIP,
         util.ATTR_FUNCTIONING,
     ]
-    event = person.emotions()[0].events()[0]
+    event = scene.eventsFor(person)[0]
     assert event.symptom() == util.VAR_SYMPTOM_UP
     assert event.anxiety() == util.VAR_ANXIETY_DOWN
     assert event.relationship() == RelationshipKind.Conflict
@@ -65,7 +65,7 @@ def test_existing_variables(scene, view):
         util.ATTR_RELATIONSHIP,
         util.ATTR_FUNCTIONING,
     ]
-    event = person.emotions()[0].events()[0]
+    event = scene.eventsFor(person)[0]
     assert event.symptom() == util.VAR_SYMPTOM_UP
     assert event.anxiety() == util.VAR_ANXIETY_DOWN
     assert event.relationship() == RelationshipKind.Conflict
@@ -79,12 +79,12 @@ def test_triangle(scene, view):
     view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(person)
     view.set_relationship(RelationshipKind.Inside)
-    view.set_description("some description")
     view.targetsPicker.add_existing_person(inside)
     view.trianglesPicker.add_existing_person(outside)
     view.set_startDateTime(START_DATETIME)
+    view.set_description("Some description")
     view.clickSaveButton()
     emotion = scene.emotionsFor(person)[0]
-    assert emotion.kind() == ItemMode.Inside
-    assert emotion.startEvent.relationshipTargets() == [inside]
-    assert emotion.endEvent.relationshipTriangles() == [outside]
+    assert emotion.kind() == RelationshipKind.Inside
+    assert emotion.sourceEvent().relationshipTargets() == [inside]
+    assert emotion.sourceEvent().relationshipTriangles() == [outside]

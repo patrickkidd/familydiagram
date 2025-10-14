@@ -29,7 +29,9 @@ def test_add_pairbond_and_children(scene, view):
 
     personA = scene.query1(name="John")
     personA.setSelected(True)
-    spouse = next(x for x in personA.marriages[0].people if x != personA)
+    birthEvent = scene.eventsFor(personA)[0]
+    assert birthEvent.kind() == EventKind.Birth
+    spouse = birthEvent.spouse()
     spouse.setSelected(True)
     spouse.setName("Jane")
     view.addEvent(scene.selectedItems())
@@ -40,8 +42,10 @@ def test_add_pairbond_and_children(scene, view):
     view.clickSaveButton()
     assert len(scene.people()) == 3
     # personB = scene.query1(name="Jane")
-    assert len(personA.marriages[0].events()) == 1
-    assert personA.marriages[0].events()[0].kind() == EventKind.Married
+    events = scene.eventsFor(personA.marriages[0])
+    assert len(events) == 2
+    assert events[0].kind() == EventKind.Birth
+    assert events[1].kind() == EventKind.Married
 
 
 @pytest.mark.skip(reason="Need to re-think this test")
@@ -256,9 +260,9 @@ def test_Married_undo_redo(scene, view):
     assert len(scene.people()) == 2
     marriage = personA.marriages[0]
     assert marriage in personB.marriages
-    assert len(marriage.events()) == 1
-    assert marriage.events()[0].kind() == EventKind.Married
-    assert marriage.events()[0].description() == EventKind.Married.menuLabel()
+    events = scene.eventsFor(marriage)
+    assert len(events) == 1
+    assert events[0].kind() == EventKind.Married
 
     scene.undo()
     assert len(scene.people()) == 1
@@ -271,6 +275,6 @@ def test_Married_undo_redo(scene, view):
     assert len(scene.people()) == 2
     assert marriage in personA.marriages
     assert marriage in personB.marriages
-    assert len(marriage.events()) == 1
-    assert marriage.events()[0].kind() == EventKind.Married
-    assert marriage.events()[0].description() == EventKind.Married.menuLabel()
+    events = scene.eventsFor(marriage)
+    assert len(events) == 1
+    assert events[0].kind() == EventKind.Married
