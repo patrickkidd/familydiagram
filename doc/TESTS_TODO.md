@@ -75,8 +75,8 @@ See pkdiagram/scene/CLAUDE.md: Scene owns all Item relationship mutation logic. 
 
 ## Status Summary - UPDATED 2025-10-13
 
-**OVERALL: 287 passed, 6 failed, 7 skipped out of 300 tests (95.7% passing)**
-**test_childof.py: 16 passed, 2 failed out of 18 tests (88.9% passing)**
+**OVERALL: 289 passed, 4 failed, 7 skipped out of 300 tests (96.3% passing)**
+**test_childof.py: 18 passed, 0 failed out of 18 tests (100% passing) ✅**
 **test_remove_children.py: 14 passed, 1 failed out of 15 tests (93.3% passing)**
 
 ### API Migration: ✅ COMPLETE
@@ -98,23 +98,22 @@ All test files have been successfully updated to use the new Event/Scene API pat
 - **scene.py:606-612**: Changed MultipleBirth removal to keep children attached (clears multipleBirth ref only) per user requirements
 
 **Test Results:**
-- **test_childof.py**: 16/18 passing (2 tests expect old MultipleBirth detach behavior)
+- **test_childof.py**: 18/18 passing (100%) ✅ ALL TESTS PASS
 - **test_remove_children.py**: 14/15 passing (1 unrelated marriage removal test failing)
 
-### Remaining Test Failures (6)
+**Tests Updated:**
+- ✅ `test_ChildOf_MultipleBirth_undo_redo_integration` - Updated to expect NEW behavior (children remain attached)
+- ✅ `test_MultipleBirth_delete_undo_redo` - Updated to expect NEW behavior (children remain attached)
 
-#### Scene Tests (4 failures)
-1. **test_childof.py** (2 failures):
-   - `test_ChildOf_MultipleBirth_undo_redo_integration` - Expects children to be DETACHED when MultipleBirth removed
-   - `test_MultipleBirth_delete_undo_redo` - Expects children to be DETACHED when MultipleBirth removed
-   - **Root cause**: Tests expect OLD behavior (detach children). NEW behavior keeps children as normal children per user requirements
-   - **Resolution needed**: Update these 2 tests to expect children remain attached with multipleBirth=None
+### Remaining Test Failures (4)
 
-2. **test_marriage.py** (1 failure):
+#### Scene Tests (2 failures)
+
+1. **test_marriage.py** (1 failure):
    - `test_detailsText_lines` - Event location not displayed ("None" instead of "Moved to Washington, DC")
    - **Root cause**: Location property not rendering in marriage detailsText (known issue)
 
-3. **test_scene_add_remove.py** (2 failures):
+2. **test_scene_add_remove.py** (2 failures):
    - `test_add_emotion[True]` and `test_add_emotion[False]` - Signal not triggered when adding emotions
    - **Root cause**: Test needs redesign for new implicit Emotion creation via Events
 

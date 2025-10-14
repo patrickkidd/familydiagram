@@ -627,9 +627,11 @@ class Scene(QGraphicsScene, Item):
                 # If no children remain, remove the MultipleBirth
                 elif len(remainingChildren) == 0:
                     self.removeItem(multipleBirth)
-            layer = item.parents().emotionalUnit().layer()
-            item.person.setLayers([x for x in item.person.layers() if x != layer.id])
-            item.parents().emotionalUnit().update()
+            marriage = item.parents()
+            if marriage.scene():  # Marriage might already be removed
+                layer = marriage.emotionalUnit().layer()
+                item.person.setLayers([x for x in item.person.layers() if x != layer.id])
+                marriage.emotionalUnit().update()
             # Remove the person from the marriage's children list
             item.parents()._onRemoveChild(item.person)
             # Clear the person's childOf reference
