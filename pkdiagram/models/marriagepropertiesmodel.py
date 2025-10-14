@@ -18,8 +18,6 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             {"attr": "married", "convertTo": Qt.CheckState},
             {"attr": "separated", "convertTo": Qt.CheckState},
             {"attr": "divorced", "convertTo": Qt.CheckState},
-            {"attr": "everSeparated", "type": bool},
-            {"attr": "everDivorced", "type": bool},
             {"attr": "anyMarriedEvents", "type": bool},
             {"attr": "anySeparatedEvents", "type": bool},
             {"attr": "anyDivorcedEvents", "type": bool},
@@ -37,18 +35,13 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         wasn't getting the added|removed signals.
         """
         marriage = event.marriage()
-        if not marriage and marriage in self._items:
+        if marriage in self._items:
             if event.kind() == EventKind.Married:
                 self.refreshProperty("anyMarriedEvents")
-                self.refreshProperty("everMarried")
             elif event.kind() == EventKind.Separated:
                 self.refreshProperty("anySeparatedEvents")
-                self.refreshProperty("everSeparated")
             elif event.kind() == EventKind.Divorced:
-                self.refreshProperty("everMarried")
-                self.refreshProperty("everSeparated")
                 self.refreshProperty("anyDivorcedEvents")
-                self.refreshProperty("everDivorced")
 
     def get(self, attr):
         ret = None
@@ -64,12 +57,6 @@ class MarriagePropertiesModel(QObject, ModelHelper):
                 x = marriage.personA().id
             elif attr == "personBId":
                 x = marriage.personB().id
-            elif attr == "everMarried":
-                x = marriage.everMarried()
-            elif attr == "everSeparated":
-                x = marriage.everSeparated()
-            elif attr == "everDivorced":
-                x = marriage.everDivorced()
             elif attr == "anyMarriedEvents":
                 x = marriage.anyMarriedEvents()
             elif attr == "anySeparatedEvents":
@@ -95,12 +82,6 @@ class MarriagePropertiesModel(QObject, ModelHelper):
                 value.eventChanged.connect(self.onEventsChanged)
                 value.eventRemoved.connect(self.onEventsChanged)
         super().set(attr, value)
-        if attr == "married":
-            self.refreshProperty("everMarried")
-        elif attr == "separated":
-            self.refreshProperty("everSeparated")
-        elif attr == EventKind.Divorced.value:
-            self.refreshProperty("everDivorced")
 
 
 qmlRegisterType(MarriagePropertiesModel, "PK.Models", 1, 0, "MarriagePropertiesModel")

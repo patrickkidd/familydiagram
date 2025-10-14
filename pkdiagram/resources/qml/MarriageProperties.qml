@@ -146,7 +146,7 @@ PK.Drawer {
                                     id: marriedBox
                                     objectName: 'marriedBox'
                                     text: "Show Married"
-                                    enabled: !marriageModel.anyMarriedEvents && !marriageModel.everDivorced
+                                    enabled: ! marriageModel.anyMarriedEvents && ! marriageModel.anyDivorcedEvents && ! sceneModel.readOnly
                                     checkState: marriageModel.married
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: separatedBox
@@ -157,7 +157,7 @@ PK.Drawer {
                                     id: separatedBox
                                     objectName: 'separatedBox'
                                     text: "Show Separated"
-                                    enabled: !marriageModel.anySeparatedEvents && !marriageModel.everSeparated
+                                    enabled: ! marriageModel.anySeparatedEvents && ! sceneModel.readOnly
                                     checkState: marriageModel.separated
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: divorcedBox
@@ -168,7 +168,7 @@ PK.Drawer {
                                     id: divorcedBox
                                     objectName: 'divorcedBox'
                                     text: "Show Divorced"
-                                    enabled: !marriageModel.anyDivorcedEvents
+                                    enabled: ! marriageModel.anyDivorcedEvents && ! sceneModel.readOnly
                                     checkState: marriageModel.divorced
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: custodyBox
@@ -195,7 +195,7 @@ PK.Drawer {
                                 id: custodyBox
                                 model: ListModel {}
                                 textRole: 'name'
-                                enabled: marriageModel.everSeparated || marriageModel.everDivorced
+                                enabled: marriageModel.separated || marriageModel.anySeparatedEvents || marriageModel.divorced || marriageModel.anyDivorcedEvents
                                 displayText: (marriageModel.custody != -1 && currentIndex != -1) ? currentText : (currentIndex != -1) ? 'Unnamed Person' : ''
                                 Layout.fillWidth: true
                                 KeyNavigation.tab: resetCustodyButton.enabled ? resetCustodyButton : diagramNotesEdit
