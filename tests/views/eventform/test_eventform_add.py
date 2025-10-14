@@ -83,7 +83,9 @@ def test_Birth_add_another_sets_currentDateTime(scene, view, before):
     view.set_startDateTime(START_DATETIME)
     view.clickSaveButton()
     assert scene.currentDateTime() == START_DATETIME
+
     child = scene.query1(name="John", lastName="Doe")
+    assert scene.eventsFor(child, kinds=EventKind.Birth) != []
 
     if before:
         second_dateTime = START_DATETIME.addDays(-10)

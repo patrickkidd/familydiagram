@@ -354,12 +354,12 @@ class EventForm(QmlDrawer):
         elif kind and kind == EventKind.Death:
             pass
 
-        elif (
-            kind
-            and kind.isPairBond()
-            and not self.item.property("spousePicker").property("isSubmitted")
-        ):
-            invalidLabel = "spouseLabel"
+        # elif (
+        #     kind
+        #     and kind.isPairBond()
+        #     and not self.item.property("spousePicker").property("isSubmitted")
+        # ):
+        #     invalidLabel = "spouseLabel"
 
         # elif kind and kind in (EventKind.Birth, EventKind.Adopted):
         #     if not self.item.property("childPicker").property("isSubmitted"):
@@ -414,7 +414,8 @@ class EventForm(QmlDrawer):
         ):
             childPerson = childEntry["person"]
             if (kind == EventKind.Birth and childPerson.birthDateTime()) or (
-                kind == EventKind.Adopted and childPerson.adoptedDateTime()
+                kind == EventKind.Adopted
+                and self.scene.eventsFor(childPerson, kinds=EventKind.Adopted)
             ):
                 button = QMessageBox.question(
                     self,
@@ -596,11 +597,10 @@ class EventForm(QmlDrawer):
 
         if not isEditing:
 
-            newEvent: Event = self.scene.addItem(Event(person=person, kind=kind))
+            newEvent: Event = self.scene.addItem(Event(kind, person))
             if kind == EventKind.Shift and relationship:
                 newEvent.setRelationshipTargets(targets)
                 newEvent.setRelationshipTriangles(triangles)
-                newEmotions = newEvent.emotions()
                 events = [newEvent]
 
             else:  # kind.isPairBond()
@@ -634,17 +634,19 @@ class EventForm(QmlDrawer):
                     marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
                     newMarriages.append(marriage)
 
-                event = self.scene.addItem(Event(), undo=True)
-
         # Set event properties
 
         if isEditing:
             events = self._events
         else:
-            events = newEvents
+            events = [self.scene.addItem(Event(kind, person))]
 
         for event in events:
             event.setKind(kind, undo=True)
+            if spouse:
+                event.setSpouse(spouse, undo=True)
+            if child:
+                event.setChild(child, undo=True)
             if kind == EventKind.Adopted:
                 event.child().setAdopted(True, undo=True)
             event.setDateTime(startDateTime, undo=True)
@@ -658,12 +660,12 @@ class EventForm(QmlDrawer):
                 event.setAnxiety(anxiety, undo=True)
             if relationship is not None:
                 event.setRelationship(relationship, undo=True)
+                if relationshipTargets:
+                    event.setRelationshipTargets(targets, undo=True)
                 if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
                     event.setRelationshipTriangles(triangles, undo=True)
             if functioning is not None:
                 event.setFunctioning(functioning, undo=True)
-            if kind:
-                event.setKind(kind, undo=True)
             if description:
                 event.setDescription(description, undo=True)
             if location:
