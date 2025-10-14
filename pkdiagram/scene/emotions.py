@@ -20,6 +20,7 @@ from pkdiagram.pyqt import (
     QColor,
     QMarginsF,
     QPainter,
+    QDateTime,
 )
 from pkdiagram import util
 from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item, Person
@@ -1717,3 +1718,11 @@ class Emotion(PathItem):
 
     def target(self) -> "Person":
         return self._target
+
+    def startDateTime(self) -> QDateTime:
+        if self._event:
+            return self._event.dateTime()
+
+    def endDateTime(self) -> QDateTime:
+        if self._event:
+            return self._event.endDateTime()

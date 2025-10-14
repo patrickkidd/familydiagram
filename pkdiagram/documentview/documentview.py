@@ -138,16 +138,16 @@ class DocumentView(QWidget):
 
         def _init_personProps():
             self.personProps.qml.rootObject().editBirthEvent.connect(
-                self.onEditPersonBirthEvent
+                self.controller.onEditPersonBirthEvent
             )
             self.personProps.qml.rootObject().editDeathEvent.connect(
-                self.onEditPersonDeathEvent
+                self.controller.onEditPersonDeathEvent
             )
 
         self.personProps.qmlInitialized.connect(_init_personProps)
         self.emotionProps.qmlInitialized.connect(
             lambda: self.emotionProps.qml.rootObject().editEvent.connect(
-                self.onEditEmotionEvent
+                self.controller.onEditEmotionEvent
             )
         )
         self.eventForm.doneEditing.connect(self.controller.onEventFormDoneEditing)

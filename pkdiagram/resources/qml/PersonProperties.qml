@@ -403,7 +403,7 @@ PK.Drawer {
                                     enabled: !personModel.anyMarriedEvents && !personModel.everAdopted
                                     checkState: personModel.adopted
                                     Layout.columnSpan: 2
-                                    KeyNavigation.tab: separatedBox
+                                    KeyNavigation.tab: deceasedBox
                                     onCheckStateChanged: personModel.adopted = checkState
                                 }
 
@@ -425,7 +425,7 @@ PK.Drawer {
                                     Layout.fillWidth: true
                                }
                             }
-
+                        }
 
                         // Spacer line
 

@@ -1,8 +1,8 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "." 1.0 as PK
-import "../js/Global.js" as Global
+import "./PK" 1.0 as PK
+import "js/Global.js" as Global
 import PK.Models 1.0
 
 
@@ -15,7 +15,6 @@ Page {
     signal done
     signal resize
     signal editEvent
-
 
     property int margin: util.QML_MARGINS
     property var focusResetter: emotionPage
@@ -31,11 +30,10 @@ Page {
         }
     }
 
-    property var personBox: personBox
-    property var targetBox: targetBox
+    property var titleLabel: titleLabel
     property var intensityBox: intensityBox
     property var colorBox: colorBox
-    property var emotionNotesEdit: emotionNotesEdit
+    property var notesEdit: notesEdit
     property var tagsList: tagsList
     property alias notesHiddenHelpText: notesHiddenHelpText
 
@@ -46,26 +44,11 @@ Page {
         setCurrentTab(tab)
     }
 
-    function setCurrentTab(tab) {
-        var index = 0
-        if(tab == 'item')
-            index = 0
-        else if(tab == 'notes')
-            index = 1
-        else if(tab == 'meta')
-            index = 2
-        tabBar.setCurrentIndex(index)
-    }
+    function setCurrentTab(tab) {}
 
-    function currentTab() {
-        return {
-            0: 'item',
-            1: 'notes',
-            2: 'meta'
-        }[tabBar.currentIndex]
-    }    
+    function currentTab() {}
 
-    KeyNavigation.tab: personBox
+    KeyNavigation.tab: editEventButton
 
     header: PK.ToolBar {
         PK.ToolButton {
@@ -76,6 +59,7 @@ Page {
             onClicked: done()
         }
         PK.Label {
+            id: titleLabel
             text: emotionTitle
             elide: Text.ElideRight
             anchors.centerIn: parent
@@ -93,166 +77,148 @@ Page {
             onClicked: cancel()
         }
     }
-
-    footer: PK.TabBar {
-        id: tabBar
-        currentIndex: stack.currentIndex
-        PK.TabButton { text: "Relationship" }
-        PK.TabButton { text: "Notes" }
-        PK.TabButton { text: "Tags" }
-    }
     
     background: Rectangle {
         anchors.fill: parent
         color: util.QML_WINDOW_BG
     }
 
-    StackLayout {
-
-        id: stack
-        currentIndex: tabBar.currentIndex
-        enabled: !sceneModel.readOnly
+    Flickable {
+        id: emotionPage
         anchors.fill: parent
-        
-        Flickable {
-            id: emotionPage
-            contentWidth: width
-            contentHeight: emotionPageInner.childrenRect.height + root.margin * 2
+        contentWidth: width
+        contentHeight: emotionPageInner.childrenRect.height + root.margin * 2
 
-            MouseArea {
+        MouseArea {
+            width: parent.width
+            height: parent.height
+            onClicked: parent.forceActiveFocus()
+        }
+
+        Rectangle {
+
+            id: emotionPageInner
+            anchors.fill: parent
+            anchors.margins: margin
+            color: 'transparent'
+            ColumnLayout { // necessary to expand DatePicker
                 width: parent.width
-                height: parent.height
-                onClicked: parent.forceActiveFocus()
-            }
-
-            Rectangle {
-
-                id: emotionPageInner
-                anchors.fill: parent
-                anchors.margins: margin
-                color: 'transparent'
-                
-                ColumnLayout { // necessary to expand DatePicker
-                    id: cl
+                GridLayout {
+                    id: mainGrid
+                    columns: 2
+                    columnSpacing: util.QML_MARGINS / 2
+                    // columnSpacing: util.QML_SPACING
+                    // rowSpacing: util.QML_SPACING
                     width: parent.width
-                    GridLayout {
-                        id: mainGrid
-                        columns: 2
-                        columnSpacing: util.QML_MARGINS / 2
-                        // columnSpacing: util.QML_SPACING
-                        // rowSpacing: util.QML_SPACING
+
+
+                    
+                    // PK.ComboBox {
+                    //     id: emotionKindBox // differentiate from PersonProperties.kindBox in tests
+                    //     objectName: 'emotionKindBox'
+                    //     textRole: 'label'
+                    //     model: ListModel { }
+                    //     Component.onCompleted: {
+                    //         var entries = emotionModel.kindsMap
+                    //         for(var i=0; i < entries.length; i++) {
+                    //             var entry = entries[i]
+                    //             model.append(entry)
+                    //         }
+                    //     }
+                    //     currentIndex: emotionModel.kindIndex
+                    //     Layout.fillWidth: true
+                    //     Layout.maximumWidth: 200
+                    //     KeyNavigation.tab: personBox
+                    //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
+                    // }
+
+                    PK.Text { text: " "; Layout.minimumWidth: 75}
+
+                    PK.Button {
+                        id: editEventButton
+                        text: "→ Edit Event"
+                        visible: emotionModel.startDateTime
+                        onClicked: root.editEvent()
+                    }
+
+                    Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 2 }
+
+                    PK.Text { text: "Intensity" }
+
+                    PK.ComboBox {
+                        id: intensityBox
+                        model: util.EMOTION_INTENSITY_NAMES
+                        currentIndex: emotionModel.intensityIndex
+                        KeyNavigation.tab: colorBox
+                        KeyNavigation.backtab: editEventButton
+                        onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
+                    }
+
+                    PK.Text { text: "Color" }
+
+                    PK.ColorPicker {
+                        id: colorBox
+                        color: emotionModel.color
+                        KeyNavigation.tab: notesEdit
+                        KeyNavigation.backtab: intensityBox
+                        onCurrentIndexChanged: emotionModel.color = model[currentIndex]
+                    }
+
+                    PK.Text {
+                        text: "Details"
+                    }
+
+                    PK.TextEdit {
+                        id: notesEdit
+                        text: emotionModel.notes
+                        padding: margin
                         width: parent.width
+                        wrapMode: TextEdit.Wrap
+                        visible: ! Global.isValidDateTime(emotionModel.startDateTime)
+                        readOnly: sceneModel.readOnly
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: 300
+                        Layout.maximumHeight: 300
+                        onEditingFinished: emotionModel.notes = (text ? text : undefined)
+                    }
 
-                        // PK.Text { text: "Kind" }
-                        
-                        // PK.ComboBox {
-                        //     id: emotionKindBox // differentiate from PersonProperties.kindBox in tests
-                        //     objectName: 'emotionKindBox'
-                        //     textRole: 'label'
-                        //     model: ListModel { }
-                        //     Component.onCompleted: {
-                        //         var entries = emotionModel.kindsMap
-                        //         for(var i=0; i < entries.length; i++) {
-                        //             var entry = entries[i]
-                        //             model.append(entry)
-                        //         }
-                        //     }
-                        //     currentIndex: emotionModel.kindIndex
-                        //     Layout.fillWidth: true
-                        //     Layout.maximumWidth: 200
-                        //     KeyNavigation.tab: personBox
-                        //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
-                        // }
+                    Rectangle {
 
-                        PK.Text { text: " " }
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: 200
+                        Layout.maximumHeight: 200
+                        color: 'transparent'
+                        visible: ! notesEdit.visible
 
-                        PK.Button {
-                            id: editEventButton
-                            text: "→ Edit Event"
-                            visible: emotionModel.startDateTime
-                            onClicked: root.editEvent()
-                        }
-
-                        Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 1 }
-
-                        PK.Text { text: "Intensity" }
-
-                        PK.ComboBox {
-                            id: intensityBox
-                            model: util.EMOTION_INTENSITY_NAMES
-                            currentIndex: emotionModel.intensityIndex
-                            KeyNavigation.tab: colorBox
-                            KeyNavigation.backtab: targetBox
-                            onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
-                        }
-
-                        PK.Text { text: "Color" }
-
-                        PK.ColorPicker {
-                            id: colorBox
-                            color: emotionModel.color
-                            KeyNavigation.tab: emotionNotesEdit
-                            KeyNavigation.backtab: intensityBox
-                            onCurrentIndexChanged: emotionModel.color = model[currentIndex]
-                        }
-
-                        PK.Text {
-                            text: "Details"
-                            visible: ! Global.isValidDateTime(emotionModel.startDateTime)
-                        }
-
-                        PK.TextEdit {
-                            id: emotionNotesEdit
-                            text: emotionModel.notes
-                            padding: margin
-                            width: parent.width
-                            wrapMode: TextEdit.Wrap
-                            visible: ! Global.isValidDateTime(emotionModel.startDateTime)
-                            readOnly: sceneModel.readOnly
-                            Layout.fillWidth: true
-                            Layout.minimumHeight: 300
-                            Layout.maximumHeight: 300
-                            onEditingFinished: emotionModel.notes = (text ? text : undefined)
-                        }
-
-                        Rectangle {
-
-                            PK.NoDataText {
-                                id: notesHiddenHelpText
-                                text: util.S_EMOTION_SYMBOL_NOTES_HIDDEN
-                                visible: Global.isValidDateTime(emotionModel.startDateTime)
-                                Connections {
-                                    target: emotionModel
-                                    function onStartDateTimeChanged() {
-                                        notesHiddenHelpText.visible = Global.isValidDateTime(emotionModel.startDateTime)
-                                    }
+                        PK.NoDataText {
+                            id: notesHiddenHelpText
+                            text: util.S_EMOTION_SYMBOL_NOTES_HIDDEN
+                            Connections {
+                                target: emotionModel
+                                function onStartDateTimeChanged() {
+                                    notesHiddenHelpText.visible = Global.isValidDateTime(emotionModel.startDateTime)
                                 }
                             }
-
-                            PK.GroupBox {
-                                title: "Event tags Added to this Relationship Symbol as well as its start and end events."
-                                anchors.fill: parent
-                                padding: 1
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    PK.ActiveListEdit {
-                                        id: tagsList
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        model: TagsModel {
-                                            objectName: "EmotionProperties_tagsModel"
-                                            scene: sceneModel.scene
-                                            items: emotionModel.items
-                                        }
-                                    }
-                                }
-                            }
-
-
                         }
                     }
+
+                    PK.Text { text: "Tags" }
+
+
+                    PK.ActiveListEdit {
+                        id: tagsList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 200
+                        Layout.maximumHeight: 200
+                        model: TagsModel {
+                            scene: sceneModel.scene
+                            items: emotionModel.items
+                        }
+                    }
+
                 }
-            }            
+            }
         }
-    }    
+    }
 }

@@ -1,7 +1,11 @@
+import logging
+
 from pkdiagram.pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
 from pkdiagram import util
 from pkdiagram.scene import Item, Emotion
 from .modelhelper import ModelHelper
+
+_log = logging.getLogger(__name__)
 
 
 class EmotionPropertiesModel(QObject, ModelHelper):
@@ -9,11 +13,14 @@ class EmotionPropertiesModel(QObject, ModelHelper):
     PROPERTIES = Item.adjustedClassProperties(
         Emotion,
         [
-            {"attr": "kindIndex", "type": int, "default": -1},
+            # {"attr": "kindIndex", "type": int, "default": -1},
+            {"attr": "kindLabel"},
             {"attr": "intensityIndex", "type": int, "default": -1},
             {"attr": "itemName"},
             {"attr": "dyadic", "type": bool},
             {"attr": "canEditEvent", "type": bool, "default": False},
+            {"attr": "startDateTime", "type": QDateTime, "default": QDateTime()},
+            {"attr": "endDateTime", "type": QDateTime, "default": QDateTime()},
         ],
     )
 
@@ -25,15 +32,21 @@ class EmotionPropertiesModel(QObject, ModelHelper):
 
     def get(self, attr):
         ret = None
-        if attr == "kindIndex":
-            kind = super().get("kind")
-            if kind == -1:
-                ret = -1
+        # if attr == "kindIndex":
+        #     kind = super().get("kind")
+        #     if kind == -1:
+        #         ret = -1
+        #     else:
+        #         kindsMap = self.kindsMap
+        #         entry = next(x for x in kindsMap if x["kind"] == kind)
+        #         ret = kindsMap.index(entry)
+        if attr == "kindLabel":
+            kind = util.sameOf(self._items, lambda item: item.kind())
+            if kind is not None:
+                ret = kind.name
             else:
-                kindsMap = self.kindsMap
-                entry = next(x for x in kindsMap if x["kind"] == kind)
-                ret = kindsMap.index(entry)
-        elif attr == "intensityIndex":
+                ret = ""
+        if attr == "intensityIndex":
             allSame = util.sameOf(self._items, lambda x: x.prop("intensity").get())
             if allSame is not None:
                 intensity = super().get("intensity")
@@ -41,20 +54,22 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             else:
                 ret = self.defaultFor(attr)
         elif attr == "startDateTime":
-            x = util.sameOf(self._items, lambda item: item.startEvent.dateTime())
+            x = util.sameOf(self._items, lambda item: item.startDateTime())
             ret = self.getterConvertTo(attr, x)
         elif attr == "endDateTime":
-            x = util.sameOf(self._items, lambda item: item.endEvent.dateTime())
+            x = util.sameOf(self._items, lambda item: item.endDateTime())
             ret = self.getterConvertTo(attr, x)
-        elif attr == "canEditEvent":
-            ret = util.sameOf(self._items, lambda item: item.sourceEvent())
-        elif attr == "endEventId":
-            ret = util.sameOf(self._items, lambda item: item.endEvent.id)
         elif attr == "parentName":
             ret = util.sameOf(self._items, lambda item: item.kind().name)
         elif attr == "dyadic":
             ret = util.sameOf(self._items, lambda item: item.isDyadic())
-        if ret is None:
+        elif attr == "itemName":
+            ret = util.sameOf(self._items, lambda item: item.kind().name)
+        elif attr == "color":
+            ret = util.sameOf(self._items, lambda item: item.color())
+        elif attr == "notes":
+            ret = util.sameOf(self._items, lambda item: item.notes())
+        if ret is None and attr not in ("color", "notes", "event"):
             ret = super().get(attr)
         return ret
 

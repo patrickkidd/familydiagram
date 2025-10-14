@@ -279,7 +279,7 @@ def test_load_from_file_empty(scene, dv):
 
 
 def assert_UIHasAnyEvents(dv, hasEvents: bool):
-    assert bool(dv.timelineModel.events()) == hasEvents
+    assert bool(dv.timelineModel.rowCount()) == hasEvents
     assert dv.ui.actionNext_Event.isEnabled() == hasEvents
     assert dv.ui.actionPrevious_Event.isEnabled() == hasEvents
     assert dv.isGraphicalTimelineShown() == hasEvents
@@ -345,7 +345,7 @@ def test_remove_last_event(scene, dv):
         event = scene.addItem(
             Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
         )
-        assert dv.timelineModel.events() == [event]
+        assert set(x.event for x in dv.timelineModel.timelineRows()) == {event}
         assert_UIHasAnyEvents(dv, True)
 
         dv.scene.setCurrentDateTime(event.dateTime())
@@ -379,6 +379,8 @@ def test_inspect_to_person_props_to_hide(qtbot, scene, dv: DocumentView):
 
 
 def test_inspect_events_from_graphical_timeline(qtbot, scene, dv: DocumentView):
+    dv.setCurrentDrawer(dv.caseProps)
+    # dv.caseProps.checkInitQml()
     person = scene.addItem(Person(name="person"))
     event_1, event_2 = scene.addItems(
         Event(
@@ -393,6 +395,7 @@ def test_inspect_events_from_graphical_timeline(qtbot, scene, dv: DocumentView):
             description="Event 2",
             dateTime=util.Date(2002, 1, 1),
         ),
+        batch=False,
     )
     dv.timelineSelectionModel.select(
         QItemSelection(
@@ -414,7 +417,7 @@ def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     personB = Person(name="PersonB")
     emotion1 = Emotion(RelationshipKind.Conflict, personB, person=personA)
     emotion2 = Emotion(RelationshipKind.Projection, personB, person=personA)
-    scene.addItems(personA, personB, emotion1, emotion2)
+    scene.addItems(personA, personB, emotion1, emotion2, batch=False)
     personA.setItemPos(QPointF(-200, -200))
     personB.setItemPos(QPointF(200, 200))
     emotion1.setSelected(True)

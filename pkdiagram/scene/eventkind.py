@@ -25,6 +25,9 @@ class EventKind(enum.Enum):
             self.Divorced,
         )
 
+    def isOffspring(self) -> bool:
+        return self in (self.Birth, self.Adopted)
+
     def menuLabel(self) -> str:
         labels = {
             self.Bonded: "Bonded",

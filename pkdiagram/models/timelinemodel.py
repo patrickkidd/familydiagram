@@ -711,6 +711,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def timelineRow(self, row: int) -> TimelineRow:
         return self._rows[row]
 
+    def timelineRows(self) -> list[TimelineRow]:
+        return list(self._rows)
+
     def endRowForEvent(self, event: Event) -> TimelineRow:
         """Return the date buddy to this one."""
         for row in self._rows:
