@@ -49,7 +49,7 @@ PK.Drawer {
     property var anxiety: anxietyField.value
     property var relationship: relationshipField.value
     property var functioning: functioningField.value
-    property var color: color
+    property var color: colorBox.color
     property var notes: notesEdit.text
     property var tagsModel: tagsModel
 

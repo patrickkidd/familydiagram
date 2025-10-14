@@ -29,7 +29,8 @@ _log = logging.getLogger(__name__)
 
 class DummyEvent(Event):
     def __init__(self, scene):
-        super().__init__()
+        # kind is irrelevant, this is just for tags
+        super().__init__(EventKind.Shift, None)
         self._scene = scene
 
     def scene(self):
@@ -145,7 +146,7 @@ class EventForm(QmlDrawer):
     def addEvent(self, selection: list[Item] = None):
         self.clear()
         self.item.setProperty("isEditing", False)
-        event = self.scene.addItem(DummyEvent(self.scene))
+        event = DummyEvent(self.scene)
         self._events = [event]
         self._tagsModel.items = [event]
         if selection:
@@ -168,7 +169,7 @@ class EventForm(QmlDrawer):
         self.item.setProperty("isEditing", True)
         self._events = events
 
-        person = util.sameOf(events, lambda e: e.person)
+        person = util.sameOf(events, lambda e: e.person())
         if person:
             self.item.property("personPicker").setExistingPersonId(person.id)
 
@@ -825,7 +826,7 @@ class EventForm(QmlDrawer):
         self.hideRequested.emit()
 
     def _cleanup(self):
-        if self._events and isinstance(self._events[0], DummyEvent):
-            self.scene.removeItem(self._events[0])
+        # if self._events and isinstance(self._events[0], DummyEvent):
+        #     self.scene.removeItem(self._events[0])
         self._events = []
         self._tagsModel.items = []

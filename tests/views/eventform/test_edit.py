@@ -27,9 +27,7 @@ def variables(scene):
 
 def test_init_Birth(scene, view):
     person = scene.addItem(Person(name="John Doe"))
-    event = scene.addItem(
-        Event(person, kind=EventKind.Birth, description=EventKind.Birth.name)
-    )
+    event = scene.addItem(Event(EventKind.Birth, person))
     event.setDateTime(START_DATETIME)
     event.setLocation("Old Location")
     event.setNotes("Old Notes")
@@ -37,7 +35,7 @@ def test_init_Birth(scene, view):
     view.view.editEvents([event])
     assert view.item.property("kindBox").property("enabled") == False
     assert view.view.personEntry()["person"] == person
-    assert view.item.property("kind") == EventKind.Birth
+    assert view.item.property("kind") == EventKind.Birth.value
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Old Location"
     assert view.item.property("notes") == "Old Notes"
