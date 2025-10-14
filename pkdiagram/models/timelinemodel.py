@@ -708,6 +708,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         if row >= 0 and row < len(self._rows):
             return self._rows[row].event
 
+    def timelineRowsFor(self, event: Event) -> list[TimelineRow]:
+        return [x for x in self._rows if x.event == event]
+
     def timelineRow(self, row: int) -> TimelineRow:
         return self._rows[row]
 

@@ -4,9 +4,10 @@ import pytest
 
 from pkdiagram.pyqt import QDateTime, QPointF
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Event, Marriage
+from pkdiagram.scene import Scene, Person, Event, Marriage, EventKind
 from pkdiagram.views import SearchDialog
 
+from tests.conftest import qmlEngine
 from tests.widgets import TestActiveListEdit
 
 
@@ -29,37 +30,41 @@ TAG_3 = "tag_3"
 
 
 @pytest.fixture
-def tst_stuff():
-    person = Person()
-    event1 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 1, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item1",
-        tags=[TAG_1, TAG_2],
-    )
-    event2 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 2, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item2",
-        tags=[TAG_1, TAG_2],
-    )
-    event3 = Event(
-        parent=person,
-        loggedDateTime=util.Date(2000, 3, 10),
-        dateTime=util.Date(1900, 1, 1),
-        description="item3",
-        tags=[TAG_3],
+def stuff(scene):
+    scene.setTags([TAG_1, TAG_2, TAG_3])
+    person = scene.addItem(Person())
+    event1, event2, event3 = scene.addItems(
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 1, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item1",
+            tags=[TAG_1, TAG_2],
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 2, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item2",
+            tags=[TAG_1, TAG_2],
+        ),
+        Event(
+            EventKind.Shift,
+            person,
+            loggedDateTime=util.Date(2000, 3, 10),
+            dateTime=util.Date(1900, 1, 1),
+            description="item3",
+            tags=[TAG_3],
+        ),
     )
     return person, event1, event2, event3
 
 
 @pytest.fixture
-def tst(qtbot, scene, tst_stuff, qmlEngine):
+def view(qtbot, scene, stuff, qmlEngine):
     qmlEngine.setScene(scene)
-    scene.setTags([TAG_1, TAG_2, TAG_3])
-    scene.addItems(*tst_stuff)
     w = SearchDialog(qmlEngine)
     w.resize(600, 800)
     w.show()
@@ -72,7 +77,7 @@ def tst(qtbot, scene, tst_stuff, qmlEngine):
     w.deinit()
 
 
-def test_init(tst, qmlEngine, model):
+def test_init(view, qmlEngine, model):
     qmlEngine.sceneModel.onEditorMode(True)
     assert model.description == ""
     assert model.startDateTime == QDateTime()
@@ -87,89 +92,89 @@ def test_init(tst, qmlEngine, model):
     assert model.loggedEndDateTime == QDateTime()
 
 
-def test_properties(tst, scene, model, qmlEngine):
-    marriage = Marriage(Person(name="A"), Person(name="B"))
-    scene.addItem(marriage)
+def test_properties(view, scene, model, qmlEngine):
+    marriage = scene.addItem(Marriage(Person(name="A"), Person(name="B")))
     qmlEngine.sceneModel.onEditorMode(True)
-    tagsEdit = TestActiveListEdit(tst, tst.rootProp("tagsEdit"))
-    emotionUnitsEdit = TestActiveListEdit(tst, tst.rootProp("emotionalUnitsEdit"))
+    tagsEdit = TestActiveListEdit(view, view.rootProp("tagsEdit"))
+    emotionUnitsEdit = TestActiveListEdit(view, view.rootProp("emotionalUnitsEdit"))
 
-    tst.keyClicks("descriptionEdit", "item1")
+    view.keyClicks("descriptionEdit", "item1")
     assert model.description == "item1"
 
-    tst.keyClicks("startDateButtons.dateTextInput", "01/01/2001")
+    view.keyClicks("startDateButtons.dateTextInput", "01/01/2001")
     assert model.startDateTime == QDateTime(util.Date(2001, 1, 1))
 
-    tst.keyClicks("endDateButtons.dateTextInput", "02/02/2002")
+    view.keyClicks("endDateButtons.dateTextInput", "02/02/2002")
     assert model.endDateTime == QDateTime(util.Date(2002, 2, 2))
 
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2001")
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2001")
     assert model.loggedStartDateTime == QDateTime(util.Date(2001, 1, 1))
 
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
     assert model.loggedEndDateTime == QDateTime(util.Date(2002, 2, 2))
 
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == [TAG_1]
 
     EMOTIONAL_UNITS_Y = (
-        tst.rootProp("emotionalUnitsEdit")
-        .mapToItem(tst.qml.rootObject(), QPointF(0, -50))
+        view.rootProp("emotionalUnitsEdit")
+        .mapToItem(view.qml.rootObject(), QPointF(0, -50))
         .y()
     )
-    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
+    view.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
 
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == [marriage.emotionalUnit().layer()]
 
     # reset
 
-    tst.rootProp("propsPage").setProperty("contentY", 0)
-    tst.keyClicksClear("descriptionEdit")
+    view.rootProp("propsPage").setProperty("contentY", 0)
+    view.keyClicksClear("descriptionEdit")
     assert model.description == ""
 
-    tst.keyClicksClear("startDateButtons.dateTextInput")
+    view.keyClicksClear("startDateButtons.dateTextInput")
     assert model.startDateTime == QDateTime()
 
-    tst.keyClicksClear("endDateButtons.dateTextInput")
+    view.keyClicksClear("endDateButtons.dateTextInput")
     assert model.endDateTime == QDateTime()
 
-    tst.keyClicksClear("loggedStartDateTimeButtons.dateTextInput")
+    view.keyClicksClear("loggedStartDateTimeButtons.dateTextInput")
     assert model.loggedStartDateTime == QDateTime()
 
-    tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
+    view.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
     assert model.loggedEndDateTime == QDateTime()
 
     tagsEdit.clickActiveBox(TAG_1)
     assert model.tags == []
 
-    tst.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
+    view.rootProp("propsPage").setProperty("contentY", EMOTIONAL_UNITS_Y)
     emotionUnitsEdit.clickActiveBox(marriage.emotionalUnit().name())
     assert scene.activeLayers() == []
 
 
-def test_clear_0(tst, model):
-    tst.keyClicks("descriptionEdit", "item1")
+def test_clear_0(view, model):
+    view.keyClicks("descriptionEdit", "item1")
     model.clear()
     assert model.description == ""
 
 
-def test_clear(tst, model):
+def test_clear(view, model):
 
-    tst.keyClicks("descriptionEdit", "item1")
-    tst.keyClicks("startDateButtons.dateTextInput", "01/01/2001")
-    tst.keyClicks("endDateButtons.dateTextInput", "02/02/2002")
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2001")
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
-    assert tst.isEnabled() == True
-    assert tst.rootProp("enabled") == True
-    assert tst.itemProp("startDateButtons.dateTextInput", "text") == "01/01/2001"
-    assert tst.itemProp("endDateButtons.dateTextInput", "text") == "02/02/2002"
+    view.keyClicks("descriptionEdit", "item1")
+    view.keyClicks("startDateButtons.dateTextInput", "01/01/2001")
+    view.keyClicks("endDateButtons.dateTextInput", "02/02/2002")
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2001")
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "02/02/2002")
+    assert view.isEnabled() == True
+    assert view.rootProp("enabled") == True
+    assert view.itemProp("startDateButtons.dateTextInput", "text") == "01/01/2001"
+    assert view.itemProp("endDateButtons.dateTextInput", "text") == "02/02/2002"
     assert (
-        tst.itemProp("loggedStartDateTimeButtons.dateTextInput", "text") == "01/01/2001"
+        view.itemProp("loggedStartDateTimeButtons.dateTextInput", "text")
+        == "01/01/2001"
     )
     assert (
-        tst.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "02/02/2002"
+        view.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "02/02/2002"
     )
 
     model.clear()
@@ -178,172 +183,194 @@ def test_clear(tst, model):
     assert model.endDateTime == QDateTime()
     assert model.loggedStartDateTime == QDateTime()
     assert model.loggedEndDateTime == QDateTime()
-    assert tst.itemProp("startDateButtons.dateTextInput", "text") == "--/--/----"
-    assert tst.itemProp("endDateButtons.dateTextInput", "text") == "--/--/----"
+    assert view.itemProp("startDateButtons.dateTextInput", "text") == "--/--/----"
+    assert view.itemProp("endDateButtons.dateTextInput", "text") == "--/--/----"
     assert (
-        tst.itemProp("loggedStartDateTimeButtons.dateTextInput", "text") == "--/--/----"
+        view.itemProp("loggedStartDateTimeButtons.dateTextInput", "text")
+        == "--/--/----"
     )
     assert (
-        tst.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "--/--/----"
+        view.itemProp("loggedEndDateTimeButtons.dateTextInput", "text") == "--/--/----"
     )
 
 
-def test_description(tst, tst_stuff, model):
-    person, event1, event2, event3 = tst_stuff
-    tst.keyClicks("descriptionEdit", "item1")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == True
+def test_description(qmlEngine, view, stuff, model):
+    person, event1, event2, event3 = stuff
+    row1, row2, row3 = (
+        qmlEngine.timelineModel.timelineRowsFor(event1)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event2)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event3)[0],
+    )
+    view.keyClicks("descriptionEdit", "item1")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == True
 
 
-def test_loggedStartDateTime(tst, tst_stuff, model):
-    person, event1, event2, event3 = tst_stuff
+def test_loggedStartDateTime(qmlEngine, view, stuff, model):
+    person, event1, event2, event3 = stuff
+    row1, row2, row3 = (
+        qmlEngine.timelineModel.timelineRowsFor(event1)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event2)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event3)[0],
+    )
 
     # before first date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2000")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == False
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/01/2000")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == False
 
     # one day before last date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/09/2000")
-    assert model.shouldHide(event1) == True
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == False
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/09/2000")
+    assert model.shouldHide(row1) == True
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == False
 
     # same day as last date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/10/2000")
-    assert model.shouldHide(event1) == True
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == False
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/10/2000")
+    assert model.shouldHide(row1) == True
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == False
 
     # one day after last date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/11/2000")
-    assert model.shouldHide(event1) == True
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == True
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "03/11/2000")
+    assert model.shouldHide(row1) == True
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == True
 
-    tst.keyClicksClear("loggedStartDateTimeButtons.dateTextInput")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == False
+    view.keyClicksClear("loggedStartDateTimeButtons.dateTextInput")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == False
 
 
-def test_loggedEndDateTime(tst, tst_stuff, model):
-    person, event1, event2, event3 = tst_stuff
+def test_loggedEndDateTime(qmlEngine, view, stuff, model):
+    person, event1, event2, event3 = stuff
+    row1, row2, row3 = (
+        qmlEngine.timelineModel.timelineRowsFor(event1)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event2)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event3)[0],
+    )
 
     # after last date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/12/2000")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == False
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/12/2000")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == False
 
     # one day after first date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/11/2000")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == True
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/11/2000")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == True
 
     # same day as first date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/10/2000")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == True
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/10/2000")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == True
 
     # one day before first date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/09/2000")
-    assert model.shouldHide(event1) == True
-    assert model.shouldHide(event2) == True
-    assert model.shouldHide(event3) == True
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "01/09/2000")
+    assert model.shouldHide(row1) == True
+    assert model.shouldHide(row2) == True
+    assert model.shouldHide(row3) == True
 
-    tst.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == False
+    view.keyClicksClear("loggedEndDateTimeButtons.dateTextInput")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == False
 
 
-def test_loggedStartDateTime_loggedEndDateTime(tst, tst_stuff, model):
-    person, event1, event2, event3 = tst_stuff
+def test_loggedStartDateTime_loggedEndDateTime(qmlEngine, view, stuff, model):
+    person, event1, event2, event3 = stuff
+
+    row1, row2, row3 = (
+        qmlEngine.timelineModel.timelineRowsFor(event1)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event2)[0],
+        qmlEngine.timelineModel.timelineRowsFor(event3)[0],
+    )
 
     # same as first date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/10/2000")
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/10/2000")
     # same as last date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/10/2000")
-    assert model.shouldHide(event1) == False
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == False
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/10/2000")
+    assert model.shouldHide(row1) == False
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == False
 
     # after first date
-    tst.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/11/2000")
+    view.keyClicks("loggedStartDateTimeButtons.dateTextInput", "01/11/2000")
     # before last date
-    tst.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/09/2000")
-    assert model.shouldHide(event1) == True
-    assert model.shouldHide(event2) == False
-    assert model.shouldHide(event3) == True
+    view.keyClicks("loggedEndDateTimeButtons.dateTextInput", "03/09/2000")
+    assert model.shouldHide(row1) == True
+    assert model.shouldHide(row2) == False
+    assert model.shouldHide(row3) == True
 
 
-def test_emotional_units_populated(tst, scene, model):
+def test_emotional_units_populated(view, scene, model):
     personA, personB = Person(name="A"), Person(name="B")
     scene.addItems(personA, personB)
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItem(marriage)
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == False
     )
 
 
-def test_emotional_units_empty_no_pairbonds_with_names(scene, tst, model):
+def test_emotional_units_empty_no_pairbonds_with_names(scene, view, model):
     personA, personB = Person(), Person()
     scene.addItems(personA, personB)
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == True
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        view.rootProp("emotionalUnitsEdit").property("emptyText")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
     )
 
 
-def test_emotional_units_empty_no_pairbonds_with_names__unnamed(scene, tst, model):
+def test_emotional_units_empty_no_pairbonds_with_names__unnamed(scene, view, model):
     personA, personB = Person(), Person()
     scene.addItems(personA, personB)
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItem(marriage)
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == True
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        view.rootProp("emotionalUnitsEdit").property("emptyText")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES
     )
 
 
-def test_emotional_units_names_hidden(qmlEngine, scene, tst, model):
+def test_emotional_units_names_hidden(qmlEngine, scene, view, model):
     personA, personB = Person(name="A"), Person(name="B")
     scene.addItems(personA, personB)
     marriage = Marriage(personA=personA, personB=personB)
     scene.addItem(marriage)
     qmlEngine.sceneModel.hideNames = True
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("visible")
         == True
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
+        view.rootProp("emotionalUnitsEdit").property("noItemsText").property("text")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
     )
     assert (
-        tst.rootProp("emotionalUnitsEdit").property("emptyText")
+        view.rootProp("emotionalUnitsEdit").property("emptyText")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
     )
