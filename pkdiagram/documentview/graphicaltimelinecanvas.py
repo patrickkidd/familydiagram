@@ -132,6 +132,7 @@ class GraphicalTimelineCanvas(QWidget):
                         _dayRange = firstDateTime.daysTo(lastDateTime)
                         if _dayRange > self._dayRange:
                             self._dayRange = _dayRange
+        self._timelineRowRectCache = []
         self.update()
 
     def dateTimeRange(
@@ -158,17 +159,68 @@ class GraphicalTimelineCanvas(QWidget):
                     break
         return first, last
 
+    def _buildTimelineRowRectCache(self):
+        """Build the cache of timeline row rectangles without painting."""
+        self._timelineRowRectCache = []
+        if not self.scene or (not self._timelineRows and not self._tagRows):
+            return
+
+        bottomY = self.height() - self.MARGIN
+        if not self.isSlider() and len(self._tagRows):
+            rowHeight = (self.height() - self.MARGIN * 2) / (len(self._tagRows))
+            bottomY -= self.MARGIN
+            for i, (tag, timelineRows) in enumerate(self._tagRows):
+                self._buildRowRectCache(
+                    bottomY - (i * rowHeight) - 30,
+                    timelineRows,
+                    dayRange=self._dayRange,
+                )
+        else:
+            if self.isSlider():
+                bottomY = self.height() / 2
+            self._buildRowRectCache(bottomY, self._timelineRows)
+
+    def _buildRowRectCache(self, bottomY, timelineRows, dayRange=None):
+        """Build rect cache for a single row."""
+        if self.isSlider():
+            y = bottomY
+        else:
+            y = bottomY - (self.labelFont.pixelSize() + 5)
+        firstP = QPointF(self.MARGIN, y)
+        if self.isSlider():
+            lastP = QPointF(self.width() - self.MARGIN, y)
+        else:
+            lastP = QPointF(self.width() - self.RIGHT_MARGIN, y)
+        if not timelineRows:
+            return
+
+        firstDateTime, lastDateTime = self.dateTimeRange(timelineRows)
+        if dayRange is None:
+            dayRange = firstDateTime.daysTo(lastDateTime)
+        if dayRange == 0:
+            dayRange = 1
+        firstR = QRectF(0, 0, self.W, self.W)
+        firstR.moveCenter(firstP)
+        dayPx = (lastP.x() - firstP.x()) / dayRange
+
+        for timelineRow in timelineRows:
+            if timelineRow.dateTime() != QDate(QDate(1, 1, 1)):
+                days = firstDateTime.daysTo(timelineRow.dateTime())
+                x = dayPx * days
+                rect = firstR.translated(x, 0)
+                self._timelineRowRectCache.append((timelineRow, rect))
+
     def selectRowsInRect(self, selectionRect: QRectF):
-        timelineRows = set(
-            [
-                row.event
-                for row, rectF in self._timelineRowRectCache
-                if selectionRect.intersects(rectF.toRect())
-            ]
-        )
+        if not self._timelineRowRectCache:
+            self._buildTimelineRowRectCache()
+        timelineRows = [
+            row
+            for row, rectF in self._timelineRowRectCache
+            if selectionRect.intersects(rectF.toRect())
+        ]
         selection = QItemSelection()
-        for row in timelineRows:
-            iRow = self._timelineModel.rowIndexFor(row)
+        for timelineRow in timelineRows:
+            iRow = self._timelineModel.rowIndexFor(timelineRow)
             index = self._timelineModel.index(iRow, 0)
             selection.select(index, index)
         self._isSelectingRows = True
@@ -255,7 +307,7 @@ class GraphicalTimelineCanvas(QWidget):
             self._lastMousePos = None
 
     def paintEvent(self, e):
-        self._timelineRowRectCache = []
+        self._buildTimelineRowRectCache()
         if not self.scene or (not self._timelineRows and not self._tagRows):
             e.ignore()
             return
@@ -488,7 +540,6 @@ class GraphicalTimelineCanvas(QWidget):
                     days = firstDateTime.daysTo(timelineRow.dateTime())
                     x = dayPx * days
                     rect = firstR.translated(x, 0)
-                    self._timelineRowRectCache.append((timelineRow, rect))
                     if x > clipRect.x() + clipRect.width():
                         continue
                     if timelineRow.event.nodal():

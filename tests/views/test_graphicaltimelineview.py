@@ -145,8 +145,8 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
 
     selectionModel.selectionChanged.connect(_onSelectionChanged)
 
-    upperLeft = QPoint(272, 220)
-    lowerRight = QPoint(498, 517)
+    upperLeft = QPoint(280, 480)
+    lowerRight = QPoint(295, 190)
     delta = lowerRight - upperLeft
     drag_1 = upperLeft + delta * 0.05
     drag_2 = upperLeft + delta * 0.65
@@ -165,12 +165,12 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
 
     qtbot.mouseMove(canvas, pos=drag_1)
     assert canvas._rubberBand.isVisible() == True
-    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_1)
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_1).normalized()
     assert len(events_for_selectionChanged) == 0
 
     qtbot.mouseMove(canvas, pos=drag_2)
     assert canvas._rubberBand.isVisible() == True
-    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2)
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2).normalized()
     assert len(events_for_selectionChanged) == 1
     assert events_for_selectionChanged[0] == {
         scene.eventsFor(person_2, kinds=EventKind.Birth)[0]
@@ -178,7 +178,7 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
 
     qtbot.mouseMove(canvas, pos=lowerRight)
     assert canvas._rubberBand.isVisible() == True
-    assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight)
+    assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight).normalized()
     assert len(events_for_selectionChanged) == 2
     assert events_for_selectionChanged[1] == {
         scene.eventsFor(person_3, kinds=EventKind.Birth)[0],
