@@ -160,7 +160,7 @@ class Scene(QGraphicsScene, Item):
     marriageRemoved = pyqtSignal(Marriage)
     showNotes = pyqtSignal(PathItem)
     itemDoubleClicked = pyqtSignal(PathItem)
-    finishedBatchAddingRemovingItems = pyqtSignal(list, list)
+    finishedBatchAddingRemovingItems = pyqtSignal()
 
     Item.registerProperties(
         (
@@ -630,7 +630,9 @@ class Scene(QGraphicsScene, Item):
             marriage = item.parents()
             if marriage.scene():  # Marriage might already be removed
                 layer = marriage.emotionalUnit().layer()
-                item.person.setLayers([x for x in item.person.layers() if x != layer.id])
+                item.person.setLayers(
+                    [x for x in item.person.layers() if x != layer.id]
+                )
                 marriage.emotionalUnit().update()
             # Remove the person from the marriage's children list
             item.parents()._onRemoveChild(item.person)
@@ -714,9 +716,6 @@ class Scene(QGraphicsScene, Item):
 
     def setBatchAddingRemovingItems(self, on):
         if on:
-            if self._batchAddRemoveStackLevel == 0:
-                self._batchAddedItems = []
-                self._batchRemovedItems = []
             self._batchAddRemoveStackLevel += 1
         else:
             self._batchAddRemoveStackLevel -= 1
@@ -742,11 +741,9 @@ class Scene(QGraphicsScene, Item):
                 for item in self._batchAddedItems + self._batchRemovedItems:
                     if item.isEmotion:
                         item.updateFannedBox()
-                self.finishedBatchAddingRemovingItems.emit(
-                    self._batchAddedItems, self._batchRemovedItems
-                )
-                self._batchAddedItems = []
-                self._batchRemovedItems = []
+                self.finishedBatchAddingRemovingItems.emit()
+        self._batchAddedItems = []
+        self._batchRemovedItems = []
 
     def resortLayersFromOrder(self):
         # re-sort iternal layer list.
@@ -1759,7 +1756,7 @@ class Scene(QGraphicsScene, Item):
         if isinstance(item, Person):
             return [e for e in self._emotions if item in (e.person(), e.target())]
         elif isinstance(item, Event):
-            return [e for e in self._emotions if e.event() is item]
+            return [e for e in self._emotions if e.sourceEvent() is item]
 
     def layers(self, tags=[], name=None, includeInternal=True, onlyInternal=False):
         if not tags and name is None:

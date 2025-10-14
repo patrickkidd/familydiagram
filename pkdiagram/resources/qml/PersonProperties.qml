@@ -399,7 +399,7 @@ PK.Drawer {
                                 PK.CheckBox {
                                     id: adoptedBox
                                     objectName: 'adoptedBox'
-                                    text: "Show Adopted'
+                                    text: "Show Adopted"
                                     enabled: !personModel.anyMarriedEvents && !personModel.everAdopted
                                     checkState: personModel.adopted
                                     Layout.columnSpan: 2

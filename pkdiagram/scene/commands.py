@@ -147,7 +147,7 @@ class RemoveItems(QUndoCommand):
                     return
             mapping = {
                 "emotion": item,
-                "eventId": item.event().id if item.event() else None,
+                "eventId": item.sourceEvent().id if item.sourceEvent() else None,
                 "targetId": item.target().id if item.target() else None,
             }
             self._unmapped["emotions"].append(mapping)
@@ -219,11 +219,11 @@ class RemoveItems(QUndoCommand):
         for item in self.items:
             if item.isChildOf:
                 # Get the current ChildOf from the person (if still exists)
-                if hasattr(item, 'person') and item.person and item.person.childOf:
+                if hasattr(item, "person") and item.person and item.person.childOf:
                     itemsToRemove.append(item.person.childOf)
             elif item.isMultipleBirth:
                 # Get the current MultipleBirth from any of the children
-                if hasattr(item, '_children'):
+                if hasattr(item, "_children"):
                     for child in item._children:
                         if child and child.multipleBirth():
                             itemsToRemove.append(child.multipleBirth())
@@ -291,10 +291,10 @@ class RemoveItems(QUndoCommand):
             # Update parent item for non-dyadic emotions
             if (
                 not entry["emotion"].isDyadic()
-                and entry["emotion"].event()
-                and entry["emotion"].event().person()
+                and entry["emotion"].sourceEvent()
+                and entry["emotion"].sourceEvent().person()
             ):
-                entry["emotion"].setParentItem(entry["emotion"].event().person())
+                entry["emotion"].setParentItem(entry["emotion"].sourceEvent().person())
         #
         for entry in self._unmapped["layers"]:  # before layer items
             # Restore layer to all items that had it

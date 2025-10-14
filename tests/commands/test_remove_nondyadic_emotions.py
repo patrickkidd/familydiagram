@@ -41,7 +41,7 @@ class TestRemoveNonDyadicEmotions:
         assert emotion in scene.emotions()
         # Critical: parent item should be restored
         assert emotion.parentItem() == person1
-        assert emotion.event() == event
+        assert emotion.sourceEvent() == event
         assert emotion.target() == person2
 
     def test_remove_person_with_nondyadic_emotions(self, scene):
@@ -166,7 +166,7 @@ class TestRemoveNonDyadicEmotions:
         scene.undo()
 
         assert emotion.parentItem() == person1
-        assert emotion.event() == event
+        assert emotion.sourceEvent() == event
         assert emotion.target() == person2
 
     def test_remove_batch_nondyadic_emotions(self, scene):

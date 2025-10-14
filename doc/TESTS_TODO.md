@@ -7,17 +7,22 @@ Update test suite to new Event/scene API patterns per CLAUDE.md guidance.
 ## Key rules
 - using the new Event() constructor params, notably kind, person, relationship*.
 - Creating Item objects in a scene.addItems call like `personA, personB = scene.addItems(Person(), Person())` instead of
+- Add Person objects prior to adding other objects that reference them.
 - understanding the new implicit Emotion creation modes creating the items and
 then adding them later
 - Not using composed special events like person.birthEvent and instead adding
   an event with the proper `EventKind` and then using `Scene.eventsFor(item,
   kinds=...)`
 - Using `Scene.find(...)` api where possible, etc.
-- Use the `scene` fixture instead of creating a new scene object for every test.
+- Use the `scene` fixture instead of creating a new scene object for every test
+  or referencing the same scene object through the view or model fixture.
 - Do not correct app code to check if `Event.person()` is None or
   `Event.person()` is not in `scene.people()`, these values should always be
   valid. If they are not then that is a problem in the calling code or the test code.
-  
+- Replace composed special events, e.g. `birthEvent` or `setBirthDateTime`, with
+  adding Event's of the correct kind
+
+ 
 
 ## Cascade Delete Investigation - COMPLETED 2025-10-13
 

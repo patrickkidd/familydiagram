@@ -1271,7 +1271,7 @@ class Emotion(PathItem):
             return False
         # Compare by event dateTime if events exist
         self_dt = self._event.dateTime() if self._event else None
-        other_dt = other.event().dateTime() if other.event() else None
+        other_dt = other.sourceEvent().dateTime() if other.sourceEvent() else None
 
         if self_dt and not other_dt:
             return True
@@ -1289,7 +1289,7 @@ class Emotion(PathItem):
             else:
                 return self.id < other.id
 
-    def event(self) -> Event:
+    def sourceEvent(self) -> Event:
         return self._event
 
     def setEvent(self, event: Event | None):

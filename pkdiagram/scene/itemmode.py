@@ -46,9 +46,7 @@ class ItemMode(enum.Enum):
             self.Inside: RelationshipKind.Inside,
             self.Outside: RelationshipKind.Outside,
         }
-        if not self in map:
-            raise ValueError(f"{self} does not map to a RelationshipKind")
-        return map[self]
+        return map.get(self)
 
     def isPerson(self) -> bool:
         """Check if this mode creates a person."""

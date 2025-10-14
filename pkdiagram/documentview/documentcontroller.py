@@ -372,7 +372,7 @@ class DocumentController(QObject):
     def onEditEmotionEvent(self):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
-        event = emotion.event()
+        event = emotion.sourceEvent()
         if event:
             self.dv.showEventForm(event)
 
@@ -1153,7 +1153,7 @@ class DocumentController(QObject):
             sort="birthDateTime", types=Person, tags=list(self.dv.searchModel.tags)
         )
         for index, person in enumerate(people):
-            sheet.write(index + 1, 0, person.birthDateTime(string=True))
+            sheet.write(index + 1, 0, person.birthDateTime().toString("yyyy-MM-dd"))
             sheet.write(
                 index + 1,
                 1,
@@ -1174,9 +1174,9 @@ class DocumentController(QObject):
             sheet.write(index + 1, 6, person.gender())
             sheet.write(index + 1, 7, person.deceased() and "YES" or "")
             sheet.write(index + 1, 8, person.deceasedReason())
-            sheet.write(index + 1, 9, person.deceasedDateTime(string=True))
+            sheet.write(index + 1, 9, person.deceasedDateTime().toString("yyyy-MM-dd"))
             sheet.write(index + 1, 10, person.adopted() and "YES" or "")
-            sheet.write(index + 1, 11, person.adoptedDateTime(string=True))
+            sheet.write(index + 1, 11, person.adoptedDateTime().toString("yyyy-MM-dd"))
             sheet.write(
                 index + 1, 12, self.scene.showAliases() and " " or person.notes()
             )

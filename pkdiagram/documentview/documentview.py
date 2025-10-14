@@ -358,7 +358,7 @@ class DocumentView(QWidget):
         events = self.timelineModel.eventsAt(self.scene.currentDateTime())
         self.graphicalTimelineCallout.setEvents(events)
         canvas = self.graphicalTimelineView.timeline.canvas
-        if events and canvas.isSlider() and canvas.events():
+        if events and canvas.isSlider():
             cursorRect_local = canvas.currentDateTimeIndicatorRect()
             cursorPos = self.mapTo(
                 self,

@@ -110,7 +110,7 @@ def test_FannedBox_add(TestFannedBox):
     personA, personB = scene.addItems(Person(), Person())
     fusion, projection = scene.addItems(
         Emotion(RelationshipKind.Fusion, personB, person=personA),
-        Emotion(RelationshipKind.Projection, personB, person=personA)
+        Emotion(RelationshipKind.Projection, personB, person=personA),
     )
 
     assert fusion.fannedBox is not None
@@ -124,7 +124,9 @@ def test_FannedBox_add_multiple(TestFannedBox):
     personA, personB = scene.addItems(Person(), Person())
     # Add these one at a time to better simulate clicking
     fusion = scene.addItem(Emotion(RelationshipKind.Fusion, personB, person=personA))
-    projection = scene.addItem(Emotion(RelationshipKind.Projection, personB, person=personA))
+    projection = scene.addItem(
+        Emotion(RelationshipKind.Projection, personB, person=personA)
+    )
     toward = scene.addItem(Emotion(RelationshipKind.Toward, personB, person=personA))
 
     assert fusion.fannedBox is not None
@@ -149,7 +151,7 @@ def test_FannedBox_remove(TestFannedBox):
     personA, personB = scene.addItems(Person(), Person())
     fusion, projection = scene.addItems(
         Emotion(RelationshipKind.Fusion, personB, person=personA),
-        Emotion(RelationshipKind.Projection, personB, person=personA)
+        Emotion(RelationshipKind.Projection, personB, person=personA),
     )
     scene.removeItem(projection)
     assert fusion.fannedBox is not None
@@ -240,7 +242,7 @@ def test_FannedBox_peers_different_tags():
     personA, personB = scene.addItems(Person(), Person())
     fusion, projection = scene.addItems(
         Emotion(RelationshipKind.Fusion, personB, person=personA),
-        Emotion(RelationshipKind.Projection, personB, person=personA, tags=["tag-1"])
+        Emotion(RelationshipKind.Projection, personB, person=personA, tags=["tag-1"]),
     )
     assert fusion.peers() == {projection}
     assert projection.peers() == {fusion}
@@ -267,7 +269,7 @@ def test_FannedBox_posDelta_adapt():
     personA, personB = scene.addItems(Person(), Person())
     fusion, projection = scene.addItems(
         Emotion(RelationshipKind.Fusion, personB, person=personA),
-        Emotion(RelationshipKind.Projection, personB, person=personA)
+        Emotion(RelationshipKind.Projection, personB, person=personA),
     )
     personA.setPos(100, 100)
     personB.setPos(-100, -100)
@@ -286,7 +288,9 @@ def test_FannedBox_posDelta_adapt():
 def test_shouldShowFor():
     scene = Scene()
     personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
-    conflict = scene.addItem(Emotion(RelationshipKind.Conflict, personB, person=personA))
+    conflict = scene.addItem(
+        Emotion(RelationshipKind.Conflict, personB, person=personA)
+    )
 
     # No tags
     assert conflict.shouldShowFor(QDateTime()) == True
@@ -329,7 +333,9 @@ def test_honors_searchModel_tags():
     TAGS = ["triangle"]
     scene = Scene()
     personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
-    conflict = scene.addItem(Emotion(RelationshipKind.Conflict, personB, person=personA, tags=TAGS))
+    conflict = scene.addItem(
+        Emotion(RelationshipKind.Conflict, personB, person=personA, tags=TAGS)
+    )
     searchModel = SearchModel()
     searchModel.scene = scene
     searchModel.tags = TAGS
@@ -427,7 +433,7 @@ def test_descriptions_diff_dates(scene):
         )
     )
     conflict = scene.emotionsFor(event)[0]
-    assert conflict.event().description() == "Shift"
+    assert conflict.sourceEvent().description() == "Shift"
 
 
 def test_descriptions_same_dates(scene):
@@ -531,7 +537,11 @@ def test_emotion_properties_fallback_without_event():
 
     emotion = scene.addItem(
         Emotion(
-            RelationshipKind.Conflict, personB, person=personA, color="#123456", notes="Local notes"
+            RelationshipKind.Conflict,
+            personB,
+            person=personA,
+            color="#123456",
+            notes="Local notes",
         )
     )
 

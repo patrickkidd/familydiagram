@@ -47,7 +47,7 @@ class EmotionPropertiesModel(QObject, ModelHelper):
             x = util.sameOf(self._items, lambda item: item.endEvent.dateTime())
             ret = self.getterConvertTo(attr, x)
         elif attr == "canEditEvent":
-            ret = util.sameOf(self._items, lambda item: item.event())
+            ret = util.sameOf(self._items, lambda item: item.sourceEvent())
         elif attr == "endEventId":
             ret = util.sameOf(self._items, lambda item: item.endEvent.id)
         elif attr == "parentName":

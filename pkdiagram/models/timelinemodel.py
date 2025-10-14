@@ -169,8 +169,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 # Check if any emotion for this event is a singular date
                 # (start and end are the same or no end date)
                 for emotion in emotions:
-                    if emotion.event() == event:
-                        emotion_event = emotion.event()
+                    if emotion.sourceEvent() == event:
+                        emotion_event = emotion.sourceEvent()
                         if emotion_event:
                             start_dt = emotion_event.dateTime()
                             end_dt = emotion_event.endDateTime()

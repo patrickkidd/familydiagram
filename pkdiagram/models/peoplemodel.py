@@ -59,7 +59,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             self.updateData()
         super().onSceneProperty(prop)
 
-    def onFinishedBatchAddingRemovingItems(self, added, removed):
+    def onFinishedBatchAddingRemovingItems(self):
         """Just reset the model."""
         self.updateData()
 
@@ -139,7 +139,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                 self.scene.personAdded.disconnect(self.onPersonAdded)
                 self.scene.personChanged.disconnect(self.onPersonChanged)
                 self.scene.personRemoved.disconnect(self.onPersonRemoved)
-                self.scene.finishedBatchAddingRemovingItems[list, list].disconnect(
+                self.scene.finishedBatchAddingRemovingItems.disconnect(
                     self.onFinishedBatchAddingRemovingItems
                 )
         super().set(attr, value)
@@ -148,7 +148,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                 value.personAdded.connect(self.onPersonAdded)
                 value.personChanged.connect(self.onPersonChanged)
                 value.personRemoved.connect(self.onPersonRemoved)
-                value.finishedBatchAddingRemovingItems[list, list].connect(
+                value.finishedBatchAddingRemovingItems.connect(
                     self.onFinishedBatchAddingRemovingItems
                 )
             self.updateData()
