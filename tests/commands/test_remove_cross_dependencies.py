@@ -51,7 +51,7 @@ class TestRemovePersonWithEverything:
 
         # Alice has layer properties
         parent1.setLayers([layer.id])
-        layer.setItemProperty(parent1.id, "hideLabel", True)
+        layer.setItemProperty(parent1.id, "bigFont", True)
 
         initial_people = len(scene.people())
         initial_marriages = len(scene.marriages())
@@ -82,7 +82,7 @@ class TestRemovePersonWithEverything:
         assert event1 in scene.events()
         assert event2 in scene.events()
         assert emotion in scene.emotions()
-        assert layer.getItemProperty(parent1.id, "hideLabel") == (True, True)
+        assert layer.getItemProperty(parent1.id, "bigFont") == (True, True)
 
     def test_marriage_with_everything(self, scene):
         """Remove marriage with children, events, and multiple births."""
