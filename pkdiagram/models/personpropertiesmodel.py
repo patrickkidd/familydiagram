@@ -142,6 +142,8 @@ class PersonPropertiesModel(QObject, ModelHelper):
         return super().set(attr, value)
 
     def get(self, attr):
+        if not self._scene:
+            return super().get(attr)
         ret = None
         if attr == "fullNameOrAlias":
             ret = self.sameOf(attr, lambda item: item.fullNameOrAlias())

@@ -103,7 +103,7 @@ PRISCILLA_SCENE = {
                 "kind": EventKind.Death.value,
             },
             "deceased": True,
-            "kind": "Event",
+            "kind": "Person",
             "lastName": "Friesen",
             "name": "Elsie",
         }
@@ -111,8 +111,7 @@ PRISCILLA_SCENE = {
 }
 
 
-def test_parentName_not_None():
-    scene = Scene()
+def test_parentName_not_None(scene):
     scene.read(PRISCILLA_SCENE)
     timelineModel = TimelineModel()
     timelineModel.scene = scene

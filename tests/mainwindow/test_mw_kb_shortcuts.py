@@ -2,7 +2,7 @@ import pytest
 
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, Emotion, ItemMode
+from pkdiagram.scene import Person, Marriage, Emotion, ItemMode, RelationshipKind
 from pkdiagram.documentview import RightDrawerView
 
 pytestmark = [
@@ -98,46 +98,30 @@ def test_marriage_kb_shortcut_timeline(qtbot, create_ac_mw):
     assert mw.documentView.marriageProps.currentTab() == "item"
 
 
-def test_emotion_kb_shortcut_item(qtbot, create_ac_mw):
+@pytest.mark.parametrize("target", ["item", "notes", "meta"])
+def test_emotion_kb_shortcuts(qtbot, create_ac_mw, target):
     ac, mw = create_ac_mw()
 
     personA, personB = Person(), Person()
     conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
     mw.scene.addItems(personA, personB, conflict)
     assert mw.documentView.emotionProps.isVisible() == False
-    assert mw.documentView.emotionProps.currentTab() == "item"
 
     conflict.setSelected(True)
-    qtbot.keyClick(mw, Qt.Key_I, Qt.ShiftModifier | Qt.ControlModifier)
+    if target == "item":
+        qtbot.keyClick(mw, Qt.Key_I, Qt.ShiftModifier | Qt.ControlModifier)
+    elif target == "notes":
+        qtbot.keyClick(mw, Qt.Key_N, Qt.ShiftModifier | Qt.ControlModifier)
+    elif target == "meta":
+        qtbot.keyClick(mw, Qt.Key_M, Qt.ShiftModifier | Qt.ControlModifier)
     assert mw.documentView.emotionProps.isVisible() == True
-    assert mw.documentView.emotionProps.currentTab() == "item"
-
-
-def test_emotion_kb_shortcut_notes(qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-
-    personA, personB = Person(), Person()
-    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
-    mw.scene.addItems(personA, personB, conflict)
-    assert mw.documentView.emotionProps.isVisible() == False
-    assert mw.documentView.emotionProps.currentTab() == "item"
-
-    conflict.setSelected(True)
-    qtbot.keyClick(mw, Qt.Key_N, Qt.ShiftModifier | Qt.ControlModifier)
-    assert mw.documentView.emotionProps.isVisible() == True
-    assert mw.documentView.emotionProps.currentTab() == "notes"
-
-
-def test_emotion_kb_shortcut_meta(qtbot, create_ac_mw):
-    ac, mw = create_ac_mw()
-
-    personA, personB = Person(), Person()
-    conflict = Emotion(RelationshipKind.Conflict, personB, person=personA)
-    mw.scene.addItems(personA, personB, conflict)
-    assert mw.documentView.emotionProps.isVisible() == False
-    assert mw.documentView.emotionProps.currentTab() == "item"
-
-    conflict.setSelected(True)
-    qtbot.keyClick(mw, Qt.Key_M, Qt.ShiftModifier | Qt.ControlModifier)
-    assert mw.documentView.emotionProps.isVisible() == True
-    assert mw.documentView.emotionProps.currentTab() == "meta"
+    assert mw.documentView.emotionProps.rootProp("emotionTitle") == conflict.kind().name
+    activeFocusItem = mw.documentView.emotionProps.qml.quickWindow().activeFocusItem()
+    if target == "notes":
+        assert activeFocusItem == mw.documentView.emotionProps.rootProp("notesEdit")
+    elif target == "meta":
+        assert activeFocusItem == mw.documentView.emotionProps.rootProp("tagsList")
+        assert (
+            mw.documentView.emotionProps.rootProp("tagsList").property("visible")
+            == True
+        )

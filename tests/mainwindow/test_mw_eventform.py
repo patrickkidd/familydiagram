@@ -42,18 +42,17 @@ def test_close_after_adding_lots(
     dlg.set_startDateTime(util.Date(2001, 2, 3))
     dlg.clickSaveButton()
     assert len(johnDoe.marriages) == 2
-    assert len(johnDoe.marriages[1].events()) == 1
+    assert len(mw.scene.eventsFor(johnDoe.marriages[1])) == 1
 
-    DESCRIPTION = "asdasdsd ddd"
     dlg.set_kind(EventKind.Shift)
     dlg.personPicker.set_existing_person(johnDoe)
     dlg.set_startDateTime(util.Date(2010, 1, 1))
-    dlg.set_description(DESCRIPTION)
+    dlg.set_description("asdasdsd ddd")
     dlg.set_anxiety(util.VAR_VALUE_UP)
     dlg.clickSaveButton()
-    assert len(johnDoe.events()) == 1
-    assert johnDoe.events()[0].kind() == EventKind.Shift
-    assert len(johnDoe.marriages[1].events()) == 1
+    assert len(mw.scene.eventsFor(johnDoe)) == 3
+    assert mw.scene.eventsFor(johnDoe)[2].kind() == EventKind.Shift
+    assert len(mw.scene.eventsFor(johnDoe.marriages[1])) == 1
 
     qtbot.clickYesAfter(
         lambda: mw.closeDocument(), text=MainWindow.S_CONFIRM_SAVE_CHANGES

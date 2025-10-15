@@ -48,6 +48,31 @@ Page {
 
     function currentTab() {}
 
+    function scrollToItem(item) {
+        if (item) {
+            var itemY = item.y;
+            var itemHeight = item.height;
+            var flickableHeight = emotionPage.height;
+            var contentY = emotionPage.contentY;
+
+            if (itemY < contentY) {
+                emotionPage.contentY = itemY;
+            } else if (itemY + itemHeight > contentY + flickableHeight) {
+                emotionPage.contentY = itemY + itemHeight - flickableHeight;
+            }
+        }
+    }
+
+    function scrollToNotes() {
+        scrollToItem(notesEdit)
+        notesEdit.forceActiveFocus()
+    }
+
+    function scrollToMeta() {
+        scrollToItem(tagsList)
+        tagsList.forceActiveFocus()
+    }
+
     KeyNavigation.tab: editEventButton
 
     header: PK.ToolBar {

@@ -932,9 +932,13 @@ class DocumentController(QObject):
 
     def onInspectNotesTab(self):
         self.onInspect(tab="notes")
+        if self.dv.currentDrawer is self.dv.emotionProps:
+            self.dv.emotionProps.qml.rootObject().scrollToNotes()
 
     def onInspectMetaTab(self):
         self.onInspect(tab="meta")
+        if self.dv.currentDrawer is self.dv.emotionProps:
+            self.dv.emotionProps.qml.rootObject().scrollToMeta()
 
     def onItemDoubleClicked(self, item):
         self.onInspect()
