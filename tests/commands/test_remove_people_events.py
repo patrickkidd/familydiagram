@@ -189,9 +189,7 @@ class TestRemoveItemsComplexScenarios:
     def test_sequential_remove_and_undo(self, scene):
         personAdded = util.Condition(scene.personAdded)
         personRemoved = util.Condition(scene.personRemoved)
-        person1, person2 = scene.addItems(
-            Person(name="Alice"), Person(name="Bob"), batch=False
-        )
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
         assert personAdded.callCount == 2
         assert personRemoved.callCount == 0
 

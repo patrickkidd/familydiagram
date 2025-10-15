@@ -356,7 +356,7 @@ class Scene(QGraphicsScene, Item):
         return item
 
     def addItems(
-        self, *args, batch=True, undo=False
+        self, *args, batch=False, undo=False
     ) -> list[Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]]:
         ret = []
         with self.macro("Adding items", undo=undo, batchAddRemove=batch):
@@ -375,7 +375,7 @@ class Scene(QGraphicsScene, Item):
         else:
             self._do_removeItem(item)
 
-    def removeItems(self, *items, undo=False, batch=True):
+    def removeItems(self, *items, undo=False, batch=False):
         if undo:
             self.push(RemoveItems(self, items))
         else:

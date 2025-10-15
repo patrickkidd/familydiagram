@@ -21,6 +21,7 @@ from pkdiagram.pyqt import (
     QPrinter,
     QDialog,
     QMessageBox,
+    QRect,
 )
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -395,7 +396,6 @@ def test_inspect_events_from_graphical_timeline(qtbot, scene, dv: DocumentView):
             description="Event 2",
             dateTime=util.Date(2002, 1, 1),
         ),
-        batch=False,
     )
     dv.timelineSelectionModel.select(
         QItemSelection(
@@ -419,7 +419,6 @@ def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     emotion1, emotion2 = scene.addItems(
         Emotion(RelationshipKind.Conflict, personB, person=personA),
         Emotion(RelationshipKind.Projection, personB, person=personA),
-        batch=False,
     )
     emotion1.setSelected(True)
     dv.controller.onInspect()
@@ -697,9 +696,9 @@ def test_retain_tab_between_selections(qtbot, mw, test_session):
 
 def test_show_graphical_timeline(qtbot, scene, dv: DocumentView):
     assert dv.isGraphicalTimelineShown() == False
-    person = Person(name="person", birthDateTime=util.Date(2001, 1, 1))
-    scene.addItem(person)
-    assert dv.scene.currentDateTime() != QDateTime()
+    person = scene.addItem(Person(name="person"))
+    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
+    assert dv.scene.currentDateTime() == util.Date(2001, 1, 1)
     assert dv.isGraphicalTimelineShown() == True
     assert dv.graphicalTimelineCallout.isVisible() == True
 
@@ -840,7 +839,6 @@ def test_nextTaggedDate_uses_searchModel(scene, dv: DocumentView):
         Event(EventKind.Birth, person1, dateTime=util.Date(1980, 1, 1)),
         Event(EventKind.Birth, person2, dateTime=util.Date(1990, 2, 2)),
         Event(EventKind.Birth, person3, dateTime=util.Date(2000, 3, 3)),
-        batch=False,
     )
 
     # test first before setting tags
@@ -948,8 +946,7 @@ def test_writeExcel(tmp_path, scene, dv: DocumentView):
 
 
 def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
-    person1, person2 = Person(name="p1"), Person(name="p2")
-    scene.addItems(person1, person2)
+    person1, person2 = scene.addItems(Person(name="p1"), Person(name="p2"))
     kinds = itertools.cycle(
         [
             RelationshipKind.Cutoff,
@@ -967,6 +964,7 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
     iDay = 0
     stride = 2
     firstDate = QDateTime.currentDateTime().addDays(-365 * 5)
+    events = []
     for i in range(100):
         for parent in (person1, person2):
             iDay += stride
@@ -977,7 +975,7 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
                 description="Test event %i" % iDay,
                 dateTime=dateTime,
             )
-            scene.addItem(event)
+            events.append(event)
         iDay += stride
         dateTime = firstDate.addDays(iDay)
         kind = next(kinds)
@@ -988,8 +986,9 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
             relationshipTargets=[person2],
             dateTime=dateTime,
         )
-        emotion = Emotion(kind, person2, event=event)
-        scene.addItems(event, emotion)
+        events.append(event)
+        # emotion = Emotion(kind, person2, event=event)
+    scene.addItems(events)
     # util.printModel(dv.timelineModel)
     filePath = os.path.join(tmp_path, "test.xlsx")
     dv.controller.writeExcel(filePath)

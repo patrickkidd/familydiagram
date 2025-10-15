@@ -84,7 +84,6 @@ def test_anyMarriedEvents(scene, model, marriage):
             spouse=marriage.personB(),
             dateTime=util.Date(1920, 1, 1),
         ),
-        batch=False,
     )
     assert model.anyMarriedEvents == True
     assert model.anySeparatedEvents == True

@@ -230,7 +230,7 @@ class RemoveItems(QUndoCommand):
                             break
             else:
                 itemsToRemove.append(item)
-        self.scene.removeItems(*itemsToRemove, undo=False, batch=False)
+        self.scene.removeItems(*itemsToRemove, undo=False)
 
     def undo(self):
         for item in self.items:

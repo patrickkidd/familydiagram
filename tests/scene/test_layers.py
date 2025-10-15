@@ -243,9 +243,8 @@ def test_add_default_layer_with_first_LayerItem(scene):
 
 
 def test_write_read_active_layer_items(scene):
-    layer, personA, personB = scene.addItems(
-        Layer(active=True), Person(name="personA"), Person(name="personB")
-    )
+    layer = scene.addItem(Layer(active=True))
+    personA, personB = scene.addItems(Person(name="personA"), Person(name="personB"))
     personB.setLayers([layer.id])
     assert scene.query1(name="personA").isVisible() == False
     assert scene.query1(name="personB").isVisible() == True
