@@ -2,6 +2,7 @@ import os, sys, re, logging
 import contextlib
 from typing import Union
 import shutil
+import pprint
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -240,6 +241,7 @@ class Scene(QGraphicsScene, Item):
         self._areActiveLayersChanging = False
         self._isResettingSomeLayerProps = False
         self._isAddingLayerItem = False
+        self._isAddingItems = False
         #
         self._isUndoRedoing = False
         self._undoStack = QUndoStack(self)
@@ -265,6 +267,7 @@ class Scene(QGraphicsScene, Item):
         self._activeTags = []
         self._batchAddedItems = []
         self._batchRemovedItems = []
+        self._pruned = []
         self.mousePressOnDraggable = None  # item move undo compression
         self._isNudgingSomething = False
         self._isDraggingSomething = False
@@ -347,10 +350,12 @@ class Scene(QGraphicsScene, Item):
         item: Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem],
         undo=False,
     ) -> Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]:
+        self._isAddingItems = True
         if undo:
             self.push(AddItem(self, item))
         else:
             self._do_addItem(item)
+        self._isAddingItems = False
         return item
 
     def addItems(
@@ -373,11 +378,11 @@ class Scene(QGraphicsScene, Item):
         else:
             self._do_removeItem(item)
 
-    def removeItems(self, *items, undo=False):
+    def removeItems(self, *items, undo=False, batch=True):
         if undo:
             self.push(RemoveItems(self, items))
         else:
-            with self.macro("Adding items", undo=False, batchAddRemove=True):
+            with self.macro("Adding items", undo=False, batchAddRemove=batch):
                 for item in items:
                     self._do_removeItem(item)
 
@@ -431,18 +436,19 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            for target in item.relationshipTargets():
-                # Dated emotions are owned by the Event and deleted along
-                # with it.
-                emotion = self.addItem(
-                    Emotion(
-                        kind=item.relationship(),
-                        target=target,
-                        event=item,
-                        tags=item.tags(),
+            if self._isAddingItems:
+                for target in item.relationshipTargets():
+                    # Dated emotions are owned by the Event and deleted along
+                    # with it.
+                    emotion = self.addItem(
+                        Emotion(
+                            kind=item.relationship(),
+                            target=target,
+                            event=item,
+                            tags=item.tags(),
+                        )
                     )
-                )
-                self._do_addItem(emotion)
+                    self._do_addItem(emotion)
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
@@ -503,21 +509,28 @@ class Scene(QGraphicsScene, Item):
         return item
 
     def _do_removeItem(self, item):
-        if isinstance(item, QGraphicsItem) and item.scene() is self:
-            super().removeItem(item)
+
+        def _removeFromGraphicsScene(item):
+            if isinstance(item, QGraphicsItem) and item.scene() is self:
+                QGraphicsScene.removeItem(self, item)
+
         if not isinstance(item, Item):
+            _removeFromGraphicsScene(item)
             return
 
         if not item.id in self.itemRegistry:
+            _removeFromGraphicsScene(item)
             return
 
         def _deregisterItem(item: Item):
             if item.id in self.itemRegistry:
                 del self.itemRegistry[item.id]
                 item.removePropertyListener(self)
+                item.onDeregistered(self)
 
         # I think it's ok to skip signals when deinitializing
         if self.isDeinitializing:
+            _removeFromGraphicsScene(item)
             _deregisterItem(item)
             return
 
@@ -544,6 +557,7 @@ class Scene(QGraphicsScene, Item):
                 self._emotions.remove(emotion)
                 removed_emotions.append(emotion)
                 _deregisterItem(emotion)
+                _removeFromGraphicsScene(emotion)
 
         def _removeMarriage(marriage: Marriage):
             for child in list(marriage.children):
@@ -572,6 +586,7 @@ class Scene(QGraphicsScene, Item):
                 removed_marriages.append(marriage)
                 # Deregister from itemRegistry
                 _deregisterItem(marriage)
+                _removeFromGraphicsScene(marriage)
 
         ## Cascade delete BEFORE deregistering so that event.person() etc still work
         if item.isPerson:
@@ -596,6 +611,7 @@ class Scene(QGraphicsScene, Item):
             if item in self._people:
                 self._people.remove(item)
                 removed_people.append(item)
+            _removeFromGraphicsScene(item)
         elif item.isMarriage:
             _removeMarriage(item)
         elif item.isEvent:
@@ -609,6 +625,7 @@ class Scene(QGraphicsScene, Item):
                 if child.childOf:
                     child.childOf.multipleBirth = None
             _deregisterItem(item)
+            _removeFromGraphicsScene(item)
         elif item.isChildOf:
             # If part of a MultipleBirth, handle the conversion back to single child
             if item.multipleBirth:
@@ -639,6 +656,7 @@ class Scene(QGraphicsScene, Item):
             item.person.childOf = None
             # NOTE: Do NOT call setParents(None) here - that would cause infinite recursion
             # since setParents(None) itself calls removeItem(childOf)
+            _removeFromGraphicsScene(item)
         elif item.isLayer:
             # Remove layer from all items that reference it
             for sceneItem in self.itemRegistry.values():
@@ -671,6 +689,9 @@ class Scene(QGraphicsScene, Item):
 
         # deregister AFTER cascade so lookups still work during cascade
         _deregisterItem(item)
+        # # Remove later so that items can still query references during
+        # # deconstruction
+        # _removeFromGraphicsScene(item)
 
         if item.isPathItem:  # so far only for details/sep items
             if not self.isBatchAddingRemovingItems():
@@ -701,11 +722,11 @@ class Scene(QGraphicsScene, Item):
             for person in removed_people:
                 self.personRemoved.emit(person)
 
-        ## Global side effects - execute once at the end
-        if not self.isBatchAddingRemovingItems() and not self._isUndoRedoing:
-            # Reset currentDateTime if no events remain (all events have dateTime)
-            if not self._events:
-                self.setCurrentDateTime(QDateTime())
+            ## Global side effects - execute once at the end
+            if not self._isUndoRedoing:
+                # Reset currentDateTime if no events remain (all events have dateTime)
+                if not self._events:
+                    self.setCurrentDateTime(QDateTime())
 
     def isAddingLayerItem(self):
         return self._isAddingLayerItem
@@ -813,8 +834,6 @@ class Scene(QGraphicsScene, Item):
         Delete any references to items containing stale references.
         Returns any chunks that were removed, otherwise None.
         """
-        if not data.get("items"):
-            return
         by_ids = {}
         for chunk in (
             data.get("events", [])
@@ -829,22 +848,26 @@ class Scene(QGraphicsScene, Item):
 
         pruned = []
 
-        for chunk in data.get("events", []):
+        for chunk in list(data.get("events", [])):
             if not chunk["dateTime"]:
-                personChunk = by_ids.get(chunk.get("person_id"))
+                personChunk = by_ids.get(chunk.get("person"))
                 log.warning(
-                    f"Removing Event with person {personChunk} and no dateTime set."
+                    f"Removing Event with person {personChunk['id']}: {personChunk['name']} and no dateTime set: {pprint.pformat(chunk, indent=4)}"
                 )
                 data["events"].remove(chunk)
                 pruned.append(chunk)
-        for chunk in data.get("multipleBirths", []):
-            for childId in chunk.get("children", []):
-                if not childId in by_ids:
-                    log.warning(
-                        f"Removing MultipleBirth with stale ref to child {childId}"
-                    )
-                    data["items"].remove(chunk)
-                    pruned.append(chunk)
+        for chunk in list(data.get("multipleBirths", [])):
+            stale_children = [
+                childId
+                for childId in chunk.get("children", [])
+                if childId not in by_ids
+            ]
+            if stale_children:
+                log.warning(
+                    f"Removing MultipleBirth with stale ref to child {stale_children}: {pprint.pformat(chunk, indent=4)}"
+                )
+                data["multipleBirths"].remove(chunk)
+                pruned.append(chunk)
         return pruned
 
     ## Files
@@ -869,9 +892,9 @@ class Scene(QGraphicsScene, Item):
         # TODO: copy this forward, sort of like future items...
         self.lastLoadData = dict(((p.name(), p.get()) for p in self.props))
         self.lastLoadData["name"] = data.get("name")
-        self.prune(data)
         try:
             compat.update_data(data)
+            self._pruned = data.get("pruned", []) + self.prune(data)
             super().read(data, None)
             ## Set 'em up
             itemChunks = []
@@ -1046,6 +1069,7 @@ class Scene(QGraphicsScene, Item):
         data["layerItems"] = []
         data["multipleBirths"] = []
         data["items"] = []  # For future unknown types
+        data["pruned"] = self._pruned
 
         data["name"] = self.name()
         items = []

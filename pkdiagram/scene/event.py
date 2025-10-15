@@ -120,8 +120,8 @@ class Event(Item):
         else:
             relationshipTriangles = []
 
-        for person in [spouse, child] + relationshipTargets + relationshipTriangles:
-            if person and person.id is None:
+        for p in [spouse, child] + relationshipTargets + relationshipTriangles:
+            if p and p.id is None:
                 raise ValueError(
                     f"All referenced people must be added to the scene before passed to Event() or they won't have valid id's."
                 )
@@ -297,9 +297,8 @@ class Event(Item):
         wasDescription = prop.get()
         newDescription = None
         if self.kind() == EventKind.Moved:
-            newDescription = (
-                "Moved to %s" % self.location() if self.location() else "Moved"
-            )
+            loc = self.location()
+            newDescription = "Moved to %s" % loc if loc else "Moved"
         elif self.kind() == EventKind.Shift:
             # For Shift events, only auto-generate if description isn't already set
             if not wasDescription:

@@ -173,7 +173,7 @@ def test_edit_Death(scene, view):
 
     assert len(scene.eventsFor(person)) == 1
     assert event.kind() == EventKind.Death
-    assert event.description() == None
+    assert event.description() == EventKind.Death.menuLabel()
     assert event.location() == "New Location"
     assert event.notes() == "New Notes"
     assert event.dateTime() == START_DATETIME

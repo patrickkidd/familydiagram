@@ -187,26 +187,44 @@ class TestRemoveItemsComplexScenarios:
         assert marriage in scene.marriages()
 
     def test_sequential_remove_and_undo(self, scene):
-        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        personAdded = util.Condition(scene.personAdded)
+        personRemoved = util.Condition(scene.personRemoved)
+        person1, person2 = scene.addItems(
+            Person(name="Alice"), Person(name="Bob"), batch=False
+        )
+        assert personAdded.callCount == 2
+        assert personRemoved.callCount == 0
 
         scene.removeItem(person1, undo=True)
+        assert personAdded.callCount == 2
+        assert personRemoved.callCount == 1
         assert len(scene.people()) == 1
 
         scene.removeItem(person2, undo=True)
+        assert personAdded.callCount == 2
+        assert personRemoved.callCount == 2
         assert len(scene.people()) == 0
 
         scene.undo()
+        assert personAdded.callCount == 3
+        assert personRemoved.callCount == 2
         assert len(scene.people()) == 1
         assert person2 in scene.people()
 
         scene.undo()
+        assert personAdded.callCount == 4
+        assert personRemoved.callCount == 2
         assert len(scene.people()) == 2
         assert person1 in scene.people()
         assert person2 in scene.people()
 
         scene.redo()
+        assert personAdded.callCount == 4
+        assert personRemoved.callCount == 3
         assert len(scene.people()) == 1
         assert person2 in scene.people()
 
         scene.redo()
+        assert personAdded.callCount == 4
+        assert personRemoved.callCount == 4
         assert len(scene.people()) == 0

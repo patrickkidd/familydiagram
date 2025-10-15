@@ -327,6 +327,11 @@ class TestCircularDependencies:
             )
         )
 
+        assert len(scene.marriages()) == 2
+        assert len(scene.find(types=ChildOf)) == 2
+        assert len(scene.emotions()) == 2
+        assert len(scene.events()) == 1
+
         scene.removeItem(parent1, undo=True)
 
         # Both marriages, all child relationships, all emotions deleted

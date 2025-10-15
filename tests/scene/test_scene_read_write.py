@@ -75,13 +75,19 @@ def test_clean_stale_refs(data_root, scene):
 
     def prune(self, _data):
         nonlocal numPruned
-        numPruned = len(_orig_prune(self, _data))
+        ret = _orig_prune(self, _data)
+        numPruned = len(ret)
+        return ret
 
     with patch(
         "pkdiagram.scene.Scene.prune", side_effect=prune, autospec=True
     ) as prune:
         scene.read(data)
-    assert numPruned == 9
+    assert numPruned == 13
+
+    newData = {}
+    scene.write(newData)
+    assert len(newData["pruned"]) == 13
 
 
 def test_no_duplicate_events_from_file(simpleScene):
