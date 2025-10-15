@@ -343,11 +343,10 @@ class TestComplexEmotionScenarios:
                 person1,
                 dateTime=util.Date(2020, 1, 1),
                 relationship=RelationshipKind.Inside,
-                relationshipTargets=[person2],
-                relationshipTriangles=[person3],
+                relationshipTargets=person2,
+                relationshipTriangles=person3,
             )
         )
-        emotion = scene.emotionsFor(event)[0]
 
         assert len(scene.people()) == 3
         assert len(scene.events()) == 1

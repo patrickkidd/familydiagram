@@ -241,7 +241,6 @@ class Scene(QGraphicsScene, Item):
         self._areActiveLayersChanging = False
         self._isResettingSomeLayerProps = False
         self._isAddingLayerItem = False
-        self._isAddingItems = False
         #
         self._isUndoRedoing = False
         self._undoStack = QUndoStack(self)
@@ -350,12 +349,10 @@ class Scene(QGraphicsScene, Item):
         item: Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem],
         undo=False,
     ) -> Union[Item, Event, Person, Marriage, Emotion, Layer, LayerItem]:
-        self._isAddingItems = True
         if undo:
             self.push(AddItem(self, item))
         else:
             self._do_addItem(item)
-        self._isAddingItems = False
         return item
 
     def addItems(
@@ -395,7 +392,9 @@ class Scene(QGraphicsScene, Item):
             super().addItem(item)
         if not isinstance(item, Item):
             return
+        firstTimeAdding = False
         if item.id is None:
+            firstTimeAdding = True
             item.id = self.nextId()
         elif item.id > self.lastItemId():
             self.setLastItemId(item.id)  # bump
@@ -436,7 +435,7 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            if self._isAddingItems:
+            if firstTimeAdding:
                 for target in item.relationshipTargets():
                     # Dated emotions are owned by the Event and deleted along
                     # with it.
