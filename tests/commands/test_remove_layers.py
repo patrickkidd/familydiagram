@@ -195,8 +195,8 @@ class TestLayerProperties:
         person = scene.addItem(Person(name="Alice"))
         person.setLayers([layer.id])
 
-        layer.setItemProperty(person.id, "hideLabel", True)
-        assert layer.getItemProperty(person.id, "hideLabel") == (True, True)
+        layer.setItemProperty(person.id, "bigFont", True)
+        assert layer.getItemProperty(person.id, "bigFont") == (True, True)
 
         scene.removeItem(person, undo=True)
 
@@ -205,7 +205,7 @@ class TestLayerProperties:
         scene.undo()
 
         assert len(scene.people()) == 1
-        assert layer.getItemProperty(person.id, "hideLabel") == (True, True)
+        assert layer.getItemProperty(person.id, "bigFont") == (True, True)
 
     def test_remove_layer_clears_properties(self, scene):
         layer = scene.addItem(Layer(name="Layer 1"))
@@ -213,8 +213,8 @@ class TestLayerProperties:
         person1.setLayers([layer.id])
         person2.setLayers([layer.id])
 
-        layer.setItemProperty(person1.id, "hideLabel", True)
-        layer.setItemProperty(person2.id, "hideLabel", False)
+        layer.setItemProperty(person1.id, "bigFont", True)
+        layer.setItemProperty(person2.id, "bigFont", False)
 
         scene.removeItem(layer, undo=True)
 
@@ -223,8 +223,8 @@ class TestLayerProperties:
         scene.undo()
 
         assert len(scene.layers()) == 1
-        assert layer.getItemProperty(person1.id, "hideLabel") == (True, True)
-        assert layer.getItemProperty(person2.id, "hideLabel") == (False, True)
+        assert layer.getItemProperty(person1.id, "bigFont") == (True, True)
+        assert layer.getItemProperty(person2.id, "bigFont") == (False, True)
 
     def test_multiple_people_with_layer_properties(self, scene):
         layer1 = scene.addItem(Layer(name="Layer 1"))
@@ -232,8 +232,8 @@ class TestLayerProperties:
         person = scene.addItem(Person(name="Alice"))
         person.setLayers([layer1.id, layer2.id])
 
-        layer1.setItemProperty(person.id, "hideLabel", True)
-        layer2.setItemProperty(person.id, "hideLabel", False)
+        layer1.setItemProperty(person.id, "bigFont", True)
+        layer2.setItemProperty(person.id, "bigFont", False)
 
         scene.removeItem(person, undo=True)
 
@@ -242,8 +242,8 @@ class TestLayerProperties:
         scene.undo()
 
         assert len(scene.people()) == 1
-        assert layer1.getItemProperty(person.id, "hideLabel") == (True, True)
-        assert layer2.getItemProperty(person.id, "hideLabel") == (False, True)
+        assert layer1.getItemProperty(person.id, "bigFont") == (True, True)
+        assert layer2.getItemProperty(person.id, "bigFont") == (False, True)
 
 
 class TestComplexLayerScenarios:
@@ -257,9 +257,9 @@ class TestComplexLayerScenarios:
         person2.setLayers([layer.id])
         person3.setLayers([layer.id])
 
-        layer.setItemProperty(person1.id, "hideLabel", True)
-        layer.setItemProperty(person2.id, "hideLabel", True)
-        layer.setItemProperty(person3.id, "hideLabel", False)
+        layer.setItemProperty(person1.id, "bigFont", True)
+        layer.setItemProperty(person2.id, "bigFont", True)
+        layer.setItemProperty(person3.id, "bigFont", False)
 
         scene.push(RemoveItems(scene, [person1, person2]))
 
@@ -268,9 +268,9 @@ class TestComplexLayerScenarios:
         scene.undo()
 
         assert len(scene.people()) == 3
-        assert layer.getItemProperty(person1.id, "hideLabel") == (True, True)
-        assert layer.getItemProperty(person2.id, "hideLabel") == (True, True)
-        assert layer.getItemProperty(person3.id, "hideLabel") == (False, True)
+        assert layer.getItemProperty(person1.id, "bigFont") == (True, True)
+        assert layer.getItemProperty(person2.id, "bigFont") == (True, True)
+        assert layer.getItemProperty(person3.id, "bigFont") == (False, True)
 
     def test_sequential_layer_operations(self, scene):
         layer1 = scene.addItem(Layer(name="Layer 1"))
@@ -278,11 +278,11 @@ class TestComplexLayerScenarios:
         person = scene.addItem(Person(name="Alice"))
         person.setLayers([layer1.id, layer2.id])
 
-        layer1.setItemProperty(person.id, "hideLabel", True)
-        layer2.setItemProperty(person.id, "hideLabel", False)
+        layer1.setItemProperty(person.id, "bigFont", True)
+        layer2.setItemProperty(person.id, "bigFont", False)
 
         assert len(scene.layers()) == 2
-        assert layer1.getItemProperty(person.id, "hideLabel") == (True, True)
+        assert layer1.getItemProperty(person.id, "bigFont") == (True, True)
 
         scene.removeItem(layer1, undo=True)
         assert len(scene.layers()) == 1
@@ -292,11 +292,11 @@ class TestComplexLayerScenarios:
 
         scene.undo()
         assert len(scene.people()) == 1
-        assert layer2.getItemProperty(person.id, "hideLabel") == (False, True)
+        assert layer2.getItemProperty(person.id, "bigFont") == (False, True)
 
         scene.undo()
         assert len(scene.layers()) == 2
-        assert layer1.getItemProperty(person.id, "hideLabel") == (True, True)
+        assert layer1.getItemProperty(person.id, "bigFont") == (True, True)
 
     def test_remove_layer_with_mixed_items(self, scene):
         layer = scene.addItem(Layer(name="Layer 1", active=True))
@@ -309,8 +309,8 @@ class TestComplexLayerScenarios:
         assert layer.id in person2.layers()
         assert layer.id in layerItem.layers()
 
-        layer.setItemProperty(person1.id, "hideLabel", True)
-        layer.setItemProperty(person2.id, "hideLabel", False)
+        layer.setItemProperty(person1.id, "bigFont", True)
+        layer.setItemProperty(person2.id, "bigFont", False)
 
         initial_people = len(scene.people())
         initial_layer_items = len(scene.find(types=LayerItem))
@@ -326,5 +326,5 @@ class TestComplexLayerScenarios:
         assert len(scene.layers()) == 1
         assert len(scene.find(types=LayerItem)) == initial_layer_items
         assert len(scene.people()) == initial_people
-        assert layer.getItemProperty(person1.id, "hideLabel") == (True, True)
-        assert layer.getItemProperty(person2.id, "hideLabel") == (False, True)
+        assert layer.getItemProperty(person1.id, "bigFont") == (True, True)
+        assert layer.getItemProperty(person2.id, "bigFont") == (False, True)
