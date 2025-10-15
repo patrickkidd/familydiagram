@@ -101,14 +101,18 @@ def test_shouldHide(scene, model):
     model.searchModel.scene = scene
     person = scene.addItem(Person())
 
-    event1 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1)))
+    event1 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
+    )
     assert model._shouldHide(TimelineRow(event1)) == False
 
     event2 = scene.addItem(Event(EventKind.Shift, person))
     assert model._shouldHide(TimelineRow(event2)) == True
 
     model.searchModel.tags = ["here"]
-    event3 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1)))
+    event3 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
+    )
     assert model._shouldHide(TimelineRow(event3)) == True
 
     event4 = scene.addItem(
@@ -118,7 +122,9 @@ def test_shouldHide(scene, model):
 
     model.searchModel.tags = []
     model.searchModel.description = "there"
-    event5 = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1)))
+    event5 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
+    )
     assert model._shouldHide(TimelineRow(event5)) == True
 
     event6 = scene.addItem(
@@ -127,7 +133,12 @@ def test_shouldHide(scene, model):
     assert model._shouldHide(TimelineRow(event6)) == True
 
     event7 = scene.addItem(
-        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1), description="therefore")
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2000, 1, 1),
+            description="therefore",
+        )
     )
     assert model._shouldHide(TimelineRow(event7)) == False
 
@@ -292,9 +303,13 @@ def test_flags(scene, model):
         iLogged = model.columnIndex(model.LOGGED)
         assert not model.flags(model.index(row, iBuddies)) & Qt.ItemIsEditable
         assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
-        assert model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable  # DESCRIPTION is editable for Shift events
+        assert (
+            model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
+        )  # DESCRIPTION is editable for Shift events
         assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-        assert model.flags(model.index(row, iParent)) & Qt.ItemIsEditable  # PARENT is editable for Shift events
+        assert (
+            model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
+        )  # PARENT is editable for Shift events
         assert not model.flags(model.index(row, iLogged)) & Qt.ItemIsEditable
 
 
@@ -342,7 +357,11 @@ def test_add_person_marriage(scene, model):
     model.items = [personA]
 
     marriage = scene.addItem(Marriage(personA=personA, personB=personB))
-    married = scene.addItem(Event(EventKind.Married, personA, spouse=personB, dateTime=util.Date(2001, 1, 1)))
+    married = scene.addItem(
+        Event(
+            EventKind.Married, personA, spouse=personB, dateTime=util.Date(2001, 1, 1)
+        )
+    )
 
     assert model.rowForEvent(married) != None
 
@@ -587,9 +606,9 @@ def test_dateBuddies(scene, model):
     )
     endRow = model.endRowForEvent(fusion)
 
-    assert model.firstRowForDateTime(fusion.dateTime()) == 2
+    assert model.firstAndLastRowsForDateTime(fusion.dateTime())[0] == 2
     assert model.rowForEvent(fusion) == 2
-    assert model.firstRowForDateTime(endRow.dateTime()) == 3
+    assert model.firstAndLastRowsForDateTime(endRow.dateTime())[0] == 3
 
     startDateRow = model.rowForEvent(fusion)
     endDateRow = model.rowIndexFor(endRow)
@@ -620,9 +639,8 @@ def test_dateBuddies(scene, model):
 #     fusion.endEvent.setDateTime(util.Date(1980, 5, 12))
 #     timelineScene.addItem(fusion)
 
-#     assert model.firstRowForDateTime(fusion.startDateTime()) == 1
+#     assert model.firstAndLastRowsForDateTime(fusion.startDateTime()) == 1, 3
 #     assert model.rowForEvent(fusion.startEvent) == 2
-#     assert model.lastRowForDateTime(fusion.endEvent.dateTime()) == 3
 
 #     startDateRow = model.rowForEvent(fusion.startEvent)
 #     endDateRow = model.rowForEvent(fusion.endEvent)
@@ -683,33 +701,27 @@ def test_rows_for_date(scene, model):
     event5 = scene.addItem(Event(EventKind.Shift, p1, dateTime=util.Date(1920, 1, 2)))
 
     dateTime = util.Date(1899, 1, 2)
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 0
 
     dateTime = util.Date(1900, 1, 2)
-    assert model.firstRowForDateTime(dateTime) == 0
-    assert model.lastRowForDateTime(dateTime) == 0
+    assert model.firstAndLastRowsForDateTime(dateTime) == [0, 0]
     assert model.dateBetweenRow(dateTime) == -1
 
     dateTime = util.Date(1910, 1, 2)
-    assert model.firstRowForDateTime(dateTime) == 1
-    assert model.lastRowForDateTime(dateTime) == 3
+    assert model.firstAndLastRowsForDateTime(dateTime) == [1, 3]
     assert model.dateBetweenRow(dateTime) == -1
 
     dateTime = util.Date(1915, 1, 2)  # random date between rows
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 3
 
     dateTime = util.Date(1920, 1, 2)
-    assert model.firstRowForDateTime(dateTime) == 4
-    assert model.lastRowForDateTime(dateTime) == 4
+    assert model.firstAndLastRowsForDateTime(dateTime) == [4, 4]
     assert model.dateBetweenRow(dateTime) == -1
 
     dateTime = util.Date(1930, 1, 2)  # after last shown row
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 4
 
 
@@ -733,33 +745,27 @@ def test_rows_for_date_search(scene, model):
     model.searchModel.tags = ["bleh"]
 
     dateTime = util.Date(1899, 1, 2)  # before first date
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 0
 
     dateTime = util.Date(1900, 1, 2)  # first date, before first shown date
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 0
 
     dateTime = util.Date(1910, 1, 2)  # first shown date, also multiple rows
-    assert model.firstRowForDateTime(dateTime) == 0
-    assert model.lastRowForDateTime(dateTime) == 1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [0, 1]
     assert model.dateBetweenRow(dateTime) == -1
 
     dateTime = util.Date(1915, 1, 2)  # random date between shown rows
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 1
 
     dateTime = util.Date(1920, 1, 2)  # last shown row
-    assert model.firstRowForDateTime(dateTime) == 2
-    assert model.lastRowForDateTime(dateTime) == 2
+    assert model.firstAndLastRowsForDateTime(dateTime) == [2, 2]
     assert model.dateBetweenRow(dateTime) == -1
 
     dateTime = util.Date(1930, 1, 2)  # after last shown row
-    assert model.firstRowForDateTime(dateTime) == -1
-    assert model.lastRowForDateTime(dateTime) == -1
+    assert model.firstAndLastRowsForDateTime(dateTime) == [-1, -1]
     assert model.dateBetweenRow(dateTime) == 2
 
 

@@ -739,7 +739,7 @@ def test_show_events_from_timeline_callout(qtbot, scene, dv: DocumentView):
     # dv.onNextEvent()
     assert scene.currentDateTime() == DATETIME
     qtbot.mouseClick(dv.graphicalTimelineCallout, Qt.LeftButton)
-    firstRow = dv.timelineModel.firstRowForDateTime(DATETIME)
+    firstRow, lastRow = dv.timelineModel.firstAndLastRowsForDateTime(DATETIME)
     assert dv.currentDrawer == dv.caseProps
     assert dv.caseProps.currentTab() == RightDrawerView.Timeline.value
     assert ensureVisAnimation_finished.wait() == True
@@ -957,8 +957,7 @@ def test_writeExcel_2(tmp_path, scene, dv: DocumentView):
             RelationshipKind.Toward,
             RelationshipKind.Away,
             RelationshipKind.DefinedSelf,
-            RelationshipKind.Underfunctioning,
-            RelationshipKind.OverFunctioning,
+            RelationshipKind.Overfunctioning,
             RelationshipKind.Inside,
             RelationshipKind.Outside,
         ]

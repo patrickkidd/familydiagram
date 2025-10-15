@@ -738,42 +738,46 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         else:
             return QDateTime()
 
-    @pyqtSlot(QDateTime, result=int)
-    def firstRowForDateTime(self, dateTime):
-        # entries = self._dateItemCache.get(date, None)
-        row = -1
-        for i, timelineRow in enumerate(self._rows):
+    @pyqtSlot(QDateTime, result="QVariantList")
+    def firstAndLastRowsForDateTime(self, dateTime: QDateTime) -> list[int]:
+        firstRow = -1
+        lastRow = -1
+        for timelineRow in self._rows:
             if timelineRow.dateTime() == dateTime:
-                row = i
+                if firstRow == -1:
+                    firstRow = self._rows.index(timelineRow)
+                lastRow = self._rows.index(timelineRow)
+            if timelineRow.dateTime() > dateTime:
                 break
-        return row
-
-    @pyqtSlot(QDateTime, result=int)
-    def lastRowForDateTime(self, dateTime):
-        row = -1
-        for i, timelineRow in enumerate(reversed(self._rows)):
-            if timelineRow.dateTime() == dateTime:
-                row = len(self._rows) - 1 - i
-                break
-        return row
+        return [firstRow, lastRow]
 
     @pyqtSlot(QDateTime, result=QDateTime)
     def nextDateTimeAfter(self, dateTime: QDateTime) -> QDateTime:
-        dummy = TimelineRow(dateTime=dateTime)
-        nextRow = bisect.bisect_right(self._rows, dummy)
-        if nextRow == len(self._rows):  # end
+        firstRow, lastRow = self.firstAndLastRowsForDateTime(dateTime)
+        if lastRow == -1:  # dateTime not found
+            # Find first row after this dateTime
+            for i in range(lastRow + 1, len(self._rows)):
+                if self._rows[i].dateTime() > dateTime:
+                    return self._rows[i].dateTime()
+            return self.lastEventDateTime()
+        elif lastRow == len(self._rows) - 1:  # at end
             return self.lastEventDateTime()
         else:
-            return self._rows[nextRow].dateTime()
+            return self._rows[lastRow + 1].dateTime()
 
     @pyqtSlot(QDateTime, result=QDateTime)
     def prevDateTimeBefore(self, dateTime: QDateTime) -> QDateTime:
-        dummy = TimelineRow(dateTime=dateTime)
-        prevRow = bisect.bisect_left(self._rows, dummy) - 1
-        if prevRow == -1:  # start
+        firstRow, lastRow = self.firstAndLastRowsForDateTime(dateTime)
+        if firstRow == -1:  # dateTime not found
+            # Find last row before this dateTime
+            for i in range(len(self._rows) - 1, -1, -1):
+                if self._rows[i].dateTime() < dateTime:
+                    return self._rows[i].dateTime()
+            return self.firstEventDateTime()
+        elif firstRow == 0:  # at start
             return self.firstEventDateTime()
         else:
-            return self._rows[prevRow].dateTime()
+            return self._rows[firstRow - 1].dateTime()
 
     @pyqtSlot(QDateTime, result=int)
     def dateBetweenRow(self, date):

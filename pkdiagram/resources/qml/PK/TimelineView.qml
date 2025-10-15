@@ -247,9 +247,10 @@ ColumnLayout {
 
     function scrollToDateTime(dateTime) {
         // print('TimelineView.scrollToDateTime: ' + dateTime)
-        var row = model.firstRowForDateTime(dateTime)        
-        if(row > -1) {
-            table.ensureVisible(row, true)
+        var rows = model.firstAndLastRowsForDateTime(dateTime)
+        var firstRow = rows[0]
+        if(firstRow > -1) {
+            table.ensureVisible(firstRow, true)
         }
     }
     
@@ -490,8 +491,9 @@ ColumnLayout {
                     currentDateTimeIndicator.y = (betweenRow + 1) * util.QML_ITEM_HEIGHT - (h * .5)
                     currentDateTimeIndicator.height = h
                 } else {
-                    var firstRow = table.model.firstRowForDateTime(currentDateTime, root.model)
-                    var lastRow = table.model.lastRowForDateTime(currentDateTime, root.model)
+                    var rows = table.model.firstAndLastRowsForDateTime(currentDateTime, root.model)
+                    var firstRow = rows[0]
+                    var lastRow = rows[1]
                     if(firstRow != -1) {
                         var numRows = (lastRow + 1) - firstRow
                         currentDateTimeIndicator.y = firstRow * util.QML_ITEM_HEIGHT

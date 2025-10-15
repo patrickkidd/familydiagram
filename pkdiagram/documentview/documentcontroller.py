@@ -271,8 +271,9 @@ class DocumentController(QObject):
             self.updateActions()
 
             # Flash timeline items for events when date changes.
-            firstRow = self.dv.timelineModel.firstRowForDateTime(prop.get())
-            lastRow = self.dv.timelineModel.lastRowForDateTime(prop.get())
+            firstRow, lastRow = self.dv.timelineModel.firstAndLastRowsForDateTime(
+                prop.get()
+            )
             if firstRow > -1 and lastRow > -1:
                 for row in range(firstRow, lastRow + 1):
                     timelineRow = self.dv.timelineModel.timelineRow(row)
