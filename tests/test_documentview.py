@@ -413,13 +413,14 @@ def test_inspect_events_from_graphical_timeline(qtbot, scene, dv: DocumentView):
 
 
 def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
-    personA = Person(name="PersonA")
-    personB = Person(name="PersonB")
-    emotion1 = Emotion(RelationshipKind.Conflict, personB, person=personA)
-    emotion2 = Emotion(RelationshipKind.Projection, personB, person=personA)
-    scene.addItems(personA, personB, emotion1, emotion2, batch=False)
+    personA, personB = scene.addItems(Person(name="PersonA"), Person(name="PersonB"))
     personA.setItemPos(QPointF(-200, -200))
     personB.setItemPos(QPointF(200, 200))
+    emotion1, emotion2 = scene.addItems(
+        Emotion(RelationshipKind.Conflict, personB, person=personA),
+        Emotion(RelationshipKind.Projection, personB, person=personA),
+        batch=False,
+    )
     emotion1.setSelected(True)
     dv.controller.onInspect()
     assert dv.currentDrawer == dv.emotionProps
@@ -839,6 +840,7 @@ def test_nextTaggedDate_uses_searchModel(scene, dv: DocumentView):
         Event(EventKind.Birth, person1, dateTime=util.Date(1980, 1, 1)),
         Event(EventKind.Birth, person2, dateTime=util.Date(1990, 2, 2)),
         Event(EventKind.Birth, person3, dateTime=util.Date(2000, 3, 3)),
+        batch=False,
     )
 
     # test first before setting tags

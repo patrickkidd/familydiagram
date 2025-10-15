@@ -187,6 +187,8 @@ class ModelHelper(QObjectHelper):
             return
         elif attr == "dirty":
             self.set("dirty", False)
+        if not self._scene:
+            return
         undo = attr != "resetter"
         with self._scene.macro(
             f"Reset attribute '{attr}' on model class '{self.__class__.__name__}'"

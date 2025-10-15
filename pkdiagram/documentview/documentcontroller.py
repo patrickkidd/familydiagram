@@ -729,18 +729,42 @@ class DocumentController(QObject):
         """Set the current date to the next visible date."""
         if not self.scene:
             return
-        nextDateTime = self.dv.timelineModel.nextDateTimeAfter(
-            self.scene.currentDateTime()
-        )
+        if not self.dv.timelineModel.rowCount():
+            return
+        currentDateTime = self.scene.currentDateTime()
+        model = self.dv.timelineModel
+
+        # Find the next visible datetime after current
+        nextDateTime = None
+        for row in range(model.rowCount()):
+            rowDateTime = model.dateTimeForRow(row)
+            if rowDateTime and rowDateTime > currentDateTime:
+                timelineRow = model.timelineRow(row)
+                if not self.dv.searchModel.shouldHide(timelineRow):
+                    nextDateTime = rowDateTime
+                    break
+
         if nextDateTime:
             self.scene.setCurrentDateTime(nextDateTime)
 
     def onPrevEvent(self):
         if not self.scene:
             return
-        prevDateTime = self.dv.timelineModel.prevDateTimeBefore(
-            self.scene.currentDateTime()
-        )
+
+        if not self.dv.timelineModel.rowCount():
+            return
+        currentDateTime = self.scene.currentDateTime()
+        model = self.dv.timelineModel
+
+        # Find the previous visible datetime before current
+        prevDateTime = None
+        for row in range(model.rowCount() - 1, -1, -1):
+            rowDateTime = model.dateTimeForRow(row)
+            if rowDateTime and rowDateTime < currentDateTime:
+                timelineRow = model.timelineRow(row)
+                if not self.dv.searchModel.shouldHide(timelineRow):
+                    prevDateTime = rowDateTime
+                    break
         if prevDateTime:
             self.scene.setCurrentDateTime(prevDateTime)
 
@@ -1177,7 +1201,7 @@ class DocumentController(QObject):
             sheet.write(index + 1, 8, person.deceasedReason())
             sheet.write(index + 1, 9, person.deceasedDateTime().toString("yyyy-MM-dd"))
             sheet.write(index + 1, 10, person.adopted() and "YES" or "")
-            sheet.write(index + 1, 11, person.adoptedDateTime().toString("yyyy-MM-dd"))
+            # sheet.write(index + 1, 11, person.adoptedDateTime().toString("yyyy-MM-dd"))
             sheet.write(
                 index + 1, 12, self.scene.showAliases() and " " or person.notes()
             )

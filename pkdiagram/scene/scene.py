@@ -418,6 +418,8 @@ class Scene(QGraphicsScene, Item):
                 raise ValueError(
                     f"There is already a Marriage item added for {item.personA()} and {item.personB()}"
                 )
+            item.personA().onAddMarriage(item)
+            item.personB().onAddMarriage(item)
             self._marriages.append(item)
             # Add an unnamed layer but don't register it or notify anything
             layer = Layer(internal=True)

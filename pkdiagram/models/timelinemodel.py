@@ -751,34 +751,6 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 break
         return [firstRow, lastRow]
 
-    @pyqtSlot(QDateTime, result=QDateTime)
-    def nextDateTimeAfter(self, dateTime: QDateTime) -> QDateTime:
-        firstRow, lastRow = self.firstAndLastRowsForDateTime(dateTime)
-        if lastRow == -1:  # dateTime not found
-            # Find first row after this dateTime
-            for i in range(lastRow + 1, len(self._rows)):
-                if self._rows[i].dateTime() > dateTime:
-                    return self._rows[i].dateTime()
-            return self.lastEventDateTime()
-        elif lastRow == len(self._rows) - 1:  # at end
-            return self.lastEventDateTime()
-        else:
-            return self._rows[lastRow + 1].dateTime()
-
-    @pyqtSlot(QDateTime, result=QDateTime)
-    def prevDateTimeBefore(self, dateTime: QDateTime) -> QDateTime:
-        firstRow, lastRow = self.firstAndLastRowsForDateTime(dateTime)
-        if firstRow == -1:  # dateTime not found
-            # Find last row before this dateTime
-            for i in range(len(self._rows) - 1, -1, -1):
-                if self._rows[i].dateTime() < dateTime:
-                    return self._rows[i].dateTime()
-            return self.firstEventDateTime()
-        elif firstRow == 0:  # at start
-            return self.firstEventDateTime()
-        else:
-            return self._rows[firstRow - 1].dateTime()
-
     @pyqtSlot(QDateTime, result=int)
     def dateBetweenRow(self, date):
         """Return the row that the date falls right after if not right on.
