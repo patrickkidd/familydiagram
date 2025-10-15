@@ -146,7 +146,7 @@ PK.Drawer {
                                     id: marriedBox
                                     objectName: 'marriedBox'
                                     text: "Show Married"
-                                    enabled: ! marriageModel.anyMarriedEvents && ! marriageModel.anyDivorcedEvents && ! sceneModel.readOnly
+                                    enabled: ! marriageModel.anyMarriedEvents && ! marriageModel.anyDivorcedEvents && ! marriageModel.divorced && ! sceneModel.readOnly
                                     checkState: marriageModel.married
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: separatedBox
@@ -157,7 +157,7 @@ PK.Drawer {
                                     id: separatedBox
                                     objectName: 'separatedBox'
                                     text: "Show Separated"
-                                    enabled: ! marriageModel.anySeparatedEvents && ! sceneModel.readOnly
+                                    enabled: ! marriageModel.anySeparatedEvents && ! marriageModel.anyDivorcedEvents && ! marriageModel.divorced && ! sceneModel.readOnly
                                     checkState: marriageModel.separated
                                     Layout.columnSpan: 2
                                     KeyNavigation.tab: divorcedBox

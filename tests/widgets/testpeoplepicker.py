@@ -124,9 +124,9 @@ class TestPeoplePicker:
         self.item.setExistingPeople(people)
         QApplication.processEvents()
         while itemAddDone.callCount < len(people):
-            _log.info(
-                f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
-            )
+            # _log.info(
+            #     f"Waiting for {len(people) - itemAddDone.callCount} / {len(people)} itemAddDone signals"
+            # )
             assert itemAddDone.wait() == True
         # _log.info(f"Got {itemAddDone.callCount} / {len(people)} itemAddDone signals")
 

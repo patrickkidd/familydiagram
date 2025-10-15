@@ -34,14 +34,12 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        marriage = event.marriage()
-        if marriage in self._items:
-            if event.kind() == EventKind.Married:
-                self.refreshProperty("anyMarriedEvents")
-            elif event.kind() == EventKind.Separated:
-                self.refreshProperty("anySeparatedEvents")
-            elif event.kind() == EventKind.Divorced:
-                self.refreshProperty("anyDivorcedEvents")
+        if event.kind() == EventKind.Married:
+            self.refreshProperty("anyMarriedEvents")
+        elif event.kind() == EventKind.Separated:
+            self.refreshProperty("anySeparatedEvents")
+        elif event.kind() == EventKind.Divorced:
+            self.refreshProperty("anyDivorcedEvents")
 
     def get(self, attr):
         ret = None

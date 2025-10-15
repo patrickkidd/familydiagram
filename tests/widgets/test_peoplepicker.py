@@ -32,8 +32,6 @@ def picker(qmlEngine, create_qml):
         / "PeoplePicker.qml"
     )
 
-    _log.info(SOURCE_FPATH)
-
     helper = create_qml(SOURCE_FPATH)
     _ret = TestPeoplePicker(helper, helper.qml.rootObject())
     _ret.item.setProperty("scenePeopleModel", qmlEngine.peopleModel)
