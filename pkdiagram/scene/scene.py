@@ -2345,19 +2345,24 @@ class Scene(QGraphicsScene, Item):
         self._stopOnAllEvents = on
 
     def itemShownOnDiagram(self, item):
-        """Return False for any events that should be deemphasized
-        in the timeline and skipped when moving through time."""
-        if self._stopOnAllEvents:
-            return True
-        else:
-            if item.parent.isEmotion:
-                return True
-            elif item.isEvent:
-                if item.anyDynamicPropertiesSet():
-                    return True
-                elif item.includeOnDiagram():
-                    return True
-            return False
+        """
+        Return False for any events that should be deemphasized in the timeline
+        and skipped when moving through time.
+        """
+        if item.isEvent:
+            return item.includeOnDiagram()
+        return True
+        # if self._stopOnAllEvents:
+        #     return True
+        # else:
+        #     if item.parent.isEmotion:
+        #         return True
+        #     elif item.isEvent:
+        #         if item.anyDynamicPropertiesSet():
+        #             return True
+        #         elif item.includeOnDiagram():
+        #             return True
+        #     return False
 
     ## Properties
 
