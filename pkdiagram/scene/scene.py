@@ -853,7 +853,7 @@ class Scene(QGraphicsScene, Item):
             if not chunk["dateTime"]:
                 personChunk = by_ids.get(chunk.get("person"))
                 log.warning(
-                    f"Removing Event with person {personChunk['id']}: {personChunk['name']} and no dateTime set: {pprint.pformat(chunk, indent=4)}"
+                    f"Removing Event with person {personChunk['id']}: {personChunk.get('name', '(unnamed)')} and no dateTime set: {pprint.pformat(chunk, indent=4)}"
                 )
                 data["events"].remove(chunk)
                 pruned.append(chunk)

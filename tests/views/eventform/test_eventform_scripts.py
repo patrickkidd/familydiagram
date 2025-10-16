@@ -28,13 +28,12 @@ def test_add_pairbond_and_children(scene, view):
     assert len(scene.people()) == 3
 
     personA = scene.query1(name="John")
-    personA.setSelected(True)
     birthEvent = scene.eventsFor(personA)[0]
     assert birthEvent.kind() == EventKind.Birth
     spouse = birthEvent.spouse()
-    spouse.setSelected(True)
     spouse.setName("Jane")
 
+    personA.setSelected(True)
     view.view.addEvent(scene.selectedItems())
     util.waitALittle()
     view.set_kind(EventKind.Married)

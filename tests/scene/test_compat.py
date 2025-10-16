@@ -62,22 +62,60 @@ def test_phase_6_2_extract_person_builtin_events():
 
     expected = {
         "version": "2.0.11",
-        "lastItemId": 10,
-        "people": [{"kind": "Person", "id": 1, "name": "Alice"}],
-        "marriages": [],
+        "lastItemId": 13,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Alice",
+                "childOf": {
+                    "person": 1,
+                    "parents": 13,
+                    "multipleBirth": None,
+                },
+            },
+            {
+                "kind": "Person",
+                "id": 11,
+                "gender": util.PERSON_KIND_MALE,
+                "size": 4,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+            {
+                "kind": "Person",
+                "id": 12,
+                "gender": util.PERSON_KIND_FEMALE,
+                "size": 4,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+        ],
+        "marriages": [
+            {
+                "kind": "Marriage",
+                "id": 13,
+                "person_a": 11,
+                "person_b": 12,
+            }
+        ],
         "emotions": [],
         "events": [
             {
                 "id": 2,
                 "kind": EventKind.Birth.value,
                 "dateTime": "2000-01-01T00:00:00",
-                "person": 1,
+                "child": 1,
+                "person": 11,
+                "spouse": 12,
             },
             {
                 "id": 3,
                 "kind": EventKind.Adopted.value,
                 "dateTime": "2005-06-15T00:00:00",
-                "person": 1,
+                "child": 1,
+                "person": 11,
+                "spouse": 12,
             },
             {
                 "id": 4,
@@ -443,19 +481,54 @@ def test_phase_6_2_assign_event_ids():
 
     expected = {
         "version": "2.0.11",
-        "lastItemId": 7,
-        "people": [{"kind": "Person", "id": 1}],
-        "marriages": [],
+        "lastItemId": 10,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "childOf": {
+                    "person": 1,
+                    "parents": 9,
+                    "multipleBirth": None,
+                },
+            },
+            {
+                "kind": "Person",
+                "id": 7,
+                "gender": util.PERSON_KIND_MALE,
+                "size": 4,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+            {
+                "kind": "Person",
+                "id": 8,
+                "gender": util.PERSON_KIND_FEMALE,
+                "size": 4,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+        ],
+        "marriages": [
+            {
+                "kind": "Marriage",
+                "id": 9,
+                "person_a": 7,
+                "person_b": 8,
+            }
+        ],
         "emotions": [],
         "events": [
             {
                 "id": 6,
                 "kind": EventKind.Birth.value,
                 "dateTime": "2000-01-01T00:00:00",
-                "person": 1,
+                "child": 1,
+                "person": 7,
+                "spouse": 8,
             },
             {
-                "id": 7,
+                "id": 10,
                 "kind": EventKind.Moved.value,
                 "dateTime": "2020-01-01T00:00:00",
                 "person": 1,
@@ -519,6 +592,424 @@ def test_phase_6_empty_arrays_handling():
         "marriages": [{"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3}],
         "emotions": [{"kind": RelationshipKind.Conflict.value, "id": 3}],
         "events": [],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_birth_event_with_existing_parents():
+    """Test birth event migration when child has existing parents via childOf."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Alice",
+                "size": 3,
+                "birthEvent": {
+                    "id": 4,
+                    "uniqueId": "birth",
+                    "dateTime": "2000-01-01T00:00:00",
+                },
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {"kind": "Person", "id": 2, "name": "Parent1"},
+            {"kind": "Person", "id": 3, "name": "Parent2"},
+            {"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3},
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Alice",
+                "size": 3,
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {"kind": "Person", "id": 2, "name": "Parent1"},
+            {"kind": "Person", "id": 3, "name": "Parent2"},
+        ],
+        "marriages": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
+        "emotions": [],
+        "events": [
+            {
+                "id": 4,
+                "kind": EventKind.Birth.value,
+                "dateTime": "2000-01-01T00:00:00",
+                "child": 1,
+                "person": 2,  # Parent1
+                "spouse": 3,  # Parent2
+            }
+        ],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_birth_event_without_parents_creates_inferred():
+    """Test birth event migration when child has no parents - creates inferred parents."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 2,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Orphan",
+                "size": 3,
+                "itemPos": {"x": 100, "y": 100},
+                "birthEvent": {
+                    "id": 2,
+                    "uniqueId": "birth",
+                    "dateTime": "2000-01-01T00:00:00",
+                },
+            }
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Orphan",
+                "size": 3,
+                "itemPos": {"x": 100, "y": 100},
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {
+                "kind": "Person",
+                "id": 3,
+                "gender": util.PERSON_KIND_MALE,
+                "size": 2,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+            {
+                "kind": "Person",
+                "id": 4,
+                "gender": util.PERSON_KIND_FEMALE,
+                "size": 2,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+        ],
+        "marriages": [
+            {
+                "kind": "Marriage",
+                "id": 5,
+                "person_a": 3,
+                "person_b": 4,
+            }
+        ],
+        "emotions": [],
+        "events": [
+            {
+                "id": 2,
+                "kind": EventKind.Birth.value,
+                "dateTime": "2000-01-01T00:00:00",
+                "child": 1,
+                "person": 3,
+                "spouse": 4,
+            }
+        ],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_adopted_event_with_existing_parents():
+    """Test adopted event migration when child has existing parents."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Bob",
+                "adoptedEvent": {
+                    "id": 4,
+                    "uniqueId": "adopted",
+                    "dateTime": "2005-06-15T00:00:00",
+                },
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {"kind": "Person", "id": 2, "name": "AdoptiveParent1"},
+            {"kind": "Person", "id": 3, "name": "AdoptiveParent2"},
+            {"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3},
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Bob",
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {"kind": "Person", "id": 2, "name": "AdoptiveParent1"},
+            {"kind": "Person", "id": 3, "name": "AdoptiveParent2"},
+        ],
+        "marriages": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
+        "emotions": [],
+        "events": [
+            {
+                "id": 4,
+                "kind": EventKind.Adopted.value,
+                "dateTime": "2005-06-15T00:00:00",
+                "child": 1,
+                "person": 2,
+                "spouse": 3,
+            }
+        ],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_death_event_only_sets_person():
+    """Test death event migration only sets person reference, not spouse/child."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 2,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Charlie",
+                "deathEvent": {
+                    "id": 2,
+                    "uniqueId": "death",
+                    "dateTime": "2080-01-01T00:00:00",
+                },
+            }
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 2,
+        "people": [{"kind": "Person", "id": 1, "name": "Charlie"}],
+        "marriages": [],
+        "emotions": [],
+        "events": [
+            {
+                "id": 2,
+                "kind": EventKind.Death.value,
+                "dateTime": "2080-01-01T00:00:00",
+                "person": 1,
+            }
+        ],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_birth_event_in_custom_events_without_parents():
+    """Test birth event in Person.events array without parents creates inferred parents."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Child",
+                "size": 2,
+                "events": [
+                    {
+                        "id": 5,
+                        "uniqueId": "birth",
+                        "dateTime": "1990-01-01T00:00:00",
+                    }
+                ],
+            }
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 8,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "Child",
+                "size": 2,
+                "childOf": {
+                    "person": 1,
+                    "parents": 8,
+                    "multipleBirth": None,
+                },
+            },
+            {
+                "kind": "Person",
+                "id": 6,
+                "gender": util.PERSON_KIND_MALE,
+                "size": 1,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+            {
+                "kind": "Person",
+                "id": 7,
+                "gender": util.PERSON_KIND_FEMALE,
+                "size": 1,
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+        ],
+        "marriages": [
+            {
+                "kind": "Marriage",
+                "id": 8,
+                "person_a": 6,
+                "person_b": 7,
+            }
+        ],
+        "emotions": [],
+        "events": [
+            {
+                "id": 5,
+                "kind": EventKind.Birth.value,
+                "dateTime": "1990-01-01T00:00:00",
+                "child": 1,
+                "person": 6,
+                "spouse": 7,
+            }
+        ],
+        "layerItems": [],
+        "layers": [],
+        "multipleBirths": [],
+    }
+
+    compat.update_data(data)
+    assert data == expected
+
+
+def test_inferred_parent_size_minimum():
+    """Test inferred parent size doesn't go below 1."""
+    data = {
+        "version": "2.0.11",
+        "lastItemId": 2,
+        "items": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "TinyChild",
+                "size": 1,
+                "birthEvent": {
+                    "id": 2,
+                    "uniqueId": "birth",
+                    "dateTime": "2000-01-01T00:00:00",
+                },
+            }
+        ],
+    }
+
+    expected = {
+        "version": "2.0.11",
+        "lastItemId": 5,
+        "people": [
+            {
+                "kind": "Person",
+                "id": 1,
+                "name": "TinyChild",
+                "size": 1,
+                "childOf": {
+                    "person": 1,
+                    "parents": 5,
+                    "multipleBirth": None,
+                },
+            },
+            {
+                "kind": "Person",
+                "id": 3,
+                "gender": util.PERSON_KIND_MALE,
+                "size": 1,  # max(1 - 1, 1) = 1
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+            {
+                "kind": "Person",
+                "id": 4,
+                "gender": util.PERSON_KIND_FEMALE,
+                "size": 1,  # max(1 - 1, 1) = 1
+                "itemPos": {"x": 0, "y": 0},
+                "layers": [],
+            },
+        ],
+        "marriages": [
+            {
+                "kind": "Marriage",
+                "id": 5,
+                "person_a": 3,
+                "person_b": 4,
+            }
+        ],
+        "emotions": [],
+        "events": [
+            {
+                "id": 2,
+                "kind": EventKind.Birth.value,
+                "dateTime": "2000-01-01T00:00:00",
+                "child": 1,
+                "person": 3,
+                "spouse": 4,
+            }
+        ],
         "layerItems": [],
         "layers": [],
         "multipleBirths": [],
