@@ -57,6 +57,8 @@ def test_hide_emotional_process(simpleScene):
 
 
 def test_hide_names(scene):
+    father, mother = scene.addItems(Person(name="Father"), Person(name="Mother"))
+    marriage = scene.addItem(Marriage(father, mother))
     person = scene.addItem(
         Person(
             name="Person A",
@@ -65,7 +67,13 @@ string""",
         )
     )
     event = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=person,
+            dateTime=util.Date(2001, 1, 1),
+        )
     )
     scene.addItem(person)
     assert (

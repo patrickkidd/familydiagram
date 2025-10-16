@@ -33,6 +33,7 @@ from pkdiagram.scene import (
     VariablesDatabase,
     random_names,
     RelationshipKind,
+    Event,
 )
 
 
@@ -260,9 +261,12 @@ class Person(PathItem):
         self.isUpdatingDependents = False
         self.childOf = None
         self.marriages = []
+        self._birthEvent = None
+        self._adoptedEvents = []
+        self._deathEvent = None
         self.setShapeMargin(0)  # override from PathItem
         self.setShapeIsBoundingRect(True)
-        self._eventsCache = []  # Used for efficiently updating self.variablesDatabase
+        self._events = None  # Used for efficiently updating self.variablesDatabase
         self._emotions = []
         self._layers = []  # cache for &.prop('layers')
         self._layerItems = []
@@ -370,7 +374,7 @@ class Person(PathItem):
             _log.warning("*** None in self.marriages!")
             self.marriages = [m for m in self.marriages if m]
         #
-        self.updateVariablesDatabase()
+        self.updateEvents()
         self._delegate.setPrimary(self.primary())
         self._delegate.setGender(self.gender())
         self.isInit = True
@@ -448,28 +452,7 @@ class Person(PathItem):
     def itemName(self):
         return self.fullNameOrAlias()
 
-    def birthDateTime(self) -> QDateTime:
-        if self.scene():
-            for event in self.scene().eventsFor(self):
-                if event.kind() == EventKind.Birth:
-                    return event.dateTime()
-        return QDateTime()
-
-    def deceased(self) -> bool:
-        if self.prop("deceased").get():
-            return True
-        if self.scene():
-            for event in self.scene().eventsFor(self):
-                if event.kind() == EventKind.Death:
-                    return True
-        return False
-
-    def deceasedDateTime(self) -> QDateTime:
-        if self.scene():
-            for event in self.scene().eventsFor(self):
-                if event.kind() == EventKind.Death:
-                    return event.dateTime()
-        return QDateTime()
+    #
 
     def age(self):
         if self.birthDateTime() and not self.deceased():
@@ -569,7 +552,8 @@ class Person(PathItem):
                     self.scene().removeItem(multipleBirth)
                 self.childOf._onRemoveMultipleBirth()
             self.parents()._onRemoveChild(self)
-            self.scene().removeItem(self.childOf)
+            if self.childOf.scene():  # loading during Scene.read()
+                self.scene().removeItem(self.childOf)
             self.childOf = None
         #
         if parentItem:
@@ -617,14 +601,6 @@ class Person(PathItem):
         else:
             self._do_setParents(target)
         return self.childOf
-
-    def onAddMarriage(self, m):
-        if not m in self.marriages:
-            self.marriages.append(m)
-
-    def onRemoveMarriage(self, m):
-        if m in self.marriages:
-            self.marriages.remove(m)
 
     def shouldShowAliases(self):
         scene = self.scene()
@@ -760,18 +736,20 @@ class Person(PathItem):
     ## Events
 
     def updateEvents(self):
-        """handle add|remove changes."""
+        """
+        Doesn't store events by id, so it is resolved after instantiation-time.
+        """
         added = []
         removed = []
         newEvents = self.scene().eventsFor(self) if self.scene() else []
-        oldEvents = self._eventsCache
+        oldEvents = self._events if self._events is not None else []
         for newEvent in newEvents:
             if not newEvent in oldEvents:
                 added.append(newEvent)
         for oldEvent in oldEvents:
             if not oldEvent in newEvents:
                 removed.append(oldEvent)
-        self._eventsCache = newEvents
+        self._events = newEvents
         for event in added:
             # When variables are set in AddEventDialog
             for prop in event.dynamicProperties:
@@ -782,6 +760,25 @@ class Person(PathItem):
             for prop in event.dynamicProperties:
                 self.variablesDatabase.unset(prop.attr, event.dateTime())
             # self.eventRemoved.emit(event)
+
+        # Built-in variables
+
+        for event in self._events:
+            if event.kind() == EventKind.Birth:
+                self._birthEvent = event
+            elif event.kind() == EventKind.Adopted:
+                self._adoptedEvents.append(event)
+            elif event.kind() == EventKind.Death:
+                self._deathEvent = event
+
+        # Variables database
+
+        self.variablesDatabase.clear()
+        for event in self.events():
+            for prop in event.dynamicProperties:
+                if event.dateTime() and prop.isset():
+                    self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())
+
         return {
             "oldEvents": oldEvents,
             "newEvents": newEvents,
@@ -817,6 +814,30 @@ class Person(PathItem):
         if prop.isDynamic:
             self.variablesDatabase.set(prop.attr, prop.item.dateTime(), prop.get())
 
+    # Event getters
+
+    def events(self) -> list[Event]:
+        """
+        Cached list of events to avoid excessive querying of the scene.
+        """
+        assert self._events is not None
+        return self._events
+
+    def birthDateTime(self) -> QDateTime:
+        if self._birthEvent:
+            return self._birthEvent.dateTime()
+        return QDateTime()
+
+    def deceased(self) -> bool:
+        if self.prop("deceased").get():
+            return True
+        return bool(self.deceasedDateTime())
+
+    def deceasedDateTime(self) -> QDateTime:
+        if self._deathEvent:
+            return self._deathEvent.dateTime()
+        return QDateTime()
+
     # Showing / Hiding
 
     @util.fblocked  # needed to avoid recursion in multiple births
@@ -841,16 +862,6 @@ class Person(PathItem):
                 #     item.setPathItemVisible(True, opacity=opacity)
         else:
             self.setPathItemVisible(False)
-
-    def updateVariablesDatabase(self):
-        self.variablesDatabase.clear()
-        if self.scene():
-            for event in self.scene().eventsFor(self):
-                for prop in event.dynamicProperties:
-                    if event.dateTime() and prop.isset():
-                        self.variablesDatabase.set(
-                            prop.attr, event.dateTime(), prop.get()
-                        )
 
     def onAgeChanged(self):
         if self.scene():
@@ -1099,8 +1110,11 @@ class Person(PathItem):
             if self.deceasedReason() and not ignoreDeath:
                 lines.append(self.deceasedReason())
         if not hideDates and self.adopted():
-            for event in self.scene().eventsFor(self, kinds=EventKind.Adopted):
-                if event.dateTime() <= currentDateTime:
+            for event in self.events():
+                if (
+                    event.kind() == EventKind.Adopted
+                    and event.dateTime() <= currentDateTime
+                ):
                     lines.append("a. " + util.dateString(event.dateTime()))
 
         # Compile Custom Details
@@ -1311,7 +1325,6 @@ class Person(PathItem):
                     self.setFlag(QGraphicsItem.ItemIsMovable, False)
                 else:
                     self.setFlag(QGraphicsItem.ItemIsMovable, True)
-                self.updateVariablesDatabase()
             self.updateDetails()
             x = 1
         elif change == QGraphicsItem.ItemPositionChange:

@@ -245,8 +245,10 @@ class RemoveItems(QUndoCommand):
                     layer.setItemProperty(itemId, entry["prop"].name(), entry["was"])
         #
         for entry in self._unmapped["marriages"]:
-            entry["people"][0].onAddMarriage(entry["marriage"])
-            entry["people"][1].onAddMarriage(entry["marriage"])
+            if not entry["marriage"] in entry["people"][0].marriages:
+                entry["people"][0].marriages.append(entry["marriage"])
+            if not entry["marriage"] in entry["people"][1].marriages:
+                entry["people"][1].marriages.append(entry["marriage"])
             self.scene.addItem(entry["marriage"])
         #
         for entry in self._unmapped["children"]:

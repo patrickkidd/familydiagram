@@ -26,14 +26,23 @@ def variables(scene):
 
 
 def test_init_Birth(scene, view):
-    person = scene.addItem(Person(name="John Doe"))
-    event = scene.addItem(Event(EventKind.Birth, person, dateTime=START_DATETIME))
+    mother, father, child = scene.addItems(
+        Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Baby")
+    )
+    marriage = scene.addItem(Marriage(mother, father))
+    event = scene.addItem(
+        Event(
+            EventKind.Birth, mother, spouse=father, child=child, dateTime=START_DATETIME
+        )
+    )
     event.setLocation("Old Location")
     event.setNotes("Old Notes")
 
     view.view.editEvents([event])
     assert view.item.property("kindBox").property("enabled") == False
-    assert view.view.personEntry()["person"] == person
+    assert view.view.personEntry()["person"] == mother
+    assert view.view.spouseEntry()["person"] == father
+    assert view.view.childEntry()["person"] == child
     assert view.item.property("kind") == EventKind.Birth.value
     assert view.item.property("startDateTime") == START_DATETIME
     assert view.item.property("location") == "Old Location"
@@ -146,8 +155,13 @@ def test_edit_isPerson(scene, view, kind):
     view.set_location("New Location")
     view.set_notes("New Notes")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
-
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as question:
+        view.clickSaveButton()
+    assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
+        n_existing=1, kind=kind.name
+    )
     assert len(scene.eventsFor(marriage)) == 1
     assert event.kind() == kind
     assert event.description() == kind.name

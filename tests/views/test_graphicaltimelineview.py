@@ -122,7 +122,7 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
 
     for i, person in enumerate(scene.people()):
         event = scene.addItem(
-            Event(EventKind.Birth, person, dateTime=util.Date(2000 + i, 1, 1))
+            Event(EventKind.Shift, person, dateTime=util.Date(2000 + i, 1, 1))
         )
         if i % 2 == 0:
             event.setTags([TAG_1])

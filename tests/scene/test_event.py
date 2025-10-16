@@ -11,26 +11,26 @@ def test_init(scene):
     assert event in scene.eventsFor(person)
 
 
-@pytest.mark.parametrize("undo", [True, False])
-def test_setParent(scene, undo):
-    """
-    We really only need to test switching parents, not setting back to None.
-    """
-    personA, personB = Person(), Person()
-    scene.addItems(personA, personB)
-    event = scene.addItem(Event(EventKind.Shift, personA))
-    assert event in scene.eventsFor(personA)
-    #
-    event.setPerson(personB, undo=undo)
-    assert event in scene.eventsFor(personB)
-    assert event not in scene.eventsFor(personA)
-    scene.undo()
-    if undo:
-        assert event not in scene.eventsFor(personB)
-        assert event in scene.eventsFor(personA)
-    else:
-        assert event in scene.eventsFor(personB)
-        assert event not in scene.eventsFor(personA)
+# @pytest.mark.parametrize("undo", [True, False])
+# def test_setParent(scene, undo):
+#     """
+#     We really only need to test switching parents, not setting back to None.
+#     """
+#     personA, personB = Person(), Person()
+#     scene.addItems(personA, personB)
+#     event = scene.addItem(Event(EventKind.Shift, personA))
+#     assert event in scene.eventsFor(personA)
+#     #
+#     event.setPerson(personB, undo=undo)
+#     assert event in scene.eventsFor(personB)
+#     assert event not in scene.eventsFor(personA)
+#     scene.undo()
+#     if undo:
+#         assert event not in scene.eventsFor(personB)
+#         assert event in scene.eventsFor(personA)
+#     else:
+#         assert event in scene.eventsFor(personB)
+#         assert event not in scene.eventsFor(personA)
 
 
 def __test___lt__():

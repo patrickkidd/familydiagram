@@ -1252,10 +1252,6 @@ class View(QGraphicsView):
         self.rightTBAnimation.setEndValue(QPoint(self.rightTB_x, self.rightToolBar.y()))
         self.rightTBAnimation.start()
 
-    def addParentsToSelection(self):
-        if self.scene():
-            self.scene().addParentsToSelection()
-
     def showItemsWithNotes(self, on):
         if self.scene():
             self.scene().setShowNotesIcons(on)

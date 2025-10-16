@@ -83,17 +83,17 @@ def test_clean_stale_refs(data_root, scene):
         "pkdiagram.scene.Scene.prune", side_effect=prune, autospec=True
     ) as prune:
         scene.read(data)
-    assert numPruned == 13
+    assert numPruned == 9
 
     newData = {}
     scene.write(newData)
-    assert len(newData["pruned"]) == 13
+    assert len(newData["pruned"]) == 9
 
 
 def test_no_duplicate_events_from_file(simpleScene):
     for i, person in enumerate(simpleScene.people()):
         simpleScene.addItem(
-            Event(EventKind.Birth, person, dateTime=util.Date(1900, 1, 1 + i))
+            Event(EventKind.Shift, person, dateTime=util.Date(1900, 1, 1 + i))
         )
     events = simpleScene.events()
     for event in events:

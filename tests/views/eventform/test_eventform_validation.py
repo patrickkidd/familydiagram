@@ -84,6 +84,7 @@ def test_confirm_replace_Birth(scene, view):
     )
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(person)
+    view.spousePicker.set_existing_person(spouse)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
     with patch("PyQt5.QtWidgets.QMessageBox.question") as question:
@@ -94,7 +95,7 @@ def test_confirm_replace_Birth(scene, view):
     assert child.birthDateTime() == START_DATETIME
 
 
-def test_confirm_replace_singular_events(qtbot, scene, view):
+def test_confirm_replace_Death(scene, view):
     PRIOR_DATETIME = util.Date(2011, 1, 1)
     person = scene.addItem(
         Person(name="Parent", lastName="Doe"),

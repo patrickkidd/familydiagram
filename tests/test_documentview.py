@@ -295,7 +295,7 @@ def test_load_from_file_with_people_and_events(scene, dv):
     dv.caseProps.checkInitQml()
     p1, p2 = scene.addItems(Person(name="p1"), Person(name="p2"))
     birth_event = scene.addItem(
-        Event(EventKind.Birth, p1, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, p1, dateTime=util.Date(2001, 1, 1))
     )
     assert_UIHasAnyEvents(dv, True)
     assert dv.view.noItemsCTALabel.isVisible() == False
@@ -307,7 +307,7 @@ def test_add_first_event_shows_UI_elements(scene, dv):
 
     person = scene.addItem(Person(name="p1"))
     birth_event = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
     assert_UIHasAnyEvents(dv, True)
     assert dv.view.noItemsCTALabel.isVisible() == False
@@ -319,7 +319,7 @@ def test_remove_last_event_hides_UI_elements(scene, dv):
     """
     person = scene.addItem(Person(name="p1"))
     birth_event = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
     scene.setCurrentDateTime(birth_event.dateTime())
     assert_UIHasAnyEvents(dv, True)
@@ -509,7 +509,7 @@ def test_load_reload(qtbot, dv):
 def test_prevTaggedDateTime(scene, dv):
     person = scene.addItem(Person())
     event = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
     scene.setCurrentDateTime(util.Date(2002, 1, 1))
     dv.controller.onPrevEvent()
@@ -519,7 +519,7 @@ def test_prevTaggedDateTime(scene, dv):
 def test_nextTaggedDateTime(scene, dv):
     person = scene.addItem(Person())
     event = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2000, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
     )
     scene.setCurrentDateTime(util.Date(1990, 1, 1))
     dv.controller.onNextEvent()
@@ -530,7 +530,7 @@ def test_toggle_search_tag_via_model(scene, dv):
     """Was bombing on setCurrentDate."""
     person = scene.addItem(Person())
     birth_event, event_1, event_2, event_3 = scene.addItems(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)),
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)),
         Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"]),
         Event(EventKind.Shift, person, dateTime=util.Date(2002, 1, 1), tags=["you"]),
         Event(EventKind.Shift, person, dateTime=util.Date(2003, 1, 1), tags=["you"]),
@@ -697,7 +697,7 @@ def test_retain_tab_between_selections(qtbot, mw, test_session):
 def test_show_graphical_timeline(qtbot, scene, dv: DocumentView):
     assert dv.isGraphicalTimelineShown() == False
     person = scene.addItem(Person(name="person"))
-    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
+    scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1)))
     assert dv.scene.currentDateTime() == util.Date(2001, 1, 1)
     assert dv.isGraphicalTimelineShown() == True
     assert dv.graphicalTimelineCallout.isVisible() == True
@@ -756,7 +756,7 @@ def test_nextTaggedDate_prevTaggedDateTime(scene, dv: DocumentView):
     scene.replaceEventProperties(["Var 1", "Var 2"])
     person1 = scene.addItem(Person())
     birth_event, event1, event2, event3 = scene.addItems(
-        Event(EventKind.Birth, person1, dateTime=util.Date(2000, 1, 1)),  # 0
+        Event(EventKind.Shift, person1, dateTime=util.Date(2000, 1, 1)),  # 0
         Event(EventKind.Shift, person1, dateTime=util.Date(2001, 1, 1)),  # 1
         Event(EventKind.Shift, person1, dateTime=util.Date(2002, 1, 1)),  # 2
         Event(EventKind.Shift, person1, dateTime=util.Date(2003, 1, 1)),  # 3
@@ -788,9 +788,9 @@ def test_nextTaggedDate_uses_search_tags(scene, dv: DocumentView):
 
     person1, person2, person3 = scene.addItems(Person(), Person(), Person())
     birth1, birth2, birth3 = scene.addItems(
-        Event(EventKind.Birth, person1, dateTime=util.Date(1980, 1, 1)),
-        Event(EventKind.Birth, person2, dateTime=util.Date(1990, 2, 2)),
-        Event(EventKind.Birth, person3, dateTime=util.Date(2000, 3, 3)),
+        Event(EventKind.Shift, person1, dateTime=util.Date(1980, 1, 1)),
+        Event(EventKind.Shift, person2, dateTime=util.Date(1990, 2, 2)),
+        Event(EventKind.Shift, person3, dateTime=util.Date(2000, 3, 3)),
     )
 
     # test first before setting tags
@@ -836,9 +836,9 @@ def test_nextTaggedDate_uses_searchModel(scene, dv: DocumentView):
         Person(name="One"), Person(name="Two"), Person(name="Three")
     )
     birth1, birth2, birth3 = scene.addItems(
-        Event(EventKind.Birth, person1, dateTime=util.Date(1980, 1, 1)),
-        Event(EventKind.Birth, person2, dateTime=util.Date(1990, 2, 2)),
-        Event(EventKind.Birth, person3, dateTime=util.Date(2000, 3, 3)),
+        Event(EventKind.Shift, person1, dateTime=util.Date(1980, 1, 1)),
+        Event(EventKind.Shift, person2, dateTime=util.Date(1990, 2, 2)),
+        Event(EventKind.Shift, person3, dateTime=util.Date(2000, 3, 3)),
     )
 
     # test first before setting tags

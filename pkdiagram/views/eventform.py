@@ -9,7 +9,6 @@ from pkdiagram.pyqt import (
     QMetaObject,
     QVariant,
     QMessageBox,
-    QObject,
 )
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -25,16 +24,6 @@ from pkdiagram.models import TagsModel
 from pkdiagram.views import QmlDrawer
 
 _log = logging.getLogger(__name__)
-
-
-class DummyEvent(Event):
-    def __init__(self, scene):
-        # kind is irrelevant, this is just for tags
-        super().__init__(EventKind.Shift, None)
-        self._scene = scene
-
-    def scene(self):
-        return self._scene
 
 
 class EventForm(QmlDrawer):
@@ -80,6 +69,7 @@ class EventForm(QmlDrawer):
             **contextProperties,
         )
         self._events = []
+        self._dummyItem = None
         self._tagsModel: TagsModel | None = None
 
         # self.startTimer(1000)
@@ -136,9 +126,10 @@ class EventForm(QmlDrawer):
     def addEvent(self, selection: list[Item] = None):
         self.clear()
         self.item.setProperty("isEditing", False)
-        event = DummyEvent(self.scene)
-        self._events = [event]
-        self._tagsModel.items = [event]
+        self._events = []
+        self._dummyItem = Item()
+        self.scene.addItem(self._dummyItem)
+        self._tagsModel.items = [self._dummyItem]
         if selection:
             people = [x for x in selection if x.isPerson]
             marriages = [x for x in selection if x.isMarriage]
@@ -171,7 +162,7 @@ class EventForm(QmlDrawer):
                 spouse = util.sameOf(events, lambda x: x.spouse())
                 if spouse:
                     self.item.property("spousePicker").setExistingPersonId(spouse.id)
-            elif kind.isOffspring():
+            if kind.isOffspring():
                 child = util.sameOf(events, lambda x: x.child())
                 if child:
                     self.item.property("childPicker").setExistingPersonId(child.id)
@@ -707,9 +698,10 @@ class EventForm(QmlDrawer):
             if checkedTags:
                 kwargs["tags"] = checkedTags
 
-            self.scene.addItem(
+            event = self.scene.addItem(
                 Event(kind, person, dateTime=startDateTime, **kwargs), undo=True
             )
+            newEmotions.extend(self.scene.emotionsFor(event))
 
         # Arrange people
         spacing = (newPeople[0].sceneBoundingRect().width() * 2) if newPeople else 0
@@ -859,4 +851,6 @@ class EventForm(QmlDrawer):
         # if self._events and isinstance(self._events[0], DummyEvent):
         #     self.scene.removeItem(self._events[0])
         self._events = []
+        self.scene.removeItem(self._dummyItem)
+        self._dummyItem = None
         self._tagsModel.items = []

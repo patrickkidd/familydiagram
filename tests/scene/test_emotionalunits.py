@@ -69,8 +69,6 @@ def test_remove_people():
     assert marriage.emotionalUnit().people() == [personA, personB, child_2]
     assert child_1.layers() == []
 
-    personA.onRemoveMarriage(marriage)
-    child_2.setParents(None)
     scene.removeItem(marriage)
     assert scene.emotionalUnits() == []
     assert personA.layers() == []
@@ -99,18 +97,31 @@ def test_ignores_custom_layers():
     assert sum(1 for x in scene.layers() if not x.internal()) == 1
 
 
-def test_sort():
+def test_sort_by_children():
     scene = Scene()
-    personA, personB, personC = scene.addItems(
-        Person(name="A"), Person(name="B"), Person(name="C")
+    child1, child2 = scene.addItems(Person(name="Child 1"), Person(name="Child 2"))
+    mother1, father1, marriage1 = scene.ensureParentsFor(child1)
+    mother2, father2, marriage2 = scene.ensureParentsFor(child2)
+    scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother1,
+            spouse=father1,
+            child=child1,
+            dateTime=util.Date(2001, 1, 1),
+        )
     )
-    scene.addItem(Event(EventKind.Birth, personA, dateTime=util.Date(2001, 1, 1)))
-    scene.addItem(Event(EventKind.Birth, personC, dateTime=util.Date(2000, 1, 1)))
-    marriage_1 = Marriage(personA=personA, personB=personB)
-    marriage_2 = Marriage(personA=personB, personB=personC)
-    scene.addItems(marriage_1, marriage_2)
-    emotionalUnit_1 = marriage_1.emotionalUnit()
-    emotionalUnit_2 = marriage_2.emotionalUnit()
+    scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother1,
+            spouse=father1,
+            child=child2,
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    emotionalUnit_1 = marriage1.emotionalUnit()
+    emotionalUnit_2 = marriage2.emotionalUnit()
     assert emotionalUnit_2 < emotionalUnit_1
 
 

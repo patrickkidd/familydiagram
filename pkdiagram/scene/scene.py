@@ -402,14 +402,9 @@ class Scene(QGraphicsScene, Item):
             return
         self.itemRegistry[item.id] = item
         item.onRegistered(self)
-        ## Signals
-        if item.isPathItem:
-            if not self.isBatchAddingRemovingItems():
-                item.beginUpdateFrame()
-                item.updateAll()
-                item.endUpdateFrame()
         if item.isPerson:
             self._people.append(item)
+            item.updateEvents()
             if not self.isBatchAddingRemovingItems():
                 item.setLayers([x.id for x in self.activeLayers()])
                 self.personAdded[Person].emit(item)
@@ -418,8 +413,11 @@ class Scene(QGraphicsScene, Item):
                 raise ValueError(
                     f"There is already a Marriage item added for {item.personA()} and {item.personB()}"
                 )
-            item.personA().onAddMarriage(item)
-            item.personB().onAddMarriage(item)
+            item.updateEvents()
+            if not item in item.personA().marriages:
+                item.personA().marriages.append(item)
+            if not item in item.personB().marriages:
+                item.personB().marriages.append(item)
             self._marriages.append(item)
             # Add an unnamed layer but don't register it or notify anything
             layer = Layer(internal=True)
@@ -428,9 +426,8 @@ class Scene(QGraphicsScene, Item):
             item.emotionalUnit().setLayer(layer)
             if not self.isBatchAddingRemovingItems():
                 item.emotionalUnit().update()
-            for person in item.people:
-                person.onAddMarriage(item)
-            item.updateGeometry()
+            item.updateGeometryAndDetails()
+            item.separationIndicator.updateGeometry()
             self.marriageAdded[Marriage].emit(item)
         elif item.isChildOf:
             if not self.isBatchAddingRemovingItems():
@@ -450,21 +447,50 @@ class Scene(QGraphicsScene, Item):
                         )
                     )
                     self._do_addItem(emotion)
+
+            # Replace singular events
+            if item.kind() in (EventKind.Birth, EventKind.Death):
+                birthEvent = None
+                deathEvent = None
+                if item.kind() == EventKind.Birth:
+                    person = item.child()
+                elif item.kind() == EventKind.Death:
+                    person = item.person()
+                for event in self.eventsFor(
+                    person, kinds=[EventKind.Birth, EventKind.Death]
+                ):
+                    if event.kind() == EventKind.Birth and event is not item:
+                        birthEvent = event
+                    elif event.kind() == EventKind.Death and event is not item:
+                        deathEvent = event
+                if birthEvent:
+                    self.removeItem(birthEvent)
+                if deathEvent:
+                    self.removeItem(deathEvent)
+
+            if not self.isInitializing:
+                item.person().onEventAdded()
+            for person in item.people():
+                person.updateEvents()
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
+            if item.spouse():
+                marriage = self.marriageFor(item.person(), item.spouse())
+                if (
+                    item.kind().isPairBond() and not marriage
+                ) and not self.isInitializing:
+                    raise ValueError(
+                        f"Cannot add {item.kind().menuLabel()} event for "
+                        f"{item.person()} and {item.spouse().itemName()} "
+                        f"without a Marriage object. Create the Marriage first."
+                    )
+                if marriage:
+                    marriage.onEventAdded()
+            if item.kind().isOffspring() and item.child():
+                marriage = self.marriageFor(item.person(), item.spouse())
+                item.child().setParents(marriage)
             if not self.isBatchAddingRemovingItems():
-                item.person().onEventAdded()
-                if item.spouse():
-                    marriage = self.marriageFor(item.person(), item.spouse())
-                    if item.kind().isPairBond() and not marriage:
-                        raise ValueError(
-                            f"Cannot add {item.kind().menuLabel()} event for "
-                            f"{item.person().itemName()} and {item.spouse().itemName()} "
-                            f"without a Marriage object. Create the Marriage first."
-                        )
-                    if marriage:
-                        marriage.onEventAdded()
                 self.eventAdded.emit(item)
                 if not self._isUndoRedoing:
                     self.setCurrentDateTime(item.dateTime())
@@ -500,9 +526,13 @@ class Scene(QGraphicsScene, Item):
             self._isAddingLayerItem = False
         elif item.isItemDetails:
             self._itemDetails.append(item)
+
         item.addPropertyListener(self)
         if item.isPathItem:  # after geometries are updated.
             if not self.isBatchAddingRemovingItems():
+                item.beginUpdateFrame()
+                item.updateAll()
+                item.endUpdateFrame()
                 self.checkPrintRectChanged()
         if self.isBatchAddingRemovingItems() and not item in self._batchAddedItems:
             self._batchAddedItems.append(item)
@@ -547,11 +577,15 @@ class Scene(QGraphicsScene, Item):
 
             for emotion in list(self.emotionsFor(event)):
                 _removeEmotion(emotion)
+
             if event in self._events:
                 self._events.remove(event)
                 removed_events.append(event)
                 # Deregister from itemRegistry
                 _deregisterItem(event)
+
+            if event.child():
+                event.child().updateEvents()
 
         def _removeEmotion(emotion: Emotion):
             if emotion in self._emotions:
@@ -564,7 +598,8 @@ class Scene(QGraphicsScene, Item):
             for child in list(marriage.children):
                 child.setParents(None)
             for person in marriage.people:
-                person.onRemoveMarriage(marriage)
+                if marriage in person.marriages:
+                    person.marriages.remove(marriage)
             emotionalUnit = marriage.emotionalUnit()
             marriage.personA().setLayers(
                 [
@@ -607,7 +642,8 @@ class Scene(QGraphicsScene, Item):
                 for child in list(marriage.children):
                     child.setParents(None)
                 for p in list(marriage.people):
-                    p.onRemoveMarriage(marriage)
+                    if marriage in p.marriages:
+                        p.marriages.remove(marriage)
                 _removeMarriage(marriage)
             if item in self._people:
                 self._people.remove(item)
@@ -763,8 +799,8 @@ class Scene(QGraphicsScene, Item):
                     if item.isEmotion:
                         item.updateFannedBox()
                 self.finishedBatchAddingRemovingItems.emit()
-        self._batchAddedItems = []
-        self._batchRemovedItems = []
+                self._batchAddedItems = []
+                self._batchRemovedItems = []
 
     def resortLayersFromOrder(self):
         # re-sort iternal layer list.
@@ -853,10 +889,34 @@ class Scene(QGraphicsScene, Item):
             if not chunk["dateTime"]:
                 personChunk = by_ids.get(chunk.get("person"))
                 log.warning(
-                    f"Removing Event with person {personChunk['id']}: {personChunk.get('name', '(unnamed)')} and no dateTime set: {pprint.pformat(chunk, indent=4)}"
+                    f"Removing Event with person {personChunk['id']}: {personChunk.get('name', '(unnamed)')} and no dateTime set: {chunk}"  # {pprint.pformat(chunk, indent=4)}
                 )
                 data["events"].remove(chunk)
                 pruned.append(chunk)
+        for chunk in list(data.get("emotions", [])):
+            if (chunk.get("person") and chunk.get("person") not in by_ids) and (
+                chunk.get("event") and chunk.get("event") not in by_ids
+            ):
+                log.warning(
+                    f"Emotion has no person or event, skipping loading: {chunk}"
+                )
+                data["emotions"].remove(chunk)
+                pruned.append(chunk)
+            elif (
+                chunk.get("kind") != RelationshipKind.Cutoff.value
+                and chunk.get("target") not in by_ids
+            ):
+                log.warning(f"Emotion has no target, skipping loading: {chunk}")
+                data["emotions"].remove(chunk)
+                pruned.append(chunk)
+            elif (
+                chunk.get("kind")
+                and chunk.get("kind") not in RelationshipKind.Cutoff.value
+            ):
+                data["emotions"].remove(chunk)
+                pruned.append(chunk)
+            stale_target = chunk.get("event") and chunk.get("event") not in by_ids
+
         for chunk in list(data.get("multipleBirths", [])):
             stale_children = [
                 childId
@@ -865,7 +925,7 @@ class Scene(QGraphicsScene, Item):
             ]
             if stale_children:
                 log.warning(
-                    f"Removing MultipleBirth with stale ref to child {stale_children}: {pprint.pformat(chunk, indent=4)}"
+                    f"Removing MultipleBirth with stale ref to child {stale_children}"  # : {pprint.pformat(chunk, indent=4)}"
                 )
                 data["multipleBirths"].remove(chunk)
                 pruned.append(chunk)
@@ -1012,27 +1072,16 @@ class Scene(QGraphicsScene, Item):
                     item.read(chunk, itemMap.get) == False
                 ):  # have to read in ids before addItem()
                     erroredOut.append(item)
+            for person in self._people:
+                person.updateEvents()
+            for marriage in self._marriages:
+                marriage.updateEvents()
             with self.macro(
                 "Adding items during read file", undo=False, batchAddRemove=True
             ):
                 for item in items:
-                    if item.isEmotion and item.prop("person").get() is None:
-                        log.warning(
-                            f"Emotion {item} has no personA, skipping loading..."
-                        )
-                        continue
-                    elif (
-                        item.isEmotion
-                        and item.isDyadic()
-                        and item.prop("target").get() is None
-                    ):
-                        log.warning(
-                            f"Emotion {item} has no personB, skipping loading..."
-                        )
-                        continue
-                    self.addItem(
-                        item
-                    )  # don't use addItems() to avoid calling updateAll() until layer
+                    # don't use addItems() to avoid calling updateAll() until layer
+                    self.addItem(item)
                 for itemId, item in self.itemRegistry.items():
                     if itemId is None:
                         raise ValueError("Found Item object stored without id!" + item)
@@ -1741,17 +1790,13 @@ class Scene(QGraphicsScene, Item):
         self, item: Person | Marriage, kinds: EventKind | list[EventKind] = None
     ) -> list[Event]:
         if isinstance(item, Person):
-            eventPeople = (
-                lambda e: [e.person(), e.spouse(), e.child()]
-                + e.relationshipTargets()
-                + e.relationshipTriangles()
-            )
-            events = [e for e in self._events if item in eventPeople(e)]
+            events = [x for x in self._events if item in x.people()]
         elif isinstance(item, Marriage):
             events = [
                 x
                 for x in self.events()
                 if {x.person(), x.spouse()} == {item.personA(), item.personB()}
+                and x.kind().isPairBond()
             ]
         else:
             raise TypeError("item must be Person or Marriage")
@@ -2314,32 +2359,32 @@ class Scene(QGraphicsScene, Item):
             item.setSelected(True)
         return items
 
-    def addParentsToSelection(self):
-        selectedPeople = self.selectedPeople()
-        if not selectedPeople:
-            return
-
-        with self.macro("Add parents to person", undo=True):
-            for person in selectedPeople:
-                rect = person.mapToScene(person.boundingRect()).boundingRect()
-                fatherPos = person.pos() - QPointF(
-                    rect.width() * 1.5, rect.height() * 2
-                )
-                motherPos = person.pos() - QPointF(
-                    rect.width() * -1.5, rect.height() * 2
-                )
-                father = Person(
-                    gender=util.PERSON_KIND_MALE, itemPos=fatherPos, size=person.size()
-                )
-                mother = Person(
-                    gender=util.PERSON_KIND_FEMALE,
-                    size=person.size(),
-                )
-                father.setItemPosNow(fatherPos)
-                mother.setItemPosNow(motherPos)
-                marriage = Marriage(father, mother)
-                self.addItems(father, mother, marriage, undo=True)
+    def ensureParentsFor(
+        self, person: Person, undo=False
+    ) -> tuple[Person, Person, Marriage]:
+        if person.childOf:
+            return (
+                person.childOf.parents().personA(),
+                person.childOf.parents().personB(),
+                person.childOf.parents(),
+            )
+        else:
+            rect = person.mapToScene(person.boundingRect()).boundingRect()
+            fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
+            motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
+            father = Person(
+                gender=util.PERSON_KIND_MALE, itemPos=fatherPos, size=person.size()
+            )
+            mother = Person(gender=util.PERSON_KIND_FEMALE, size=person.size())
+            father.setItemPosNow(fatherPos)
+            mother.setItemPosNow(motherPos)
+            self.addItems(father, mother, undo=undo)
+            marriage = self.addItem(Marriage(father, mother), undo=undo)
+            if undo:
                 self.push(SetParents(person, marriage))
+            else:
+                person.setParents(marriage)
+            return mother, father, marriage
 
     def setStopOnAllEvents(self, on):
         self._stopOnAllEvents = on

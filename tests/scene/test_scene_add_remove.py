@@ -261,13 +261,19 @@ def test_add_callout(scene, undo):
         assert scene.layerItems() == [callout]
 
 
-def test_addParentsToSelection(scene):
+def test_ensureParentsFor(scene):
     person = scene.addItem(Person(name="Hey", lastName="You"))
-    person.setSelected(True)
-    scene.addParentsToSelection()
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
+    )
+    assert scene.currentDateTime() == event.dateTime()
+
+    scene.ensureParentsFor(person, undo=True)
     assert person.childOf is not None
     assert person.parents() is not None
     assert len(person.parents().people) == 2
+    assert scene.currentDateTime() == event.dateTime()  # doesn't change
+
     scene.undo()
     assert person.childOf is None
     assert person.parents() is None
@@ -329,11 +335,11 @@ def test_remove_event(scene, undo):
 
 def test_remove_event_with_events_remaining(scene):
     person = scene.addItem(Person(name="person"))
-    birthEvent = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2000, 1, 1))
+    event1 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
     )
     eventRemoved = util.Condition(scene.eventRemoved)
-    event = scene.addItem(
+    event2 = scene.addItem(
         Event(
             EventKind.Shift,
             person,
@@ -342,9 +348,9 @@ def test_remove_event_with_events_remaining(scene):
         )
     )
     currentDateTime = scene.currentDateTime()
-    scene.removeItem(event, undo=False)
+    scene.removeItem(event2, undo=False)
     assert eventRemoved.callCount == 1
-    assert scene.events(onlyDated=True) == [birthEvent]
+    assert scene.events(onlyDated=True) == [event1]
     assert scene.currentDateTime() == currentDateTime
 
 
@@ -543,24 +549,12 @@ def test_add_events_sets_currentDateTime(scene):
 def test_remove_last_event_sets_currentDateTime(scene):
     person = scene.addItem(Person(name="p1"))
     birthEvent = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
     assert scene.currentDateTime() == birthEvent.dateTime()
 
     birthEvent.setDateTime(QDateTime())
     assert scene.currentDateTime() == QDateTime()
-
-
-def test_addParentsToSelection_doesnt_reset_currentDateTime(scene):
-    person = scene.addItem(Person(name="Hey", lastName="You"))
-    event = scene.addItem(
-        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
-    )
-    assert scene.currentDateTime() == event.dateTime()
-
-    person.setSelected(True)
-    scene.addParentsToSelection()
-    assert scene.currentDateTime() == event.dateTime()
 
 
 def test_remove_all_events_clears_currentDateTime(scene):

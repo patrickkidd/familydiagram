@@ -35,7 +35,7 @@ def test_reset_last_event_resets_currentDateTime():
     scene = Scene()
     person = scene.addItem(Person(name="p1"))
     birthEvent = scene.addItem(
-        Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1))
+        Event(EventKind.Shift, person, dateTime=util.Date(2001, 1, 1))
     )
     assert scene.currentDateTime() == birthEvent.dateTime()
 

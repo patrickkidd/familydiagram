@@ -87,6 +87,14 @@
             "envFile": "/.vscode/.windows-env"
         },
         {
+            "name": "profile_load.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/profile_load.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },        
+        {
             "name": "ingest",
             "type": "debugpy",
             "request": "launch",

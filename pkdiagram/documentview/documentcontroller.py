@@ -139,7 +139,7 @@ class DocumentController(QObject):
         self.ui.actionMarriage.setData(ItemMode.Marry)
         self.ui.actionChild_Of.setData(ItemMode.Child)
         self.ui.actionParents_to_Selection.triggered.connect(
-            self.view.addParentsToSelection
+            self.onEnsureParentsForSelection
         )
         self.ui.actionConflict.setData(ItemMode.Conflict)
         self.ui.actionProjection.setData(ItemMode.Projection)
@@ -815,6 +815,16 @@ class DocumentController(QObject):
         else:
             itemMode = None
         self.scene.setItemMode(itemMode)
+
+    def onEnsureParentsForSelection(self):
+        if self.scene():
+            selectedPeople = self.scene().selectedPeople()
+            if not selectedPeople:
+                return
+
+            with self.scene().macro("Add parents to person", undo=True):
+                for person in selectedPeople:
+                    self.ensureParentsFor(person, undo=True)
 
     def onGraphicalTimelineViewExpandedOrContracted(self):
         self.dv.graphicalTimelineCallout.hide()

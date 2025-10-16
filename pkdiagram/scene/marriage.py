@@ -37,6 +37,8 @@ class SeparationIndicator(PathItem):
     def updateGeometry(self):
         if not self._marriage or not self._marriage.scene():
             return
+        if self._marriage._events is None:  # still in Scene.addItem(marriage)
+            return
         path = QPainterPath()
         marriage = self._marriage
         currentDateTime = marriage.scene().currentDateTime()
@@ -147,6 +149,7 @@ class Marriage(PathItem):
         self._Marriage_isUpdatingAll = False
         self.people = [personA, personB]
         self._emotionalUnit = EmotionalUnit(self)
+        self._events = None
         self._aliasNotes = None
         self._onShowAliases = False
         self.children = (
@@ -189,6 +192,15 @@ class Marriage(PathItem):
             return personADT
         elif personBDT:
             return personBDT
+        elif self.children:
+            childBirths = [
+                child.birthDateTime()
+                for child in self.children
+                if child.birthDateTime()
+            ]
+            if childBirths:
+                return min(childBirths)
+        return QDateTime()
 
     ## Data
 
@@ -262,20 +274,21 @@ class Marriage(PathItem):
         return self.peopleNamesFor(self.people[0], self.people[1])
 
     def penStyleFor(self, dateTime):
-        priorBondedEvents = []
-        priorMarriedEvents = []
-        priorDivorcedEvents = []
-        anyMarriedEvents = []
-        for e in self.scene().eventsFor(self) if self.scene() else []:
-            if e.dateTime() and e.dateTime() <= dateTime:
-                if e.kind() == EventKind.Bonded:
-                    priorBondedEvents.append(e)
-                elif e.kind() == EventKind.Married:
-                    priorMarriedEvents.append(e)
-                elif e.kind() == EventKind.Divorced:
-                    priorDivorcedEvents.append(e)
-            if e.kind() == EventKind.Married:
-                anyMarriedEvents.append(e)
+        priorBondedEvents = [
+            x
+            for x in self._events[EventKind.Bonded]
+            if x.dateTime() and x.dateTime() <= dateTime
+        ]
+        priorMarriedEvents = [
+            x
+            for x in self._events[EventKind.Married]
+            if x.dateTime() and x.dateTime() <= dateTime
+        ]
+        priorDivorcedEvents = [
+            x
+            for x in self._events[EventKind.Divorced]
+            if x.dateTime() and x.dateTime() <= dateTime
+        ]
         # order matters here
         if priorMarriedEvents:
             return Qt.SolidLine
@@ -283,9 +296,9 @@ class Marriage(PathItem):
             return Qt.SolidLine
         elif priorDivorcedEvents:
             return Qt.SolidLine
-        elif priorBondedEvents and (not anyMarriedEvents) and not self.married():
+        elif priorBondedEvents and (not self.anyMarriedEvents()) and not self.married():
             return Qt.DashLine
-        elif priorBondedEvents and (not anyMarriedEvents) and self.married():
+        elif priorBondedEvents and (not self.anyMarriedEvents()) and self.married():
             return Qt.SolidLine
         elif self.divorced():
             return Qt.SolidLine
@@ -294,21 +307,16 @@ class Marriage(PathItem):
 
     def separationStatusFor(self, dateTime):
         """Returns 'separated', 'divorced', None"""
-        separatedEvents = []
-        divorcedEvents = []
-        for e in self.scene().eventsFor(self):
-            if (
-                e.kind() == EventKind.Separated
-                and e.dateTime()
-                and e.dateTime() <= dateTime
-            ):
-                separatedEvents.append(e)
-            elif (
-                e.kind() == EventKind.Divorced
-                and e.dateTime()
-                and e.dateTime() <= dateTime
-            ):
-                divorcedEvents.append(e)
+        separatedEvents = [
+            x
+            for x in self._events[EventKind.Separated]
+            if x.dateTime() is not None and x.dateTime() <= dateTime
+        ]
+        divorcedEvents = [
+            x
+            for x in self._events[EventKind.Divorced]
+            if x.dateTime() is not None and x.dateTime() <= dateTime
+        ]
         if divorcedEvents or self.divorced():
             return EventKind.Divorced
         elif separatedEvents or self.separated():
@@ -316,14 +324,36 @@ class Marriage(PathItem):
         else:
             return None
 
+    def events(self) -> list[Event]:
+        assert self._events is not None
+        return self._events
+
+    def updateEvents(self):
+        """
+        Doesn't store events by id, so it is resolved after instantiation-time.
+        """
+        self._events = {
+            EventKind.Birth: [],
+            EventKind.Adopted: [],
+            EventKind.Bonded: [],
+            EventKind.Married: [],
+            EventKind.Separated: [],
+            EventKind.Divorced: [],
+            EventKind.Moved: [],
+        }
+        if not self.scene():
+            return
+        for event in self.scene().eventsFor(self):
+            self._events[event.kind()].append(event)
+
     def anyMarriedEvents(self):
-        return len(self.scene().eventsFor(self, kinds=EventKind.Married)) > 0
+        return len(self._events[EventKind.Married]) > 0
 
     def anySeparatedEvents(self):
-        return len(self.scene().eventsFor(self, kinds=EventKind.Separated)) > 0
+        return len(self._events[EventKind.Separated]) > 0
 
     def anyDivorcedEvents(self):
-        return len(self.scene().eventsFor(self, kinds=EventKind.Divorced)) > 0
+        return len(self._events[EventKind.Divorced]) > 0
 
     def spouseOf(self, person):
         if person in self.people:
@@ -372,10 +402,12 @@ class Marriage(PathItem):
     def onEventAdded(self):
         self.updateDetails()
         self.updateGeometry()
+        self.updateEvents()
 
     def onEventRemoved(self):
         self.updateDetails()
         self.updateGeometry()
+        self.updateEvents()
 
     def onEventProperty(self, prop):
         """Called when an event property changes."""
@@ -515,11 +547,13 @@ class Marriage(PathItem):
         if not self.hideDates():
             for event in self.scene().eventsFor(self):
                 kind = event.kind()
-                if (
-                    not event.dateTime()
-                    or not currentDateTime
-                    or event.dateTime() > currentDateTime
-                ):
+                if not event.dateTime():
+                    continue
+                if not currentDateTime:
+                    continue
+                if event.dateTime() > currentDateTime:
+                    continue
+                if not event.includeOnDiagram():
                     continue
                 if kind == EventKind.Bonded and event.dateTime():
                     lines.append("b. " + util.dateString(event.dateTime()))

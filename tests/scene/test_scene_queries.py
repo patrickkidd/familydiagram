@@ -92,7 +92,7 @@ def test_find_by_tags(simpleScene):
     p1.setTags(["hello"])
     p.setTags(["hello"])
     event = simpleScene.addItem(
-        Event(EventKind.Birth, p1, dateTime=util.Date(2025, 7, 7))
+        Event(EventKind.Shift, p1, dateTime=util.Date(2025, 7, 7))
     )
     event.setTags(["hello"])
 
@@ -110,7 +110,7 @@ def test_find_by_types_and_tags(simpleScene):
     p1.setTags(["hello"])
     p.setTags(["hello"])
     event = simpleScene.addItem(
-        Event(EventKind.Birth, p1, dateTime=util.Date(2025, 7, 7))
+        Event(EventKind.Shift, p1, dateTime=util.Date(2025, 7, 7))
     )
     event.setTags(["hello"])
 

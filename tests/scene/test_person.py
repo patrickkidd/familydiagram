@@ -106,8 +106,26 @@ def detailsText_person(scene):
     scene.addEventProperty("varX")
     scene.setCurrentDateTime(util.Date(2001, 1, 1))
     person = scene.addItem(Person(name="Roger"))
+    mother, father, marriage = scene.ensureParentsFor(person)
+    scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=person,
+            dateTime=util.Date(1970, 1, 1),
+        )
+    )
     person.setDiagramNotes("here are some notes")
-    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(2001, 1, 1)))
+    scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=person,
+            dateTime=util.Date(2001, 1, 1),
+        )
+    )
     event = scene.addItem(
         Event(EventKind.Shift, person, dateTime=scene.currentDateTime())
     )
@@ -166,8 +184,17 @@ def test_detailsText_hideVariables(detailsText_person):
 
 def test_hide_age_when_no_deceased_date(scene):
     person = scene.addItem(Person())
+    mother, father, marriage = scene.ensureParentsFor(person)
     scene.setCurrentDateTime(QDateTime.currentDateTime())
-    scene.addItem(Event(EventKind.Birth, person, dateTime=util.Date(1990, 1, 1)))
+    scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=person,
+            dateTime=util.Date(1990, 1, 1),
+        )
+    )
     person.setDeceased(True)
     assert person.ageItem.text() == ""
     assert person.ageItem.isVisible() == False
@@ -305,7 +332,9 @@ def test_new_event_adds_variable_values(scene):
     person = scene.addItem(Person())
 
     # Simulate AddEventDialog setup.
-    event = scene.addItem(Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11)))
+    event = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=util.Date(2021, 5, 11))
+    )
     for entry in scene.eventProperties():
         event.addDynamicProperty(entry["attr"])
     prop = event.dynamicProperties[0]

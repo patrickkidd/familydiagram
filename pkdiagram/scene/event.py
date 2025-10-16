@@ -37,7 +37,7 @@ class Event(Item):
             },  # only when manually drawing emotions on diagram. Can't retroactively add dates to a symbol anymore, so overlap
             {"attr": "color", "type": str, "default": None},
             {"attr": "location"},
-            {"attr": "includeOnDiagram", "default": False},
+            {"attr": "includeOnDiagram", "default": True},
             # Person references (stored as IDs)
             {"attr": "person", "type": int, "default": None},
             {"attr": "spouse", "type": int, "default": None},
@@ -92,10 +92,20 @@ class Event(Item):
         self._aliasParentName = None
         self._onShowAliases = False
         self._updatingDescription = False
+
+        # Cache person references
+        self._person = person
+        self._spouse = None
+        self._child = None
+        self._relationshipTargets = []
+        self._relationshipTriangles = []
+        self._marriage = None
         if spouse is not None:
-            self.setSpouse(spouse)
+            self._spouse = spouse
+            self.prop("spouse").set(spouse.id, notify=False)
         if child is not None:
-            self.setChild(child)
+            self._child = child
+            self.prop("child").set(child.id, notify=False)
         if anxiety is not None:
             self.addDynamicProperty(util.ATTR_ANXIETY).set(anxiety)
         if symptom is not None:
@@ -104,23 +114,16 @@ class Event(Item):
             self.addDynamicProperty(util.ATTR_RELATIONSHIP).set(relationship.value)
         if functioning is not None:
             self.addDynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
-
-        # Normalize relationshipTargets and relationshipTriangles to lists
         if relationshipTargets is not None:
-            if not isinstance(relationshipTargets, list):
-                relationshipTargets = [relationshipTargets]
             self.setRelationshipTargets(relationshipTargets)
-        else:
-            relationshipTargets = []
-
         if relationshipTriangles is not None:
-            if not isinstance(relationshipTriangles, list):
-                relationshipTriangles = [relationshipTriangles]
             self.setRelationshipTriangles(relationshipTriangles)
-        else:
-            relationshipTriangles = []
 
-        for p in [spouse, child] + relationshipTargets + relationshipTriangles:
+        for p in (
+            [self._spouse, self._child]
+            + self._relationshipTargets
+            + self._relationshipTriangles
+        ):
             if p and p.id is None:
                 raise ValueError(
                     f"All referenced people must be added to the scene before passed to Event() or they won't have valid id's."
@@ -145,6 +148,15 @@ class Event(Item):
         super().read(chunk, byId)
         if self.dateTime() is not None and self.dateTime().isNull():
             self.setDateTime(None, notify=False)
+        self._person = byId(chunk.get("person")) if chunk.get("person") else None
+        self._spouse = byId(chunk.get("spouse")) if chunk.get("spouse") else None
+        self._child = byId(chunk.get("child")) if chunk.get("child") else None
+        self._relationshipTargets = [
+            byId(id) for id in chunk.get("relationshipTargets", [])
+        ]
+        self._relationshipTriangles = [
+            byId(id) for id in chunk.get("relationshipTriangles", [])
+        ]
         for attr, value in chunk.get("dynamicProperties", {}).items():
             prop = self.addDynamicProperty(attr)
             if prop:  # avoid duplicates
@@ -244,6 +256,7 @@ class Event(Item):
             scene.push(SetEventPerson(self, person))
         else:
             self._do_setPerson(person)
+        self._marriage = self.scene().marriageFor(self._person, self._spouse)
 
     def onProperty(self, prop):
         if prop.name() == "location" and self.kind() == EventKind.Moved:
@@ -261,10 +274,9 @@ class Event(Item):
             person = self.person()
             if person:
                 person.onEventProperty(prop)
-            if self.spouse():
-                marriage = self.marriage()
-                if marriage and hasattr(marriage, "onEventProperty"):
-                    marriage.onEventProperty(prop)
+            marriage = self.scene().marriageFor(self._person, self._spouse)
+            if marriage:
+                marriage.onEventProperty(prop)
 
     def scene(self) -> "Scene":
         # Events are top-level items in the scene, use standard scene() lookup
@@ -399,36 +411,110 @@ class Event(Item):
     def clearDynamicProperties(self):
         self.dynamicProperties = []
 
-    # Person
+    # Person References
+
+    def __resolvePersonReferences(self):
+        from pkdiagram.scene import Person
+
+        id = self.prop("person").get()
+        if id is not None:
+            self._person = self.scene().find(id=id, types=Person)
+        else:
+            self._person = None
+
+        id = self.prop("spouse").get()
+        if id is not None:
+            self._spouse = self.scene().find(id=id, types=Person)
+        else:
+            self._spouse = None
+
+        id = self.prop("child").get()
+        if id is not None:
+            self._child = self.scene().find(id=id, types=Person)
+        else:
+            self._child = None
+
+        ids = self.prop("relationshipTargets").get()
+        if ids:
+            results = self.scene().find(ids=ids, types=Person)
+            assert set(ids) != set(
+                x.id for x in results
+            ), f"Some relationshipTargets in Event {self.id} are invalid: {ids}"
+            self._relationshipTargets = results
+
+        ids = self.prop("relationshipTriangles").get()
+        if ids:
+            results = self.scene().find(ids=ids, types=Person)
+            assert set(ids) != set(
+                x.id for x in results
+            ), f"Some relationshipTriangles in Event {self.id} are invalid: {ids}"
+            self._relationshipTriangles = results
+
+        if self._person and self._spouse:
+            self._marriage = self.scene().marriageFor(self._person, self._spouse)
+        else:
+            self._marriage = None
+
+    # Person getters
 
     def person(self) -> "Person":
-        id = self.prop("person").get()
-        return self.scene().find(id=id) if id else None
+        assert self._person is not None
+        return self._person
 
-    # Pair-Bond Events
+    def spouse(self) -> "Person":
+        return self._spouse
+
+    def child(self) -> "Person":
+        return self._child
 
     def marriage(self) -> "Marriage | None":
-        person = self.person()
-        spouse = self.spouse()
-        return self.scene().marriageFor(person, spouse)
+        return self._marriage
+
+    def relationshipTriangles(self) -> list:
+        return self._relationshipTriangles
+
+    def relationshipTargets(self) -> list:
+        return self._relationshipTargets
+
+    def people(self) -> list["Person"]:
+        """All people referenced by this event."""
+        results = []
+        if self._person:
+            results.append(self._person)
+        if self._spouse:
+            results.append(self._spouse)
+        if self._child:
+            results.append(self._child)
+        results.extend(self._relationshipTargets)
+        results.extend(self._relationshipTriangles)
+        return list(set(results))  # unique
+
+    # Person setters (sill needed, or can limit editing and get rid of them?)
 
     def setSpouse(self, person: "Person", notify=True, undo=False):
         self.prop("spouse").set(person.id, notify=notify, undo=undo)
-
-    def spouse(self) -> "Person":
-        from pkdiagram.scene import Person
-
-        id = self.prop("spouse").get()
-        return self.scene().find(id=id, types=Person) if id else None
+        self._spouse = person
+        self._marriage = self.scene().marriageFor(self._person, self._spouse)
 
     def setChild(self, person: "Person", notify=True, undo=False):
         self.prop("child").set(person.id, notify=notify, undo=undo)
+        self._child = person
 
-    def child(self) -> "Person":
-        from pkdiagram.scene import Person
+    def setRelationshipTargets(self, targets: list["Person"], notify=True, undo=False):
+        if not isinstance(targets, list):
+            targets = [targets]
+        self.prop("relationshipTargets").set(
+            [x.id for x in targets], notify=notify, undo=undo
+        )
+        self._relationshipTargets = targets
 
-        id = self.prop("child").get()
-        return self.scene().find(id=id, types=Person) if id else None
+    def setRelationshipTriangles(self, triangles: list, notify=True, undo=False):
+        if not isinstance(triangles, list):
+            triangles = [triangles]
+        self.prop("relationshipTriangles").set(
+            [x.id for x in triangles], notify=notify, undo=undo
+        )
+        self._relationshipTriangles = triangles
 
     ## Variables
 
@@ -454,6 +540,8 @@ class Event(Item):
         if prop:
             return prop.get()
 
+    #
+
     def setSymptom(self, value, notify=True, undo=False):
         prop = self.dynamicProperty(util.ATTR_SYMPTOM)
         if prop:
@@ -468,38 +556,6 @@ class Event(Item):
         prop = self.dynamicProperty(util.ATTR_RELATIONSHIP)
         if prop:
             prop.set(value.value, notify=notify, undo=undo)
-
-    def setRelationshipTargets(self, targets: list["Person"], notify=True, undo=False):
-        if not isinstance(targets, list):
-            targets = [targets]
-        ids = []
-        for person in targets:
-            ids.append(person.id)
-        self.prop("relationshipTargets").set(ids, notify=notify, undo=undo)
-
-    def relationshipTargets(self) -> list["Person"]:
-        from pkdiagram.scene import Person
-
-        ids = self.prop("relationshipTargets").get()
-        if not ids:
-            return []
-        return self.scene().find(ids=ids, types=Person)
-
-    def setRelationshipTriangles(self, triangles: list, notify=True, undo=False):
-        if not isinstance(triangles, list):
-            triangles = [triangles]
-        ids = []
-        for person in triangles:
-            ids.append(person.id)
-        self.prop("relationshipTriangles").set(ids, notify=notify, undo=undo)
-
-    def relationshipTriangles(self) -> list:
-        from pkdiagram.scene import Person
-
-        ids = self.prop("relationshipTriangles").get()
-        if not ids:
-            return []
-        return self.scene().find(ids=ids, types=Person)
 
     def setFunctioning(self, value, notify=True, undo=False):
         prop = self.dynamicProperty(util.ATTR_FUNCTIONING)

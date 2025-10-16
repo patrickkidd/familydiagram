@@ -171,8 +171,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
         if self._items:
             self._settingItemTags = True
             for item in self._items:
-                if item.isEvent:
-                    item.setTags([])
+                item.setTags([])
             self._settingItemTags = False
         self.modelReset.emit()
 

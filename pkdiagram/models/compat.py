@@ -319,9 +319,10 @@ def update_data(data):
                     data["people"].append(chunk)
                 elif kind == "Marriage":
                     data["marriages"].append(chunk)
-                elif kind and kind.lower() in [
-                    s.lower() for s in Emotion.kindSlugs()
-                ]:  # All emotion types (case-insensitive)
+                elif kind and (
+                    kind.lower() in [s.lower() for s in Emotion.kindSlugs()]
+                    or kind in ("DefinedSelf", "Reciprocity")
+                ):  # All emotion types (case-insensitive)
                     data["emotions"].append(chunk)
                 elif kind == "Event":
                     data["events"].append(chunk)
@@ -354,6 +355,8 @@ def update_data(data):
             for event_attr in ["birthEvent", "adoptedEvent", "deathEvent"]:
                 if event_attr in person_chunk:
                     event_chunk = person_chunk.pop(event_attr)
+                    if not event_chunk.get("dateTime"):
+                        continue
 
                     # Migrate uniqueId → kind
                     if "uniqueId" in event_chunk:
@@ -641,7 +644,9 @@ def update_data(data):
                     )
                     emotion_chunk["kind"] = RelationshipKind.Conflict.value
 
-            if "startEvent" in emotion_chunk:
+            if "startEvent" in emotion_chunk and emotion_chunk["startEvent"].get(
+                "dateTime"
+            ):
                 start_event = emotion_chunk.pop("startEvent")
                 end_event = emotion_chunk.pop("endEvent", None)
 
@@ -674,8 +679,10 @@ def update_data(data):
                     start_event["notes"] = emotion_chunk.pop("notes")
 
                 # Set relationship targets
-                if "person_b" in emotion_chunk:
+                if "person_b" in emotion_chunk and emotion_chunk["person_b"]:
                     start_event["relationshipTargets"] = [emotion_chunk["person_b"]]
+                else:
+                    start_event["relationshipTargets"] = []
 
                 # Set relationship field matching emotion kind
                 if "kind" in emotion_chunk:
