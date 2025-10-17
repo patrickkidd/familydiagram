@@ -497,7 +497,7 @@ class Scene(QGraphicsScene, Item):
                     )
                 if marriage:
                     marriage.onEventAdded()
-            if item.kind().isOffspring() and item.child():
+            if item.kind().isOffspring() and item.child() and not self.isInitializing:
                 marriage = self.marriageFor(item.person(), item.spouse())
                 item.child().setParents(marriage)
             if not self.isBatchAddingRemovingItems():
