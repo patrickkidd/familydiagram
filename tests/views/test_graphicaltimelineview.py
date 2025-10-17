@@ -173,7 +173,7 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
     assert canvas._rubberBand.geometry() == QRect(upperLeft, drag_2).normalized()
     assert len(events_for_selectionChanged) == 1
     assert events_for_selectionChanged[0] == {
-        scene.eventsFor(person_2, kinds=EventKind.Birth)[0]
+        scene.eventsFor(person_2, kinds=EventKind.Shift)[0]
     }
 
     qtbot.mouseMove(canvas, pos=lowerRight)
@@ -181,8 +181,8 @@ def test_rubber_band_select_events(qtbot, scene, create_gtv):
     assert canvas._rubberBand.geometry() == QRect(upperLeft, lowerRight).normalized()
     assert len(events_for_selectionChanged) == 2
     assert events_for_selectionChanged[1] == {
-        scene.eventsFor(person_3, kinds=EventKind.Birth)[0],
-        scene.eventsFor(person_2, kinds=EventKind.Birth)[0],
+        scene.eventsFor(person_3, kinds=EventKind.Shift)[0],
+        scene.eventsFor(person_2, kinds=EventKind.Shift)[0],
     }
 
     qtbot.mouseMove(canvas, pos=drag_naught)
