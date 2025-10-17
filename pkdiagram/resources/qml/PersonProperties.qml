@@ -56,7 +56,7 @@ PK.Drawer {
     property var colorBox: colorBox
     property var sizeBox: sizeBox
     property var kindBox: kindBox
-    property var ageBox: ageBox
+    // property var ageBox: ageBox
     property var primaryBox: primaryBox
     property var hideDetailsBox: hideDetailsBox
     property var hideDatesBox: hideDatesBox
@@ -303,7 +303,7 @@ PK.Drawer {
                         currentIndex: personModel.sizeIndex
                         model: util.PERSON_SIZE_NAMES
                         enabled: !root.isReadOnly
-                        KeyNavigation.tab: ageBox
+                        KeyNavigation.tab: editBirthEventButton
                         onCurrentIndexChanged: {
                             if(currentIndex != personModel.sizeIndex) {
                                 personModel.sizeIndex = currentIndex
@@ -311,59 +311,59 @@ PK.Drawer {
                         }
                     }
 
-                    // Age
+                    // // Age
 
-                    PK.Text { text: "Age" }
+                    // PK.Text { text: "Age" }
 
-                    RowLayout {
-                        PK.TextField {
-                            id: ageBox
-                            enabled: !root.isReadOnly
-                            palette.base: util.QML_ITEM_BG
-                            Layout.maximumWidth: 100
-                            KeyNavigation.tab: editBirthEventButton
-                            Keys.onReturnPressed: setAge()
-                            Keys.onEnterPressed: setAge()
-                            property bool blocked: false
-                            function setAge() {
-                                if(blocked) // when setting age from personProps below
-                                    return
-                                var years = parseInt(text)
-                                if(isNaN(years)) {
-                                    return
-                                }
-                                blocked = true
-                                personModel.age = years
-                                blocked = false
-                            }
-                            inputMethodHints: Qt.ImhDigitsOnly
-                            function updateFromPerson() {
-                                if(ageBox.blocked) {
-                                } else if(personModel.age == -1) {
-                                    ageBox.text = ''
-                                } else if(personModel.birthDateTime === undefined) {
-                                    ageBox.text = ''
-                                } else if(isNaN(personModel.birthDateTime)) {
-                                    ageBox.text = ''
-                                } else {
-                                    ageBox.text = personModel.age
-                                }
-                            }
-                            Connections {
-                                target: personModel
-                                function onBirthDateTimeChanged() { ageBox.updateFromPerson() }
-                                function onDeceasedDateTimeChanged() { ageBox.updateFromPerson() }
-                                function onDeceasedChanged() { ageBox.updateFromPerson() }
-                            }
-                        }
+                    // RowLayout {
+                    //     PK.TextField {
+                    //         id: ageBox
+                    //         enabled: !root.isReadOnly
+                    //         palette.base: util.QML_ITEM_BG
+                    //         Layout.maximumWidth: 100
+                    //         KeyNavigation.tab: editBirthEventButton
+                    //         Keys.onReturnPressed: setAge()
+                    //         Keys.onEnterPressed: setAge()
+                    //         property bool blocked: false
+                    //         function setAge() {
+                    //             if(blocked) // when setting age from personProps below
+                    //                 return
+                    //             var years = parseInt(text)
+                    //             if(isNaN(years)) {
+                    //                 return
+                    //             }
+                    //             blocked = true
+                    //             personModel.age = years
+                    //             blocked = false
+                    //         }
+                    //         inputMethodHints: Qt.ImhDigitsOnly
+                    //         function updateFromPerson() {
+                    //             if(ageBox.blocked) {
+                    //             } else if(personModel.age == -1) {
+                    //                 ageBox.text = ''
+                    //             } else if(personModel.birthDateTime === undefined) {
+                    //                 ageBox.text = ''
+                    //             } else if(isNaN(personModel.birthDateTime)) {
+                    //                 ageBox.text = ''
+                    //             } else {
+                    //                 ageBox.text = personModel.age
+                    //             }
+                    //         }
+                    //         Connections {
+                    //             target: personModel
+                    //             function onBirthDateTimeChanged() { ageBox.updateFromPerson() }
+                    //             function onDeceasedDateTimeChanged() { ageBox.updateFromPerson() }
+                    //             function onDeceasedChanged() { ageBox.updateFromPerson() }
+                    //         }
+                    //     }
 
-                        PK.Text {
-                            text: '(Press enter to estimate birth date)'
-                            wrapMode: Text.WordWrap
-                            font.pixelSize: util.HELP_FONT_SIZE
-                            Layout.maximumWidth: 120
-                        }
-                    }
+                    //     PK.Text {
+                    //         text: '(Press enter to estimate birth date)'
+                    //         wrapMode: Text.WordWrap
+                    //         font.pixelSize: util.HELP_FONT_SIZE
+                    //         Layout.maximumWidth: 120
+                    //     }
+                    // }
 
                     PK.FormDivider {
                         Layout.columnSpan: 2

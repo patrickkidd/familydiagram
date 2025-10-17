@@ -118,26 +118,26 @@ class PersonPropertiesModel(QObject, ModelHelper):
                 else:
                     for item in self._items:
                         item.prop("itemOpacity").reset(undo=True)
-        elif attr == "age":
-            # Calculate birth year from age
-            if self.deceased and self.deceasedDateTime:
-                x = self.deceasedDateTime.addYears(-value)
-            else:
-                x = QDateTime.currentDateTime().addYears(-value)
-            birthDateTime = QDateTime(QDate(x.date().year(), 1, 1))
+        # elif attr == "age":
+        #     # Calculate birth year from age
+        #     if self.deceased and self.deceasedDateTime:
+        #         x = self.deceasedDateTime.addYears(-value)
+        #     else:
+        #         x = QDateTime.currentDateTime().addYears(-value)
+        #     birthDateTime = QDateTime(QDate(x.date().year(), 1, 1))
 
-            # Update birth events directly without using property setter
-            with self._scene.macro("Set birth datetime from age"):
-                for item in self._items:
-                    events = item.scene().eventsFor(item, kinds=EventKind.Birth)
-                    if events:
-                        events[0].setDateTime(birthDateTime, undo=True)
-                    else:
-                        self._scene.addItem(
-                            Event(EventKind.Birth, item, dateTime=birthDateTime)
-                        )
-            self.refreshProperty("age")
-            self.refreshProperty("birthDateTime")
+        #     # Update birth events directly without using property setter
+        #     with self._scene.macro("Set birth datetime from age"):
+        #         for item in self._items:
+        #             events = item.scene().eventsFor(item, kinds=EventKind.Birth)
+        #             if events:
+        #                 events[0].setDateTime(birthDateTime, undo=True)
+        #             else:
+        #                 self._scene.addItem(
+        #                     Event(EventKind.Birth, item, dateTime=birthDateTime)
+        #                 )
+        #     self.refreshProperty("age")
+        #     self.refreshProperty("birthDateTime")
 
         return super().set(attr, value)
 

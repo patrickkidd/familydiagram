@@ -79,38 +79,38 @@ def _test_prop_returns():
     assertNoneAreNone()
 
 
-@pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
-def test_set_age_on_deceased_one_person(scene, model, deceasedDateTime):
-    personA = scene.addItem(Person(deceased=True))
-    if deceasedDateTime.isValid():
-        scene.addItem(Event(EventKind.Death, personA, dateTime=deceasedDateTime))
-    model.items = [personA]
-    with mock.patch(
-        "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
-    ):
-        model.age = 10
-    if deceasedDateTime.isValid():
-        assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
-    else:
-        assert personA.birthDateTime() == util.Date(1990, 1, 1)
+# @pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
+# def test_set_age_on_deceased_one_person(scene, model, deceasedDateTime):
+#     personA = scene.addItem(Person(deceased=True))
+#     if deceasedDateTime.isValid():
+#         scene.addItem(Event(EventKind.Death, personA, dateTime=deceasedDateTime))
+#     model.items = [personA]
+#     with mock.patch(
+#         "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
+#     ):
+#         model.age = 10
+#     if deceasedDateTime.isValid():
+#         assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
+#     else:
+#         assert personA.birthDateTime() == util.Date(1990, 1, 1)
 
 
-@pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
-def test_set_age_on_deceased_multiple_people(scene, model, deceasedDateTime):
-    personA, personB = scene.addItems(Person(deceased=True), Person(deceased=True))
-    if deceasedDateTime.isValid():
-        scene.addItems(
-            Event(EventKind.Death, personA, dateTime=deceasedDateTime),
-            Event(EventKind.Death, personB, dateTime=deceasedDateTime),
-        )
-    model.items = [personA, personB]
-    with mock.patch(
-        "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
-    ):
-        model.age = 10
-    if deceasedDateTime.isValid():
-        assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
-        assert personB.birthDateTime() == model.deceasedDateTime.addYears(-10)
-    else:
-        assert personA.birthDateTime() == util.Date(1990, 1, 1)
-        assert personB.birthDateTime() == util.Date(1990, 1, 1)
+# @pytest.mark.parametrize("deceasedDateTime", [QDateTime(), util.Date(1990, 1, 1)])
+# def test_set_age_on_deceased_multiple_people(scene, model, deceasedDateTime):
+#     personA, personB = scene.addItems(Person(deceased=True), Person(deceased=True))
+#     if deceasedDateTime.isValid():
+#         scene.addItems(
+#             Event(EventKind.Death, personA, dateTime=deceasedDateTime),
+#             Event(EventKind.Death, personB, dateTime=deceasedDateTime),
+#         )
+#     model.items = [personA, personB]
+#     with mock.patch(
+#         "PyQt5.QtCore.QDateTime.currentDateTime", return_value=util.Date(2000, 1, 1)
+#     ):
+#         model.age = 10
+#     if deceasedDateTime.isValid():
+#         assert personA.birthDateTime() == model.deceasedDateTime.addYears(-10)
+#         assert personB.birthDateTime() == model.deceasedDateTime.addYears(-10)
+#     else:
+#         assert personA.birthDateTime() == util.Date(1990, 1, 1)
+#         assert personB.birthDateTime() == util.Date(1990, 1, 1)

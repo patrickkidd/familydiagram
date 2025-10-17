@@ -406,6 +406,8 @@ class Scene(QGraphicsScene, Item):
             self._people.append(item)
             item.updateEvents()
             if not self.isBatchAddingRemovingItems():
+                item.updateDetails()
+            if not self.isBatchAddingRemovingItems():
                 item.setLayers([x.id for x in self.activeLayers()])
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
@@ -886,7 +888,7 @@ class Scene(QGraphicsScene, Item):
         pruned = []
 
         for chunk in list(data.get("events", [])):
-            if not chunk["dateTime"]:
+            if not chunk.get("dateTime"):
                 personChunk = by_ids.get(chunk.get("person"))
                 log.warning(
                     f"Removing Event with person {personChunk['id']}: {personChunk.get('name', '(unnamed)')} and no dateTime set: {chunk}"  # {pprint.pformat(chunk, indent=4)}

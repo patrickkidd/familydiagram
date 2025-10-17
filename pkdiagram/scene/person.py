@@ -1325,8 +1325,6 @@ class Person(PathItem):
                     self.setFlag(QGraphicsItem.ItemIsMovable, False)
                 else:
                     self.setFlag(QGraphicsItem.ItemIsMovable, True)
-            self.updateDetails()
-            x = 1
         elif change == QGraphicsItem.ItemPositionChange:
             if self.scene() and not self.scene().isInitializing:
                 if self.scene().mousePressOnDraggable:
