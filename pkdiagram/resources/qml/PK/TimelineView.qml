@@ -451,7 +451,7 @@ ColumnLayout {
             to: 0               //Dummy value - will be set up when this animation is called.
             duration: util.ANIM_DURATION_MS
             easing.type: Easing.OutQuad;
-            onFinished: print('ensureVisAnimation.finished; contentY: ' + contentY)
+            // onFinished: print('ensureVisAnimation.finished; contentY: ' + contentY)
         }
 
         Rectangle {

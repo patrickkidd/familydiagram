@@ -187,12 +187,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
         elif attr == "age":
             ret = self.sameOf(attr, lambda item: item.age())
         elif attr == "birthDateTime":
-
-            def get_birth_datetime(item):
-                events = self._scene.eventsFor(item, kinds=EventKind.Birth)
-                return events[0].dateTime() if events else QDateTime()
-
-            ret = self.sameOf(attr, get_birth_datetime)
+            ret = self.sameOf(attr, lambda item: item.birthDateTime())
         elif attr == "everAdopted":
             adoptedEvents = {
                 item: self._scene.eventsFor(item, kinds=EventKind.Adopted)
@@ -210,10 +205,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
             else:
                 ret = Qt.Unchecked
         elif attr == "deceasedDateTime":
-            ret = util.sameOf(self._items, lambda x: x.deceasedDateTime())
-            if ret is None:
-                ret = QDateTime()
-            x = 1
+            ret = self.sameOf(attr, lambda item: item.deceasedDateTime())
         else:
             ret = super().get(attr)
         return ret

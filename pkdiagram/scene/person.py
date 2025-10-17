@@ -762,14 +762,24 @@ class Person(PathItem):
             # self.eventRemoved.emit(event)
 
         # Built-in variables
+        # Reset before caching
+        self._birthEvent = None
+        self._adoptedEvents = []
+        self._deathEvent = None
 
         for event in self._events:
             if event.kind() == EventKind.Birth:
-                self._birthEvent = event
+                # Only cache if this person is the child being born
+                if event.child() == self:
+                    self._birthEvent = event
             elif event.kind() == EventKind.Adopted:
-                self._adoptedEvents.append(event)
+                # Only cache if this person is the child being adopted
+                if event.child() == self:
+                    self._adoptedEvents.append(event)
             elif event.kind() == EventKind.Death:
-                self._deathEvent = event
+                # Only cache if this person is the subject
+                if event.person() == self:
+                    self._deathEvent = event
 
         # Variables database
 

@@ -5,11 +5,11 @@ import logging
 import pytest
 import mock
 
-from pkdiagram.pyqt import QApplication, QDateTime, QTimer, QEventLoop
+from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop
 from pkdiagram import util
 from pkdiagram.scene import Person, EventKind
 
-from .test_eventform import view, START_DATETIME, END_DATETIME
+from .test_eventform import START_DATETIME, END_DATETIME
 
 
 _log = logging.getLogger(__name__)
@@ -23,17 +23,21 @@ pytestmark = [
 def test_add_pairbond_and_children(scene, view):
     view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Doe")
+    view.childPicker.set_new_person("Janet Doe")
     view.set_startDateTime(START_DATETIME)
     view.clickSaveButton()
     assert len(scene.people()) == 3
 
-    personA = scene.query1(name="John")
-    birthEvent = scene.eventsFor(personA)[0]
-    assert birthEvent.kind() == EventKind.Birth
-    spouse = birthEvent.spouse()
+    person = scene.query1(name="John")
+    child = scene.query1(name="Janet")
+    assert child._birthEvent is not None
+    assert child._birthEvent.kind() == EventKind.Birth
+    # Get one of the parents created by the birth event
+    spouse = child._birthEvent.spouse()
     spouse.setName("Jane")
 
-    personA.setSelected(True)
+    # Create a married event for the parents (not personA, who is the child)
+    person.setSelected(True)
     view.view.addEvent(scene.selectedItems())
     util.waitALittle()
     view.set_kind(EventKind.Married)
@@ -41,8 +45,10 @@ def test_add_pairbond_and_children(scene, view):
     view.set_startDateTime(START_DATETIME.addYears(25))
     view.clickSaveButton()
     assert len(scene.people()) == 3
-    # personB = scene.query1(name="Jane")
-    events = scene.eventsFor(personA.marriages[0])
+
+    # Get the marriage between the parents
+    marriage = scene.marriageFor(person, spouse)
+    events = scene.eventsFor(marriage)
     assert len(events) == 2
     assert events[0].kind() == EventKind.Birth
     assert events[1].kind() == EventKind.Married

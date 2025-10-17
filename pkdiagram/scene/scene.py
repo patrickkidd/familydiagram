@@ -461,9 +461,17 @@ class Scene(QGraphicsScene, Item):
                 for event in self.eventsFor(
                     person, kinds=[EventKind.Birth, EventKind.Death]
                 ):
-                    if event.kind() == EventKind.Birth and event is not item:
+                    if (
+                        item.kind() == EventKind.Birth
+                        and event.kind() == EventKind.Birth
+                        and event is not item
+                    ):
                         birthEvent = event
-                    elif event.kind() == EventKind.Death and event is not item:
+                    elif (
+                        item.kind() == EventKind.Death
+                        and event.kind() == EventKind.Death
+                        and event is not item
+                    ):
                         deathEvent = event
                 if birthEvent:
                     self.removeItem(birthEvent)
@@ -1791,6 +1799,10 @@ class Scene(QGraphicsScene, Item):
     def eventsFor(
         self, item: Person | Marriage, kinds: EventKind | list[EventKind] = None
     ) -> list[Event]:
+        """
+        Return all events that pertain to an item, i.e. that would be broken
+        without them.
+        """
         if isinstance(item, Person):
             events = [x for x in self._events if item in x.people()]
         elif isinstance(item, Marriage):
