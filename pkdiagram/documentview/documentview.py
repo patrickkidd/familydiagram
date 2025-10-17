@@ -650,8 +650,13 @@ class DocumentView(QWidget):
         if self.scene:
             self.scene.update()
 
-    def showEventForm(self, on: bool):
-        if on:
+    def showEventForm(self, x: bool | Event | list[Event]):
+        if isinstance(x, (Event, list)):
+            if isinstance(x, Event):
+                x = [x]
+            self.setCurrentDrawer(self.eventForm)
+            self.eventForm.editEvents(x)
+        elif x:
             self.setCurrentDrawer(self.eventForm)
             self.eventForm.addEvent(self.scene.selectedItems())
         else:

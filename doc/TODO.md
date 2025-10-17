@@ -35,6 +35,8 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Cutoffs are black.
+- Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
 - Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
 - Remove redundant PairBond RemoveItem tests
 - Test out adding events with tags, setting tags on Emotion. See if it feels right.
