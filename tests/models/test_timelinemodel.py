@@ -82,7 +82,7 @@ def test_init_deinit(scene, model):
     assert model.index(1, col).data(Qt.DisplayRole) == event2.description()
 
     # parent
-    col = model.columnIndex(model.PARENT)
+    col = model.columnIndex(model.PERSON)
     assert model.index(0, col).data(Qt.DisplayRole) == p1.name()
     assert model.index(1, col).data(Qt.DisplayRole) == p2.name()
 
@@ -299,7 +299,7 @@ def test_flags(scene, model):
         iDate = model.columnIndex(model.DATETIME)
         iDescription = model.columnIndex(model.DESCRIPTION)
         iLocation = model.columnIndex(model.LOCATION)
-        iParent = model.columnIndex(model.PARENT)
+        iParent = model.columnIndex(model.PERSON)
         iLogged = model.columnIndex(model.LOGGED)
         assert not model.flags(model.index(row, iBuddies)) & Qt.ItemIsEditable
         assert model.flags(model.index(row, iDate)) & Qt.ItemIsEditable
@@ -677,7 +677,7 @@ def test_emotion_parentName_changed(scene, model):
     assert model.rowCount() == 2  # startDateTime, endDateTime
     assert model.rowForEvent(fusion) == 0
     assert model.rowIndexFor(endRow) == 1
-    assert model.data(model.index(0, model.COLUMNS.index(model.PARENT))) == "p1 & p2"
+    assert model.data(model.index(0, model.COLUMNS.index(model.PERSON))) == "p1 & p2"
 
     dataChanged = util.Condition()
     model.dataChanged.connect(dataChanged)
@@ -685,10 +685,10 @@ def test_emotion_parentName_changed(scene, model):
     assert dataChanged.callCount == 2
     assert dataChanged.callArgs[0][0].row() == 0
     assert dataChanged.callArgs[1][0].row() == 1
-    assert dataChanged.callArgs[0][0].column() == model.COLUMNS.index(model.PARENT)
-    assert dataChanged.callArgs[1][0].column() == model.COLUMNS.index(model.PARENT)
-    assert model.data(model.index(0, model.COLUMNS.index(model.PARENT))) == "Bleh & p2"
-    assert model.data(model.index(1, model.COLUMNS.index(model.PARENT))) == "Bleh & p2"
+    assert dataChanged.callArgs[0][0].column() == model.COLUMNS.index(model.PERSON)
+    assert dataChanged.callArgs[1][0].column() == model.COLUMNS.index(model.PERSON)
+    assert model.data(model.index(0, model.COLUMNS.index(model.PERSON))) == "Bleh & p2"
+    assert model.data(model.index(1, model.COLUMNS.index(model.PERSON))) == "Bleh & p2"
 
 
 def test_rows_for_date(scene, model):
@@ -825,7 +825,7 @@ def test_showAliases_signals(scene, model):
         newValues[fromIndex.row()][fromIndex.column()] = fromIndex.data()
         if fromIndex.column() in (
             TimelineModel.COLUMNS.index(TimelineModel.DESCRIPTION),
-            TimelineModel.COLUMNS.index(TimelineModel.PARENT),
+            TimelineModel.COLUMNS.index(TimelineModel.PERSON),
         ):
             x = fromIndex.data()
             return True
@@ -893,3 +893,41 @@ def test_get_all_variables(scene):
     # for i in range(model.rowCount()):
     #     for j in range(model.columnCount()):
     #         Debug(i, j, model.data(model.index(i, j)))
+
+
+@pytest.mark.parametrize(
+    "kind,has_spouse,has_child,expected",
+    [
+        (EventKind.Birth, False, True, "Child"),
+        (EventKind.Adopted, False, True, "Child"),
+        (EventKind.Death, False, False, "Person"),
+        (EventKind.Shift, False, False, "Person"),
+        (EventKind.Married, True, False, "Person & Spouse"),
+        (EventKind.Separated, True, False, "Person & Spouse"),
+        (EventKind.Divorced, True, False, "Person & Spouse"),
+    ],
+)
+def test_person_column(scene, model, kind, has_spouse, has_child, expected):
+    """Test that PERSON column returns the correct data for different Event.parentName() scenarios."""
+    person, spouse, child = scene.addItems(
+        Person(name="Person"), Person(name="Spouse"), Person(name="Child")
+    )
+
+    event_spouse = spouse if has_spouse else None
+    event_child = child if has_child else None
+
+    if event_spouse:
+        scene.addItem(Marriage(personA=person, personB=event_spouse))
+
+    scene.addItem(
+        Event(
+            kind=kind,
+            person=person,
+            spouse=event_spouse,
+            child=event_child,
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+
+    personCol = model.columnIndex(model.PERSON)
+    assert model.index(0, personCol).data() == expected

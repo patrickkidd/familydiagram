@@ -86,7 +86,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     UNSURE = "Unsure"
     DESCRIPTION = "Description"
     LOCATION = "Location"
-    PARENT = "Person(s)"
+    PERSON = "Person(s)"
     LOGGED = "Logged"
     COLOR = "Color"
 
@@ -99,7 +99,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         UNSURE,  # 2
         DESCRIPTION,  # 3
         LOCATION,  # 4
-        PARENT,  # 5
+        PERSON,  # 5
         LOGGED,  # 6
         COLOR,  # 7
         NODAL,  # 8
@@ -234,7 +234,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             # When showAliases changes, emit dataChanged for columns that display names/aliases
             # Only emit if the display value actually changes
             descCol = self.COLUMNS.index(self.DESCRIPTION)
-            parentCol = self.COLUMNS.index(self.PARENT)
+            parentCol = self.COLUMNS.index(self.PERSON)
             for row_idx in range(len(self._rows)):
                 timelineRow = self._rows[row_idx]
                 event = timelineRow.event
@@ -246,7 +246,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                         self.index(row_idx, descCol), self.index(row_idx, descCol)
                     )
 
-                # Check if PARENT column would change (always, as it displays person names)
+                # Check if PERSON column would change (always, as it displays person names)
                 self.dataChanged.emit(
                     self.index(row_idx, parentCol), self.index(row_idx, parentCol)
                 )
@@ -336,7 +336,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif (
             prop.name() == "parentName"
         ):  # possibly redundant b/c it is already removed/re-added
-            col = self.COLUMNS.index(self.PARENT)
+            col = self.COLUMNS.index(self.PERSON)
             for row in rows:
                 self.dataChanged.emit(self.index(row, col), self.index(row, col))
         # elif prop.name() == "color":
@@ -367,7 +367,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._refreshRows()
 
     def onPersonChanged(self, prop):
-        # When person name/alias changes, update PARENT column for all affected events
+        # When person name/alias changes, update PERSON column for all affected events
         if prop.name() in (
             "name",
             "nickName",
@@ -377,7 +377,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             "middleName",
         ):
             person = prop.item
-            col = self.COLUMNS.index(self.PARENT)
+            col = self.COLUMNS.index(self.PERSON)
             # Find all rows with events involving this person
             for row_idx, timelineRow in enumerate(self._rows):
                 event = timelineRow.event
@@ -522,24 +522,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                     ret = f"{relationship_name} began"
             else:
                 ret = event.description()
-        elif self.isColumn(index, self.PARENT):
-            # Display combined names for relationship events (marriage or emotion events)
-            person = event.person()
-            if not person:
-                ret = ""
-            else:
-                # Check for spouse (marriage events)
-                spouse = event.spouse()
-                if spouse:
-                    ret = f"{person.fullNameOrAlias()} & {spouse.fullNameOrAlias()}"
-                else:
-                    # Check for relationship targets (emotion events)
-                    targets = event.relationshipTargets()
-                    if targets:
-                        ret = f"{person.fullNameOrAlias()} & {targets[0].fullNameOrAlias()}"
-                    else:
-                        # Regular event - just the person
-                        ret = person.fullNameOrAlias()
+        elif self.isColumn(index, self.PERSON):
+            ret = event.parentName()
         elif self.isColumn(index, self.LOCATION):
             ret = event.location()
         elif self.isColumn(index, self.LOGGED):
@@ -564,7 +548,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         event = self._rows[index.row()].event
         success = True
         forceBlockEmit = False
-        if self.isColumn(index, self.PARENT):
+        if self.isColumn(index, self.PERSON):
             if role in (Qt.DisplayRole, Qt.EditRole):
                 success = False  # maybe set by searching for name?
             elif role == self.ParentIdRole:
@@ -644,7 +628,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 pass
             elif self.isColumn(
                 index,
-                labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION, self.PARENT],
+                labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION, self.PERSON],
             ):
                 ret |= Qt.ItemIsEditable
         return super().flags(index) | ret

@@ -350,6 +350,18 @@ class Event(Item):
             self.onProperty(prop)
         self._onShowAliases = False
 
+    def parentName(self) -> str:
+        if self.kind().isOffspring():
+            return self.child().firstNameOrAlias()
+        elif self.kind() == EventKind.Death:
+            return self.person().firstNameOrAlias()
+        elif self.kind() == EventKind.Shift:
+            return self.person().firstNameOrAlias()
+        elif self.kind().isPairBond():
+            return f"{self.person().firstNameOrAlias()} & {self.spouse().firstNameOrAlias()}"
+        else:
+            return self.person.firstNameOrAlias()
+
     def description(self):
         if self.shouldShowAliases():
             if (
