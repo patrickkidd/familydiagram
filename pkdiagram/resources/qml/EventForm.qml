@@ -250,7 +250,7 @@ PK.Drawer {
             onClicked: root.clear()
         }
         PK.Label {
-            text: 'Add Data Point'
+            text: root.isEditing ? 'Edit Data Point(s)' : 'Add Data Point'
             anchors.centerIn: parent
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -1004,7 +1004,6 @@ PK.Drawer {
                     PK.FormDivider {
                         text: "Meta"
                         Layout.columnSpan: 2
-                        visible: sceneModel.isInEditorMode
                     }
 
                     PK.Text { text: "Color" }

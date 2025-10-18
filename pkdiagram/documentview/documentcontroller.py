@@ -890,6 +890,7 @@ class DocumentController(QObject):
             if ret is None:
                 ret = False
         elif fw == self.dv.graphicalTimelineView.timeline:
+            self.dv.caseProps.checkInitQml()
             events = selectedEvents(
                 self.dv.timelineModel, self.dv.timelineSelectionModel
             )

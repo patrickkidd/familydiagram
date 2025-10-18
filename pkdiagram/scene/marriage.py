@@ -568,6 +568,8 @@ class Marriage(PathItem):
                         "%s %s"
                         % (util.dateString(event.dateTime()), event.description())
                     )
+                elif kind in (EventKind.Birth, EventKind.Adopted):
+                    pass
                 elif event.includeOnDiagram():
                     lines.append(
                         "%s %s"

@@ -60,9 +60,9 @@ PK.Drawer {
     }
     
     function onInspect() {
-        print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
+        // print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
         if(canInspect && timelineView.selectedEvents.length) {
-            print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
+            // print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
             root.inspectEvents(timelineView.selectedEvents)
         }
     }
