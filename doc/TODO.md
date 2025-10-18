@@ -3,13 +3,9 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 
 Edit events with EventForm
 ------------------------------------
-- cancel doesn't close when editing
-- Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
 - EmotionProperties
   - looks ugly
   - Hide tags not in editor mode
-- EventForm
-  - Edit relationship event does not init relationship props
 - Add link to edit emotion if kind == Shift
 - Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Remove redundant PairBond RemoveItem tests

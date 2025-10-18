@@ -204,6 +204,9 @@ class DocumentController(QObject):
         self._currentQmlFocusItem = None
 
     def onCasePropsInit(self):
+        self.dv.caseProps.qml.rootObject().inspectEvents.connect(
+            self.onInspectEventsFromCaseProps
+        )
         self.dv.timelineSelectionModel.selectionChanged[
             QItemSelection, QItemSelection
         ].connect(self.onTimelineSelectionChanged)
@@ -908,6 +911,13 @@ class DocumentController(QObject):
         self.dv.session.trackView("Edit event(s)")
         self.dv.setCurrentDrawer(self.dv.eventForm)
         self.dv.eventForm.editEvents(events)
+
+    def onInspectEventsFromCaseProps(self, eventList):
+        """Called from QML"""
+        events = eventList
+        if isinstance(events, QJSValue):
+            events = events.toVariant()
+        self.inspectEvents(events)
 
     def onInspect(self, tab=None):
         """duplicated in canInspect"""

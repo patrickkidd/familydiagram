@@ -17,6 +17,7 @@ PK.Drawer {
     signal flashTimelineRow(int index)
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
+    signal inspectEvents(var eventList)
 
     property int margin: util.QML_MARGINS
     property bool isDrawerOpen: false
@@ -58,13 +59,13 @@ PK.Drawer {
         }[tabBar.currentIndex]
     }
     
-    // function onInspect() {
-    //     print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
-    //     if(canInspect && timelineView.selectedEvents.length) {
-    //         print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
-    //         root.inspectEvents(timelineView.selectedEvents)
-    //     }
-    // }
+    function onInspect() {
+        print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
+        if(canInspect && timelineView.selectedEvents.length) {
+            print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
+            root.inspectEvents(timelineView.selectedEvents)
+        }
+    }
 
     function onInspectNotes(row) {
         session.trackView('Edit event notes')
