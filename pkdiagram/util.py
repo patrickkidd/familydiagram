@@ -4,7 +4,8 @@ import json
 from functools import wraps
 import sys, os.path
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
+from dataclasses import dataclass
 
 
 log = logging.getLogger(__name__)
@@ -640,6 +641,134 @@ def sizeForPeople(personA, personB=None) -> int:
     else:
         size = 3
     return size
+
+
+@dataclass
+class InferredParentSpec:
+    """
+    Specification for creating inferred parents.
+
+    Contains the core shared logic for what parents to create and where to
+    position them, independent of whether creating dicts or objects.
+    """
+
+    parent_size: int
+    male_pos: any  # QPointF
+    female_pos: any  # QPointF
+    need_male: bool
+    need_female: bool
+    need_marriage: bool
+
+
+def inferredParentSpec(child_pos, parent_size, has_male=False, has_female=False):
+    # Convert child_pos to QPointF if needed
+    if isinstance(child_pos, dict):
+        child_pos = QPointF(child_pos.get("x", 0), child_pos.get("y", 0))
+
+    # Calculate positions using THE SINGLE SOURCE OF TRUTH algorithm
+    rect = personRectForSize(parent_size)
+    spacing = rect.width() * 2
+    male_pos = child_pos + QPointF(-spacing, -spacing * 1.5)
+    female_pos = child_pos + QPointF(spacing, -spacing * 1.5)
+
+    return InferredParentSpec(
+        parent_size=parent_size,
+        male_pos=male_pos,
+        female_pos=female_pos,
+        need_male=not has_male,
+        need_female=not has_female,
+        need_marriage=not has_male
+        or not has_female,  # Need marriage if creating any parent
+    )
+
+
+@dataclass
+class InferredParents:
+    male_id: int
+    female_id: int
+    marriage_id: int
+    male_data: Optional[dict]
+    female_data: Optional[dict]
+    marriage_data: Optional[dict]
+    created_male: bool
+    created_female: bool
+    created_marriage: bool
+
+
+def ensureInferredParents(
+    child_pos,
+    parent_size,
+    child_layers,
+    next_id,
+    existing_male_id=None,
+    existing_female_id=None,
+    existing_marriage_id=None,
+) -> InferredParents:
+    # Use shared logic to determine what to create
+    spec = inferredParentSpec(
+        child_pos,
+        parent_size,
+        has_male=existing_male_id is not None,
+        has_female=existing_female_id is not None,
+    )
+
+    # Create male parent if needed
+    if spec.need_male:
+        male_id = next_id
+        next_id += 1
+        male_data = {
+            "kind": "Person",
+            "id": male_id,
+            "gender": PERSON_KIND_MALE,
+            "size": spec.parent_size,
+            "itemPos": spec.male_pos,
+            "layers": child_layers,
+        }
+    else:
+        male_id = existing_male_id
+        male_data = None
+
+    # Create female parent if needed
+    if spec.need_female:
+        female_id = next_id
+        next_id += 1
+        female_data = {
+            "kind": "Person",
+            "id": female_id,
+            "gender": PERSON_KIND_FEMALE,
+            "size": spec.parent_size,
+            "itemPos": spec.female_pos,
+            "layers": child_layers,
+        }
+    else:
+        female_id = existing_female_id
+        female_data = None
+
+    # Create marriage if needed
+    if spec.need_marriage:
+        marriage_id = next_id
+        next_id += 1
+        marriage_data = {
+            "kind": "Marriage",
+            "id": marriage_id,
+            "person_a": male_id,
+            "person_b": female_id,
+        }
+    else:
+        marriage_id = existing_marriage_id
+        marriage_data = None
+
+    return InferredParents(
+        male_id=male_id,
+        female_id=female_id,
+        marriage_id=marriage_id,
+        male_data=male_data,
+        female_data=female_data,
+        marriage_data=marriage_data,
+        created_male=spec.need_male,
+        created_female=spec.need_female,
+        created_marriage=spec.need_marriage,
+    )
 
 
 def penWidthForSize(size):

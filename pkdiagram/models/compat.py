@@ -406,59 +406,40 @@ def update_data(data):
                                 "size", util.DEFAULT_PERSON_SIZE
                             )
                             parent_size = max(child_size - 1, 1)  # One size smaller
-
-                            parent1_id = next_id
-                            next_id += 1
-                            parent2_id = next_id
-                            next_id += 1
-                            marriage_id = next_id
-                            next_id += 1
-
-                            # Copy layers from child to inferred parents
+                            child_pos = person_chunk.get("itemPos", {"x": 0, "y": 0})
                             child_layers = person_chunk.get("layers", [])
 
-                            # Add placeholder parents (without names - distinguishes them as inferred)
-                            data["people"].append(
-                                {
-                                    "kind": "Person",
-                                    "id": parent1_id,
-                                    "gender": util.PERSON_KIND_MALE,
-                                    "size": parent_size,
-                                    "itemPos": {"x": 0, "y": 0},
-                                    "layers": child_layers,
-                                }
-                            )
-                            data["people"].append(
-                                {
-                                    "kind": "Person",
-                                    "id": parent2_id,
-                                    "gender": util.PERSON_KIND_FEMALE,
-                                    "size": parent_size,
-                                    "itemPos": {"x": 0, "y": 0},
-                                    "layers": child_layers,
-                                }
+                            # Use shared utility to ensure parents exist
+                            parents = util.ensureInferredParents(
+                                child_pos, parent_size, child_layers, next_id
                             )
 
-                            # Add placeholder marriage
-                            data["marriages"].append(
-                                {
-                                    "kind": "Marriage",
-                                    "id": marriage_id,
-                                    "person_a": parent1_id,
-                                    "person_b": parent2_id,
-                                }
-                            )
+                            # Update next_id based on created items
+                            if parents.created_male:
+                                next_id += 1
+                            if parents.created_female:
+                                next_id += 1
+                            if parents.created_marriage:
+                                next_id += 1
+
+                            # Add newly created items to data
+                            if parents.male_data:
+                                data["people"].append(parents.male_data)
+                            if parents.female_data:
+                                data["people"].append(parents.female_data)
+                            if parents.marriage_data:
+                                data["marriages"].append(parents.marriage_data)
 
                             # Link child to parents via childOf
                             person_chunk["childOf"] = {
                                 "person": person_chunk["id"],
-                                "parents": marriage_id,
+                                "parents": parents.marriage_id,
                                 "multipleBirth": None,
                             }
 
                             # Set event references
-                            event_chunk["person"] = parent1_id
-                            event_chunk["spouse"] = parent2_id
+                            event_chunk["person"] = parents.male_id
+                            event_chunk["spouse"] = parents.female_id
                     else:
                         # Death event - just set person reference
                         event_chunk["person"] = person_chunk["id"]
@@ -515,59 +496,40 @@ def update_data(data):
                                 "size", util.DEFAULT_PERSON_SIZE
                             )
                             parent_size = max(child_size - 1, 1)  # One size smaller
-
-                            parent1_id = next_id
-                            next_id += 1
-                            parent2_id = next_id
-                            next_id += 1
-                            marriage_id = next_id
-                            next_id += 1
-
-                            # Copy layers from child to inferred parents
+                            child_pos = person_chunk.get("itemPos", {"x": 0, "y": 0})
                             child_layers = person_chunk.get("layers", [])
 
-                            # Add placeholder parents (without names - distinguishes them as inferred)
-                            data["people"].append(
-                                {
-                                    "kind": "Person",
-                                    "id": parent1_id,
-                                    "gender": util.PERSON_KIND_MALE,
-                                    "size": parent_size,
-                                    "itemPos": {"x": 0, "y": 0},
-                                    "layers": child_layers,
-                                }
-                            )
-                            data["people"].append(
-                                {
-                                    "kind": "Person",
-                                    "id": parent2_id,
-                                    "gender": util.PERSON_KIND_FEMALE,
-                                    "size": parent_size,
-                                    "itemPos": {"x": 0, "y": 0},
-                                    "layers": child_layers,
-                                }
+                            # Use shared utility to ensure parents exist
+                            parents = util.ensureInferredParents(
+                                child_pos, parent_size, child_layers, next_id
                             )
 
-                            # Add placeholder marriage
-                            data["marriages"].append(
-                                {
-                                    "kind": "Marriage",
-                                    "id": marriage_id,
-                                    "person_a": parent1_id,
-                                    "person_b": parent2_id,
-                                }
-                            )
+                            # Update next_id based on created items
+                            if parents.created_male:
+                                next_id += 1
+                            if parents.created_female:
+                                next_id += 1
+                            if parents.created_marriage:
+                                next_id += 1
+
+                            # Add newly created items to data
+                            if parents.male_data:
+                                data["people"].append(parents.male_data)
+                            if parents.female_data:
+                                data["people"].append(parents.female_data)
+                            if parents.marriage_data:
+                                data["marriages"].append(parents.marriage_data)
 
                             # Link child to parents via childOf
                             person_chunk["childOf"] = {
                                 "person": person_chunk["id"],
-                                "parents": marriage_id,
+                                "parents": parents.marriage_id,
                                 "multipleBirth": None,
                             }
 
                             # Set event references
-                            event_chunk["person"] = parent1_id
-                            event_chunk["spouse"] = parent2_id
+                            event_chunk["person"] = parents.male_id
+                            event_chunk["spouse"] = parents.female_id
                     else:
                         # Other events (death, shift, etc.) - just set person reference
                         event_chunk["person"] = person_chunk["id"]
@@ -762,53 +724,6 @@ def update_data(data):
     # if ....
 
 
-def arrange_inferred_parents(scene, data):
-    """Position inferred parents above their children intelligently."""
-    from pkdiagram.scene import Person, Marriage
-
-    # Find all inferred marriages (both parents have no name)
-    inferred_marriages = []
-    marriages = scene.query1(types=Marriage)
-    if marriages:
-        for marriage in marriages:
-            parent1 = marriage.personA()
-            parent2 = marriage.personB()
-            # Inferred parents have no name
-            if parent1 and parent2 and not parent1.name() and not parent2.name():
-                inferred_marriages.append(marriage)
-
-    # For each inferred marriage, position parents above child
-    for marriage in inferred_marriages:
-        # Find the child linked to this marriage
-        children = scene.childrenFor(marriage)
-        if not children:
-            continue
-
-        # Position parents above the first child (there should only be one for inferred parents)
-        child = children[0]
-        child_pos = child.pos()
-
-        # Get parents
-        parent1 = marriage.personA()
-        parent2 = marriage.personB()
-
-        if not parent1 or not parent2:
-            continue
-
-        # Position parents horizontally centered on child, vertically above
-        # Use spacing based on person size
-        vertical_spacing = 150
-        horizontal_spacing = 100
-
-        # Center the marriage line above the child
-        parent1_x = child_pos.x() - horizontal_spacing / 2
-        parent2_x = child_pos.x() + horizontal_spacing / 2
-        parent_y = child_pos.y() - vertical_spacing
-
-        parent1.setPos(QPointF(parent1_x, parent_y))
-        parent2.setPos(QPointF(parent2_x, parent_y))
-
-
 def update_scene(scene, data):
 
     if UP_TO(data, "1.0.0b6"):
@@ -816,10 +731,6 @@ def update_scene(scene, data):
         for item in scene.items():
             if isinstance(item, ItemDetails):
                 item.setPos(item.pos() + QPointF(60, 0))
-
-    if UP_TO(data, "2.0.12b1"):
-        # Position inferred parents above their children
-        arrange_inferred_parents(scene, data)
 
     ## Add more version fixes here
     # elif ...

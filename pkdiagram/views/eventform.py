@@ -709,12 +709,17 @@ class EventForm(QmlDrawer):
         if kind and kind.isOffspring():
 
             def _arrange_parents(childPos, parentA, parentB):
+                # Use shared spec for positioning logic
+                parent_size = parentA.size()
+                spec = util.inferredParentSpec(childPos, parent_size)
+
+                # Apply positions based on actual gender of parents
                 if parentA.gender() == util.PERSON_KIND_MALE:
-                    parentA.setItemPosNow(childPos + QPointF(-spacing, -spacing * 1.5))
-                    parentB.setItemPosNow(childPos + QPointF(spacing, -spacing * 1.5))
+                    parentA.setItemPosNow(spec.male_pos)
+                    parentB.setItemPosNow(spec.female_pos)
                 else:
-                    parentA.setItemPosNow(childPos + QPointF(spacing, -spacing * 1.5))
-                    parentB.setItemPosNow(childPos + QPointF(-spacing, -spacing * 1.5))
+                    parentA.setItemPosNow(spec.female_pos)
+                    parentB.setItemPosNow(spec.male_pos)
 
             if set(newPeople) == {person, spouse, child}:
                 child.setItemPosNow(QPointF(0, spacing * 1.5))

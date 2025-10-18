@@ -1,3 +1,21 @@
+"""
+Test compatibility migration logic for legacy file formats.
+
+IMPORTANT: All tests in this file should use DECLARATIVE style, not imperative.
+- Declarative: Define expected data structure, compare with actual
+- Imperative: Make assertions about individual fields step-by-step
+
+Example of declarative style (GOOD):
+    expected = {"people": [...], "events": [...]}
+    compat.update_data(data)
+    assert data == expected
+
+Example of imperative style (BAD):
+    compat.update_data(data)
+    assert len(data["people"]) == 3
+    assert data["people"][0]["name"] == "Alice"
+"""
+
 import json
 import os.path
 import pickle
@@ -7,6 +25,7 @@ import pytest
 from pkdiagram import util
 from pkdiagram.models import compat
 from pkdiagram.scene import EventKind, RelationshipKind
+from pkdiagram.pyqt import QPointF
 
 from . import data
 
@@ -79,7 +98,7 @@ def test_phase_6_2_extract_person_builtin_events():
                 "id": 11,
                 "gender": util.PERSON_KIND_MALE,
                 "size": 4,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(-160.0, -240.0),
                 "layers": [],
             },
             {
@@ -87,7 +106,7 @@ def test_phase_6_2_extract_person_builtin_events():
                 "id": 12,
                 "gender": util.PERSON_KIND_FEMALE,
                 "size": 4,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(160.0, -240.0),
                 "layers": [],
             },
         ],
@@ -497,7 +516,7 @@ def test_phase_6_2_assign_event_ids():
                 "id": 7,
                 "gender": util.PERSON_KIND_MALE,
                 "size": 4,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(-160.0, -240.0),
                 "layers": [],
             },
             {
@@ -505,7 +524,7 @@ def test_phase_6_2_assign_event_ids():
                 "id": 8,
                 "gender": util.PERSON_KIND_FEMALE,
                 "size": 4,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(160.0, -240.0),
                 "layers": [],
             },
         ],
@@ -710,7 +729,7 @@ def test_birth_event_without_parents_creates_inferred():
                 "id": 3,
                 "gender": util.PERSON_KIND_MALE,
                 "size": 2,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(68.0, 52.0),
                 "layers": [],
             },
             {
@@ -718,7 +737,7 @@ def test_birth_event_without_parents_creates_inferred():
                 "id": 4,
                 "gender": util.PERSON_KIND_FEMALE,
                 "size": 2,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(132.0, 52.0),
                 "layers": [],
             },
         ],
@@ -899,7 +918,7 @@ def test_birth_event_in_custom_events_without_parents():
                 "id": 6,
                 "gender": util.PERSON_KIND_MALE,
                 "size": 1,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(-12.8, -19.2),
                 "layers": [],
             },
             {
@@ -907,7 +926,7 @@ def test_birth_event_in_custom_events_without_parents():
                 "id": 7,
                 "gender": util.PERSON_KIND_FEMALE,
                 "size": 1,
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(12.8, -19.2),
                 "layers": [],
             },
         ],
@@ -979,7 +998,7 @@ def test_inferred_parent_size_minimum():
                 "id": 3,
                 "gender": util.PERSON_KIND_MALE,
                 "size": 1,  # max(1 - 1, 1) = 1
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(-12.8, -19.2),
                 "layers": [],
             },
             {
@@ -987,7 +1006,7 @@ def test_inferred_parent_size_minimum():
                 "id": 4,
                 "gender": util.PERSON_KIND_FEMALE,
                 "size": 1,  # max(1 - 1, 1) = 1
-                "itemPos": {"x": 0, "y": 0},
+                "itemPos": QPointF(12.8, -19.2),
                 "layers": [],
             },
         ],

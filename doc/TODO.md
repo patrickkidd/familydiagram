@@ -35,6 +35,7 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
+- Should not show birth event in marriage details text
 - Cutoffs are black.
 - Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
 - Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
@@ -86,6 +87,8 @@ Cleanup
 
 BUGS
 ------------------------------------
+- Age doesn't update on adding birth
+- Help view is broken
 - View tag, add R symbol, lots of things are hidden
   - Guiterrez, `Out of Jail, Housing Incident`
 - Notes in add data point field doesn't store / show icon

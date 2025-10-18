@@ -2383,15 +2383,23 @@ class Scene(QGraphicsScene, Item):
                 person.childOf.parents(),
             )
         else:
-            rect = person.mapToScene(person.boundingRect()).boundingRect()
-            fatherPos = person.pos() - QPointF(rect.width() * 1.5, rect.height() * 2)
-            motherPos = person.pos() - QPointF(rect.width() * -1.5, rect.height() * 2)
+            parent_size = person.size()
+            # Use shared spec for positioning logic
+            spec = util.inferredParentSpec(person.pos(), parent_size)
+
+            # Create Person objects with positions from spec
             father = Person(
-                gender=util.PERSON_KIND_MALE, itemPos=fatherPos, size=person.size()
+                gender=util.PERSON_KIND_MALE,
+                itemPos=spec.male_pos,
+                size=spec.parent_size,
             )
-            mother = Person(gender=util.PERSON_KIND_FEMALE, size=person.size())
-            father.setItemPosNow(fatherPos)
-            mother.setItemPosNow(motherPos)
+            mother = Person(
+                gender=util.PERSON_KIND_FEMALE,
+                itemPos=spec.female_pos,
+                size=spec.parent_size,
+            )
+            father.setItemPosNow(spec.male_pos)
+            mother.setItemPosNow(spec.female_pos)
             self.addItems(father, mother, undo=undo)
             marriage = self.addItem(Marriage(father, mother), undo=undo)
             if undo:

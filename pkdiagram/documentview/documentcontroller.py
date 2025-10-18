@@ -817,14 +817,14 @@ class DocumentController(QObject):
         self.scene.setItemMode(itemMode)
 
     def onEnsureParentsForSelection(self):
-        if self.scene():
-            selectedPeople = self.scene().selectedPeople()
+        if self.scene:
+            selectedPeople = self.scene.selectedPeople()
             if not selectedPeople:
                 return
 
-            with self.scene().macro("Add parents to person", undo=True):
+            with self.scene.macro("Add parents to person", undo=True):
                 for person in selectedPeople:
-                    self.ensureParentsFor(person, undo=True)
+                    self.scene.ensureParentsFor(person, undo=True)
 
     def onGraphicalTimelineViewExpandedOrContracted(self):
         self.dv.graphicalTimelineCallout.hide()
