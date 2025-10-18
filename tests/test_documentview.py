@@ -1083,3 +1083,27 @@ def test_write_JSON(tmp_path, scene, dv: DocumentView):
     # assert scene2.people()[0].birthEvent.dateTime() == person.birthEvent.dateTime()
     # assert scene2.events()[0].description() == event1.description()
     # assert scene2.events()[1].description() == event2.description()
+
+
+def test_add_emotion_via_drag(qtbot, scene, dv: DocumentView):
+    personA, personB = scene.addItems(
+        Person(name="PersonA", pos=QPointF(-200, -200)),
+        Person(name="PersonB", pos=QPointF(200, 200)),
+    )
+    assert len(scene.emotions()) == 0
+
+    scene.setItemMode(ItemMode.Conflict)
+
+    personA_pos = dv.view.mapFromScene(personA.scenePos())
+    personB_pos = dv.view.mapFromScene(personB.scenePos())
+
+    qtbot.mousePress(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personA_pos)
+    qtbot.mouseMove(dv.view.viewport(), personB_pos)
+    qtbot.mouseRelease(dv.view.viewport(), Qt.LeftButton, Qt.NoModifier, personB_pos)
+
+    assert len(scene.emotions()) == 1
+    emotion = scene.emotions()[0]
+    assert emotion.kind() == RelationshipKind.Conflict
+    assert emotion.person() == personA
+    assert emotion.target() == personB
+    assert emotion.isVisible() == True

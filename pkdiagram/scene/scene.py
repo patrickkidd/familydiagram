@@ -743,6 +743,7 @@ class Scene(QGraphicsScene, Item):
         if item.isPathItem:  # so far only for details/sep items
             if not self.isBatchAddingRemovingItems():
                 self.checkPrintRectChanged()
+            _removeFromGraphicsScene(item)
         if self.isBatchAddingRemovingItems() and not item in self._batchRemovedItems:
             self._batchRemovedItems.append(item)
         item.onDeregistered(self)
@@ -1442,8 +1443,8 @@ class Scene(QGraphicsScene, Item):
             elif self.itemMode() and self.itemMode().toRelationship():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
-                    kind=self.itemMode(),
-                    person=self.dragStartItem,
+                    RelationshipKind.fromItemMode(self.itemMode()),
+                    self.dragStartItem,
                     pointB=e.scenePos(),
                     hoverPerson=hoverMe,
                 )

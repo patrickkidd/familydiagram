@@ -44,6 +44,8 @@ class RelationshipKind(enum.Enum):
 
     @staticmethod
     def fromItemMode(itemMode: "ItemMode") -> "RelationshipKind":
+        from pkdiagram.scene import ItemMode
+
         mapping = {
             ItemMode.Conflict: RelationshipKind.Conflict,
             ItemMode.Distance: RelationshipKind.Distance,
