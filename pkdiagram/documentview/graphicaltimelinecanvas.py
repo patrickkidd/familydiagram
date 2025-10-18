@@ -559,14 +559,15 @@ class GraphicalTimelineCanvas(QWidget):
                     #     # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                     #     painter.setPen(nodalPen)
                     #     painter.setBrush(nodalBrush)
-                    elif self.scene.itemShownOnDiagram(timelineRow.event):
+                    # elif self.scene.itemShownOnDiagram(timelineRow.event):
+                    else:
                         # print('    NORMAL', event.dateTime().year(), normalPen.color().name(), normalPen.color().alpha())
                         painter.setPen(normalPen)
                         painter.setBrush(normalBrush)
-                    else:
-                        # print('    DEEMPH', event.dateTime().year(), deemphPen.color().name(), deemphPen.color().alpha())
-                        painter.setPen(deemphPen)
-                        painter.setBrush(deemphBrush)
+                    # else:
+                    #     # print('    DEEMPH', event.dateTime().year(), deemphPen.color().name(), deemphPen.color().alpha())
+                    #     painter.setPen(deemphPen)
+                    #     painter.setBrush(deemphBrush)
                     painter.drawEllipse(rect)
 
         if self.isSlider():

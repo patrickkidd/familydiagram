@@ -3,9 +3,6 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 
 Edit events with EventForm
 ------------------------------------
-- Undo delete event doesn't show in timeline(s)
-- Cutoffs are black.
-  - Event.color
 - Can't delete event on timline
 - Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
 - Add link to edit emotion if kind == Shift

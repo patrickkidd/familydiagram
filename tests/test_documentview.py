@@ -485,7 +485,7 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
     assert dv.currentDrawer == dv.eventForm
 
 
-@pytest.skip("Couldn't get the correct bounding rect for the event delegate")
+@pytest.mark.skip("Couldn't get the correct bounding rect for the event delegate")
 def test_delete_event_from_timeline_via_keyboard_shortcut(qtbot, scene, dv):
     """
     - Start with an event for a person.

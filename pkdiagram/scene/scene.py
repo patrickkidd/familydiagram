@@ -932,10 +932,8 @@ class Scene(QGraphicsScene, Item):
                 log.warning(f"Emotion has no target, skipping loading: {chunk}")
                 data["emotions"].remove(chunk)
                 pruned.append(chunk)
-            elif (
-                chunk.get("kind")
-                and chunk.get("kind") not in RelationshipKind.Cutoff.value
-            ):
+            elif chunk.get("kind") not in list(x.value for x in RelationshipKind):
+                log.warning(f"Emotion has unknown kind, skipping loading: {chunk}")
                 data["emotions"].remove(chunk)
                 pruned.append(chunk)
             stale_target = chunk.get("event") and chunk.get("event") not in by_ids

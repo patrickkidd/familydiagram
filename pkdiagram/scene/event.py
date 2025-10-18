@@ -37,7 +37,7 @@ class Event(Item):
             },  # only when manually drawing emotions on diagram. Can't retroactively add dates to a symbol anymore, so overlap
             {"attr": "color", "type": str, "default": None},
             {"attr": "location"},
-            {"attr": "includeOnDiagram", "default": True},
+            {"attr": "includeOnDiagram", "default": None},
             # Person references (stored as IDs)
             {"attr": "person", "type": int, "default": None},
             {"attr": "spouse", "type": int, "default": None},
