@@ -1,7 +1,7 @@
 import pytest
 
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Person, Marriage
+from pkdiagram.scene import EventKind, Event, RelationshipKind, Person, Marriage
 
 
 from .test_eventform import view
@@ -69,3 +69,29 @@ def test_init_with_individuals_selected(scene, view):
     view.view.addEvent([personA, personB, personC])
     assert view.item.property("kind") == None
     assert view.view.personEntry()["person"] == personA
+
+
+def test_init_Shift(scene, view):
+    person, target = scene.addItems(Person(name="person"), Person(name="target"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person=person,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[target],
+        )
+    )
+    view.view.editEvents([event])
+    util.waitALittle()
+    assert view.item.property("kind") == EventKind.Shift.value
+    assert view.view.personEntry()["person"] == person
+    assert view.item.property("relationship") == RelationshipKind.Conflict.value
+    assert view.relationshipField.property("value") == RelationshipKind.Conflict.value
+    assert view.view.targetsEntries() == [
+        {
+            "gender": "male",
+            "person": target,
+            "isNewPerson": False,
+            "personName": "target",
+        }
+    ]

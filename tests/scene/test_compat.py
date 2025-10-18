@@ -366,7 +366,9 @@ def test_phase_6_2_extract_emotion_events_with_date_range():
                 "person": 1,
                 "relationshipTargets": [2],
                 "relationshipIntensity": 7,
-                "relationship": RelationshipKind.Conflict.value,
+                "dynamicProperties": {
+                    "relationship": RelationshipKind.Conflict.value,
+                },
                 "notes": "Test conflict",
             }
         ],
@@ -420,7 +422,9 @@ def test_phase_6_2_extract_emotion_events_singular_date():
                 "person": 1,
                 "relationshipTargets": [2],
                 "relationshipIntensity": 3,
-                "relationship": RelationshipKind.Distance.value,
+                "dynamicProperties": {
+                    "relationship": RelationshipKind.Distance.value,
+                },
             }
         ],
         "layerItems": [],

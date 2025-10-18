@@ -612,6 +612,11 @@ def update_data(data):
                 start_event = emotion_chunk.pop("startEvent")
                 end_event = emotion_chunk.pop("endEvent", None)
 
+                if not "dynamicProperties" in start_event:
+                    start_event["dynamicProperties"] = {}
+                if end_event is not None and not "dynamicProperties" in end_event:
+                    end_event["dynamicProperties"] = {}
+
                 # Migrate startEvent uniqueId
                 if "uniqueId" in start_event:
                     uid = start_event.pop("uniqueId")
@@ -651,7 +656,9 @@ def update_data(data):
                     # Convert emotion kind (e.g., "Conflict" or "conflict") to lowercase
                     emotion_kind = emotion_chunk["kind"]
                     if isinstance(emotion_kind, str):
-                        start_event["relationship"] = emotion_kind.lower()
+                        start_event["dynamicProperties"][
+                            "relationship"
+                        ] = emotion_kind.lower()
 
                 # Handle endEvent/isDateRange
                 if end_event and end_event.get("dateTime"):

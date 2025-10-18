@@ -110,6 +110,7 @@ PK.GroupBox {
 
     function setExistingPeople(people) {
         // print(root.objectName + '.setExistingPeople: ' + people.length)
+        root.clear()
         for(var i = 0; i < people.length; i++) {
             addExistingPerson(people[i])
         }
@@ -118,7 +119,7 @@ PK.GroupBox {
     function addExistingPerson(person) {
         // print(root.objectName + '.addExistingPerson: ' + person)
         root.model.append({ personName: person.listLabel(), person: person, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
-        // print('    ' + i + ': ' + person.listLabel() + ', ' + person + ', ' + person.gender())
+        // print('    ' + person.listLabel() + ', ' + person + ', ' + person.gender())
     }
 
     function pickerAtIndex(index) {

@@ -198,23 +198,18 @@ class EventForm(QmlDrawer):
         relationship = util.sameOf(events, lambda e: e.relationship())
         if relationship is not None:
             self.item.setProperty("relationship", relationship.value)
-            if relationship in (
-                RelationshipKind.Inside,
-                RelationshipKind.Outside,
-            ):
+            self.item.property("relationshipField").setValue(relationship.value)
+            if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
                 triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
                 if triangles:
                     self.item.property("trianglesPicker").setExistingPeopleIds(
                         [x.id for x in triangles]
                     )
-            elif relationship in (
-                RelationshipKind.Inside,
-                RelationshipKind.Outside,
-            ):
-                triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
-                if triangles:
-                    self.item.property("trianglesPicker").setExistingPeopleIds(
-                        [x.id for x in triangles]
+            else:
+                targets = util.sameOf(events, lambda x: x.relationshipTargets())
+                if targets:
+                    self.item.property("targetsPicker").setExistingPeopleIds(
+                        [x.id for x in targets]
                     )
 
         functioning = util.sameOf(events, lambda e: e.functioning())

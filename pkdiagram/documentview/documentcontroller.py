@@ -987,6 +987,9 @@ class DocumentController(QObject):
                 if self.ui.actionAdd_Anything.isChecked():
                     self.ui.actionAdd_Anything.setChecked(False)
                     return True
+                else:
+                    self.dv.setCurrentDrawer(None)
+                    return True
             elif drawer is self.dv.caseProps:
                 if self.view.ui.actionShow_Timeline.isChecked():
                     self.view.ui.actionShow_Timeline.setChecked(False)
