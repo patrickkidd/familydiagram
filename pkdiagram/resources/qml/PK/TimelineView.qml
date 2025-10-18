@@ -30,6 +30,7 @@ ColumnLayout {
     property int rows: table.rows
     property int columns: table.columns
     property var innerTable: table
+    property var delegates: []
 
     property bool showFilterButton: true
 
@@ -307,7 +308,7 @@ ColumnLayout {
                 visible: hideColumns.indexOf(column) < 0
                 anchors.verticalCenter: parent.verticalCenter
                 padding: margin
-            }
+            }            
         }
     }
     
@@ -592,7 +593,6 @@ ColumnLayout {
             onEditableChanged: updateColor()
             onSameDateAsSelectedChanged: updateColor()
             TableView.onReused: updateColor()
-            Component.onCompleted: updateColor()
 
             function updateColor() {
                 var c
@@ -775,7 +775,24 @@ ColumnLayout {
                 fillMode: Image.PreserveAspectFit
                 height: parent.height
                 visible: thisColumn == 3 && model.hasNotes
-            }            
+            }   
+
+            Component.onCompleted: {
+                // util.debug('PK.TimelineView._delegate.onCompleted: ' + this)
+                root.delegates.push(this)
+                // util.debug('PK.TimelineView.onCompleted: ' + this)
+                updateColor()
+            }
+            Component.onDestruction: {
+                // util.debug('PK.TimelineView._delegate.onDestruction: ' + this)
+                var index = root.delegates.indexOf(this)
+                if (index !== -1) {
+                    root.delegates.splice(index, 1)
+                }
+                // util.debug('PK.TimelineView.onCompleted: ' + this)
+
+            }
+
         }
     }
 

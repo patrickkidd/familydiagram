@@ -1,52 +1,21 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
 
-Spec
----------------------------------------------
-- Two major ways Emotions / Person gets created:
-  - Drawing like a chalk board without an Event
-  - Created to represent a dated Event
-- Remove all Person/Marriage/Emotion event references for computer properties,
-  Scene as single source of truth
-  - Remove Person.onAddEvent, etc.
-- Have Person.updateEvents() only listen for Shift since it only updates self.variablesDatabase?
-- Add TimelineRow dataclass instead of dummy events; _ensureEvent(adds 1 or 2 for dateTime & endDateTime)
-  ```
-    def _ensureEvent(self, event: Event):
-        # Start row
-        self._rows.add(TimelineRow(
-            dateTime=event.dateTime(),
-            description=event.description(),
-            source_event=event,
-        ))
-
-        # End row (if needed)
-        if event.endDateTime():
-            self._rows.add(TimelineRow(
-                dateTime=event.endDateTime(),
-                description=f"{event.kind().name} ended",
-                source_event=event,
-                is_end_marker=True,
-            ))
-  ```
-- Remove dateTime editors from PersonProperties in favor of a button to edit those singleton events, just like EmotionProperties.
-- Make `Event.spouse` optional for `EventKind.Moved`m show on `Marriage` when spouse is present.
-
-
 Edit events with EventForm
 ------------------------------------
+- Undo delete event doesn't show in timeline(s)
 - Cutoffs are black.
+  - Event.color
+- Can't delete event on timline
 - Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
-- Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
+- Add link to edit emotion if kind == Shift
+- Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Remove redundant PairBond RemoveItem tests
 - Test out adding events with tags, setting tags on Emotion. See if it feels right.
   - Kind of like editing color + notes on either item
-- Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Migrate CustomPairBond events to VariableShift for person/spouse
 - Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.
 - event.includeOnDiagram
-- Event.color
-- Add link to edit emotion if kind == Shift
 - Remove event field edits from EmotionProperties, just add links to start event
 - Disable isDateRange when not editing Emotion's
 - Legacy births, leave person/spouse empty if none exist if possible
@@ -79,6 +48,41 @@ Edit events with EventForm
   - Emotion.person_a -> Event.person
   - Emotion.person_b -> Emotion.target
   - Emotion.intensity -> Event.intensity
+
+
+- Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
+
+
+Spec
+---------------------------------------------
+- Two major ways Emotions / Person gets created:
+  - Drawing like a chalk board without an Event
+  - Created to represent a dated Event
+- Remove all Person/Marriage/Emotion event references for computer properties,
+  Scene as single source of truth
+  - Remove Person.onAddEvent, etc.
+- Have Person.updateEvents() only listen for Shift since it only updates self.variablesDatabase?
+- Add TimelineRow dataclass instead of dummy events; _ensureEvent(adds 1 or 2 for dateTime & endDateTime)
+  ```
+    def _ensureEvent(self, event: Event):
+        # Start row
+        self._rows.add(TimelineRow(
+            dateTime=event.dateTime(),
+            description=event.description(),
+            source_event=event,
+        ))
+
+        # End row (if needed)
+        if event.endDateTime():
+            self._rows.add(TimelineRow(
+                dateTime=event.endDateTime(),
+                description=f"{event.kind().name} ended",
+                source_event=event,
+                is_end_marker=True,
+            ))
+  ```
+- Remove dateTime editors from PersonProperties in favor of a button to edit those singleton events, just like EmotionProperties.
+- Make `Event.spouse` optional for `EventKind.Moved`m show on `Marriage` when spouse is present.
 
 Cleanup
 ------------------------------------------------

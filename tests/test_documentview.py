@@ -485,6 +485,56 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
     assert dv.currentDrawer == dv.eventForm
 
 
+@pytest.skip("Couldn't get the correct bounding rect for the event delegate")
+def test_delete_event_from_timeline_via_keyboard_shortcut(qtbot, scene, dv):
+    """
+    - Start with an event for a person.
+    - Show the timeline view
+    - Click to select the event
+    - Trigger the deleteAction via its keyboard shortcut
+    - Assert that the user was prompted to confirm deletion
+    - Assert that the event was deleted
+    """
+
+    person = scene.addItem(Person(name="TestPerson"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            description="Event to Delete",
+            dateTime=util.Date(2001, 1, 1),
+        )
+    )
+    assert scene.events() == [event]
+
+    dv.setCurrentDrawer(dv.caseProps)
+    dv.caseProps.checkInitQml()
+    assert dv.ui.actionDelete.isEnabled() == False
+
+    row_y = util.QML_ITEM_HEIGHT + (util.QML_ITEM_HEIGHT // 2)
+    eventCenter = QPointF(50, row_y)
+
+    dv.caseProps.clickTimelineViewItem(
+        dv.caseProps.rootProp("timelineView"),
+        event.description(),
+        column=3,
+    )
+    # qtbot.mouseClick(
+    #     dv.caseProps.qml, Qt.LeftButton, Qt.NoModifier, eventCenter.toPoint()
+    # )
+    # dv.controller.updateActions()
+    assert dv.ui.actionDelete.isEnabled() == True
+
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as mock_question:
+        qtbot.keyPress(
+            dv.caseProps.qml, Qt.Key.Key_Delete, Qt.KeyboardModifier.ControlModifier
+        )
+    assert mock_question.call_count >= 1, "Delete key did not trigger delete action"
+    assert scene.events() == []
+
+
 def test_load_reload(qtbot, dv):
     dv.caseProps.checkInitQml()
     dv.searchDialog.checkInitQml()

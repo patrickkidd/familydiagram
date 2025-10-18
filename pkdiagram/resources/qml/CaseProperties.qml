@@ -20,8 +20,8 @@ PK.Drawer {
 
     property int margin: util.QML_MARGINS
     property bool isDrawerOpen: false
-    property bool canRemove: false // tabBar.currentIndex == 0 && timelineView.canRemove
-    property bool canInspect: false // tabBar.currentIndex == 0 && timelineView.canInspect
+    property bool canRemove: timelineView.canRemove
+    property bool canInspect: timelineView.canInspect
     property bool notJustFreeLicense: {
         sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
             vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA

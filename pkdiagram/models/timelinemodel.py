@@ -843,7 +843,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                         event.prop("endDateTime").reset(undo=True)
                 else:
                     # Deleting start marker - remove the event from the scene
-                    self._scene.removeItem(event)
+                    self._scene.removeItem(event, undo=True)
 
 
 qmlRegisterType(TimelineModel, "PK.Models", 1, 0, "TimelineModel")
