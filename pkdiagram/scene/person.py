@@ -733,6 +733,12 @@ class Person(PathItem):
                 self._layers = []
         super().onProperty(prop)
 
+    def updateEmotions(self):
+        if self.scene():
+            self._emotions = self.scene().emotionsFor(self)
+        else:
+            self._emotions = None
+
     ## Events
 
     def updateEvents(self):

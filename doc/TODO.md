@@ -35,7 +35,6 @@ Spec
 
 Edit events with EventForm
 ------------------------------------
-- Should not show birth event in marriage details text
 - Cutoffs are black.
 - Timeline inspect button broken: CaseProperties.qml:171: TypeError: Property 'onInspect' of object CaseProperties_QMLTYPE_84(0x7ff4266ff420, "caseProps") is not a function
 - Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))

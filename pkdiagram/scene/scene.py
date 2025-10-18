@@ -436,7 +436,8 @@ class Scene(QGraphicsScene, Item):
                 item.parents().emotionalUnit().update()
         elif item.isEvent:
             self._events.append(item)
-            if firstTimeAdding:
+            if firstTimeAdding and item.relationshipTargets():
+                peopleToUpdate = set()
                 for target in item.relationshipTargets():
                     # Dated emotions are owned by the Event and deleted along
                     # with it.
@@ -449,6 +450,10 @@ class Scene(QGraphicsScene, Item):
                         )
                     )
                     self._do_addItem(emotion)
+                    peopleToUpdate.add(item.person())
+                    peopleToUpdate.add(target)
+                for person in peopleToUpdate:
+                    person.updateEmotions()
 
             # Replace singular events
             if item.kind() in (EventKind.Birth, EventKind.Death):
@@ -506,6 +511,10 @@ class Scene(QGraphicsScene, Item):
                     self.setCurrentDateTime(item.dateTime())
         elif item.isEmotion:
             self._emotions.append(item)
+            if not self.isInitializing:
+                item.person().updateEmotions()
+            if item.target():
+                item.target().updateEmotions()
             if not self.isBatchAddingRemovingItems():
                 self.emotionAdded.emit(item)
         elif item.isLayer:
@@ -603,6 +612,9 @@ class Scene(QGraphicsScene, Item):
                 removed_emotions.append(emotion)
                 _deregisterItem(emotion)
                 _removeFromGraphicsScene(emotion)
+                emotion.person().updateEmotions()
+                if emotion.target():
+                    emotion.target().updateEmotions()
 
         def _removeMarriage(marriage: Marriage):
             for child in list(marriage.children):
@@ -1085,6 +1097,7 @@ class Scene(QGraphicsScene, Item):
                     erroredOut.append(item)
             for person in self._people:
                 person.updateEvents()
+                person.updateEmotions()
             for marriage in self._marriages:
                 marriage.updateEvents()
             with self.macro(
@@ -1538,6 +1551,8 @@ class Scene(QGraphicsScene, Item):
                 if emotion:
                     emotion.isCreating = True
                     self.addItem(emotion, undo=True)
+                    emotion.person().updateEmotions()
+                    emotion.target().updateEmotions()
                     emotion.isCreating = False
                 success = emotion is not None
             if self.dragCreateItem:
