@@ -1,38 +1,14 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
 
-Edit events with EventForm
-------------------------------------
-- Move provisional settings in person props to the bottom
-- edit intensity box doesn't reflect on diagram
-- EmotionProperties
-  - looks ugly
-  - Hide tags not in editor mode
-- Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
-- Remove redundant PairBond RemoveItem tests
-- Test out adding events with tags, setting tags on Emotion. See if it feels right.
-  - Kind of like editing color + notes on either item
-- Migrate CustomPairBond events to VariableShift for person/spouse
-- Probably need to add person=None to Event.__init__ as mutually exclusive to event for drawing use case.
-- event.includeOnDiagram
-- Remove event field edits from EmotionProperties, just add links to start event
-- Disable isDateRange when not editing Emotion's
-- Legacy births, leave person/spouse empty if none exist if possible
-- Shift -> Shift
-- Storing EventKind on Event.uniqueId or new Event.kind?
-  - Going to end up replacing `uniqueId` with `kind` anyway?
-  - But still duplicates data?
-- Update person geometry/details when birth/adopted/death events change
-- delete commands.SetEmotionPerson
+Test:
 - Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
-- ITEM_MODE -> EventKind | RelationshipKind
-  - Emotion
-- Remove Emotion.notes and in EmotionProperties
-- Double check undo/redo works for adding emotions from Scene.addItem
-- Double check can delete event and emotion still remains, and vice-versa (is that even what we want?)
-- Scene data:
-  - data["items"] -> data["events"]
-  - data["items"] -> data["people"]
+- Does adding tags to non-event emotions make sense? See if it feels right.
+
+
+Notes:
+- Add birth event -> shows black and no selection aura in timeline
+- Remove redundant PairBond RemoveItem tests
 - compat
   - CustomIndividual -> 'variable-shift' (kind can never be `None`)
   - [in &.read()] Marriage.events, Person.Events, Emotion.events -> Scene.events

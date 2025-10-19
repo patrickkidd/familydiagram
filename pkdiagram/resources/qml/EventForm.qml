@@ -476,7 +476,7 @@ PK.Drawer {
                             util.EventKind.Pregnancy,
                             util.EventKind.Adopted,
                         ].indexOf(root.relationship) != -1 || root.kind == util.EventKind.Birth || root.kind == util.EventKind.Adopted
-                    }                    
+                    }
 
                     PK.FormField {
                         id: childField
@@ -498,6 +498,13 @@ PK.Drawer {
                             Layout.minimumHeight: util.QML_FIELD_HEIGHT
                             Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         }
+                    }
+
+                    Rectangle { color: 'transparent'; height: 1; width: 1}
+
+                    PK.HelpText {
+                        text: 'The person that was born or adopted.'
+                        visible: childField.visible
                     }
 
                     PK.Text {

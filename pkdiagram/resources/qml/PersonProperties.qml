@@ -388,6 +388,8 @@ PK.Drawer {
                         onClicked: root.editDeathEvent()
                     }
 
+                    PK.FormDivider { Layout.topMargin: 0; Layout.columnSpan: 2 }
+
                     PK.GroupBox {
                         id: diagramSettingsBox
                         title: 'Diagram Settings'

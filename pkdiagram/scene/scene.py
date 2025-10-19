@@ -483,10 +483,12 @@ class Scene(QGraphicsScene, Item):
                 if deathEvent:
                     self.removeItem(deathEvent)
 
-            if not self.isInitializing:
-                item.person().onEventAdded()
             for person in item.people():
                 person.updateEvents()
+            if item.kind() in (EventKind.Birth, EventKind.Death):
+                item.child().onEventAdded()
+            if not self.isInitializing:
+                item.person().onEventAdded()
             for entry in self.eventProperties():
                 if item.dynamicProperty(entry["attr"]) is None:
                     item.addDynamicProperty(entry["attr"])
