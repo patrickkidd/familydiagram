@@ -3,6 +3,7 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 
 Edit events with EventForm
 ------------------------------------
+- Show relationship in table
 - EmotionProperties
   - looks ugly
   - Hide tags not in editor mode

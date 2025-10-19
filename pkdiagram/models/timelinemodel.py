@@ -617,6 +617,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
             pass
+        elif self.dynamicPropertyAttr(index) == "relationship":
+            pass
         elif self.isColumn(index, label=self.BUDDIES):
             pass
         else:
@@ -631,7 +633,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION, self.PERSON],
             ):
                 ret |= Qt.ItemIsEditable
-        return super().flags(index) | ret
+        bleh = super().flags(index) | ret
+        return bleh
 
     ## Accessors
 
