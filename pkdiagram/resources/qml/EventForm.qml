@@ -12,6 +12,7 @@ PK.Drawer {
     id: root
 
     signal cancel
+    signal inspectEmotions(var events)
 
     property int margin: util.QML_MARGINS
     property var focusResetter: addPage
@@ -35,6 +36,7 @@ PK.Drawer {
 
     // State
 
+    property var events: []
     property var isEditing: false
     property var kind: null
     property var description: descriptionEdit.text
@@ -79,6 +81,7 @@ PK.Drawer {
     property var anxietyLabel: anxietyLabel
     property var relationshipLabel: relationshipLabel
     property var functioningLabel: functioningLabel
+    property var inspectEmotionButton: inspectEmotionButton
 
     property var symptomField: symptomField
     property var anxietyField: anxietyField
@@ -610,6 +613,15 @@ PK.Drawer {
                         text: util.S_RELATIONSHIP_HELP_TEXT
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
+                    }
+
+                    PK.Text { text: " "; Layout.minimumWidth: 75 }
+
+                    PK.Button {
+                        id: inspectEmotionButton
+                        text: "→ Inspect Symbol(s)"
+                        visible: relationshipField.value !== undefined && root.events.length == 1
+                        onClicked: root.inspectEmotions(root.events[0])
                     }
 
                     // Target(s)

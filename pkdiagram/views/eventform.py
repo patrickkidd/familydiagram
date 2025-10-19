@@ -126,6 +126,7 @@ class EventForm(QmlDrawer):
     def addEvent(self, selection: list[Item] = None):
         self.clear()
         self.item.setProperty("isEditing", False)
+        self.item.setProperty("events", [])
         self._events = []
         self._dummyItem = Item()
         self.scene.addItem(self._dummyItem)
@@ -148,6 +149,7 @@ class EventForm(QmlDrawer):
         """
         self.clear()
         self.item.setProperty("isEditing", True)
+        self.item.setProperty("events", events)
         self._events = events
 
         person = util.sameOf(events, lambda e: e.person())

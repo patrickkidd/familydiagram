@@ -146,7 +146,7 @@ class DocumentView(QWidget):
 
         self.personProps.qmlInitialized.connect(_init_personProps)
         self.emotionProps.qmlInitialized.connect(
-            lambda: self.emotionProps.qml.rootObject().editEvent.connect(
+            lambda: self.emotionProps.qml.rootObject().inspectEvent.connect(
                 self.controller.onEditEmotionEvent
             )
         )

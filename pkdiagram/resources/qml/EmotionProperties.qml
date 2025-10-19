@@ -14,7 +14,7 @@ Page {
     signal cancel
     signal done
     signal resize
-    signal editEvent
+    signal inspectEvent
 
     property int margin: util.QML_MARGINS
     property var focusResetter: emotionPage
@@ -35,7 +35,6 @@ Page {
     property var colorBox: colorBox
     property var notesEdit: notesEdit
     property var tagsList: tagsList
-    property alias notesHiddenHelpText: notesHiddenHelpText
 
     property bool isReadOnly: (sceneModel && sceneModel.readOnly) ? true : false
     property bool canInspect: false
@@ -73,7 +72,7 @@ Page {
         tagsList.forceActiveFocus()
     }
 
-    KeyNavigation.tab: editEventButton
+    KeyNavigation.tab: inspectEventButton
 
     header: PK.ToolBar {
         PK.ToolButton {
@@ -136,7 +135,10 @@ Page {
                     // rowSpacing: util.QML_SPACING
                     width: parent.width
 
-
+                    PK.FormDivider {
+                        text: "Relationship"
+                        Layout.columnSpan: 2
+                    }
                     
                     // PK.ComboBox {
                     //     id: emotionKindBox // differentiate from PersonProperties.kindBox in tests
@@ -157,15 +159,6 @@ Page {
                     //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
                     // }
 
-                    PK.Text { text: " "; Layout.minimumWidth: 75}
-
-                    PK.Button {
-                        id: editEventButton
-                        text: "→ Edit Event"
-                        visible: emotionModel.startDateTime
-                        onClicked: root.editEvent()
-                    }
-
                     Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 2 }
 
                     PK.Text { text: "Intensity" }
@@ -175,7 +168,7 @@ Page {
                         model: util.EMOTION_INTENSITY_NAMES
                         currentIndex: emotionModel.intensityIndex
                         KeyNavigation.tab: colorBox
-                        KeyNavigation.backtab: editEventButton
+                        KeyNavigation.backtab: tagsList
                         onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
                     }
 
@@ -207,31 +200,26 @@ Page {
                         onEditingFinished: emotionModel.notes = (text ? text : undefined)
                     }
 
-                    Rectangle {
-
-                        Layout.fillWidth: true
-                        Layout.minimumHeight: 200
-                        Layout.maximumHeight: 200
-                        color: 'transparent'
-                        visible: ! notesEdit.visible
-
-                        PK.NoDataText {
-                            id: notesHiddenHelpText
-                            text: util.S_EMOTION_SYMBOL_NOTES_HIDDEN
-                            Connections {
-                                target: emotionModel
-                                function onStartDateTimeChanged() {
-                                    notesHiddenHelpText.visible = Global.isValidDateTime(emotionModel.startDateTime)
-                                }
-                            }
-                        }
+                    PK.Button {
+                        id: inspectEventButton
+                        text: "→ Inspect Event"
+                        visible: Global.isValidDateTime(emotionModel.startDateTime)
+                        onClicked: root.inspectEvent()
                     }
 
-                    PK.Text { text: "Tags" }
+                    // Meta
 
+                    PK.FormDivider {
+                        text: "Meta"
+                        visible: tagsList.visible
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.Text { text: "Tags"; visible: tagsList.visible }
 
                     PK.ActiveListEdit {
                         id: tagsList
+                        visible: sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 200

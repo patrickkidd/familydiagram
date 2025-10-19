@@ -1693,7 +1693,7 @@ class Emotion(PathItem):
     def onProperty(self, prop):
         # send it out to the scene for the timelineview in case props
         super().onProperty(prop)
-        if prop.name() in ("tags", "color"):
+        if prop.name() in ("tags", "color", "intensity"):
             self.updateAll()
 
     def kind(self) -> RelationshipKind:

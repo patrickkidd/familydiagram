@@ -3,11 +3,10 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 
 Edit events with EventForm
 ------------------------------------
-- Show relationship in table
+- edit intensity box doesn't reflect on diagram
 - EmotionProperties
   - looks ugly
   - Hide tags not in editor mode
-- Add link to edit emotion if kind == Shift
 - Ensure that ChildOf objects are generated for Birth/Adopted events just like emotions
 - Remove redundant PairBond RemoveItem tests
 - Test out adding events with tags, setting tags on Emotion. See if it feels right.

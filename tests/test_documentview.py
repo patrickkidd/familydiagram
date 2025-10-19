@@ -437,6 +437,29 @@ def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
     assert dv.emotionProps.rootProp("emotionModel").items == [emotion2]
 
 
+def test_inspect_emotion_from_eventform(scene, dv: DocumentView):
+    personA, personB = scene.addItems(Person(name="personA"), Person(name="personB"))
+    event = scene.addItem(
+        Event(
+            person=personA,
+            kind=EventKind.Shift,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=personB,
+            color="#ff0000",
+            intensity=5,
+            notes="Some notes",
+        )
+    )
+    emotions = scene.emotionsFor(event)
+    dv.controller.inspectEvents([event])
+    assert dv.currentDrawer == dv.eventForm
+
+    inspectEmotionsButton = dv.eventForm.rootProp("inspectEmotionButton")
+    dv.eventForm.mouseClick(inspectEmotionsButton)
+    assert dv.currentDrawer == dv.emotionProps
+    assert dv.emotionProps.getPropSheetModel().items == emotions
+
+
 def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
     dv.caseProps.checkInitQml()
     personA, personB = scene.addItems(Person(name="PersonA"), Person(name="PersonB"))

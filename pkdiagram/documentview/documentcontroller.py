@@ -79,6 +79,7 @@ class DocumentController(QObject):
         self.ui = self.dv.ui
 
         self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
+        self.dv.eventForm.qmlInitialized.connect(self.onEventFormInit)
 
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
@@ -219,6 +220,11 @@ class DocumentController(QObject):
         self.dv.caseProps.qml.rootObject().eventPropertiesTemplateIndexChanged[
             int
         ].connect(self.onEventPropertiesTemplateIndexChanged)
+
+    def onEventFormInit(self):
+        self.dv.eventForm.qml.rootObject().inspectEmotions.connect(
+            self.onInspectEmotionsFromEventForm
+        )
 
     def setScene(self, scene):
         if self.scene:
@@ -913,12 +919,20 @@ class DocumentController(QObject):
         self.dv.setCurrentDrawer(self.dv.eventForm)
         self.dv.eventForm.editEvents(events)
 
+    def inspectEmotions(self, emotions: list[Emotion]):
+        self.dv.session.trackView("Edit emotions(s)")
+        self.dv.setCurrentDrawer(self.dv.emotionProps, items=emotions)
+
     def onInspectEventsFromCaseProps(self, eventList):
         """Called from QML"""
         events = eventList
         if isinstance(events, QJSValue):
             events = events.toVariant()
         self.inspectEvents(events)
+
+    def onInspectEmotionsFromEventForm(self, event):
+        emotions = self.scene.emotionsFor(event)
+        self.inspectEmotions(emotions)
 
     def onInspect(self, tab=None):
         """duplicated in canInspect"""
