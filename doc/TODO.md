@@ -3,6 +3,7 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 
 Edit events with EventForm
 ------------------------------------
+- Move provisional settings in person props to the bottom
 - edit intensity box doesn't reflect on diagram
 - EmotionProperties
   - looks ugly

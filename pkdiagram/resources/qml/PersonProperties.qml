@@ -283,7 +283,6 @@ PK.Drawer {
                     PK.ComboBox {
                         id: kindBox
                         enabled: !root.isReadOnly
-                        Layout.fillWidth: true
                         model: util.PERSON_KIND_NAMES
                         currentIndex: personModel.genderIndex
                         KeyNavigation.tab: sizeBox
@@ -299,7 +298,6 @@ PK.Drawer {
 
                     PK.ComboBox {
                         id: sizeBox
-                        Layout.fillWidth: true
                         currentIndex: personModel.sizeIndex
                         model: util.PERSON_SIZE_NAMES
                         enabled: !root.isReadOnly
@@ -390,10 +388,93 @@ PK.Drawer {
                         onClicked: root.editDeathEvent()
                     }
 
-                    PK.FormDivider {
+                    PK.GroupBox {
+                        id: diagramSettingsBox
+                        title: 'Diagram Settings'
+                        Layout.bottomMargin: margin
+                        Layout.fillWidth: true
                         Layout.columnSpan: 2
-                        Layout.topMargin: 0
-                        visible: provisionalSettingsBox.visible
+
+                        ColumnLayout {
+
+                            id: abc
+                            anchors.fill: parent
+
+                            PK.Label { text: 'Details' }
+                            
+                            PK.TextEdit {
+                                id: diagramNotesEdit
+                                objectName: 'diagramNotesEdit'
+                                text: personModel.diagramNotes
+                                Layout.fillWidth: true
+                                Layout.minimumHeight: 150
+                                Layout.maximumHeight: 150
+                                Layout.rightMargin: root.margin
+                                padding: margin
+                                enabled: !root.isReadOnly
+                                KeyNavigation.tab: primaryBox
+                                onTextChanged: personModel.diagramNotes = (text ? text : undefined)
+                            }
+
+                            PK.FormDivider {
+                                Layout.rightMargin: root.margin
+                            }
+
+                            RowLayout {
+
+                                Layout.fillWidth: true
+                            
+                                PK.CheckBox {
+                                    id: primaryBox
+                                    text: "Primary"
+                                    enabled: !root.isReadOnly
+                                    checkState: personModel.primary
+                                    KeyNavigation.tab: bigFontBox
+                                    onCheckStateChanged: personModel.primary = checkState
+                                }
+
+                                PK.CheckBox {
+                                    id: bigFontBox
+                                    text: "Big Font"
+                                    enabled: !root.isReadOnly
+                                    checkState: personModel.bigFont
+                                    KeyNavigation.tab: hideDetailsBox
+                                    onCheckStateChanged: personModel.bigFont = checkState
+                                }
+                            }
+
+                            RowLayout {
+
+                                Layout.fillWidth: true
+                            
+                                PK.CheckBox {
+                                    id: hideDetailsBox
+                                    text: "Hide Details"
+                                    enabled: !root.isReadOnly
+                                    checkState: personModel.hideDetails
+                                    KeyNavigation.tab: hideDatesBox
+                                    onCheckStateChanged: personModel.hideDetails = checkState
+                                }
+
+                                PK.CheckBox {
+                                    id: hideDatesBox
+                                    text: "Hide Dates"
+                                    enabled: !root.isReadOnly
+                                    checkState: personModel.hideDates
+                                    KeyNavigation.tab: hideVariablesBox
+                                    onCheckStateChanged: personModel.hideDates = checkState
+                                }
+
+                                PK.CheckBox {
+                                    id: hideVariablesBox
+                                    text: "Hide Variables"
+                                    enabled: !root.isReadOnly
+                                    checkState: personModel.hideVariables
+                                    KeyNavigation.tab: adoptedBox
+                                    onCheckStateChanged: personModel.hideVariables = checkState
+                                }
+                            }
+                        }
                     }
 
                     PK.GroupBox {
@@ -425,7 +506,7 @@ PK.Drawer {
                                 enabled: ! Global.isValidDateTime(personModel.deceasedDateTime) && !root.isReadOnly
                                 checkState: personModel.deceased
                                 Layout.columnSpan: 2
-                                KeyNavigation.tab: diagramNotesEdit
+                                KeyNavigation.tab: resetColorButton
                                 onCheckStateChanged: personModel.deceased = checkState
                             }
 
@@ -438,102 +519,6 @@ PK.Drawer {
                         }
                     }
 
-                    PK.FormDivider {
-                        Layout.columnSpan: 2
-                        Layout.topMargin: 0
-                    }
-                    
-                    ColumnLayout {
-                        Layout.columnSpan: 2
-
-                        PK.Label {
-                            text: 'Diagram Notes'
-                        }
-                        
-                        Rectangle { // for border
-                            Layout.fillWidth: true
-                            Layout.minimumHeight: 150
-                            Layout.maximumHeight: 150
-                            color: 'transparent'
-                            border {
-                                width: 1
-                                color: util.QML_ITEM_BORDER_COLOR
-                            }
-                            PK.TextEdit {
-                                id: diagramNotesEdit
-                                objectName: 'diagramNotesEdit'
-                                text: personModel.diagramNotes
-                                // wrapMode: TextEdit.Wrap
-                                anchors.fill: parent
-                                padding: margin
-                                enabled: !root.isReadOnly
-                                KeyNavigation.tab: primaryBox
-                                onTextChanged: personModel.diagramNotes = (text ? text : undefined)
-                            }
-                        }
-                    }
-
-                    // Spacer line
-
-                    PK.FormDivider { Layout.columnSpan: 2 }
-
-                    Row {
-
-                        Layout.fillWidth: true
-                        Layout.columnSpan: 2                            
-                    
-                        PK.CheckBox {
-                            id: primaryBox
-                            text: "Primary"
-                            enabled: !root.isReadOnly
-                            checkState: personModel.primary
-                            KeyNavigation.tab: bigFontBox
-                            onCheckStateChanged: personModel.primary = checkState
-                        }
-
-                        PK.CheckBox {
-                            id: bigFontBox
-                            text: "Big Font"
-                            enabled: !root.isReadOnly
-                            checkState: personModel.bigFont
-                            KeyNavigation.tab: hideDetailsBox
-                            onCheckStateChanged: personModel.bigFont = checkState
-                        }
-                    }
-
-                    Row {
-
-                        Layout.fillWidth: true
-                        Layout.columnSpan: 2                            
-                    
-                        PK.CheckBox {
-                            id: hideDetailsBox
-                            text: "Hide Details"
-                            enabled: !root.isReadOnly
-                            checkState: personModel.hideDetails
-                            KeyNavigation.tab: firstNameEdit
-                            onCheckStateChanged: personModel.hideDetails = checkState
-                        }
-
-                        PK.CheckBox {
-                            id: hideDatesBox
-                            text: "Hide Dates"
-                            enabled: !root.isReadOnly
-                            checkState: personModel.hideDates
-                            KeyNavigation.tab: firstNameEdit
-                            onCheckStateChanged: personModel.hideDates = checkState
-                        }
-
-                        PK.CheckBox {
-                            id: hideVariablesBox
-                            text: "Hide Variables"
-                            enabled: !root.isReadOnly
-                            checkState: personModel.hideVariables
-                            KeyNavigation.tab: firstNameEdit
-                            onCheckStateChanged: personModel.hideVariables = checkState
-                        }
-
-                    }
                 }
 
             }

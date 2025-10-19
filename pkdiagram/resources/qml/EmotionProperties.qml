@@ -19,6 +19,7 @@ Page {
     property int margin: util.QML_MARGINS
     property var focusResetter: emotionPage
     property string emotionTitle: emotionModel.itemName
+    property var hasEvent: Global.isValidDateTime(emotionModel.startDateTime)
 
     property var emotionModel: EmotionPropertiesModel {
         id: emotionModel
@@ -139,7 +140,24 @@ Page {
                         text: "Relationship"
                         Layout.columnSpan: 2
                     }
-                    
+
+                    PK.Label { text: " " }
+
+                    ColumnLayout {
+
+                        PK.Button {
+                            id: inspectEventButton
+                            text: "→ Inspect Event"
+                            visible: root.hasEvent
+                            onClicked: root.inspectEvent()
+                        }
+
+                        PK.HelpText {
+                            text: "This relationship symbol was automatically created by an event, so you can edit the intensity, color, etc from there."
+                        }
+
+                    }
+
                     // PK.ComboBox {
                     //     id: emotionKindBox // differentiate from PersonProperties.kindBox in tests
                     //     objectName: 'emotionKindBox'
@@ -159,12 +177,11 @@ Page {
                     //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
                     // }
 
-                    Rectangle { width: 1; height: 1; color: 'transparent'; Layout.columnSpan: 2 }
-
                     PK.Text { text: "Intensity" }
 
                     PK.ComboBox {
                         id: intensityBox
+                        enabled: ! root.hasEvent
                         model: util.EMOTION_INTENSITY_NAMES
                         currentIndex: emotionModel.intensityIndex
                         KeyNavigation.tab: colorBox
@@ -176,6 +193,7 @@ Page {
 
                     PK.ColorPicker {
                         id: colorBox
+                        enabled: ! root.hasEvent
                         color: emotionModel.color
                         KeyNavigation.tab: notesEdit
                         KeyNavigation.backtab: intensityBox
@@ -189,10 +207,10 @@ Page {
                     PK.TextEdit {
                         id: notesEdit
                         text: emotionModel.notes
+                        enabled: ! root.hasEvent
                         padding: margin
                         width: parent.width
                         wrapMode: TextEdit.Wrap
-                        visible: ! Global.isValidDateTime(emotionModel.startDateTime)
                         readOnly: sceneModel.readOnly
                         Layout.fillWidth: true
                         Layout.minimumHeight: 300
@@ -200,26 +218,20 @@ Page {
                         onEditingFinished: emotionModel.notes = (text ? text : undefined)
                     }
 
-                    PK.Button {
-                        id: inspectEventButton
-                        text: "→ Inspect Event"
-                        visible: Global.isValidDateTime(emotionModel.startDateTime)
-                        onClicked: root.inspectEvent()
-                    }
-
                     // Meta
 
                     PK.FormDivider {
                         text: "Meta"
-                        visible: tagsList.visible
+                        visible: sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                     }
 
-                    PK.Text { text: "Tags"; visible: tagsList.visible }
+                    PK.Text { text: "Tags"; visible: sceneModel.isInEditorMode }
 
                     PK.ActiveListEdit {
                         id: tagsList
                         visible: sceneModel.isInEditorMode
+                        enabled: ! root.hasEvent
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 200

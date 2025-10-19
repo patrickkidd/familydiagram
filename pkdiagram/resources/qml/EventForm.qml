@@ -129,7 +129,7 @@ PK.Drawer {
         functioningField.clear()
     }
 
-    function onStartDateTimeChanged() {
+    function onStartDateTimeChanged() { // used anymore?
         startDatePicker.dateTime = startDateTime
     }
 
@@ -793,12 +793,17 @@ PK.Drawer {
                         datePicker: startDatePicker
                         timePicker: startTimePicker
                         // dateTime: root.startDateTime
-                        showInspectButton: false
                         backTabItem: descriptionField.backTabItem
                         tabItem: endDateButtons.firstTabItem
                         Layout.preferredHeight: implicitHeight - 10
                         Layout.fillWidth: true
-                        onDateTimeChanged: root.startDateTime = dateTime
+                        onDateTimeChanged: {
+                            root.startDateTime = dateTime
+                            if(!Global.isValidDateTime(dateTime)) {
+                                root.endDateTime = null
+                                root.isDateRange = false
+                            }
+                        }
                         onUnsureChanged: root.startDateUnsure = unsure
                         Connections {
                             target: root
@@ -846,7 +851,6 @@ PK.Drawer {
                         datePicker: endDatePicker
                         timePicker: endTimePicker
                         // dateTime: root.endDateTime
-                        showInspectButton: true
                         visible: root.isDateRange
                         backTabItem: startDateButtons.lastTabItem
                         tabItem: isDateRangeBox
@@ -911,6 +915,10 @@ PK.Drawer {
                                 dirty = true
                             }
                         }
+                        Connections {
+                            target: root
+                            function onIsDateRangeChanged() { isDateRangeBox.checked = root.isDateRange }
+                        }
                     }
 
                     PK.FormDivider {
@@ -972,8 +980,8 @@ PK.Drawer {
                             id: notesFrame
                             property bool isDirty: notesEdit.text != ''
                             color: 'transparent'
-                            Layout.minimumHeight: 250
-                            Layout.maximumHeight: 250
+                            Layout.minimumHeight: 150
+                            Layout.maximumHeight: 150
                             border {
                                 width: 1
                                 color: util.QML_ITEM_BORDER_COLOR
