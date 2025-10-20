@@ -2,48 +2,12 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 =====================================
 - Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 - Does adding tags to non-event emotions make sense? See if it feels right.
-- Add birth event -> shows black and no selection aura in timeline
-- Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
 - EventForm -> inspectEmotionButton shows after adding + editing birth event
-- No elippses for first blip on bottom timeline
-
-Spec
----------------------------------------------
-- Two major ways Emotions / Person gets created:
-  - Drawing like a chalk board without an Event
-  - Created to represent a dated Events
-- Remove all Person/Marriage/Emotion event references for computer properties,
-  Scene as single source of truth
-  - Remove Person.onAddEvent, etc.
-- Have Person.updateEvents() only listen for Shift since it only updates self.variablesDatabase?
-- Add TimelineRow dataclass instead of dummy events; _ensureEvent(adds 1 or 2 for dateTime & endDateTime)
-  ```
-    def _ensureEvent(self, event: Event):
-        # Start row
-        self._rows.add(TimelineRow(
-            dateTime=event.dateTime(),
-            description=event.description(),
-            source_event=event,
-        ))
-
-        # End row (if needed)
-        if event.endDateTime():
-            self._rows.add(TimelineRow(
-                dateTime=event.endDateTime(),
-                description=f"{event.kind().name} ended",
-                source_event=event,
-                is_end_marker=True,
-            ))
-  ```
-- Remove dateTime editors from PersonProperties in favor of a button to edit those singleton events, just like EmotionProperties.
-- Make `Event.spouse` optional for `EventKind.Moved`m show on `Marriage` when spouse is present.
-
-Cleanup
-------------------------------------------------
-
+- No ellipses for first blip on bottom timeline
 
 BUGS
 ------------------------------------
+- Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
 - Age doesn't update on adding birth
 - Help view is broken
 - View tag, add R symbol, lots of things are hidden

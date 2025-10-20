@@ -212,3 +212,52 @@ def test_edit_isPairBond(scene, view, kind: EventKind):
     assert event.dateTime() == START_DATETIME
     assert event.person() == person
     assert event.spouse() == spouse
+
+
+def test_edit_multiple_events_add_tags(scene, view):
+    TAG_1 = "medical"
+
+    scene.setTags([TAG_1, "work", "personal"])
+    personA, personB = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+    eventA1, eventA2, eventA3, eventB1 = scene.addItems(
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME,
+            description="First symptom shift",
+            symptom=util.VAR_SYMPTOM_DOWN,
+        ),
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME.addDays(1),
+            description="Second symptom shift",
+            symptom=util.VAR_SYMPTOM_SAME,
+        ),
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME.addDays(2),
+            description="Third symptom shift",
+            symptom=util.VAR_SYMPTOM_UP,
+        ),
+        Event(
+            EventKind.Shift,
+            personB,
+            dateTime=START_DATETIME,
+            description="Anxiety shift",
+            anxiety=util.VAR_ANXIETY_DOWN,
+        ),
+    )
+    assert eventA1.tags() == []
+    assert eventA2.tags() == []
+    assert eventA3.tags() == []
+    assert eventB1.tags() == []
+
+    view.view.editEvents([eventA1, eventA2, eventA3, eventB1])
+    view.set_active_tags([TAG_1])
+    view.clickSaveButton()
+    assert eventA1.tags() == [TAG_1]
+    assert eventA2.tags() == [TAG_1]
+    assert eventA3.tags() == [TAG_1]
+    assert eventB1.tags() == [TAG_1]

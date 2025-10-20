@@ -645,3 +645,4 @@ class QmlWidgetHelper(QObjectHelper):
 
         # Set the contentY property to scroll
         flickable.setProperty("contentY", contentY)
+        util.waitALittle()

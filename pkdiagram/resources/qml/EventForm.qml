@@ -39,7 +39,7 @@ PK.Drawer {
     property var events: []
     property var isEditing: false
     property var kind: null
-    property var description: descriptionEdit.text
+    property var description: null
     property var isDateRange: isDateRangeBox.checked
     property var isDateRangeDirty: isDateRangeBox.dirty
     property var startDateTime: startDatePicker.dateTime
@@ -149,6 +149,8 @@ PK.Drawer {
         targetsPicker.clear()
 
         // What
+
+        root.description == null
         
         kindBox.currentIndex = -1
         descriptionEdit.clear()
@@ -521,12 +523,19 @@ PK.Drawer {
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.TextField {
                             id: descriptionEdit
+                            enabled: root.events.length < 2
                             Layout.maximumWidth: root.fieldWidth
                             Layout.minimumWidth: root.fieldWidth
                             property Item firstTabItem: this
                             property Item lastTabItem: this
                             property bool isDirty: text != '' 
-                            function clear() { text = '' }
+                            onEditingFinished: {
+                                if(! text || text.length == 0) {
+                                    root.description = ''
+                                } else {
+                                    root.description = text
+                                }
+                            }
                         }
                     }
 

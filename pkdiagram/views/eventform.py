@@ -10,6 +10,7 @@ from pkdiagram.pyqt import (
     QMetaObject,
     QVariant,
     QMessageBox,
+    QDateTime,
 )
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -256,7 +257,9 @@ class EventForm(QmlDrawer):
         if color:
             self.item.property("colorBox").setProperty("color", color)
 
-        self._tagsModel.items = events
+        self._dummyItem = Item()
+        self.scene.addItem(self._dummyItem)
+        self._tagsModel.items = [self._dummyItem]
 
     def onDone(self):
 
@@ -326,62 +329,64 @@ class EventForm(QmlDrawer):
 
         invalidLabel = None
 
-        if not isEditing and not self.item.property("kind"):
-            invalidLabel = "kindLabel"
+        if not isEditing:
 
-        elif not self.item.property("personPicker").property("isSubmitted"):
-            invalidLabel = "personLabel"
+            if not isEditing and not self.item.property("kind"):
+                invalidLabel = "kindLabel"
 
-        elif kind and kind == EventKind.Death:
-            pass
+            elif not self.item.property("personPicker").property("isSubmitted"):
+                invalidLabel = "personLabel"
 
-        # elif (
-        #     kind
-        #     and kind.isPairBond()
-        #     and not self.item.property("spousePicker").property("isSubmitted")
-        # ):
-        #     invalidLabel = "spouseLabel"
+            elif kind and kind == EventKind.Death:
+                pass
 
-        # elif kind and kind in (EventKind.Birth, EventKind.Adopted):
-        #     if not self.item.property("childPicker").property("isSubmitted"):
-        #         invalidLabel = "childLabel"
+            # elif (
+            #     kind
+            #     and kind.isPairBond()
+            #     and not self.item.property("spousePicker").property("isSubmitted")
+            # ):
+            #     invalidLabel = "spouseLabel"
 
-        elif relationship and not self.item.property("description"):
-            invalidLabel = "descriptionLabel"
+            # elif kind and kind in (EventKind.Birth, EventKind.Adopted):
+            #     if not self.item.property("childPicker").property("isSubmitted"):
+            #         invalidLabel = "childLabel"
 
-        elif relationship and (
-            not self.targetsEntries()
-            or not self.item.property("targetsPicker").allSubmitted()
-        ):
-            invalidLabel = "targetsLabel"
+            elif relationship and not self.item.property("description"):
+                invalidLabel = "descriptionLabel"
 
-        elif (
-            relationship in (RelationshipKind.Inside, RelationshipKind.Outside)
-            and not self.item.property("trianglesPicker").allSubmitted()
-        ):
-            invalidLabel = "trianglesLabel"
+            elif relationship and (
+                not self.targetsEntries()
+                or not self.item.property("targetsPicker").allSubmitted()
+            ):
+                invalidLabel = "targetsLabel"
 
-        elif not self.item.property("startDateTime"):
-            invalidLabel = "startDateTimeLabel"
+            elif (
+                relationship in (RelationshipKind.Inside, RelationshipKind.Outside)
+                and not self.item.property("trianglesPicker").allSubmitted()
+            ):
+                invalidLabel = "trianglesLabel"
 
-        # Allowing open-ended dyadic date ranges for now.
-        # elif self.item.property("isDateRange") and not self.item.property("endDateTime"):
-        #     invalidLabel = "endDateTimeLabel"
+            elif not self.item.property("startDateTime"):
+                invalidLabel = "startDateTimeLabel"
 
-        else:
-            invalidLabel = None
+            # Allowing open-ended dyadic date ranges for now.
+            # elif self.item.property("isDateRange") and not self.item.property("endDateTime"):
+            #     invalidLabel = "endDateTimeLabel"
 
-        if invalidLabel:
-            name = self.item.property(invalidLabel).property("text")
-            msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
-            _log.debug(f"EventForm validation DIALOG: {msg}")
-            QMessageBox.warning(
-                self,
-                "Required field",
-                msg,
-                QMessageBox.Ok,
-            )
-            return
+            else:
+                invalidLabel = None
+
+            if invalidLabel:
+                name = self.item.property(invalidLabel).property("text")
+                msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
+                _log.debug(f"EventForm validation DIALOG: {msg}")
+                QMessageBox.warning(
+                    self,
+                    "Required field",
+                    msg,
+                    QMessageBox.Ok,
+                )
+                return
 
         # Validation: Confirmations
 
@@ -579,33 +584,34 @@ class EventForm(QmlDrawer):
         if isEditing:
 
             for event in self._events:
-                if kind != event.kind():
-                    event.setKind(kind, undo=True)
-                if spouse != event.spouse():
-                    event.setSpouse(spouse, undo=True)
-                if child and child != event.child():
-                    event.setChild(child, undo=True)
-                if kind == EventKind.Adopted:
-                    event.child().setAdopted(True, undo=True)
-                event.setDateTime(startDateTime, undo=True)
-                if endDateTime != event.endDateTime():
+                # if kind != event.kind():
+                #     event.setKind(kind, undo=True)
+                # if spouse != event.spouse():
+                #     event.setSpouse(spouse, undo=True)
+                # if child and child != event.child():
+                #     event.setChild(child, undo=True)
+                # if kind == EventKind.Adopted:
+                #     event.child().setAdopted(True, undo=True)
+                if startDateTime is not None:
+                    event.setDateTime(startDateTime, undo=True)
+                if endDateTime is not None and endDateTime != event.endDateTime():
                     event.setEndDateTime(endDateTime, undo=True)
                 elif isDateRangeDirty and not isDateRange:
                     event.setEndDateTime(QDateTime(), undo=True)
-                if symptom != event.symptom():
+                if symptom is not None and symptom != event.symptom():
                     event.setSymptom(symptom, undo=True)
-                if anxiety != event.anxiety():
+                if anxiety is not None and anxiety != event.anxiety():
                     event.setAnxiety(anxiety, undo=True)
-                if relationship != event.relationship():
+                if relationship is not None and relationship != event.relationship():
                     event.setRelationship(relationship, undo=True)
-                    if targets:
+                    if targets is not None and targets != event.relationshipTargets():
                         event.setRelationshipTargets(targets, undo=True)
                     if relationship in (
                         RelationshipKind.Inside,
                         RelationshipKind.Outside,
                     ):
                         event.setRelationshipTriangles(triangles, undo=True)
-                if functioning != event.functioning():
+                if functioning is not None and functioning != event.functioning():
                     event.setFunctioning(functioning, undo=True)
                 if description and description != event.description():
                     event.setDescription(description, undo=True)
@@ -613,15 +619,13 @@ class EventForm(QmlDrawer):
                     event.setLocation(location, undo=True)
                 if notes and notes != event.notes():
                     event.setNotes(notes, undo=True)
-                if color != event.color():
+                if color is not None and color != event.color():
                     event.setColor(color, undo=True)
                 # Tags
-                if not isEditing:
-                    event.setTags(checkedTags, undo=True)
-                else:
-                    current_tags = set(event.tags())
-                    current_tags -= set(uncheckedTags)
-                    current_tags |= set(checkedTags)
+                current_tags = set(event.tags())
+                current_tags -= set(uncheckedTags)
+                current_tags |= set(checkedTags)
+                if current_tags != set(event.tags()):
                     event.setTags(list(current_tags), undo=True)
 
         else:
