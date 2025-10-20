@@ -500,11 +500,10 @@ PK.Drawer {
                         }
                     }
 
-                    Rectangle { color: 'transparent'; height: 1; width: 1}
-
                     PK.HelpText {
                         text: 'The person that was born or adopted.'
                         visible: childField.visible
+                        Layout.columnSpan: 2
                     }
 
                     PK.Text {
@@ -622,7 +621,12 @@ PK.Drawer {
                         Layout.fillWidth: true
                     }
 
-                    PK.Text { text: " "; Layout.minimumWidth: 75 }
+                    Rectangle {
+                        height: 1
+                        color: 'transparent'
+                        visible: inspectEmotionButton.visible
+                        Layout.minimumWidth: 75
+                    }
 
                     PK.Button {
                         id: inspectEmotionButton
