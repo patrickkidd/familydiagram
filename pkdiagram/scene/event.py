@@ -356,6 +356,12 @@ class Event(Item):
         elif self.kind() == EventKind.Death:
             return self.person().firstNameOrAlias()
         elif self.kind() == EventKind.Shift:
+            if self.relationshipTargets():
+                names = [self.person().firstNameOrAlias()]
+                names.extend(
+                    [target.firstNameOrAlias() for target in self.relationshipTargets()]
+                )
+                return " & ".join(names)
             return self.person().firstNameOrAlias()
         elif self.kind().isPairBond():
             return f"{self.person().firstNameOrAlias()} & {self.spouse().firstNameOrAlias()}"

@@ -409,7 +409,10 @@ class Person(PathItem):
         elif self.scene() and self.scene().shouldShowAliases():
             return "[%s]" % self.alias()
         else:
-            return self.name()
+            ret = self.name()
+            if self.nickName() and self.showNickName():
+                ret += " (%s)" % self.nickName()
+            return ret
 
     @pyqtSlot(result=str)
     def fullNameOrAlias(self):

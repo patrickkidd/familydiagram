@@ -485,7 +485,7 @@ class Scene(QGraphicsScene, Item):
 
             for person in item.people():
                 person.updateEvents()
-            if item.kind() in (EventKind.Birth, EventKind.Death):
+            if item.kind().isOffspring():
                 item.child().onEventAdded()
             if not self.isInitializing:
                 item.person().onEventAdded()
