@@ -277,6 +277,9 @@ class Event(Item):
             marriage = self.scene().marriageFor(self._person, self._spouse)
             if marriage:
                 marriage.onEventProperty(prop)
+            if prop.name() == "color":
+                for emotion in self.scene().emotionsFor(self):
+                    emotion.updatePen()
 
     def scene(self) -> "Scene":
         # Events are top-level items in the scene, use standard scene() lookup

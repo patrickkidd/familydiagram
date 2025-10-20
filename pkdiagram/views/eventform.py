@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -143,10 +144,12 @@ class EventForm(QmlDrawer):
         else:
             self.initWithNoSelection()
 
-    def editEvents(self, events: list[Event]):
+    def editEvents(self, events: Union[list[Event], Event]):
         """
         Only populate fields where all events agree.
         """
+        if isinstance(events, Event):
+            events = [events]
         self.clear()
         self.item.setProperty("isEditing", True)
         self.item.setProperty("events", events)

@@ -483,6 +483,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif role == self.NodalRole:
             ret = ", ".join(event.tags())
         elif role == self.ColorRole:
+            ret = event.color()
             if ret == "transparent":
                 ret = None
         # elif role == self.FirstBuddyRole:

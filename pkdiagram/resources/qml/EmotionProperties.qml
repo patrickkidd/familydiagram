@@ -177,11 +177,14 @@ Page {
                     //     onCurrentIndexChanged: emotionModel.kindIndex = currentIndex
                     // }
 
-                    PK.Text { text: "Intensity" }
+                    PK.Text {
+                        text: "Intensity"
+                        visible: ! root.hasEvent
+                    }
 
                     PK.ComboBox {
                         id: intensityBox
-                        enabled: ! root.hasEvent
+                        visible: ! root.hasEvent
                         model: util.EMOTION_INTENSITY_NAMES
                         currentIndex: emotionModel.intensityIndex
                         KeyNavigation.tab: colorBox
@@ -189,11 +192,14 @@ Page {
                         onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
                     }
 
-                    PK.Text { text: "Color" }
+                    PK.Text {
+                        text: "Color"
+                        visible: ! root.hasEvent
+                    }
 
                     PK.ColorPicker {
                         id: colorBox
-                        enabled: ! root.hasEvent
+                        visible: ! root.hasEvent
                         color: emotionModel.color
                         KeyNavigation.tab: notesEdit
                         KeyNavigation.backtab: intensityBox
@@ -202,19 +208,20 @@ Page {
 
                     PK.Text {
                         text: "Details"
+                        visible: ! root.hasEvent
                     }
 
                     PK.TextEdit {
                         id: notesEdit
                         text: emotionModel.notes
-                        enabled: ! root.hasEvent
+                        visible: ! root.hasEvent
                         padding: margin
                         width: parent.width
                         wrapMode: TextEdit.Wrap
                         readOnly: sceneModel.readOnly
                         Layout.fillWidth: true
-                        Layout.minimumHeight: 300
-                        Layout.maximumHeight: 300
+                        Layout.minimumHeight: 150
+                        Layout.maximumHeight: 150
                         onEditingFinished: emotionModel.notes = (text ? text : undefined)
                     }
 
@@ -222,16 +229,15 @@ Page {
 
                     PK.FormDivider {
                         text: "Meta"
-                        visible: sceneModel.isInEditorMode
+                        visible: ! root.hasEvent && sceneModel.isInEditorMode
                         Layout.columnSpan: 2
                     }
 
-                    PK.Text { text: "Tags"; visible: sceneModel.isInEditorMode }
+                    PK.Text { text: "Tags"; visible: ! root.hasEvent && sceneModel.isInEditorMode }
 
                     PK.ActiveListEdit {
                         id: tagsList
-                        visible: sceneModel.isInEditorMode
-                        enabled: ! root.hasEvent
+                        visible: ! root.hasEvent && sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 200

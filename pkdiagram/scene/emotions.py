@@ -1315,10 +1315,9 @@ class Emotion(PathItem):
             return self.prop("intensity").get()
 
     def color(self) -> str:
-        ret = None
         if self._event:
-            ret = self._event.color()
-        if ret is None:
+            return self._event.color()
+        else:
             return self.prop("color").get()
 
     def notes(self) -> str:
