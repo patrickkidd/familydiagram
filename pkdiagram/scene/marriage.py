@@ -545,15 +545,16 @@ class Marriage(PathItem):
 
         # Compile Dates
         if not self.hideDates():
-            for event in self.scene().eventsFor(self):
+            all_events = sorted(
+                [event for events in self._events.values() for event in events]
+            )
+            for event in all_events:
                 kind = event.kind()
                 if not event.dateTime():
                     continue
                 if not currentDateTime:
                     continue
                 if event.dateTime() > currentDateTime:
-                    continue
-                if not event.includeOnDiagram():
                     continue
                 if kind == EventKind.Bonded and event.dateTime():
                     lines.append("b. " + util.dateString(event.dateTime()))

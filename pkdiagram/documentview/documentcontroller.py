@@ -489,8 +489,15 @@ class DocumentController(QObject):
 
     def onFlashTimelineRow(self, row: int):
         if self.scene:
-            item = self.dv.timelineModel.itemForRow(row)
-            item.flash()
+            event = self.dv.timelineModel.eventForRow(row)
+            if event.kind().isPairBond():
+                marriage = self.scene.marriageFor(event.person(), event.spouse())
+                marriage.flash()
+                event.person().flash()
+                event.spouse().flash()
+            else:
+                person = event.person()
+                person.flash()
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item

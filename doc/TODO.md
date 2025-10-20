@@ -1,38 +1,16 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
-
-Test:
 - Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 - Does adding tags to non-event emotions make sense? See if it feels right.
-
-
-Notes:
 - Add birth event -> shows black and no selection aura in timeline
-- Remove redundant PairBond RemoveItem tests
-- compat
-  - CustomIndividual -> 'variable-shift' (kind can never be `None`)
-  - [in &.read()] Marriage.events, Person.Events, Emotion.events -> Scene.events
-  - Event.kind is None -> kind = Shift
-  - Marriage.events -> Scene.events
-    - personA -> Event.person
-    - personB -> Event.spouse
-  - Emotion.startEvent['emotionStartEvent'] -> Emotion.startEvent['variable-shift']
-  - Emotion.isDateRange (isSingularDate()) -> Event.endEvent
-  - Emotion.notes -> Emotion.event().notes
-  - Emotion.kind -> RelationshipKind
-  - Emotion.person_a -> Event.person
-  - Emotion.person_b -> Emotion.target
-  - Emotion.intensity -> Event.intensity
-
-
 - Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
-
+- EventForm -> inspectEmotionButton shows after adding + editing birth event
 
 Spec
 ---------------------------------------------
 - Two major ways Emotions / Person gets created:
   - Drawing like a chalk board without an Event
-  - Created to represent a dated Event
+  - Created to represent a dated Events
 - Remove all Person/Marriage/Emotion event references for computer properties,
   Scene as single source of truth
   - Remove Person.onAddEvent, etc.
