@@ -1514,7 +1514,17 @@ class Emotion(PathItem):
             if not self.scene() or self.scene().hideEmotionColors():
                 pen.setColor(util.PEN.color())
             else:
-                pen.setColor(QColor(self.color()))
+                # defensive
+                color = self.color()
+                if (
+                    color is None or color == QColor(Qt.GlobalColor.white).name()
+                ) and util.IS_UI_DARK_MODE:
+                    color = "#ffffff"  # white in dark mode
+                elif (
+                    color is None or color == QColor(Qt.GlobalColor.black).name()
+                ) and not util.IS_UI_DARK_MODE:
+                    color = "#000000"  # black in light mode
+                pen.setColor(QColor(color))
         self.setPen(pen)
 
     def updateGeometry(self):

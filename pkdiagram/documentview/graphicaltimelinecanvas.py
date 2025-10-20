@@ -397,6 +397,8 @@ class GraphicalTimelineCanvas(QWidget):
     def currentDateTimeIndicatorRect(self, upperLeft: QPoint = None) -> QRectF:
         if not self.scene:
             return QRectF()
+        if not self._timelineRows:
+            return QRectF()
         if upperLeft:
             x, y = upperLeft.x(), upperLeft.y()
         if upperLeft is None and self.isSlider():
