@@ -15,13 +15,11 @@
                 "all": "hide",
                 "protected": "inline",
             },
-            // "env": {
-            //     "FD_LOG_LEVEL": "DEBUG",
-            // }
             "args": [
                 // "--windows-console"
             ],
             "env": {
+                "FD_LOG_LEVEL": "DEBUG",
                 // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
             }
         },

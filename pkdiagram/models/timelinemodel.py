@@ -483,7 +483,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif role == self.NodalRole:
             ret = ", ".join(event.tags())
         elif role == self.ColorRole:
-            return event.color()
+            if ret == "transparent":
+                ret = None
         # elif role == self.FirstBuddyRole:
         #     buddyRow = self.dateBuddyForRow(index.row())
         #     if buddyRow is not None and buddyRow > index.row():
@@ -529,7 +530,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.LOGGED):
             ret = util.dateString(event.loggedDateTime())
         elif self.isColumn(index, self.COLOR):
-            return event.color()
+            ret = event.color()
+            if ret == "transparent":
+                ret = None
         elif self.isColumn(index, self.TAGS):
             ret = ", ".join(event.tags())
         else:

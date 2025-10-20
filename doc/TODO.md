@@ -5,6 +5,7 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 - Add birth event -> shows black and no selection aura in timeline
 - Refactor Person.setParents to be consistent by using scene.addItem(ChildOf(...))
 - EventForm -> inspectEmotionButton shows after adding + editing birth event
+- No elippses for first blip on bottom timeline
 
 Spec
 ---------------------------------------------
