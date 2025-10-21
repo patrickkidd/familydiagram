@@ -38,7 +38,10 @@ class TagsProxyItem(Item):
 
     def tags(self) -> list[str]:
         """Callback"""
-        return self._proxy.tags()
+        if self.editedTags is None:
+            return self._proxy.tags()
+        else:
+            return self.editedTags
 
     def onProperty(self, prop: Property):
         if prop.name() == "tags":
@@ -665,7 +668,9 @@ class EventForm(QmlDrawer):
                     event.setColor(color, undo=True)
                 # Tags
                 tagsProxy = next(x for x in self._dummyItems if x._proxy == event)
-                if set(tagsProxy.editedTags) != set(tagsProxy.originalTags):
+                if tagsProxy.editedTags is not None and set(
+                    tagsProxy.editedTags
+                ) != set(tagsProxy.originalTags):
                     event.setTags(tagsProxy.editedTags, undo=True)
 
         else:
