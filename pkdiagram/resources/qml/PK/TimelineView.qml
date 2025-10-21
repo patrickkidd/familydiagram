@@ -560,11 +560,15 @@ ColumnLayout {
             id: dRoot
             property int thisRow: row
             property int thisColumn: column
+            property bool isGroupHeader: model.isGroupHeader || false
+            property bool groupExpanded: model.groupExpanded || false
+            property int groupEventCount: model.groupEventCount || 0
+            property var groupEventColors: model.groupEventColors || []
             // property bool thisNodal: !model.nodal ? false : true
             property var thisColor: model.color ? '#44' + model.color.replace(/#/g, '') : 'transparent'
             property bool shouldEdit: false
-            property bool editMode: shouldEdit && selected
-            property bool editable: flags & Qt.ItemIsEditable
+            property bool editMode: shouldEdit && selected && !isGroupHeader
+            property bool editable: (flags & Qt.ItemIsEditable) && !isGroupHeader
             property bool isDynamicProperty: thisColumn >= 10
             property bool selected: {
                 selectionResetter
@@ -597,9 +601,12 @@ ColumnLayout {
 
             function updateColor() {
                 var c
-                if(dRoot.selected || dRoot.current)
+                if(dRoot.isGroupHeader) {
+                    // Group headers have a distinct background
+                    c = util.QML_HEADER_BG
+                } else if(dRoot.selected || dRoot.current) {
                     c = util.itemBgColor(dRoot.selected, dRoot.current, undefined)
-                else {
+                } else {
                     if(dRoot.sameDateAsSelected)
                         c = util.QML_SAME_DATE_HIGHLIGHT_COLOR
                     // else if(dRoot.thisNodal)
@@ -641,13 +648,63 @@ ColumnLayout {
                 width: parent.width
                 height: parent.height
                 color: thisColor
-                visible: thisColor ? true : false
+                visible: thisColor && !isGroupHeader ? true : false
+            }
+
+            // Group header expand/collapse caret
+            PK.Text {
+                id: groupCaret
+                visible: isGroupHeader && thisColumn == 1
+                text: groupExpanded ? "▼" : "▶"
+                anchors.verticalCenter: parent.verticalCenter
+                padding: margin
+                font.pixelSize: 10
+                color: util.contrastTo(dRoot.color)
+            }
+
+            // Group header thumbnail preview (when collapsed)
+            Row {
+                id: groupThumbnail
+                visible: isGroupHeader && !groupExpanded && thisColumn == 3
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: margin
+                spacing: 4
+
+                PK.Text {
+                    text: groupEventCount + " event" + (groupEventCount > 1 ? "s" : "")
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: util.contrastTo(dRoot.color)
+                    font.bold: true
+                }
+
+                // Show color dots for events
+                Repeater {
+                    model: Math.min(groupEventColors.length, 5)
+                    Rectangle {
+                        width: 12
+                        height: 12
+                        radius: 6
+                        color: groupEventColors[index]
+                        border.width: 1
+                        border.color: util.QML_ITEM_BORDER_COLOR
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                PK.Text {
+                    visible: groupEventColors.length > 5
+                    text: "+" + (groupEventColors.length - 5)
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: util.contrastTo(dRoot.color)
+                    font.pixelSize: 10
+                }
             }
 
             Shape { // disabled cell indicator
                 id: disabledOverlay
                 anchors.fill: parent
-                visible: dRoot.isDynamicProperty && !dRoot.editable
+                visible: !isGroupHeader && dRoot.isDynamicProperty && !dRoot.editable
                 ShapePath {
                     strokeWidth: 1
                     strokeColor: util.QML_ITEM_BORDER_COLOR
@@ -664,7 +721,7 @@ ColumnLayout {
                 property var thisDisplay: expanded ? model.displayExpanded : model.display
                 text: thisDisplay == undefined ? '' : thisDisplay
                 anchors.verticalCenter: parent.verticalCenter
-                visible: column != 5 || !editMode
+                visible: !isGroupHeader && (column != 5 || !editMode)
                 width: parent.width
                 padding: margin
                 readOnly: !editMode
@@ -712,7 +769,7 @@ ColumnLayout {
             }
 
             Loader {
-                active: editMode && column == 5
+                active: !isGroupHeader && editMode && column == 5
                 sourceComponent: MouseArea  {
                     width: parentBox.implicitWidth
                     height: parentBox.implicitHeight
@@ -742,6 +799,13 @@ ColumnLayout {
                 anchors.fill: parent
                 enabled: !editMode
                 onClicked: {
+                    // Handle group header clicks
+                    if(isGroupHeader) {
+                        root.model.toggleGroupExpanded(thisRow)
+                        return
+                    }
+
+                    // Normal row selection
                     if((mouse.modifiers & Qt.ControlModifier) == Qt.ControlModifier) {
                         selectionModel.select(root.model.index(thisRow, 0), ItemSelectionModel.Toggle | ItemSelectionModel.Rows)
                     } else if((mouse.modifiers & Qt.ShiftModifier) == Qt.ShiftModifier && table.lastClickedRow > -1) {
@@ -772,7 +836,9 @@ ColumnLayout {
                     root.rowClicked(thisRow)
                 }
                 onDoubleClicked: {
-                    if(editable) {
+                    if(isGroupHeader) {
+                        root.model.toggleGroupExpanded(thisRow)
+                    } else if(editable) {
                         shouldEdit = true
                     }
                 }
@@ -787,7 +853,7 @@ ColumnLayout {
                 x: parent.width - this.width - (root.margin / 2) + xOffset
                 fillMode: Image.PreserveAspectFit
                 height: parent.height
-                visible: thisColumn == 3 && model.hasNotes
+                visible: !isGroupHeader && thisColumn == 3 && model.hasNotes
             }   
 
             Component.onCompleted: {

@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
 
 # from sortedcontainers import SortedList
@@ -40,6 +41,38 @@ class TimelineRow:
             return self.event.endDateTime()
         else:
             return self.event.dateTime()
+
+    def __lt__(self, other):
+        if self.dateTime() < other.dateTime():
+            return True
+        elif self.dateTime() > other.dateTime():
+            return False
+        else:
+            return True
+
+
+@dataclass
+class GroupHeaderRow:
+    """Represents a collapsible group of events on the same date."""
+
+    date: QDateTime  # The date for this group (time set to 00:00:00)
+    events: list  # List of events in this group
+    expanded: bool = True  # Whether the group is expanded
+
+    def dateTime(self) -> QDateTime:
+        return self.date
+
+    def eventCount(self) -> int:
+        return len(self.events)
+
+    def eventColors(self) -> list:
+        """Return list of colors for events in this group."""
+        colors = []
+        for event in self.events:
+            color = event.color()
+            if color and color != "transparent":
+                colors.append(color)
+        return colors
 
     def __lt__(self, other):
         if self.dateTime() < other.dateTime():
@@ -116,11 +149,16 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     HasNotesRole = ParentIdRole + 1
     DisplayExpandedRole = HasNotesRole + 1
     TagsRole = DisplayExpandedRole + 1
+    IsGroupHeaderRole = TagsRole + 1
+    GroupExpandedRole = IsGroupHeaderRole + 1
+    GroupEventCountRole = GroupExpandedRole + 1
+    GroupEventColorsRole = GroupEventCountRole + 1
 
     ModelHelper.registerQtProperties(
         [
             {"attr": "dateBuddies", "type": list},
             {"attr": "searchModel", "type": QObject, "default": None},
+            {"attr": "groupByDate", "type": bool, "default": True},
         ]
     )
 
@@ -131,6 +169,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
         self._searchModel = None
+        self._groupByDate = True  # Enable date grouping by default
+        self._expandedGroups = {}  # dict mapping date string to expanded state
         self.initModelHelper()
 
     # def __repr__(self):
@@ -283,27 +323,127 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self.refreshAllProperties()
             self.modelReset.emit()
             return
-        # sort and filter
-        self._rows = SortedList()
+
+        if not self._groupByDate:
+            # Use original flat structure
+            self._rows = SortedList()
+            for event in self._scene.events():
+                self._ensureEvent(event, emit=False)
+            self.refreshAllProperties()
+            self.modelReset.emit()
+            return
+
+        # Collect all timeline rows first
+        all_timeline_rows = []
         for event in self._scene.events():
-            self._ensureEvent(event, emit=False)
+            # Check start event row
+            startRow = TimelineRow(event=event, isEndMarker=False)
+            if not self._shouldHide(startRow):
+                all_timeline_rows.append(startRow)
+
+            # Check end event row
+            if event.endDateTime():
+                endRow = TimelineRow(event=event, isEndMarker=True)
+                if not self._shouldHide(endRow):
+                    all_timeline_rows.append(endRow)
+
+        # Group by date
+        date_groups = defaultdict(list)
+        for timeline_row in all_timeline_rows:
+            dt = timeline_row.dateTime()
+            if dt and not dt.isNull():
+                date_key = dt.date().toString(Qt.ISODate)
+                date_groups[date_key].append(timeline_row)
+
+        # Create grouped structure
+        self._rows = SortedList()
+        for date_key in sorted(date_groups.keys()):
+            rows_for_date = date_groups[date_key]
+            if len(rows_for_date) == 0:
+                continue
+
+            # Get events for this date (deduplicated)
+            events_for_date = []
+            seen_events = set()
+            for row in rows_for_date:
+                if row.event.id not in seen_events:
+                    events_for_date.append(row.event)
+                    seen_events.add(row.event.id)
+
+            # Sort rows by time within the date
+            rows_for_date.sort(key=lambda r: r.dateTime())
+
+            # Create group header
+            first_dt = rows_for_date[0].dateTime()
+            date_only = QDateTime(first_dt.date())
+            expanded = self._expandedGroups.get(date_key, True)  # Default to expanded
+
+            # Only group if there are multiple events on this date
+            if len(events_for_date) > 1:
+                group_header = GroupHeaderRow(
+                    date=date_only, events=events_for_date, expanded=expanded
+                )
+                self._rows.add(group_header)
+
+                # If expanded, add all individual rows
+                if expanded:
+                    for row in rows_for_date:
+                        self._rows.add(row)
+            else:
+                # Single event - don't group, just add the row(s)
+                for row in rows_for_date:
+                    self._rows.add(row)
+
         self.refreshAllProperties()
         self.modelReset.emit()
 
     def rows(self) -> list[TimelineRow]:
         return list(self._rows)
 
+    @pyqtSlot(int)
+    def toggleGroupExpanded(self, row):
+        """Toggle the expanded state of a group header at the given row."""
+        if row < 0 or row >= len(self._rows):
+            return
+
+        row_obj = self._rows[row]
+        if not isinstance(row_obj, GroupHeaderRow):
+            return
+
+        # Toggle the expanded state
+        date_key = row_obj.date.date().toString(Qt.ISODate)
+        current_state = self._expandedGroups.get(date_key, True)
+        self._expandedGroups[date_key] = not current_state
+
+        # Refresh the entire model to show/hide child rows
+        self._refreshRows()
+
     def onSearchChanged(self):
         self._refreshRows()
 
     def onEventAdded(self, event):
-        self._ensureEvent(event)
+        if self._groupByDate:
+            self._refreshRows()
+        else:
+            self._ensureEvent(event)
 
     def onEventChanged(self, prop):
         if self._settingData:
             return
         event = prop.item
-        rows = [self._rows.index(x) for x in self._rows if x.event == event]
+
+        if self._groupByDate:
+            # When grouping is enabled, refresh the entire model for simplicity
+            # This ensures groups are correctly updated when events change
+            if prop.name() in ("person", "dateTime", "endDateTime"):
+                self._refreshRows()
+                return
+
+        rows = [
+            self._rows.index(x)
+            for x in self._rows
+            if isinstance(x, TimelineRow) and x.event == event
+        ]
         try:
             startRow = self._rows.index(event)
         except ValueError:
@@ -361,7 +501,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 )
 
     def onEventRemoved(self, event):
-        self._removeEvent(event)
+        if self._groupByDate:
+            self._refreshRows()
+        else:
+            self._removeEvent(event)
 
     def onPersonRemoved(self, person):
         self._refreshRows()
@@ -451,6 +594,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         ret[self.ParentIdRole] = b"parentId"
         ret[self.HasNotesRole] = b"hasNotes"
         ret[self.TagsRole] = b"tags"
+        ret[self.IsGroupHeaderRole] = b"isGroupHeader"
+        ret[self.GroupExpandedRole] = b"groupExpanded"
+        ret[self.GroupEventCountRole] = b"groupEventCount"
+        ret[self.GroupEventColorsRole] = b"groupEventColors"
         return ret
 
     def rowCount(self, index=QModelIndex()):
@@ -469,11 +616,36 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         # Return None if index is out of bounds or rows is empty
         if index.row() < 0 or index.row() >= len(self._rows):
             return None
-        timelineRow = self._rows[index.row()]
+        row = self._rows[index.row()]
+
+        # Handle GroupHeaderRow
+        if isinstance(row, GroupHeaderRow):
+            if role == self.IsGroupHeaderRole:
+                return True
+            elif role == self.GroupExpandedRole:
+                return row.expanded
+            elif role == self.GroupEventCountRole:
+                return row.eventCount()
+            elif role == self.GroupEventColorsRole:
+                return row.eventColors()
+            elif role == self.DateTimeRole:
+                return row.dateTime()
+            elif self.isColumn(index, self.DATETIME):
+                if role == Qt.DisplayRole:
+                    return util.dateString(row.dateTime())
+                elif role in (self.DisplayExpandedRole, self.DateTimeRole):
+                    return util.dateString(row.dateTime())
+            else:
+                return None
+
+        # Handle regular TimelineRow
+        timelineRow = row
         event = timelineRow.event
         ret = None
         if not self._scene:
             ret = None
+        elif role == self.IsGroupHeaderRole:
+            ret = False
         elif role == self.FlagsRole:
             ret = self.flags(index)
         elif role == self.DateTimeRole:
@@ -548,8 +720,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return super().setData(index, value, role)
         if self._settingData:
             return False
+
+        # Cannot edit group headers
+        row_obj = self._rows[index.row()]
+        if isinstance(row_obj, GroupHeaderRow):
+            return False
+
         self._settingData = True  # block onItemChanged
-        event = self._rows[index.row()].event
+        event = row_obj.event
         success = True
         forceBlockEmit = False
         if self.isColumn(index, self.PERSON):
@@ -616,7 +794,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def flags(self, index):
         ret = 0
         try:
-            event = self._rows[index.row()].event
+            row_obj = self._rows[index.row()]
+            if isinstance(row_obj, GroupHeaderRow):
+                return Qt.ItemFlag.NoItemFlags
+            event = row_obj.event
         except IndexError:
             return Qt.ItemFlag.NoItemFlags
         if self._scene and self._scene.readOnly():
@@ -684,12 +865,17 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(int, result=QVariant)
     def itemForRow(self, row):
         if row >= 0 and row < len(self._rows):
-            event = self._rows[row].event
+            row_obj = self._rows[row]
+            if isinstance(row_obj, GroupHeaderRow):
+                return None
+            event = row_obj.event
             return event.person() if event else None
 
     def rowForEvent(self, event):
         """Only used in tests."""
         for i, row in enumerate(self._rows):
+            if isinstance(row, GroupHeaderRow):
+                continue
             if row.event == event and not row.isEndMarker:
                 return i
         return -1
@@ -697,10 +883,15 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(int, result=QVariant)
     def eventForRow(self, row):
         if row >= 0 and row < len(self._rows):
-            return self._rows[row].event
+            row_obj = self._rows[row]
+            if isinstance(row_obj, GroupHeaderRow):
+                return None
+            return row_obj.event
 
     def timelineRowsFor(self, event: Event) -> list[TimelineRow]:
-        return [x for x in self._rows if x.event == event]
+        return [
+            x for x in self._rows if isinstance(x, TimelineRow) and x.event == event
+        ]
 
     def timelineRow(self, row: int) -> TimelineRow:
         return self._rows[row]
@@ -711,7 +902,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def endRowForEvent(self, event: Event) -> TimelineRow:
         """Return the date buddy to this one."""
         for row in self._rows:
-            if row.event == event and row.isEndMarker:
+            if isinstance(row, TimelineRow) and row.event == event and row.isEndMarker:
                 return row
 
     def indexForEvent(self, event) -> QModelIndex:
@@ -725,7 +916,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     @pyqtSlot(int, result=QDateTime)
     def dateTimeForRow(self, row):
         if row >= 0 and row < len(self._rows):
-            return self._rows[row].dateTime()
+            row_obj = self._rows[row]
+            return row_obj.dateTime()
         else:
             return QDateTime()
 
@@ -826,7 +1018,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             if index.column() > 0:
                 continue
             if index.row() >= 0 and index.row() < len(self._rows):
-                rows_to_delete.append(self._rows[index.row()])
+                row_obj = self._rows[index.row()]
+                # Skip group headers
+                if isinstance(row_obj, GroupHeaderRow):
+                    continue
+                rows_to_delete.append(row_obj)
 
         if not rows_to_delete:
             return
