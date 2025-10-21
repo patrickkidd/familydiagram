@@ -141,6 +141,7 @@
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
     <addaction name="separator"/>
+    <addaction name="actionAI_Arrange"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -1323,6 +1324,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionAI_Arrange">
+   <property name="text">
+    <string>AI Arrange</string>
+   </property>
+   <property name="toolTip">
+    <string>Auto-arrange selected people in the diagram</string>
    </property>
   </action>
  </widget>

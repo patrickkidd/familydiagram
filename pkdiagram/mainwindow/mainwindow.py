@@ -256,6 +256,7 @@ class MainWindow(QMainWindow):
         self.ui.actionCopy.triggered.connect(self.onCopy)
         self.ui.actionCut.triggered.connect(self.onCut)
         self.ui.actionPaste.triggered.connect(self.onPaste)
+        self.ui.actionAI_Arrange.triggered.connect(self.onAIArrange)
         # self.ui.actionOpen_Server_Folder.triggered.connect(self.openServerFolder)
         # View
         self.ui.actionShow_Aliases.toggled[bool].connect(self.onShowAliases)
@@ -1528,6 +1529,21 @@ class MainWindow(QMainWindow):
         release = QKeyEvent(QEvent.KeyRelease, Qt.Key_V, Qt.ControlModifier)
         QApplication.instance().sendEvent(QApplication.activeWindow(), press)
         QApplication.instance().sendEvent(QApplication.activeWindow(), release)
+
+    def onAIArrange(self):
+        """Auto-arrange selected people using intelligent layout algorithm."""
+        from pkdiagram.scene.autoarrange import auto_arrange_selection
+
+        if not self.scene:
+            return
+
+        success = auto_arrange_selection(self.scene)
+        if not success:
+            QMessageBox.information(
+                self,
+                "AI Arrange",
+                "Please select at least 2 people to auto-arrange.",
+            )
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()
