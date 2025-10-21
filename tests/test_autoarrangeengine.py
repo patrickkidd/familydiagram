@@ -249,12 +249,10 @@ def test_auto_arrange_engine_handles_response():
     engine = AutoArrangeEngine(mock_session)
     engine.setScene(scene)
 
-    # Create mock response
+    # Create mock response - simplified format without "positions" wrapper
     mock_response = {
-        "positions": {
-            person1.id: {"x": 50.0, "y": 100.0},
-            person2.id: {"x": 150.0, "y": 100.0},
-        }
+        person1.id: {"x": 50.0, "y": 100.0},
+        person2.id: {"x": 150.0, "y": 100.0},
     }
 
     # Mock the macro context manager

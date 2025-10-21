@@ -88,19 +88,17 @@ Uses the same vedana signature authentication as other endpoints.
 
 ```json
 {
-  "positions": {
-    "person_123": {"x": 110.5, "y": 190.0},
-    "person_456": {"x": 210.5, "y": 190.0},
-    "person_789": {"x": 160.5, "y": 340.0}
-  }
+  "person_123": {"x": 110.5, "y": 190.0},
+  "person_456": {"x": 210.5, "y": 190.0},
+  "person_789": {"x": 160.5, "y": 340.0}
 }
 ```
 
 **Response Schema:**
-- `positions`: Object mapping person IDs to new positions
-  - Each position is an object with `x` and `y` float coordinates
-  - **Only include selected people** (where `selected: true`)
-  - Unselected people should NOT be in the response
+- Simple dictionary mapping person IDs (strings) to position objects
+- Each position is an object with `x` and `y` float coordinates
+- **Only include selected people** (where `selected: true`)
+- Unselected people should NOT be in the response
 
 ## Implementation Notes
 
@@ -146,10 +144,10 @@ def auto_arrange():
         temperature=0.7  # For variety between requests
     )
 
-    # Parse response
-    result = json.loads(llm_response.choices[0].message.content)
+    # Parse LLM response (should be a dict mapping person_id -> {x, y})
+    positions = json.loads(llm_response.choices[0].message.content)
 
-    return jsonify(result)
+    return jsonify(positions)
 ```
 
 ## System Prompt Strategy

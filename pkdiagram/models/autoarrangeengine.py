@@ -56,13 +56,6 @@ class ArrangeRequest:
     session_token: str
 
 
-@dataclass
-class ArrangeResponse:
-    """Response from LLM with new positions."""
-
-    positions: Dict[str, Dict[str, float]]  # person_id -> {x: float, y: float}
-
-
 # System prompt for the LLM
 SYSTEM_PROMPT = """You are an expert at arranging family diagrams with beautiful, readable layouts.
 
@@ -84,13 +77,12 @@ Your task: Rearrange ONLY the selected people to create a clean, well-organized 
 7. Respect unselected people as "anchors" - arrange selected people relative to them
 
 **Output Format:**
-Return ONLY a JSON object with new positions for selected people:
+Return ONLY a JSON object mapping person IDs to their new x,y coordinates:
 ```json
 {
-  "positions": {
-    "person_id_1": {"x": 123.5, "y": 456.7},
-    "person_id_2": {"x": 234.6, "y": 456.7}
-  }
+  "person_id_1": {"x": 123.5, "y": 456.7},
+  "person_id_2": {"x": 234.6, "y": 456.7},
+  "person_id_3": {"x": 160.0, "y": 340.0}
 }
 ```
 
@@ -222,13 +214,11 @@ class AutoArrangeEngine(QObject):
         def onSuccess(data):
             """Handle successful LLM response."""
             try:
-                # Parse response
+                # Parse response - data is the direct dictionary mapping person_id -> {x, y}
                 if isinstance(data, str):
-                    response_data = json.loads(data)
+                    positions = json.loads(data)
                 else:
-                    response_data = data
-
-                positions = response_data.get("positions", {})
+                    positions = data
 
                 # Apply positions with undo support
                 person_map = {p.id: p for p in self._scene.people()}
