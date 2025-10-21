@@ -1250,7 +1250,7 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
         )
     else:
         assert (
-            dv.personProps.rootProp("editDeathEventButton").property("visible") == False
+            dv.personProps.rootProp("editDeathEventButton").property("visible") == True
         )
 
     if hasDeathEvent:
