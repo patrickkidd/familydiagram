@@ -6,8 +6,8 @@ import json
 import contextlib
 
 from ddtrace import patch
-import pytest, mock
-from mock import patch
+import pytest
+from mock import patch, MagicMock
 
 from pkdiagram.pyqt import (
     Qt,
@@ -189,7 +189,7 @@ def test_undo_remove_event(dv, scene):
         util.Date(2003, 1, 1)
     )  # so the flash happens no matter what
     scene.removeItem(event2, undo=True)
-    with mock.patch("pkdiagram.scene.Person.flash") as flash:
+    with patch("pkdiagram.scene.Person.flash") as flash:
         scene.undo()
     assert set(scene.events(onlyDated=True)) == {event2, event1}
     assert flash.call_count == 1
@@ -339,7 +339,7 @@ def test_remove_last_event(scene, dv):
         else:
             self.graphicalTimelineShim.setFixedHeight(0)
 
-    with mock.patch.object(
+    with patch.object(
         DocumentView, "setShowGraphicalTimeline", _setShowGraphicalTimeline
     ):
         person = scene.addItem(Person(name="person"))
@@ -1093,12 +1093,12 @@ def test_show_copilot(qtbot, dv: DocumentView):
 
 def test_print(dv: DocumentView):
     # Prepare a mock QPrinter instance: native output.
-    printer = mock.MagicMock()
+    printer = MagicMock()
     printer.outputFormat.return_value = QPrinter.NativeFormat
     printer.NativeFormat = QPrinter.NativeFormat
 
     # Patch QPrintDialog to return a dummy dialog with exec() returning QDialog.Accepted.
-    dialog = mock.MagicMock()
+    dialog = MagicMock()
     dialog.exec.return_value = QDialog.Accepted
 
     scene = Scene(items=(Person(name="Hey"), Person(name="You")))
@@ -1106,20 +1106,20 @@ def test_print(dv: DocumentView):
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            mock.patch(
+            patch(
                 DocumentController.__module__ + ".QPrinter",
                 return_value=printer,
                 NativeFormat=QPrinter.NativeFormat,
             )
         )
         stack.enter_context(
-            mock.patch(
+            patch(
                 DocumentController.__module__ + ".QPrintDialog",
                 return_value=dialog,
             )
         )
         stack.enter_context(
-            mock.patch.object(DocumentController, "writeJPG", return_value=None)
+            patch.object(DocumentController, "writeJPG", return_value=None)
         )
 
         dv.controller.onPrint()
@@ -1180,3 +1180,103 @@ def test_add_emotion_via_drag(qtbot, scene, dv: DocumentView):
     assert emotion.person() == personA
     assert emotion.target() == personB
     assert emotion.isVisible() == True
+
+
+@pytest.mark.parametrize("hasBirthEvent", [True, False])
+def test_personprops_birth_event_button(
+    qtbot, scene, dv: DocumentView, hasBirthEvent: bool
+):
+    person = scene.addItem(Person(name="TestPerson"))
+    if hasBirthEvent:
+        mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
+        marriage = Marriage(mother, father)
+        scene.addItem(marriage)
+        scene.addItem(
+            Event(
+                EventKind.Birth,
+                mother,
+                spouse=father,
+                child=person,
+                dateTime=util.Date(2000, 1, 1),
+            )
+        )
+
+    person.setSelected(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.personProps
+
+    if hasBirthEvent:
+        assert (
+            dv.personProps.rootProp("editBirthEventButton").property("text")
+            == "→ Edit Birth Event"
+        )
+    else:
+        assert (
+            dv.personProps.rootProp("editBirthEventButton").property("text")
+            == "→ Add Birth"
+        )
+
+    with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
+        dv.eventForm, "addBirthEvent"
+    ) as addBirthEvent:
+        dv.personProps.qml.rootObject().editBirthEvent.emit()
+
+        if hasBirthEvent:
+            assert editEvents.call_count == 1
+            assert addBirthEvent.call_count == 0
+        else:
+            assert addBirthEvent.call_count == 1
+            assert editEvents.call_count == 0
+            assert addBirthEvent.call_args[0][0] == person
+
+
+@pytest.mark.parametrize("hasDeathEvent", [True, False])
+def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeathEvent):
+    person = scene.addItem(Person(name="TestPerson"))
+    if hasDeathEvent:
+        scene.addItem(Event(EventKind.Death, person, dateTime=util.Date(2020, 1, 1)))
+
+    person.setSelected(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.personProps
+
+    if hasDeathEvent:
+        assert (
+            dv.personProps.rootProp("editDeathEventButton").property("visible") == True
+        )
+        assert (
+            dv.personProps.rootProp("editDeathEventButton").property("text")
+            == "→ Edit Death Event"
+        )
+    else:
+        assert (
+            dv.personProps.rootProp("editDeathEventButton").property("visible") == False
+        )
+
+    if hasDeathEvent:
+        with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
+            dv.eventForm, "addDeathEvent"
+        ) as addDeathEvent:
+            dv.personProps.qml.rootObject().editDeathEvent.emit()
+
+            assert editEvents.call_count == 1
+            assert addDeathEvent.call_count == 0
+    else:
+        person.setDeceased(True)
+        dv.personProps.rootProp("personModel").refreshProperty("deceased")
+        assert (
+            dv.personProps.rootProp("editDeathEventButton").property("visible") == True
+        )
+        assert (
+            dv.personProps.rootProp("editDeathEventButton").property("text")
+            == "→ Add Death"
+        )
+
+        with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
+            dv.eventForm, "addDeathEvent"
+        ) as addDeathEvent:
+            dv.personProps.qml.rootObject().editDeathEvent.emit()
+
+            assert addDeathEvent.call_count == 1
+            assert editEvents.call_count == 0
+            assert addDeathEvent.call_args[0][0] == person

@@ -1,5 +1,7 @@
+from typing import Union
+
 from pkdiagram.pyqt import QObject, Qt, qmlRegisterType
-from pkdiagram.scene import EventKind, Item, Marriage
+from pkdiagram.scene import EventKind, Item, Marriage, Property, Event
 from pkdiagram.models import ModelHelper
 
 
@@ -30,10 +32,14 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         super().__init__(parent)
         self.initModelHelper()
 
-    def onEventsChanged(self, event):
+    def onEventsChanged(self, item: Union[Property, Event]):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
+        if isinstance(item, Property):
+            event = prop.item
+        else:
+            event = item
         if event.kind() == EventKind.Married:
             self.refreshProperty("anyMarriedEvents")
         elif event.kind() == EventKind.Separated:

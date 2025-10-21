@@ -1,5 +1,8 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
+- Show adopted button doesn't work
+- Can't edit birth event withotu exception in marriageproperties.onEventsChanged
+- EventForm.inspectEmotionButton shows when editing birth event
 - Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 - Does adding tags to non-event emotions make sense? See if it feels right.
 - Views are totally broken

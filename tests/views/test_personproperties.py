@@ -47,7 +47,8 @@ def view(qtbot, qmlEngine, scene):
     scene.deinit()
 
 
-def test_init_fields(view, scene):
+@pytest.mark.parametrize("editorMode", [True, False])
+def test_init_fields(view, scene, qmlEngine, editorMode: bool):
 
     FIRST_NAME = "Someone"
     MIDDLE_NAME = "Middle"
@@ -77,12 +78,16 @@ def test_init_fields(view, scene):
             hideVariables=False,
         )
     )
+    qmlEngine.sceneModel.onEditorMode(editorMode)
     view.show([person])
 
     assert view.rootProp("firstNameEdit").property("text") == FIRST_NAME
     assert view.rootProp("middleNameEdit").property("text") == MIDDLE_NAME
     assert view.rootProp("lastNameEdit").property("text") == LAST_NAME
+    assert view.rootProp("nickNameEdit").parentItem().property("visible") == editorMode
     assert view.rootProp("nickNameEdit").property("text") == NICK_NAME
+    assert view.rootProp("birthNameEdit").property("visible") == editorMode
+
     assert view.rootProp("birthNameEdit").property("text") == BIRTH_NAME
     assert view.rootProp("sizeBox").property(
         "currentText"

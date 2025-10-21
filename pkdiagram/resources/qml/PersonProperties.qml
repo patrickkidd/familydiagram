@@ -63,6 +63,8 @@ PK.Drawer {
     property var hideVariablesBox: hideVariablesBox
     property var diagramNotesEdit: diagramNotesEdit
     property var layerList: layerList
+    property var editBirthEventButton: editBirthEventButton
+    property var editDeathEventButton: editDeathEventButton
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -233,9 +235,11 @@ PK.Drawer {
                     PK.Text {
                         id: nickNameLabel
                         text: qsTr("Nick Name")
+                        visible: sceneModel.isInEditorMode
                     }
 
                     RowLayout {
+                        visible: sceneModel.isInEditorMode
                         PK.TextField {
                             id: nickNameEdit
                             Layout.fillWidth: true
@@ -260,10 +264,12 @@ PK.Drawer {
                     PK.Text {
                         id: birthNameLabel
                         text: qsTr("Birth Name")
+                        visible: sceneModel.isInEditorMode
                     }
 
                     PK.TextField {
                         id: birthNameEdit
+                        visible: sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         text: sceneModel.showAliases ? '' : personModel.birthName
                         enabled: !root.isReadOnly && !sceneModel.showAliases
@@ -369,26 +375,29 @@ PK.Drawer {
                         visible: editBirthEventButton.visible || editDeathEventButton.visible
                     }
 
-                    PK.Text { text: " " }
+                    Rectangle {
+                        width: 1; height: 1; color: 'transparent'
+                    }
 
                     PK.Button {
                         id: editBirthEventButton
-                        text: "→ Edit Birth Event"
-                        visible: Global.isValidDateTime(personModel.birthDateTime)
-                        Layout.topMargin: margin
+                        text: Global.isValidDateTime(personModel.birthDateTime) ? "→ Edit Birth Event" : "→ Add Birth"
+                        enabled: personModel.items.length < 2
                         onClicked: root.editBirthEvent()
                     }
 
-                    PK.Text { text: " " }
+                    Rectangle {
+                        width: 1; height: 1; color: 'transparent'
+                    }
 
                     PK.Button {
                         id: editDeathEventButton
-                        text: "→ Edit Death Event"
-                        visible: Global.isValidDateTime(personModel.deceasedDateTime)
+                        text: Global.isValidDateTime(personModel.deceasedDateTime) ? "→ Edit Death Event" : "→ Add Death"
+                        enabled: personModel.items.length < 2
                         onClicked: root.editDeathEvent()
                     }
 
-                    PK.FormDivider { Layout.topMargin: 0; Layout.columnSpan: 2 }
+                    PK.FormDivider { Layout.columnSpan: 2 }
 
                     PK.GroupBox {
                         id: diagramSettingsBox

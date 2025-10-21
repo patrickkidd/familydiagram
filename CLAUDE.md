@@ -48,6 +48,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Custom Components**: `pkdiagram/resources/qml/PK/` - reusable QML components (ListView, Button, etc.)
 - **Property System**: `pkdiagram/models/qobjecthelper.py` - dynamic Qt property generation from scene properties
 - **Widget Helpers**: `pkdiagram/widgets/qmlwidgethelper.py` - Python-QML interaction utilities
+- **QML Views Notes**:
+  - QML is basically just used for the right-side drawer in DocumentView. This right-side drawer becomes the mobile app since QML is mobile-compatible.
+  - Every QML view is loaded in a QmlWidgetHelper.
+  - The test framework used QQuickItem.objectName() to access items within a view, whcih is now deprecated. We now correctly create root-level properties in each view and access them from QmlWidgetHelper, e.g. DocumentView.caseProps.qml.rootProp('editButton')
+  
 
 ### Native C++ Integration
 - **_pkdiagram Module**: C++ extension built with SIP providing platform utilities (CUtil, AppFilter, etc.)

@@ -838,14 +838,28 @@ class Person(PathItem):
     def events(self) -> list[Event]:
         """
         Cached list of events to avoid excessive querying of the scene.
+
+        This is expected to always be kept up to date by updateEvents().
         """
         assert self._events is not None
         return self._events
+
+    def birthEvent(self) -> Event:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return self._birthEvent
 
     def birthDateTime(self) -> QDateTime:
         if self._birthEvent:
             return self._birthEvent.dateTime()
         return QDateTime()
+
+    def deathEvent(self) -> Event:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return self._deathEvent
 
     def deceased(self) -> bool:
         if self.prop("deceased").get():

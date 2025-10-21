@@ -266,3 +266,64 @@ def test_PairBond_add_multiple_events_to_new_pairbond(scene, view):
     assert len(events) == 2
     assert events[0].kind() == KIND_2
     assert events[1].kind() == KIND_1
+
+
+@pytest.mark.parametrize("has_parents", [True, False])
+def test_addBirthEvent(scene, view, has_parents):
+    child = scene.addItem(Person(name="Child"))
+
+    if has_parents:
+        mother = scene.addItem(Person(name="Mother"))
+        father = scene.addItem(Person(name="Father"))
+        marriage = scene.addItem(Marriage(mother, father))
+        child.setParents(marriage)
+        assert child.parents() == marriage
+        initial_people_count = 3
+    else:
+        assert child.parents() is None
+        initial_people_count = 1
+
+    assert child.birthEvent() is None
+
+    view.view.addBirthEvent(child)
+
+    assert view.item.property("kind") == EventKind.Birth.value
+    assert view.childPicker.item.property("person") == child
+    assert view.childPicker.item.property("isSubmitted") == True
+
+    view.set_startDateTime(START_DATETIME)
+    view.clickSaveButton()
+
+    birthEvent = child.birthEvent()
+    assert birthEvent is not None
+    assert birthEvent.kind() == EventKind.Birth
+    assert birthEvent.child() == child
+    assert birthEvent.dateTime() == START_DATETIME
+
+    if has_parents:
+        assert birthEvent.person() == mother
+        assert birthEvent.spouse() == father
+        assert len(scene.people()) == initial_people_count
+    else:
+        assert birthEvent.person().gender() == util.PERSON_KIND_FEMALE
+        assert birthEvent.spouse().gender() == util.PERSON_KIND_MALE
+        assert len(scene.people()) == 3
+
+
+def test_addDeathEvent(scene, view):
+    person = scene.addItem(Person(name="TestPerson"))
+
+    assert person.deathEvent() is None
+
+    view.view.addDeathEvent(person)
+
+    assert view.item.property("kind") == EventKind.Death.value
+
+    view.set_startDateTime(START_DATETIME)
+    view.clickSaveButton()
+
+    deathEvent = person.deathEvent()
+    assert deathEvent is not None
+    assert deathEvent.kind() == EventKind.Death
+    assert deathEvent.person() == person
+    assert deathEvent.dateTime() == START_DATETIME

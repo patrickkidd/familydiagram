@@ -122,14 +122,18 @@ Rectangle {
         submitted(person)
     }
 
-    function setNewPerson(personName) {
-        util.debug('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName)
+    function setNewPerson(personName, gender) {
+        // util.info('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName + ', gender: ' + gender)
         root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = true
         root.person = null
         root.personName = personName
-        root.gender = util.PERSON_KIND_MALE
+        if(gender) {
+            root.gender = gender
+        } else {
+            root.gender = util.PERSON_KIND_MALE
+        }
         autoCompletePopup.close()
         submitted(personName)
     }

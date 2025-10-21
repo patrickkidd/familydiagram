@@ -170,7 +170,7 @@ class DocumentController(QObject):
             self.onDeactivateAllLayers
         )
         #
-        self.ui.actionAdd_Anything.toggled[bool].connect(self.dv.showEventForm)
+        self.ui.actionAdd_Anything.toggled[bool].connect(self.dv.onShowEventForm)
         self.ui.actionShow_Diagram.triggered.connect(self.dv.showDiagram)
         self.ui.actionShow_Timeline.toggled[bool].connect(self.dv.showTimeline)
         self.ui.actionShow_Items_with_Notes.toggled.connect(
@@ -366,25 +366,29 @@ class DocumentController(QObject):
     def onEditPersonBirthEvent(self):
         personModel = self.dv.personProps.getPropSheetModel()
         person = personModel.items[0]
-        for event in self.scene.eventsFor(person):
-            if event.kind() == EventKind.Birth:
-                self.dv.showEventForm(event)
-                return
+        birthEvents = person.birthEvent()
+        if birthEvents:
+            self.dv.eventForm.editEvents(birthEvents)
+        else:
+            self.dv.eventForm.addBirthEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventForm)
 
     def onEditPersonDeathEvent(self):
         personModel = self.dv.personProps.getPropSheetModel()
         person = personModel.items[0]
-        for event in self.scene.eventsFor(person):
-            if event.kind() == EventKind.Death:
-                self.dv.showEventForm(event)
-                return
+        deathEvents = person.deathEvent()
+        if deathEvents:
+            self.dv.eventForm.editEvents(deathEvents)
+        else:
+            self.dv.eventForm.addDeathEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventForm)
 
     def onEditEmotionEvent(self):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
         event = emotion.sourceEvent()
-        if event:
-            self.dv.showEventForm(event)
+        self.eventForm.editEvents([event])
+        self.dv.setCurrentDrawer(self.eventForm)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):

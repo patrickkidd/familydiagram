@@ -876,6 +876,15 @@ class Scene(QGraphicsScene, Item):
             size = 1
         return size
 
+    def newPersonName(self, intent: str) -> str:
+        existingNames = set(person.name() for person in self.people())
+        MAX_ATTEMPTS = 20
+        for i in range(2, MAX_ATTEMPTS):
+            candidate = f"{intent} {i}"
+            if candidate not in existingNames:
+                return candidate
+        return intent
+
     def centerAllItems(self):
         """Called from MainWindow.setDocument."""
         delta = self.getPrintRect().center()

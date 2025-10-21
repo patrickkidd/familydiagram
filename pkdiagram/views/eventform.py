@@ -145,6 +145,31 @@ class EventForm(QmlDrawer):
         else:
             self.initWithNoSelection()
 
+    def addBirthEvent(self, child: Person):
+        self.addEvent()
+        self.item.setKind(EventKind.Birth.value)
+        marriage = child.parents()
+        if marriage:
+            self.item.property("spousePicker").setExistingPersonId(
+                marriage.personB().id
+            )
+            self.item.property("personPicker").setExistingPersonId(
+                marriage.personA().id
+            )
+        else:
+            self.item.property("personPicker").setNewPerson(
+                self.scene.newPersonName("Mother"), util.PERSON_KIND_FEMALE
+            )
+            self.item.property("spousePicker").setNewPerson(
+                self.scene.newPersonName("Father"), util.PERSON_KIND_MALE
+            )
+        self.item.property("childPicker").setExistingPersonId(child.id)
+
+    def addDeathEvent(self, person: Person):
+        self.addEvent()
+        self.item.setKind(EventKind.Death.value)
+        self.item.property("personPicker").setExistingPersonId(person.id)
+
     def editEvents(self, events: Union[list[Event], Event]):
         """
         Only populate fields where all events agree.
