@@ -553,10 +553,16 @@ class GraphicalTimelineCanvas(QWidget):
                         painter.setPen(selectedPen)
                         painter.setBrush(selectedBrush)
                     elif timelineRow.event.color():
-                        eventColor = QColor(timelineRow.event.color())
-                        # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
-                        painter.setPen(eventColor)
-                        painter.setBrush(eventColor)
+                        color = timelineRow.event.color()
+                        # defensive against defaults that are not quite right, and for dark/light mode.
+                        if color in ("transparent", "#ffffff", "#000000"):
+                            painter.setPen(normalPen)
+                            painter.setBrush(normalBrush)
+                        else:
+                            eventColor = QColor(color)
+                            # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
+                            painter.setPen(eventColor)
+                            painter.setBrush(eventColor)
                     # elif event.nodal():
                     #     # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                     #     painter.setPen(nodalPen)
