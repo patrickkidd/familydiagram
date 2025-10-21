@@ -26,14 +26,16 @@ _log = logging.getLogger(__name__)
 
 @dataclass
 class PersonState:
-    """State of a single person in the diagram."""
+    """State of a single person in the diagram.
+
+    Note: x, y coordinates represent the CENTER of the person's rectangle.
+    """
 
     id: str  # Person's unique ID
-    x: float  # X coordinate in scene
-    y: float  # Y coordinate in scene
-    size: int  # Person size (affects bounding rect scale)
-    width: float  # Calculated bounding rect width
-    height: float  # Calculated bounding rect height
+    x: float  # X coordinate of CENTER of person's rectangle
+    y: float  # Y coordinate of CENTER of person's rectangle
+    width: float  # Bounding rect width
+    height: float  # Bounding rect height
     name: str  # Person's name (for LLM context)
     gender: str  # 'male', 'female', or 'person'
     selected: bool  # Whether this person is selected for rearrangement
@@ -60,8 +62,8 @@ class ArrangeRequest:
 SYSTEM_PROMPT = """You are an expert at arranging family diagrams with beautiful, readable layouts.
 
 You will receive a JSON description of people in a family diagram with:
-- Their current x,y positions (floating point coordinates)
-- Their size and bounding rectangle dimensions
+- Their current x,y positions (floating point coordinates representing the CENTER of each person's rectangle)
+- Their width and height (bounding rectangle dimensions)
 - Their relationships (marriages, parent-child)
 - Whether they are selected for rearrangement
 
@@ -71,13 +73,18 @@ Your task: Rearrange ONLY the selected people to create a clean, well-organized 
 1. ONLY move people where "selected": true - NEVER change positions of unselected people
 2. Keep married couples horizontally adjacent (male typically left, female right)
 3. Position children below their parents
-4. Use proper spacing based on person sizes (use their width/height dimensions)
+4. Use proper spacing based on person dimensions (width/height)
 5. Minimize line crossings for marriage and parent-child connections
 6. Maintain generational levels (grandparents above parents above children)
 7. Respect unselected people as "anchors" - arrange selected people relative to them
 
+**Important Coordinate System:**
+- The x,y coordinates represent the CENTER of each person's rectangle
+- When calculating spacing, use the width/height to ensure people don't overlap
+- For example, if two people are side-by-side, their x coordinates should differ by at least (person1.width + person2.width) / 2
+
 **Output Format:**
-Return ONLY a JSON object mapping person IDs to their new x,y coordinates:
+Return ONLY a JSON object mapping person IDs to their new x,y CENTER coordinates:
 ```json
 {
   "person_id_1": {"x": 123.5, "y": 456.7},
@@ -87,7 +94,7 @@ Return ONLY a JSON object mapping person IDs to their new x,y coordinates:
 ```
 
 **Important:**
-- Use precise floating-point coordinates
+- Use precise floating-point coordinates for the CENTER of each person's rectangle
 - Only include selected people in your response
 - Consider the visual flow: top to bottom = older to younger generation
 - Use the person's width/height to calculate appropriate spacing
@@ -141,7 +148,7 @@ def _build_diagram_state(scene: Scene) -> List[PersonState]:
 
     # Build person states
     for person in people:
-        pos = person.scenePos()
+        pos = person.scenePos()  # This is the center of the person's rectangle
         size = person.size()
         rect = util.personRectForSize(size)
 
@@ -149,7 +156,6 @@ def _build_diagram_state(scene: Scene) -> List[PersonState]:
             id=person.id,
             x=pos.x(),
             y=pos.y(),
-            size=size,
             width=rect.width(),
             height=rect.height(),
             name=person.name() or f"Person_{person.id}",

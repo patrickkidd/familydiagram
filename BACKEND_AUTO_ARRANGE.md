@@ -23,7 +23,6 @@ Uses the same vedana signature authentication as other endpoints.
       "id": "person_123",
       "x": 100.5,
       "y": 200.3,
-      "size": 3,
       "width": 80.0,
       "height": 80.0,
       "name": "John Doe",
@@ -37,7 +36,6 @@ Uses the same vedana signature authentication as other endpoints.
       "id": "person_456",
       "x": 180.5,
       "y": 200.3,
-      "size": 3,
       "width": 80.0,
       "height": 80.0,
       "name": "Jane Doe",
@@ -51,7 +49,6 @@ Uses the same vedana signature authentication as other endpoints.
       "id": "person_789",
       "x": 140.5,
       "y": 320.3,
-      "size": 3,
       "width": 80.0,
       "height": 80.0,
       "name": "Child Doe",
@@ -65,16 +62,17 @@ Uses the same vedana signature authentication as other endpoints.
 }
 ```
 
+**Note:** The `x` and `y` coordinates represent the **CENTER** of each person's bounding rectangle.
+
 ## Person Object Schema
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique identifier for the person |
-| `x` | float | Current X coordinate in scene |
-| `y` | float | Current Y coordinate in scene |
-| `size` | int | Person size setting (affects visual scale) |
-| `width` | float | Calculated bounding rectangle width |
-| `height` | float | Calculated bounding rectangle height |
+| `x` | float | X coordinate of CENTER of person's rectangle |
+| `y` | float | Y coordinate of CENTER of person's rectangle |
+| `width` | float | Bounding rectangle width |
+| `height` | float | Bounding rectangle height |
 | `name` | string | Person's display name |
 | `gender` | string | One of: "male", "female", "person" |
 | `selected` | boolean | **True if should be rearranged, False if fixed** |

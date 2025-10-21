@@ -37,7 +37,6 @@ def test_person_state_creation():
         id="test_123",
         x=100.0,
         y=200.0,
-        size=3,
         width=80.0,
         height=80.0,
         name="Test Person",
@@ -49,8 +48,10 @@ def test_person_state_creation():
     )
 
     assert state.id == "test_123"
-    assert state.x == 100.0
-    assert state.y == 200.0
+    assert state.x == 100.0  # Center of rectangle
+    assert state.y == 200.0  # Center of rectangle
+    assert state.width == 80.0
+    assert state.height == 80.0
     assert state.selected is True
     assert state.is_married_to == "test_456"
     assert len(state.children_ids) == 1
@@ -181,7 +182,6 @@ def test_auto_arrange_engine_sends_request(mock_build_state):
             id=person1.id,
             x=0.0,
             y=0.0,
-            size=3,
             width=80.0,
             height=80.0,
             name="Person 1",
@@ -192,7 +192,6 @@ def test_auto_arrange_engine_sends_request(mock_build_state):
             id=person2.id,
             x=100.0,
             y=0.0,
-            size=3,
             width=80.0,
             height=80.0,
             name="Person 2",
