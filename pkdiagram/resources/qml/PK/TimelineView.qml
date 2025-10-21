@@ -565,6 +565,7 @@ ColumnLayout {
             property bool shouldEdit: false
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
+            property bool isDynamicProperty: thisColumn >= 10
             property bool selected: {
                 selectionResetter
                 util.isRowSelected(selectionModel, thisRow)
@@ -608,8 +609,6 @@ ColumnLayout {
                     else
                         c = util.QML_ITEM_BG
                 }
-                /* else if(!dRoot.editable) */
-                /*     c = 'transparent' // '#77dddddd' */
                 color = c
             }
 
@@ -645,6 +644,19 @@ ColumnLayout {
                 visible: thisColor ? true : false
             }
 
+            Shape { // disabled cell indicator
+                id: disabledOverlay
+                anchors.fill: parent
+                visible: dRoot.isDynamicProperty && !dRoot.editable
+                ShapePath {
+                    strokeWidth: 1
+                    strokeColor: util.QML_ITEM_BORDER_COLOR
+                    fillColor: "transparent"
+                    PathLine { x: 0; y: 0 }
+                    PathLine { x: dRoot.width; y: dRoot.height }
+                }
+            }
+
             // Editors
 
             PK.TextInput {
@@ -657,6 +669,7 @@ ColumnLayout {
                 padding: margin
                 readOnly: !editMode
                 selectByMouse: !readOnly
+                opacity: (dRoot.isDynamicProperty && !dRoot.editable) ? 0.5 : 1.0
                 color: {
                     if(dRoot.selected || dRoot.current) {
                         return util.textColor(dRoot.selected, dRoot.current)

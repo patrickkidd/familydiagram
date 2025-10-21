@@ -1,5 +1,7 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
+- beta releases are checking release app cast
+- Make variables uneditable in timeline when not shown in EventForm
 - colored ellipses in graphical timeline are smaller than normal.
 - Does adding tags to non-event emotions make sense? See if it feels right.
   - Or just allow adding to layers

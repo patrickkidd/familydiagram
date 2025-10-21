@@ -628,7 +628,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         else:
             if event.person() is None:  # being removed, so pass
                 pass
-            elif self.dynamicPropertyAttr(index):
+            elif self.dynamicPropertyAttr(index) and event.kind() == EventKind.Shift:
                 ret |= Qt.ItemIsEditable
             if event.kind() != EventKind.Shift:
                 pass
