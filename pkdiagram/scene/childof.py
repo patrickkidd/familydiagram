@@ -117,15 +117,6 @@ class ChildOf(PathItem):
 
     ## Internal Data
 
-    def updatePen(self):
-        super().updatePen()
-        if self.hover:
-            pen = QPen(util.HOVER_PEN)
-        else:
-            pen = QPen(util.PEN)
-        pen.setCapStyle(self.penCapStyle)
-        self.setPen(pen)
-
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
         """
         Just link to whether the parents are shown.
@@ -143,7 +134,7 @@ class ChildOf(PathItem):
         super().updatePen()
         pen = QPen(util.PEN)
         if self.person:
-            if self.person.adopted():
+            if self.person.adopted() or self.person.adoptedEvents():
                 pen.setStyle(Qt.DashLine)
             else:
                 pen.setStyle(Qt.SolidLine)

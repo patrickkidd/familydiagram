@@ -855,6 +855,12 @@ class Person(PathItem):
             return self._birthEvent.dateTime()
         return QDateTime()
 
+    def adoptedEvents(self) -> list[Event]:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return list(self._adoptedEvents)
+
     def deathEvent(self) -> Event:
         """
         This is expected to always be kept up to date by updateEvents().

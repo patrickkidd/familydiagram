@@ -752,6 +752,7 @@ void PathItemBase::updatePathItemData()
         m_shape = CUtil::strokedPath(m_shape, pen);
     }
     m_boundingRect = m_shape.controlPointRect();
+    this->update();
 }
 
 void PathItemBase::setPath(const QPainterPath &path)
