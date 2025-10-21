@@ -233,29 +233,29 @@ def test_FannedBox_peers_multiple(scene):
     assert toward.peers() == {projection}
 
 
-def test_FannedBox_peers_different_tags():
-    ## TODO: Not sure if emotions respond to tags?
-    scene = Scene(tags=["tag-1"])
-    searchModel = SearchModel()
-    searchModel.scene = scene
-    searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
+def test_FannedBox_peers_different_layers(scene):
+    layer = scene.addItem(Layer(name="View 1"))
     personA, personB = scene.addItems(Person(), Person())
+    personA.setLayers([layer])
     fusion, projection = scene.addItems(
         Emotion(RelationshipKind.Fusion, personB, person=personA),
-        Emotion(RelationshipKind.Projection, personB, person=personA, tags=["tag-1"]),
+        Emotion(RelationshipKind.Projection, personB, person=personA),
     )
+    personA.setLayers([layer.id])
+    personB.setLayers([layer.id])
+    projection.setLayers([layer.id])
     assert fusion.peers() == {projection}
     assert projection.peers() == {fusion}
     assert fusion.isVisible() == True
     assert projection.isVisible() == True
 
-    searchModel.setTags(["tag-1"])
+    layer.setActive(True)
     assert fusion.peers() == set()
     assert projection.peers() == set()
     assert fusion.isVisible() == False
     assert projection.isVisible() == True
 
-    searchModel.setTags([])
+    layer.setActive(False)
     assert fusion.peers() == {projection}
     assert projection.peers() == {fusion}
     assert fusion.isVisible() == True
@@ -327,26 +327,6 @@ def test_shouldShowFor():
     personB.setTags(["tags1"])
     conflict.setTags(["tags2"])
     assert conflict.shouldShowFor(QDateTime()) == True
-
-
-def test_honors_searchModel_tags():
-    TAGS = ["triangle"]
-    scene = Scene()
-    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
-    conflict = scene.addItem(
-        Emotion(RelationshipKind.Conflict, personB, person=personA, tags=TAGS)
-    )
-    searchModel = SearchModel()
-    searchModel.scene = scene
-    searchModel.tags = TAGS
-    searchModel.tagsChanged.connect(lambda x: scene.setActiveTags(x))
-    assert conflict.isVisible() == True
-
-    searchModel.tags = ["nowhere"]
-    assert conflict.isVisible() == False
-
-    searchModel.tags = TAGS
-    assert conflict.isVisible() == True
 
 
 def test_honors_searchModel_tags_plus_dates():
@@ -550,3 +530,69 @@ def test_emotion_properties_fallback_without_event():
     assert (
         emotion.intensity() == util.DEFAULT_EMOTION_INTENSITY
     )  # Uses local property default
+
+
+def test_emotion_honors_layers_for_user_drawn():
+    scene = Scene()
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    layer1, layer2 = scene.addItems(Layer(name="Layer 1"), Layer(name="Layer 2"))
+
+    personA.setLayers([layer1.id, layer2.id])
+    personB.setLayers([layer1.id, layer2.id])
+
+    userDrawnEmotion = scene.addItem(
+        Emotion(RelationshipKind.Conflict, personB, person=personA)
+    )
+
+    userDrawnEmotion.setLayers([layer1.id])
+    assert userDrawnEmotion.layers() == [layer1.id]
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer1]) == True
+    )
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer2]) == False
+    )
+
+    userDrawnEmotion.setLayers([layer1.id, layer2.id])
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer1]) == True
+    )
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer2]) == True
+    )
+
+    userDrawnEmotion.setLayers([])
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer1]) == False
+    )
+    assert (
+        userDrawnEmotion.shouldShowFor(util.Date(2020, 1, 1), layers=[layer2]) == False
+    )
+
+
+def test_emotion_ignores_layers_for_event_based():
+    scene = Scene()
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    layer1, layer2 = scene.addItems(Layer(name="Layer 1"), Layer(name="Layer 2"))
+
+    personA.setLayers([layer1.id, layer2.id])
+    personB.setLayers([layer1.id, layer2.id])
+
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    eventEmotion = scene.emotionsFor(event)[0]
+
+    eventEmotion.setLayers([layer1.id])
+    assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer1]) == True
+    assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer2]) == True
+
+    eventEmotion.setLayers([])
+    assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer1]) == True
+    assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer2]) == True

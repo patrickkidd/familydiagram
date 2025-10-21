@@ -1,5 +1,6 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
+- colored ellipses in graphical timeline are smaller than normal.
 - Does adding tags to non-event emotions make sense? See if it feels right.
   - Or just allow adding to layers
 - Can add emotion symbols when editing relationship field on existing events?

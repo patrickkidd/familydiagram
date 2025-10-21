@@ -1173,6 +1173,8 @@ class Emotion(PathItem):
             {"attr": "person", "type": int, "default": None},  # drawing mode
             {"attr": "color", "type": str, "default": Item.newColor},
             {"attr": "notes", "type": str, "default": ""},
+            # Only honored when no event is set (drawing mode)
+            {"attr": "layers", "default": []},  # [id, id, id]
         ]
     )
 
@@ -1230,6 +1232,9 @@ class Emotion(PathItem):
             assert person is None, "Either person or event can be passed, but not both"
         elif person:
             assert event is None, "Either person or event can be passed, but not both"
+        assert (
+            "layers" not in kwargs
+        ), 'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
 
         self.isInit = False
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
@@ -1242,6 +1247,7 @@ class Emotion(PathItem):
         self.setEvent(event)
         self._target: "Person | None" = target
         self._person: "Person | None" = person  # Drawing mode
+        self._layers = []  # cache for &.prop('layers')
         # self.hoverTimer = QTimer(self)
         # self.hoverTimer.setInterval(500)
         # self.hoverTimer.timeout.connect(self.onHoverTimer)
@@ -1396,12 +1402,21 @@ class Emotion(PathItem):
         chunk["target"] = self._target.id if self._target else None
         chunk["event"] = self._event.id if self._event else None
         chunk["person"] = self._person.id if self._person else None
+        chunk["layers"] = [l.id for l in self._layers if not l.internal()]
 
     def read(self, chunk, byId):
         super().read(chunk, byId)
         self._person = byId(chunk.get("person", None))
         self._target = byId(chunk.get("target", None))
         self._event = byId(chunk.get("event", None))
+        self._layers = []
+        for layerId in self.layers():
+            layer = byId(layerId)
+            if not layer:
+                _log.warning("Emotion.read: layer not found: %s" % layerId)
+                continue
+            self._layers.append(layer)
+        self.prop("layers").set([x.id for x in self._layers])
 
     ## Cloning
 
@@ -1437,6 +1452,13 @@ class Emotion(PathItem):
             return True
         if self.scene().hideEmotionalProcess() is True:
             return False
+        # Check layer membership for non-event emotions on
+        if (
+            not self._event
+            and layers
+            and not set(layers).intersection(set(self._layers))
+        ):
+            return False
         # Check if person and target should be shown
         if self.person() and not self.person().shouldShowFor(
             dateTime, tags=tags, layers=layers
@@ -1446,7 +1468,7 @@ class Emotion(PathItem):
             dateTime, tags=tags, layers=layers
         ):
             return False
-        if not self.hasTags(tags):
+        if tags and self._event and not self._event.hasTags(tags):
             return False
         # Check date range via event if present
         on = False
@@ -1516,14 +1538,12 @@ class Emotion(PathItem):
             else:
                 # defensive
                 color = self.color()
-                if (
-                    color is None or color == QColor(Qt.GlobalColor.white).name()
-                ) and util.IS_UI_DARK_MODE:
-                    color = "#ffffff"  # white in dark mode
-                elif (
-                    color is None or color == QColor(Qt.GlobalColor.black).name()
-                ) and not util.IS_UI_DARK_MODE:
-                    color = "#000000"  # black in light mode
+                if color in (None, "transparent", "#ffffff", "#000000"):
+                    # default
+                    if util.IS_UI_DARK_MODE:
+                        color = "#ffffff"  # white in dark mode
+                    else:
+                        color = "#000000"  # black in light mode
                 pen.setColor(QColor(color))
         self.setPen(pen)
 
@@ -1704,6 +1724,20 @@ class Emotion(PathItem):
         super().onProperty(prop)
         if prop.name() in ("tags", "color", "intensity"):
             self.updateAll()
+        elif prop.name() == "layers":
+            if self.scene():
+                self._layers = []
+                for layerId in prop.get():
+                    layer = self.scene().find(id=layerId)
+                    if not layer:
+                        _log.warning(
+                            f"Emotion.onProperty[layers]: layer not found: {layerId}"
+                        )
+                        continue
+                    self._layers.append(layer)
+                self.onActiveLayersChanged()
+            else:
+                self._layers = []
 
     def kind(self) -> RelationshipKind:
         return RelationshipKind(self.prop("kind").get())

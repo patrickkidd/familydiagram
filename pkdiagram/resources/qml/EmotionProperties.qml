@@ -35,7 +35,6 @@ Page {
     property var intensityBox: intensityBox
     property var colorBox: colorBox
     property var notesEdit: notesEdit
-    property var tagsList: tagsList
 
     property bool isReadOnly: (sceneModel && sceneModel.readOnly) ? true : false
     property bool canInspect: false
@@ -153,6 +152,7 @@ Page {
                         }
 
                         PK.HelpText {
+                            visible: root.hasEvent
                             text: "This relationship symbol was automatically created by an event, so you can edit the intensity, color, etc from there."
                         }
 
@@ -188,7 +188,7 @@ Page {
                         model: util.EMOTION_INTENSITY_NAMES
                         currentIndex: emotionModel.intensityIndex
                         KeyNavigation.tab: colorBox
-                        KeyNavigation.backtab: tagsList
+                        KeyNavigation.backtab: inspectEventButton
                         onCurrentIndexChanged: emotionModel.intensityIndex = currentIndex
                     }
 
@@ -233,18 +233,21 @@ Page {
                         Layout.columnSpan: 2
                     }
 
-                    PK.Text { text: "Tags"; visible: ! root.hasEvent && sceneModel.isInEditorMode }
+                    PK.Text {
+                        text: "Views"
+                        visible: ! root.hasEvent && sceneModel.isInEditorMode
+                    }
 
-                    PK.ActiveListEdit {
-                        id: tagsList
+                    PK.ItemLayerList {
+                        id: layerList
                         visible: ! root.hasEvent && sceneModel.isInEditorMode
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 200
                         Layout.maximumHeight: 200
-                        model: TagsModel {
+                        model: LayerItemLayersModel {
                             scene: sceneModel.scene
-                            items: emotionModel.items
+                            items: emotionModel.items ? emotionModel.items : []
                         }
                     }
 

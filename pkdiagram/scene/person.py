@@ -302,10 +302,9 @@ class Person(PathItem):
         self.detailsText.setParentRequestsToShow(False)
         if not "alias" in kwargs:
             self.initAlias()
-        if "layers" in kwargs:
-            raise KeyError(
-                'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
-            )
+        assert (
+            "layers" not in kwargs
+        ), 'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
         self.isInit = True
 
     def initialDetailsPos(self):

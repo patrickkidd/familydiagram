@@ -408,7 +408,7 @@ class Scene(QGraphicsScene, Item):
             if not self.isBatchAddingRemovingItems():
                 item.updateDetails()
             if not self.isBatchAddingRemovingItems():
-                item.setLayers([x.id for x in self.activeLayers()])
+                item.setLayers([x.id for x in self.activeLayers(includeInternal=False)])
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
             if self.marriageFor(item.personA(), item.personB()):
@@ -518,6 +518,7 @@ class Scene(QGraphicsScene, Item):
             if item.target():
                 item.target().updateEmotions()
             if not self.isBatchAddingRemovingItems():
+                item.setLayers([x.id for x in self.activeLayers(includeInternal=False)])
                 self.emotionAdded.emit(item)
         elif item.isLayer:
             self._layers.append(item)
@@ -536,7 +537,9 @@ class Scene(QGraphicsScene, Item):
                     layer = Layer(name="View 1", active=True)
                     self.addItem(layer)
                 if not item.layers():
-                    layerIds = [layer.id for layer in self.activeLayers()]
+                    layerIds = [
+                        layer.id for layer in self.activeLayers(includeInternal=False)
+                    ]
                     if not layerIds:
                         raise RuntimeError(
                             "Cannot add a LayerItem if there are no active layers."
@@ -817,6 +820,8 @@ class Scene(QGraphicsScene, Item):
                 for item in self._batchAddedItems + self._batchRemovedItems:
                     if item.isMarriage:
                         item.emotionalUnit().update()
+                    if item.isPerson:
+                        item.updateEmotions()
                 self.updateAll()
                 self.checkPrintRectChanged()
                 # maybe move these into updateAll()
@@ -1106,7 +1111,6 @@ class Scene(QGraphicsScene, Item):
                     erroredOut.append(item)
             for person in self._people:
                 person.updateEvents()
-                person.updateEmotions()
             for marriage in self._marriages:
                 marriage.updateEvents()
             with self.macro(

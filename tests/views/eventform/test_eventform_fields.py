@@ -209,7 +209,9 @@ def test_inspectEmotionButton_hidden_when_relationship_not_set(scene, view):
 
 def test_inspectEmotionButton_visible_when_shift_and_relationship_set(scene, view):
     person = scene.addItem(Person(name="Jane", lastName="Doe"))
-    event = scene.addItem(Event(EventKind.Shift, person))
+    event = scene.addItem(
+        Event(EventKind.Shift, relationship=RelationshipKind.Conflict, person=person)
+    )
     event.setRelationship(RelationshipKind.Conflict)
     event.setDateTime(util.Date(2023, 1, 1))
     view.view.editEvents(event)

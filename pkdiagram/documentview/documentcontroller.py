@@ -387,8 +387,8 @@ class DocumentController(QObject):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
         event = emotion.sourceEvent()
-        self.eventForm.editEvents([event])
-        self.dv.setCurrentDrawer(self.eventForm)
+        self.dv.eventForm.editEvents([event])
+        self.dv.setCurrentDrawer(self.dv.eventForm)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):

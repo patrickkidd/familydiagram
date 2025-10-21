@@ -21,11 +21,28 @@ from pkdiagram.scene import (
     Event,
     Marriage,
     Item,
+    Property,
 )
 from pkdiagram.models import TagsModel
 from pkdiagram.views import QmlDrawer
 
 _log = logging.getLogger(__name__)
+
+
+class TagsProxyItem(Item):
+    def __init__(self, proxy: Item = None):
+        super().__init__()
+        self.originalTags = proxy.tags()
+        self._proxy = proxy
+        self.editedTags = None
+
+    def tags(self) -> list[str]:
+        """Callback"""
+        return self._proxy.tags()
+
+    def onProperty(self, prop: Property):
+        if prop.name() == "tags":
+            self.editedTags = prop.get()
 
 
 class EventForm(QmlDrawer):
@@ -71,7 +88,7 @@ class EventForm(QmlDrawer):
             **contextProperties,
         )
         self._events = []
-        self._dummyItem = None
+        self._dummyItems = []
         self._tagsModel: TagsModel | None = None
 
         # self.startTimer(1000)
@@ -130,9 +147,9 @@ class EventForm(QmlDrawer):
         self.item.setProperty("isEditing", False)
         self.item.setProperty("events", [])
         self._events = []
-        self._dummyItem = Item()
-        self.scene.addItem(self._dummyItem)
-        self._tagsModel.items = [self._dummyItem]
+        self._dummyItems = [Item()]
+        self.scene.addItem(self._dummyItems[0])
+        self._tagsModel.items = self._dummyItems
         if selection:
             people = [x for x in selection if x.isPerson]
             marriages = [x for x in selection if x.isMarriage]
@@ -282,9 +299,9 @@ class EventForm(QmlDrawer):
         if color:
             self.item.property("colorBox").setProperty("color", color)
 
-        self._dummyItem = Item()
-        self.scene.addItem(self._dummyItem)
-        self._tagsModel.items = [self._dummyItem]
+        self._dummyItems = [TagsProxyItem(x) for x in events]
+        self.scene.addItems(*self._dummyItems)
+        self._tagsModel.items = self._dummyItems
 
     def onDone(self):
 
@@ -647,11 +664,9 @@ class EventForm(QmlDrawer):
                 if color is not None and color != event.color():
                     event.setColor(color, undo=True)
                 # Tags
-                current_tags = set(event.tags())
-                current_tags -= set(uncheckedTags)
-                current_tags |= set(checkedTags)
-                if current_tags != set(event.tags()):
-                    event.setTags(list(current_tags), undo=True)
+                tagsProxy = next(x for x in self._dummyItems if x._proxy == event)
+                if set(tagsProxy.editedTags) != set(tagsProxy.originalTags):
+                    event.setTags(tagsProxy.editedTags, undo=True)
 
         else:
 
@@ -885,6 +900,6 @@ class EventForm(QmlDrawer):
         # if self._events and isinstance(self._events[0], DummyEvent):
         #     self.scene.removeItem(self._events[0])
         self._events = []
-        self.scene.removeItem(self._dummyItem)
-        self._dummyItem = None
+        self.scene.removeItems(self._dummyItems)
+        self._dummyItems = []
         self._tagsModel.items = []
