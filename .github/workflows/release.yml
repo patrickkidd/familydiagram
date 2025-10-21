@@ -128,7 +128,7 @@ jobs:
       run: |
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         # mkdir -p ~/.pyqtdeploy/cache
-        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
+        wget -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
         wget https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
@@ -457,13 +457,13 @@ jobs:
         run: |
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cl.exe /? || echo "MSVC compiler not found"
-          echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
-          curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
+          echo "Downloading https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
+          curl -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
 
           echo "Downloading https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz"
           curl -L "https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz" -o "sysroot/PyQt5-5.15.11.tar.gz"
 
-          REM powershell -Command "Invoke-WebRequest 'https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
+          REM powershell -Command "Invoke-WebRequest 'https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
           REM powershell -Command "Invoke-WebRequest 'https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz' -OutFile 'sysroot/PyQt5-5.15.11.tar.gz'"
 
           cd _pkdiagram
