@@ -640,7 +640,7 @@ PK.Drawer {
                     PK.Button {
                         id: inspectEmotionButton
                         text: "→ Inspect Symbol(s)"
-                        visible: relationshipField.value !== undefined && root.events.length == 1
+                        visible: relationshipField.value && root.events.length == 1
                         onClicked: root.inspectEmotions(root.events[0])
                     }
 
