@@ -1531,19 +1531,61 @@ class MainWindow(QMainWindow):
         QApplication.instance().sendEvent(QApplication.activeWindow(), release)
 
     def onAIArrange(self):
-        """Auto-arrange selected people using intelligent layout algorithm."""
-        from pkdiagram.scene.autoarrange import auto_arrange_selection
+        """Auto-arrange selected people using LLM-based layout."""
+        from pkdiagram.models.autoarrangeengine import AutoArrangeEngine
 
         if not self.scene:
             return
 
-        success = auto_arrange_selection(self.scene)
-        if not success:
+        selected = self.scene.selectedPeople()
+        if len(selected) < 2:
             QMessageBox.information(
                 self,
                 "AI Arrange",
                 "Please select at least 2 people to auto-arrange.",
             )
+            return
+
+        # Check if logged in / server available
+        if not self.session.isLoggedIn():
+            QMessageBox.warning(
+                self,
+                "AI Arrange",
+                "You must be logged in to use AI Arrange. Please log in and try again.",
+            )
+            return
+
+        # Create engine and connect signals
+        engine = AutoArrangeEngine(self.session)
+        engine.setScene(self.scene)
+
+        def onResponse(numArranged):
+            QMessageBox.information(
+                self,
+                "AI Arrange",
+                f"Successfully arranged {numArranged} people.",
+            )
+
+        def onError(error_msg):
+            QMessageBox.warning(
+                self,
+                "AI Arrange Error",
+                f"Failed to arrange people: {error_msg}",
+            )
+
+        def onServerDown():
+            QMessageBox.warning(
+                self,
+                "AI Arrange",
+                "Could not connect to server. Please check your internet connection.",
+            )
+
+        engine.responseReceived.connect(onResponse)
+        engine.serverError.connect(onError)
+        engine.serverDown.connect(onServerDown)
+
+        # Trigger the arrangement
+        engine.arrange()
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()
