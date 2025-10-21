@@ -530,12 +530,12 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "Helvetica65Medium_22443.ttf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "HelveticaNeueBold.otf"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
@@ -959,17 +959,22 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "EventForm.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
 name = "CaseProperties.qml"
 included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "CopilotView.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "EmotionProperties.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "EventForm.qml"
 included = true
 is_directory = false
 
@@ -1118,11 +1123,6 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "EmotionProperties.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
 name = "FDListView.qml"
 included = true
 is_directory = false
@@ -1174,7 +1174,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "ListView.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
@@ -1278,11 +1278,6 @@ name = "SearchDialog.qml"
 included = true
 is_directory = false
 
-[[Application.Package.Content.Content.Content]]
-name = "TestDialog.qml"
-included = false
-is_directory = false
-
 
 [[Application.Package.Content.Content]]
 name = "reciprocity.png"
@@ -1336,6 +1331,8 @@ is_directory = false
 name = "TimelineViewTest.qml"
 included = false
 is_directory = false
+
+
 
 [[Application.Package.Content.Content]]
 name = "timeline-button.png"
@@ -1403,6 +1400,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "CLAUDE.md"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "clipboard.py"
 included = true
 is_directory = false
@@ -1449,6 +1451,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "itemgarbage.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "itemmode.py"
 included = true
 is_directory = false
 
@@ -1553,12 +1560,12 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "eventform.py"
+name = "caseproperties.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "caseproperties.py"
+name = "eventform.py"
 included = true
 is_directory = false
 

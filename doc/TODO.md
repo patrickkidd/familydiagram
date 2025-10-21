@@ -2,7 +2,8 @@ Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.at
 =====================================
 - Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 - Does adding tags to non-event emotions make sense? See if it feels right.
-- No ellipses for first blip on bottom timeline
+- Views are totally broken
+  - Selecting next view selects next emotional unit - very confusing
 
 BUGS
 ------------------------------------
