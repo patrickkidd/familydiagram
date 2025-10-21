@@ -197,16 +197,14 @@ def test_inspectEmotionButton_hidden_when_kind_not_shift(scene, view):
     person = scene.addItem(Person(name="Jane", lastName="Doe"))
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(person)
-    inspectEmotionButton = view.rootProp("inspectEmotionButton")
-    assert inspectEmotionButton.property("visible") == False
+    assert view.rootProp("inspectEmotionButton").property("visible") == False
 
 
 def test_inspectEmotionButton_hidden_when_relationship_not_set(scene, view):
     person = scene.addItem(Person(name="Jane", lastName="Doe"))
     view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(person)
-    inspectEmotionButton = view.rootProp("inspectEmotionButton")
-    assert inspectEmotionButton.property("visible") == False
+    assert view.rootProp("inspectEmotionButton").property("visible") == False
 
 
 def test_inspectEmotionButton_visible_when_shift_and_relationship_set(scene, view):
@@ -215,8 +213,7 @@ def test_inspectEmotionButton_visible_when_shift_and_relationship_set(scene, vie
     event.setRelationship(RelationshipKind.Conflict)
     event.setDateTime(util.Date(2023, 1, 1))
     view.view.editEvents(event)
-    inspectEmotionButton = view.rootProp("inspectEmotionButton")
-    assert inspectEmotionButton.property("visible") == True
+    assert view.rootProp("inspectEmotionButton").property("visible") == True
 
 
 def test_inspectEmotionButton_hidden_when_multiple_events(scene, view):
@@ -228,8 +225,7 @@ def test_inspectEmotionButton_hidden_when_multiple_events(scene, view):
     event2.setRelationship(RelationshipKind.Distance)
     event2.setDateTime(util.Date(2023, 2, 1))
     view.view.editEvents([event1, event2])
-    inspectEmotionButton = view.rootProp("inspectEmotionButton")
-    assert inspectEmotionButton.property("visible") == False
+    assert view.rootProp("inspectEmotionButton").property("visible") == False
 
 
 # def test_add_new_people_pair_bond(view):
