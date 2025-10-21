@@ -25,7 +25,7 @@ class TestPersonPicker:
             )
         elif not self.item.property("visible"):
             raise ValueError(
-                f"Expected PersonPicker '{self.item}[{self.item.objectName()}]' to be visible."
+                f"Expected PersonPicker '{self.item.metaObject().className()}[{self.item.objectName()}]' to be visible."
             )
 
     def set_new_person(

@@ -150,7 +150,7 @@ PK.Drawer {
 
         // What
 
-        root.description == null
+        root.description = null
         
         kindBox.currentIndex = -1
         descriptionEdit.clear()

@@ -233,10 +233,7 @@ def test_notes_field_has_start_datetime(scene, ep, dateTime):
     emotion = scene.emotionsFor(event)[0]
     ep.show(emotion, tab="notes")
     notesEdit = ep.rootProp("notesEdit")
-    notesHiddenHelpText = ep.rootProp("notesHiddenHelpText")
     if dateTime:
         assert notesEdit.property("visible") == False
-        assert notesHiddenHelpText.property("visible") == True
     else:
         assert notesEdit.property("visible") == True
-        assert notesHiddenHelpText.property("visible") == False

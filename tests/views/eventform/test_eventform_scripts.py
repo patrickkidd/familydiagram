@@ -9,7 +9,7 @@ from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop
 from pkdiagram import util
 from pkdiagram.scene import Person, EventKind
 
-from .test_eventform import START_DATETIME, END_DATETIME
+from .test_eventform import view, START_DATETIME, END_DATETIME
 
 
 _log = logging.getLogger(__name__)
