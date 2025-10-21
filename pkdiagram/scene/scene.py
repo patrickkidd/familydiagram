@@ -2249,34 +2249,63 @@ class Scene(QGraphicsScene, Item):
         return iActiveLayer
 
     def nextActiveLayer(self):
-        iActiveLayer = self.activeLayer() + 1
-        if iActiveLayer < len(self.layers()):
-            self.setExclusiveActiveLayerIndex(iActiveLayer)
+        customLayers = self.layers(includeInternal=False)
+        if not customLayers:
+            return
+        iCurrentLayer = None
+        for i, customLayer in enumerate(customLayers):
+            if customLayer.active():
+                iCurrentLayer = i
+                break
+        if iCurrentLayer is None:
+            iActiveLayer = 0
+        elif iCurrentLayer >= len(customLayers):
+            iActiveLayer = len(customLayers) - 1
+        else:
+            iActiveLayer = iCurrentLayer + 1
+        self.setExclusiveActiveCustomLayerIndex(iActiveLayer)
 
     def prevActiveLayer(self):
-        iActiveLayer = self.activeLayer() - 1
-        if iActiveLayer < 0 and len(self.layers()):
-            iActiveLayer = len(self.layers()) - 1
-        if iActiveLayer >= 0:
-            self.setExclusiveActiveLayerIndex(iActiveLayer)
+        customLayers = self.layers(includeInternal=False)
+        if not customLayers:
+            return
+        iCurrentLayer = None
+        for i, customLayer in enumerate(customLayers):
+            if customLayer.active():
+                iCurrentLayer = i
+                break
+        if iCurrentLayer is None:
+            iActiveLayer = len(customLayers) - 1
+        elif iCurrentLayer == 0:
+            return
+        else:
+            iActiveLayer = iCurrentLayer - 1
+        self.setExclusiveActiveCustomLayerIndex(iActiveLayer)
 
-    def setExclusiveActiveLayerIndex(self, iLayer):
+    def setExclusiveActiveCustomLayerIndex(self, iLayer):
+        customLayers = [x for x in self.layers() if not x.internal()]
+        if iLayer < 0 or iLayer >= len(customLayers):
+            return
+        layer = customLayers[iLayer]
+        self.setExclusiveCustomLayerActive(layer)
+
+    def setExclusiveCustomLayerActive(self, layer: Layer):
         """Put in batch job so zoomFit can run after all items are shown|hidden."""
         activeLayers = []
         changedLayers = []
         with self.macro("Set active layer"):
-            for layer in self.layers():
-                if layer.order() == iLayer:
-                    if layer.active() is not True:
-                        changedLayers.append(layer)
-                    layer.setActive(True, undo=True, notify=False)
-                    activeLayers.append(layer)
+            for _layer in self.layers(includeInternal=False):
+                if _layer == layer:
+                    if _layer.active() is not True:
+                        changedLayers.append(_layer)
+                    _layer.setActive(True, undo=True, notify=False)
+                    activeLayers.append(_layer)
                 else:
-                    if layer.active() is not False:
-                        changedLayers.append(layer)
-                    layer.setActive(False, undo=True, notify=False)
-        for layer in changedLayers:
-            self.layerChanged.emit(layer.prop("active"))
+                    if _layer.active() is not False:
+                        changedLayers.append(_layer)
+                    _layer.setActive(False, undo=True, notify=False)
+        for x in changedLayers:
+            self.layerChanged.emit(x.prop("active"))
         self.updateActiveLayers()
 
     @pyqtSlot()

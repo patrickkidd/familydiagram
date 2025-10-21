@@ -1,11 +1,9 @@
 Flatten / Events, Fix Event/Emotion relationship: https://alaskafamilysystems.atlassian.net/browse/FD-244
 =====================================
-- Can add emotion symbols when editing relationship field on existing events?
-- EventForm.inspectEmotionButton shows when editing birth event
-- Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 - Does adding tags to non-event emotions make sense? See if it feels right.
-- Views are totally broken
-  - Selecting next view selects next emotional unit - very confusing
+  - Or just allow adding to layers
+- Can add emotion symbols when editing relationship field on existing events?
+- Check that updating pairbond events update Marriage details (Marriage.onEventProperty removed)
 
 BUGS
 ------------------------------------
