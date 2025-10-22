@@ -35,6 +35,7 @@ Page {
     property var intensityBox: intensityBox
     property var colorBox: colorBox
     property var notesEdit: notesEdit
+    property var layerList: layerList
 
     property bool isReadOnly: (sceneModel && sceneModel.readOnly) ? true : false
     property bool canInspect: false
@@ -68,8 +69,8 @@ Page {
     }
 
     function scrollToMeta() {
-        scrollToItem(tagsList)
-        tagsList.forceActiveFocus()
+        scrollToItem(layerList)
+        layerList.forceActiveFocus()
     }
 
     KeyNavigation.tab: inspectEventButton

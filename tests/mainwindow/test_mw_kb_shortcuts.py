@@ -120,8 +120,8 @@ def test_emotion_kb_shortcuts(qtbot, create_ac_mw, target):
     if target == "notes":
         assert activeFocusItem == mw.documentView.emotionProps.rootProp("notesEdit")
     elif target == "meta":
-        assert activeFocusItem == mw.documentView.emotionProps.rootProp("tagsList")
+        assert activeFocusItem == mw.documentView.emotionProps.rootProp("layerList")
         assert (
-            mw.documentView.emotionProps.rootProp("tagsList").property("visible")
+            mw.documentView.emotionProps.rootProp("layerList").property("visible")
             == True
         )
