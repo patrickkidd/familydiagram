@@ -552,6 +552,37 @@ def tests_duplicate(scene):
     assert layer2.id in callout.layers()
 
 
+@pytest.mark.parametrize("internal", [True, False])
+def test_layers_store_geometry_by_default(scene, internal):
+    layer = scene.addItem(Layer(internal=internal))
+    assert layer.storeGeometry() == (not internal)
+
+
+def test_explicit_storeGeometry_is_respected(scene):
+    """Explicitly setting storeGeometry should be respected."""
+    custom_layer = scene.addItem(Layer(name="Custom", storeGeometry=False))
+    assert custom_layer.internal() == False
+    assert custom_layer.storeGeometry() == False
+
+
+def test_loaded_custom_layers_get_storeGeometry(scene):
+    """Custom layers loaded from file should have storeGeometry=True set."""
+    layer, person = scene.addItems(Layer(name="View 1"), Person())
+    layer.setStoreGeometry(False)
+    person.setLayers([layer.id])
+    person.setItemPos(QPointF(100, 100), forLayers=[layer])
+
+    data = {}
+    scene.write(data)
+
+    scene2 = Scene()
+    scene2.read(data)
+
+    loaded_layer = scene2.layers()[0]
+    assert loaded_layer.internal() == False
+    assert loaded_layer.storeGeometry() == True
+
+
 # def test_internal_and_custom_mutually_exclusive():
 #     scene = Scene()
 #     customLayer_1, customLayer_2 = Layer(), Layer()

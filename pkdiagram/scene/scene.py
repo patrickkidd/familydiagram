@@ -1154,6 +1154,10 @@ class Scene(QGraphicsScene, Item):
                 self.pencilCanvas.setColor(self.pencilColor())
                 compat.update_scene(self, data)
                 self.resortLayersFromOrder()
+
+                for layer in self.layers(includeInternal=False):
+                    if not layer.storeGeometry():
+                        layer.prop("storeGeometry").set(True, notify=False)
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
         except Exception as e:
