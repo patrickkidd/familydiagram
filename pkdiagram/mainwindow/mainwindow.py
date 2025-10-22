@@ -3,6 +3,14 @@ import pickle
 
 from PyQt5.QtCore import QT_VERSION_STR
 
+# Import serialization utilities
+from pkdiagram.scene.serialization import (
+    serialize_scene_data,
+    deserialize_scene_data,
+    load_scene_from_data,
+    USE_JSON_BY_DEFAULT,
+)
+
 import vedana
 from _pkdiagram import CUtil, FDDocument
 from pkdiagram.pyqt import (
@@ -693,10 +701,8 @@ class MainWindow(QMainWindow):
         if not self.scene or self.scene.readOnly():
             return
 
-        data = self.scene.data()
-
-        # Write to disk
-        bdata = pickle.dumps(data)
+        # Write to disk using new serialization (JSON by default)
+        bdata = serialize_scene_data(self.scene, selectionOnly=False, use_json=USE_JSON_BY_DEFAULT)
         self.document.updateDiagramData(bdata)
 
         # Write to server
@@ -788,12 +794,13 @@ class MainWindow(QMainWindow):
                         return
                 packageDir = QDir(filePath)
                 os.makedirs(filePath)
-                picklePath = os.path.join(filePath, "diagram.pickle")
-                with open(picklePath, "wb") as f:
-                    data = self.scene.data(selectionOnly=True)
-                    bdata = pickle.dumps(data)
+                # Save as JSON (new format) or pickle (legacy)
+                fileName = "diagram.json" if USE_JSON_BY_DEFAULT else "diagram.pickle"
+                diagramPath = os.path.join(filePath, fileName)
+                with open(diagramPath, "wb") as f:
+                    bdata = serialize_scene_data(self.scene, selectionOnly=True, use_json=USE_JSON_BY_DEFAULT)
                     f.write(bdata)
-                    log.info(f"Created {picklePath}")
+                    log.info(f"Created {diagramPath}")
         else:
             if not filePath:
                 lastFileReadPath = self.prefs.value("lastFileReadPath", type=str)
@@ -806,8 +813,7 @@ class MainWindow(QMainWindow):
                 self.saveAs()
             else:
                 if format == "FD":
-                    data = self.scene.data()
-                    bdata = pickle.dumps(data)
+                    bdata = serialize_scene_data(self.scene, selectionOnly=False, use_json=USE_JSON_BY_DEFAULT)
                     self.document.updateDiagramData(bdata)
                     self.document.saveAs(QUrl.fromLocalFile(filePath))
                     self.prefs.setValue("lastFileSavePath", filePath)
@@ -913,14 +919,24 @@ class MainWindow(QMainWindow):
                 if btn != QMessageBox.Yes:
                     return
             if QFileInfo(filePath).isDir() and util.suffix(filePath) == util.EXTENSION:
-                filePath = os.path.join(filePath, "diagram.pickle")
-                if QFileInfo(filePath).isFile():
-                    with open(filePath, "rb") as f:
+                # Try JSON first, then pickle (backward compatibility)
+                json_path = os.path.join(filePath, "diagram.json")
+                pickle_path = os.path.join(filePath, "diagram.pickle")
+
+                if QFileInfo(json_path).isFile():
+                    diagram_file = json_path
+                elif QFileInfo(pickle_path).isFile():
+                    diagram_file = pickle_path
+                else:
+                    diagram_file = None
+
+                if diagram_file and QFileInfo(diagram_file).isFile():
+                    with open(diagram_file, "rb") as f:
                         # read in the data to check for errors first
                         newScene = Scene()
                         bdata = f.read()
-                        data = pickle.loads(bdata)
-                        ret = newScene.read(data)
+                        data = deserialize_scene_data(bdata)
+                        ret = load_scene_from_data(newScene, data)
                         if ret:
                             self.onOpenFileError(ret)
 
@@ -1040,7 +1056,7 @@ class MainWindow(QMainWindow):
             if bdata:
 
                 try:
-                    data = pickle.loads(bdata)
+                    data = deserialize_scene_data(bdata)
                 except:
                     ret = "This file is currupt and cannot be opened"
                     import traceback
@@ -1050,7 +1066,7 @@ class MainWindow(QMainWindow):
                 data = {}
 
             if not ret:
-                ret = newScene.read(data)
+                ret = load_scene_from_data(newScene, data)
                 if readOnly is not None:
                     newScene.setReadOnly(readOnly)
 
@@ -1261,8 +1277,8 @@ class MainWindow(QMainWindow):
         if url == self.document.url():
             s = Scene(document=self.document)
             bdata = self.document.diagramData()
-            data = pickle.loads(bdata)
-            s.read(data)
+            data = deserialize_scene_data(bdata)
+            load_scene_from_data(s, data)
             name = (
                 QFileInfo(url.toLocalFile())
                 .dir()
@@ -1919,7 +1935,7 @@ class MainWindow(QMainWindow):
                 bdata = reply._pk_body
             else:
                 bdata = reply.readAll()
-            data = pickle.loads(bdata)
+            data = deserialize_scene_data(bdata)
             data["status"] = CUtil.FileIsCurrent
             # data["owner"] = data["user"]["username"]
             diagram = Diagram.create(data)
@@ -1942,13 +1958,13 @@ class MainWindow(QMainWindow):
         )
         if ok != QMessageBox.Yes:
             return
-        data = {}
-        self.scene.write(data)
+        # Serialize scene data for server upload
+        bdata = serialize_scene_data(self.scene, selectionOnly=False, use_json=USE_JSON_BY_DEFAULT)
         basename = QFileInfo(self.document.url().toLocalFile()).baseName()
         args = {
             "user_id": self.session.user.id,
             "name": basename,
-            "data": pickle.dumps(data),
+            "data": bdata,
         }
         reply = self.session.server().nonBlockingRequest("POST", "/diagrams", data=args)
         reply.finished.connect(onFinished)

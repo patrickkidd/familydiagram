@@ -1247,6 +1247,187 @@ class Scene(QGraphicsScene, Item):
         self.write(data, selectionOnly=selectionOnly)
         return data
 
+    def to_json_dict(self, selectionOnly=False):
+        """
+        Convert scene to JSON-compatible dictionary using shared schemas.
+
+        This replaces the pickle format with JSON-compatible types.
+        PyQt5 types (QDateTime, QColor, etc.) are converted to standard types.
+
+        Args:
+            selectionOnly: If True, only selected items are included
+
+        Returns:
+            Dict with JSON-compatible types that can be serialized with json.dumps()
+        """
+        from pkdiagram.scene.schema_conversion import (
+            person_to_schema,
+            event_to_schema,
+            marriage_to_schema,
+            emotion_to_schema,
+            layer_to_schema,
+        )
+
+        data = {
+            "version": version.VERSION,
+            "versionCompat": version.VERSION_COMPAT,
+            "format": "json",  # Indicates this is JSON format, not pickle
+            "name": self.name(),
+            "alias": self.alias() if hasattr(self, 'alias') else None,
+            "uuid": self.uuid() if hasattr(self, 'uuid') else None,
+        }
+
+        # Convert items to schemas
+        data["people"] = []
+        data["marriages"] = []
+        data["emotions"] = []
+        data["events"] = []
+        data["layers"] = []
+        data["layerItems"] = []
+        data["multipleBirths"] = []
+
+        # Collect items
+        items = []
+        for id, item in self.itemRegistry.items():
+            if selectionOnly and item.isPathItem and not item.isSelected():
+                continue
+            items.append(item)
+
+        # Convert each item to schema and then to dict
+        for item in items:
+            if item.isPerson:
+                schema = person_to_schema(item)
+                data["people"].append(schema.to_dict())
+            elif item.isMarriage:
+                schema = marriage_to_schema(item)
+                data["marriages"].append(schema.to_dict())
+            elif item.isEvent:
+                schema = event_to_schema(item)
+                data["events"].append(schema.to_dict())
+            elif item.isEmotion:
+                schema = emotion_to_schema(item)
+                data["emotions"].append(schema.to_dict())
+            elif item.isLayer and not item.internal():
+                schema = layer_to_schema(item)
+                data["layers"].append(schema.to_dict())
+            # TODO: Add support for other item types (pencil strokes, callouts, etc.)
+
+        # Include database if present
+        if hasattr(self, '_serverDiagram') and self._serverDiagram and self._serverDiagram.database:
+            database = self._serverDiagram.database
+            # Convert database to dict format
+            data["database"] = {
+                "id": database.id,
+                "name": database.name,
+                "user_id": database.user_id,
+                "people": [p.to_dict() if hasattr(p, 'to_dict') else p for p in getattr(database, 'people', [])],
+                "events": [e.to_dict() if hasattr(e, 'to_dict') else e for e in getattr(database, 'events', [])],
+                "marriages": [m.to_dict() if hasattr(m, 'to_dict') else m for m in getattr(database, 'marriages', [])],
+                "emotions": [em.to_dict() if hasattr(em, 'to_dict') else em for em in getattr(database, 'emotions', [])],
+            }
+
+        return data
+
+    def from_json_dict(self, data):
+        """
+        Load scene from JSON-compatible dictionary using shared schemas.
+
+        This replaces the pickle deserialization with JSON.
+        Standard types are converted back to PyQt5 types.
+
+        Args:
+            data: Dict with JSON-compatible types from to_json_dict()
+
+        Returns:
+            True if successful, False otherwise
+        """
+        from pkdiagram.scene.schema_conversion import (
+            schema_to_person,
+            schema_to_event,
+            schema_to_marriage,
+            schema_to_emotion,
+            schema_to_layer,
+        )
+        from btcopilot.shared.schema import (
+            Person as PersonSchema,
+            Event as EventSchema,
+            Marriage as MarriageSchema,
+            Emotion as EmotionSchema,
+            Layer as LayerSchema,
+        )
+
+        # Check format
+        if data.get("format") != "json":
+            # Fall back to pickle format
+            return self.read(data, {})
+
+        # Clear existing items
+        self.clearScene()
+
+        # Set basic properties
+        if "name" in data:
+            self.setName(data["name"])
+        if "alias" in data and hasattr(self, 'setAlias'):
+            self.setAlias(data["alias"])
+        if "uuid" in data and hasattr(self, 'setUuid'):
+            self.setUuid(data["uuid"])
+
+        # Phase 1: Create items with ID mapping
+        by_id = {}
+
+        # Load people first (they're referenced by other items)
+        for person_dict in data.get("people", []):
+            schema = PersonSchema.from_dict(person_dict)
+            person = schema_to_person(schema, self)
+            self.addItem(person)
+            by_id[person.id] = person
+
+        # Load marriages
+        for marriage_dict in data.get("marriages", []):
+            schema = MarriageSchema.from_dict(marriage_dict)
+            marriage = schema_to_marriage(schema, self)
+            self.addItem(marriage)
+            by_id[marriage.id] = marriage
+
+        # Load events
+        for event_dict in data.get("events", []):
+            schema = EventSchema.from_dict(event_dict)
+            event = schema_to_event(schema, self)
+            self.addItem(event)
+            by_id[event.id] = event
+
+        # Load emotions
+        for emotion_dict in data.get("emotions", []):
+            schema = EmotionSchema.from_dict(emotion_dict)
+            emotion = schema_to_emotion(schema, self)
+            self.addItem(emotion)
+            by_id[emotion.id] = emotion
+
+        # Load layers
+        for layer_dict in data.get("layers", []):
+            schema = LayerSchema.from_dict(layer_dict)
+            layer = schema_to_layer(schema, self)
+            self.addItem(layer)
+            by_id[layer.id] = layer
+
+        # TODO: Load other item types
+
+        # Phase 2: Resolve references (person IDs to person objects, etc.)
+        # This is handled in the schema_to_* conversion functions
+
+        # Load database if present
+        if "database" in data:
+            from btcopilot.shared.schema import Database, Person as PersonSchema, Event as EventSchema
+            db_data = data["database"]
+            # TODO: Properly deserialize database
+            # For now, store it as-is
+            if hasattr(self, '_serverDiagram') and self._serverDiagram:
+                # Create Database instance
+                # self._serverDiagram.database = Database.from_dict(db_data)
+                pass
+
+        return True
+
     def getPrintRect(self, forLayers=None, forTags=None):
         rect = QRectF()
         if forTags is not None:
