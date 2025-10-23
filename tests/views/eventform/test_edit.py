@@ -1,17 +1,10 @@
 import pytest
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QMessageBox
 from pkdiagram import util
-from pkdiagram.scene import (
-    EventKind,
-    RelationshipKind,
-    Person,
-    Event,
-    Marriage,
-    Emotion,
-    ItemMode,
-)
+from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views.eventform import EventForm
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
@@ -187,7 +180,7 @@ def test_edit_Death(scene, view):
 
     assert len(scene.eventsFor(person)) == 1
     assert event.kind() == EventKind.Death
-    assert event.description() == EventKind.Death.menuLabel()
+    assert event.description() == eventKindMenuLabel(EventKind.Death)
     assert event.location() == "New Location"
     assert event.notes() == "New Notes"
     assert event.dateTime() == START_DATETIME

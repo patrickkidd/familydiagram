@@ -2,6 +2,7 @@ import logging
 
 from mock import patch
 
+from btcopilot.schema import EventKind
 from pkdiagram import util
 from pkdiagram.pyqt import (
     Q_RETURN_ARG,
@@ -11,7 +12,12 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QDateTime,
 )
-from pkdiagram.scene import EventKind, Person, Marriage, PathItem
+from pkdiagram.scene import (
+    eventKindMenuLabel,
+    relationshipKindMenuLabel,
+    Person,
+    Marriage,
+)
 from pkdiagram.scene.relationshipkind import RelationshipKind
 from pkdiagram.views import EventForm
 
@@ -133,7 +139,7 @@ class TestEventForm:
         self.view.clickComboBoxItem(picker, genderLabel)
 
     def set_kind(self, kind: EventKind):
-        self.view.clickComboBoxItem(self.kindBox, kind.menuLabel(), force=False)
+        self.view.clickComboBoxItem(self.kindBox, eventKindMenuLabel(kind), force=False)
 
     def set_description(self, description: str):
         self.view.keyClicksItem(self.descriptionEdit, description)
@@ -324,7 +330,7 @@ class TestEventForm:
     def set_relationship(self, relationshipKind: RelationshipKind):
         self.view.clickComboBoxItem(
             self.relationshipField.property("comboBox"),
-            relationshipKind.menuLabel(),
+            relationshipKindMenuLabel(relationshipKind),
             force=False,
         )
         util.waitALittle()

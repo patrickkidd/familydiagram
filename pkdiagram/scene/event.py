@@ -3,9 +3,11 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
-from pkdiagram.scene import EventKind, RelationshipKind, Item, Property
+from pkdiagram.scene import RelationshipKind, Item, Property
+from pkdiagram.scene import eventKindMenuLabel
 
 if TYPE_CHECKING:
     from pkdiagram.scene.marriage import Marriage
@@ -317,9 +319,9 @@ class Event(Item):
         elif self.kind() == EventKind.Shift:
             # For Shift events, only auto-generate if description isn't already set
             if not wasDescription:
-                newDescription = self.kind().menuLabel()
+                newDescription = eventKindMenuLabel(self.kind())
         else:
-            newDescription = self.kind().menuLabel()
+            newDescription = eventKindMenuLabel(self.kind())
 
         if wasDescription != newDescription and newDescription is not None:
             if newDescription:
