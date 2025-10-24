@@ -135,7 +135,7 @@ def test_refresh_diagram(
             data["discussions"] = [
                 x.as_dict(include=["statements", "speakers"]) for x in DISCUSSIONS
             ]
-            data["database"] = dict(diagram.get_database())
+            data["database"] = dict(diagram.get_diagram_data())
             kwargs["success"](data)
 
             return type("MockReply", (), {})()
