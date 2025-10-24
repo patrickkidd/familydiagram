@@ -7,7 +7,7 @@ from pkdiagram.models import (
     PeopleModel,
     AccessRightsModel,
 )
-from pkdiagram.views import QmlVedana
+from pkdiagram.views import QmlBTCopilot
 from pkdiagram.models import CopilotEngine
 
 
@@ -27,7 +27,7 @@ class QmlEngine(QQmlEngine):
         for path in util.QML_IMPORT_PATHS:
             self.addImportPath(path)
         self.util = QApplication.instance().qmlUtil()  # should be local, not global
-        self.vedana = QmlVedana(self)
+        self.btcopilot = QmlBTCopilot(self)
         self._errors = []
 
         # Models
@@ -53,7 +53,7 @@ class QmlEngine(QQmlEngine):
         self.rootContext().setContextProperty("engine", self)
         self.rootContext().setContextProperty("util", self.util)
         self.rootContext().setContextProperty("copilot", self.copilot)
-        self.rootContext().setContextProperty("vedana", self.vedana)
+        self.rootContext().setContextProperty("btcopilot", self.btcopilot)
         self.rootContext().setContextProperty("session", self.session)
         self.rootContext().setContextProperty("sceneModel", self.sceneModel)
         self.rootContext().setContextProperty("searchModel", self.searchModel)

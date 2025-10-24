@@ -3,6 +3,7 @@ import os.path
 import pytest
 import mock
 
+from btcopilot.schema import RelationshipKind, EventKind
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QDateTime, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -16,8 +17,6 @@ from pkdiagram.scene import (
     PathItem,
     ChildOf,
     Callout,
-    EventKind,
-    RelationshipKind,
     ItemMode,
 )
 

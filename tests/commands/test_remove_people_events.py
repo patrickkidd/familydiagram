@@ -1,12 +1,6 @@
-import pytest
+from btcopilot.schema import EventKind
 from pkdiagram import util
-from pkdiagram.scene import (
-    Scene,
-    Person,
-    Marriage,
-    Event,
-    EventKind,
-)
+from pkdiagram.scene import Person, Marriage, Event
 from pkdiagram.scene.commands import RemoveItems
 
 

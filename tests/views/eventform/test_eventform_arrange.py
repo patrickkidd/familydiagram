@@ -1,10 +1,10 @@
 import pytest
 import datetime
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF
 from pkdiagram import util
-from pkdiagram.scene import EventKind, Person
-from pkdiagram.scene.relationshipkind import RelationshipKind
+from pkdiagram.scene import Person
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
 

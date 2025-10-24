@@ -1,10 +1,10 @@
 import pytest
 import mock
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram.models import PersonPropertiesModel
-from pkdiagram.scene import Scene, Person, Event, EventKind
-from pkdiagram import util
+from pkdiagram.scene import Scene, Person
 
 
 pytestmark = [

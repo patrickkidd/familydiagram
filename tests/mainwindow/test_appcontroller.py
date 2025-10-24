@@ -4,7 +4,7 @@ import pickle
 import mock
 import pytest
 
-import vedana
+import btcopilot
 from pkdiagram import version, util
 from pkdiagram.scene import Scene, Person
 from pkdiagram.app import AppController
@@ -23,7 +23,7 @@ SCENE_NAME = "Some Scene"
 def test_login_loads_free_diagram(create_ac_mw):
     ac, mw = create_ac_mw()
     assert mw.session.hasFeature(
-        vedana.LICENSE_FREE
+        btcopilot.LICENSE_FREE
     ), "Active features should just be the free license."
     assert (
         mw.serverFileModel.rowCount() == 1
@@ -78,7 +78,7 @@ def test_free_license_when_no_licenses_activated(create_ac_mw):
     ac, mw = create_ac_mw()
     util.wait(mw.serverFileModel.updateFinished)
     assert mw.atHome() == False
-    assert mw.session.activeFeatures() == [vedana.LICENSE_FREE]
+    assert mw.session.activeFeatures() == [btcopilot.LICENSE_FREE]
     assert mw.scene.serverDiagram().isFreeDiagram()
 
 

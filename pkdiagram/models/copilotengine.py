@@ -1,10 +1,11 @@
 import pickle
 import logging
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import pyqtSlot, pyqtSignal, QObject, QNetworkRequest, QNetworkReply
 from pkdiagram import util
 from pkdiagram.server_types import HTTPError
-from pkdiagram.scene import Scene, Event, EventKind
+from pkdiagram.scene import Scene, Event
 
 
 _log = logging.getLogger(__name__)

@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
+from btcopilot.schema import VariableShift, EventKind
 from pkdiagram import util
-from pkdiagram.scene import EventKind
 from pkdiagram.mainwindow import MainWindow
 
 from tests.views import TestEventForm
@@ -48,7 +48,7 @@ def test_close_after_adding_lots(
     dlg.personPicker.set_existing_person(johnDoe)
     dlg.set_startDateTime(util.Date(2010, 1, 1))
     dlg.set_description("asdasdsd ddd")
-    dlg.set_anxiety(util.VAR_VALUE_UP)
+    dlg.set_anxiety(VariableShift.Up)
     dlg.clickSaveButton()
     assert len(mw.scene.eventsFor(johnDoe)) == 3
     assert mw.scene.eventsFor(johnDoe)[2].kind() == EventKind.Shift

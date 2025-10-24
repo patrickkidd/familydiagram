@@ -2,7 +2,8 @@ import logging
 
 import pytest
 
-from pkdiagram.scene import EventKind, Person
+from btcopilot.schema import EventKind
+from pkdiagram.scene import Person
 
 from tests.widgets import waitForPersonPickers
 from tests.views.eventform.test_eventform import view

@@ -1,6 +1,7 @@
 import os, shutil, random, logging, math
 from typing import Union
 
+from btcopilot.schema import RelationshipKind, EventKind, VariableShift
 from _pkdiagram import PersonDelegate
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -25,14 +26,12 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import (
-    EventKind,
     PathItem,
     ItemDetails,
     ChildOf,
     MultipleBirth,
     VariablesDatabase,
     random_names,
-    RelationshipKind,
     Event,
 )
 
@@ -41,15 +40,15 @@ _log = logging.getLogger(__name__)
 
 
 ANXIETY_COLORS = {
-    util.VAR_VALUE_UP: "red",
-    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
-    util.VAR_VALUE_DOWN: "green",
+    VariableShift.Up: "red",
+    VariableShift.Same: QColor(0, 0, 255, 127),
+    VariableShift.Down: "green",
 }
 
 FUNCTIONING_COLORS = {
-    util.VAR_VALUE_UP: "green",
-    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
-    util.VAR_VALUE_DOWN: "red",
+    VariableShift.Up: "green",
+    VariableShift.Same: QColor(0, 0, 255, 127),
+    VariableShift.Down: "red",
 }
 
 
@@ -140,13 +139,13 @@ class Person(PathItem):
         ANXIETY_STEP_SAME = 10
         ANXIETY_STEP_UP = 5
 
-        if anxiety == util.VAR_ANXIETY_DOWN:
+        if anxiety == VariableShift.Down:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_DOWN
             STEP = ANXIETY_STEP_DOWN
-        elif anxiety == util.VAR_ANXIETY_SAME:
+        elif anxiety == VariableShift.Same:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_SAME
             STEP = ANXIETY_STEP_SAME
-        elif anxiety == util.VAR_ANXIETY_UP:
+        elif anxiety == VariableShift.Up:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_UP
             STEP = ANXIETY_STEP_UP
 
@@ -154,9 +153,9 @@ class Person(PathItem):
             scale = util.scaleForPersonSize(size)
         if kind == util.PERSON_KIND_MALE:
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 WIDTH = int(rect.width() * scale)
                 CENTER_X, CENTER_Y = 0, 0
@@ -197,9 +196,9 @@ class Person(PathItem):
             path.closeSubpath()
         elif kind == util.PERSON_KIND_FEMALE:
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 CENTER_X, CENTER_Y = 0, 0
                 radius = (rect.width() / 2) * scale
@@ -935,9 +934,9 @@ class Person(PathItem):
         else:
             anxiety = self.anxietyLevelNow()
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 c = QColor(ANXIETY_COLORS[anxiety])
                 pen.setColor(c)
@@ -1066,15 +1065,15 @@ class Person(PathItem):
 
         functioning = self.functioningLevelNow()
         if functioning in (
-            util.VAR_FUNCTIONING_DOWN,
-            util.VAR_FUNCTIONING_SAME,
-            util.VAR_FUNCTIONING_UP,
+            VariableShift.Down,
+            VariableShift.Same,
+            VariableShift.Up,
         ):
-            if functioning == util.VAR_FUNCTIONING_DOWN:
+            if functioning == VariableShift.Down:
                 num = 1
-            elif functioning == util.VAR_FUNCTIONING_SAME:
+            elif functioning == VariableShift.Same:
                 num = 2
-            elif functioning == util.VAR_FUNCTIONING_UP:
+            elif functioning == VariableShift.Up:
                 num = 3
             functioningPath = util.bolts_path(self.boundingRect().width(), num)
             self.functioningItem.setPath(functioningPath)
@@ -1181,15 +1180,15 @@ class Person(PathItem):
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
                 # if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
-                #     util.VAR_ANXIETY_DOWN,
-                #     util.VAR_ANXIETY_SAME,
-                #     util.VAR_ANXIETY_UP,
+                #     VariableShift.Down,
+                #     VariableShift.Same,
+                #     VariableShift.Up,
                 # ):
                 #     continue
                 # if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
-                #     util.VAR_FUNCTIONING_DOWN,
-                #     util.VAR_FUNCTIONING_SAME,
-                #     util.VAR_FUNCTIONING_UP,
+                #     VariableShift.Down,
+                #     VariableShift.Same,
+                #     VariableShift.Up,
                 # ):
                 #     continue
                 variableLines.append("%s: %s" % (entry["name"], value))

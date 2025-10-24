@@ -1,6 +1,7 @@
 import logging
 from typing import Union
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import (
     pyqtSignal,
     Q_RETURN_ARG,
@@ -14,8 +15,6 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import (
-    EventKind,
-    RelationshipKind,
     Person,
     Emotion,
     Event,

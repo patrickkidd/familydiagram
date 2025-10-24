@@ -1,19 +1,19 @@
 from pkdiagram.pyqt import QObject
 from pkdiagram.models import QObjectHelper
 
-import vedana
+import btcopilot
 
 
 def find_global_type(attr):
-    value = getattr(vedana, attr)
+    value = getattr(btcopilot, attr)
     if isinstance(value, int):  # true for int's and PyQt enums
         return int
     else:
         return type(value)
 
 
-class QmlVedana(QObject, QObjectHelper):
-    """The vedana module exposed to qml."""
+class QmlBTCopilot(QObject, QObjectHelper):
+    """The btcopilot module exposed to qml."""
 
     CONSTANTS = [
         "LICENSE_FREE",
@@ -40,10 +40,10 @@ class QmlVedana(QObject, QObjectHelper):
             }
             for attr in CONSTANTS
         ],
-        globalContext=vedana.__dict__,
+        globalContext=btcopilot.__dict__,
     )
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("vedana")
+        self.setObjectName("btcopilot]")
         self.initQObjectHelper()

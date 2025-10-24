@@ -1,6 +1,6 @@
 import pytest
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram import util
 from pkdiagram.scene import Person, ItemMode
 
@@ -22,12 +22,12 @@ def test_add_variables(scene, view, isDateRange):
     view.set_startDateTime(START_DATETIME)
     if isDateRange:
         view.set_endDateTime(END_DATETIME)
-    view.set_symptom(util.VAR_SYMPTOM_UP)
-    view.set_anxiety(util.VAR_ANXIETY_DOWN)
+    view.set_symptom(VariableShift.Up)
+    view.set_anxiety(VariableShift.Down)
     view.set_relationship(RelationshipKind.Conflict)
     view.set_description("Some description")
     view.targetsPicker.add_new_person("Jane Doe")
-    view.set_functioning(util.VAR_FUNCTIONING_SAME)
+    view.set_functioning(VariableShift.Same)
     view.clickSaveButton()
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
     assert dynamicPropertyNames == [
@@ -37,10 +37,10 @@ def test_add_variables(scene, view, isDateRange):
         util.ATTR_FUNCTIONING,
     ]
     event = scene.eventsFor(person)[0]
-    assert event.symptom() == util.VAR_SYMPTOM_UP
-    assert event.anxiety() == util.VAR_ANXIETY_DOWN
+    assert event.symptom() == VariableShift.Up
+    assert event.anxiety() == VariableShift.Down
     assert event.relationship() == RelationshipKind.Conflict
-    assert event.functioning() == util.VAR_FUNCTIONING_SAME
+    assert event.functioning() == VariableShift.Same
 
 
 def test_existing_variables(scene, view):
@@ -52,12 +52,12 @@ def test_existing_variables(scene, view):
     view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
-    view.set_symptom(util.VAR_SYMPTOM_UP)
-    view.set_anxiety(util.VAR_ANXIETY_DOWN)
+    view.set_symptom(VariableShift.Up)
+    view.set_anxiety(VariableShift.Down)
     view.set_relationship(RelationshipKind.Conflict)
     view.targetsPicker.add_new_person("Jane Doe")
     view.set_description("Some description")
-    view.set_functioning(util.VAR_FUNCTIONING_SAME)
+    view.set_functioning(VariableShift.Same)
     view.clickSaveButton()
     dynamicPropertyNames = [entry["name"] for entry in scene.eventProperties()]
     assert dynamicPropertyNames == [
@@ -67,10 +67,10 @@ def test_existing_variables(scene, view):
         util.ATTR_FUNCTIONING,
     ]
     event = scene.eventsFor(person)[0]
-    assert event.symptom() == util.VAR_SYMPTOM_UP
-    assert event.anxiety() == util.VAR_ANXIETY_DOWN
+    assert event.symptom() == VariableShift.Up
+    assert event.anxiety() == VariableShift.Down
     assert event.relationship() == RelationshipKind.Conflict
-    assert event.functioning() == util.VAR_FUNCTIONING_SAME
+    assert event.functioning() == VariableShift.Same
 
 
 def test_triangle(scene, view):

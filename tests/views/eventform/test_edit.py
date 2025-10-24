@@ -1,17 +1,10 @@
 import pytest
 from mock import patch
 
+from btcopilot.schema import VariableShift, EventKind, RelationshipKind
 from pkdiagram.pyqt import QMessageBox
 from pkdiagram import util
-from pkdiagram.scene import (
-    EventKind,
-    RelationshipKind,
-    Person,
-    Event,
-    Marriage,
-    Emotion,
-    ItemMode,
-)
+from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views.eventform import EventForm
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
@@ -225,28 +218,28 @@ def test_edit_multiple_events_add_tags(scene, view):
             personA,
             dateTime=START_DATETIME,
             description="First symptom shift",
-            symptom=util.VAR_SYMPTOM_DOWN,
+            symptom=VariableShift.Down,
         ),
         Event(
             EventKind.Shift,
             personA,
             dateTime=START_DATETIME.addDays(1),
             description="Second symptom shift",
-            symptom=util.VAR_SYMPTOM_SAME,
+            symptom=VariableShift.Same,
         ),
         Event(
             EventKind.Shift,
             personA,
             dateTime=START_DATETIME.addDays(2),
             description="Third symptom shift",
-            symptom=util.VAR_SYMPTOM_UP,
+            symptom=VariableShift.Up,
         ),
         Event(
             EventKind.Shift,
             personB,
             dateTime=START_DATETIME,
             description="Anxiety shift",
-            anxiety=util.VAR_ANXIETY_DOWN,
+            anxiety=VariableShift.Down,
         ),
     )
     assert eventA1.tags() == []

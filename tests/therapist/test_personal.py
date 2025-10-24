@@ -9,7 +9,7 @@ from pkdiagram import util
 
 from btcopilot.extensions import db
 from btcopilot.personal.models import Discussion, Statement
-from btcopilot.personal.database import Database, PDP, Person
+from btcopilot.schema import DiagramData, PDP, Person, asdict
 
 
 pytestmark = [
@@ -44,12 +44,12 @@ def test_refreshDiagram(flask_app, test_user, discussion, personal: Personal):
 def test_refreshPDP(test_user, personal: Personal):
     pdpChanged = util.Condition(personal.pdpChanged)
     diagram = test_user.free_diagram
-    diagram.set_diagram_data(Database(pdp=PDP(people=[Person(name="Test Person")])))
+    diagram.set_diagram_data(DiagramData(pdp=PDP(people=[Person(name="Test Person")])))
     db.session.add(diagram)
     db.session.commit()
     personal.refreshPDP()
     assert pdpChanged.wait() == True
-    assert personal.pdp == test_user.free_diagram.get_diagram_data().pdp.model_dump()
+    assert personal.pdp == asdict(test_user.free_diagram.get_diagram_data().pdp)
 
 
 @pytest.mark.parametrize("success", [True, False])

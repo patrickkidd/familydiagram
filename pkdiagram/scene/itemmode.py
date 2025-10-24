@@ -83,7 +83,4 @@ class ItemMode(enum.Enum):
             ItemMode.Outside: RelationshipKind.Outside,
             ItemMode.Cutoff: RelationshipKind.Cutoff,
         }
-        if self in mapping:
-            return mapping[self]
-        else:
-            raise KeyError(f"No RelationshipKind for ITEM_MODE: {self}")
+        return mapping.get(self)

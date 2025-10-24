@@ -36,7 +36,7 @@ MODULE_DIR = os.path.realpath(
 
 
 class PKDiagramComponent(Component):
-    """The vedana module component."""
+    """The _pkdiagram module component."""
 
     must_install_from_source = False
     preinstalls = ["Python", "PyQt", "Qt", "SIP"]

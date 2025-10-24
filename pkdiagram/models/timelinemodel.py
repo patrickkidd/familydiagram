@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 
 # from sortedcontainers import SortedList
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import (
     Qt,
     QApplication,
@@ -17,7 +18,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, EventKind, Property, Person
+from pkdiagram.scene import Event, Property, Person
 from .modelhelper import ModelHelper
 from pkdiagram.sortedlist import SortedList
 

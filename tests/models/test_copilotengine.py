@@ -5,7 +5,7 @@ import pytest
 import mock
 from langchain.docstore.document import Document
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from btcopilot.pro.copilot import Engine, Response
 from pkdiagram import util
 from pkdiagram.models import SearchModel
@@ -108,8 +108,8 @@ def test_ask_with_tags(scene, qmlEngine, copilot, llm_response):
             dateTime=util.Date(2021, 1, 1),
             description="Bonded",
             tags=[TAG_1],
-            anxiety=util.VAR_ANXIETY_DOWN,
-            symptom=util.VAR_SYMPTOM_UP,
+            anxiety=VariableShift.Down,
+            symptom=VariableShift.Up,
         ),
         Event(
             EventKind.Shift,
@@ -119,7 +119,7 @@ def test_ask_with_tags(scene, qmlEngine, copilot, llm_response):
             dateTime=util.Date(2022, 1, 1),
             description="First argument",
             tags=[TAG_1],
-            anxiety=util.VAR_ANXIETY_UP,
+            anxiety=VariableShift.Up,
         ),
     ]
     scene.addItems(*events)

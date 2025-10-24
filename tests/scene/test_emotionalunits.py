@@ -1,5 +1,6 @@
+from btcopilot.schema import EventKind
 from pkdiagram import util
-from pkdiagram.scene import Scene, Marriage, Person, Layer, Event, EventKind
+from pkdiagram.scene import Scene, Marriage, Person, Layer, Event
 
 
 def _add_unit(scene: Scene, children=True):

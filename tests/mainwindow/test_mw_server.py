@@ -5,7 +5,7 @@ import pytest
 import mock
 from sqlalchemy import inspect
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import QFileInfo, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person
@@ -27,9 +27,9 @@ pytestmark = [
 ]
 
 
-@pytest.mark.parametrize("license", (vedana.LICENSE_FREE, vedana.LICENSE_CLIENT))
+@pytest.mark.parametrize("license", (btcopilot.LICENSE_FREE, btcopilot.LICENSE_CLIENT))
 def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, license):
-    if license == vedana.LICENSE_CLIENT:
+    if license == btcopilot.LICENSE_CLIENT:
         request.getfixturevalue("test_client_activation")
 
     ac, mw = create_ac_mw(session=False)
@@ -135,7 +135,7 @@ def test_rw_edit_on_client_diagram(
     data = Scene(items=[Person(name="you")]).data()
     test_user_2.set_free_diagram(pickle.dumps(data), _commit=True)
     test_user_2.free_diagram.grant_access(
-        test_user, vedana.ACCESS_READ_WRITE, _commit=True
+        test_user, btcopilot.ACCESS_READ_WRITE, _commit=True
     )
 
     # Edit from user with rw access
@@ -212,9 +212,9 @@ def test_server_diagram_access(
             break
         elif not is_owner and _diagram.user_id != test_user.id:
             if has_write:
-                _diagram.grant_access(test_user, vedana.ACCESS_READ_WRITE)
+                _diagram.grant_access(test_user, btcopilot.ACCESS_READ_WRITE)
             else:
-                _diagram.grant_access(test_user, vedana.ACCESS_READ_ONLY)
+                _diagram.grant_access(test_user, btcopilot.ACCESS_READ_ONLY)
             diagram_id = _diagram.id
             break
     db.session.commit()
@@ -241,7 +241,7 @@ def test_server_admin_diagram_access_no_rights(
     db.session.add(diagram)
     db.session.merge(diagram)
 
-    test_user.roles = vedana.ROLE_ADMIN
+    test_user.roles = btcopilot.ROLE_ADMIN
     db.session.add(test_user)
     db.session.commit()
     diagram_id = diagram.id

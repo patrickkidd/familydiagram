@@ -8,7 +8,7 @@ import contextlib
 import pytest
 import mock
 
-import vedana
+import btcopilot
 from pkdiagram import util
 from pkdiagram.pyqt import QApplication, QPrinter, QDialog
 from pkdiagram.scene import Person, Scene, Marriage, Layer
@@ -50,7 +50,7 @@ def test_import_to_free_diagram(test_session, qtbot, tmp_path, create_ac_mw):
 
     # Load a window
     ac, mw = create_ac_mw()
-    assert mw.session.activeFeatures() == [vedana.LICENSE_FREE]
+    assert mw.session.activeFeatures() == [btcopilot.LICENSE_FREE]
     assert mw.scene != None
     assert len(mw.scene.people()) == 0
 

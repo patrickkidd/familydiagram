@@ -5,7 +5,7 @@ import datetime
 import pytest, mock
 from sqlalchemy import inspect
 
-import vedana
+import btcopilot
 from pkdiagram import version
 from pkdiagram.condition import Condition
 from pkdiagram.server_types import Diagram
@@ -47,7 +47,7 @@ def test_init(test_session, create_session, Analytics_send):
     session = create_session()
     assert session.isLoggedIn() == True
     assert len(test_session.account_editor_dict()["users"]) == len(session.users)
-    assert session.activeFeatures() == [vedana.LICENSE_FREE]
+    assert session.activeFeatures() == [btcopilot.LICENSE_FREE]
     assert Analytics_send.call_count == 1
     assert (
         Analytics_send.call_args_list[0][0][0].user.username
@@ -176,20 +176,20 @@ def test_hasFeature_alpha(create_session):
 
     with mock.patch.object(version, "IS_ALPHA", True):
         with mock.patch.object(
-            session, "activeFeatures", return_value=[vedana.LICENSE_ALPHA]
+            session, "activeFeatures", return_value=[btcopilot.LICENSE_ALPHA]
         ):
-            assert session.hasFeature(vedana.LICENSE_ALPHA) == True
-            assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
-            assert session.hasFeature(vedana.LICENSE_FREE) == False
-            assert session.hasFeature(vedana.LICENSE_CLIENT) == False
+            assert session.hasFeature(btcopilot.LICENSE_ALPHA) == True
+            assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == True
+            assert session.hasFeature(btcopilot.LICENSE_FREE) == False
+            assert session.hasFeature(btcopilot.LICENSE_CLIENT) == False
 
         with mock.patch.object(
-            session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+            session, "activeFeatures", return_value=[btcopilot.LICENSE_PROFESSIONAL]
         ):
-            assert session.hasFeature(vedana.LICENSE_ALPHA) == False
-            assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
-            assert session.hasFeature(vedana.LICENSE_FREE) == False
-            assert session.hasFeature(vedana.LICENSE_CLIENT) == False
+            assert session.hasFeature(btcopilot.LICENSE_ALPHA) == False
+            assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == False
+            assert session.hasFeature(btcopilot.LICENSE_FREE) == False
+            assert session.hasFeature(btcopilot.LICENSE_CLIENT) == False
 
 
 def test_hasFeature_beta(create_session):
@@ -197,20 +197,20 @@ def test_hasFeature_beta(create_session):
 
     with mock.patch.object(version, "IS_BETA", True):
         with mock.patch.object(
-            session, "activeFeatures", return_value=[vedana.LICENSE_BETA]
+            session, "activeFeatures", return_value=[btcopilot.LICENSE_BETA]
         ):
-            assert session.hasFeature(vedana.LICENSE_BETA) == True
-            assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
-            assert session.hasFeature(vedana.LICENSE_FREE) == False
-            assert session.hasFeature(vedana.LICENSE_CLIENT) == False
+            assert session.hasFeature(btcopilot.LICENSE_BETA) == True
+            assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == True
+            assert session.hasFeature(btcopilot.LICENSE_FREE) == False
+            assert session.hasFeature(btcopilot.LICENSE_CLIENT) == False
 
         with mock.patch.object(
-            session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+            session, "activeFeatures", return_value=[btcopilot.LICENSE_PROFESSIONAL]
         ):
-            assert session.hasFeature(vedana.LICENSE_BETA) == False
-            assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
-            assert session.hasFeature(vedana.LICENSE_FREE) == False
-            assert session.hasFeature(vedana.LICENSE_CLIENT) == False
+            assert session.hasFeature(btcopilot.LICENSE_BETA) == False
+            assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == False
+            assert session.hasFeature(btcopilot.LICENSE_FREE) == False
+            assert session.hasFeature(btcopilot.LICENSE_CLIENT) == False
 
 
 def test_hasFeature_professional(analytics):
@@ -219,12 +219,12 @@ def test_hasFeature_professional(analytics):
     with mock.patch.object(version, "IS_ALPHA", False):
         with mock.patch.object(version, "IS_BETA", False):
             with mock.patch.object(
-                session, "activeFeatures", return_value=[vedana.LICENSE_PROFESSIONAL]
+                session, "activeFeatures", return_value=[btcopilot.LICENSE_PROFESSIONAL]
             ):
-                assert session.hasFeature(vedana.LICENSE_BETA) == False
-                assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == True
-                assert session.hasFeature(vedana.LICENSE_FREE) == False
-                assert session.hasFeature(vedana.LICENSE_CLIENT) == False
+                assert session.hasFeature(btcopilot.LICENSE_BETA) == False
+                assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == True
+                assert session.hasFeature(btcopilot.LICENSE_FREE) == False
+                assert session.hasFeature(btcopilot.LICENSE_CLIENT) == False
 
 
 def test_hasFeature_client(analytics):
@@ -235,12 +235,12 @@ def test_hasFeature_client(analytics):
             with mock.patch.object(
                 session,
                 "activeFeatures",
-                return_value=[vedana.LICENSE_FREE, vedana.LICENSE_CLIENT],
+                return_value=[btcopilot.LICENSE_FREE, btcopilot.LICENSE_CLIENT],
             ):
-                assert session.hasFeature(vedana.LICENSE_BETA) == False
-                assert session.hasFeature(vedana.LICENSE_PROFESSIONAL) == False
-                assert session.hasFeature(vedana.LICENSE_FREE) == True
-                assert session.hasFeature(vedana.LICENSE_CLIENT) == True
+                assert session.hasFeature(btcopilot.LICENSE_BETA) == False
+                assert session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) == False
+                assert session.hasFeature(btcopilot.LICENSE_FREE) == True
+                assert session.hasFeature(btcopilot.LICENSE_CLIENT) == True
 
 
 def test_version_deactivated(test_session, analytics):

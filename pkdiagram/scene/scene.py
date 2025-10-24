@@ -4,6 +4,7 @@ from typing import Union
 import shutil
 import pprint
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import (
     pyqtSlot,
     pyqtSignal,
@@ -44,7 +45,6 @@ from pkdiagram.scene import (
     EmotionalUnit,
     Property,
     Event,
-    EventKind,
     Item,
     ItemMode,
     PathItem,
@@ -60,7 +60,6 @@ from pkdiagram.scene import (
     ItemGarbage,
     ItemDetails,
     clipboard,
-    RelationshipKind,
 )
 from pkdiagram.scene.commands import (
     AddItem,
@@ -1497,7 +1496,7 @@ class Scene(QGraphicsScene, Item):
             elif self.itemMode() and self.itemMode().toRelationshipKind():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
-                    RelationshipKind.fromItemMode(self.itemMode()),
+                    self.itemMode().toRelationshipKind(),
                     self.dragStartItem,
                     pointB=e.scenePos(),
                     hoverPerson=hoverMe,

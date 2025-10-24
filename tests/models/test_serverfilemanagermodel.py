@@ -3,7 +3,7 @@ import pickle
 import pytest
 from sqlalchemy import inspect
 
-import vedana
+import btcopilot
 from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.models import ServerFileManagerModel
@@ -51,7 +51,7 @@ def create_model(request):
 def _grant_ro_access(diagrams, grantee):
     for diagram in diagrams:
         if diagram.user_id != grantee.id:
-            diagram.grant_access(grantee, vedana.ACCESS_READ_ONLY)
+            diagram.grant_access(grantee, btcopilot.ACCESS_READ_ONLY)
     db.session.commit()
 
 
@@ -249,7 +249,7 @@ def test_save_free_diagram_persists(test_session):
     model = ServerFileManagerModel()
     session = fe_Session()
     session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
-    assert session.hasFeature(vedana.LICENSE_FREE) == True
+    assert session.hasFeature(btcopilot.LICENSE_FREE) == True
     model.init()
     model.setSession(session)
     assert util.wait(model.updateFinished)

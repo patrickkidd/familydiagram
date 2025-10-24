@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import Qt
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
@@ -45,8 +45,8 @@ def test_read_rows(model, test_session, test_user, test_user_2):
     assert model.rowCount() == 0
 
     db.session.add_all([test_user, test_user_2, first_diagram])
-    first_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
-    first_diagram.grant_access(test_user, vedana.ACCESS_READ_ONLY)
+    first_diagram.grant_access(test_user_2, btcopilot.ACCESS_READ_WRITE)
+    first_diagram.grant_access(test_user, btcopilot.ACCESS_READ_ONLY)
     db.session.commit()
 
     diagram = fe_Diagram.get(first_diagram.id, session)
@@ -68,22 +68,22 @@ def test_set_right(model, test_user):
         user_id=test_user.id,
         created_at=datetime.datetime.now(),
         access_rights=[
-            AccessRight(id=1, user_id=5, right=vedana.ACCESS_READ_ONLY),
-            AccessRight(id=2, user_id=6, right=vedana.ACCESS_READ_WRITE),
+            AccessRight(id=1, user_id=5, right=btcopilot.ACCESS_READ_ONLY),
+            AccessRight(id=2, user_id=6, right=btcopilot.ACCESS_READ_WRITE),
         ],
     )
     model.setServerDiagram(diagram)
-    assert model.index(0, 0).data(role=model.RightRole) == vedana.ACCESS_READ_ONLY
-    assert model.index(1, 0).data(role=model.RightRole) == vedana.ACCESS_READ_WRITE
+    assert model.index(0, 0).data(role=model.RightRole) == btcopilot.ACCESS_READ_ONLY
+    assert model.index(1, 0).data(role=model.RightRole) == btcopilot.ACCESS_READ_WRITE
     assert model.index(2, 0).data(role=model.RightRole) == None
 
-    model.setData(model.index(0, 0), vedana.ACCESS_READ_WRITE, role=model.RightRole)
-    model.setData(model.index(1, 0), vedana.ACCESS_READ_ONLY, role=model.RightRole)
-    assert model.index(0, 0).data(role=model.RightRole) == vedana.ACCESS_READ_WRITE
-    assert model.index(1, 0).data(role=model.RightRole) == vedana.ACCESS_READ_ONLY
+    model.setData(model.index(0, 0), btcopilot.ACCESS_READ_WRITE, role=model.RightRole)
+    model.setData(model.index(1, 0), btcopilot.ACCESS_READ_ONLY, role=model.RightRole)
+    assert model.index(0, 0).data(role=model.RightRole) == btcopilot.ACCESS_READ_WRITE
+    assert model.index(1, 0).data(role=model.RightRole) == btcopilot.ACCESS_READ_ONLY
     assert model.index(2, 0).data(role=model.RightRole) == None
-    assert diagram.access_rights[0].right == vedana.ACCESS_READ_WRITE
-    assert diagram.access_rights[1].right == vedana.ACCESS_READ_ONLY
+    assert diagram.access_rights[0].right == btcopilot.ACCESS_READ_WRITE
+    assert diagram.access_rights[1].right == btcopilot.ACCESS_READ_ONLY
 
 
 def test_add_right(test_user_2, model):
@@ -94,7 +94,7 @@ def test_add_right(test_user_2, model):
     model.addRight(test_user_2.username)
     db.session.add(test_user_2)
     assert model.index(0, 0).data(role=model.UsernameRole) == test_user_2.username
-    assert model.index(0, 0).data(role=model.RightRole) == vedana.ACCESS_READ_ONLY
+    assert model.index(0, 0).data(role=model.RightRole) == btcopilot.ACCESS_READ_ONLY
 
 
 @pytest.mark.usefixtures("blockingRequest_200")
@@ -108,7 +108,7 @@ def test_add_right_not_exist(qtbot, model, test_session, test_user_2):
 
 @pytest.mark.usefixtures("blockingRequest_200")
 def test_add_right_already_exists(qtbot, model, test_session, test_user, test_user_2):
-    test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
+    test_user.free_diagram.grant_access(test_user_2, btcopilot.ACCESS_READ_WRITE)
     diagram_json = Diagram.query.get(test_user.free_diagram.id).as_dict()
     diagram = fe_Diagram.create(diagram_json)
     model.setServerDiagram(diagram)
@@ -120,7 +120,7 @@ def test_add_right_already_exists(qtbot, model, test_session, test_user, test_us
 
 @pytest.mark.usefixtures("blockingRequest_200")
 def test_delete_right(model, test_user, test_user_2):
-    test_user.free_diagram.grant_access(test_user_2, vedana.ACCESS_READ_WRITE)
+    test_user.free_diagram.grant_access(test_user_2, btcopilot.ACCESS_READ_WRITE)
     free_diagram = Diagram.query.get(test_user.free_diagram_id)
     diagram = fe_Diagram.create(free_diagram.as_dict())
     model.setServerDiagram(diagram)

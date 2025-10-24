@@ -2,7 +2,8 @@ import logging
 import bisect
 import json
 
-import vedana
+import btcopilot
+from btcopilot.schema import EventKind
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -32,7 +33,6 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import (
-    EventKind,
     ItemMode,
     Property,
     Person,
@@ -519,7 +519,7 @@ class DocumentController(QObject):
         isReadOnly = self.scene and self.scene.readOnly()
 
         # License-dependent
-        isAdmin = session.user and session.user.hasRoles(vedana.ROLE_ADMIN)
+        isAdmin = session.user and session.user.hasRoles(btcopilot.ROLE_ADMIN)
 
         allActionsEnabled = session.activeFeatures() != []
         for attr, action in self.ui.__dict__.items():
@@ -528,30 +528,40 @@ class DocumentController(QObject):
                     action.setEnabled(allActionsEnabled)
         if not allActionsEnabled:
             return
-        self.ui.actionOpen.setEnabled(not session.hasFeature(vedana.LICENSE_FREE))
-        self.ui.actionImport_Diagram.setEnabled(session.hasFeature(vedana.LICENSE_FREE))
-        self.ui.menuOpen_Recent.setEnabled(not session.hasFeature(vedana.LICENSE_FREE))
+        self.ui.actionOpen.setEnabled(not session.hasFeature(btcopilot.LICENSE_FREE))
+        self.ui.actionImport_Diagram.setEnabled(
+            session.hasFeature(btcopilot.LICENSE_FREE)
+        )
+        self.ui.menuOpen_Recent.setEnabled(
+            not session.hasFeature(btcopilot.LICENSE_FREE)
+        )
         self.ui.actionSave.setEnabled(bool(self.scene and not isReadOnly))
         self.ui.actionSave_As.setEnabled(
             bool(
                 self.scene
-                and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT)
+                and not session.hasFeature(
+                    btcopilot.LICENSE_FREE, btcopilot.LICENSE_CLIENT
+                )
                 and (isAdmin or not isReadOnly)
             )
         )
         self.ui.actionSave_Selection_As.setEnabled(
             bool(
                 self.scene
-                and not session.hasFeature(vedana.LICENSE_FREE, vedana.LICENSE_CLIENT)
+                and not session.hasFeature(
+                    btcopilot.LICENSE_FREE, btcopilot.LICENSE_CLIENT
+                )
                 and (self.scene and self.scene.selectedItems() and not isReadOnly)
             )
         )
-        self.ui.actionFree_License.setChecked(session.hasFeature(vedana.LICENSE_FREE))
+        self.ui.actionFree_License.setChecked(
+            session.hasFeature(btcopilot.LICENSE_FREE)
+        )
         self.ui.actionProfessional_License.setChecked(
-            session.hasFeature(vedana.LICENSE_PROFESSIONAL)
+            session.hasFeature(btcopilot.LICENSE_PROFESSIONAL)
         )
         self.ui.actionResearcher_License.setChecked(
-            session.hasFeature(vedana.LICENSE_RESEARCHER)
+            session.hasFeature(btcopilot.LICENSE_RESEARCHER)
         )
         self.ui.actionInstall_Update.setEnabled(CUtil.instance().isUpdateAvailable())
 
@@ -559,7 +569,7 @@ class DocumentController(QObject):
 
         on = bool(self.scene)
         self.ui.actionClose.setEnabled(
-            on and not session.hasFeature(vedana.LICENSE_FREE)
+            on and not session.hasFeature(btcopilot.LICENSE_FREE)
         )
 
         # In-view actions

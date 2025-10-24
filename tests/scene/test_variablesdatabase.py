@@ -1,7 +1,8 @@
 import pytest
 
+from btcopilot.schema import EventKind
 from pkdiagram import util, slugify
-from pkdiagram.scene import Scene, Person, VariablesDatabase, Event, EventKind
+from pkdiagram.scene import Scene, Person, VariablesDatabase, Event
 
 
 VAR_1 = "Var 1"

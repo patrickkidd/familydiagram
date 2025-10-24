@@ -5,9 +5,10 @@ import logging
 import pytest
 import mock
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop
 from pkdiagram import util
-from pkdiagram.scene import Person, EventKind
+from pkdiagram.scene import Person
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
 

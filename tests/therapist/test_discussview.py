@@ -9,6 +9,7 @@ from mock import patch
 
 # from tests.models.test_copilotengine import copilot
 
+from btcopilot.schema import asdict
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
@@ -135,7 +136,7 @@ def test_refresh_diagram(
             data["discussions"] = [
                 x.as_dict(include=["statements", "speakers"]) for x in DISCUSSIONS
             ]
-            data["database"] = dict(diagram.get_diagram_data())
+            data["diagram_data"] = asdict(diagram.get_diagram_data())
             kwargs["success"](data)
 
             return type("MockReply", (), {})()

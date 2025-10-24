@@ -9,6 +9,7 @@ from ddtrace import patch
 import pytest
 from mock import patch, MagicMock
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import (
     Qt,
     QWidget,
@@ -33,8 +34,6 @@ from pkdiagram.scene import (
     Marriage,
     Callout,
     ItemMode,
-    EventKind,
-    RelationshipKind,
     Event,
 )
 from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView

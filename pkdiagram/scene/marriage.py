@@ -1,5 +1,6 @@
 import logging
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import (
     pyqtSlot,
     QObject,
@@ -14,13 +15,7 @@ from pkdiagram.pyqt import (
     QQmlEngine,
 )
 from pkdiagram import util
-from pkdiagram.scene import (
-    ItemDetails,
-    Event,
-    PathItem,
-    EmotionalUnit,
-    EventKind,
-)
+from pkdiagram.scene import ItemDetails, Event, PathItem, EmotionalUnit
 
 log = logging.getLogger(__name__)
 

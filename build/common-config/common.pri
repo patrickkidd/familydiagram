@@ -1,10 +1,7 @@
 _PKDIAGRAM = $$PWD/../../pkdiagram/_pkdiagram
-VEDANA = $$PWD/../../vedana
-VEDANAPRIVATE = $$PWD/../../vedanaprivate
 
 # HEADERS += $$_PKDIAGRAM/_pkdiagram.h
 
-INCLUDEPATH += $$VEDANAPRIVATE/build
 
 PK_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
 PK_ENTITLEMENTS.value = Family Diagram.entitlements

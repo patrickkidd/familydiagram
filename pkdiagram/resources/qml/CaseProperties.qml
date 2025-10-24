@@ -25,7 +25,7 @@ PK.Drawer {
     property bool canInspect: timelineView.canInspect
     property bool notJustFreeLicense: {
         sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
-            vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
+            btcopilot.LICENSE_CLIENT, btcopilot.LICENSE_PROFESSIONAL, btcopilot.LICENSE_ALPHA, btcopilot.LICENSE_BETA
         )) : false
     }
 
@@ -539,9 +539,9 @@ PK.Drawer {
                                             currentIndex: {
                                                 if(rightCode == undefined) {
                                                     return -1
-                                                } else if (rightCode == vedana.ACCESS_READ_ONLY) {
+                                                } else if (rightCode == btcopilot.ACCESS_READ_ONLY) {
                                                     return 0
-                                                } else if (rightCode == vedana.ACCESS_READ_WRITE) {
+                                                } else if (rightCode == btcopilot.ACCESS_READ_WRITE) {
                                                     return 1
                                                 }
                                             }
@@ -549,9 +549,9 @@ PK.Drawer {
                                                 if(currentIndex == -1) {
                                                     rightCode = undefined
                                                 } else if(currentIndex == 0) {
-                                                    rightCode = vedana.ACCESS_READ_ONLY
+                                                    rightCode = btcopilot.ACCESS_READ_ONLY
                                                 } else if(currentIndex == 1) {
-                                                    rightCode = vedana.ACCESS_READ_WRITE
+                                                    rightCode = btcopilot.ACCESS_READ_WRITE
                                                 }
                                             }
                                         }

@@ -1,6 +1,6 @@
 import pytest
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram import util
 
 
@@ -40,11 +40,11 @@ def test_clear_Shift(view):
     view.set_startDateTime(START_DATETIME)
     view.set_endDateTime(END_DATETIME)
     view.set_description("here are some notes")
-    view.set_symptom(util.VAR_VALUE_DOWN)
-    view.set_anxiety(util.VAR_VALUE_UP)
+    view.set_symptom(VariableShift.Down)
+    view.set_anxiety(VariableShift.Up)
     view.set_relationship(RelationshipKind.Inside)
     view.targetsPicker.add_new_person("Juan Doe")
-    view.set_functioning(util.VAR_VALUE_SAME)
+    view.set_functioning(VariableShift.Same)
     view.add_tag("tag1")
     view.set_active_tags(["tag1"])
     view.clickClearButton()

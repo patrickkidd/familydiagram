@@ -2,17 +2,14 @@ import logging
 
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util
 from pkdiagram.scene import (
-    Scene,
     Person,
     Marriage,
     Event,
-    Emotion,
-    EventKind,
     Marriage,
-    RelationshipKind,
     ItemMode,
 )
 from pkdiagram.models import SearchModel, TimelineModel

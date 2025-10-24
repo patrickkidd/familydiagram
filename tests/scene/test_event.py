@@ -1,6 +1,6 @@
 import pytest
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram import util
 from pkdiagram.scene import Event, Person
 
@@ -204,10 +204,10 @@ def test_lt_eq(scene):
 @pytest.mark.parametrize(
     "attr, value",
     [
-        ("symptom", util.VAR_SYMPTOM_UP),
-        ("anxiety", util.VAR_ANXIETY_DOWN),
+        ("symptom", VariableShift.Up),
+        ("anxiety", VariableShift.Down),
         ("relationship", RelationshipKind.Conflict),
-        ("functioning", util.VAR_FUNCTIONING_SAME),
+        ("functioning", VariableShift.Same),
     ],
 )
 def test_variables(scene, attr, value):

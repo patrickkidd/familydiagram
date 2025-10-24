@@ -6,7 +6,7 @@ import pytest
 import mock
 import flask_mail
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import QApplication
 from pkdiagram import util
 from pkdiagram.views import AccountDialog
@@ -306,16 +306,16 @@ def test_edit_user(flask_app, test_user, create_dlg):
 @pytest.mark.parametrize("ccv", ["4242", "012"])
 def test_purchase(test_session, qtbot, create_dlg, qmlEngine, ccv):
     p1 = Policy(
-        code=vedana.LICENSE_PROFESSIONAL_MONTHLY,
-        product=vedana.LICENSE_PROFESSIONAL,
+        code=btcopilot.LICENSE_PROFESSIONAL_MONTHLY,
+        product=btcopilot.LICENSE_PROFESSIONAL,
         name="Professional Monthly",
         amount=100,
         public=True,
         active=True,
     )
     p2 = Policy(
-        code=vedana.LICENSE_PROFESSIONAL_ANNUAL,
-        product=vedana.LICENSE_PROFESSIONAL,
+        code=btcopilot.LICENSE_PROFESSIONAL_ANNUAL,
+        product=btcopilot.LICENSE_PROFESSIONAL,
         name="Professioal Annual",
         amount=100,
         public=True,
