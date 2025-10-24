@@ -42,6 +42,7 @@ Defaults.properties
 .cache_ggshield
 .ai_log.txt
 **/*.fd/*
+*.egg-info
 
 ## Generated Sources
 
