@@ -1,8 +1,9 @@
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import Qt, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import Person, Emotion, RelationshipKind, EventKind, Event
+from pkdiagram.scene import Person, Emotion, Event
 from pkdiagram.views import QmlDrawer
 
 

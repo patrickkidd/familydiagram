@@ -22,9 +22,9 @@ import pickle
 
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
 from pkdiagram.models import compat
-from pkdiagram.scene import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF
 
 from . import data

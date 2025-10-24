@@ -1,8 +1,9 @@
 import pytest
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind, Person, Marriage, person
+from pkdiagram.scene import Person, Marriage, person
 
 
 from .test_eventform import view

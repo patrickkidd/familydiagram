@@ -1,5 +1,6 @@
 import logging
 
+from btcopilot.schema import EventKind, RelationshipKind
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -23,7 +24,7 @@ from pkdiagram.pyqt import (
     QDateTime,
 )
 from pkdiagram import util
-from pkdiagram.scene import Event, PathItem, RelationshipKind, EventKind, Item, Person
+from pkdiagram.scene import Event, PathItem, Item, Person
 
 
 DEBUG = False

@@ -1,8 +1,9 @@
 import logging
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
 from pkdiagram import version, util
-from pkdiagram.scene import ItemDetails, Emotion, RelationshipKind, EventKind, Emotion
+from pkdiagram.scene import ItemDetails, Emotion, Emotion
 
 _log = logging.getLogger(__name__)
 

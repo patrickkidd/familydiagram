@@ -1,7 +1,7 @@
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind
 
 
 from .test_eventform import view

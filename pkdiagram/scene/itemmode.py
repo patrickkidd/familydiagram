@@ -1,6 +1,6 @@
 import enum
 
-from pkdiagram.scene import RelationshipKind
+from btcopilot.schema import RelationshipKind
 
 
 class ItemMode(enum.Enum):
@@ -32,22 +32,6 @@ class ItemMode(enum.Enum):
     Eraser = "eraser"
     Callout = "callout"
 
-    def toRelationship(self) -> RelationshipKind:
-        """Check if this mode creates an emotion."""
-        map = {
-            self.Projection: RelationshipKind.Projection,
-            self.Conflict: RelationshipKind.Conflict,
-            self.Cutoff: RelationshipKind.Cutoff,
-            self.Distance: RelationshipKind.Distance,
-            self.Toward: RelationshipKind.Toward,
-            self.Away: RelationshipKind.Away,
-            self.DefinedSelf: RelationshipKind.DefinedSelf,
-            self.Reciprocity: RelationshipKind.Underfunctioning,
-            self.Inside: RelationshipKind.Inside,
-            self.Outside: RelationshipKind.Outside,
-        }
-        return map.get(self)
-
     def isPerson(self) -> bool:
         """Check if this mode creates a person."""
         return self in [self.Male, self.Female]
@@ -55,3 +39,51 @@ class ItemMode(enum.Enum):
     def isOffSpring(self) -> bool:
         """Check if this mode creates a marriage or child relationship."""
         return self in [self.Marry, self.Child]
+
+    @staticmethod
+    def fromRelationshipKind(kind: RelationshipKind) -> "ItemMode | None":
+        """Get the ItemMode for a RelationshipKind, if any."""
+        if kind == RelationshipKind.Cutoff:
+            return ItemMode.Cutoff
+        elif kind == RelationshipKind.Conflict:
+            return ItemMode.Conflict
+        elif kind == RelationshipKind.Distance:
+            return ItemMode.Distance
+        elif kind in (
+            RelationshipKind.Underfunctioning,
+            RelationshipKind.Overfunctioning,
+        ):
+            return ItemMode.Reciprocity
+        elif kind == RelationshipKind.Projection:
+            return ItemMode.Projection
+        elif kind == RelationshipKind.Toward:
+            return ItemMode.Toward
+        elif kind == RelationshipKind.Away:
+            return ItemMode.Away
+        elif kind == RelationshipKind.Inside:
+            return ItemMode.Inside
+        elif kind == RelationshipKind.Outside:
+            return ItemMode.Outside
+        elif kind == RelationshipKind.DefinedSelf:
+            return ItemMode.DefinedSelf
+        else:
+            raise KeyError(f"No ITEM_MODE for: {kind}")
+
+    def toRelationshipKind(self) -> RelationshipKind | None:
+        """Get the RelationshipKind for this ItemMode, if any."""
+        mapping = {
+            ItemMode.Conflict: RelationshipKind.Conflict,
+            ItemMode.Distance: RelationshipKind.Distance,
+            ItemMode.Reciprocity: RelationshipKind.Underfunctioning,
+            ItemMode.Projection: RelationshipKind.Projection,
+            ItemMode.DefinedSelf: RelationshipKind.DefinedSelf,
+            ItemMode.Toward: RelationshipKind.Toward,
+            ItemMode.Away: RelationshipKind.Away,
+            ItemMode.Inside: RelationshipKind.Inside,
+            ItemMode.Outside: RelationshipKind.Outside,
+            ItemMode.Cutoff: RelationshipKind.Cutoff,
+        }
+        if self in mapping:
+            return mapping[self]
+        else:
+            raise KeyError(f"No RelationshipKind for ITEM_MODE: {self}")

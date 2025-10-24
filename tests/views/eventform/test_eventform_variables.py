@@ -1,7 +1,8 @@
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import Person, EventKind, RelationshipKind, ItemMode
+from pkdiagram.scene import Person, ItemMode
 
 from .test_eventform import view, START_DATETIME, END_DATETIME
 

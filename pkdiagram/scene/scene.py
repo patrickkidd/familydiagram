@@ -1494,7 +1494,7 @@ class Scene(QGraphicsScene, Item):
                     hoverMe = self.childOfUnder(e.scenePos())
                     if not hoverMe:
                         hoverMe = self.multipleBirthUnder(e.scenePos())
-            elif self.itemMode() and self.itemMode().toRelationship():
+            elif self.itemMode() and self.itemMode().toRelationshipKind():
                 hoverMe = self.personUnder(e.scenePos())
                 path = Emotion.pathFor(
                     RelationshipKind.fromItemMode(self.itemMode()),
@@ -1562,7 +1562,7 @@ class Scene(QGraphicsScene, Item):
             )
             self.setItemMode(None)
         elif self.itemMode() and (
-            self.itemMode().isOffSpring() or self.itemMode().toRelationship()
+            self.itemMode().isOffSpring() or self.itemMode().toRelationshipKind()
         ):
             e.accept()
             success = False
@@ -1578,9 +1578,9 @@ class Scene(QGraphicsScene, Item):
                 if parentItem:
                     self.push(SetParents(self.dragStartItem, parentItem))
                     success = True
-            elif self.itemMode() and self.itemMode().toRelationship():
+            elif self.itemMode() and self.itemMode().toRelationshipKind():
                 person = self.personUnder(e.scenePos())
-                kind = self.itemMode().toRelationship()
+                kind = self.itemMode().toRelationshipKind()
                 if self.itemMode() == ItemMode.Cutoff:  # monadic
                     emotion = Emotion(kind=kind, person=person)
                 elif person and person is not self.dragStartItem:  # dyadic

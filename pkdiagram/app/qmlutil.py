@@ -5,6 +5,7 @@ qmlEngine. maybe even moved to qmlengine.py.
 
 import pickle, json, datetime, time, logging
 
+from btcopilot.schema import EventKind, RelationshipKind
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
@@ -30,7 +31,6 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
 )
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import HTTPError
 

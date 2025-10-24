@@ -1,7 +1,8 @@
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind, Event, Person
+from pkdiagram.scene import Event, Person
 
 
 def test_init(scene):
