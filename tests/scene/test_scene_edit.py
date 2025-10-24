@@ -2,9 +2,10 @@ import os.path
 
 import pytest
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import Qt, QGraphicsView, QDateTime, QPoint
 from pkdiagram import util
-from pkdiagram.scene import Scene, Item, Person, Event, EventKind
+from pkdiagram.scene import Scene, Item, Person, Event
 
 
 class View(QGraphicsView):

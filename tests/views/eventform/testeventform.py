@@ -2,6 +2,7 @@ import logging
 
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram import util
 from pkdiagram.pyqt import (
     Q_RETURN_ARG,
@@ -11,8 +12,7 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QDateTime,
 )
-from pkdiagram.scene import EventKind, Person, Marriage, PathItem
-from pkdiagram.scene.relationshipkind import RelationshipKind
+from pkdiagram.scene import Person, Marriage, PathItem
 from pkdiagram.views import EventForm
 
 from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
@@ -315,11 +315,11 @@ class TestEventForm:
             assert warning.call_args[0][0] == self.view
             assert warning.call_args[0][2] == expectedText
 
-    def set_symptom(self, x):
-        self.view.setVariable("symptom", x)
+    def set_symptom(self, x: VariableShift):
+        self.view.setVariable("symptom", x.value)
 
-    def set_anxiety(self, x):
-        self.view.setVariable("anxiety", x)
+    def set_anxiety(self, x: VariableShift):
+        self.view.setVariable("anxiety", x.value)
 
     def set_relationship(self, relationshipKind: RelationshipKind):
         self.view.clickComboBoxItem(
@@ -329,8 +329,8 @@ class TestEventForm:
         )
         util.waitALittle()
 
-    def set_functioning(self, x):
-        self.view.setVariable("functioning", x)
+    def set_functioning(self, x: VariableShift):
+        self.view.setVariable("functioning", x.value)
 
     # Meta
 

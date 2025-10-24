@@ -1,6 +1,6 @@
 import pickle
 from typing import List
-import vedana
+import btcopilot
 from pkdiagram.pyqt import (
     Qt,
     pyqtSlot,
@@ -144,7 +144,7 @@ class AccessRightsModel(QAbstractListModel):
                     )
                     return False
             if (
-                self._session.hasFeature(vedana.LICENSE_CLIENT)
+                self._session.hasFeature(btcopilot.LICENSE_CLIENT)
                 and len(self._diagram.access_rights) >= 1
             ):
                 QMessageBox.warning(
@@ -159,7 +159,7 @@ class AccessRightsModel(QAbstractListModel):
                 data={
                     "diagram_id": self._diagram.id,
                     "user_id": user.id,
-                    "right": vedana.ACCESS_READ_ONLY,
+                    "right": btcopilot.ACCESS_READ_ONLY,
                     "session": self._session.token,
                 },
             )

@@ -4,7 +4,7 @@ import pickle
 import pytest
 import mock
 
-import vedana
+import btcopilot
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import QApplication, QUrl
 from pkdiagram import util
@@ -114,7 +114,7 @@ def test_server_filter_owner(
 ):
     for diagram in test_user_diagrams:
         if diagram.user_id == test_user_2.id:
-            diagram.grant_access(test_user, vedana.ACCESS_READ_ONLY)
+            diagram.grant_access(test_user, btcopilot.ACCESS_READ_ONLY)
     db.session.commit()
 
     fm = create_fm()
@@ -138,7 +138,7 @@ def test_server_filter_owner(
 def test_diagrams_get_others_diagrams(
     flask_app, server_response, test_user, test_user_2, create_fm
 ):
-    test_user.roles = vedana.ROLE_ADMIN
+    test_user.roles = btcopilot.ROLE_ADMIN
     diagram_1 = Diagram(
         data=pickle.dumps({}), name="first diagram", user_id=test_user_2.id
     )

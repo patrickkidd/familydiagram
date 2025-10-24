@@ -3,8 +3,9 @@ import logging
 import pytest
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import Person, Event, EventKind, RelationshipKind, Marriage
+from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views import EventForm
 
 # from test_peoplepicker import add_and_keyClicks, add_new_person, add_existing_person

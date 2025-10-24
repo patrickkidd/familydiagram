@@ -1,11 +1,12 @@
 import pytest
+
+from btcopilot.schema import RelationshipKind, EventKind
 from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer, ItemMode
 from pkdiagram.scene.emotions import Jig, FannedBox
 from pkdiagram.models import SearchModel
-from pkdiagram.scene import EventKind, Event
-from pkdiagram.scene.relationshipkind import RelationshipKind
+from pkdiagram.scene import Event
 
 
 @pytest.fixture

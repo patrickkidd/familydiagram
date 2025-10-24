@@ -2,9 +2,10 @@ import logging
 
 import pytest
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import QDateTime, QPointF
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Event, Marriage, EventKind
+from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views import SearchDialog
 
 from tests.conftest import qmlEngine

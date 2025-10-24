@@ -2,7 +2,7 @@ import os, os.path
 import pickle
 import pytest
 
-import vedana
+import btcopilot
 from pkdiagram.documentview import RightDrawerView
 from pkdiagram.pyqt import QObject, QApplication
 from pkdiagram import util
@@ -109,7 +109,7 @@ def test_add_access_right_as_client(
     db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
-    assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
+    assert diagram.access_rights[0].right == btcopilot.ACCESS_READ_ONLY
 
 
 def test_add_only_one_access_right_as_client(
@@ -146,7 +146,7 @@ def test_add_only_one_access_right_as_client(
     db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
-    assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
+    assert diagram.access_rights[0].right == btcopilot.ACCESS_READ_ONLY
 
     qtbot.clickOkAfter(
         lambda: cp.keyClicks(
@@ -185,7 +185,7 @@ def test_add_one_access_right_for_free_as_client(
     db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram.id)
     assert len(diagram.access_rights) == 1
-    assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
+    assert diagram.access_rights[0].right == btcopilot.ACCESS_READ_ONLY
 
     qtbot.clickOkAfter(
         lambda: cp.keyClicks(
@@ -201,7 +201,7 @@ def test_add_one_access_right_for_free_as_client(
 
 def test_edit_access_right(test_user, test_user_2, test_client_activation, create_cp):
     test_user.free_diagram.grant_access(
-        test_user_2, vedana.ACCESS_READ_WRITE, _commit=True
+        test_user_2, btcopilot.ACCESS_READ_WRITE, _commit=True
     )
 
     cp = create_cp(loadFreeDiagram=True)
@@ -212,12 +212,12 @@ def test_edit_access_right(test_user, test_user_2, test_client_activation, creat
     db.session.expire_all()
     diagram = Diagram.query.get(test_user.free_diagram_id)
     assert len(diagram.access_rights) == 1
-    assert diagram.access_rights[0].right == vedana.ACCESS_READ_ONLY
+    assert diagram.access_rights[0].right == btcopilot.ACCESS_READ_ONLY
 
 
 def test_delete_access_right(test_user, test_user_2, test_client_activation, create_cp):
     test_user.free_diagram.grant_access(
-        test_user_2, vedana.ACCESS_READ_WRITE, _commit=True
+        test_user_2, btcopilot.ACCESS_READ_WRITE, _commit=True
     )
 
     cp = create_cp(loadFreeDiagram=True)

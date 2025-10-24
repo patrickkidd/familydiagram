@@ -3,21 +3,10 @@ import os, os.path, pickle
 import pytest
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import (
-    Scene,
-    Item,
-    Person,
-    Marriage,
-    Emotion,
-    Event,
-    MultipleBirth,
-    Layer,
-    EventKind,
-    ItemMode,
-    RelationshipKind,
-)
+from pkdiagram.scene import Scene, Person, Emotion, Event
 from pkdiagram.models import SceneLayerModel
 
 pytestmark = [

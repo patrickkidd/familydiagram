@@ -1,5 +1,5 @@
+from btcopilot.schema import EventKind
 from pkdiagram import util
-from pkdiagram.scene import Scene, EventKind
 from pkdiagram.models import TimelineModel
 
 

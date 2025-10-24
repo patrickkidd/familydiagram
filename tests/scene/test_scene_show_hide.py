@@ -2,20 +2,14 @@ import os, os.path, pickle
 
 import pytest
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import (
-    Scene,
-    Item,
     Person,
     Marriage,
     Emotion,
     Event,
-    MultipleBirth,
-    Layer,
-    EventKind,
-    ItemMode,
-    RelationshipKind,
 )
 from pkdiagram.models import SceneLayerModel
 

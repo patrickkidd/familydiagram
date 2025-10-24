@@ -3,7 +3,7 @@ import pickle
 
 from PyQt5.QtCore import QT_VERSION_STR
 
-import vedana
+import btcopilot
 from _pkdiagram import CUtil, FDDocument
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
             elif self._windowIcon is None:
                 self._windowIcon = QIcon(QPixmap(util.QRC + "PKDiagram.png"))
                 self.setWindowIcon(self._windowIcon)
-            if self.session.hasFeature(vedana.LICENSE_FREE):
+            if self.session.hasFeature(btcopilot.LICENSE_FREE):
                 title = "Family Diagram"
             else:
                 title = self.scene.name()
@@ -564,7 +564,7 @@ class MainWindow(QMainWindow):
                 title += " | " + layerNames
             if (
                 self.scene.readOnly()
-                or self.session.hasFeature(vedana.LICENSE_FREE)
+                or self.session.hasFeature(btcopilot.LICENSE_FREE)
                 or self.documentView.sceneModel.isOnServer
             ):
                 self.setWindowFilePath(" ")
@@ -671,7 +671,7 @@ class MainWindow(QMainWindow):
         return filePath
 
     def new(self):
-        if self.session.hasFeature(vedana.LICENSE_FREE):
+        if self.session.hasFeature(btcopilot.LICENSE_FREE):
             btn = QMessageBox.question(
                 self,
                 "Clear diagram?",
@@ -906,7 +906,7 @@ class MainWindow(QMainWindow):
             return
 
         if importing:
-            if self.session.hasFeature(vedana.LICENSE_FREE):
+            if self.session.hasFeature(btcopilot.LICENSE_FREE):
                 btn = QMessageBox.question(
                     self, "Overwrite free diagram?", self.S_IMPORTING_TO_FREE_DIAGRAM
                 )
@@ -924,7 +924,7 @@ class MainWindow(QMainWindow):
                         if ret:
                             self.onOpenFileError(ret)
 
-                        if self.session.hasFeature(vedana.LICENSE_FREE):
+                        if self.session.hasFeature(btcopilot.LICENSE_FREE):
 
                             self._isImportingToFreeDiagram = True
                             diagram = self.scene.serverDiagram()
@@ -946,7 +946,7 @@ class MainWindow(QMainWindow):
             )  # calls FileManager.onFileOpened, then -> mw.setDocument
 
     def openFreeLicenseDiagram(self):
-        if self.session.hasFeature(vedana.LICENSE_FREE):
+        if self.session.hasFeature(btcopilot.LICENSE_FREE):
             self.fileManager.hide()
             diagram = self.serverFileModel.findDiagram(
                 self.session.user.free_diagram_id
@@ -962,7 +962,7 @@ class MainWindow(QMainWindow):
                 )
 
     def isFreeDiagramOpen(self) -> bool:
-        if self.session.hasFeature(vedana.LICENSE_FREE):
+        if self.session.hasFeature(btcopilot.LICENSE_FREE):
             diagram = self.serverFileModel.findDiagram(
                 self.session.user.free_diagram_id
             )
@@ -976,7 +976,7 @@ class MainWindow(QMainWindow):
         lastFileWasOpen = self.prefs.value(
             "lastFileWasOpen", type=bool, defaultValue=False
         )
-        if lastFileWasOpen and not self.session.hasFeature(vedana.LICENSE_FREE):
+        if lastFileWasOpen and not self.session.hasFeature(btcopilot.LICENSE_FREE):
             lastFileReadPath = self.prefs.value("lastFileReadPath", type=str)
             if QFileInfo(lastFileReadPath).exists():
                 diagram = self.serverFileModel.serverDiagramForPath(lastFileReadPath)
@@ -994,7 +994,7 @@ class MainWindow(QMainWindow):
         self._isOpeningDiagram = True
 
         if document:  # see if scene loads successfully first
-            if not self.session.hasFeature(vedana.LICENSE_FREE):
+            if not self.session.hasFeature(btcopilot.LICENSE_FREE):
                 self.prefs.setValue("lastFileReadPath", document.url().toLocalFile())
             filePath = document.url().toLocalFile()
 
@@ -1007,14 +1007,14 @@ class MainWindow(QMainWindow):
                 if self.session.user:  # if logged in
                     user_id = self.session.user.id
                     if self._isOpeningServerDiagram.check_access(
-                        user_id, vedana.ACCESS_READ_WRITE
+                        user_id, btcopilot.ACCESS_READ_WRITE
                     ):
                         readOnly = False
                     elif self._isOpeningServerDiagram.check_access(
-                        user_id, vedana.ACCESS_READ_ONLY
+                        user_id, btcopilot.ACCESS_READ_ONLY
                     ):
                         readOnly = True
-                    elif self.session.user.hasRoles(vedana.ROLE_ADMIN):
+                    elif self.session.user.hasRoles(btcopilot.ROLE_ADMIN):
                         readOnly = True
                     else:
                         raise RuntimeError("Not access at all? Is that possible??")
@@ -1072,7 +1072,7 @@ class MainWindow(QMainWindow):
                 newScene.setAlias(serverEntry["alias"], notify=False)
 
             # Update recent files list.
-            if not util.IS_TEST and not self.session.hasFeature(vedana.LICENSE_FREE):
+            if not util.IS_TEST and not self.session.hasFeature(btcopilot.LICENSE_FREE):
                 recentFiles = []
                 size = self.prefs.beginReadArray("recentFiles")
                 for i in range(size):
@@ -1420,7 +1420,7 @@ class MainWindow(QMainWindow):
         self.session.trackApp("Close document")
         self.diagramShown = False
         self.setDocument(None)
-        if self.session.hasFeature(vedana.LICENSE_PROFESSIONAL):
+        if self.session.hasFeature(btcopilot.LICENSE_PROFESSIONAL):
             self.fileManager.show()
         self.documentView.showDiagram()
         self.fileManager.onFileClosed()
@@ -1442,7 +1442,7 @@ class MainWindow(QMainWindow):
             self.fileManager.updateModTimes()
             self.documentView.controller.updateActions()
             if self.session.activeFeatures() and not self.session.hasFeature(
-                vedana.LICENSE_FREE
+                btcopilot.LICENSE_FREE
             ):
                 self.fileManager.setEnabled(True)
         else:
@@ -1869,7 +1869,7 @@ class MainWindow(QMainWindow):
             self.fileManager.setEnabled(False)
             self.documentView.setEnabled(False)
             self.closeDocument()
-        elif self.session.hasFeature(vedana.LICENSE_FREE):
+        elif self.session.hasFeature(btcopilot.LICENSE_FREE):
             # Only one diagram, no file browser, open functions
             self.fileManager.setEnabled(False)
             self.documentView.setEnabled(True)
@@ -1880,7 +1880,9 @@ class MainWindow(QMainWindow):
                 util.QRC + "cart-button.png"
             )
         elif self.session.hasFeature(
-            vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA
+            btcopilot.LICENSE_PROFESSIONAL,
+            btcopilot.LICENSE_BETA,
+            btcopilot.LICENSE_ALPHA,
         ):
             self.fileManager.setEnabled(True)
             self.documentView.setEnabled(True)

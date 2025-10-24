@@ -1,8 +1,9 @@
 import pytest
 from mock import patch
 
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind, Person, Marriage, person
+from pkdiagram.scene import Person, Marriage, person
 
 
 from .test_eventform import view
@@ -180,7 +181,7 @@ def test_add_multiple_events_to_new_person(scene, view):
     view.set_kind(EventKind.Shift)
     view.personPicker.set_existing_person(newPerson)
     view.set_startDateTime(START_DATETIME.addDays(15))
-    view.set_symptom(util.VAR_SYMPTOM_DOWN)
+    view.set_symptom(VariableShift.Down)
     view.set_description("Something happened")
     view.clickSaveButton()
     assert len(scene.people()) == 3

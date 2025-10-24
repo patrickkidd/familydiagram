@@ -3,8 +3,9 @@ import logging
 import pytest
 import mock
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, Event, EventKind, RelationshipKind
+from pkdiagram.scene import Person, Marriage, Event
 
 
 from .test_eventform import view

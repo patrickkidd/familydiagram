@@ -1,5 +1,6 @@
 import pytest
 
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import (
     Qt,
     QPoint,
@@ -9,7 +10,7 @@ from pkdiagram.pyqt import (
     QItemSelectionModel,
 )
 from pkdiagram import util
-from pkdiagram.scene import Scene, Event, Person, EventKind
+from pkdiagram.scene import Event, Person
 from pkdiagram.models import SearchModel, TimelineModel
 from pkdiagram.documentview import GraphicalTimelineView
 

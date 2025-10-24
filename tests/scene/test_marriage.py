@@ -3,9 +3,10 @@ import copy, pickle
 import pytest
 from mock import patch
 
-from pkdiagram.pyqt import QDateTime, Qt
+from btcopilot.schema import EventKind
 from pkdiagram import util
-from pkdiagram.scene import Scene, Event, Person, Marriage, EventKind
+from pkdiagram.pyqt import QDateTime, Qt
+from pkdiagram.scene import Scene, Event, Person, Marriage
 
 
 def test_no_dupe_events(simpleMarriage):

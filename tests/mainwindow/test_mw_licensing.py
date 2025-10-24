@@ -1,6 +1,6 @@
 import pytest, mock
 
-import vedana
+import btcopilot
 from pkdiagram import util, version
 from pkdiagram.app import AppController
 
@@ -22,7 +22,7 @@ def test_logout_no_server(test_activation, qtbot, create_ac_mw, server_down):
     """Logout button should be enabled and should work."""
     with server_down():
         ac, mw = create_ac_mw()
-        assert mw.session.activeFeatures() == vedana.licenses_features(
+        assert mw.session.activeFeatures() == btcopilot.licenses_features(
             [test_activation.license.as_dict(include="policy")]
         )
 
@@ -42,13 +42,13 @@ def test_last_stored_license_expired_when_not_logged_in(test_license, create_ac_
     db.session.commit()
 
     ac, mw = create_ac_mw()
-    assert mw.session.activeFeatures() == [vedana.LICENSE_FREE]
+    assert mw.session.activeFeatures() == [btcopilot.LICENSE_FREE]
 
 
 @pytest.mark.parametrize("version_attr", ["IS_ALPHA", "IS_BETA", "IS_RELEASE"])
 @pytest.mark.parametrize(
     "license_type",
-    [vedana.LICENSE_ALPHA, vedana.LICENSE_BETA, vedana.LICENSE_PROFESSIONAL],
+    [btcopilot.LICENSE_ALPHA, btcopilot.LICENSE_BETA, btcopilot.LICENSE_PROFESSIONAL],
 )
 def test_enabled_disabled_all_licenses(
     test_session, test_machine, test_user, create_ac_mw, version_attr, license_type
@@ -77,16 +77,16 @@ def test_enabled_disabled_all_licenses(
 
     with mock.patch.object(version, version_attr, True):
         ac, mw = create_ac_mw(session=test_session)
-        if version.IS_ALPHA and ac.session.hasFeature(vedana.LICENSE_ALPHA):
+        if version.IS_ALPHA and ac.session.hasFeature(btcopilot.LICENSE_ALPHA):
             assert mw.fileManager.isEnabled() == True
             assert mw.documentView.isEnabled() == True
-        elif version.IS_BETA and ac.session.hasFeature(vedana.LICENSE_BETA):
+        elif version.IS_BETA and ac.session.hasFeature(btcopilot.LICENSE_BETA):
             assert mw.fileManager.isEnabled() == True
             assert mw.documentView.isEnabled() == True
         elif (
             not version.IS_ALPHA
             and not version.IS_BETA
-            and ac.session.hasFeature(vedana.LICENSE_PROFESSIONAL)
+            and ac.session.hasFeature(btcopilot.LICENSE_PROFESSIONAL)
         ):
             assert mw.fileManager.isEnabled() == True
             assert mw.documentView.isEnabled() == True

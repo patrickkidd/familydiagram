@@ -266,6 +266,8 @@ class Personal(QObject):
             return
 
         def onSuccess(data):
+            if "diagram_data" in data:
+                data.pop("diagram_data")
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
             self.discussionsChanged.emit()

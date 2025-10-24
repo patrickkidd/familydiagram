@@ -1,3 +1,4 @@
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import (
     Qt,
     QObject,
@@ -6,7 +7,6 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util, scene
-from pkdiagram.scene import EventKind, Person, Event
 from pkdiagram.models import ModelHelper
 
 

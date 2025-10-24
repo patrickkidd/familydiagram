@@ -5,6 +5,7 @@ qmlEngine. maybe even moved to qmlengine.py.
 
 import pickle, json, datetime, time, logging
 
+from btcopilot.schema import EventKind, RelationshipKind
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
@@ -30,7 +31,6 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
 )
 from pkdiagram import util
-from pkdiagram.scene import EventKind, RelationshipKind
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import HTTPError
 
@@ -113,15 +113,9 @@ class QmlUtil(QObject, QObjectHelper):
         "QML_NODAL_COLOR",
         "EMOTION_PROPS_HELP_TEXT",
         "CURRENT_DATE_INDICATOR_WIDTH",
-        "VAR_VALUE_UP",
-        "VAR_VALUE_DOWN",
-        "VAR_VALUE_SAME",
-        "VAR_ANXIETY_UP",
-        "VAR_ANXIETY_DOWN",
-        "VAR_ANXIETY_SAME",
-        "VAR_FUNCTIONING_UP",
-        "VAR_FUNCTIONING_DOWN",
-        "VAR_FUNCTIONING_SAME",
+        "VARIABLE_SHIFT_UP",
+        "VARIABLE_SHIFT_DOWN",
+        "VARIABLE_SHIFT_SAME",
         "S_EVENT_PROPS_HELP_TEXT",
         "S_PERSON_NOT_FOUND",
         "S_PEOPLE_HELP_TEXT",

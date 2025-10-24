@@ -11,9 +11,6 @@
 		{
 			"name": "btcopilot",
 			"path": "../btcopilot"
-		},
-		{
-			"path": "../vedana"
 		}
 	],
 	"settings": {
@@ -48,7 +45,6 @@
 		"python.analysis.extraPaths": [
 			".",
 			"../fdserver",
-			"../vedana",
 			"../btcopilot",
 			"lib/site-packages"
 		],

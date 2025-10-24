@@ -1,5 +1,6 @@
 import pytest
 
+from btcopilot.schema import VariableShift, EventKind
 from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -10,7 +11,6 @@ from pkdiagram.scene import (
     Layer,
     Person,
     Event,
-    EventKind,
 )
 
 
@@ -353,13 +353,21 @@ def test_new_event_adds_variable_values(scene):
 
 KINDS = ["male", "female"]
 BUILTIN_VARS = {
-    "anxiety": (util.VAR_ANXIETY_DOWN, util.VAR_ANXIETY_SAME, util.VAR_ANXIETY_UP),
-    "functioning": (
-        util.VAR_FUNCTIONING_DOWN,
-        util.VAR_FUNCTIONING_SAME,
-        util.VAR_FUNCTIONING_UP,
+    "anxiety": (
+        VariableShift.Down,
+        VariableShift.Same,
+        VariableShift.Up,
     ),
-    "symptom": (util.VAR_SYMPTOM_DOWN, util.VAR_SYMPTOM_SAME, util.VAR_SYMPTOM_UP),
+    "functioning": (
+        VariableShift.Down,
+        VariableShift.Same,
+        VariableShift.Up,
+    ),
+    "symptom": (
+        VariableShift.Down,
+        VariableShift.Same,
+        VariableShift.Up,
+    ),
 }
 
 

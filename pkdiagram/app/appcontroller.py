@@ -1,6 +1,6 @@
 import signal, os.path, logging
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
 from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
@@ -156,14 +156,14 @@ class AppController(QObject):
         elif not self.session.activeFeatures():
             mw.showAccount()
 
-        if self.session.hasFeature(vedana.LICENSE_FREE):
+        if self.session.hasFeature(btcopilot.LICENSE_FREE):
             mw.serverFileModel.syncDiagramFromServer(self.session.user.free_diagram_id)
 
         mw.show()
 
         # Open file requested by OS on launch (and override saved last opened file)
         if self._pendingOpenFilePath and self.session.hasFeature(
-            vedana.LICENSE_PROFESSIONAL
+            btcopilot.LICENSE_PROFESSIONAL
         ):
             # Means OS requested opening file before mw was ready
             self.onFileOpen(self._pendingOpenFilePath)
@@ -184,7 +184,7 @@ class AppController(QObject):
 
         self.prefs.setValue("windowSize", mw.size())
         lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(
-            vedana.LICENSE_FREE
+            btcopilot.LICENSE_FREE
         )
         self.prefs.setValue("lastFileWasOpen", lastFileWasOpen)
         showCurrentDate = mw.ui.actionShow_Current_Date.isChecked()
@@ -229,7 +229,7 @@ class AppController(QObject):
         if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
 
-            # If logged in, activeFeatures will always be at least vedana.LICENSE_FREE
+            # If logged in, activeFeatures will always be at least btcopilot.LICENSE_FREE
             # If not logged in, there is always the possibility that lastSessionData will set activeFeatures
             # If not logged in and no active features, then always show the account dialog to force a login
 
@@ -238,13 +238,13 @@ class AppController(QObject):
                     QMessageBox.information(
                         None, "Version Deactivated", self.S_VERSION_DEACTIVATED
                     )
-            elif self.session.hasFeature(vedana.LICENSE_FREE):
-                if not oldFeatures or vedana.any_license_match(
+            elif self.session.hasFeature(btcopilot.LICENSE_FREE):
+                if not oldFeatures or btcopilot.any_license_match(
                     oldFeatures,
                     (
-                        vedana.LICENSE_PROFESSIONAL,
-                        vedana.LICENSE_BETA,
-                        vedana.LICENSE_ALPHA,
+                        btcopilot.LICENSE_PROFESSIONAL,
+                        btcopilot.LICENSE_BETA,
+                        btcopilot.LICENSE_ALPHA,
                     ),
                 ):
                     if not self.session.isInitializing():
@@ -259,10 +259,12 @@ class AppController(QObject):
                         self.mw.openFreeLicenseDiagram()
 
             elif self.session.hasFeature(
-                vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA
+                btcopilot.LICENSE_PROFESSIONAL,
+                btcopilot.LICENSE_BETA,
+                btcopilot.LICENSE_ALPHA,
             ):
                 self.mw.fileManager.show()
-                if vedana.any_license_match(oldFeatures, [vedana.LICENSE_FREE]):
+                if btcopilot.any_license_match(oldFeatures, [btcopilot.LICENSE_FREE]):
                     if not self.session.isInitializing():
                         QMessageBox.information(
                             None,

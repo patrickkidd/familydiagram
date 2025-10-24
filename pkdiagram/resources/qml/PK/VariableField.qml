@@ -23,9 +23,9 @@ RowLayout {
 
     property var value: null;
     property var model: [
-        { 'name': 'Up', 'value': util.VAR_VALUE_UP },
-        { 'name': 'Down', 'value': util.VAR_VALUE_DOWN },
-        { 'name': 'Same', 'value': util.VAR_VALUE_SAME }
+        { 'name': 'Up', 'value': util.VARIABLE_SHIFT_UP },
+        { 'name': 'Down', 'value': util.VARIABLE_SHIFT_DOWN },
+        { 'name': 'Same', 'value': util.VARIABLE_SHIFT_SAME }
     ];
     property var boxModel: model.map(function(item) { return item.name; })
     property var comboBox: valueBox

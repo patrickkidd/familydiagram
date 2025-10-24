@@ -12,8 +12,6 @@ fi
 BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT=`cd "$BIN/.."; pwd`
 
-export PYTHONPATH=`pwd`/lib/site-packages
-
 if [[ $TARGET == osx* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-macos-64
 elif [[ $TARGET == ios* ]]; then
@@ -60,14 +58,14 @@ else
     echo "PKS version and pepper are up to date"
 fi
 
-echo "PKS Generating _pkdiagram sources"
-(
-    set -e
-    cd _pkdiagram
-    sip-build --no-compile --no-make
-    moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-    moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
-)
+# echo "PKS Generating _pkdiagram sources"
+# (
+#     set -e
+#     cd _pkdiagram
+#     sip-build --no-compile --no-make
+#     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+#     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+# )
 
 rsync -avzq build/common-config/* build/osx
 rsync -avzq build/osx-config/* build/osx

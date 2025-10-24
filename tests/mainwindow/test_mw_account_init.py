@@ -1,5 +1,5 @@
 import pytest
-import vedana
+import btcopilot
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
 
@@ -33,7 +33,7 @@ def test_init_with_free_license(qtbot, create_ac_mw, server_down, is_server_down
             )
         else:
             ac._pre_event_loop(mw)
-        assert mw.session.activeFeatures() == [vedana.LICENSE_FREE]
+        assert mw.session.activeFeatures() == [btcopilot.LICENSE_FREE]
         assert mw.accountDialog.isShown() == False
         assert mw.isFreeDiagramOpen() == (not is_server_down)  # just when not cached
 
@@ -45,8 +45,8 @@ def test_dont_show_account_with_session_pro_license(
     with server_down(is_server_down):
         ac, mw = create_ac_mw()
         assert mw.session.activeFeatures() == [
-            vedana.LICENSE_PROFESSIONAL
-        ]  # vedana.licenses_features([test_license.as_dict(include='policy')])
+            btcopilot.LICENSE_PROFESSIONAL
+        ]  # btcopilot.licenses_features([test_license.as_dict(include='policy')])
         assert mw.accountDialog.isShown() == False
 
 
@@ -57,7 +57,7 @@ def test_logout(
     with server_down(is_server_down):
         ac, mw = create_ac_mw()
         db.session.add(test_activation)
-        assert mw.session.activeFeatures() == vedana.licenses_features(
+        assert mw.session.activeFeatures() == btcopilot.licenses_features(
             [test_activation.license.as_dict(include="policy")]
         )
 
@@ -76,7 +76,7 @@ def test_dont_logout_when_show_account_with_session_pro_license(
 ):
     with server_down():
         ac, mw = create_ac_mw()
-        pre_features = vedana.licenses_features(
+        pre_features = btcopilot.licenses_features(
             [test_license.as_dict(include="policy")]
         )
         mw.showAccount()

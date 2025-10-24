@@ -1,5 +1,3 @@
-from .eventkind import EventKind
-from .relationshipkind import RelationshipKind
 from .itemmode import ItemMode
 from .property import Property
 from .itemgarbage import ItemGarbage

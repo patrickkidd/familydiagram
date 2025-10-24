@@ -8,6 +8,8 @@ from typing import Callable, Optional
 from dataclasses import dataclass
 
 
+from btcopilot.schema import VariableShift
+
 log = logging.getLogger(__name__)
 
 
@@ -19,7 +21,7 @@ try:
 except:
     IS_BUNDLE = False
 
-import vedana
+import btcopilot
 from _pkdiagram import CUtil
 
 from PyQt5.QtCore import QSysInfo
@@ -136,7 +138,7 @@ def serverUrl(path, from_root: bool = False):
     if from_root:
         return "%s%s" % (SERVER_URL_ROOT, path)
     else:
-        return "%s/%s%s" % (SERVER_URL_ROOT, vedana.SERVER_API_VERSION, path)
+        return "%s/%s%s" % (SERVER_URL_ROOT, btcopilot.SERVER_API_VERSION, path)
 
 
 def summarizeReplyShort(reply: QNetworkReply):
@@ -268,25 +270,12 @@ DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
 OVERLAY_OPACITY = 0.5
 
-# Variables
+# Variables"
 
-VAR_VALUE_DOWN = "down"
-VAR_VALUE_SAME = "same"
-VAR_VALUE_UP = "up"
-
-VAR_SYMPTOM_DOWN = VAR_VALUE_DOWN
-VAR_SYMPTOM_SAME = VAR_VALUE_SAME
-VAR_SYMPTOM_UP = VAR_VALUE_UP
-
-VAR_ANXIETY_DOWN = VAR_VALUE_DOWN
-VAR_ANXIETY_SAME = VAR_VALUE_SAME
-VAR_ANXIETY_UP = VAR_VALUE_UP
-
-# Relationship values are nominal not ordinal, from RelationshipKind
-
-VAR_FUNCTIONING_DOWN = VAR_VALUE_DOWN
-VAR_FUNCTIONING_SAME = VAR_VALUE_SAME
-VAR_FUNCTIONING_UP = VAR_VALUE_UP
+# for qml
+VARIABLE_SHIFT_UP = VariableShift.Up.value
+VARIABLE_SHIFT_SAME = VariableShift.Same.value
+VARIABLE_SHIFT_DOWN = VariableShift.Down.value
 
 ATTR_SYMPTOM = "Δ Symptom"
 ATTR_ANXIETY = "Δ Anxiety"

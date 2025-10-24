@@ -1,10 +1,10 @@
 import logging
 
 import pytest
-import mock
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, EventKind, RelationshipKind
+from pkdiagram.scene import Person
 from pkdiagram.views import EventForm
 
 from tests.views import TestEventForm

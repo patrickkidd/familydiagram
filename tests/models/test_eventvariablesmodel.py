@@ -1,4 +1,5 @@
-from pkdiagram.scene import Person, Event, EventKind
+from btcopilot.schema import EventKind
+from pkdiagram.scene import Person, Event
 from pkdiagram.models import EventVariablesModel
 
 

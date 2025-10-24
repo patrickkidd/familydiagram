@@ -29,9 +29,6 @@ def init_dev():
         sitepackages_path = site.getsitepackages()
         familydiagram_path = os.path.dirname(__file__)
 
-        # import_from_path(os.path.join(sitepackages_path, 'typing_extensions'))
-        # import_from_path('vedana', os.path.join(familydiagram_path, 'vedana', '__init__.py'))
-
         familydiagram_path = os.path.dirname(__file__)
         for path in list(sys.path):
             if os.path.isdir(path) and os.path.normpath(path) == familydiagram_path:
