@@ -41,6 +41,7 @@ lib/Python-*
 Defaults.properties
 .cache_ggshield
 .ai_log.txt
+**/*.fd/*
 
 ## Generated Sources
 
