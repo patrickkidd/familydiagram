@@ -52,6 +52,13 @@ IS_APPLE = bool(IS_MAC or IS_IPHONE or IS_IPAD)
 IS_DEV = CUtil.isDev()
 IS_UI_DARK_MODE = False
 
+USE_JSON_DIAGRAMS = False
+
+
+def getDiagramDataFileName():
+    return "diagram.json" if USE_JSON_DIAGRAMS else "diagram.pickle"
+
+
 # print(
 #     f"IS_WINDOWS: {IS_WINDOWS}, IS_MAC: {IS_MAC}, IS_IPAD: {IS_IPAD}, IS_IPHONE: {IS_IPHONE}, IS_IPHONE_SIMULATOR: {IS_IPHONE_SIMULATOR}, IS_IOS: {IS_IOS}"
 # )
@@ -1805,14 +1812,21 @@ def invoke(qobject: QObject, name: str, *args, returns=False):
     return ret.toVariant()
 
 
-def touchFD(filePath, bdata=None):
+def touchFD(filePath, jsonStr=None):
+    import json
+    import pickle
+
     os.makedirs(filePath, exist_ok=True)
-    picklePath = os.path.join(filePath, "diagram.pickle")
-    if not os.path.isfile(picklePath):
-        with open(picklePath, "wb") as f:
-            if not bdata:
-                bdata = pickle.dumps({})
-            f.write(bdata)
+    dataPath = os.path.join(filePath, getDiagramDataFileName())
+    if not os.path.isfile(dataPath):
+        with open(dataPath, "wb" if not USE_JSON_DIAGRAMS else "w") as f:
+            if USE_JSON_DIAGRAMS:
+                if not jsonStr:
+                    jsonStr = json.dumps({})
+                f.write(jsonStr)
+            else:
+                data = json.loads(jsonStr) if jsonStr else {}
+                f.write(pickle.dumps(data))
 
 
 def appDataDir():

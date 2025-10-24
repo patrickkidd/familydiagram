@@ -48,10 +48,12 @@ class Legend(PopUp):
         Layout.addWidget(self.legendView)
         Layout.setContentsMargins(0, 0, 0, 0)
 
+        from pkdiagram import schema
+
         file = QFile(util.QRC + "Legend-Scene.fd/diagram.pickle")
         file.open(QIODevice.ReadOnly)
         bdata = file.readAll().data()
-        data = pickle.loads(bdata)
+        data = schema.loadFromBytes(bdata)
         self.legendScene.read(data)
         items = []
         for item in self.legendScene.items():

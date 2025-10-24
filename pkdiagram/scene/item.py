@@ -4,6 +4,7 @@ import copy
 from pkdiagram.pyqt import QDateTime, QColor
 from pkdiagram import util
 from pkdiagram.scene import Property
+from pkdiagram import schema
 
 
 CLASS_PROPERTIES = {}
@@ -132,7 +133,8 @@ class Item:
         chunk.update(self._readChunk)
         chunk["id"] = self.id
         for prop in self.props:
-            chunk[prop.attr] = prop.get(forLayers=[])
+            value = prop.get(forLayers=[])
+            chunk[prop.attr] = schema.convertQtTypes(value)
 
     def read(self, chunk, byId):
         """virtual"""
@@ -141,10 +143,21 @@ class Item:
         for prop in self.props:
             value = chunk.get(prop.attr, prop.default)
             if not isinstance(value, prop.type) and value != prop.default:
-                try:
-                    value = prop.type(value)
-                except TypeError:
-                    value = None
+                from pkdiagram.pyqt import QPointF, QDateTime, QDate, Qt
+
+                if prop.type == QPointF and isinstance(value, dict):
+                    value = QPointF(value["x"], value["y"])
+                elif prop.type == QDateTime and isinstance(value, str):
+                    dt = QDateTime.fromString(value, Qt.ISODate)
+                    value = dt if not dt.isNull() else None
+                elif prop.type == QDate and isinstance(value, str):
+                    d = QDate.fromString(value, Qt.ISODate)
+                    value = d if not d.isNull() else None
+                else:
+                    try:
+                        value = prop.type(value)
+                    except TypeError:
+                        value = None
             prop.set(value, notify=False)
 
     ## Cloning

@@ -35,7 +35,7 @@ public:
     FDDocument(parent),
     m_url(url),
     m_dirty(false) {
-        QString picklePath = url.toLocalFile() + "\\" + CUtil::PickleFileName;
+        QString picklePath = url.toLocalFile() + "\\" + CUtil::DiagramDataFileName;
         QFile pickle(picklePath);
         pickle.open(QIODevice::ReadOnly);
         m_diagramData = pickle.readAll();
@@ -86,7 +86,7 @@ public:
     
 	void save(bool quietly = false) {
         if(m_dirty) {
-            QString picklePath = CUtil::joinPath(m_url.toLocalFile(), CUtil::PickleFileName);
+            QString picklePath = CUtil::joinPath(m_url.toLocalFile(), CUtil::DiagramDataFileName);
             QFile pickleFile(picklePath);
             pickleFile.open(QIODevice::WriteOnly);
             pickleFile.write(m_diagramData);
@@ -153,7 +153,7 @@ public:
         bundleDir.cdUp();
         bundleDir.mkpath(bundleName);
         bundleDir.cd(bundleName);
-        QString picklePath = CUtil::joinPath(m_url.toLocalFile(), CUtil::PickleFileName);
+        QString picklePath = CUtil::joinPath(m_url.toLocalFile(), CUtil::DiagramDataFileName);
         QFile pickleFile(picklePath);
         pickleFile.open(QIODevice::WriteOnly);
         pickleFile.write(m_diagramData);

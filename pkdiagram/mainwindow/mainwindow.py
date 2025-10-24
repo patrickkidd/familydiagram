@@ -2,6 +2,7 @@ import os.path, sys, datetime, shutil, logging, atexit
 import pickle
 
 from PyQt5.QtCore import QT_VERSION_STR
+from pkdiagram import schema
 
 import vedana
 from _pkdiagram import CUtil, FDDocument
@@ -696,7 +697,12 @@ class MainWindow(QMainWindow):
         data = self.scene.data()
 
         # Write to disk
-        bdata = pickle.dumps(data)
+        if util.USE_JSON_DIAGRAMS:
+            bdata = schema.dataToJson(data).encode("utf-8")
+        else:
+            import pickle
+
+            bdata = pickle.dumps(data)
         self.document.updateDiagramData(bdata)
 
         # Write to server
@@ -788,12 +794,18 @@ class MainWindow(QMainWindow):
                         return
                 packageDir = QDir(filePath)
                 os.makedirs(filePath)
-                picklePath = os.path.join(filePath, "diagram.pickle")
-                with open(picklePath, "wb") as f:
-                    data = self.scene.data(selectionOnly=True)
-                    bdata = pickle.dumps(data)
-                    f.write(bdata)
-                    log.info(f"Created {picklePath}")
+                dataPath = os.path.join(filePath, util.getDiagramDataFileName())
+                data = self.scene.data(selectionOnly=True)
+                if util.USE_JSON_DIAGRAMS:
+                    with open(dataPath, "w") as f:
+                        jsonStr = schema.dataToJson(data)
+                        f.write(jsonStr)
+                else:
+                    import pickle
+
+                    with open(dataPath, "wb") as f:
+                        f.write(pickle.dumps(data))
+                log.info(f"Created {dataPath}")
         else:
             if not filePath:
                 lastFileReadPath = self.prefs.value("lastFileReadPath", type=str)
@@ -807,7 +819,12 @@ class MainWindow(QMainWindow):
             else:
                 if format == "FD":
                     data = self.scene.data()
-                    bdata = pickle.dumps(data)
+                    if util.USE_JSON_DIAGRAMS:
+                        bdata = schema.dataToJson(data).encode("utf-8")
+                    else:
+                        import pickle
+
+                        bdata = pickle.dumps(data)
                     self.document.updateDiagramData(bdata)
                     self.document.saveAs(QUrl.fromLocalFile(filePath))
                     self.prefs.setValue("lastFileSavePath", filePath)
@@ -913,33 +930,43 @@ class MainWindow(QMainWindow):
                 if btn != QMessageBox.Yes:
                     return
             if QFileInfo(filePath).isDir() and util.suffix(filePath) == util.EXTENSION:
-                filePath = os.path.join(filePath, "diagram.pickle")
-                if QFileInfo(filePath).isFile():
-                    with open(filePath, "rb") as f:
-                        # read in the data to check for errors first
-                        newScene = Scene()
-                        bdata = f.read()
-                        data = pickle.loads(bdata)
-                        ret = newScene.read(data)
-                        if ret:
-                            self.onOpenFileError(ret)
+                jsonPath = os.path.join(filePath, "diagram.json")
+                picklePath = os.path.join(filePath, "diagram.pickle")
 
-                        if self.session.hasFeature(vedana.LICENSE_FREE):
+                fileData = None
+                if QFileInfo(jsonPath).isFile():
+                    with open(jsonPath, "rb") as f:
+                        fileData = f.read()
+                elif QFileInfo(picklePath).isFile():
+                    with open(picklePath, "rb") as f:
+                        fileData = f.read()
+                else:
+                    ret = "No diagram.json or diagram.pickle file found"
 
-                            self._isImportingToFreeDiagram = True
-                            diagram = self.scene.serverDiagram()
-                            row = self.serverFileModel.rowForDiagramId(diagram.id)
-                            self.serverFileModel.setData(
-                                self.serverFileModel.index(row, 0),
-                                bdata,
-                                role=self.serverFileModel.DiagramDataRole,
-                            )
-                            self._isImportingToFreeDiagram = False
+                if fileData:
+                    newScene = Scene()
+                    data = schema.loadFromBytes(fileData)
+                    ret = newScene.read(data)
 
-                        else:
-                            newScene.selectAll()
-                            items = Clipboard(newScene.selectedItems()).copy(self.scene)
-                            self.scene.push(ImportItems(items))
+                if ret:
+                    self.onOpenFileError(ret)
+
+                if self.session.hasFeature(vedana.LICENSE_FREE):
+
+                    self._isImportingToFreeDiagram = True
+                    diagram = self.scene.serverDiagram()
+                    row = self.serverFileModel.rowForDiagramId(diagram.id)
+                    self.serverFileModel.setData(
+                        self.serverFileModel.index(row, 0),
+                        fileData,
+                        role=self.serverFileModel.DiagramDataRole,
+                    )
+                    self._isImportingToFreeDiagram = False
+
+                else:
+                    newScene.selectAll()
+                    items = Clipboard(newScene.selectedItems()).copy(self.scene)
+                    self.scene.push(ImportItems(items))
         else:
             CUtil.instance().openExistingFile(
                 QUrl.fromLocalFile(filePath)
@@ -1040,7 +1067,7 @@ class MainWindow(QMainWindow):
             if bdata:
 
                 try:
-                    data = pickle.loads(bdata)
+                    data = schema.loadFromBytes(bdata)
                 except:
                     ret = "This file is currupt and cannot be opened"
                     import traceback
@@ -1261,7 +1288,7 @@ class MainWindow(QMainWindow):
         if url == self.document.url():
             s = Scene(document=self.document)
             bdata = self.document.diagramData()
-            data = pickle.loads(bdata)
+            data = schema.loadFromBytes(bdata)
             s.read(data)
             name = (
                 QFileInfo(url.toLocalFile())
@@ -1919,7 +1946,7 @@ class MainWindow(QMainWindow):
                 bdata = reply._pk_body
             else:
                 bdata = reply.readAll()
-            data = pickle.loads(bdata)
+            data = schema.loadFromBytes(bdata)
             data["status"] = CUtil.FileIsCurrent
             # data["owner"] = data["user"]["username"]
             diagram = Diagram.create(data)

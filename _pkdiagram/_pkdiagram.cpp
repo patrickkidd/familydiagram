@@ -117,7 +117,7 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
 
 CUtil *CUtil::_instance = NULL;
 const char *CUtil::FileExtension = "fd";
-const char *CUtil::PickleFileName = "diagram.pickle";
+const char *CUtil::DiagramDataFileName = "diagram.pickle";
 const char *CUtil::PeopleDirName = "People";
 const char *CUtil::EventsDirName = "Events";
 

@@ -70,7 +70,7 @@ protected:
 public:
     
     static const char *FileExtension;
-    static const char *PickleFileName;
+    static const char *DiagramDataFileName;
     static const char *PeopleDirName;
     static const char *EventsDirName;
 

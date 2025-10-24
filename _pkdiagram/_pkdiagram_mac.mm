@@ -144,7 +144,8 @@ static NSString * cNSString(const char *str) {
 
 static NSString * const DocumentType = @"Family Diagram";
 static NSString * const FileExtension = cNSString(CUtil::FileExtension);
-static NSString * const PickleFileName = cNSString(CUtil::PickleFileName);
+static NSString * const DiagramDataFileName = cNSString(CUtil::DiagramDataFileName);
+static NSString * const LegacyDiagramDataFileName = @"diagram.json";
 static NSString * const PeopleDirName = cNSString(CUtil::PeopleDirName);
 static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
 
@@ -340,11 +341,11 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     }
     NSDictionary *packageFileWrappers = [self.fileWrapper fileWrappers];
 
-    NSFileWrapper *pickleWrapper = packageFileWrappers[PickleFileName];
+    NSFileWrapper *pickleWrapper = packageFileWrappers[DiagramDataFileName];
     if((pickleWrapper == nil) && (self.pickle != nil)) {
         pickleWrapper = [[NSFileWrapper alloc] initRegularFileWithContents:self.pickle];
         // NSLog(@"writing pickle: %@\n\n", self.pickle);
-        [pickleWrapper setPreferredFilename:PickleFileName];
+        [pickleWrapper setPreferredFilename:DiagramDataFileName];
         [self.fileWrapper addFileWrapper:pickleWrapper];
         packageFileWrappers = [self.fileWrapper fileWrappers]; // gets deleted
     }
@@ -493,11 +494,14 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     
     NSDictionary *fileWrappers = [self.fileWrapper fileWrappers];
     
-    NSFileWrapper *pickleWrapper = fileWrappers[PickleFileName];
+    NSFileWrapper *pickleWrapper = fileWrappers[DiagramDataFileName];
+    if(pickleWrapper == nil) {
+        pickleWrapper = fileWrappers[LegacyDiagramDataFileName];
+    }
     if(pickleWrapper != nil) {
         NSData *pickle = pickleWrapper.regularFileContents;
         self.pickle = pickle; // model
-        // NSLog(@"reading pickle: %@\n\n", pickle);
+        NSLog(@"reading pickle: %@\n\n", pickle);
     }
     
 //    // traverse the dir structure storing dictionaries of all the dirs and arrays of all the files
@@ -611,7 +615,7 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     self.pickle = pickle;
     // NSLog(@"updating pickle: %@\n\n", pickle);
 
-    NSFileWrapper *pickleWrapper = self.fileWrapper.fileWrappers[PickleFileName];
+    NSFileWrapper *pickleWrapper = self.fileWrapper.fileWrappers[DiagramDataFileName];
     if(pickleWrapper != nil) {
         [self.fileWrapper removeFileWrapper:pickleWrapper];
     }

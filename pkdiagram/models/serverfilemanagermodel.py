@@ -1,6 +1,7 @@
 import os, os.path, pickle, shutil, datetime, logging
 import dataclasses
 
+from pkdiagram import schema
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
@@ -291,7 +292,8 @@ class ServerFileManagerModel(FileManagerModel):
             if len(bdata) == 0:
                 log.info("Zero-length data from server")
                 return
-            serverDiagram = Diagram(**pickle.loads(response.body))
+            data = schema.loadFromBytes(bdata)
+            serverDiagram = Diagram(**data)
             self._addOrUpdateDiagram(serverDiagram)
             return serverDiagram
 
@@ -493,12 +495,20 @@ class ServerFileManagerModel(FileManagerModel):
             diagram.updated_at = datetime.datetime.utcnow()
             diagram.updated_at.isoformat()
             diagram.data = value
+            import json
+
+            if util.USE_JSON_DIAGRAMS:
+                jsonStr = value.decode("utf-8")
+                dataDict = json.loads(jsonStr)
+            else:
+                import pickle
+
+                dataDict = pickle.loads(value)
+            envelope = {"data": dataDict, "updated_at": diagram.updated_at.isoformat()}
             self.session.server().blockingRequest(
                 "PUT",
                 f"/diagrams/{diagram.id}",
-                bdata=pickle.dumps(
-                    {"data": diagram.data, "updated_at": diagram.updated_at}
-                ),
+                bdata=json.dumps(envelope).encode("utf-8"),
                 statuses=[200],
             )
             log.info(

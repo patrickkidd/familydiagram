@@ -1,7 +1,7 @@
 import logging
 
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
-from pkdiagram import version, util
+from pkdiagram import version, util, schema
 from pkdiagram.scene import ItemDetails, Emotion, RelationshipKind, EventKind, Emotion
 
 _log = logging.getLogger(__name__)
@@ -37,144 +37,6 @@ def find_parents_from_childof(person_chunk, data):
 
 
 def update_data(data):
-
-    if UP_TO(data, "1.0.0b5"):
-        for chunk in data.get("items", []):
-            if chunk["kind"] == "Emotion":
-                if chunk.get("person", None) is not None:
-                    chunk["person_a"] = chunk["person"]
-                    chunk["person_b"] = None
-
-    if UP_TO(data, "1.0.0b7"):
-        for chunk in data.get("items", []):
-            if chunk["kind"] == "Person":
-                if "pos" in chunk and not "nonLayerPos" in chunk:
-                    chunk["nonLayerPos"] = QPointF(chunk["pos"][0], chunk["pos"][1])
-
-    if UP_TO(data, "1.0.0a16"):
-
-        # have to match up all the birthPartner lists and create new, unique MultipleBirth entries
-        def getMultipleBirthId(marriageId, birthPartners):
-            if not birthPartners:
-                return None
-            ret = None
-            matchingChunk = None
-            for id, chunk in getMultipleBirthId.newMultipleBirths.items():
-                for childId in chunk["children"]:
-                    for bpId in birthPartners:
-                        if bpId == childId:
-                            matchingChunk = chunk
-                            ret = chunk["id"]
-                            break
-                    if matchingChunk:
-                        break
-            if not matchingChunk:
-                getMultipleBirthId.lastItemId += 1
-                getMultipleBirthId.newMultipleBirths[getMultipleBirthId.lastItemId] = {
-                    "kind": "MultipleBirth",
-                    "id": getMultipleBirthId.lastItemId,
-                    "children": list(birthPartners),
-                    "parents": marriageId,
-                }
-                ret = getMultipleBirthId.lastItemId
-            return ret
-
-        getMultipleBirthId.lastItemId = data.get("lastItemId", 1)
-        getMultipleBirthId.newMultipleBirths = {}
-
-        for chunk in data.get("items", []):
-            if chunk["kind"] in ("Person", "Marriage"):
-                if not "detailsText" in chunk:
-                    chunk["detailsText"] = {"itemPos": QPointF()}
-                if "detailsPos" in chunk:
-                    chunk["detailsText"]["itemPos"] = chunk["detailsPos"]
-                    del chunk["detailsPos"]
-                elif (
-                    not "itemPos" in chunk["detailsText"]
-                    and "nonLayerPos" in chunk["detailsText"]
-                ):
-                    chunk["detailsText"]["itemPos"] = chunk["detailsText"][
-                        "nonLayerPos"
-                    ]
-                if "layerPos" in chunk["detailsText"]:
-                    del chunk["detailsText"]["layerPos"]
-                if "nonLayerPos" in chunk["detailsText"]:
-                    del chunk["detailsText"]["nonLayerPos"]
-                if "separationIndicatorPos" in chunk:
-                    chunk["separationIndicator"] = {
-                        "itemPos": chunk["separationIndicatorPos"]
-                    }
-                    del chunk["separationIndicatorPos"]
-                # some corrupted diagrams in dev ( turn into assert later)
-                if chunk["detailsText"]["itemPos"].x() > 15000:
-                    chunk["detailsText"]["itemPos"] = QPointF()
-                if (
-                    "separationIndicator" in chunk
-                    and chunk["separationIndicator"]["itemPos"].x() > 100000
-                ):
-                    chunk["separationIndicator"]["itemPos"] = QPointF()
-
-            if "layerPos" in chunk:
-                del chunk["layerPos"]
-
-            if chunk["kind"] == "Marriage":
-                if "nonLayerPos" in chunk:
-                    del chunk["nonLayerPos"]
-
-            if chunk["kind"] == "Person":
-                if "nonLayerPos" in chunk:
-                    chunk["itemPos"] = chunk["nonLayerPos"]
-                    del chunk["nonLayerPos"]
-                if not "childOf" in chunk:
-                    if chunk.get("parents") is not None:
-                        chunk["childOf"] = {
-                            "person": chunk["id"],
-                            "parents": chunk["parents"],
-                            "multipleBirth": None,
-                        }
-                        if chunk.get("birthPartners"):
-                            chunk["childOf"]["multipleBirth"] = getMultipleBirthId(
-                                chunk["parents"], [chunk["id"]] + chunk["birthPartners"]
-                            )
-                    else:
-                        chunk["childOf"] = {}
-
-            elif chunk["kind"] in ("Callout", "PencilStroke"):
-                chunk["itemPos"] = QPointF(chunk["pos"][0], chunk["pos"][1])
-                del chunk["pos"]
-
-            elif chunk["kind"] == "Layer":
-                for id, itemEntry in chunk["itemProperties"].items():
-                    if "layerPos" in data:
-                        data["itemPos"] = data["layerPos"]
-                        del data["layerPos"]
-                    if "layerSize" in data:
-                        data["size"] = data["layerSize"]
-                        del data["layerSize"]
-                    if "layerOpacity" in data:
-                        data["itemOpacity"] = data["layerOpacity"]
-                        del data["layerOpacity"]
-
-        data["lastItemId"] = getMultipleBirthId.lastItemId
-        for id, chunk in getMultipleBirthId.newMultipleBirths.items():
-            data["items"].append(chunk)
-
-    if UP_TO(data, "1.1.4a7"):
-
-        for chunk in data.get("items", []):
-            if chunk["kind"] == "Marriage":
-                marriedEvent = chunk["marriedEvent"]
-                separatedEvent = chunk["separatedEvent"]
-                divorcedEvent = chunk["divorcedEvent"]
-                del chunk["marriedEvent"]
-                del chunk["separatedEvent"]
-                del chunk["divorcedEvent"]
-                if marriedEvent["date"]:
-                    chunk["events"].append(marriedEvent)
-                if separatedEvent["date"]:
-                    chunk["events"].append(separatedEvent)
-                if divorcedEvent["date"]:
-                    chunk["events"].append(divorcedEvent)
 
     if UP_TO(data, "1.2.8"):
 
@@ -725,7 +587,11 @@ def update_data(data):
         # 6. Update lastItemId
         data["lastItemId"] = next_id - 1
 
-        # Event.
+        # 7. Convert all Qt types to Python natives for JSON serialization
+
+        converted = schema.convertQtTypes(data)
+        data.clear()
+        data.update(converted)
 
     ## Add more version fixes here
     # if ....
