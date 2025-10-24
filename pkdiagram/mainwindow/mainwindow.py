@@ -256,6 +256,7 @@ class MainWindow(QMainWindow):
         self.ui.actionCopy.triggered.connect(self.onCopy)
         self.ui.actionCut.triggered.connect(self.onCut)
         self.ui.actionPaste.triggered.connect(self.onPaste)
+        self.ui.actionAI_Arrange.triggered.connect(self.onAIArrange)
         # self.ui.actionOpen_Server_Folder.triggered.connect(self.openServerFolder)
         # View
         self.ui.actionShow_Aliases.toggled[bool].connect(self.onShowAliases)
@@ -1528,6 +1529,63 @@ class MainWindow(QMainWindow):
         release = QKeyEvent(QEvent.KeyRelease, Qt.Key_V, Qt.ControlModifier)
         QApplication.instance().sendEvent(QApplication.activeWindow(), press)
         QApplication.instance().sendEvent(QApplication.activeWindow(), release)
+
+    def onAIArrange(self):
+        """Auto-arrange selected people using LLM-based layout."""
+        from pkdiagram.models.autoarrangeengine import AutoArrangeEngine
+
+        if not self.scene:
+            return
+
+        selected = self.scene.selectedPeople()
+        if len(selected) < 2:
+            QMessageBox.information(
+                self,
+                "AI Arrange",
+                "Please select at least 2 people to auto-arrange.",
+            )
+            return
+
+        # Check if logged in / server available
+        if not self.session.isLoggedIn():
+            QMessageBox.warning(
+                self,
+                "AI Arrange",
+                "You must be logged in to use AI Arrange. Please log in and try again.",
+            )
+            return
+
+        # Create engine and connect signals
+        engine = AutoArrangeEngine(self.session)
+        engine.setScene(self.scene)
+
+        def onResponse(numArranged):
+            QMessageBox.information(
+                self,
+                "AI Arrange",
+                f"Successfully arranged {numArranged} people.",
+            )
+
+        def onError(error_msg):
+            QMessageBox.warning(
+                self,
+                "AI Arrange Error",
+                f"Failed to arrange people: {error_msg}",
+            )
+
+        def onServerDown():
+            QMessageBox.warning(
+                self,
+                "AI Arrange",
+                "Could not connect to server. Please check your internet connection.",
+            )
+
+        engine.responseReceived.connect(onResponse)
+        engine.serverError.connect(onError)
+        engine.serverDown.connect(onServerDown)
+
+        # Trigger the arrangement
+        engine.arrange()
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()
