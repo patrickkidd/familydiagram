@@ -18,7 +18,7 @@ class SIPComponent(SIP.SIPComponent):
 
         # Work out what the name was.
         pattern = "{}-{}.*.tar.gz".format(
-            self.module_name.lower().replace(".", "_"), self.abi_major_version
+            self.module_name.replace(".", "_"), self.abi_major_version
         )
         archives = glob.glob(pattern)
 
