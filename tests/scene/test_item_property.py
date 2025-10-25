@@ -1,3 +1,5 @@
+import enum
+
 import pytest
 
 from pkdiagram.scene import Scene, Item, Layer
@@ -116,3 +118,24 @@ def test_property_layered_reset_with_undo(scene):
 
     scene.redo()  # 1
     assert item.num() == -1
+
+
+class MyKind(enum.StrEnum):
+    One = "one"
+    Two = "two"
+
+
+class MyEnumItem(Item):
+    Item.registerProperties(({"attr": "kind", "type": MyKind},))
+
+
+def test_set_enum():
+    item = MyEnumItem()
+    item.setKind(MyKind.One)
+    assert item.kind() == MyKind.One
+
+    item.setKind(MyKind.Two)
+    assert item.kind() == MyKind.Two
+
+    with pytest.raises(ValueError):
+        item.setKind("three")

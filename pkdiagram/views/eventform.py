@@ -605,21 +605,6 @@ class EventForm(QmlDrawer):
         if newPeople:
             self.scene.addItems(*newPeople, undo=True)
 
-        # Ensure variables in scene
-
-        if any([symptom, anxiety, relationship, functioning]):
-            existingEventProperties = [
-                entry["name"] for entry in self.scene.eventProperties()
-            ]
-            if symptom and util.ATTR_SYMPTOM not in existingEventProperties:
-                self.scene.addEventProperty(util.ATTR_SYMPTOM)
-            if anxiety and util.ATTR_ANXIETY not in existingEventProperties:
-                self.scene.addEventProperty(util.ATTR_ANXIETY)
-            if relationship and util.ATTR_RELATIONSHIP not in existingEventProperties:
-                self.scene.addEventProperty(util.ATTR_RELATIONSHIP)
-            if functioning and util.ATTR_FUNCTIONING not in existingEventProperties:
-                self.scene.addEventProperty(util.ATTR_FUNCTIONING)
-
         # Compile new Events, Marriages, Emotions
 
         newMarriages = []

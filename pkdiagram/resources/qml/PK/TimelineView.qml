@@ -565,7 +565,7 @@ ColumnLayout {
             property bool shouldEdit: false
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
-            property bool isDynamicProperty: thisColumn >= 10
+            property bool isDynamicProperty: thisColumn >= 14
             property bool selected: {
                 selectionResetter
                 util.isRowSelected(selectionModel, thisRow)
@@ -647,7 +647,7 @@ ColumnLayout {
             Shape { // disabled cell indicator
                 id: disabledOverlay
                 anchors.fill: parent
-                visible: dRoot.isDynamicProperty && !dRoot.editable
+                visible: dRoot.thisColumn > 9 && !dRoot.editable
                 ShapePath {
                     strokeWidth: 1
                     strokeColor: util.QML_ITEM_BORDER_COLOR

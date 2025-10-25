@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import Item, Property
@@ -44,6 +44,10 @@ class Event(Item):
             {"attr": "spouse", "type": int, "default": None},
             {"attr": "child", "type": int, "default": None},
             # Shift fields
+            {"attr": "anxiety", "type": VariableShift, "default": None},
+            {"attr": "symptom", "type": VariableShift, "default": None},
+            {"attr": "relationship", "type": RelationshipKind, "default": None},
+            {"attr": "functioning", "type": VariableShift, "default": None},
             {"attr": "relationshipTargets", "type": list, "default": []},
             {"attr": "relationshipTriangles", "type": list, "default": []},
             {
@@ -61,10 +65,6 @@ class Event(Item):
         person: "Person",
         spouse: "Person | None" = None,
         child: "Person | None" = None,
-        anxiety: "Person | None" = None,
-        symptom: str | None = None,
-        relationship: RelationshipKind | None = None,
-        functioning: str | None = None,
         relationshipTargets: "Person | list[Person] | None" = None,
         relationshipTriangles: "Person | list[Person] | None" = None,
         **kwargs,
@@ -107,14 +107,6 @@ class Event(Item):
         if child is not None:
             self._child = child
             self.prop("child").set(child.id, notify=False)
-        if anxiety is not None:
-            self.addDynamicProperty(util.ATTR_ANXIETY).set(anxiety)
-        if symptom is not None:
-            self.addDynamicProperty(util.ATTR_SYMPTOM).set(symptom)
-        if relationship is not None:
-            self.addDynamicProperty(util.ATTR_RELATIONSHIP).set(relationship.value)
-        if functioning is not None:
-            self.addDynamicProperty(util.ATTR_FUNCTIONING).set(functioning)
         if relationshipTargets is not None:
             self.setRelationshipTargets(relationshipTargets)
         if relationshipTriangles is not None:
@@ -537,49 +529,3 @@ class Event(Item):
             [x.id for x in triangles], notify=notify, undo=undo
         )
         self._relationshipTriangles = triangles
-
-    ## Variables
-
-    def symptom(self):
-        prop = self.dynamicProperty(util.ATTR_SYMPTOM)
-        if prop:
-            return prop.get()
-
-    def anxiety(self):
-        prop = self.dynamicProperty(util.ATTR_ANXIETY)
-        if prop:
-            return prop.get()
-
-    def relationship(self) -> RelationshipKind:
-        prop = self.dynamicProperty(util.ATTR_RELATIONSHIP)
-        if prop:
-            x = prop.get()
-            if x:
-                return RelationshipKind(x)
-
-    def functioning(self):
-        prop = self.dynamicProperty(util.ATTR_FUNCTIONING)
-        if prop:
-            return prop.get()
-
-    #
-
-    def setSymptom(self, value, notify=True, undo=False):
-        prop = self.dynamicProperty(util.ATTR_SYMPTOM)
-        if prop:
-            prop.set(value, notify=notify, undo=undo)
-
-    def setAnxiety(self, value, notify=True, undo=False):
-        prop = self.dynamicProperty(util.ATTR_ANXIETY)
-        if prop:
-            prop.set(value, notify=notify, undo=undo)
-
-    def setRelationship(self, value: RelationshipKind, notify=True, undo=False):
-        prop = self.dynamicProperty(util.ATTR_RELATIONSHIP)
-        if prop:
-            prop.set(value.value, notify=notify, undo=undo)
-
-    def setFunctioning(self, value, notify=True, undo=False):
-        prop = self.dynamicProperty(util.ATTR_FUNCTIONING)
-        if prop:
-            prop.set(value, notify=notify, undo=undo)

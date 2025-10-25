@@ -495,7 +495,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
-                util.ATTR_ANXIETY, self.scene().currentDateTime()
+                "anxiety", self.scene().currentDateTime()
             )
             if ok:
                 return anxiety
@@ -506,7 +506,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
-                util.ATTR_FUNCTIONING, self.scene().currentDateTime()
+                "functioning", self.scene().currentDateTime()
             )
             if ok:
                 return functioning
@@ -517,7 +517,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
-                util.ATTR_SYMPTOM, self.scene().currentDateTime()
+                "symptom", self.scene().currentDateTime()
             )
             if ok:
                 return symptom

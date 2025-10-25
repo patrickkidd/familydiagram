@@ -10,14 +10,6 @@ from pkdiagram.views.eventform import EventForm
 from .test_eventform import view, START_DATETIME, END_DATETIME
 
 
-@pytest.fixture(autouse=True)
-def variables(scene):
-    scene.addEventProperty(util.ATTR_SYMPTOM)
-    scene.addEventProperty(util.ATTR_ANXIETY)
-    scene.addEventProperty(util.ATTR_RELATIONSHIP)
-    scene.addEventProperty(util.ATTR_FUNCTIONING)
-
-
 def test_init_Birth(scene, view):
     mother, father, child = scene.addItems(
         Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Baby")
