@@ -662,7 +662,11 @@ def update_data(data):
                         ] = emotion_kind.lower()
 
                 # Handle endEvent/isDateRange
-                if end_event and end_event.get("dateTime"):
+                if (
+                    end_event
+                    and end_event.get("dateTime")
+                    and end_event.get("dateTime") != start_event.get("dateTime")
+                ):
                     start_event["endDateTime"] = end_event["dateTime"]
                 elif emotion_chunk.get("isDateRange"):
                     # Mark that this event should have an endDateTime
