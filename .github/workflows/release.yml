@@ -80,7 +80,7 @@ jobs:
       run: |
         python -m venv .venv
         .venv/bin/pip install --upgrade pip
-        .venv/bin/pip install -e ".[test]"
+        .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -330,7 +330,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv\Scripts\pip install --upgrade pip
-          .venv\Scripts\pip install -e ".[test]"
+          .venv\Scripts\pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
         shell: cmd
   
       - name: Install Qt
