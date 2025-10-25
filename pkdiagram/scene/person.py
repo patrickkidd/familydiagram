@@ -798,9 +798,12 @@ class Person(PathItem):
                 event.prop("functioning"),
             ] + event.dynamicProperties:
                 if event.dateTime() and prop.isset():
-                    self.variablesDatabase.set(
-                        f"varsdb-{prop.attr}", event.dateTime(), prop.get()
+                    attr = (
+                        prop.attr
+                        if prop in event.dynamicProperties
+                        else f"varsdb-{prop.attr}"
                     )
+                    self.variablesDatabase.set(attr, event.dateTime(), prop.get())
 
         return {
             "oldEvents": oldEvents,

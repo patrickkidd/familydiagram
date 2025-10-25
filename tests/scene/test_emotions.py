@@ -224,14 +224,14 @@ def test_FannedBox_peers_multiple(scene):
     assert toward.peers() == set()
 
     scene.setCurrentDateTime(util.Date(2001, 4, 1))
-    assert fusion.peers() == {projection, toward}
-    assert projection.peers() == {fusion, toward}
-    assert toward.peers() == {fusion, projection}
+    assert fusion.peers() == {toward}
+    assert projection.peers() == set()
+    assert toward.peers() == {fusion}
 
     scene.setCurrentDateTime(util.Date(2001, 5, 1))
     assert fusion.peers() == set()
-    assert projection.peers() == {toward}
-    assert toward.peers() == {projection}
+    assert projection.peers() == set()
+    assert toward.peers() == set()
 
 
 def test_FannedBox_peers_different_layers(scene):

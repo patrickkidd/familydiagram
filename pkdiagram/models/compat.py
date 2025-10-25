@@ -613,11 +613,6 @@ def update_data(data):
                 start_event = emotion_chunk.pop("startEvent")
                 end_event = emotion_chunk.pop("endEvent", None)
 
-                if not "dynamicProperties" in start_event:
-                    start_event["dynamicProperties"] = {}
-                if end_event is not None and not "dynamicProperties" in end_event:
-                    end_event["dynamicProperties"] = {}
-
                 # Migrate startEvent uniqueId
                 if "uniqueId" in start_event:
                     uid = start_event.pop("uniqueId")
@@ -657,6 +652,8 @@ def update_data(data):
                     # Convert emotion kind (e.g., "Conflict" or "conflict") to lowercase
                     emotion_kind = emotion_chunk["kind"]
                     if isinstance(emotion_kind, str):
+                        if not "dynamicProperties" in start_event:
+                            start_event["dynamicProperties"] = {}
                         start_event["dynamicProperties"][
                             "relationship"
                         ] = emotion_kind.lower()
@@ -700,44 +697,48 @@ def update_data(data):
 
             # Migrate SARF from event chunk to dynamicProperties
 
-            if not "dynamicProperties" in event:
-                event["dynamicProperties"] = {}
+            dynamicProperties = {}
 
             if "symptom" in event:
-                event["dynamicProperties"]["symptom"] = event.pop("symptom")
+                dynamicProperties["symptom"] = event.pop("symptom")
                 ensureSymptom = True
 
             if "anxiety" in event:
-                event["dynamicProperties"]["anxiety"] = event.pop("anxiety")
+                dynamicProperties["anxiety"] = event.pop("anxiety")
                 ensureAnxiety = True
 
             if "relationship" in event:
-                event["dynamicProperties"]["relationship"] = event.pop("relationship")
+                dynamicProperties["relationship"] = event.pop("relationship")
                 ensureRelationship = True
 
             if "functioning" in event:
-                event["dynamicProperties"]["functioning"] = event.pop("functioning")
+                dynamicProperties["functioning"] = event.pop("functioning")
                 ensureFunctiong = True
+
+            if dynamicProperties:
+                if event.get("dynamicProperties"):
+                    event["dynamicProperties"].update(dynamicProperties)
+                else:
+                    event["dynamicProperties"] = dynamicProperties
 
         # Migrate SARF attrs right in event to Scene.eventProperties
 
-        if not "eventProperties" in data:
-            data["eventProperties"] = []
-        eventPropertyAttrs = [x["attr"] for x in data["eventProperties"]]
+        eventProperties = []
+        eventPropertyAttrs = [x["attr"] for x in data.get("eventProperties", [])]
 
         if ensureSymptom and "symptom" not in eventPropertyAttrs:
             _log.warning("Adding `symptom` to Scene.eventProperties")
-            data["eventProperties"].append(
+            eventProperties.append(
                 {"attr": slugify(util.ATTR_SYMPTOM), "name": util.ATTR_SYMPTOM}
             )
         if ensureAnxiety and "anxiety" not in eventPropertyAttrs:
             _log.warning("Adding `anxiety` to Scene.eventProperties")
-            data["eventProperties"].append(
+            eventProperties.append(
                 {"attr": slugify(util.ATTR_ANXIETY), "name": util.ATTR_ANXIETY}
             )
         if ensureRelationship and "relationship" not in eventPropertyAttrs:
             _log.warning("Adding `relationship` to Scene.eventProperties")
-            data["eventProperties"].append(
+            eventProperties.append(
                 {
                     "attr": slugify(util.ATTR_RELATIONSHIP),
                     "name": util.ATTR_RELATIONSHIP,
@@ -745,9 +746,14 @@ def update_data(data):
             )
         if ensureFunctiong and "functioning" not in eventPropertyAttrs:
             _log.warning("Adding `functioning` to Scene.eventProperties")
-            data["eventProperties"].append(
+            eventProperties.append(
                 {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
             )
+
+        if eventProperties:
+            if not "eventProperties" in data:
+                data["eventProperties"] = []
+            data["eventProperties"].extend(eventProperties)
 
         # 5. Add all collected events to data["events"]
         data["events"] = all_events

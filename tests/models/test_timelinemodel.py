@@ -845,9 +845,9 @@ def test_showAliases_signals(scene, model):
     assert model.index(2, 5).data() == "Bob (Robby)"
 
     # Check display values for relationship events directly via model
-    assert model.index(3, 3).data() == "Distance began"
+    assert model.index(3, 3).data() == "distance began"
     assert model.index(3, 5).data() == "Patrick & Bob (Robby)"
-    assert model.index(4, 3).data() == "Distance ended"
+    assert model.index(4, 3).data() == "distance ended"
     assert model.index(4, 5).data() == "Patrick & Bob (Robby)"
 
     # Check display values for marriage events directly via model
@@ -910,7 +910,7 @@ def test_get_all_variables(scene, model):
     )
     assert (
         model.data(model.index(0, model.columnIndex(model.RELATIONSHIP)))
-        == RelationshipKind.Conflict.name
+        == RelationshipKind.Conflict.value
     )
     assert (
         model.data(model.index(0, model.columnIndex(model.FUNCTIONING)))
