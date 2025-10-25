@@ -1482,7 +1482,7 @@ class Emotion(PathItem):
             if not start_dt and not end_dt:
                 on = True
             elif start_dt and not end_dt:
-                on = start_dt <= dateTime
+                on = start_dt == dateTime
             elif not start_dt and end_dt:
                 on = end_dt > dateTime
             elif start_dt and end_dt:

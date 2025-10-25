@@ -330,6 +330,39 @@ def test_shouldShowFor():
     assert conflict.shouldShowFor(QDateTime()) == True
 
 
+def test_shouldShowFor_dateTime(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    conflict = scene.emotionsFor(event)[0]
+    assert conflict.shouldShowFor(event.dateTime()) == True
+    assert conflict.shouldShowFor(event.dateTime().addDays(1)) == False
+
+
+def test_shouldShowFor_dateTime_no_endDateTime(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+            endDateTime=util.Date(2001, 1, 2),
+        )
+    )
+    conflict = scene.emotionsFor(event)[0]
+    assert conflict.shouldShowFor(event.endDateTime()) == False
+    assert conflict.shouldShowFor(event.endDateTime().addDays(1)) == False
+
+
 def test_honors_searchModel_tags_plus_dates():
     TAGS = ["triangle"]
     scene = Scene()
