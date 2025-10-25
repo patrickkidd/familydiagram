@@ -233,10 +233,12 @@ class EventForm(QmlDrawer):
         description = util.sameOf(events, lambda e: e.description())
         if description:
             self.item.property("descriptionEdit").setProperty("text", description)
+            self.item.setProperty("description", description)
 
         location = util.sameOf(events, lambda e: e.location())
         if location:
             self.item.property("locationEdit").setProperty("text", location)
+            self.item.setProperty("location", location)
 
         # Set variable fields only if all events agree
         symptom = util.sameOf(events, lambda e: e.symptom())
@@ -270,6 +272,7 @@ class EventForm(QmlDrawer):
         notes = util.sameOf(events, lambda e: e.notes())
         if notes:
             self.item.property("notesEdit").setProperty("text", notes)
+            self.item.setProperty("notes", notes)
 
         # Initialize relationship targets if all events agree
         targets = util.sameOf(

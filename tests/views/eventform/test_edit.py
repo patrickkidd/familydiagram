@@ -17,11 +17,15 @@ def test_init_Birth(scene, view):
     marriage = scene.addItem(Marriage(mother, father))
     event = scene.addItem(
         Event(
-            EventKind.Birth, mother, spouse=father, child=child, dateTime=START_DATETIME
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=child,
+            dateTime=START_DATETIME,
+            location="Old Location",
+            notes="Old Notes",
         )
     )
-    event.setLocation("Old Location")
-    event.setNotes("Old Notes")
 
     view.view.editEvents([event])
     assert view.item.property("kindBox").property("enabled") == False
@@ -63,6 +67,7 @@ def test_init_Shift(scene, view):
             EventKind.Shift,
             mother,
             dateTime=START_DATETIME,
+            description="Some description",
             symptom=VariableShift.Up,
             anxiety=VariableShift.Same,
             relationship=RelationshipKind.Conflict,
@@ -70,14 +75,13 @@ def test_init_Shift(scene, view):
             functioning=VariableShift.Down,
         )
     )
-    event.setLocation("Some Location")
-    event.setNotes("Some Notes")
-    event.setDescription("Some Description")
     view.view.editEvents([event])
     util.waitALittle()
     assert view.item.property("kind") == EventKind.Shift.value
     assert view.view.personEntry()["person"] == mother
     assert set(x["person"] for x in view.view.targetsEntries()) == {father}
+    assert view.item.property("description") == "Some description"
+    assert view.item.property("descriptionEdit").property("text") == "Some description"
     assert view.view.trianglesEntries() == []
     assert view.item.property("symptom") == VariableShift.Up.value
     assert (
@@ -92,34 +96,6 @@ def test_init_Shift(scene, view):
         view.item.property("functioningField").property("value")
         == VariableShift.Down.value
     )
-
-
-def test_init_Shift_Conflict(scene, view):
-    mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
-    conflictEvent = scene.addItem(
-        Event(
-            EventKind.Shift,
-            mother,
-            relationship=RelationshipKind.Conflict,
-            relationshipTargets=[father],
-            dateTime=START_DATETIME,
-            endDateTime=END_DATETIME,
-        )
-    )
-    conflictEvent.setLocation("Some Location")
-    conflictEvent.setNotes("Some Notes")
-    conflictEvent.setDescription("Conflict began")
-    conflict = scene.emotionsFor(conflictEvent)[0]
-    view.view.editEvents([conflictEvent])
-    util.waitALittle()
-    assert view.view.personEntry()["person"] == mother
-    assert view.view.targetsEntries()[0]["person"] == father
-    assert view.item.property("kind") == EventKind.Shift.value
-    assert view.item.property("relationship") == RelationshipKind.Conflict.value
-    assert view.item.property("description") == "Conflict began"
-    assert view.item.property("startDateTime") == START_DATETIME
-    assert view.item.property("location") == "Some Location"
-    assert view.item.property("notes") == "Some Notes"
 
 
 def test_init_Shift_Triangle(scene, view):
