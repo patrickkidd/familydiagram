@@ -325,7 +325,8 @@ PK.Drawer {
                                 Layout.minimumWidth: 180
                                 currentIndex: -1
                                 displayText: currentIndex == -1 ? 'Set from template' : model.get(currentIndex)
-                                model: ['Havstad Model', 'Papero Model', "Stinson Model"]
+                                model: ['Papero Model', "Stinson Model"]
+                                // model: ['Havstad Model', 'Papero Model', "Stinson Model"]
                                 onCurrentIndexChanged: {
                                     root.eventPropertiesTemplateIndexChanged(currentIndex)
                                     currentIndex = -1 // change back
