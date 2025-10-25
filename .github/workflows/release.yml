@@ -100,10 +100,11 @@ jobs:
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
+        source .venv/bin/activate
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         which qmake
         cd _pkdiagram
-        ../.venv/bin/sip-build --no-compile
+        sip-build --no-compile
         moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
         moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 
@@ -127,13 +128,14 @@ jobs:
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
+        source .venv/bin/activate
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         # mkdir -p ~/.pyqtdeploy/cache
         wget -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
         wget https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
-        .venv/bin/pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
+        pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
@@ -143,9 +145,10 @@ jobs:
 
     - name: pyqtdeploy-build
       run: |
+        source .venv/bin/activate
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        .venv/bin/python bin/update_build_info.py
-        .venv/bin/pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
+        python bin/update_build_info.py
+        pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
         rsync -avzq build/common-config/* build/osx
         rsync -avzq build/osx-config/* build/osx
 
@@ -330,13 +333,14 @@ jobs:
         run: |
           python -m venv .venv
           .venv\Scripts\pip install --upgrade pip
-          .venv\Scripts\pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
+          .venv\Scripts\pip install -e ".[test]" --extra-index-url=%TWINE_REPOSITORY_URL%
         shell: cmd
   
       - name: Install Qt
         run: |
-          .venv\Scripts\pip install aqtinstall
-          .venv\Scripts\aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+          call .venv\Scripts\activate.bat
+          pip install aqtinstall
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         shell: cmd
         
       - name: Setup MSVC (x64)
@@ -433,12 +437,13 @@ jobs:
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
+          call .venv\Scripts\activate.bat
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
           dir build\_pkdiagram
           REM mkdir build\_pkdiagram\release
-          ..\.venv\Scripts\sip-build --no-compile
+          sip-build --no-compile
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
         shell: cmd
@@ -455,6 +460,7 @@ jobs:
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
+          call .venv\Scripts\activate.bat
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cl.exe /? || echo "MSVC compiler not found"
           echo "Downloading https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
@@ -472,8 +478,8 @@ jobs:
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
           cd ..
-          .venv\Scripts\pip list
-          .venv\Scripts\pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
+          pip list
+          pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
         shell: cmd
 
       - uses: actions/cache/save@v4
@@ -484,7 +490,8 @@ jobs:
   
       - name: Write build config
         run: |
-          .venv\Scripts\python bin\update_build_info.py
+          call .venv\Scripts\activate.bat
+          python bin\update_build_info.py
         shell: cmd
 
       # Write these in case sysroot-build did not run
@@ -505,8 +512,9 @@ jobs:
 
       - name: pyqtdeploy-build
         run: |
+          call .venv\Scripts\activate.bat
           set PYTHONPATH=%cd%\lib\site-packages
-          .venv\Scripts\pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
+          pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
           copy build\common-config\* build\win32\
           copy build\win32-config\* build\win32\
         shell: cmd
