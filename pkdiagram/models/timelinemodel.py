@@ -258,6 +258,13 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 self.dataChanged.emit(
                     self.index(row_idx, parentCol), self.index(row_idx, parentCol)
                 )
+        elif prop.name() == "hideNames":
+            # When hideNames changes, emit dataChanged for columns that display names/aliases
+            parentCol = self.COLUMNS.index(self.PERSON)
+            self.dataChanged.emit(
+                self.index(0, parentCol), self.index(self.rowCount() - 1, parentCol)
+            )
+
         elif prop.name() == "eventProperties":
             newProps = prop.get()
             prevProps = list(self._eventProperties)
@@ -558,7 +565,10 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             else:
                 ret = event.description()
         elif self.isColumn(index, self.PERSON):
-            ret = event.parentName()
+            if self._scene.hideNames():
+                ret = "<hidden>"
+            else:
+                ret = event.parentName()
         elif self.isColumn(index, self.LOCATION):
             ret = event.location()
         elif self.isColumn(index, self.LOGGED):
