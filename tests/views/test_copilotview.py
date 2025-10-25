@@ -4,7 +4,7 @@ import contextlib
 
 import pytest
 import mock
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 
 # from tests.models.test_copilotengine import copilot
 
