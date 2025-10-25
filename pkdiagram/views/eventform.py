@@ -1,7 +1,7 @@
 import logging
 from typing import Union
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram.pyqt import (
     pyqtSignal,
     Q_RETURN_ARG,
@@ -220,34 +220,35 @@ class EventForm(QmlDrawer):
         # Set dates only if all events agree
         startDateTime = util.sameOf(events, lambda e: e.dateTime())
         if startDateTime:
-            self.item.setProperty("startDateTime", startDateTime)
+            self.item.property("startDateButtons").setProperty(
+                "dateTime", startDateTime
+            )
 
         endDateTime = util.sameOf(events, lambda e: e.endDateTime())
         if endDateTime:
             self.item.property("isDateRangeBox").setProperty("checked", True)
-            self.item.setProperty("endDateTime", endDateTime)
+            self.item.property("endDateButtons").setProperty("dateTime", endDateTime)
 
         # Set text fields only if all events agree
         description = util.sameOf(events, lambda e: e.description())
         if description:
-            self.item.setProperty("description", description)
+            self.item.property("descriptionEdit").setProperty("text", description)
 
         location = util.sameOf(events, lambda e: e.location())
         if location:
-            self.item.setProperty("location", location)
+            self.item.property("locationEdit").setProperty("text", location)
 
         # Set variable fields only if all events agree
         symptom = util.sameOf(events, lambda e: e.symptom())
         if symptom is not None:
-            self.item.setProperty("symptom", symptom)
+            self.item.property("symptomField").setValue(symptom.value)
 
         anxiety = util.sameOf(events, lambda e: e.anxiety())
         if anxiety is not None:
-            self.item.setProperty("anxiety", anxiety)
+            self.item.property("anxietyField").setValue(anxiety.value)
 
         relationship = util.sameOf(events, lambda e: e.relationship())
         if relationship is not None:
-            self.item.setProperty("relationship", relationship.value)
             self.item.property("relationshipField").setValue(relationship.value)
             if relationship in (RelationshipKind.Inside, RelationshipKind.Outside):
                 triangles = util.sameOf(events, lambda x: x.relationshipTriangles())
@@ -264,11 +265,11 @@ class EventForm(QmlDrawer):
 
         functioning = util.sameOf(events, lambda e: e.functioning())
         if functioning is not None:
-            self.item.setProperty("functioning", functioning)
+            self.item.property("functioningField").setValue(functioning.value)
 
         notes = util.sameOf(events, lambda e: e.notes())
         if notes:
-            self.item.setProperty("notes", notes)
+            self.item.property("notesEdit").setProperty("text", notes)
 
         # Initialize relationship targets if all events agree
         targets = util.sameOf(
@@ -493,8 +494,14 @@ class EventForm(QmlDrawer):
         if self.item.property("kind"):
             kind = EventKind(self.item.property("kind"))
         description = self.item.property("description")
-        symptom = self.item.property("symptom")
-        anxiety = self.item.property("anxiety")
+        if self.item.property("symptom"):
+            symptom = VariableShift(self.item.property("symptom"))
+        else:
+            symptom = None
+        if self.item.property("anxiety"):
+            anxiety = VariableShift(self.item.property("anxiety"))
+        else:
+            anxiety = None
         if self.item.property("relationship"):
             relationship = RelationshipKind(self.item.property("relationship"))
 
@@ -511,7 +518,10 @@ class EventForm(QmlDrawer):
             targetsEntries = []
             trianglesEntries = []
 
-        functioning = self.item.property("functioning")
+        if self.item.property("functioning"):
+            functioning = VariableShift(self.item.property("functioning"))
+        else:
+            functioning = None
 
         # When
 

@@ -495,7 +495,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
-                "anxiety", self.scene().currentDateTime()
+                "varsdb-anxiety", self.scene().currentDateTime()
             )
             if ok:
                 return anxiety
@@ -506,7 +506,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
-                "functioning", self.scene().currentDateTime()
+                "varsdb-functioning", self.scene().currentDateTime()
             )
             if ok:
                 return functioning
@@ -517,7 +517,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
-                "symptom", self.scene().currentDateTime()
+                "varsdb-symptom", self.scene().currentDateTime()
             )
             if ok:
                 return symptom
@@ -792,9 +792,15 @@ class Person(PathItem):
 
         self.variablesDatabase.clear()
         for event in self.events():
-            for prop in event.dynamicProperties:
+            for prop in [
+                event.prop("symptom"),
+                event.prop("anxiety"),
+                event.prop("functioning"),
+            ] + event.dynamicProperties:
                 if event.dateTime() and prop.isset():
-                    self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())
+                    self.variablesDatabase.set(
+                        f"varsdb-{prop.attr}", event.dateTime(), prop.get()
+                    )
 
         return {
             "oldEvents": oldEvents,
@@ -828,8 +834,10 @@ class Person(PathItem):
             self.onAgeChanged()
         # if prop.item in changes["newEvents"] and not prop.item in changes["added"]:
         #     self.eventChanged.emit(prop)
-        if prop.isDynamic:
-            self.variablesDatabase.set(prop.attr, prop.item.dateTime(), prop.get())
+        if prop.name in ("symptom", "anxiety", "functioning") or prop.isDynamic:
+            self.variablesDatabase.set(
+                f"varsdb-{prop.attr}", prop.item.dateTime(), prop.get()
+            )
 
     # Event getters
 
@@ -1173,7 +1181,12 @@ class Person(PathItem):
             else:
                 vBaseColor = QColor(self.VARIABLE_BASE_COLOR_LIGHT_MODE)
             hideVariableSteadyStates = self.scene().hideVariableSteadyStates()
-            for i, entry in enumerate(self.scene().eventProperties()):
+            properties = [
+                {"attr": "varsdb-symptom", "name": util.ATTR_SYMPTOM},
+                {"attr": "varsdb-anxiety", "name": util.ATTR_ANXIETY},
+                {"attr": "varsdb-functioning", "name": util.ATTR_FUNCTIONING},
+            ] + self.scene().eventProperties()
+            for i, entry in enumerate(properties):
                 value, isChange = self.variablesDatabase.get(
                     entry["attr"], currentDateTime
                 )

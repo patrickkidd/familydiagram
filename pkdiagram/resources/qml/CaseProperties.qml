@@ -18,6 +18,7 @@ PK.Drawer {
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
     signal inspectEvents(var eventList)
+    signal inspectNotes(int row)
 
     property int margin: util.QML_MARGINS
     property bool isDrawerOpen: false
@@ -65,13 +66,6 @@ PK.Drawer {
             // print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
             root.inspectEvents(timelineView.selectedEvents)
         }
-    }
-
-    function onInspectNotes(row) {
-        session.trackView('Edit event notes')
-        eventProperties.eventModel.items = timelineView.selectedEvents
-        eventProperties.setCurrentTab('notes')
-        eventPropertiesDrawer.visible = true
     }
 
     function scrollSettingsToBottom() {
@@ -170,7 +164,10 @@ PK.Drawer {
                 root.flashTimelineRow(row)
             }
             onInspect: root.onInspect()
-            onInspectNotes: root.onInspectNotes(row)
+            onInspectNotes: {
+                session.trackView('Edit event notes')
+                root.inspectNotes(row)
+            }
         }
         
         Flickable {

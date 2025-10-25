@@ -51,7 +51,7 @@ class TestPersonPicker:
             resetFocus=resetFocus,
             returnToFinish=returnToFinish,
         )
-        if gender:
+        if gender and returnToFinish:
             genderBox = self.item.property("genderBox")
             self.view.clickComboBoxItem(genderBox, gender)
         QApplication.processEvents()

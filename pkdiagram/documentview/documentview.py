@@ -239,6 +239,9 @@ class DocumentView(QWidget):
         self.caseProps.findItem("stack").currentIndexChanged.connect(
             self.onCasePropsTabChanged
         )
+        self.caseProps.qml.rootObject().inspectNotes[int].connect(
+            self.onCasePropsInspectEventNotes
+        )
 
     def qmlEngine(self):
         return self._qmlEngine
@@ -518,6 +521,16 @@ class DocumentView(QWidget):
 
     def onCasePropsTabChanged(self):
         self.updateSceneStopOnAllEvents()
+
+    def onCasePropsInspectEventNotes(self, row: int):
+        event = self.timelineModel.eventForRow(row)
+        if event:
+            self.eventForm.editEvents([event])
+            self.setCurrentDrawer(self.eventForm)
+            self.eventForm.scrollChildToVisible(
+                self.eventForm.rootProp("addPage"), self.eventForm.rootProp("notesEdit")
+            )
+            self.session.trackView("Edit event notes")
 
     def updateSceneStopOnAllEvents(self):
         if self.scene:  # redundnant?

@@ -40,7 +40,7 @@ PK.Drawer {
     property var isEditing: false
     property var kind: null
     property var description: null
-    property var isDateRange: isDateRangeBox.checked
+    property var isDateRange: false
     property var isDateRangeDirty: isDateRangeBox.dirty
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure

@@ -2,7 +2,7 @@ import logging
 
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
-from pkdiagram import version, util
+from pkdiagram import version, util, slugify
 from pkdiagram.scene import ItemDetails, Emotion, Emotion
 
 _log = logging.getLogger(__name__)
@@ -682,43 +682,68 @@ def update_data(data):
                 emotion_chunk.pop("isDateRange", None)
                 emotion_chunk.pop("isSingularDate", None)
 
-        # 4. Process existing events already in data["events"]
-        for event_chunk in data.get("events", []):
-            # Migrate uniqueId → kind
-            if "uniqueId" in event_chunk:
-                uid = event_chunk.pop("uniqueId")
-                if uid == "birth":
-                    event_chunk["kind"] = EventKind.Birth.value
-                elif uid == "adopted":
-                    event_chunk["kind"] = EventKind.Adopted.value
-                elif uid == "death":
-                    event_chunk["kind"] = EventKind.Death.value
-                elif uid == "married":
-                    event_chunk["kind"] = EventKind.Married.value
-                elif uid == "bonded":
-                    event_chunk["kind"] = EventKind.Bonded.value
-                elif uid == "separated":
-                    event_chunk["kind"] = EventKind.Separated.value
-                elif uid == "divorced":
-                    event_chunk["kind"] = EventKind.Divorced.value
-                elif uid == "moved":
-                    event_chunk["kind"] = EventKind.Moved.value
-                elif uid in (
-                    "CustomIndividual",
-                    "emotionStartEvent",
-                    "emotionEndEvent",
-                    "",
-                    None,
-                ):
-                    event_chunk["kind"] = EventKind.Shift.value
-                else:
-                    event_chunk["kind"] = EventKind.Shift.value
+        ensureSymptom = False
+        ensureAnxiety = False
+        ensureRelationship = False
+        ensureFunctiong = False
+
+        # 4. Post-process all events
+        for event in all_events:
 
             # Ensure kind is never None
-            if not event_chunk.get("kind"):
-                event_chunk["kind"] = EventKind.Shift.value
+            if not event.get("kind"):
+                event["kind"] = EventKind.Shift.value
 
-            all_events.append(event_chunk)
+            # Migrate SARF from event chunk to dynamicProperties
+
+            if not "dynamicProperties" in event:
+                event["dynamicProperties"] = {}
+
+            if "symptom" in event:
+                event["dynamicProperties"]["symptom"] = event.pop("symptom")
+                ensureSymptom = True
+
+            if "anxiety" in event:
+                event["dynamicProperties"]["anxiety"] = event.pop("anxiety")
+                ensureAnxiety = True
+
+            if "relationship" in event:
+                event["dynamicProperties"]["relationship"] = event.pop("relationship")
+                ensureRelationship = True
+
+            if "functioning" in event:
+                event["dynamicProperties"]["functioning"] = event.pop("functioning")
+                ensureFunctiong = True
+
+        # Migrate SARF attrs right in event to Scene.eventProperties
+
+        if not "eventProperties" in data:
+            data["eventProperties"] = []
+        eventPropertyAttrs = [x["attr"] for x in data["eventProperties"]]
+
+        if ensureSymptom and "symptom" not in eventPropertyAttrs:
+            _log.warning("Adding `symptom` to Scene.eventProperties")
+            data["eventProperties"].append(
+                {"attr": slugify(util.ATTR_SYMPTOM), "name": util.ATTR_SYMPTOM}
+            )
+        if ensureAnxiety and "anxiety" not in eventPropertyAttrs:
+            _log.warning("Adding `anxiety` to Scene.eventProperties")
+            data["eventProperties"].append(
+                {"attr": slugify(util.ATTR_ANXIETY), "name": util.ATTR_ANXIETY}
+            )
+        if ensureRelationship and "relationship" not in eventPropertyAttrs:
+            _log.warning("Adding `relationship` to Scene.eventProperties")
+            data["eventProperties"].append(
+                {
+                    "attr": slugify(util.ATTR_RELATIONSHIP),
+                    "name": util.ATTR_RELATIONSHIP,
+                }
+            )
+        if ensureFunctiong and "functioning" not in eventPropertyAttrs:
+            _log.warning("Adding `functioning` to Scene.eventProperties")
+            data["eventProperties"].append(
+                {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
+            )
 
         # 5. Add all collected events to data["events"]
         data["events"] = all_events
