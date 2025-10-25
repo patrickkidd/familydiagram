@@ -94,6 +94,11 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     NODAL = "Nodal"
     TAGS = "Tags"
 
+    ANXIETY = util.ATTR_ANXIETY
+    SYMPTOM = util.ATTR_SYMPTOM
+    RELATIONSHIP = util.ATTR_RELATIONSHIP
+    FUNCTIONING = util.ATTR_FUNCTIONING
+
     COLUMNS = [
         BUDDIES,  # 0
         DATETIME,  # 1
@@ -104,8 +109,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         LOGGED,  # 6
         COLOR,  # 7
         NODAL,  # 8
-        TAGS,
-    ]  # 9
+        TAGS,  # 9
+        SYMPTOM,  # 10
+        ANXIETY,  # 11
+        RELATIONSHIP,  # 12
+        FUNCTIONING,  # 13
+    ]
 
     FlagsRole = Qt.UserRole + 1
     NodalRole = FlagsRole + 1
@@ -132,6 +141,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         self._headerModel = TableHeaderModel(self)
         self._settingData = False  # prevent recursion
         self._searchModel = None
+        self._eventProperties = []
         self.initModelHelper()
 
     # def __repr__(self):
@@ -221,11 +231,8 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self._rows.remove(timelineRow)
             self.endRemoveRows()
 
-    def refreshColumnHeaders(self, columnHeaders=None):
-        """Account for event variables."""
-        if columnHeaders is None:
-            columnHeaders = self.getColumnHeaders()
-        self._columnHeaders = columnHeaders
+    def refreshColumnHeaders(self):
+        self._columnHeaders = self.getColumnHeaders()
         self._headerModel.setHeaders(self._columnHeaders)
 
     def onSceneProperty(self, prop):
@@ -252,30 +259,29 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                     self.index(row_idx, parentCol), self.index(row_idx, parentCol)
                 )
         elif prop.name() == "eventProperties":
-            prevColumns = list(self._columnHeaders)
-            newColumns = self.getColumnHeaders()
-            addedIndexes = [i for i, x in enumerate(newColumns) if not x in prevColumns]
-            removedIndexes = [
-                i for i, x in enumerate(prevColumns) if not x in newColumns
-            ]
-            removedNames = [x for x in prevColumns if not x in newColumns]
+            newProps = prop.get()
+            prevProps = list(self._eventProperties)
+            addedIndexes = [i for i, x in enumerate(newProps) if not x in prevProps]
+            removedIndexes = [i for i, x in enumerate(prevProps) if not x in newProps]
+            removedProps = [x for x in prevProps if not x in newProps]
             # hack to sync internal data with signals
-            afterRemove = [x for x in prevColumns if x not in removedNames]
+            afterRemove = [x for x in prevProps if x not in removedProps]
             if removedIndexes:
                 first = removedIndexes[0]
                 last = removedIndexes[-1]
                 self.beginRemoveColumns(QModelIndex(), first, last)
-                self.refreshColumnHeaders(afterRemove)
+                self.refreshColumnHeaders()
                 self.endRemoveColumns()
             if addedIndexes:
                 first = addedIndexes[0]
                 last = addedIndexes[-1]
                 self.beginInsertColumns(QModelIndex(), first, last)
-                self.refreshColumnHeaders(newColumns)
+                self.refreshColumnHeaders()
                 self.endInsertColumns()
             self.headerDataChanged.emit(
                 Qt.Horizontal, len(self.COLUMNS), self.columnCount()
             )
+            self._eventProperties = list(prop.get())
 
     def _refreshRows(self):
         """The core method to collect all the events from people, pair-bonds, and emotions."""
@@ -344,6 +350,24 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         #     self.refreshProperty("dateBuddies")
         elif prop.name() == "itemPos":
             pass  # performance hit when dragging items with emotions
+
+        elif prop.name() == "symptom":
+            col = self.COLUMNS.index(self.SYMPTOM)
+            for row in rows:
+                self.dataChanged.emit(self.index(row, col), self.index(row, col))
+        elif prop.name() == "anxiety":
+            col = self.COLUMNS.index(self.ANXIETY)
+            for row in rows:
+                self.dataChanged.emit(self.index(row, col), self.index(row, col))
+        elif prop.name() == "relationship":
+            col = self.COLUMNS.index(self.RELATIONSHIP)
+            for row in rows:
+                self.dataChanged.emit(self.index(row, col), self.index(row, col))
+        elif prop.name() == "functioning":
+            col = self.COLUMNS.index(self.FUNCTIONING)
+            for row in rows:
+                self.dataChanged.emit(self.index(row, col), self.index(row, col))
+
         else:
             # nodal, for example
             col = None
@@ -426,6 +450,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 self._scene.personRemoved[Person].disconnect(self.onPersonRemoved)
                 self._scene.personChanged[Property].disconnect(self.onPersonChanged)
                 self._scene.propertyChanged[Property].disconnect(self.onSceneProperty)
+                self._eventProperties = []
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
@@ -435,6 +460,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 self._scene.personRemoved[Person].connect(self.onPersonRemoved)
                 self._scene.personChanged[Property].connect(self.onPersonChanged)
                 self._scene.propertyChanged[Property].connect(self.onSceneProperty)
+                self.onSceneProperty(self._scene.prop("eventProperties"))
             self.refreshColumnHeaders()
             self._refreshRows()
 
@@ -473,6 +499,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         timelineRow = self._rows[index.row()]
         event = timelineRow.event
         ret = None
+
+        # roles
+
         if not self._scene:
             ret = None
         elif role == self.FlagsRole:
@@ -504,6 +533,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             return person.id if person else None
         elif role == self.HasNotesRole:
             ret = bool(event.notes())
+
+        # columns
+
         elif self.isColumn(index, self.BUDDIES):
             ret = ""
         elif self.isColumn(index, self.NODAL):
@@ -518,7 +550,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.DESCRIPTION):
             # For relationship events with end markers, show "X began" / "X ended"
             if event.relationship() and (event.dateTime() or event.endDateTime()):
-                relationship_name = event.relationship().name
+                relationship_name = event.relationship().value
                 if timelineRow.isEndMarker:
                     ret = f"{relationship_name} ended"
                 else:
@@ -537,6 +569,20 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 ret = None
         elif self.isColumn(index, self.TAGS):
             ret = ", ".join(event.tags())
+
+        elif index.column() == self.COLUMNS.index(self.ANXIETY):
+            ret = event.anxiety()
+            ret = ret.value if ret else None
+        elif index.column() == self.COLUMNS.index(self.SYMPTOM):
+            ret = event.symptom()
+            ret = ret.value if ret else None
+        elif index.column() == self.COLUMNS.index(self.RELATIONSHIP):
+            ret = event.relationship()
+            ret = ret.value if ret else None
+        elif index.column() == self.COLUMNS.index(self.FUNCTIONING):
+            ret = event.functioning()
+            ret = ret.value if ret else None
+
         else:
             attr = self.dynamicPropertyAttr(index)
             if attr:
@@ -629,13 +675,26 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         else:
             if event.person() is None:  # being removed, so pass
                 pass
+            elif (
+                self.isColumn(
+                    index,
+                    labels=[
+                        self.SYMPTOM,
+                        self.ANXIETY,
+                        self.RELATIONSHIP,
+                        self.FUNCTIONING,
+                    ],
+                )
+                and event.kind() == EventKind.Shift
+            ):
+                ret |= Qt.ItemIsEditable
             elif self.dynamicPropertyAttr(index) and event.kind() == EventKind.Shift:
                 ret |= Qt.ItemIsEditable
             if event.kind() != EventKind.Shift:
                 pass
             elif self.isColumn(
                 index,
-                labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION, self.PERSON],
+                labels=[self.DATETIME, self.DESCRIPTION, self.LOCATION],
             ):
                 ret |= Qt.ItemIsEditable
         bleh = super().flags(index) | ret
@@ -688,7 +747,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             event = self._rows[row].event
             return event.person() if event else None
 
-    def rowForEvent(self, event):
+    def rowForEvent(self, event) -> int:
         """Only used in tests."""
         for i, row in enumerate(self._rows):
             if row.event == event and not row.isEndMarker:

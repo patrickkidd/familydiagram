@@ -36,17 +36,18 @@ PK.Drawer {
 
     // State
 
+    // TODO: Get rid of these and just read the item values directly.
     property var events: []
     property var isEditing: false
     property var kind: null
     property var description: null
-    property var isDateRange: isDateRangeBox.checked
+    property var isDateRange: false
     property var isDateRangeDirty: isDateRangeBox.dirty
     property var startDateTime: startDatePicker.dateTime
     property var startDateUnsure: startDatePicker.unsure
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
-    property var location: locationEdit.text
+    property var location: null
     property var symptom: symptomField.value
     property var anxiety: anxietyField.value
     property var relationship: relationshipField.value
@@ -974,6 +975,7 @@ PK.Drawer {
                                 Global.focusNextItemInFocusChain(KeyNavigation.backtab, false)
                                 event.accepted = true
                             }
+                            onEditingFinished: root.location = text
                             function clear() { text = '' }
                         }
                     }

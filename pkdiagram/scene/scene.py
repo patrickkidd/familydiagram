@@ -1122,28 +1122,6 @@ class Scene(QGraphicsScene, Item):
                     if itemId is None:
                         raise ValueError("Found Item object stored without id!" + item)
 
-                # add event dynamic properties
-                eventPropertyAttrs = [x["name"] for x in self.eventProperties()]
-                hasAnxiety = util.ATTR_SYMPTOM in eventPropertyAttrs
-                hasSymptom = util.ATTR_ANXIETY in eventPropertyAttrs
-                hasRelationship = util.ATTR_RELATIONSHIP in eventPropertyAttrs
-                hasFunctioning = util.ATTR_FUNCTIONING in eventPropertyAttrs
-                for e in self.events():
-                    if e.symptom() and not hasSymptom:
-                        self.addEventProperty(util.ATTR_SYMPTOM)
-                        hasSymptom = False
-                    if e.anxiety() and not hasAnxiety:
-                        self.addEventProperty(util.ATTR_ANXIETY)
-                        hasAnxiety = False
-                    if e.relationship() and not hasRelationship:
-                        self.addEventProperty(util.ATTR_RELATIONSHIP)
-                        hasRelationship = False
-                    if e.functioning() and not hasFunctioning:
-                        self.addEventProperty(util.ATTR_FUNCTIONING)
-                        hasFunctioning = False
-                    if hasSymptom and hasAnxiety and hasRelationship and hasFunctioning:
-                        break
-
                 # Ensure custom variables
                 for e in self.events():
                     for entry in self.eventProperties():

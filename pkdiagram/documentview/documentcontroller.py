@@ -467,11 +467,11 @@ class DocumentController(QObject):
                 if btn == QMessageBox.No:
                     return
         newProps = []
-        if index == 0:  # Havstad Model
-            newProps = util.HAVSTAD_MODEL
-        elif index == 1:  # Papero Model
+        # if index == 0:  # Havstad Model
+        #     newProps = util.HAVSTAD_MODEL
+        if index == 0:  # Papero Model
             newProps = util.PAPERO_MODEL
-        elif index == 2:  # Stinson Model
+        elif index == 1:  # Stinson Model
             newProps = util.STINSON_MODEL
         self.scene.replaceEventProperties(newProps, undo=True)
         # for name in [e['name'] for e in self.scene.eventProperties()]:

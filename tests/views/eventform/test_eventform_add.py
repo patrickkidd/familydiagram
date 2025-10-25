@@ -197,6 +197,7 @@ def test_flash_new_items(scene, view):
     view.set_kind(EventKind.Shift)
     view.personPicker.set_new_person("John Doe")
     view.set_relationship(RelationshipKind.Conflict)
+    view.set_anxiety(VariableShift.Up)
     view.targetsPicker.add_new_person("Jane Doe")
     view.set_startDateTime(START_DATETIME)
     view.set_description("Something happened")

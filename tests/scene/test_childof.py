@@ -1,4 +1,3 @@
-from ddtrace import patch
 from mock import patch
 
 from pkdiagram.pyqt import QMessageBox

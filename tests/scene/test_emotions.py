@@ -224,14 +224,14 @@ def test_FannedBox_peers_multiple(scene):
     assert toward.peers() == set()
 
     scene.setCurrentDateTime(util.Date(2001, 4, 1))
-    assert fusion.peers() == {projection, toward}
-    assert projection.peers() == {fusion, toward}
-    assert toward.peers() == {fusion, projection}
+    assert fusion.peers() == {toward}
+    assert projection.peers() == set()
+    assert toward.peers() == {fusion}
 
     scene.setCurrentDateTime(util.Date(2001, 5, 1))
     assert fusion.peers() == set()
-    assert projection.peers() == {toward}
-    assert toward.peers() == {projection}
+    assert projection.peers() == set()
+    assert toward.peers() == set()
 
 
 def test_FannedBox_peers_different_layers(scene):
@@ -328,6 +328,39 @@ def test_shouldShowFor():
     personB.setTags(["tags1"])
     conflict.setTags(["tags2"])
     assert conflict.shouldShowFor(QDateTime()) == True
+
+
+def test_shouldShowFor_dateTime(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    conflict = scene.emotionsFor(event)[0]
+    assert conflict.shouldShowFor(event.dateTime()) == True
+    assert conflict.shouldShowFor(event.dateTime().addDays(1)) == False
+
+
+def test_shouldShowFor_dateTime_no_endDateTime(scene):
+    personA, personB = scene.addItems(Person(name="A"), Person(name="B"))
+    event = scene.addItem(
+        Event(
+            kind=EventKind.Shift,
+            person=personA,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[personB],
+            dateTime=util.Date(2000, 1, 1),
+            endDateTime=util.Date(2001, 1, 2),
+        )
+    )
+    conflict = scene.emotionsFor(event)[0]
+    assert conflict.shouldShowFor(event.endDateTime()) == False
+    assert conflict.shouldShowFor(event.endDateTime().addDays(1)) == False
 
 
 def test_honors_searchModel_tags_plus_dates():

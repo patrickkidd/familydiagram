@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift
 from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -304,7 +304,7 @@ def test_flags(scene, model):
             model.flags(model.index(row, iDescription)) & Qt.ItemIsEditable
         )  # DESCRIPTION is editable for Shift events
         assert model.flags(model.index(row, iLocation)) & Qt.ItemIsEditable
-        assert (
+        assert not (
             model.flags(model.index(row, iParent)) & Qt.ItemIsEditable
         )  # PARENT is editable for Shift events
         assert not model.flags(model.index(row, iLogged)) & Qt.ItemIsEditable
@@ -845,9 +845,9 @@ def test_showAliases_signals(scene, model):
     assert model.index(2, 5).data() == "Bob (Robby)"
 
     # Check display values for relationship events directly via model
-    assert model.index(3, 3).data() == "Distance began"
+    assert model.index(3, 3).data() == "distance began"
     assert model.index(3, 5).data() == "Patrick & Bob (Robby)"
-    assert model.index(4, 3).data() == "Distance ended"
+    assert model.index(4, 3).data() == "distance ended"
     assert model.index(4, 5).data() == "Patrick & Bob (Robby)"
 
     # Check display values for marriage events directly via model
@@ -879,17 +879,44 @@ def test_showAliases_signals(scene, model):
     assert model.index(5, 5).data() == "[Marco] & [John]"
 
 
-def test_get_all_variables(scene):
-    scene.addEventProperty("anxiety")
+def test_get_all_variables(scene, model):
+    scene.addEventProperty("custom-variable")
     person = scene.addItem(Person(name="Person A"))
     birthEvent = scene.addItem(
-        Event(EventKind.Shift, person, dateTime=util.Date(2000, 1, 1))
+        Event(
+            EventKind.Shift,
+            person,
+            symptom=VariableShift.Up,
+            anxiety=VariableShift.Same,
+            functioning=VariableShift.Down,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[],
+            dateTime=util.Date(2000, 1, 1),
+        )
     )
-    prop = birthEvent.dynamicProperty("anxiety")
+    prop = birthEvent.dynamicProperty("custom-variable")
     prop.set("up")
     # for i in range(model.rowCount()):
     #     for j in range(model.columnCount()):
     #         Debug(i, j, model.data(model.index(i, j)))
+
+    assert (
+        model.data(model.index(0, model.columnIndex(model.SYMPTOM)))
+        == VariableShift.Up.value
+    )
+    assert (
+        model.data(model.index(0, model.columnIndex(model.ANXIETY)))
+        == VariableShift.Same.value
+    )
+    assert (
+        model.data(model.index(0, model.columnIndex(model.RELATIONSHIP)))
+        == RelationshipKind.Conflict.value
+    )
+    assert (
+        model.data(model.index(0, model.columnIndex(model.FUNCTIONING)))
+        == VariableShift.Down.value
+    )
+    assert model.data(model.index(0, model.columnIndex(model.FUNCTIONING) + 1)) == "up"
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,6 @@
 import pytest
 
-from btcopilot.schema import VariableShift, EventKind
+from btcopilot.schema import VariableShift, EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -127,9 +127,18 @@ def detailsText_person(scene):
         )
     )
     event = scene.addItem(
-        Event(EventKind.Shift, person, dateTime=scene.currentDateTime())
+        Event(
+            EventKind.Shift,
+            person,
+            anxiety=VariableShift.Up,
+            symptom=VariableShift.Same,
+            functioning=VariableShift.Down,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[mother],
+            dateTime=scene.currentDateTime(),
+        )
     )
-    event.dynamicProperty("varx").set("123")
+    event.dynamicProperty("varX").set("123")
     person.updateDetails()
     return person
 
@@ -141,6 +150,10 @@ def test_detailsText_all(detailsText_person):
     assert util.dateString(person.birthDateTime()) in person.detailsText.text()
     assert person.diagramNotes() in person.detailsText.text()
     assert "varX" in person.detailsText.text()
+    assert util.ATTR_SYMPTOM in person.detailsText.text()
+    assert util.ATTR_ANXIETY in person.detailsText.text()
+    assert util.ATTR_FUNCTIONING in person.detailsText.text()
+    assert util.ATTR_RELATIONSHIP not in person.detailsText.text()
 
 
 def test_detailsText_none(detailsText_person):

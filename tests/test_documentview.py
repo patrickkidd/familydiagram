@@ -5,7 +5,6 @@ import pickle
 import json
 import contextlib
 
-from ddtrace import patch
 import pytest
 from mock import patch, MagicMock
 
@@ -1215,9 +1214,10 @@ def test_personprops_birth_event_button(
             == "→ Add Birth"
         )
 
-    with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
-        dv.eventForm, "addBirthEvent"
-    ) as addBirthEvent:
+    with (
+        patch.object(dv.eventForm, "editEvents") as editEvents,
+        patch.object(dv.eventForm, "addBirthEvent") as addBirthEvent,
+    ):
         dv.personProps.qml.rootObject().editBirthEvent.emit()
 
         if hasBirthEvent:
@@ -1253,9 +1253,10 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
         )
 
     if hasDeathEvent:
-        with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
-            dv.eventForm, "addDeathEvent"
-        ) as addDeathEvent:
+        with (
+            patch.object(dv.eventForm, "editEvents") as editEvents,
+            patch.object(dv.eventForm, "addDeathEvent") as addDeathEvent,
+        ):
             dv.personProps.qml.rootObject().editDeathEvent.emit()
 
             assert editEvents.call_count == 1
@@ -1271,9 +1272,10 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
             == "→ Add Death"
         )
 
-        with patch.object(dv.eventForm, "editEvents") as editEvents, patch.object(
-            dv.eventForm, "addDeathEvent"
-        ) as addDeathEvent:
+        with (
+            patch.object(dv.eventForm, "editEvents") as editEvents,
+            patch.object(dv.eventForm, "addDeathEvent") as addDeathEvent,
+        ):
             dv.personProps.qml.rootObject().editDeathEvent.emit()
 
             assert addDeathEvent.call_count == 1

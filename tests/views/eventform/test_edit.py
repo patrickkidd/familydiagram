@@ -10,14 +10,6 @@ from pkdiagram.views.eventform import EventForm
 from .test_eventform import view, START_DATETIME, END_DATETIME
 
 
-@pytest.fixture(autouse=True)
-def variables(scene):
-    scene.addEventProperty(util.ATTR_SYMPTOM)
-    scene.addEventProperty(util.ATTR_ANXIETY)
-    scene.addEventProperty(util.ATTR_RELATIONSHIP)
-    scene.addEventProperty(util.ATTR_FUNCTIONING)
-
-
 def test_init_Birth(scene, view):
     mother, father, child = scene.addItems(
         Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Baby")
@@ -25,11 +17,15 @@ def test_init_Birth(scene, view):
     marriage = scene.addItem(Marriage(mother, father))
     event = scene.addItem(
         Event(
-            EventKind.Birth, mother, spouse=father, child=child, dateTime=START_DATETIME
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=child,
+            dateTime=START_DATETIME,
+            location="Old Location",
+            notes="Old Notes",
         )
     )
-    event.setLocation("Old Location")
-    event.setNotes("Old Notes")
 
     view.view.editEvents([event])
     assert view.item.property("kindBox").property("enabled") == False
@@ -37,9 +33,17 @@ def test_init_Birth(scene, view):
     assert view.view.spouseEntry()["person"] == father
     assert view.view.childEntry()["person"] == child
     assert view.item.property("kind") == EventKind.Birth.value
+    assert view.item.property("kindBox").currentValue() == EventKind.Birth.value
     assert view.item.property("startDateTime") == START_DATETIME
+    assert view.item.property("startDateButtons").property("dateTime") == START_DATETIME
+    assert view.item.property("isDateRange") == False
+    assert view.item.property("isDateRangeBox").property("checked") == False
+    assert view.item.property("endDateTime") == None
+    assert view.item.property("endDateButtons").property("dateTime") == None
     assert view.item.property("location") == "Old Location"
+    assert view.item.property("locationEdit").property("text") == "Old Location"
     assert view.item.property("notes") == "Old Notes"
+    assert view.item.property("notesEdit").property("text") == "Old Notes"
 
 
 def test_init_Death(scene, view):
@@ -57,54 +61,41 @@ def test_init_Death(scene, view):
 
 
 def test_init_Shift(scene, view):
-    mother = scene.addItem(Person(name="Mother"))
+    mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
     event = scene.addItem(
         Event(
             EventKind.Shift,
             mother,
             dateTime=START_DATETIME,
-        )
-    )
-    event.setLocation("Some Location")
-    event.setNotes("Some Notes")
-    event.setDescription("Some Description")
-    view.view.editEvents([event])
-    assert view.item.property("kind") == EventKind.Shift.value
-    assert view.view.personEntry()["person"] == mother
-    assert view.view.targetsEntries() == []
-    assert view.view.trianglesEntries() == []
-    assert view.item.property("description") == "Some Description"
-    assert view.item.property("startDateTime") == START_DATETIME
-    assert view.item.property("location") == "Some Location"
-    assert view.item.property("notes") == "Some Notes"
-
-
-def test_init_Shift_Conflict(scene, view):
-    mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
-    conflictEvent = scene.addItem(
-        Event(
-            EventKind.Shift,
-            mother,
+            description="Some description",
+            symptom=VariableShift.Up,
+            anxiety=VariableShift.Same,
             relationship=RelationshipKind.Conflict,
             relationshipTargets=[father],
-            dateTime=START_DATETIME,
-            endDateTime=END_DATETIME,
+            functioning=VariableShift.Down,
         )
     )
-    conflictEvent.setLocation("Some Location")
-    conflictEvent.setNotes("Some Notes")
-    conflictEvent.setDescription("Conflict began")
-    conflict = scene.emotionsFor(conflictEvent)[0]
-    view.view.editEvents([conflictEvent])
+    view.view.editEvents([event])
     util.waitALittle()
-    assert view.view.personEntry()["person"] == mother
-    assert view.view.targetsEntries()[0]["person"] == father
     assert view.item.property("kind") == EventKind.Shift.value
-    assert view.item.property("relationship") == RelationshipKind.Conflict.value
-    assert view.item.property("description") == "Conflict began"
-    assert view.item.property("startDateTime") == START_DATETIME
-    assert view.item.property("location") == "Some Location"
-    assert view.item.property("notes") == "Some Notes"
+    assert view.view.personEntry()["person"] == mother
+    assert set(x["person"] for x in view.view.targetsEntries()) == {father}
+    assert view.item.property("description") == "Some description"
+    assert view.item.property("descriptionEdit").property("text") == "Some description"
+    assert view.view.trianglesEntries() == []
+    assert view.item.property("symptom") == VariableShift.Up.value
+    assert (
+        view.item.property("symptomField").property("value") == VariableShift.Up.value
+    )
+    assert view.item.property("anxiety") == VariableShift.Same.value
+    assert (
+        view.item.property("anxietyField").property("value") == VariableShift.Same.value
+    )
+    assert view.item.property("functioning") == VariableShift.Down.value
+    assert (
+        view.item.property("functioningField").property("value")
+        == VariableShift.Down.value
+    )
 
 
 def test_init_Shift_Triangle(scene, view):
