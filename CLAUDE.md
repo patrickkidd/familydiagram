@@ -5,14 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Environment Setup
-- **Virtual environment**: `pipenv run` (uses Pipfile for dependencies, required for all bash commands to add dependencies to PYTHONPATH via .env file)
-- **Environment File**: ./.env
-- **Python entry point**: `python main.py` (starts the desktop application)
+- **Virtual environment**: Managed by uv workspace (run from repository root)
+- **Environment File**: ../.env
+- **Python entry point**: `uv run python main.py` (starts the desktop application)
 
 ### Testing
-- **Run all tests**: `python -m pytest -vv`
-- **Single test**: `python -m pytest tests/path/to/test_file.py::test_function -v`
-- **Test with debugging**: `python -m pytest tests/path/to/test_file.py::test_function -v --log-cli-level=DEBUG`
+- **Run all tests**: `uv run pytest -vv`
+- **Single test**: `uv run pytest tests/path/to/test_file.py::test_function -v`
+- **Test with debugging**: `uv run pytest tests/path/to/test_file.py::test_function -v --log-cli-level=DEBUG`
 - **Ignores**: Tests automatically ignore `lib/`, `sysroot/`, and `test_qml.py` directories
 
 ### Build System
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Linting and Type Checking
 - **Configurations**: pyrightconfig.json configures Pyright/Pylance
 - **Always run linting**: Check for type errors and imports before committing code
-- **Always run black formatter**: `pipenv run black <filename>`
+- **Always run black formatter**: `uv run black <filename>`
 
 ## Architecture Overview
 

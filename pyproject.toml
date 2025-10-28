@@ -7,7 +7,6 @@ name = "familydiagram"
 version = "0.1.0"
 description = "Family Diagram application"
 readme = "README.md"
-license = {file = "LICENSE"}
 authors = [
     {name = "Patrick Kidd", email = "patrick@familydiagram.com"}
 ]
@@ -19,8 +18,13 @@ dependencies = [
     "pyqt5-sip==12.15.0",
     "pyqt5-qt5==5.15.2",
     "bcrypt",
-    "python-dateutil",
     "pyqt-builder==1.16.4",
+    "six==1.14.0",
+    "appdirs==1.4.4",
+    "xlsxwriter==0.9.8",
+    "sortedcontainers==2.2.2",
+    "python-dateutil==2.8.2",
+    "btcopilot[app]",
 ]
 
 [project.optional-dependencies]
@@ -35,7 +39,6 @@ test = [
     "mock",
     "pyqtdeploy",
     "pypdf",
-    "btcopilot[app,test]",
 ]
 
 [project.urls]
@@ -44,10 +47,14 @@ Repository = "https://github.com/patrickkidd/familydiagram"
 Issues = "https://github.com/patrickkidd/familydiagram/issues"
 
 [tool.setuptools]
-packages = ["familydiagram"]
+packages = ["pkdiagram"]
 
-[tool.setuptools.package-dir]
-familydiagram = "pkdiagram"
+# Include lib/site-packages in package data for pyqtdeploy compatibility
+[tool.setuptools.package-data]
+"*" = ["lib/site-packages/**/*"]
+
+[tool.uv.sources]
+btcopilot = { workspace = true }
 
 [tool.black]
 line-length = 88
