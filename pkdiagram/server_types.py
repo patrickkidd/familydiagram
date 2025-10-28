@@ -320,7 +320,7 @@ class Server(QObject):
             failMessage = "SSL handshake with server failed."
         elif status_code not in statuses:
             failMessage = util.qtHTTPReply2String(reply)
-        # log.debug(f"{reply.request().url().toString()}: status_code: {status_code}")
+        log.debug(f"{reply.request().url().toString()}: status_code: {status_code}")
         if failMessage:
             raise HTTPError(
                 failMessage,

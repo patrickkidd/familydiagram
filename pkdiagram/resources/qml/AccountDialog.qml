@@ -710,8 +710,12 @@ Page {
                                                 }
                                             })
                                         }
+                                    } else if(response.status_code >= 500 && response.status_code < 600) {
+                                        util.criticalBox('Server internal error', 'The server crashed while processing your request (HTTP ' + response.status_code + ').\n\nContact support and/or try again later.')
                                     } else if(response.status_code == 0) {
                                         root.onVerbCantReachServer()
+                                    } else {
+                                        util.criticalBox('Server error', 'The server An error occurred checking the user status (HTTP ' + response.status_code + ').\n\nPlease try again later.')
                                     }
                                 })
                             } else if(authForm.state == 'code') {
