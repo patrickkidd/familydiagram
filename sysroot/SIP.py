@@ -1,4 +1,6 @@
 import glob
+import fnmatch
+import os
 from pyqtdeploy.sysroot.plugins import SIP
 
 
@@ -20,7 +22,9 @@ class SIPComponent(SIP.SIPComponent):
         pattern = "{}-{}.*.tar.gz".format(
             self.module_name.replace(".", "_"), self.abi_major_version
         )
-        archives = glob.glob(pattern)
+        # Use case-insensitive glob matching
+        all_files = os.listdir('.')
+        archives = [f for f in all_files if fnmatch.fnmatch(f.lower(), pattern.lower())]
 
         if len(archives) == 0:
             self.error("sip-module didn't create an sdist")

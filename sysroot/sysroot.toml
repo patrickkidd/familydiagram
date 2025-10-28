@@ -146,15 +146,29 @@ installed_modules = [
 # Misc Third-Party ####################################################################
 
 [six]
+plugin = "wheel"
+wheel = "six-1.14.0-py2.py3-none-any.whl"
 version = "1.14.0"
 
+[appdirs]
+plugin = "wheel"
+wheel = "appdirs-1.4.4-py2.py3-none-any.whl"
+version = "1.4.4"
+
 [dateutil]
-version = "2.8.0"
+plugin = "wheel"
+project = "python-dateutil"
+wheel = "python_dateutil-2.8.2-py2.py3-none-any.whl"
+version = "2.8.2"
 
 [sortedcontainers]
+plugin = "wheel"
+wheel = "sortedcontainers-2.2.2-py2.py3-none-any.whl"
 version = "2.2.2"
 
 [xlsxwriter]
+plugin = "wheel"
+wheel = "XlsxWriter-0.9.8-py2.py3-none-any.whl"
 version = "0.9.8"
 
 # App Modules ########################################################################
