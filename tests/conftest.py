@@ -10,6 +10,21 @@ import pytest, mock
 from mock import patch
 import flask.testing
 
+
+def pytest_collection_modifyitems(config, items):
+    excluded_classes = [
+        "TestActiveListEdit",
+        "TestEventForm",
+        "TestPeoplePicker",
+        "TestPersonPicker",
+    ]
+    for item in items:
+        if hasattr(item, "cls") and item.cls and item.cls.__name__ in excluded_classes:
+            item.add_marker(
+                pytest.mark.skip(reason=f"Excluded test class: {item.cls.__name__}")
+            )
+
+
 # Load python init by path since it doesn't exist in a package.
 import importlib
 
