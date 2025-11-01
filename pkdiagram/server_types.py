@@ -440,7 +440,7 @@ class Server(QObject):
         reply.setProperty("pk_server", self)
         reply.finished.connect(onFinished)
 
-        def onSSLErrors(self, errors):
+        def onSSLErrors(errors):
             log.error("SSL Errors:")
             for e in errors:
                 log.error(f"    {e.errorString()}")

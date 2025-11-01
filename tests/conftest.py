@@ -3,12 +3,10 @@ import time
 import contextlib
 import logging
 import tempfile
-import uuid
 from typing import Optional, Union
 
 import pytest, mock
 from mock import patch
-import flask.testing
 
 
 def pytest_collection_modifyitems(config, items):

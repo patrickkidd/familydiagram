@@ -8,7 +8,6 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views import SearchDialog
 
-from tests.conftest import qmlEngine
 from tests.widgets import TestActiveListEdit
 
 
