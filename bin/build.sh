@@ -237,7 +237,7 @@ if [[ $TARGET = osx* ]]; then
 
     if [[ $TARGET == "osx" ]]; then
 
-        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release && cd ../..
+        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release $QT_EXTRA_CONFIG && cd ../..
         echo "Updating xcode project to new build system"
         python3 bin/fixup_xcodeproj_workspace.py
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null

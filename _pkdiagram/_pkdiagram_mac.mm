@@ -840,6 +840,28 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     self.isUpdateAvailable = false;
     CUtil::instance()->updateIsNotAvailable();
 }
+
+- (void)updater:(SUUpdater *)updater didAbortWithError:(NSError *)error {
+    qWarning() << "[Sparkle] Update check aborted with error:";
+    qWarning() << "  Domain:" << QString::fromNSString(error.domain);
+    qWarning() << "  Code:" << error.code;
+    qWarning() << "  Description:" << QString::fromNSString(error.localizedDescription);
+    if (error.localizedFailureReason) {
+        qWarning() << "  Failure reason:" << QString::fromNSString(error.localizedFailureReason);
+    }
+    if (error.localizedRecoverySuggestion) {
+        qWarning() << "  Recovery suggestion:" << QString::fromNSString(error.localizedRecoverySuggestion);
+    }
+    qWarning() << "  UserInfo:" << QString::fromNSString([error.userInfo description]);
+}
+
+- (void)updater:(SUUpdater *)updater failedToDownloadUpdate:(SUAppcastItem *)item error:(NSError *)error {
+    qWarning() << "[Sparkle] Failed to download update:";
+    qWarning() << "  Domain:" << QString::fromNSString(error.domain);
+    qWarning() << "  Code:" << error.code;
+    qWarning() << "  Description:" << QString::fromNSString(error.localizedDescription);
+    qWarning() << "  UserInfo:" << QString::fromNSString([error.userInfo description]);
+}
 #endif
 
 -(void)darkModeChanged:(NSNotification *)notif

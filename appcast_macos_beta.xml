@@ -1,0 +1,217 @@
+<?xml version="1.0" ?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+    <channel>
+        <title>familydiagram Releases</title>
+        <link>https://github.com/patrickkidd/familydiagram</link>
+        <item>
+            <title>2.0.12b4</title>
+            <description/>
+            <pubDate>Sat, 25 Oct 2025 19:54:17 +0000</pubDate>
+            <enclosure sparkle:version="2.0.12b4" sparkle:shortVersionString="2.0.12b4" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.12b4/Family.Diagram.dmg" length="32060172" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.12b3</title>
+            <description/>
+            <pubDate>Tue, 21 Oct 2025 22:58:44 +0000</pubDate>
+            <enclosure sparkle:version="2.0.12b3" sparkle:shortVersionString="2.0.12b3" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.12b3/Family.Diagram.dmg" length="31552940" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.12b2</title>
+            <description/>
+            <pubDate>Tue, 21 Oct 2025 03:11:04 +0000</pubDate>
+            <enclosure sparkle:version="2.0.12b2" sparkle:shortVersionString="2.0.12b2" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.12b2/Family.Diagram.dmg" length="31549106" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.12b1</title>
+            <description/>
+            <pubDate>Fri, 03 Oct 2025 16:50:02 +0000</pubDate>
+            <enclosure sparkle:version="2.0.12b1" sparkle:shortVersionString="2.0.12b1" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.12b1/Family.Diagram.dmg" length="31624803" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.12b0</title>
+            <description/>
+            <pubDate>Thu, 02 Oct 2025 19:12:13 +0000</pubDate>
+            <enclosure sparkle:version="2.0.12b0" sparkle:shortVersionString="2.0.12b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.12b0/Family.Diagram.dmg" length="31625878" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.11</title>
+            <description/>
+            <pubDate>Thu, 02 Oct 2025 19:12:26 +0000</pubDate>
+            <enclosure sparkle:version="2.0.11" sparkle:shortVersionString="2.0.11" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.11/Family.Diagram.dmg" length="31624332" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.11b0</title>
+            <description/>
+            <pubDate>Sun, 07 Sep 2025 21:11:28 +0000</pubDate>
+            <enclosure sparkle:version="2.0.11b0" sparkle:shortVersionString="2.0.11b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.11b0/Family.Diagram.dmg" length="31621035" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.10</title>
+            <description/>
+            <pubDate>Sun, 07 Sep 2025 21:12:32 +0000</pubDate>
+            <enclosure sparkle:version="2.0.10" sparkle:shortVersionString="2.0.10" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.10/Family.Diagram.dmg" length="31620884" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.10b0</title>
+            <description/>
+            <pubDate>Thu, 24 Apr 2025 23:17:44 +0000</pubDate>
+            <enclosure sparkle:version="2.0.10b0" sparkle:shortVersionString="2.0.10b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.10b0/Family.Diagram.dmg" length="31578641" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.9</title>
+            <description/>
+            <pubDate>Fri, 25 Apr 2025 00:09:29 +0000</pubDate>
+            <enclosure sparkle:version="2.0.9" sparkle:shortVersionString="2.0.9" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.9/Family.Diagram.dmg" length="31593353" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.9b0</title>
+            <description/>
+            <pubDate>Mon, 14 Apr 2025 18:41:30 +0000</pubDate>
+            <enclosure sparkle:version="2.0.9b0" sparkle:shortVersionString="2.0.9b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.9b0/Family.Diagram.dmg" length="31573787" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.8</title>
+            <description/>
+            <pubDate>Mon, 14 Apr 2025 18:39:12 +0000</pubDate>
+            <enclosure sparkle:version="2.0.8" sparkle:shortVersionString="2.0.8" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.8/Family.Diagram.dmg" length="31591886" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.8b0</title>
+            <description/>
+            <pubDate>Wed, 09 Apr 2025 05:10:16 +0000</pubDate>
+            <enclosure sparkle:version="2.0.8b0" sparkle:shortVersionString="2.0.8b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.8b0/Family.Diagram.dmg" length="31571158" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.7</title>
+            <description/>
+            <pubDate>Wed, 09 Apr 2025 05:26:41 +0000</pubDate>
+            <enclosure sparkle:version="2.0.7" sparkle:shortVersionString="2.0.7" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.7/Family.Diagram.dmg" length="31591233" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.7b0</title>
+            <description>Fixed saving to excel, printing, bug in graphical timeline, updating file manager when local file changes on disk</description>
+            <pubDate>Wed, 26 Mar 2025 17:04:20 +0000</pubDate>
+            <enclosure sparkle:version="2.0.7b0" sparkle:shortVersionString="2.0.7b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.7b0/Family.Diagram.dmg" length="31520888" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.6</title>
+            <description>Fixed saving to excel, printing, bug in graphical timeline, updating file manager when local file changes on disk</description>
+            <pubDate>Wed, 26 Mar 2025 17:04:19 +0000</pubDate>
+            <enclosure sparkle:version="2.0.6" sparkle:shortVersionString="2.0.6" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.6/Family.Diagram.dmg" length="31535379" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.6b0</title>
+            <description/>
+            <pubDate>Sun, 23 Mar 2025 07:13:12 +0000</pubDate>
+            <enclosure sparkle:version="2.0.6b0" sparkle:shortVersionString="2.0.6b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.6b0/Family.Diagram.dmg" length="31516008" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.5</title>
+            <description/>
+            <pubDate>Sun, 23 Mar 2025 07:12:27 +0000</pubDate>
+            <enclosure sparkle:version="2.0.5" sparkle:shortVersionString="2.0.5" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.5/Family.Diagram.dmg" length="31532557" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.5b0</title>
+            <description/>
+            <pubDate>Sat, 22 Mar 2025 03:23:38 +0000</pubDate>
+            <enclosure sparkle:version="2.0.5b0" sparkle:shortVersionString="2.0.5b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.5b0/Family.Diagram.dmg" length="31516206" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.4</title>
+            <description/>
+            <pubDate>Sat, 22 Mar 2025 03:23:16 +0000</pubDate>
+            <enclosure sparkle:version="2.0.4" sparkle:shortVersionString="2.0.4" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.4/Family.Diagram.dmg" length="31532235" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.4b0</title>
+            <description/>
+            <pubDate>Tue, 18 Mar 2025 14:05:09 +0000</pubDate>
+            <enclosure sparkle:version="2.0.4b0" sparkle:shortVersionString="2.0.4b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.4b0/Family.Diagram.dmg" length="31516828" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.3</title>
+            <description/>
+            <pubDate>Tue, 18 Mar 2025 14:03:36 +0000</pubDate>
+            <enclosure sparkle:version="2.0.3" sparkle:shortVersionString="2.0.3" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.3/Family.Diagram.dmg" length="31531873" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.3b0</title>
+            <description/>
+            <pubDate>Tue, 11 Mar 2025 08:22:25 +0000</pubDate>
+            <enclosure sparkle:version="2.0.3b0" sparkle:shortVersionString="2.0.3b0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.3b0/Family.Diagram.dmg" length="31516756" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.2</title>
+            <description/>
+            <pubDate>Tue, 11 Mar 2025 08:23:07 +0000</pubDate>
+            <enclosure sparkle:version="2.0.2" sparkle:shortVersionString="2.0.2" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.2/Family.Diagram.dmg" length="31532599" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.1</title>
+            <description/>
+            <pubDate>Mon, 03 Mar 2025 22:54:24 +0000</pubDate>
+            <enclosure sparkle:version="2.0.1" sparkle:shortVersionString="2.0.1" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.1/Family.Diagram.dmg" length="31532675" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.0</title>
+            <description/>
+            <pubDate>Mon, 03 Mar 2025 21:31:35 +0000</pubDate>
+            <enclosure sparkle:version="2.0.0" sparkle:shortVersionString="2.0.0" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0/Family.Diagram.dmg" length="31533071" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.0b40</title>
+            <description/>
+            <pubDate>Wed, 26 Feb 2025 08:11:41 +0000</pubDate>
+            <enclosure sparkle:version="2.0.0b40" sparkle:shortVersionString="2.0.0b40" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b40/Family.Diagram.dmg" length="31516257" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.0b39</title>
+            <description/>
+            <pubDate>Wed, 26 Feb 2025 07:19:49 +0000</pubDate>
+            <enclosure sparkle:version="2.0.0b39" sparkle:shortVersionString="2.0.0b39" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b39/Family.Diagram.dmg" length="31516296" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.0b38</title>
+            <description/>
+            <pubDate>Tue, 25 Feb 2025 07:30:54 +0000</pubDate>
+            <enclosure sparkle:version="2.0.0b38" sparkle:shortVersionString="2.0.0b38" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b38/Family.Diagram.dmg" length="31530099" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+        <item>
+            <title>2.0.0b37</title>
+            <description/>
+            <pubDate>Tue, 18 Feb 2025 20:17:46 +0000</pubDate>
+            <enclosure sparkle:version="2.0.0b37" sparkle:shortVersionString="2.0.0b37" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b37/Family.Diagram.dmg" length="31585875" type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion/>
+        </item>
+    </channel>
+</rss>
