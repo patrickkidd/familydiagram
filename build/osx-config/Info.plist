@@ -63,6 +63,14 @@
 				<string>appcenter-f8ac3812-6a64-404a-a924-87e9173a694f</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Family Diagram</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>familydiagram</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>2.0.12b5</string>

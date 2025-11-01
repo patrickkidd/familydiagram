@@ -1,7 +1,7 @@
 import os.path
 import pickle
 
-import mock
+from mock import patch, Mock
 import pytest
 
 import btcopilot
@@ -84,9 +84,33 @@ def test_free_license_when_no_licenses_activated(create_ac_mw):
 
 def test_version_deactivated(test_license, qtbot, create_ac_mw):
     da = list(pro.DEACTIVATED_VERSIONS) + [version.VERSION]
-    with mock.patch.object(pro, "DEACTIVATED_VERSIONS", da):
+    with patch.object(pro, "DEACTIVATED_VERSIONS", da):
         ac, mw = create_ac_mw(init=False)
         qtbot.clickOkAfter(
             lambda: ac._pre_event_loop(mw), contains=AppController.S_VERSION_DEACTIVATED
         )
         assert mw.session.activeFeatures() == []
+
+
+def test_url_authentication_flow(test_activation, create_ac_mw, qtbot):
+    ac, mw = create_ac_mw()
+    assert mw.session.isLoggedIn()
+
+    authUrl = "https://example.com/auth/app?token=test_token_12345"
+    responseData = {"url": authUrl, "token": "test_token_12345"}
+
+    with (
+        patch.object(
+            mw.session.server(),
+            "blockingRequest",
+            return_value=Mock(body=pickle.dumps(responseData)),
+        ),
+        patch(
+            "pkdiagram.widgets.authdialog.AuthUrlDialog",
+            return_value=Mock(spec=["exec_"]),
+        ) as MockDialog,
+    ):
+        ac.app.appFilter.urlOpened.emit("familydiagram://authenticate")
+
+        MockDialog.assert_called_once_with(authUrl, mw)
+        MockDialog.return_value.exec_.assert_called_once()

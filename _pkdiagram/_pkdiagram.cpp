@@ -96,8 +96,14 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
     else if(o == QGuiApplication::instance()) {
         if(e->type() == QEvent::FileOpen) {
             // Qt only supports on MacOS
-            QString file = static_cast<QFileOpenEvent *>(e)->file();
-            emit fileOpen(file);
+            QFileOpenEvent *fileEvent = static_cast<QFileOpenEvent *>(e);
+            QString urlString = fileEvent->url().toString();
+
+            if (urlString.startsWith("familydiagram://")) {
+                emit urlOpened(urlString);
+            } else {
+                emit fileOpen(fileEvent->file());
+            }
             return true;
         } else if (e->type() == QEvent::Quit) {
            QApplication::quit();

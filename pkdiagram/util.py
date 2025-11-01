@@ -141,6 +141,39 @@ def serverUrl(path, from_root: bool = False):
         return "%s/%s%s" % (SERVER_URL_ROOT, btcopilot.SERVER_API_VERSION, path)
 
 
+def registerURLScheme():
+    """Register familydiagram:// URL scheme on Windows"""
+    if not IS_WINDOWS:
+        return True
+
+    try:
+        import winreg
+
+        exe_path = sys.executable
+        if not os.path.exists(exe_path):
+            exe_path = sys.argv[0]
+
+        key = winreg.CreateKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Classes\familydiagram"
+        )
+        winreg.SetValue(key, "", winreg.REG_SZ, "URL:Family Diagram Protocol")
+        winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
+        winreg.CloseKey(key)
+
+        cmd_key = winreg.CreateKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Classes\familydiagram\shell\open\command",
+        )
+        winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{exe_path}" "%1"')
+        winreg.CloseKey(cmd_key)
+
+        log.info("Successfully registered familydiagram:// URL scheme on Windows")
+        return True
+    except Exception as e:
+        log.error(f"Failed to register URL scheme on Windows: {e}")
+        return False
+
+
 def summarizeReplyShort(reply: QNetworkReply):
     request = reply.request()
     url = request.url().toString()

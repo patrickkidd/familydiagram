@@ -292,6 +292,9 @@ class MainWindow(QMainWindow):
         self.ui.actionCrash.triggered.connect(self.onTriggerCrash)
         self.ui.actionRaise_Python_Exception.triggered.connect(self.onTriggerException)
         self.ui.actionExport_Scene_dict.triggered.connect(self.onExportSceneDict)
+        self.ui.actionTest_URL_Authentication.triggered.connect(
+            self.onTestUrlAuthentication
+        )
         self.ui.actionCheck_for_Updates.triggered.connect(self.onCheckForUpdates)
         self.ui.actionInstall_Update.triggered.connect(self.onCheckForUpdates)
         #
@@ -1565,6 +1568,9 @@ class MainWindow(QMainWindow):
 
     def onTriggerException(self):
         here = there  # type: ignore
+
+    def onTestUrlAuthentication(self):
+        QApplication.instance().appFilter.urlOpened.emit("familydiagram://authenticate")
 
     def onFocusChanged(self, old, new):
         if isinstance(new, QQuickWidget):

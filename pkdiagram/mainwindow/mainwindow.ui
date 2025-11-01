@@ -236,6 +236,8 @@
     <addaction name="separator"/>
     <addaction name="actionStart_Profile"/>
     <addaction name="actionStop_Profile"/>
+    <addaction name="separator"/>
+    <addaction name="actionTest_URL_Authentication"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -601,6 +603,11 @@
   <action name="actionRaise_Python_Exception">
    <property name="text">
     <string>Raise Python Exception</string>
+   </property>
+  </action>
+  <action name="actionTest_URL_Authentication">
+   <property name="text">
+    <string>Authenticate Training App</string>
    </property>
   </action>
   <action name="actionCheck_for_Updates">

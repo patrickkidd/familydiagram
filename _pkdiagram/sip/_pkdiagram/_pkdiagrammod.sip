@@ -51,6 +51,7 @@ public:
     AppFilter(QObject *parent=NULL);
 signals:
     void fileOpen(const QString &);
+    void urlOpened(const QString &);
     void escapeKey(QKeyEvent *);
 };
 

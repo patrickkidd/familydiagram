@@ -90,6 +90,10 @@ class Application(QApplication):
         self.appFilter = AppFilter(self)
         self.installEventFilter(self.appFilter)
 
+        # Register Windows URL scheme on startup
+        if util.IS_WINDOWS:
+            util.registerURLScheme()
+
         CUtil.startup()  # after QApplication() for QFileSystemWatcher
         util.IS_UI_DARK_MODE = CUtil.instance().isUIDarkMode()
 

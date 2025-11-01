@@ -53,6 +53,7 @@ class AppController(QObject):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
+        self.app.appFilter.urlOpened.connect(self.onURLOpened)
         self.app.appFilter.escapeKey.connect(self.onEscapeKey)
         self.session.changed.connect(self.onSessionChanged)
 
@@ -217,6 +218,48 @@ class AppController(QObject):
             self.mw.open(filePath=fpath)
         else:
             self._pendingOpenFilePath = fpath
+
+    def onURLOpened(self, url):
+        """Called when familydiagram:// URL is opened"""
+        log.info(f"URL opened: {url}")
+
+        if not url.startswith("familydiagram://"):
+            log.warning(f"Ignoring non-familydiagram URL: {url}")
+            return
+
+        if "authenticate" not in url:
+            log.warning(f"Unknown URL path: {url}")
+            QMessageBox.warning(None, "Unknown URL", f"Unknown URL action: {url}")
+            return
+
+        if not self.session.isLoggedIn():
+            QMessageBox.warning(
+                None,
+                "Not Logged In",
+                "You must be logged in to Family Diagram to authenticate to the training web app.",
+            )
+            return
+
+        try:
+            import pickle
+
+            response = self.session.server().blockingRequest(
+                "GET", "/sessions/web-auth-token"
+            )
+            data = pickle.loads(response.body)
+            authUrl = data["url"]
+
+            from pkdiagram.widgets.authdialog import AuthUrlDialog
+
+            dialog = AuthUrlDialog(authUrl, self.mw)
+            dialog.exec_()
+        except Exception as e:
+            log.error(f"Failed to get auth URL: {e}", exc_info=True)
+            QMessageBox.critical(
+                None,
+                "Authentication Error",
+                f"Failed to generate authentication link: {str(e)}",
+            )
 
     def onEscapeKey(self, e):
         if self.mw:

@@ -104,3 +104,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Testing Patterns**: Use function-based pytest patterns, not class-based
 - **QML Integration**: Context properties exposed via QmlEngine for data binding
 - **Model Updates**: Use `refreshAllProperties()` to sync model changes to QML bindings
+- Use camelCasing for all method and variable names. Capitalize class names like MyNewClass.
