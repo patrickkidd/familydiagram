@@ -1950,9 +1950,12 @@ QColor qt_mac_toQColor(const NSColor *color) const
     
     void checkForUpdates() const {
 #ifdef PK_USE_SPARKLE
+        qInfo() << "CUtilApple::checkForUpdates()";
         if(SparkleFeedURL != nil) {
             [[SUUpdater sharedUpdater] checkForUpdates:nil];
         }
+#else
+        qWarning() << "CUtilApple::checkForUpdates() - PK_USE_SPARKLE is not set";
 #endif
     }
 

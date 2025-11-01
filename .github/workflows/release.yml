@@ -677,5 +677,5 @@ jobs:
             chmod 600 private_key
             mkdir -p ~/.ssh
             ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
-            scp -i private_key *.xml patrick@familydiagram.com:/var/www/html/
+            scp -i private_key *.xml patrick@familydiagram.com:/var/www/fdserver/instance/html/
             rm private_key
