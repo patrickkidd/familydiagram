@@ -97,7 +97,7 @@
 
 **Problem:** Production code was importing from test code:
 ```python
-from tests.views.test_marriageproperties import marriage  # ← WRONG
+from pkdiagram.tests.views.test_marriageproperties import marriage  # ← WRONG
 ```
 
 **Impact:** Prevented ALL tests from running with circular import error.

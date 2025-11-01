@@ -109,6 +109,8 @@ def test_url_authentication_flow(test_activation, create_ac_mw, qtbot):
             "pkdiagram.widgets.authdialog.AuthUrlDialog",
             return_value=Mock(spec=["exec_"]),
         ) as MockDialog,
+        # Defensive
+        patch("pkdiagram.app.appcontroller.QMessageBox.critical") as critical,
     ):
         ac.app.appFilter.urlOpened.emit("familydiagram://authenticate")
 

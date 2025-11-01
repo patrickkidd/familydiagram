@@ -39,8 +39,8 @@ from pkdiagram.documentview import DocumentView, DocumentController, RightDrawer
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
 
-from tests.widgets import TestActiveListEdit
-from tests.views.eventform.testeventform import TestEventForm
+from pkdiagram.tests.widgets import TestActiveListEdit
+from pkdiagram.tests.views.eventform.testeventform import TestEventForm
 
 pytestmark = [
     pytest.mark.component("DocumentView"),

@@ -8,7 +8,7 @@ from pkdiagram.pyqt import QQuickItem
 from pkdiagram.scene import Person
 from pkdiagram.models import SceneModel
 
-from tests.widgets import TestPeoplePicker
+from pkdiagram.tests.widgets import TestPeoplePicker
 
 _log = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ def scene(scene):
 def picker(qmlEngine, create_qml):
     SOURCE_FPATH = str(
         Path(__file__).resolve().parent.parent.parent
-        / "pkdiagram"
         / "resources"
         / "qml"
         / "PK"

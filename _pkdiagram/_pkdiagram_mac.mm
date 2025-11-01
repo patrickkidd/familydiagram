@@ -926,11 +926,11 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
 #if PK_ALPHA_BUILD
             // SparkleFeedURL = [NSURL URLWithString: @"https://api.appcenter.ms/v0.1/public/sparkle/apps/40fb47d9-8e02-43f7-b594-bbb72c6f38e9"];
             SparkleFeedURL = [NSURL URLWithString: @"https://familydiagram.com/appcast_macos_alpha.xml"];
-            qDebug() << "PK_ALPHA_BUILD";
+            qDebug() << "PK_ALPHA_BUILD" << SparkleFeedURL;
 #elif PK_BETA_BUILD
             // SparkleFeedURL = [NSURL URLWithString: @"https://api.appcenter.ms/v0.1/public/sparkle/apps/f8ac3812-6a64-404a-a924-87e9173a694f"];
             SparkleFeedURL = [NSURL URLWithString: @"https://familydiagram.com/appcast_macos_beta.xml"];
-            qDebug() << "PK_BETA_BUILD";
+            qDebug() << "PK_BETA_BUILD" << SparkleFeedURL;
 #else
             // SparkleFeedURL = [NSURL URLWithString: @"https://api.appcenter.ms/v0.1/public/sparkle/apps/1857bd26-2675-4f63-98e9-1cdb6381ef34"];
             SparkleFeedURL = [NSURL URLWithString: @"https://familydiagram.com/appcast_macos.xml"];

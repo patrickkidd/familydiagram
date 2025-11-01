@@ -6,7 +6,7 @@ from btcopilot.schema import VariableShift, EventKind
 from pkdiagram import util
 from pkdiagram.mainwindow import MainWindow
 
-from tests.views import TestEventForm
+from pkdiagram.tests.views import TestEventForm
 
 
 _log = logging.getLogger(__name__)

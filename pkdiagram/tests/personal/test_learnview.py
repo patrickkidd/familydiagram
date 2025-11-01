@@ -7,14 +7,14 @@ from dataclasses import asdict
 import pytest
 from mock import patch
 
-# from tests.models.test_copilotengine import copilot
+# from pkdiagram.tests.models.test_copilotengine import copilot
 
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.personal.personal import Response, Personal, Discussion, Statement
 
-from tests.widgets.qmlwidgets import QmlHelper
+from pkdiagram.tests.widgets.qmlwidgets import QmlHelper
 
 
 _log = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ from PyQt5.QtQuickWidgets import QQuickWidget
 from PyQt5.QtCore import QUrl
 
 
-# from tests.models.test_copilotengine import copilot
+# from pkdiagram.tests.models.test_copilotengine import copilot
 
 from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
 from pkdiagram.condition import Condition

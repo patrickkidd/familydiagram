@@ -1,12 +1,13 @@
 import os.path
 import logging
 import contextlib
+from pathlib import Path
 
 import pytest
 import mock
 from langchain_core.documents import Document
 
-# from tests.models.test_copilotengine import copilot
+# from pkdiagram.tests.models.test_copilotengine import copilot
 
 from btcopilot.pro.copilot import Engine, Response
 from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout, QTimer
@@ -26,17 +27,15 @@ def view(test_session, qtbot, scene, qmlEngine):
     class TestCopilotView(QWidget, QmlWidgetHelper):
         pass
 
-    FPATH = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "pkdiagram",
-        "resources",
-        "qml",
-        "CopilotView.qml",
+    SOURCE_FPATH = str(
+        Path(__file__).resolve().parent.parent.parent
+        / "resources"
+        / "qml"
+        / "CopilotView.qml"
     )
+
     _view = TestCopilotView()
-    _view.initQmlWidgetHelper(qmlEngine, QUrl.fromLocalFile(FPATH))
+    _view.initQmlWidgetHelper(qmlEngine, QUrl.fromLocalFile(SOURCE_FPATH))
     _view.checkInitQml()
     _view.resize(600, 800)
     _view.show()

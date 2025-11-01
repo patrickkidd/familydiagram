@@ -10,7 +10,7 @@ from pkdiagram.pyqt import (
 from pkdiagram import util
 from pkdiagram.widgets import QmlWidgetHelper
 
-from tests.widgets import TestActiveListEdit
+from pkdiagram.tests.widgets import TestActiveListEdit
 
 pytestmark = [
     pytest.mark.component("ActiveListView"),

@@ -77,6 +77,11 @@ class AppController(QObject):
         self.isInitialized = True
 
     def deinit(self):
+        self.app.appFilter.fileOpen.disconnect(self.onOSFileOpen)
+        self.app.appFilter.urlOpened.disconnect(self.onURLOpened)
+        self.app.appFilter.escapeKey.disconnect(self.onEscapeKey)
+        self.session.changed.disconnect(self.onSessionChanged)
+
         self.appConfig.deinit()
         self.session.deinit()
 
@@ -248,11 +253,6 @@ class AppController(QObject):
             )
             data = pickle.loads(response.body)
             authUrl = data["url"]
-
-            from pkdiagram.widgets.authdialog import AuthUrlDialog
-
-            dialog = AuthUrlDialog(authUrl, self.mw)
-            dialog.exec_()
         except Exception as e:
             log.error(f"Failed to get auth URL: {e}", exc_info=True)
             QMessageBox.critical(
@@ -260,6 +260,13 @@ class AppController(QObject):
                 "Authentication Error",
                 f"Failed to generate authentication link: {str(e)}",
             )
+        else:
+            log.debug(f"Received auth URL: {authUrl}")
+
+            from pkdiagram.widgets.authdialog import AuthUrlDialog
+
+            dialog = AuthUrlDialog(authUrl, self.mw)
+            dialog.exec_()
 
     def onEscapeKey(self, e):
         if self.mw:

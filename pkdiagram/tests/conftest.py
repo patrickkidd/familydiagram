@@ -8,36 +8,6 @@ from typing import Optional, Union
 import pytest, mock
 from mock import patch
 
-
-def pytest_collection_modifyitems(config, items):
-    excluded_classes = [
-        "TestActiveListEdit",
-        "TestEventForm",
-        "TestPeoplePicker",
-        "TestPersonPicker",
-    ]
-    for item in items:
-        if hasattr(item, "cls") and item.cls and item.cls.__name__ in excluded_classes:
-            item.add_marker(
-                pytest.mark.skip(reason=f"Excluded test class: {item.cls.__name__}")
-            )
-
-
-# Load python init by path since it doesn't exist in a package.
-import importlib
-
-ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
-spec = importlib.util.spec_from_file_location(
-    "python_init", os.path.join(ROOT, "python_init.py")
-)
-python_init = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(python_init)
-python_init.init_dev()
-
-# pkdiagram
-for part in ("../_pkdiagram", ".."):
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), part))
-
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
@@ -128,6 +98,18 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(session, config, items):
 
+    excluded_classes = [
+        "TestActiveListEdit",
+        "TestEventForm",
+        "TestPeoplePicker",
+        "TestPersonPicker",
+    ]
+    for item in items:
+        if hasattr(item, "cls") and item.cls and item.cls.__name__ in excluded_classes:
+            item.add_marker(
+                pytest.mark.skip(reason=f"Excluded test class: {item.cls.__name__}")
+            )
+
     # Skip mark "integration" by default, run only "integration" marks when "--integration" is passed
     if not util.IS_DEBUGGER:
         if not config.getoption("--integration"):
@@ -143,40 +125,40 @@ def pytest_collection_modifyitems(session, config, items):
                 if "integration" not in [x.name for x in item.own_markers]:
                     item.add_marker(skip_mark)
 
-    # Reorder test items based on component dependencies.
-    if config.dependency_disabled:
-        return
+    # # Reorder test items based on component dependencies.
+    # if config.dependency_disabled:
+    #     return
 
-    component_tests = {}
-    ordered_items = []
-    non_component_items = []
+    # component_tests = {}
+    # ordered_items = []
+    # non_component_items = []
 
-    # Sort items into their respective component lists
-    for item in items:
-        component_marker = item.get_closest_marker("component")
-        if component_marker:
-            component = component_marker.args[0]
-            component_tests.setdefault(component, []).append(item)
-        else:
-            non_component_items.append(item)
+    # # Sort items into their respective component lists
+    # for item in items:
+    #     component_marker = item.get_closest_marker("component")
+    #     if component_marker:
+    #         component = component_marker.args[0]
+    #         component_tests.setdefault(component, []).append(item)
+    #     else:
+    #         non_component_items.append(item)
 
-    visited = set()
+    # visited = set()
 
-    def add_with_dependencies(component):
-        if component in visited:
-            return
-        visited.add(component)
-        for item in component_tests.get(component, []):
-            dependency_marker = item.get_closest_marker("depends_on")
-            if dependency_marker:
-                for dependency in dependency_marker.args:
-                    add_with_dependencies(dependency)
-            ordered_items.append(item)
+    # def add_with_dependencies(component):
+    #     if component in visited:
+    #         return
+    #     visited.add(component)
+    #     for item in component_tests.get(component, []):
+    #         dependency_marker = item.get_closest_marker("depends_on")
+    #         if dependency_marker:
+    #             for dependency in dependency_marker.args:
+    #                 add_with_dependencies(dependency)
+    #         ordered_items.append(item)
 
-    for component in component_tests.keys():
-        add_with_dependencies(component)
+    # for component in component_tests.keys():
+    #     add_with_dependencies(component)
 
-    items[:] = ordered_items + non_component_items
+    # items[:] = ordered_items + non_component_items
 
 
 _test_case_name = None
@@ -642,6 +624,7 @@ def flask_qnam(tmp_path, request):
     def sendCustomRequest(qt_request, verb, data=b""):
 
         # on demand, not every test
+        log.debug(f"sendCustomRequest(): {verb.decode()} {qt_request.url().toString()}")
         flask_app = request.getfixturevalue("flask_app")
 
         with flask_app.test_client() as client:

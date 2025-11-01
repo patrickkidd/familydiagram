@@ -8,7 +8,7 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views import SearchDialog
 
-from tests.widgets import TestActiveListEdit
+from pkdiagram.tests.widgets import TestActiveListEdit
 
 
 pytestmark = [

@@ -2,12 +2,13 @@ import os.path
 import logging
 import json
 import contextlib
+from pathlib import Path
 from dataclasses import asdict
 
 import pytest
 from mock import patch
 
-# from tests.models.test_copilotengine import copilot
+# from pkdiagram.tests.models.test_copilotengine import copilot
 
 from btcopilot.schema import asdict
 from btcopilot.extensions import db
@@ -27,7 +28,7 @@ from pkdiagram.personal.personal import (
 
 from btcopilot.tests.conftest import flask_app
 from btcopilot.tests.personal.conftest import chat_flow
-from tests.widgets.qmlwidgets import QmlHelper, waitForListViewDelegates
+from pkdiagram.tests.widgets.qmlwidgets import QmlHelper, waitForListViewDelegates
 
 
 _log = logging.getLogger(__name__)
@@ -52,19 +53,16 @@ def controller(test_session, flask_app, qmlEngine):
 def view(qtbot, qmlEngine, controller: PersonalAppController):
     # session.init(sessionData=test_session.account_editor_dict())
 
-    FPATH = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "pkdiagram",
-        "resources",
-        "qml",
-        "Personal",
-        "DiscussView.qml",
+    SOURCE_FPATH = str(
+        Path(__file__).resolve().parent.parent.parent
+        / "resources"
+        / "qml"
+        / "Personal"
+        / "DiscussView.qml"
     )
 
     _view = QQuickWidget(qmlEngine, None)
-    _view.setSource(QUrl.fromLocalFile(FPATH))
+    _view.setSource(QUrl.fromLocalFile(SOURCE_FPATH))
     _view.setFormat(util.SURFACE_FORMAT)
 
     _view.setResizeMode(QQuickWidget.SizeRootObjectToView)

@@ -15,7 +15,11 @@ from pkdiagram.pyqt import (
 from pkdiagram.scene import Person, Marriage, PathItem
 from pkdiagram.views import EventForm
 
-from tests.widgets import TestPersonPicker, TestPeoplePicker, TestActiveListEdit
+from pkdiagram.tests.widgets import (
+    TestPersonPicker,
+    TestPeoplePicker,
+    TestActiveListEdit,
+)
 
 
 _log = logging.getLogger(__name__)

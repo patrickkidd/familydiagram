@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import pytest
 
@@ -7,8 +8,7 @@ from pkdiagram.pyqt import QVBoxLayout, QWidget, QUrl, QApplication
 from pkdiagram.scene import Person
 from pkdiagram.widgets import QmlWidgetHelper
 
-from tests.widgets import TestPersonPicker
-from pathlib import Path
+from pkdiagram.tests.widgets import TestPersonPicker
 
 
 _log = logging.getLogger(__name__)
@@ -19,7 +19,6 @@ def picker(qmlEngine, create_qml):
 
     SOURCE_FPATH = str(
         Path(__file__).resolve().parent.parent.parent
-        / "pkdiagram"
         / "resources"
         / "qml"
         / "PK"

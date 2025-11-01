@@ -7,7 +7,7 @@ from pkdiagram import util
 from pkdiagram.scene import Person
 from pkdiagram.views import EventForm
 
-from tests.views import TestEventForm
+from pkdiagram.tests.views import TestEventForm
 
 _log = logging.getLogger(__name__)
 
