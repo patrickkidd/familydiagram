@@ -7,6 +7,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
+import ".." 1.0
 
 
 Page {
@@ -30,6 +31,7 @@ Page {
     property var statementsList: statementsList
 
     property var chatMargin: util.QML_MARGINS * 1.5
+    property var eventDrawer: eventDrawer
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -94,7 +96,11 @@ Page {
     }
 
     function showDiscussions() {
-        discussionsDrawer.visible = true        
+        discussionsDrawer.visible = true
+    }
+
+    function showEventForm() {
+        eventDrawer.open()
     }
 
 
@@ -115,7 +121,7 @@ Page {
                 id: dRoot
                 property int dId: modelData.id
                 property var dText: modelData.summary
-                
+
                 text: dText
                 width: discussionList.width
                 palette.text: util.QML_TEXT_COLOR
@@ -125,6 +131,19 @@ Page {
                     discussionsDrawer.visible = false
                 }
             }
+
+            PK.Button {
+                id: newDiscussionButton
+                source: '../../plus-button.png'
+                width: 18
+                height: 20
+                anchors {
+                    right: parent.right
+                    margins: util.QML_MARGINS
+                }
+                onClicked: personal.createDiscussion()
+            }
+
         }
         background: Rectangle {
             color: util.QML_WINDOW_BG
@@ -138,6 +157,36 @@ Page {
         function hide() {
             position = 0
             visible = false
+        }
+    }
+
+    Popup {
+        id: eventDrawer
+        width: parent.width
+        height: parent.height
+        modal: true
+        closePolicy: Popup.CloseOnEscape
+        parent: Overlay.overlay
+        padding: 0
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "y"; from: parent.height; to: 0; duration: 250; easing.type: Easing.OutQuad }
+        }
+
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "y"; from: 0; to: parent.height; duration: 250; easing.type: Easing.InQuad }
+        }
+
+        EventForm {
+            id: eventForm
+            anchors.fill: parent
+            onCancel: eventDrawer.close()
+        }
+
+        background: Rectangle {
+            color: util.QML_WINDOW_BG
         }
     }
 
@@ -159,14 +208,14 @@ Page {
             onClicked: root.showDiscussions()
         }
 
-        PK.ToolButton {
-            id: newButton
-            text: 'New'
+        PK.Button {
+            id: addButton
+            source: '../../plus-button-green.png'
             anchors {
                 right: parent.right
                 margins: util.QML_MARGINS
             }
-            onClicked: personal.createDiscussion()
+            onClicked: root.showEventForm()
         }
     }
 
