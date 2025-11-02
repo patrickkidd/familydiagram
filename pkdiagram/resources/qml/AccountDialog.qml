@@ -464,7 +464,7 @@ Page {
                         // Code
 
                         PK.Label {
-                            text: 'Enter code:'
+                            text: 'Enter 6-digit code sent in email:'
                             visible: authForm.state == 'code'
                         }
 
@@ -687,6 +687,14 @@ Page {
                                             authForm.setState('code')
                                             authCodeField.forceActiveFocus()
                                         } else if(response.data.status == 'not found') {
+
+                                            var confirmed = util.questionBox(
+                                                'Create new account?',
+                                                'No account exists for "' + authUsernameField.text + '".\n\nDo you want to create a new account with this email? (Please double-check for typos before continuing.)'
+                                            )
+                                            if(!confirmed) {
+                                                return
+                                            }
 
                                             authForm.enabled = false
                                             Global.server(util, session, 'POST', '/users', args, function(response) {
