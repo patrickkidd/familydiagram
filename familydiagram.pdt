@@ -1526,6 +1526,741 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "tests"
+included = false
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "CLAUDE.md"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "commands"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "README.md"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_children.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_cross_dependencies.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_emotions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_layers.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_nondyadic_emotions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_pairbond_events.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_remove_people_events.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "conftest.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "data"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "blow-up-itemdetails.fd"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "diagram.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "cherries_1x"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "cherries_high_sierra"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "cherries_high_sierra.protect"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "github_releases.json"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "mod_test.fd"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "diagram.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "stale-refs.fd"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "diagram.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "v114a7_simplefamily.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "mainwindow"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_appcontroller.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_account_init.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_editormode.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_eventform.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_kb_shortcuts.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_licensing.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mw_server.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "models"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_accessrightsmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_copilotengine.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_emotionalunitsmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_eventvariablesmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_layeritempropertiesmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_modelhelper.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_peoplemodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personpropertiesmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_qobjecthelper.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scenelayermodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scenemodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scenevariablesmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_searchmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_serverfilemanagermodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_tagsmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_timelinemodel.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "personal"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_discussview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_learnview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personal.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personalview.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "README.md"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "scene"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "data"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "P-C-Timeline-Master.json"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PKS-non_profit_vignette.json"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "UP_TO_2.0.12b1.fd"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content.Content]]
+name = "diagram.pickle"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "UP_TO_2.0.12b1.json"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "test_btcopilot_compat.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_callout.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_childof.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_clipboard.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_compat.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_emotionalunits.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_emotions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_event.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_item.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_item_layered.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_item_property.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_itemdetails.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_layeritems.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_layers.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_marriage.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_pathitem.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_person.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_add_remove.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_dragging.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_edit.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_layers.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_queries.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_read_write.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_scene_show_hide.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_variablesdatabase.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "snapshots"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "snap_test_extras.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "test_00_suite.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_analytics.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_appconfig.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_bug_bucket.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_documentview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_extensions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_extras.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_server_types.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_session.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_sortedlist.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_util.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_version.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "views"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "eventform"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_edit.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_emotions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_add.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_arrange.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_clear.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_fields.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_init.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_migrations.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_scripts.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_validation.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "test_eventform_variables.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "testeventform.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content.Content]]
+name = "test_AccountDialog.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_CaseProperties.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_copilotview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_emotionproperties.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_filemanager.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_graphicaltimelineview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_marriageproperties.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personproperties.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_searchdialog.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_TimelineView.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "widgets"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "qmlwidgets.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_activelistedit.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_DatePicker.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_peoplepicker.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personpicker.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "testactivelistedit.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "testpeoplepicker.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "testpersonpicker.py"
+included = false
+is_directory = false
+
+
+
+[[Application.Package.Content]]
 name = "util.py"
 included = true
 is_directory = false
@@ -1575,17 +2310,17 @@ is_directory = false
 
 
 [[Application.Package.Content.Content]]
+name = "qmlbtcopilot.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "qmldrawer.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "qmlhelpers.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "qmlbtcopilot.py"
 included = true
 is_directory = false
 
@@ -1601,6 +2336,11 @@ included = true
 is_directory = true
 [[Application.Package.Content.Content]]
 name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "authdialog.py"
 included = true
 is_directory = false
 
