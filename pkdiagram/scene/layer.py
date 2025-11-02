@@ -35,6 +35,8 @@ class Layer(Item):
         self._scene = kwargs.get("scene")
         if not "itemProperties" in kwargs:  # avoid shared default value instance
             self.prop("itemProperties").set({}, notify=False)
+        if not self.internal() and "storeGeometry" not in kwargs:
+            self.prop("storeGeometry").set(True, notify=False)
 
     def __repr__(self):
         return super().__repr__(exclude="itemProperties")

@@ -1,6 +1,11 @@
 {
+    // "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    // "python.terminal.activateEnvironment": true,
+    "python.experiments.enabled": false,
     "python.testing.pytestArgs": [
-        "tests"
+        "tests",
+        "-svv",
+        "--log-cli-level=INFO"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
@@ -11,8 +16,5 @@
     "black-formatter.importStrategy": "fromEnvironment",
     "search.exclude": {
         "lib/": true
-    },
-    // "black-formatter.interpreter": [
-    //     ".venv/bin/python"
-    // ]
+    }
 }

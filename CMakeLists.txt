@@ -66,32 +66,3 @@ add_custom_target(
     ALL
     DEPENDS pkdiagram/mainwindow/mainwindow_form.py pkdiagram/mainwindow/preferences_form.py pkdiagram/mainwindow/welcome_form.py
 )
-
-
-##
-## Dev targets
-##
-
-add_custom_target(
-    run
-    DEPENDS _pkdiagram
-    COMMAND python main.py
-)
-
-add_custom_target(
-    run-attach
-    DEPENDS _pkdiagram
-    COMMAND python main.py --attach
-)
-
-add_custom_target(
-    server
-    DEPENDS _pkdiagram
-    COMMAND cd server && FLASK_CONFIG=development FLASK_APP=fdserver flask run --host 0.0.0.0 --without-threads --port=8888
-)
-
-add_custom_target(
-    server-attach
-    DEPENDS _pkdiagram
-    COMMAND cd server && FLASK_CONFIG=development FLASK_APP=fdserver flask run --host 0.0.0.0 --port=8888 --attach
-)

@@ -52,7 +52,7 @@ class Condition(QObject):
         # self.senders.append(QObject().sender())
         self.lastCallArgs = args
         self.callArgs.append(args)
-        _log.debug(f"Condition[{self.signal}].set() called with {args}")
+        # _log.debug(f"Condition[{self.signal}].set() called with {args}")
 
     def __call__(self, *args):
         """Called by whatever signal that triggers the condition."""

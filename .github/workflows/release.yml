@@ -58,7 +58,7 @@ jobs:
   build-osx:
     # x86 w/ python-3.12.5
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: [setup]
 
     steps:
@@ -73,13 +73,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.11.6
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
 
     - name: Set up virtual env
       run: |
-        pip install pipenv
-        mkdir .venv
-        pipenv --clear
-        pipenv install --dev
+        python -m venv .venv
+        .venv/bin/pip install --upgrade pip
+        .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
 
     # It is faster to install homebrew than to restore from cache
     - name: brew install qt@5 create-dmg
@@ -99,10 +100,11 @@ jobs:
     - name: sip-build for _pkdiagram
       if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
       run: |
+        source .venv/bin/activate
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         which qmake
         cd _pkdiagram
-        pipenv run sip-build --no-compile
+        sip-build --no-compile
         moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
         moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
 
@@ -115,7 +117,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
 
@@ -126,25 +128,27 @@ jobs:
     - name: Build sysroot
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       run: |
+        source .venv/bin/activate
         export PATH="/usr/local/opt/qt@5/bin:${PATH}"
         # mkdir -p ~/.pyqtdeploy/cache
-        wget -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
+        wget -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -O sysroot/qt-everywhere-src-5.15.16.tar.xz
         wget https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz -O sysroot/PyQt5-5.15.11.tar.gz
         # https://bugreports.qt.io/browse/QTBUG-117225
         # cp sysroot/toolchain-macos-13.prf sysroot/sysroot-macos-64/build/qt-everywhere-src-5.15.2/qtbase/mkspecs/features/toolchain.prf
-        pipenv run pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
+        pyqtdeploy-sysroot --target macos-64 --verbose sysroot/sysroot.toml
 
     - uses: actions/cache/save@v4
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
 
-    - name: Write build config
+    - name: pyqtdeploy-build
       run: |
+        source .venv/bin/activate
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
-        pipenv run python bin/update_build_info.py
-        pipenv run pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
+        python bin/update_build_info.py
+        pyqtdeploy-build --verbose  --resources 12 --target macos-64 --build-dir build/osx familydiagram.pdt
         rsync -avzq build/common-config/* build/osx
         rsync -avzq build/osx-config/* build/osx
 
@@ -152,11 +156,11 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
+        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta
 
     - name: Setup provisioning profile
       run: |
-        pipenv run ./bin/setup_provisioning_profile.sh
+        ./bin/setup_provisioning_profile.sh
 
     - name: Update xcode project to new build system
       run: |
@@ -171,7 +175,7 @@ jobs:
 
     - name: Build App
       run: |
-        pipenv run xcodebuild \
+        xcodebuild \
           -project build/osx/Family\ Diagram.xcodeproj \
           -scheme "Family Diagram" \
           -configuration Release \
@@ -287,6 +291,21 @@ jobs:
             exit 1
           fi
 
+      - name: Test Error Logging
+        run: |
+          /Volumes/"Family Diagram"/"Family Diagram.app"/Contents/MacOS/"Family Diagram" --test-error-logging || true
+          if [ ! -f ~/Desktop/startup_errors.txt ]; then
+            echo "startup_errors.txt was not created on Desktop"
+            exit 1
+          fi
+          if ! grep -q "Test error logging to startup_errors.txt" ~/Desktop/startup_errors.txt; then
+            echo "startup_errors.txt does not contain expected error message"
+            cat ~/Desktop/startup_errors.txt
+            exit 1
+          fi
+          echo "✓ Error logging test passed"
+          rm ~/Desktop/startup_errors.txt
+
       - name: Unmount DMG
         if: always()
         run: |
@@ -307,21 +326,21 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.11.6
-          
+          cache: 'pip'
+          cache-dependency-path: pyproject.toml
+
       - name: Set up virtual env
         run: |
-          pip install pipenv
-          mkdir .venv
-          pipenv --clear
-          mkdir .\pipenv_cache
-          set PIPENV_CACHE_DIR=%GITHUB_WORKSPACE%\pipenv_cache
-          pipenv install --dev
+          python -m venv .venv
+          .venv\Scripts\pip install --upgrade pip
+          .venv\Scripts\pip install -e ".[test]" --extra-index-url=%TWINE_REPOSITORY_URL%
         shell: cmd
   
       - name: Install Qt
         run: |
-          pipenv install aqtinstall
-          pipenv run aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+          call .venv\Scripts\activate.bat
+          pip install aqtinstall
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
         shell: cmd
         
       - name: Setup MSVC (x64)
@@ -418,12 +437,13 @@ jobs:
       - name: sip-build for _pkdiagram
         if: steps.cache-_pkdiagram.outputs.cache-hit != 'true'
         run: |
+          call .venv\Scripts\activate.bat
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
           dir build\_pkdiagram
           REM mkdir build\_pkdiagram\release
-          pipenv run sip-build --no-compile
+          sip-build --no-compile
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
         shell: cmd
@@ -440,15 +460,16 @@ jobs:
       - name: Build sysroot
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         run: |
+          call .venv\Scripts\activate.bat
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cl.exe /? || echo "MSVC compiler not found"
-          echo "Downloading https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
-          curl -L "https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
+          echo "Downloading https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
+          curl -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
 
           echo "Downloading https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz"
           curl -L "https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz" -o "sysroot/PyQt5-5.15.11.tar.gz"
 
-          REM powershell -Command "Invoke-WebRequest 'https://download.qt.io/official_releases/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
+          REM powershell -Command "Invoke-WebRequest 'https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz' -OutFile 'sysroot/qt-everywhere-src-5.15.16.tar.xz'"
           REM powershell -Command "Invoke-WebRequest 'https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz' -OutFile 'sysroot/PyQt5-5.15.11.tar.gz'"
 
           cd _pkdiagram
@@ -457,8 +478,8 @@ jobs:
           moc -o build\_pkdiagram\moc_unsafearea.cpp unsafearea.h
           moc -o build\_pkdiagram\moc__pkdiagram.cpp _pkdiagram.h
           cd ..
-          pipenv run pip list
-          pipenv run pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
+          pip list
+          pyqtdeploy-sysroot --verbose sysroot/sysroot.toml
         shell: cmd
 
       - uses: actions/cache/save@v4
@@ -469,7 +490,8 @@ jobs:
   
       - name: Write build config
         run: |
-          pipenv run python bin\update_build_info.py
+          call .venv\Scripts\activate.bat
+          python bin\update_build_info.py
         shell: cmd
 
       # Write these in case sysroot-build did not run
@@ -490,8 +512,9 @@ jobs:
 
       - name: pyqtdeploy-build
         run: |
+          call .venv\Scripts\activate.bat
           set PYTHONPATH=%cd%\lib\site-packages
-          pipenv run pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
+          pyqtdeploy-build --verbose --resources 12 --build-dir build\\win32 --target win-64 familydiagram.pdt
           copy build\common-config\* build\win32\
           copy build\win32-config\* build\win32\
         shell: cmd
@@ -563,6 +586,31 @@ jobs:
           }
         shell: pwsh
 
+      - name: Test Error Logging
+        run: |
+          Write-Host "Testing error logging..."
+
+          $process = Start-Process -FilePath "./build/Family Diagram.exe" -ArgumentList "--test-error-logging" -Wait -PassThru -NoNewWindow
+
+          $desktopPath = [Environment]::GetFolderPath("Desktop")
+          $errorLogPath = Join-Path $desktopPath "startup_errors.txt"
+
+          if (-not (Test-Path $errorLogPath)) {
+            Write-Host "✗ startup_errors.txt was not created on Desktop"
+            exit 1
+          }
+
+          $logContent = Get-Content $errorLogPath -Raw
+          if ($logContent -notmatch "Test error logging to startup_errors.txt") {
+            Write-Host "✗ startup_errors.txt does not contain expected error message"
+            Write-Host $logContent
+            exit 1
+          }
+
+          Write-Host "✓ Error logging test passed"
+          Remove-Item $errorLogPath
+        shell: pwsh
+
   publish:
     runs-on: ubuntu-24.04
     needs: [setup, test-macos, test-windows]
@@ -629,5 +677,5 @@ jobs:
             chmod 600 private_key
             mkdir -p ~/.ssh
             ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
-            scp -i private_key *.xml patrick@familydiagram.com:/var/www/html/
+            scp -i private_key *.xml patrick@familydiagram.com:/var/www/fdserver/instance/html/
             rm private_key

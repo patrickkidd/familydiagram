@@ -96,8 +96,14 @@ bool AppFilter::eventFilter(QObject *o, QEvent *e) {
     else if(o == QGuiApplication::instance()) {
         if(e->type() == QEvent::FileOpen) {
             // Qt only supports on MacOS
-            QString file = static_cast<QFileOpenEvent *>(e)->file();
-            emit fileOpen(file);
+            QFileOpenEvent *fileEvent = static_cast<QFileOpenEvent *>(e);
+            QString urlString = fileEvent->url().toString();
+
+            if (urlString.startsWith("familydiagram://")) {
+                emit urlOpened(urlString);
+            } else {
+                emit fileOpen(fileEvent->file());
+            }
             return true;
         } else if (e->type() == QEvent::Quit) {
            QApplication::quit();
@@ -752,6 +758,7 @@ void PathItemBase::updatePathItemData()
         m_shape = CUtil::strokedPath(m_shape, pen);
     }
     m_boundingRect = m_shape.controlPointRect();
+    this->update();
 }
 
 void PathItemBase::setPath(const QPainterPath &path)

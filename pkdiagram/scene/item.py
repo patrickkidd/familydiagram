@@ -1,6 +1,7 @@
+import random
 import copy
 
-from pkdiagram.pyqt import QDateTime
+from pkdiagram.pyqt import QDateTime, QColor
 from pkdiagram import util
 from pkdiagram.scene import Property
 
@@ -55,6 +56,13 @@ class Item:
             if not found:
                 entries.append(newEntry)
         return entries
+
+    @staticmethod
+    def newColor() -> str:
+        colorName = random.choice(util.ABLETON_COLORS)
+        color = QColor(colorName)
+        # color.setAlpha(150)
+        return color.name()
 
     registerProperties.__get__(object)(
         (
@@ -219,7 +227,7 @@ class Item:
         return self._propCache.keys()
         # return [p.name() for p in self.props]
 
-    def prop(self, name):
+    def prop(self, name) -> Property | None:
         return self._propCache.get(name)
 
     ## Scene Events
@@ -242,11 +250,6 @@ class Item:
                 was = prop.get()
                 prop.onActiveLayersChanged()
                 now = prop.get()
-                itemName = (
-                    prop.item.itemName()
-                    and prop.item.itemName()
-                    or prop.item.__class__.__name__
-                )
                 if now != was:
                     changed.append(prop)
         for prop in changed:

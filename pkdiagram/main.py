@@ -62,10 +62,10 @@ def _main_impl():
     if ENABLE_THERAPIST:
         parser.add_option(
             "-t",
-            "--therapist",
-            dest="therapist",
+            "--personal",
+            dest="personal",
             action="store_true",
-            help="Run the therapist UI",
+            help="Run the personal mobile UI",
         )
     if sys.platform == "win32":
         parser.add_option(
@@ -82,10 +82,17 @@ def _main_impl():
         dest="prefsName",
         help="The preferences scope to use when testing",
     )
+    parser.add_option(
+        "--test-error-logging",
+        dest="test_error_logging",
+        action="store_true",
+        help="Force an exception to test error logging to startup_errors.txt",
+        default=False,
+    )
     options, args = parser.parse_args(sys.argv)
 
     if util.IS_IOS:
-        options.therapist = True
+        options.personal = True
 
     # Handle console allocation for Windows
     if sys.platform == "win32" and (options.windows_console or options.version):
@@ -106,6 +113,9 @@ def _main_impl():
 
             atexit.register(lambda: input("\nPress Enter to close..."))
 
+    if options.test_error_logging:
+        raise RuntimeError("Test error logging to startup_errors.txt")
+
     if options.version:
 
         # import os.path, importlib
@@ -117,15 +127,15 @@ def _main_impl():
         # Exit after printing version to avoid starting the GUI
         sys.exit(0)
 
-    elif ENABLE_THERAPIST and options.therapist:
-        from pkdiagram.therapist import TherapistAppController
+    elif ENABLE_THERAPIST and options.personal:
+        from pkdiagram.personal import PersonalAppController
 
         util.init_logging()
 
         app = Application(
             sys.argv, Application.Type.Mobile, prefsName=options.prefsName
         )
-        controller = TherapistAppController(app)
+        controller = PersonalAppController(app)
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine
@@ -134,7 +144,7 @@ def _main_impl():
         engine.addImportPath("resources:")
         controller.init(engine)
 
-        engine.load("resources:qml/TherapistApplication.qml")
+        engine.load("resources:qml/PersonalApplication.qml")
         extensions.setActiveSession(session=controller.session)
 
         ret = app.exec_()
@@ -177,8 +187,8 @@ def main():
         _main_impl()
     except Exception as e:
 
-        log_dir = os.path.dirname(sys.executable)
-        error_log_path = os.path.join(log_dir, "startup_errors.txt")
+        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+        error_log_path = os.path.join(desktop_dir, "startup_errors.txt")
 
         from . import version
 

@@ -1,6 +1,6 @@
 import signal, os.path, logging
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
 from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
@@ -53,6 +53,7 @@ class AppController(QObject):
             self._analytics.setEnabled(False)
 
         self.app.appFilter.fileOpen.connect(self.onOSFileOpen)
+        self.app.appFilter.urlOpened.connect(self.onURLOpened)
         self.app.appFilter.escapeKey.connect(self.onEscapeKey)
         self.session.changed.connect(self.onSessionChanged)
 
@@ -76,6 +77,11 @@ class AppController(QObject):
         self.isInitialized = True
 
     def deinit(self):
+        self.app.appFilter.fileOpen.disconnect(self.onOSFileOpen)
+        self.app.appFilter.urlOpened.disconnect(self.onURLOpened)
+        self.app.appFilter.escapeKey.disconnect(self.onEscapeKey)
+        self.session.changed.disconnect(self.onSessionChanged)
+
         self.appConfig.deinit()
         self.session.deinit()
 
@@ -156,14 +162,14 @@ class AppController(QObject):
         elif not self.session.activeFeatures():
             mw.showAccount()
 
-        if self.session.hasFeature(vedana.LICENSE_FREE):
+        if self.session.hasFeature(btcopilot.LICENSE_FREE):
             mw.serverFileModel.syncDiagramFromServer(self.session.user.free_diagram_id)
 
         mw.show()
 
         # Open file requested by OS on launch (and override saved last opened file)
         if self._pendingOpenFilePath and self.session.hasFeature(
-            vedana.LICENSE_PROFESSIONAL
+            btcopilot.LICENSE_PROFESSIONAL
         ):
             # Means OS requested opening file before mw was ready
             self.onFileOpen(self._pendingOpenFilePath)
@@ -184,7 +190,7 @@ class AppController(QObject):
 
         self.prefs.setValue("windowSize", mw.size())
         lastFileWasOpen = not mw.atHome() and not self.session.hasFeature(
-            vedana.LICENSE_FREE
+            btcopilot.LICENSE_FREE
         )
         self.prefs.setValue("lastFileWasOpen", lastFileWasOpen)
         showCurrentDate = mw.ui.actionShow_Current_Date.isChecked()
@@ -218,6 +224,50 @@ class AppController(QObject):
         else:
             self._pendingOpenFilePath = fpath
 
+    def onURLOpened(self, url):
+        """Called when familydiagram:// URL is opened"""
+        log.info(f"URL opened: {url}")
+
+        if not url.startswith("familydiagram://"):
+            log.warning(f"Ignoring non-familydiagram URL: {url}")
+            return
+
+        if "authenticate" not in url:
+            log.warning(f"Unknown URL path: {url}")
+            QMessageBox.warning(None, "Unknown URL", f"Unknown URL action: {url}")
+            return
+
+        if not self.session.isLoggedIn():
+            QMessageBox.warning(
+                None,
+                "Not Logged In",
+                "You must be logged in to Family Diagram to authenticate to the training web app.",
+            )
+            return
+
+        try:
+            import pickle
+
+            response = self.session.server().blockingRequest(
+                "GET", "/sessions/web-auth-token"
+            )
+            data = pickle.loads(response.body)
+            authUrl = data["url"]
+        except Exception as e:
+            log.error(f"Failed to get auth URL: {e}", exc_info=True)
+            QMessageBox.critical(
+                None,
+                "Authentication Error",
+                f"Failed to generate authentication link: {str(e)}",
+            )
+        else:
+            log.debug(f"Received auth URL: {authUrl}")
+
+            from pkdiagram.widgets.authdialog import AuthUrlDialog
+
+            dialog = AuthUrlDialog(authUrl, self.mw)
+            dialog.exec_()
+
     def onEscapeKey(self, e):
         if self.mw:
             self.mw.documentView.controller.closeTopLevelView()
@@ -229,7 +279,7 @@ class AppController(QObject):
         if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
 
-            # If logged in, activeFeatures will always be at least vedana.LICENSE_FREE
+            # If logged in, activeFeatures will always be at least btcopilot.LICENSE_FREE
             # If not logged in, there is always the possibility that lastSessionData will set activeFeatures
             # If not logged in and no active features, then always show the account dialog to force a login
 
@@ -238,13 +288,13 @@ class AppController(QObject):
                     QMessageBox.information(
                         None, "Version Deactivated", self.S_VERSION_DEACTIVATED
                     )
-            elif self.session.hasFeature(vedana.LICENSE_FREE):
-                if not oldFeatures or vedana.any_license_match(
+            elif self.session.hasFeature(btcopilot.LICENSE_FREE):
+                if not oldFeatures or btcopilot.any_license_match(
                     oldFeatures,
                     (
-                        vedana.LICENSE_PROFESSIONAL,
-                        vedana.LICENSE_BETA,
-                        vedana.LICENSE_ALPHA,
+                        btcopilot.LICENSE_PROFESSIONAL,
+                        btcopilot.LICENSE_BETA,
+                        btcopilot.LICENSE_ALPHA,
                     ),
                 ):
                     if not self.session.isInitializing():
@@ -259,10 +309,12 @@ class AppController(QObject):
                         self.mw.openFreeLicenseDiagram()
 
             elif self.session.hasFeature(
-                vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_BETA, vedana.LICENSE_ALPHA
+                btcopilot.LICENSE_PROFESSIONAL,
+                btcopilot.LICENSE_BETA,
+                btcopilot.LICENSE_ALPHA,
             ):
                 self.mw.fileManager.show()
-                if vedana.any_license_match(oldFeatures, [vedana.LICENSE_FREE]):
+                if btcopilot.any_license_match(oldFeatures, [btcopilot.LICENSE_FREE]):
                     if not self.session.isInitializing():
                         QMessageBox.information(
                             None,

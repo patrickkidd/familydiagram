@@ -25,6 +25,8 @@ TextField {
 
     font.pixelSize: util.TEXT_FONT_SIZE
 
+    function clear() { text = null }
+    
     onFocusChanged: {
         // if(ios && !syncing && focus) {
         //     syncing = true

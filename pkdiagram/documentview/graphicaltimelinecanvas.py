@@ -27,6 +27,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Event
+from pkdiagram.models import TimelineRow
 
 
 _log = logging.getLogger(__name__)
@@ -52,13 +53,13 @@ class GraphicalTimelineCanvas(QWidget):
         self._searchModel = searchModel
         self._selectionModel = selectionModel
         self._timelineModel = selectionModel.model()
-        self._isSelectingEvents = False
-        self._events = SortedList()
+        self._isSelectingRows = False
+        self._timelineRows = SortedList()
         # A list for quick lookup, events can be listed more than once in
         # sullivanian time.
-        self._eventRectCache = []
-        self._rows = []
-        self._lastMousePos = None
+        self._timelineRowRectCache = []
+        self._tagRows = []
+        self._lastMousePos: QPoint | None = None
         self._hoverTimer = None
         self.rowHeight = 150
         self.sullivanianTime = False
@@ -106,77 +107,123 @@ class GraphicalTimelineCanvas(QWidget):
         if self.blockRefresh or not self.isVisible():
             self.refreshPending = True
             return
-        self._events = SortedList()
         if not self.scene:
             self.update()
             return
         self.refreshPending = False
-        self._events = self._timelineModel.events()
-        self._rows = []
+        self._timelineRows = self._timelineModel.rows()
+        self._tagRows = []
         if not self.isSlider() and self._searchModel.tags:
             # init day range
             if self.paintSullivanianTime():
                 self._dayRange = 0  # take from tag with greatest day range
-            elif self._events:
-                firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+            elif self._timelineRows:
+                firstDateTime, lastDateTime = self.dateTimeRange(self._timelineRows)
                 self._dayRange = firstDateTime.daysTo(lastDateTime)
             else:
                 self._dayRange = 0
             # init rows
             for tag in self._searchModel.tags:
-                thisTagEvents = [e for e in self._events if e.hasTags([tag])]
-                self._rows.append((tag, thisTagEvents))
+                thisTagRows = [x for x in self._timelineRows if x.event.hasTags([tag])]
+                self._tagRows.append((tag, thisTagRows))
                 if self.paintSullivanianTime():
-                    firstDateTime, lastDateTime = self.dateTimeRange(
-                        events=thisTagEvents
-                    )
-                    if firstDateTime and lastDateTime:  # empty events?
+                    firstDateTime, lastDateTime = self.dateTimeRange(thisTagRows)
+                    if firstDateTime and lastDateTime:  # empty rows?
                         _dayRange = firstDateTime.daysTo(lastDateTime)
                         if _dayRange > self._dayRange:
                             self._dayRange = _dayRange
+        self._timelineRowRectCache = []
         self.update()
 
-    def dateTimeRange(self, events=None):  # should be sorted
+    def dateTimeRange(
+        self, timelineRows: list[TimelineRow]
+    ) -> tuple[QDateTime | None, QDateTime | None]:
+        """
+        Return should be sorted
+        """
         if self._searchModel.startDateTime:
             first = self._searchModel.startDateTime
         else:
             first = None
-            for event in events:
-                if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    first = event.dateTime()
+            for row in timelineRows:
+                if row.dateTime() and row.dateTime() != QDateTime(QDate(1, 1, 1)):
+                    first = row.dateTime()
                     break
         if self._searchModel.endDateTime:
             last = self._searchModel.endDateTime
         else:
             last = None
-            for event in reversed(events):
-                if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    last = event.dateTime()
+            for row in reversed(timelineRows):
+                if row.dateTime() and row.dateTime() != QDateTime(QDate(1, 1, 1)):
+                    last = row.dateTime()
                     break
         return first, last
 
-    def selectEventsInRect(self, selectionRect: QRectF):
-        events = set(
-            [
-                event
-                for event, rectF in self._eventRectCache
-                if selectionRect.intersects(rectF.toRect())
-            ]
-        )
-        self._selectEvents(events)
+    def _buildTimelineRowRectCache(self):
+        """Build the cache of timeline row rectangles without painting."""
+        self._timelineRowRectCache = []
+        if not self.scene or (not self._timelineRows and not self._tagRows):
+            return
 
-    def _selectEvents(self, events: list[Event]):
-        """
-        For testing.
-        """
+        bottomY = self.height() - self.MARGIN
+        if not self.isSlider() and len(self._tagRows):
+            rowHeight = (self.height() - self.MARGIN * 2) / (len(self._tagRows))
+            bottomY -= self.MARGIN
+            for i, (tag, timelineRows) in enumerate(self._tagRows):
+                self._buildRowRectCache(
+                    bottomY - (i * rowHeight) - 30,
+                    timelineRows,
+                    dayRange=self._dayRange,
+                )
+        else:
+            if self.isSlider():
+                bottomY = self.height() / 2
+            self._buildRowRectCache(bottomY, self._timelineRows)
+
+    def _buildRowRectCache(self, bottomY, timelineRows, dayRange=None):
+        """Build rect cache for a single row."""
+        if self.isSlider():
+            y = bottomY
+        else:
+            y = bottomY - (self.labelFont.pixelSize() + 5)
+        firstP = QPointF(self.MARGIN, y)
+        if self.isSlider():
+            lastP = QPointF(self.width() - self.MARGIN, y)
+        else:
+            lastP = QPointF(self.width() - self.RIGHT_MARGIN, y)
+        if not timelineRows:
+            return
+
+        firstDateTime, lastDateTime = self.dateTimeRange(timelineRows)
+        if dayRange is None:
+            dayRange = firstDateTime.daysTo(lastDateTime)
+        if dayRange == 0:
+            dayRange = 1
+        firstR = QRectF(0, 0, self.W, self.W)
+        firstR.moveCenter(firstP)
+        dayPx = (lastP.x() - firstP.x()) / dayRange
+
+        for timelineRow in timelineRows:
+            if timelineRow.dateTime() != QDate(QDate(1, 1, 1)):
+                days = firstDateTime.daysTo(timelineRow.dateTime())
+                x = dayPx * days
+                rect = firstR.translated(x, 0)
+                self._timelineRowRectCache.append((timelineRow, rect))
+
+    def selectRowsInRect(self, selectionRect: QRectF):
+        if not self._timelineRowRectCache:
+            self._buildTimelineRowRectCache()
+        timelineRows = [
+            row
+            for row, rectF in self._timelineRowRectCache
+            if selectionRect.intersects(rectF.toRect())
+        ]
         selection = QItemSelection()
-        rows = []
-        for event in events:
-            row = self._timelineModel.rowForEvent(event)
-            index = self._timelineModel.index(row, 0)
+        for timelineRow in timelineRows:
+            iRow = self._timelineModel.rowIndexFor(timelineRow)
+            index = self._timelineModel.index(iRow, 0)
             selection.select(index, index)
-            rows.append(row)
-        self._isSelectingEvents = True
+        self._isSelectingRows = True
         if len(selection) > 0:
             self._selectionModel.select(
                 selection,
@@ -186,17 +233,17 @@ class GraphicalTimelineCanvas(QWidget):
             )
         else:
             self._selectionModel.clearSelection()
-        self._isSelectingEvents = False
+        self._isSelectingRows = False
 
     def isSelectingEvents(self) -> bool:
-        return self._isSelectingEvents
+        return self._isSelectingRows
 
     ## Qt Events
 
     def mousePressEvent(self, e):
         self._mousePressPos = e.pos()
         self._lastMousePos = e.pos()
-        self.selectEventsInRect(QRect())
+        self.selectRowsInRect(QRect())
         e.accept()
         self.mousePressed = True
         if not self.isSlider():
@@ -204,7 +251,6 @@ class GraphicalTimelineCanvas(QWidget):
             self._rubberBand.setGeometry(
                 QRect(self._mousePressPos, self._mousePressPos).normalized()
             )
-            self.selectEventsInRect(self._rubberBand.geometry())
         else:
             self._rubberBand.hide()
             self.dateTimeClicked.emit(self._dateTimeForPoint(e.pos()))
@@ -215,7 +261,7 @@ class GraphicalTimelineCanvas(QWidget):
             self._rubberBand.setGeometry(
                 QRect(self._mousePressPos, e.pos()).normalized()
             )
-            self.selectEventsInRect(self._rubberBand.geometry())
+            self.selectRowsInRect(self._rubberBand.geometry())
         else:
             if self._rubberBand.isVisible():
                 self._rubberBand.hide()
@@ -228,7 +274,7 @@ class GraphicalTimelineCanvas(QWidget):
     def mouseReleaseEvent(self, e):
         if self._rubberBand.isVisible():
             self._rubberBand.hide()
-        if self.isSlider() and len(self._events) > 1:
+        if self.isSlider() and len(self._timelineRows) > 1:
             e.accept()
         self.mousePressed = False
         self._lastMousePos = None
@@ -261,8 +307,8 @@ class GraphicalTimelineCanvas(QWidget):
             self._lastMousePos = None
 
     def paintEvent(self, e):
-        self._eventRectCache = []
-        if not self.scene or (not self._events and not self._rows):
+        self._buildTimelineRowRectCache()
+        if not self.scene or (not self._timelineRows and not self._tagRows):
             e.ignore()
             return
         painter = QPainter(self)
@@ -272,30 +318,30 @@ class GraphicalTimelineCanvas(QWidget):
             clipRect = e.region().boundingRect()
             painter.setRenderHint(QPainter.Antialiasing, True)
             bottomY = self.height() - self.MARGIN
-            if not self.isSlider() and len(self._rows):
+            if not self.isSlider() and len(self._tagRows):
                 # add one to keep last row under top of widget
-                rowHeight = (self.height() - self.MARGIN * 2) / (len(self._rows))
+                rowHeight = (self.height() - self.MARGIN * 2) / (len(self._tagRows))
                 with util.painter_state(painter):
                     painter.setFont(self.labelFont)
                     bottomY -= self.MARGIN
                     # tag labels
-                    for i, (tag, tagEvents) in enumerate(self._rows):
+                    for i, (tag, timelineRows) in enumerate(self._tagRows):
                         y = bottomY - (i * rowHeight) - 10
                         painter.drawText(-self.x() + self.MARGIN, int(y), tag)
 
                 # event rows
-                for i, (tag, tagEvents) in enumerate(self._rows):
+                for i, (tag, timelineRows) in enumerate(self._tagRows):
                     self._drawRow(
                         painter,
                         clipRect,
                         bottomY - (i * rowHeight) - 30,
-                        tagEvents,
+                        timelineRows,
                         dayRange=self._dayRange,
                     )
             else:
                 if self.isSlider():
                     bottomY = self.height() / 2  # center
-                self._drawRow(painter, clipRect, bottomY, self._events)
+                self._drawRow(painter, clipRect, bottomY, self._timelineRows)
 
             # Draw hover date line
             with util.painter_state(painter):
@@ -325,7 +371,7 @@ class GraphicalTimelineCanvas(QWidget):
 
     def _dateTimeForPoint(self, pos):
         """assuming is slider."""
-        firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+        firstDateTime, lastDateTime = self.dateTimeRange(self._timelineRows)
         if not firstDateTime or not lastDateTime:
             return QDateTime()
         dayRange = firstDateTime.daysTo(lastDateTime)
@@ -351,10 +397,12 @@ class GraphicalTimelineCanvas(QWidget):
     def currentDateTimeIndicatorRect(self, upperLeft: QPoint = None) -> QRectF:
         if not self.scene:
             return QRectF()
+        if not self._timelineRows:
+            return QRectF()
         if upperLeft:
             x, y = upperLeft.x(), upperLeft.y()
         if upperLeft is None and self.isSlider():
-            firstDateTime, lastDateTime = self.dateTimeRange(events=self._events)
+            firstDateTime, lastDateTime = self.dateTimeRange(self._timelineRows)
             dayRange = firstDateTime.daysTo(lastDateTime)
             if dayRange == 0:
                 dayRange = 1
@@ -373,7 +421,7 @@ class GraphicalTimelineCanvas(QWidget):
             util.GRAPHICAL_TIMELINE_SLIDER_HEIGHT,
         )
 
-    def _drawRow(self, painter, clipRect, bottomY, events, dayRange=None):
+    def _drawRow(self, painter, clipRect, bottomY, timelineRows, dayRange=None):
         """Draw a single row for a tag. `y` is bottom left."""
         if self.isSlider():
             y = bottomY
@@ -384,8 +432,8 @@ class GraphicalTimelineCanvas(QWidget):
             lastP = QPointF(self.width() - self.MARGIN, y)
         else:
             lastP = QPointF(self.width() - self.RIGHT_MARGIN, y)
-        if events:  # empty events?
-            firstDateTime, lastDateTime = self.dateTimeRange(events=events)
+        if timelineRows:  # empty events?
+            firstDateTime, lastDateTime = self.dateTimeRange(timelineRows)
             if dayRange is None:
                 dayRange = firstDateTime.daysTo(lastDateTime)
             if dayRange == 0:
@@ -393,11 +441,15 @@ class GraphicalTimelineCanvas(QWidget):
             firstR = QRectF(0, 0, self.W, self.W)
             firstR.moveCenter(firstP)
             dayPx = (lastP.x() - firstP.x()) / dayRange
-
+        else:
+            firstR = None
+            firstDateTime = QDateTime()
+            lastDateTime = QDateTime()
+            dayPx = 0
         isSullivanianTime = self.paintSullivanianTime()  # cache
 
         # current date marker
-        if events and not self.paintSullivanianTime():
+        if timelineRows and not self.paintSullivanianTime():
             currentX = firstDateTime.daysTo(self.scene.currentDateTime()) * dayPx
             self._drawCurrentDateTimeIndicator(painter, firstR.x() + currentX, y)
 
@@ -410,7 +462,7 @@ class GraphicalTimelineCanvas(QWidget):
             painter.drawLine(firstP, lastP)
 
         # year markers
-        if events:
+        if timelineRows:
             with util.painter_state(painter):
                 pen = QPen(painter.pen())
                 pen.setWidth(2)
@@ -456,7 +508,7 @@ class GraphicalTimelineCanvas(QWidget):
                             s = "%i" % year
                         painter.drawText(p + QPoint(0, y + ascent), s)
 
-        if not events:
+        if not timelineRows:
             return
 
         # ellipses
@@ -485,43 +537,45 @@ class GraphicalTimelineCanvas(QWidget):
             selectedPen.setColor(selectedColor)
             selectedBrush = QBrush(selectedColor)
             # nodalPen.setWidthF(normalPen.widthF() * 2)
-            for event in events:
-                if (
-                    event
-                    and event.dateTime()
-                    and event.dateTime() != QDate(QDate(1, 1, 1))
-                ):
-                    days = firstDateTime.daysTo(event.dateTime())
+            for timelineRow in timelineRows:
+                if timelineRow.dateTime() != QDate(QDate(1, 1, 1)):
+                    days = firstDateTime.daysTo(timelineRow.dateTime())
                     x = dayPx * days
                     rect = firstR.translated(x, 0)
-                    self._eventRectCache.append((event, rect))
                     if x > clipRect.x() + clipRect.width():
                         continue
-                    if event.nodal():
+                    if timelineRow.event.nodal():
                         w = self.W * 0.75
                         rect = rect.marginsAdded(QMarginsF(w, w, w, w))
                     # Events can be shown in more than one place
-                    row = self._timelineModel.rowForEvent(event)
-                    if self._selectionModel.isRowSelected(row):
+                    iRow = self._timelineModel.rowIndexFor(timelineRow)
+                    if self._selectionModel.isRowSelected(iRow):
                         painter.setPen(selectedPen)
                         painter.setBrush(selectedBrush)
-                    elif event.color():
-                        eventColor = QColor(event.color())
-                        # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
-                        painter.setPen(eventColor)
-                        painter.setBrush(eventColor)
+                    elif timelineRow.event.color():
+                        color = timelineRow.event.color()
+                        # defensive against defaults that are not quite right, and for dark/light mode.
+                        if color in ("transparent", "#ffffff", "#000000"):
+                            painter.setPen(normalPen)
+                            painter.setBrush(normalBrush)
+                        else:
+                            eventColor = QColor(color)
+                            # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
+                            painter.setPen(eventColor)
+                            painter.setBrush(eventColor)
                     # elif event.nodal():
                     #     # print('    NODAL', event.dateTime().year(), nodalPen.color().name(), nodalPen.color().alpha())
                     #     painter.setPen(nodalPen)
                     #     painter.setBrush(nodalBrush)
-                    elif self.scene.itemShownOnDiagram(event):
+                    # elif self.scene.itemShownOnDiagram(timelineRow.event):
+                    else:
                         # print('    NORMAL', event.dateTime().year(), normalPen.color().name(), normalPen.color().alpha())
                         painter.setPen(normalPen)
                         painter.setBrush(normalBrush)
-                    else:
-                        # print('    DEEMPH', event.dateTime().year(), deemphPen.color().name(), deemphPen.color().alpha())
-                        painter.setPen(deemphPen)
-                        painter.setBrush(deemphBrush)
+                    # else:
+                    #     # print('    DEEMPH', event.dateTime().year(), deemphPen.color().name(), deemphPen.color().alpha())
+                    #     painter.setPen(deemphPen)
+                    #     painter.setBrush(deemphBrush)
                     painter.drawEllipse(rect)
 
         if self.isSlider():
@@ -533,9 +587,11 @@ class GraphicalTimelineCanvas(QWidget):
             prevDays = None
             prevX = None
             nDupes = 0
-            for event in events:
-                if event.dateTime() and event.dateTime() != QDateTime(QDate(1, 1, 1)):
-                    days = firstDateTime.daysTo(event.dateTime())
+            for timelineRow in self._timelineRows:
+                if timelineRow.dateTime() and timelineRow.dateTime() != QDateTime(
+                    QDate(1, 1, 1)
+                ):
+                    days = firstDateTime.daysTo(timelineRow.dateTime())
                     if days == prevDays:
                         nDupes += 1
                     else:
@@ -549,12 +605,12 @@ class GraphicalTimelineCanvas(QWidget):
                     ):  # and not item.nodal():
                         continue
                     prevX = x
-                    eventP = firstP + QPointF(x, 0)
+                    timelineRowP = firstP + QPointF(x, 0)
                     offset = firstP + QPointF(
                         x, -((self.MARGIN / 4) + nDupes * self.W * 5)
                     )
                     if nDupes == 0:
-                        painter.drawLine(eventP, offset)
+                        painter.drawLine(timelineRowP, offset)
                     painter.translate(offset)
                     painter.rotate(-self.ANGLE)
                     # if item.isEvent and item.parent.isPerson:
@@ -565,40 +621,33 @@ class GraphicalTimelineCanvas(QWidget):
                     if self.paintSullivanianTime():
                         s = ""
                     else:
-                        s = util.dateString(event.dateTime())
-                    if event.parent != self.scene:
-                        s += ": %s, %s" % (
-                            event.description(),
-                            event.parentName() is not None
-                            and event.parentName()
-                            or util.UNNAMED_TEXT,
-                        )
-                    else:
-                        s += ": %s" % event.description()
+                        s = util.dateString(timelineRow.dateTime())
+                    description = timelineRow.event.description()
+                    if not description:
+                        description = timelineRow.event.kind().name
+                    s += ": " + description
                     painter.drawText(QPointF(5, 0), s)
                     painter.rotate(self.ANGLE)
                     painter.translate(-offset)
 
-    def paintSullivanianTime(self):
+    def paintSullivanianTime(self) -> bool:
         """Only when tags are set."""
         if self.scene:
             return bool(self._searchModel.tags and self.sullivanianTime)
+        return False
 
-    def setSullivanianTime(self, on):
+    def setSullivanianTime(self, on: bool):
         if on != self.sullivanianTime:
             self.sullivanianTime = on
             self.refresh()
 
-    def isSlider(self):
+    def isSlider(self) -> bool:
         return self._isSlider
 
-    def setIsSlider(self, on):
+    def setIsSlider(self, on: bool):
         if on != self._isSlider:
             self._isSlider = on
             self.update()
         self.refresh()
         if not on and not self._hoverTimer:
             self._hoverTimer = self.startTimer(200)
-
-    def events(self):
-        return self._events

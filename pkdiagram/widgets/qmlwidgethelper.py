@@ -18,6 +18,7 @@ from pkdiagram.pyqt import (
     QVariant,
     QApplication,
     QPointF,
+    QJSValue,
 )
 from pkdiagram import util
 from pkdiagram.models import QObjectHelper
@@ -444,16 +445,39 @@ class QmlWidgetHelper(QObjectHelper):
         # ), f"Could not set currentIndex to {newCurrentIndex} for {objectName} (was {prevCurrentIndex})"
 
     def clickTimelineViewItem(
-        self, objectName, cellText, column=0, modifiers=Qt.NoModifier
+        self,
+        item: Union[str, QQuickItem],
+        cellText: str,
+        column=0,
+        modifiers=Qt.NoModifier,
     ):
-        item = self.findItem(objectName)
+        if isinstance(item, str):
+            item = self.findItem(item)
         model = item.property("model")
+        text = None
         for row in range(model.rowCount()):
             text = model.data(model.index(row, column))
             if text == cellText:
                 break
         assert text == cellText  # cell found
         assert self.itemProp(objectName, "enabled") == True
+
+        # # query visual rect (doesn't work yet)
+        # delegates = item.property("delegates").toVariant()
+        # delegate = next(
+        #     x
+        #     for x in delegates
+        #     if x.property("thisRow") == row and x.property("thisColumn") == column
+        # )
+        # itemRect = delegate.mapRectToScene(
+        #     QRectF(
+        #         delegate.property("x"),
+        #         delegate.property("y"),
+        #         delegate.property("width"),
+        #         delegate.property("height"),
+        #     )
+        # )
+
         # calc visual rect
         columnWidth = lambda x: QMetaObject.invokeMethod(
             item,
@@ -477,8 +501,8 @@ class QmlWidgetHelper(QObjectHelper):
         forceLayout()
         selModel = item.property("selectionModel")
         prevSelection = selModel.selectedRows()
-        rect = item.mapRectToScene(QRectF(x, y, w, h))
-        self.mouseClick(objectName, Qt.LeftButton, rect.center().toPoint())
+        rect = item.mapRectToScene(itemRect)
+        self.mouseClick(item, Qt.LeftButton, rect.center().toPoint())
         newSelection = selModel.selectedRows()
         assert prevSelection != newSelection
 
@@ -501,6 +525,8 @@ class QmlWidgetHelper(QObjectHelper):
             itemTexts = [
                 model.data(model.index(row, 0), role) for row in range(model.rowCount())
             ]
+        elif isinstance(model, QJSValue):
+            itemTexts = [x["name"] for x in model.toVariant()]
         currentIndex = None
         for i, text in enumerate(itemTexts):
             if text == itemText:
@@ -619,3 +645,4 @@ class QmlWidgetHelper(QObjectHelper):
 
         # Set the contentY property to scroll
         flickable.setProperty("contentY", contentY)
+        util.waitALittle()

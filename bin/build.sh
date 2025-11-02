@@ -12,8 +12,6 @@ fi
 BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT=`cd "$BIN/.."; pwd`
 
-export PYTHONPATH=`pwd`/lib/site-packages
-
 if [[ $TARGET == osx* ]]; then
     SYSROOT=$ROOT/sysroot/sysroot-macos-64
 elif [[ $TARGET == ios* ]]; then
@@ -60,14 +58,14 @@ else
     echo "PKS version and pepper are up to date"
 fi
 
-echo "PKS Generating _pkdiagram sources"
-(
-    set -e
-    cd _pkdiagram
-    sip-build --no-compile --no-make
-    moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
-    moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
-)
+# echo "PKS Generating _pkdiagram sources"
+# (
+#     set -e
+#     cd _pkdiagram
+#     sip-build --no-compile --no-make
+#     moc -o build/_pkdiagram/moc_unsafearea.cpp unsafearea.h
+#     moc -o build/_pkdiagram/moc__pkdiagram.cpp _pkdiagram.h
+# )
 
 rsync -avzq build/common-config/* build/osx
 rsync -avzq build/osx-config/* build/osx
@@ -239,7 +237,7 @@ if [[ $TARGET = osx* ]]; then
 
     if [[ $TARGET == "osx" ]]; then
 
-        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release && cd ../..
+        cd build/osx && $QMAKE -spec macx-xcode CONFIG+=no_autoqmake CONFIG+=debug CONFIG-=release $QT_EXTRA_CONFIG && cd ../..
         echo "Updating xcode project to new build system"
         python3 bin/fixup_xcodeproj_workspace.py
         # bin/filter_xcodeproj.rb osx "Family Diagram" "$SYSROOT/src/Python-$PYTHON_VERSION/Modules/_ctypes/libffi_osx/x86/darwin64.S" # 2> /dev/null

@@ -4,7 +4,7 @@ import uuid, pickle, logging, copy
 import dataclasses
 import logging
 
-import vedana
+import btcopilot
 
 from pkdiagram.pyqt import (
     pyqtSlot,
@@ -82,7 +82,7 @@ class Session(QObject, QObjectHelper):
             lastLicenses = [
                 x
                 for x in sessionData.get("licenses", [])
-                if x["policy"]["code"] != vedana.LICENSE_FREE
+                if x["policy"]["code"] != btcopilot.LICENSE_FREE
             ]
             self.track("re_logged_in")
         else:
@@ -108,7 +108,7 @@ class Session(QObject, QObjectHelper):
                 data = pickle.loads(response.body)
                 self.setData(data)
 
-        oldFeatures = vedana.licenses_features(lastLicenses)
+        oldFeatures = btcopilot.licenses_features(lastLicenses)
         self.refreshAllProperties()
         self.changed.emit(oldFeatures, self.activeFeatures())
 
@@ -148,7 +148,7 @@ class Session(QObject, QObjectHelper):
                                 if not license in activeLicenses:
                                     activeLicenses.append(license)
                 if not activeLicenses:
-                    activeLicenses = [{"policy": {"code": vedana.LICENSE_FREE}}]
+                    activeLicenses = [{"policy": {"code": btcopilot.LICENSE_FREE}}]
 
             # 2. Active Features
             self._isVersionDeactivated = bool(
@@ -157,7 +157,7 @@ class Session(QObject, QObjectHelper):
             if self._isVersionDeactivated:
                 features = []
             else:
-                features = vedana.licenses_features(activeLicenses)
+                features = btcopilot.licenses_features(activeLicenses)
                 if features is None:
                     features = []
             # Only allow alpha licenses on alpha builds
@@ -165,20 +165,20 @@ class Session(QObject, QObjectHelper):
                 version.IS_ALPHA
             ):  # Given the current feature set of one (i.e. 'professional'), alpha license is the only one honored for alpha builds
                 for x in list(features):
-                    if x != vedana.LICENSE_ALPHA:
+                    if x != btcopilot.LICENSE_ALPHA:
                         features.remove(x)
             if not version.IS_ALPHA:
-                while vedana.LICENSE_ALPHA in features:
-                    features.remove(vedana.LICENSE_ALPHA)
+                while btcopilot.LICENSE_ALPHA in features:
+                    features.remove(btcopilot.LICENSE_ALPHA)
             # Only allow beta licenses on beta|alpha builds
             if not version.IS_BETA:
-                while vedana.LICENSE_BETA in features:
-                    features.remove(vedana.LICENSE_BETA)
+                while btcopilot.LICENSE_BETA in features:
+                    features.remove(btcopilot.LICENSE_BETA)
             if (
                 version.IS_BETA
             ):  # Given the current feature set of one (i.e. 'professional'), beta license is the only one honored for beta builds
                 for x in list(features):
-                    if x != vedana.LICENSE_BETA:
+                    if x != btcopilot.LICENSE_BETA:
                         features.remove(x)
 
             self.users = [
@@ -246,7 +246,7 @@ class Session(QObject, QObjectHelper):
         if attr == "hash":
             ret = self._hash
         elif attr == "isAdmin":
-            ret = bool(self.user and vedana.ROLE_ADMIN in self.user.roles)
+            ret = bool(self.user and btcopilot.ROLE_ADMIN in self.user.roles)
         else:
             ret = super().get(attr)
         return ret
@@ -316,28 +316,28 @@ class Session(QObject, QObjectHelper):
             codes = (codes,)
         # Handle alpha/beta
         if version.IS_ALPHA or version.IS_BETA:
-            if vedana.LICENSE_FREE in codes or vedana.LICENSE_CLIENT in codes:
+            if btcopilot.LICENSE_FREE in codes or btcopilot.LICENSE_CLIENT in codes:
                 return False
             if version.IS_ALPHA:
                 if (
-                    vedana.LICENSE_ALPHA in activeFeatures
-                    and not vedana.LICENSE_FREE in codes
+                    btcopilot.LICENSE_ALPHA in activeFeatures
+                    and not btcopilot.LICENSE_FREE in codes
                 ):
                     return True
                 else:
                     return False
             if version.IS_BETA:
                 if (
-                    vedana.LICENSE_BETA in activeFeatures
-                    and not vedana.LICENSE_FREE in codes
+                    btcopilot.LICENSE_BETA in activeFeatures
+                    and not btcopilot.LICENSE_FREE in codes
                 ):
                     return True
                 else:
                     return False
         # for code in codes:
-        #     if code.startswith(vedana.LICENSE_ALPHA) and not version.IS_ALPHA:
+        #     if code.startswith(btcopilot.LICENSE_ALPHA) and not version.IS_ALPHA:
         #         return False
-        #     if code.startswith(vedana.LICENSE_BETA) and not version.IS_BETA:
+        #     if code.startswith(btcopilot.LICENSE_BETA) and not version.IS_BETA:
         #         return False
         # Handle release
         for code in codes:
@@ -355,7 +355,7 @@ class Session(QObject, QObjectHelper):
 
     @pyqtSlot(result=bool)
     def hasAnyPaidFeature(self):
-        if self.activeFeatures() and not self.hasFeature(vedana.LICENSE_FREE):
+        if self.activeFeatures() and not self.hasFeature(btcopilot.LICENSE_FREE):
             return True
         else:
             return False
@@ -446,7 +446,7 @@ class Session(QObject, QObjectHelper):
         as a manual edge case.
         """
         if not self._analytics:
-            log.warning("Analytics not initialized on Session object.")
+            # log.warning("Analytics not initialized on Session object.")
             return
 
         session_id = self._data["session"]["id"] if self._data else None

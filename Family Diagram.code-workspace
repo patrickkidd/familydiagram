@@ -11,9 +11,6 @@
 		{
 			"name": "btcopilot",
 			"path": "../btcopilot"
-		},
-		{
-			"path": "../vedana"
 		}
 	],
 	"settings": {
@@ -35,12 +32,19 @@
 		},
 		"makefile.configureOnOpen": false,
 		// "python.languageServer": "Pylance",
+
 		"python.analysis.typeCheckingMode": "off",
+		// "python.analysis.diagnosticMode": "workspace",
+		"python.analysis.diagnosticSeverityOverrides": {
+			"reportOptionalMemberAccess": "none",
+			"reportOptionalSubscript": "none",
+			"reportOptionalCall": "none"
+		},
+
 		"python.testing.pytestEnabled": false,
 		"python.analysis.extraPaths": [
-			".", 
-			"../fdserver", 
-			"../vedana", 
+			".",
+			"../fdserver",
 			"../btcopilot",
 			"lib/site-packages"
 		],
@@ -52,8 +56,8 @@
 			"**/__pycache__": true
 		},
 		"logViewer.watch": [
-			"/Users/patrick/dev/fdserver/ai_log.txt",
-			"/Users/patrick/dev/fdserver/debug_log.txt"
+			"/Users/patrick/dev/btcopilot/ai_log.txt",
+			"/Users/patrick/dev/btcopilot/debug_log.txt"
 		],
 		"black-formatter.importStrategy": "fromEnvironment",
 		"python.languageServer": "Pylance",

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "familydiagram"
+version = "0.1.0"
+description = "Family Diagram application"
+readme = "README.md"
+authors = [
+    {name = "Patrick Kidd", email = "patrick@familydiagram.com"}
+]
+requires-python = ">=3.11.6"
+
+dependencies = [
+    "sip==6.8.6",
+    "pyqt5==5.15.11",
+    "pyqt5-sip==12.15.0",
+    "pyqt5-qt5==5.15.2",
+    "bcrypt",
+    "pyqt-builder==1.16.4",
+    "six==1.14.0",
+    "appdirs==1.4.4",
+    "xlsxwriter==0.9.8",
+    "sortedcontainers==2.2.2",
+    "python-dateutil==2.8.2",
+    "btcopilot[app]",
+]
+
+[project.optional-dependencies]
+test = [
+    "black",
+    "pytest",
+    "pytest-qt",
+    "pytest-mock",
+    "pytest-xdist",
+    "pytest-dependency",
+    "snapshottest",
+    "mock",
+    "pyqtdeploy",
+    "pypdf",
+]
+
+[project.urls]
+Homepage = "https://github.com/patrickkidd/familydiagram"
+Repository = "https://github.com/patrickkidd/familydiagram"
+Issues = "https://github.com/patrickkidd/familydiagram/issues"
+
+[tool.setuptools]
+packages = ["pkdiagram"]
+
+# Include lib/site-packages in package data for pyqtdeploy compatibility
+[tool.setuptools.package-data]
+"*" = ["lib/site-packages/**/*"]
+
+[tool.uv.sources]
+btcopilot = { workspace = true }
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

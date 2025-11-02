@@ -148,13 +148,30 @@ class TagsModel(QAbstractListModel, ModelHelper):
             self._scene.removeTag(tag)
             self._blocked = False
 
+    def checkedTags(self) -> list[str]:
+        tags = []
+        for row in range(self.rowCount()):
+            index = self.index(row, 0)
+            if index.data(role=self.ActiveRole) == Qt.Checked:
+                tag = index.data(role=self.NameRole)
+                tags.append(tag)
+        return tags
+
+    def uncheckedTags(self) -> list[str]:
+        tags = []
+        for row in range(self.rowCount()):
+            index = self.index(row, 0)
+            if index.data(role=self.ActiveRole) == Qt.Unchecked:
+                tag = index.data(role=self.NameRole)
+                tags.append(tag)
+        return tags
+
     @pyqtSlot()
     def resetToSceneTags(self):
         if self._items:
             self._settingItemTags = True
             for item in self._items:
-                if item.isEvent:
-                    item.setTags([])
+                item.setTags([])
             self._settingItemTags = False
         self.modelReset.emit()
 
@@ -242,12 +259,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
                 # Emotions and their events are bound to the same tags.
                 # Added here to include prop changes in undo
                 todo = set(self._items)
-                for item in self._items:
-                    if item.isEvent and item.parent and item.parent.isEmotion:
-                        todo.add(item.parent)
-                    elif item.isEmotion:
-                        todo.add(item.startEvent)
-                        todo.add(item.endEvent)
                 # Do the value set
                 self._settingItemTags = True
                 with self._scene.macro(f"Set tag '{tag}' on items to {value}"):

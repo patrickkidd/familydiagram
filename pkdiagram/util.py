@@ -4,8 +4,11 @@ import json
 from functools import wraps
 import sys, os.path
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
+from dataclasses import dataclass
 
+
+from btcopilot.schema import VariableShift
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +21,7 @@ try:
 except:
     IS_BUNDLE = False
 
-import vedana
+import btcopilot
 from _pkdiagram import CUtil
 
 from PyQt5.QtCore import QSysInfo
@@ -85,7 +88,7 @@ elif "nt" in os.name:
     HARDWARE_UUID = (
         subprocess.check_output(
             'powershell -command "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID"',
-            shell=True
+            shell=True,
         )
         .decode("utf-8")
         .strip()
@@ -135,7 +138,40 @@ def serverUrl(path, from_root: bool = False):
     if from_root:
         return "%s%s" % (SERVER_URL_ROOT, path)
     else:
-        return "%s/%s%s" % (SERVER_URL_ROOT, vedana.SERVER_API_VERSION, path)
+        return "%s/%s%s" % (SERVER_URL_ROOT, btcopilot.SERVER_API_VERSION, path)
+
+
+def registerURLScheme():
+    """Register familydiagram:// URL scheme on Windows"""
+    if not IS_WINDOWS:
+        return True
+
+    try:
+        import winreg
+
+        exe_path = sys.executable
+        if not os.path.exists(exe_path):
+            exe_path = sys.argv[0]
+
+        key = winreg.CreateKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Classes\familydiagram"
+        )
+        winreg.SetValue(key, "", winreg.REG_SZ, "URL:Family Diagram Protocol")
+        winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
+        winreg.CloseKey(key)
+
+        cmd_key = winreg.CreateKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Classes\familydiagram\shell\open\command",
+        )
+        winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{exe_path}" "%1"')
+        winreg.CloseKey(cmd_key)
+
+        log.info("Successfully registered familydiagram:// URL scheme on Windows")
+        return True
+    except Exception as e:
+        log.error(f"Failed to register URL scheme on Windows: {e}")
+        return False
 
 
 def summarizeReplyShort(reply: QNetworkReply):
@@ -245,25 +281,6 @@ PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE = "system"
 PREFS_UI_DARK_MODE = "dark"
 PREFS_UI_LIGHT_MODE = "light"
 
-ITEM_NONE = None
-ITEM_MALE = 0
-ITEM_FEMALE = 1
-ITEM_MARRY = 2
-ITEM_CHILD = 3
-ITEM_PENCIL = 4
-ITEM_ERASER = 5
-ITEM_FUSION = 6
-ITEM_CUTOFF = 7
-ITEM_CONFLICT = 8
-ITEM_PROJECTION = 9
-ITEM_DISTANCE = 10
-ITEM_TOWARD = 11
-ITEM_AWAY = 12
-ITEM_DEFINED_SELF = 13
-ITEM_CALLOUT = 14
-ITEM_RECIPROCITY = 15
-ITEM_INSIDE = 16
-ITEM_OUTSIDE = 17
 
 BORDER_RADIUS = 5
 #
@@ -286,27 +303,17 @@ DRAWER_WIDTH = 400
 DRAWER_OVER_WIDTH = IS_IOS and DRAWER_WIDTH or DRAWER_WIDTH * 0.9
 OVERLAY_OPACITY = 0.5
 
-# Variables
+# Variables"
 
-VAR_VALUE_DOWN = "down"
-VAR_VALUE_SAME = "same"
-VAR_VALUE_UP = "up"
+# for qml
+VARIABLE_SHIFT_UP = VariableShift.Up.value
+VARIABLE_SHIFT_SAME = VariableShift.Same.value
+VARIABLE_SHIFT_DOWN = VariableShift.Down.value
 
-VAR_ANXIETY_DOWN = VAR_VALUE_DOWN
-VAR_ANXIETY_SAME = VAR_VALUE_SAME
-VAR_ANXIETY_UP = VAR_VALUE_UP
-
-VAR_FUNCTIONING_DOWN = VAR_VALUE_DOWN
-VAR_FUNCTIONING_SAME = VAR_VALUE_SAME
-VAR_FUNCTIONING_UP = VAR_VALUE_UP
-
-VAR_SYMPTOM_DOWN = VAR_VALUE_DOWN
-VAR_SYMPTOM_SAME = VAR_VALUE_SAME
-VAR_SYMPTOM_UP = VAR_VALUE_UP
-
-ATTR_ANXIETY = "Δ Anxiety"
-ATTR_FUNCTIONING = "Δ Functioning"
 ATTR_SYMPTOM = "Δ Symptom"
+ATTR_ANXIETY = "Δ Anxiety"
+ATTR_RELATIONSHIP = "Δ Relationship"
+ATTR_FUNCTIONING = "Δ Functioning"
 
 # Person
 
@@ -377,9 +384,6 @@ SNAP_PEN = QPen(QColor(0, 0, 255, 100), 0.5)
 DEFAULT_LEGEND_SIZE = QSize(309, 175)
 GRAPHICAL_TIMELINE_SLIDER_HEIGHT = int(BUTTON_SIZE + MARGIN_Y * 2)
 
-BIRTH_TEXT = "Birth"
-DEATH_TEXT = "Death"
-ADOPTED_TEXT = "Adopted"
 EMPTY_TEXT = "<empty>"
 MULTIPLE_TEXT = ""
 BLANK_DATE_TEXT = "--/--/----"
@@ -504,6 +508,10 @@ S_SYMPTOM_HELP_TEXT = LONG_TEXT(
     "Symptoms can increase or decrease with anxiety"
 )
 
+S_RELATIONSHIP_HELP_TEXT = LONG_TEXT(
+    "Shift in the relationship between people in response to discomfort."
+)
+
 S_FUNCTIONING_HELP_TEXT = LONG_TEXT(
     "Shift up or down in managing anxiety / problems more efficiently toward your goals, AKA; "
     "mindfulness, leadership, in contact with emotion but not dominated by it."
@@ -564,7 +572,7 @@ S_SERVER_IS_DOWN = "The server is down. Please try again later."
 S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."
 
 
-# Therapist
+# Personal
 
 S_THERAPIST_NO_CHAT_TEXT = "What's on your mind?"
 
@@ -591,47 +599,47 @@ def personKindFromIndex(index):
     return PERSON_KINDS[index]["kind"]
 
 
-def personKindNameFromKind(kind):
+def personKindNameFromKind(kind) -> str:
     for i, v in enumerate(PERSON_KINDS):
         if v["kind"] == kind:
             return v["name"]
 
 
-def personKindIndexFromKind(kind):
+def personKindIndexFromKind(kind) -> int:
     for i, v in enumerate(PERSON_KINDS):
         if v["kind"] == kind:
             return i
 
 
-def personSizeFromIndex(index):
+def personSizeFromIndex(index) -> int:
     return PERSON_SIZES[index]["size"]
 
 
-def personSizeFromName(name):
+def personSizeFromName(name) -> int:
     for entry in PERSON_SIZES:
         if entry["name"] == name:
             return entry["size"]
 
 
-def personSizeNameFromSize(size):
+def personSizeNameFromSize(size) -> str:
     for entry in PERSON_SIZES:
         if entry["size"] == size:
             return entry["name"]
 
 
-def personSizeIndexFromName(name):
+def personSizeIndexFromName(name) -> int:
     for i, entry in enumerate(PERSON_SIZES):
         if entry["name"] == name:
             return i
 
 
-def personSizeIndexFromSize(size):
+def personSizeIndexFromSize(size) -> int:
     for i, entry in enumerate(PERSON_SIZES):
         if entry["size"] == size:
             return i
 
 
-def scaleForPersonSize(size):
+def scaleForPersonSize(size) -> float:
     if size > NORMAL_PERSON_SIZE:
         return 1.0 + 0.25 * (size - NORMAL_PERSON_SIZE)
     elif size == NORMAL_PERSON_SIZE:
@@ -640,14 +648,14 @@ def scaleForPersonSize(size):
         return 0.4 ** abs(size - NORMAL_PERSON_SIZE)
 
 
-def personRectForSize(size):
+def personRectForSize(size) -> QRectF:
     coeff = scaleForPersonSize(size)
     width = PERSON_RECT.width() * coeff
     ret = QRectF(-width / 2.0, -width / 2.0, width, width)
     return ret
 
 
-def sizeForPeople(personA, personB=None):
+def sizeForPeople(personA, personB=None) -> int:
     if personA and personB:
         size = max(personA.size(), personB.size())
     elif personA and not personB:
@@ -655,6 +663,134 @@ def sizeForPeople(personA, personB=None):
     else:
         size = 3
     return size
+
+
+@dataclass
+class InferredParentSpec:
+    """
+    Specification for creating inferred parents.
+
+    Contains the core shared logic for what parents to create and where to
+    position them, independent of whether creating dicts or objects.
+    """
+
+    parent_size: int
+    male_pos: any  # QPointF
+    female_pos: any  # QPointF
+    need_male: bool
+    need_female: bool
+    need_marriage: bool
+
+
+def inferredParentSpec(child_pos, parent_size, has_male=False, has_female=False):
+    # Convert child_pos to QPointF if needed
+    if isinstance(child_pos, dict):
+        child_pos = QPointF(child_pos.get("x", 0), child_pos.get("y", 0))
+
+    # Calculate positions using THE SINGLE SOURCE OF TRUTH algorithm
+    rect = personRectForSize(parent_size)
+    spacing = rect.width() * 2
+    male_pos = child_pos + QPointF(-spacing, -spacing * 1.5)
+    female_pos = child_pos + QPointF(spacing, -spacing * 1.5)
+
+    return InferredParentSpec(
+        parent_size=parent_size,
+        male_pos=male_pos,
+        female_pos=female_pos,
+        need_male=not has_male,
+        need_female=not has_female,
+        need_marriage=not has_male
+        or not has_female,  # Need marriage if creating any parent
+    )
+
+
+@dataclass
+class InferredParents:
+    male_id: int
+    female_id: int
+    marriage_id: int
+    male_data: Optional[dict]
+    female_data: Optional[dict]
+    marriage_data: Optional[dict]
+    created_male: bool
+    created_female: bool
+    created_marriage: bool
+
+
+def ensureInferredParents(
+    child_pos,
+    parent_size,
+    child_layers,
+    next_id,
+    existing_male_id=None,
+    existing_female_id=None,
+    existing_marriage_id=None,
+) -> InferredParents:
+    # Use shared logic to determine what to create
+    spec = inferredParentSpec(
+        child_pos,
+        parent_size,
+        has_male=existing_male_id is not None,
+        has_female=existing_female_id is not None,
+    )
+
+    # Create male parent if needed
+    if spec.need_male:
+        male_id = next_id
+        next_id += 1
+        male_data = {
+            "kind": "Person",
+            "id": male_id,
+            "gender": PERSON_KIND_MALE,
+            "size": spec.parent_size,
+            "itemPos": spec.male_pos,
+            "layers": child_layers,
+        }
+    else:
+        male_id = existing_male_id
+        male_data = None
+
+    # Create female parent if needed
+    if spec.need_female:
+        female_id = next_id
+        next_id += 1
+        female_data = {
+            "kind": "Person",
+            "id": female_id,
+            "gender": PERSON_KIND_FEMALE,
+            "size": spec.parent_size,
+            "itemPos": spec.female_pos,
+            "layers": child_layers,
+        }
+    else:
+        female_id = existing_female_id
+        female_data = None
+
+    # Create marriage if needed
+    if spec.need_marriage:
+        marriage_id = next_id
+        next_id += 1
+        marriage_data = {
+            "kind": "Marriage",
+            "id": marriage_id,
+            "person_a": male_id,
+            "person_b": female_id,
+        }
+    else:
+        marriage_id = existing_marriage_id
+        marriage_data = None
+
+    return InferredParents(
+        male_id=male_id,
+        female_id=female_id,
+        marriage_id=marriage_id,
+        male_data=male_data,
+        female_data=female_data,
+        marriage_data=marriage_data,
+        created_male=spec.need_male,
+        created_female=spec.need_female,
+        created_marriage=spec.need_marriage,
+    )
 
 
 def penWidthForSize(size):

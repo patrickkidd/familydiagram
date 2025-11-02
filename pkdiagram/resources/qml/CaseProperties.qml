@@ -17,33 +17,23 @@ PK.Drawer {
     signal flashTimelineRow(int index)
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
+    signal inspectEvents(var eventList)
+    signal inspectNotes(int row)
 
     property int margin: util.QML_MARGINS
-    property bool isDrawerOpen: eventPropertiesDrawer.visible
-    property bool canRemove: tabBar.currentIndex == 0 && timelineView.canRemove
-    property bool canInspect: tabBar.currentIndex == 0 && timelineView.canInspect
+    property bool isDrawerOpen: false
+    property bool canRemove: timelineView.canRemove
+    property bool canInspect: timelineView.canInspect
     property bool notJustFreeLicense: {
         sceneModel.session ? (sceneModel.session.hash && sceneModel.session.hasFeature(
-            vedana.LICENSE_CLIENT, vedana.LICENSE_PROFESSIONAL, vedana.LICENSE_ALPHA, vedana.LICENSE_BETA
+            btcopilot.LICENSE_CLIENT, btcopilot.LICENSE_PROFESSIONAL, btcopilot.LICENSE_ALPHA, btcopilot.LICENSE_BETA
         )) : false
     }
 
     property var variablesList: variablesList
     property var variablesCrudButtons: variablesCrudButtons
     property var timelineView: timelineView
-    property var eventProperties: eventProperties
     property var copilotView: copilotView
-
-    Connections {
-        target: sceneModel
-        function onSceneChanged() {
-            eventPropertiesDrawer.hide()
-        }
-    }
-
-    onHidden: {
-        eventPropertiesDrawer.hide()
-    }
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -70,28 +60,12 @@ PK.Drawer {
         }[tabBar.currentIndex]
     }
     
-    function inspectEvents(events) {
-        session.trackView('Edit timeline events')
-        eventProperties.eventModel.items = events
-        eventPropertiesDrawer.visible = true
-    }
-
-    function onInspect(tab) {
+    function onInspect() {
+        // print('CaseProperties.onInspect(): canInspect =', canInspect, 'selectedEvents.length =', timelineView.selectedEvents.length)
         if(canInspect && timelineView.selectedEvents.length) {
-            if(tab !== undefined) {
-                eventProperties.setCurrentTab(tab)
-            } else {
-                eventProperties.setCurrentTab('item')
-            }
+            // print('CaseProperties.onInspect(): inspecting', timelineView.selectedEvents.length, 'events')
             root.inspectEvents(timelineView.selectedEvents)
         }
-    }
-
-    function onInspectNotes(row) {
-        session.trackView('Edit event notes')
-        eventProperties.eventModel.items = timelineView.selectedEvents
-        eventProperties.setCurrentTab('notes')
-        eventPropertiesDrawer.visible = true
     }
 
     function scrollSettingsToBottom() {
@@ -101,35 +75,6 @@ PK.Drawer {
 
     function scrollTimelineToDateTime(dateTime) {
         timelineView.scrollToDateTime(dateTime, true)
-    }
-
-    QQC.Drawer {
-
-        id: eventPropertiesDrawer
-        width: util.DRAWER_OVER_WIDTH
-        height: root.height
-        dragMargin: 0
-        edge: Qt.RightEdge
-        PK.EventProperties {
-            id: eventProperties
-            anchors.fill: parent
-        }
-        background: Rectangle {
-            Rectangle {
-                height: parent.height
-                width: 1
-                color: util.QML_ITEM_BORDER_COLOR
-            }
-        }
-        onPositionChanged: if(position == 0) eventProperties.eventModel.items = undefined
-        Connections {
-            target: eventProperties
-            function onDone() { eventPropertiesDrawer.visible = false }
-        }
-        function hide() {
-            position = 0
-            visible = false
-        }
     }
     
     header: PK.ToolBar {
@@ -214,17 +159,15 @@ PK.Drawer {
             onSelectionChanged: {
                 sceneModel.selectionChanged()
                 root.flashTimelineSelection(timelineView.selectionModel)
-                // Added for when changing selection from graphical timeline,
-                // but I guess makes sense all the time anyway.
-                if(eventPropertiesDrawer.visible && ! eventProperties.eventModel.isSetting) {
-                    eventPropertiesDrawer.visible = false
-                }
             }
             onRowClicked: function(row) {
                 root.flashTimelineRow(row)
             }
             onInspect: root.onInspect()
-            onInspectNotes: root.onInspectNotes(row)
+            onInspectNotes: {
+                session.trackView('Edit event notes')
+                root.inspectNotes(row)
+            }
         }
         
         Flickable {
@@ -382,7 +325,8 @@ PK.Drawer {
                                 Layout.minimumWidth: 180
                                 currentIndex: -1
                                 displayText: currentIndex == -1 ? 'Set from template' : model.get(currentIndex)
-                                model: ['Havstad Model', 'Papero Model', "Stinson Model"]
+                                model: ['Papero Model', "Stinson Model"]
+                                // model: ['Havstad Model', 'Papero Model', "Stinson Model"]
                                 onCurrentIndexChanged: {
                                     root.eventPropertiesTemplateIndexChanged(currentIndex)
                                     currentIndex = -1 // change back
@@ -593,9 +537,9 @@ PK.Drawer {
                                             currentIndex: {
                                                 if(rightCode == undefined) {
                                                     return -1
-                                                } else if (rightCode == vedana.ACCESS_READ_ONLY) {
+                                                } else if (rightCode == btcopilot.ACCESS_READ_ONLY) {
                                                     return 0
-                                                } else if (rightCode == vedana.ACCESS_READ_WRITE) {
+                                                } else if (rightCode == btcopilot.ACCESS_READ_WRITE) {
                                                     return 1
                                                 }
                                             }
@@ -603,9 +547,9 @@ PK.Drawer {
                                                 if(currentIndex == -1) {
                                                     rightCode = undefined
                                                 } else if(currentIndex == 0) {
-                                                    rightCode = vedana.ACCESS_READ_ONLY
+                                                    rightCode = btcopilot.ACCESS_READ_ONLY
                                                 } else if(currentIndex == 1) {
-                                                    rightCode = vedana.ACCESS_READ_WRITE
+                                                    rightCode = btcopilot.ACCESS_READ_WRITE
                                                 }
                                             }
                                         }

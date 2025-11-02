@@ -1,0 +1,247 @@
+import pytest
+from mock import patch
+
+from btcopilot.schema import VariableShift, EventKind, RelationshipKind
+from pkdiagram.pyqt import QMessageBox
+from pkdiagram import util
+from pkdiagram.scene import Person, Event, Marriage
+from pkdiagram.views.eventform import EventForm
+
+from .test_eventform import view, START_DATETIME, END_DATETIME
+
+
+def test_init_Birth(scene, view):
+    mother, father, child = scene.addItems(
+        Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Baby")
+    )
+    marriage = scene.addItem(Marriage(mother, father))
+    event = scene.addItem(
+        Event(
+            EventKind.Birth,
+            mother,
+            spouse=father,
+            child=child,
+            dateTime=START_DATETIME,
+            location="Old Location",
+            notes="Old Notes",
+        )
+    )
+
+    view.view.editEvents([event])
+    assert view.item.property("kindBox").property("enabled") == False
+    assert view.view.personEntry()["person"] == mother
+    assert view.view.spouseEntry()["person"] == father
+    assert view.view.childEntry()["person"] == child
+    assert view.item.property("kind") == EventKind.Birth.value
+    assert view.item.property("kindBox").currentValue() == EventKind.Birth.value
+    assert view.item.property("startDateTime") == START_DATETIME
+    assert view.item.property("startDateButtons").property("dateTime") == START_DATETIME
+    assert view.item.property("isDateRange") == False
+    assert view.item.property("isDateRangeBox").property("checked") == False
+    assert view.item.property("endDateTime") == None
+    assert view.item.property("endDateButtons").property("dateTime") == None
+    assert view.item.property("location") == "Old Location"
+    assert view.item.property("locationEdit").property("text") == "Old Location"
+    assert view.item.property("notes") == "Old Notes"
+    assert view.item.property("notesEdit").property("text") == "Old Notes"
+
+
+def test_init_Death(scene, view):
+    person = scene.addItem(Person(name="John Doe"))
+    event = scene.addItem(Event(EventKind.Death, person, dateTime=START_DATETIME))
+    event.setLocation("Old Location")
+    event.setNotes("Old Notes")
+
+    view.view.editEvents([event])
+    assert view.view.personEntry()["person"] == person
+    assert view.item.property("kind") == EventKind.Death.value
+    assert view.item.property("startDateTime") == START_DATETIME
+    assert view.item.property("location") == "Old Location"
+    assert view.item.property("notes") == "Old Notes"
+
+
+def test_init_Shift(scene, view):
+    mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            mother,
+            dateTime=START_DATETIME,
+            description="Some description",
+            symptom=VariableShift.Up,
+            anxiety=VariableShift.Same,
+            relationship=RelationshipKind.Conflict,
+            relationshipTargets=[father],
+            functioning=VariableShift.Down,
+        )
+    )
+    view.view.editEvents([event])
+    util.waitALittle()
+    assert view.item.property("kind") == EventKind.Shift.value
+    assert view.view.personEntry()["person"] == mother
+    assert set(x["person"] for x in view.view.targetsEntries()) == {father}
+    assert view.item.property("description") == "Some description"
+    assert view.item.property("descriptionEdit").property("text") == "Some description"
+    assert view.view.trianglesEntries() == []
+    assert view.item.property("symptom") == VariableShift.Up.value
+    assert (
+        view.item.property("symptomField").property("value") == VariableShift.Up.value
+    )
+    assert view.item.property("anxiety") == VariableShift.Same.value
+    assert (
+        view.item.property("anxietyField").property("value") == VariableShift.Same.value
+    )
+    assert view.item.property("functioning") == VariableShift.Down.value
+    assert (
+        view.item.property("functioningField").property("value")
+        == VariableShift.Down.value
+    )
+
+
+def test_init_Shift_Triangle(scene, view):
+    mother, father, lover = scene.addItems(
+        Person(name="Mother"), Person(name="Father"), Person(name="Lover")
+    )
+    triangleEvent = scene.addItem(
+        Event(
+            EventKind.Shift,
+            mother,
+            relationship=RelationshipKind.Inside,
+            relationshipTargets=[lover],
+            relationshipTriangles=[father],
+            dateTime=START_DATETIME,
+            endDateTime=END_DATETIME,
+        )
+    )
+    triangle = scene.emotionsFor(triangleEvent)[0]
+    view.view.editEvents([triangleEvent])
+    util.waitALittle()
+    assert view.view.personEntry()["person"] == mother
+    assert view.view.targetsEntries()[0]["person"] == lover
+    assert view.view.trianglesEntries()[0]["person"] == father
+    assert view.item.property("kind") == EventKind.Shift.value
+    assert view.item.property("relationship") == RelationshipKind.Inside.value
+    assert view.item.property("startDateTime") == START_DATETIME
+    assert view.item.property("endDateTime") == END_DATETIME
+    assert view.item.property("isDateRange") is True
+
+
+@pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
+def test_edit_isPerson(scene, view, kind):
+    person, spouse, child = scene.addItems(
+        Person(name="John Doe"), Person(name="Jane Doe"), Person(name="Child")
+    )
+    marriage = scene.addItem(Marriage(person, spouse))
+    event = scene.addItem(
+        Event(kind, person, spouse=spouse, child=child, dateTime=START_DATETIME)
+    )
+    view.view.editEvents([event])
+    view.set_location("New Location")
+    view.set_notes("New Notes")
+    view.set_startDateTime(START_DATETIME)
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as question:
+        view.clickSaveButton()
+    assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
+        n_existing=1, kind=kind.name
+    )
+    assert len(scene.eventsFor(marriage)) == 1
+    assert event.kind() == kind
+    assert event.description() == kind.name
+    assert event.location() == "New Location"
+    assert event.notes() == "New Notes"
+    assert event.dateTime() == START_DATETIME
+
+
+def test_edit_Death(scene, view):
+    person = scene.addItem(Person(name="John Doe"))
+    event = scene.addItem(Event(EventKind.Death, person, dateTime=START_DATETIME))
+    view.view.editEvents([event])
+    view.set_location("New Location")
+    view.set_notes("New Notes")
+    view.set_startDateTime(START_DATETIME)
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ) as question:
+        view.clickSaveButton()
+        assert question.call_args[0][2] == EventForm.S_REPLACE_EXISTING.format(
+            n_existing=1, kind=EventKind.Death.name
+        )
+
+    assert len(scene.eventsFor(person)) == 1
+    assert event.kind() == EventKind.Death
+    assert event.description() == EventKind.Death.menuLabel()
+    assert event.location() == "New Location"
+    assert event.notes() == "New Notes"
+    assert event.dateTime() == START_DATETIME
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [EventKind.Bonded, EventKind.Married, EventKind.Separated, EventKind.Divorced],
+)
+def test_edit_isPairBond(scene, view, kind: EventKind):
+    person, spouse = scene.addItems(Person(name="John Doe"), Person(name="Jane Doe"))
+    marriage = scene.addItem(Marriage(person, spouse))
+    event = scene.addItem(Event(kind, person))
+    event.setSpouse(spouse)
+    event.setRelationshipTargets([spouse])
+    view.view.editEvents([event])
+    view.set_startDateTime(START_DATETIME)
+    view.clickSaveButton()
+
+    # assert len(person.events()) == 1
+    assert event.kind() == kind
+    assert event.dateTime() == START_DATETIME
+    assert event.person() == person
+    assert event.spouse() == spouse
+
+
+def test_edit_multiple_events_add_tags(scene, view):
+    TAG_1 = "medical"
+
+    scene.setTags([TAG_1, "work", "personal"])
+    personA, personB = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+    eventA1, eventA2, eventA3, eventB1 = scene.addItems(
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME,
+            description="First symptom shift",
+            symptom=VariableShift.Down,
+        ),
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME.addDays(1),
+            description="Second symptom shift",
+            symptom=VariableShift.Same,
+        ),
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=START_DATETIME.addDays(2),
+            description="Third symptom shift",
+            symptom=VariableShift.Up,
+        ),
+        Event(
+            EventKind.Shift,
+            personB,
+            dateTime=START_DATETIME,
+            description="Anxiety shift",
+            anxiety=VariableShift.Down,
+        ),
+    )
+    assert eventA1.tags() == []
+    assert eventA2.tags() == []
+    assert eventA3.tags() == []
+    assert eventB1.tags() == []
+
+    view.view.editEvents([eventA1, eventA2, eventA3, eventB1])
+    view.set_active_tags([TAG_1])
+    view.clickSaveButton()
+    assert eventA1.tags() == [TAG_1]
+    assert eventA2.tags() == [TAG_1]
+    assert eventA3.tags() == [TAG_1]
+    assert eventB1.tags() == [TAG_1]

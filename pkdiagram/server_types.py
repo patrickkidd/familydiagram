@@ -14,7 +14,7 @@ import wsgiref.handlers
 from dataclasses import dataclass, InitVar, field
 from typing import Union
 
-import vedana
+import btcopilot
 from pkdiagram.pyqt import (
     QObject,
     QNetworkRequest,
@@ -212,14 +212,14 @@ class Diagram:
             return True
         for access_right in self.access_rights:
             if access_right.user_id == user_id:
-                if right == vedana.ACCESS_READ_ONLY and access_right.right in (
-                    vedana.ACCESS_READ_WRITE,
-                    vedana.ACCESS_READ_ONLY,
+                if right == btcopilot.ACCESS_READ_ONLY and access_right.right in (
+                    btcopilot.ACCESS_READ_WRITE,
+                    btcopilot.ACCESS_READ_ONLY,
                 ):
                     return True
                 elif (
-                    right == vedana.ACCESS_READ_WRITE
-                    and access_right.right == vedana.ACCESS_READ_WRITE
+                    right == btcopilot.ACCESS_READ_WRITE
+                    and access_right.right == btcopilot.ACCESS_READ_WRITE
                 ):
                     return True
         return False
@@ -320,7 +320,9 @@ class Server(QObject):
             failMessage = "SSL handshake with server failed."
         elif status_code not in statuses:
             failMessage = util.qtHTTPReply2String(reply)
-        # log.debug(f"{reply.request().url().toString()}: status_code: {status_code}")
+        # log.debug(
+        #     f"Completed: {reply.request().attribute(QNetworkRequest.CustomVerbAttribute).decode()} {reply.request().url().toString()}: status_code: {status_code}"
+        # )
         if failMessage:
             raise HTTPError(
                 failMessage,
@@ -387,13 +389,13 @@ class Server(QObject):
             user = self._user.username
             secret = self._user.secret
         else:
-            user = vedana.ANON_USER
-            secret = vedana.ANON_SECRET
-        signature = vedana.sign(
+            user = btcopilot.ANON_USER
+            secret = btcopilot.ANON_SECRET
+        signature = btcopilot.sign(
             secret, verb, content_md5, _headers["Content-Type"], date, resource
         )
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
-        auth_header = vedana.httpAuthHeader(user, signature)
+        auth_header = btcopilot.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
         request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
         request.setAttribute(QNetworkRequest.CustomVerbAttribute, verb.encode("utf-8"))
@@ -440,7 +442,7 @@ class Server(QObject):
         reply.setProperty("pk_server", self)
         reply.finished.connect(onFinished)
 
-        def onSSLErrors(self, errors):
+        def onSSLErrors(errors):
             log.error("SSL Errors:")
             for e in errors:
                 log.error(f"    {e.errorString()}")

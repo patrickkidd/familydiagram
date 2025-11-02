@@ -206,8 +206,9 @@ public:
     bool eventFilter(QObject *o, QEvent *e);
     
 signals:
-    
+
     void fileOpen(const QString &);
+    void urlOpened(const QString &);
     void escapeKey(QKeyEvent *);
 };
 

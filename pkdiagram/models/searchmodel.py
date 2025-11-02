@@ -1,7 +1,7 @@
 from pkdiagram.pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
-from ..scene import Item, Property
+from pkdiagram.scene import Item, Property, Event
 
 
 class SearchModel(QObject, QObjectHelper):
@@ -115,15 +115,16 @@ class SearchModel(QObject, QObjectHelper):
 
     # Verbs
 
-    def shouldHide(self, event):
+    def shouldHide(self, row: "TimelineRow") -> bool:
         """Search kernel."""
+        event = row.event
         nullLoggedDate = bool(
             not event.loggedDateTime() or event.loggedDateTime().isNull()
         )
         hidden = False
         if self.nodal and not event.nodal():
             hidden = True
-        elif self.hideRelationships and event.parent.isEmotion:
+        elif self.hideRelationships and event.relationship():
             hidden = True
         elif not event.dateTime() or event.dateTime().isNull():
             hidden = True
@@ -147,12 +148,5 @@ class SearchModel(QObject, QObjectHelper):
         ):
             hidden = True
         elif self.tags and not event.hasTags(self.tags):  # ignore search model tags
-            hidden = True
-        elif (
-            event.parent
-            and event.parent.isEmotion
-            and event is event.parent.endEvent
-            and event.parent.isSingularDate()
-        ):
             hidden = True
         return hidden

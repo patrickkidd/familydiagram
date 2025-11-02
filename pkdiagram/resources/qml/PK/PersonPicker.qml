@@ -44,7 +44,7 @@ Rectangle {
         selectedPeopleModel.append({ person: person, isNewPerson: false })
     }
 
-    // The list of people already selected in the AddAnythingDialog
+    // The list of people already selected in the EventForm
     property var selectedPeopleModel: ListModel { }
 
     // The list of people used for auto-complete
@@ -80,12 +80,17 @@ Rectangle {
         // print('<<< PersonPicker.clear() root.gender: ' + root.gender + ', ' + genderBox.currentIndex)
     }
 
-    function setFocus() {
+    function focusTextEdit() {
+        // util.debug('>>> PersonPicker.focusTextEdit()')
         pickerTextEdit.forceActiveFocus()
+        // util.debug('<<< PersonPicker.focusTextEdit()')
     }
 
     function personEntry() {
-        // print('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + person.gender())
+        util.debug('PersonPicker.personEntry: ' + root.personName + ', ' + root.person + ', ' + root.gender)
+        if(! root.isSubmitted) {
+            return null
+        }
         return {
             person: root.person,
             personName: root.personName,
@@ -94,7 +99,15 @@ Rectangle {
         }
     }
 
+    function setExistingPersonId(personId) {
+        setExistingPerson(sceneModel.item(personId))
+    }
+
     function setExistingPerson(person) {
+        if (!person) {
+            util.warning('PersonPicker[' + root.objectName + '].setExistingPerson: null person')
+            return
+        }
         util.debug('PersonPicker[' + root.objectName + '].setExistingPerson: ' + person.listLabel())
         root.isDirty = true
         root.isSubmitted = true
@@ -109,14 +122,18 @@ Rectangle {
         submitted(person)
     }
 
-    function setNewPerson(personName) {
-        util.debug('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName)
+    function setNewPerson(personName, gender) {
+        // util.info('PersonPicker[' + root.objectName + '].setNewPerson: ' + personName + ', gender: ' + gender)
         root.isDirty = true
         root.isSubmitted = true
         root.isNewPerson = true
         root.person = null
         root.personName = personName
-        root.gender = util.PERSON_KIND_MALE
+        if(gender) {
+            root.gender = gender
+        } else {
+            root.gender = util.PERSON_KIND_MALE
+        }
         autoCompletePopup.close()
         submitted(personName)
     }
@@ -214,7 +231,7 @@ Rectangle {
         id: genderBox
         objectName: "genderBox"
         z: 2
-        width: 90
+        width: 70
         height: util.QML_ITEM_HEIGHT - 10
         visible: isSubmitted
         model: util.PERSON_KIND_NAMES
@@ -230,6 +247,8 @@ Rectangle {
             rightMargin: root.spacing + 10
         }
         palette.button: 'transparent'
+        popup.width: genderBox.width + 25
+
         onCurrentIndexChanged: {
             var newGender = util.personKindFromIndex(currentIndex)
             if(newGender != root.gender) {

@@ -15,13 +15,11 @@
                 "all": "hide",
                 "protected": "inline",
             },
-            // "env": {
-            //     "FD_LOG_LEVEL": "DEBUG",
-            // }
             "args": [
                 // "--windows-console"
             ],
             "env": {
+                "FD_LOG_LEVEL": "DEBUG",
                 // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
             }
         },
@@ -45,7 +43,7 @@
             }
         },        
         {
-            "name": "Therapist",
+            "name": "Personal",
             "type": "debugpy",
             "request": "launch",
             "module": "pkdiagram",
@@ -56,7 +54,7 @@
                 "protected": "inline",
             },
             "args": [
-                "--therapist"
+                "--personal"
             ],
             "env": {
                 // "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
@@ -87,18 +85,13 @@
             "envFile": "/.vscode/.windows-env"
         },
         {
-            "name": "sysroot-dev TestDialog",
+            "name": "profile_load.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "main_qml.py",
+            "program": "${workspaceFolder}/profile_load.py",
             "console": "integratedTerminal",
-            "args": [
-                "CopilotView"
-            ],
-            "env": {
-                "--QT_LOGGING_RULES": "qt.quick.*=true"
-            }
-        },
+            "justMyCode": false,
+        },        
         {
             "name": "ingest",
             "type": "debugpy",
@@ -203,15 +196,6 @@
             ]
         },
         {
-            "name": "update_build_info.py",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/update_build_info.py",
-            "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "justMyCode": false,
-        },
-        {
             "name": "sip-build (_pkdiagram)",
             "type": "debugpy",
             "request": "launch",
@@ -223,13 +207,15 @@
         {
             "name": "Debug Unit Test",
             "type": "debugpy",
-            "purpose": "debug-test",
+            "request": "launch",
+            "purpose": ["debug-test"],
+            "console": "integratedTerminal",
             "justMyCode": false,
-            "skipFiles": [],
             "args": [
                 "-svvx"
             ],
             "env": {
+                "QT_QPA_PLATFORM": "cocoa",
                 // "QML_LOGGING": "qt.quick.mouse",
                 // "QT_LOGGING_RULES": "qt.quick.*=true"
                 // "QT_LOGGING_RULES": "qt.qpa.*=true"
@@ -260,7 +246,7 @@
                 "-m",
                 "pytest",
                 "-svv",
-                "tests/test_addanythingdialog_scripts.py::test_blow_up_ItemDetails_2"
+                "tests/test_eventform_scripts.py::test_blow_up_ItemDetails_2"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

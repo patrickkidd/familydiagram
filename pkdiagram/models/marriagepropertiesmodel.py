@@ -1,5 +1,8 @@
+from typing import Union
+
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import QObject, Qt, qmlRegisterType
-from pkdiagram.scene import EventKind, Item, Marriage
+from pkdiagram.scene import Item, Marriage, Property, Event
 from pkdiagram.models import ModelHelper
 
 
@@ -18,12 +21,9 @@ class MarriagePropertiesModel(QObject, ModelHelper):
             {"attr": "married", "convertTo": Qt.CheckState},
             {"attr": "separated", "convertTo": Qt.CheckState},
             {"attr": "divorced", "convertTo": Qt.CheckState},
-            {"attr": "everSeparated", "type": bool},
-            {"attr": "everDivorced", "type": bool},
             {"attr": "anyMarriedEvents", "type": bool},
             {"attr": "anySeparatedEvents", "type": bool},
             {"attr": "anyDivorcedEvents", "type": bool},
-            {"attr": "numEvents", "type": int},
         ],
     )
 
@@ -33,24 +33,24 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         super().__init__(parent)
         self.initModelHelper()
 
-    def onItemEventAddedOrRemoved(self, event):
+    def onEventsChanged(self, item: Union[Property, Event]):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == EventKind.Married.value:
+        if isinstance(item, Property):
+            event = prop.item
+        else:
+            event = item
+        if event.kind() == EventKind.Married:
             self.refreshProperty("anyMarriedEvents")
-            self.refreshProperty("everMarried")
-        elif event.uniqueId() == EventKind.Separated.value:
+        elif event.kind() == EventKind.Separated:
             self.refreshProperty("anySeparatedEvents")
-            self.refreshProperty("everSeparated")
-        elif event.uniqueId() == EventKind.Divorced.value:
-            self.refreshProperty("everMarried")
-            self.refreshProperty("everSeparated")
+        elif event.kind() == EventKind.Divorced:
             self.refreshProperty("anyDivorcedEvents")
-            self.refreshProperty("everDivorced")
 
     def get(self, attr):
         ret = None
+
         if self._items:
             marriage = self._items[0]
             x = None
@@ -62,20 +62,12 @@ class MarriagePropertiesModel(QObject, ModelHelper):
                 x = marriage.personA().id
             elif attr == "personBId":
                 x = marriage.personB().id
-            elif attr == "everMarried":
-                x = marriage.everMarried()
-            elif attr == "everSeparated":
-                x = marriage.everSeparated()
-            elif attr == "everDivorced":
-                x = marriage.everDivorced()
             elif attr == "anyMarriedEvents":
                 x = marriage.anyMarriedEvents()
             elif attr == "anySeparatedEvents":
                 x = marriage.anySeparatedEvents()
             elif attr == "anyDivorcedEvents":
                 x = marriage.anyDivorcedEvents()
-            elif attr == "numEvents":
-                x = len(marriage.events())
             if x is not None:
                 ret = self.getterConvertTo(attr, x)
             else:
@@ -85,23 +77,16 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         return ret
 
     def set(self, attr, value):
-        if attr == "items":
-            if self._items:
-                for item in self._items:
-                    item.addPropertyListener
-                    item.eventAdded.disconnect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.disconnect(self.onItemEventAddedOrRemoved)
+        if attr == "scene":
+            if self._scene:
+                self._scene.eventAdded.disconnect(self.onEventsChanged)
+                self._scene.eventChanged.disconnect(self.onEventsChanged)
+                self._scene.eventRemoved.disconnect(self.onEventsChanged)
             if value:
-                for item in value:
-                    item.eventAdded.connect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.connect(self.onItemEventAddedOrRemoved)
+                value.eventAdded.connect(self.onEventsChanged)
+                value.eventChanged.connect(self.onEventsChanged)
+                value.eventRemoved.connect(self.onEventsChanged)
         super().set(attr, value)
-        if attr == "married":
-            self.refreshProperty("everMarried")
-        elif attr == "separated":
-            self.refreshProperty("everSeparated")
-        elif attr == EventKind.Divorced.value:
-            self.refreshProperty("everDivorced")
 
 
 qmlRegisterType(MarriagePropertiesModel, "PK.Models", 1, 0, "MarriagePropertiesModel")

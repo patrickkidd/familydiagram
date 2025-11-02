@@ -24,16 +24,8 @@ class Property:
 
         return sorted(stuff, key=getKey)
 
-    _SetProperty = None
-    _ResetProperty = None
-
     def __init__(self, item, **kwargs):
         super().__init__()
-        if Property._SetProperty is None:
-            from pkdiagram.scene.commands import SetProperty, ResetProperty
-
-            Property._SetProperty = SetProperty
-            Property._ResetProperty = ResetProperty
         self._kwargs = kwargs
         self._id = Property._nextId
         Property._nextId = Property._nextId + 1
@@ -42,6 +34,8 @@ class Property:
         self.attr = kwargs["attr"]
         self.onset = kwargs.get("onset", None)
         self.default = kwargs.get("default", None)
+        if callable(self.default):
+            self.default = self.default()
         if isinstance(self.default, (list, dict)):
             self.default = copy.deepcopy(self.default)
         self.isDynamic = kwargs.get("dynamic", False)
@@ -184,7 +178,9 @@ class Property:
 
     def set(self, y, notify=True, forLayers=None, force=False, undo=False):
         if undo:
-            self.scene().push(Property._SetProperty(self, y, forLayers))
+            from pkdiagram.scene.commands import SetProperty
+
+            self.scene().push(SetProperty(self, y, forLayers))
             return True
         else:
             return self._do_set(y, notify, forLayers, force)
@@ -208,9 +204,9 @@ class Property:
 
     def reset(self, notify=True, undo=False):
         if undo:
-            self.scene().push(
-                Property._ResetProperty(self, forLayers=self._activeLayers)
-            )
+            from pkdiagram.scene.commands import ResetProperty
+
+            self.scene().push(ResetProperty(self, forLayers=self._activeLayers))
         else:
             self._do_reset(notify=notify)
 

@@ -30,6 +30,7 @@ ColumnLayout {
     property int rows: table.rows
     property int columns: table.columns
     property var innerTable: table
+    property var delegates: []
 
     property bool showFilterButton: true
 
@@ -247,9 +248,10 @@ ColumnLayout {
 
     function scrollToDateTime(dateTime) {
         // print('TimelineView.scrollToDateTime: ' + dateTime)
-        var row = model.firstRowForDateTime(dateTime)        
-        if(row > -1) {
-            table.ensureVisible(row, true)
+        var rows = model.firstAndLastRowsForDateTime(dateTime)
+        var firstRow = rows[0]
+        if(firstRow > -1) {
+            table.ensureVisible(firstRow, true)
         }
     }
     
@@ -306,7 +308,7 @@ ColumnLayout {
                 visible: hideColumns.indexOf(column) < 0
                 anchors.verticalCenter: parent.verticalCenter
                 padding: margin
-            }
+            }            
         }
     }
     
@@ -490,8 +492,9 @@ ColumnLayout {
                     currentDateTimeIndicator.y = (betweenRow + 1) * util.QML_ITEM_HEIGHT - (h * .5)
                     currentDateTimeIndicator.height = h
                 } else {
-                    var firstRow = table.model.firstRowForDateTime(currentDateTime, root.model)
-                    var lastRow = table.model.lastRowForDateTime(currentDateTime, root.model)
+                    var rows = table.model.firstAndLastRowsForDateTime(currentDateTime, root.model)
+                    var firstRow = rows[0]
+                    var lastRow = rows[1]
                     if(firstRow != -1) {
                         var numRows = (lastRow + 1) - firstRow
                         currentDateTimeIndicator.y = firstRow * util.QML_ITEM_HEIGHT
@@ -506,39 +509,39 @@ ColumnLayout {
 
         }
 
-        Rectangle {
-            id: buddyItem
-            x: 0; y: 0; z: 2
-            width: root.columnWidthProvider(0)
-            height: table.contentHeight
-            visible: width > 0
-            color: 'transparent'
-            Repeater {
-                model: table.model ? table.model.dateBuddies : []
-                id: repeater
-                Shape {
-                    id: box
-//                    x: -width // no idea
-                    y: modelData.startRow * util.QML_ITEM_HEIGHT
-                    height: (modelData.endRow - modelData.startRow + 1) * util.QML_ITEM_HEIGHT
-                    width: parent.width
-                    ShapePath {
-                        id: bracket
-                        startX: box.width
-                        startY: 0
-                        strokeColor: modelData.color
-                        strokeWidth: 1
-                        fillColor: 'transparent'
-                        PathQuad {
-                            x: box.width
-                            y: box.height
-                            controlX: -box.width + 2
-                            controlY: box.height / 2
-                        }
-                    }
-                }
-            }
-        }
+//         Rectangle {
+//             id: buddyItem
+//             x: 0; y: 0; z: 2
+//             width: root.columnWidthProvider(0)
+//             height: table.contentHeight
+//             visible: width > 0
+//             color: 'transparent'
+//             Repeater {
+//                 model: table.model ? table.model.dateBuddies : []
+//                 id: repeater
+//                 Shape {
+//                     id: box
+// //                    x: -width // no idea
+//                     y: modelData.startRow * util.QML_ITEM_HEIGHT
+//                     height: (modelData.endRow - modelData.startRow + 1) * util.QML_ITEM_HEIGHT
+//                     width: parent.width
+//                     ShapePath {
+//                         id: bracket
+//                         startX: box.width
+//                         startY: 0
+//                         strokeColor: modelData.color
+//                         strokeWidth: 1
+//                         fillColor: 'transparent'
+//                         PathQuad {
+//                             x: box.width
+//                             y: box.height
+//                             controlX: -box.width + 2
+//                             controlY: box.height / 2
+//                         }
+//                     }
+//                 }
+//             }
+//         }
 
         Connections {
             target: root.model
@@ -562,6 +565,7 @@ ColumnLayout {
             property bool shouldEdit: false
             property bool editMode: shouldEdit && selected
             property bool editable: flags & Qt.ItemIsEditable
+            property bool isDynamicProperty: thisColumn >= 14
             property bool selected: {
                 selectionResetter
                 util.isRowSelected(selectionModel, thisRow)
@@ -590,7 +594,6 @@ ColumnLayout {
             onEditableChanged: updateColor()
             onSameDateAsSelectedChanged: updateColor()
             TableView.onReused: updateColor()
-            Component.onCompleted: updateColor()
 
             function updateColor() {
                 var c
@@ -606,8 +609,6 @@ ColumnLayout {
                     else
                         c = util.QML_ITEM_BG
                 }
-                /* else if(!dRoot.editable) */
-                /*     c = 'transparent' // '#77dddddd' */
                 color = c
             }
 
@@ -616,14 +617,14 @@ ColumnLayout {
                 width: parent.width
                 height: 1
                 visible: thisColumn > 0 && util.ENABLE_DATE_BUDDIES
-                color: (root.expanded && model.color != undefined && model.firstBuddy) ? model.color : 'transparent'
+                color: (root.expanded && model.color != undefined) ? model.color : 'transparent'
             }
             Rectangle { // border-bottom
                 y: parent.height - 1
                 width: parent.width
                 height: 1
                 visible: thisColumn > 0 && util.ENABLE_DATE_BUDDIES
-                color: (root.expanded && model.color != undefined && model.secondBuddy) ? model.color : 'transparent'
+                color: (root.expanded && model.color != undefined) ? model.color : 'transparent'
             }
 
             Rectangle { // border-left
@@ -643,6 +644,19 @@ ColumnLayout {
                 visible: thisColor ? true : false
             }
 
+            Shape { // disabled cell indicator
+                id: disabledOverlay
+                anchors.fill: parent
+                visible: dRoot.thisColumn > 9 && !dRoot.editable
+                ShapePath {
+                    strokeWidth: 1
+                    strokeColor: util.QML_ITEM_BORDER_COLOR
+                    fillColor: "transparent"
+                    PathLine { x: 0; y: 0 }
+                    PathLine { x: dRoot.width; y: dRoot.height }
+                }
+            }
+
             // Editors
 
             PK.TextInput {
@@ -655,6 +669,7 @@ ColumnLayout {
                 padding: margin
                 readOnly: !editMode
                 selectByMouse: !readOnly
+                opacity: (dRoot.isDynamicProperty && !dRoot.editable) ? 0.5 : 1.0
                 color: {
                     if(dRoot.selected || dRoot.current) {
                         return util.textColor(dRoot.selected, dRoot.current)
@@ -773,7 +788,24 @@ ColumnLayout {
                 fillMode: Image.PreserveAspectFit
                 height: parent.height
                 visible: thisColumn == 3 && model.hasNotes
-            }            
+            }   
+
+            Component.onCompleted: {
+                // util.debug('PK.TimelineView._delegate.onCompleted: ' + this)
+                root.delegates.push(this)
+                // util.debug('PK.TimelineView.onCompleted: ' + this)
+                updateColor()
+            }
+            Component.onDestruction: {
+                // util.debug('PK.TimelineView._delegate.onDestruction: ' + this)
+                var index = root.delegates.indexOf(this)
+                if (index !== -1) {
+                    root.delegates.splice(index, 1)
+                }
+                // util.debug('PK.TimelineView.onCompleted: ' + this)
+
+            }
+
         }
     }
 

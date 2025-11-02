@@ -1,8 +1,9 @@
 import logging
 
+from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
-from pkdiagram import version
-from pkdiagram.scene import ItemDetails, Emotion
+from pkdiagram import version, util, slugify
+from pkdiagram.scene import ItemDetails, Emotion, Emotion
 
 _log = logging.getLogger(__name__)
 
@@ -13,6 +14,27 @@ def UP_TO(data, compatVer):
         return True
     else:
         return False
+
+
+def find_parents_from_childof(person_chunk, data):
+    """Extract parent Marriage IDs from childOf relationship.
+
+    Returns tuple of (parent1_id, parent2_id, marriage_id) or (None, None, None).
+    """
+    childOf = person_chunk.get("childOf", {})
+    if not childOf or not childOf.get("parents"):
+        return None, None, None
+
+    marriage_id = childOf["parents"]
+    for marriage_chunk in data.get("marriages", []):
+        if marriage_chunk["id"] == marriage_id:
+            return (
+                marriage_chunk.get("person_a"),
+                marriage_chunk.get("person_b"),
+                marriage_id,
+            )
+
+    return None, None, None
 
 
 def update_data(data):
@@ -272,6 +294,474 @@ def update_data(data):
                         f"Migrating emotion.startEvent.notes to emotion.notes for {chunk['id']}"
                     )
                     chunk["notes"] = chunk["startEvent"]["notes"]
+
+    if UP_TO(data, "2.0.12b1"):
+        # Normalize emotion kind strings to match convention Old format used
+        # capitalized strings like "Conflict", "Reciprocity" These need to stay
+        # as-is for the initial splitting phase
+
+        # Phase 6.1: Split mixed items into separate top-level arrays
+        # Initialize typed arrays
+        data.setdefault("people", [])
+        data.setdefault("marriages", [])
+        data.setdefault("emotions", [])
+        data.setdefault("events", [])
+        data.setdefault("layerItems", [])
+        data.setdefault("layers", [])
+        data.setdefault("multipleBirths", [])
+
+        if "items" in data:
+            # Keep remaining items array for any unknown types
+            remaining_items = []
+
+            for chunk in data["items"]:
+                kind = chunk.get("kind")
+                if kind == "Person":
+                    data["people"].append(chunk)
+                elif kind == "Marriage":
+                    data["marriages"].append(chunk)
+                elif kind and (
+                    kind.lower() in [s.lower() for s in Emotion.kindSlugs()]
+                    or kind in ("DefinedSelf", "Reciprocity")
+                ):  # All emotion types (case-insensitive)
+                    data["emotions"].append(chunk)
+                elif kind == "Event":
+                    data["events"].append(chunk)
+                elif kind == "Layer":
+                    data["layers"].append(chunk)
+                elif kind in ("Callout", "PencilStroke"):
+                    data["layerItems"].append(chunk)
+                elif kind == "MultipleBirth":
+                    data["multipleBirths"].append(chunk)
+                else:
+                    # Unknown item type - keep in items array
+                    remaining_items.append(chunk)
+
+            # Replace items with only unknown types (if any)
+            if remaining_items:
+                data["items"] = remaining_items
+            else:
+                # Remove items array entirely if empty
+                del data["items"]
+
+        # Phase 6.2: Migrate Event Properties
+        # Track next available ID for new events
+        next_id = data.get("lastItemId", -1) + 1
+
+        # Collect all events from nested locations
+        all_events = []
+
+        # 1a. Extract Person built-in events (birthEvent, adoptedEvent, deathEvent)
+        for person_chunk in data.get("people", []):
+            for event_attr in ["birthEvent", "adoptedEvent", "deathEvent"]:
+                if event_attr in person_chunk:
+                    event_chunk = person_chunk.pop(event_attr)
+                    if not event_chunk.get("dateTime"):
+                        continue
+
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "birth":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif uid == "adopted":
+                            event_chunk["kind"] = EventKind.Adopted.value
+                        elif uid == "death":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif uid in ("CustomIndividual", "", None):
+                            event_chunk["kind"] = EventKind.Shift.value
+                        else:
+                            event_chunk["kind"] = uid
+
+                    # Ensure kind is set (fallback if no uniqueId)
+                    if "kind" not in event_chunk:
+                        if event_attr == "birthEvent":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif event_attr == "deathEvent":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif event_attr == "adoptedEvent":
+                            event_chunk["kind"] = EventKind.Adopted.value
+
+                    # Ensure event has ID
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Set person/child references based on event type
+                    if event_attr in ["birthEvent", "adoptedEvent"]:
+                        # Birth/Adopted are pair-bond (offspring) events
+                        event_chunk["child"] = person_chunk["id"]
+
+                        # Try to find existing parents
+                        parent1_id, parent2_id, marriage_id = find_parents_from_childof(
+                            person_chunk, data
+                        )
+
+                        if parent1_id and parent2_id:
+                            # Use existing parents
+                            event_chunk["person"] = parent1_id
+                            event_chunk["spouse"] = parent2_id
+                        else:
+                            # Create inferred parents
+                            child_size = person_chunk.get(
+                                "size", util.DEFAULT_PERSON_SIZE
+                            )
+                            parent_size = max(child_size - 1, 1)  # One size smaller
+                            child_pos = person_chunk.get("itemPos", {"x": 0, "y": 0})
+                            child_layers = person_chunk.get("layers", [])
+
+                            # Use shared utility to ensure parents exist
+                            parents = util.ensureInferredParents(
+                                child_pos, parent_size, child_layers, next_id
+                            )
+
+                            # Update next_id based on created items
+                            if parents.created_male:
+                                next_id += 1
+                            if parents.created_female:
+                                next_id += 1
+                            if parents.created_marriage:
+                                next_id += 1
+
+                            # Add newly created items to data
+                            if parents.male_data:
+                                data["people"].append(parents.male_data)
+                            if parents.female_data:
+                                data["people"].append(parents.female_data)
+                            if parents.marriage_data:
+                                data["marriages"].append(parents.marriage_data)
+
+                            # Link child to parents via childOf
+                            person_chunk["childOf"] = {
+                                "person": person_chunk["id"],
+                                "parents": parents.marriage_id,
+                                "multipleBirth": None,
+                            }
+
+                            # Set event references
+                            event_chunk["person"] = parents.male_id
+                            event_chunk["spouse"] = parents.female_id
+                    else:
+                        # Death event - just set person reference
+                        event_chunk["person"] = person_chunk["id"]
+
+                    all_events.append(event_chunk)
+
+        # 1b. Extract custom events from Person.events array
+        for person_chunk in data.get("people", []):
+            if "events" in person_chunk:
+                for event_chunk in person_chunk["events"]:
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "birth":
+                            event_chunk["kind"] = EventKind.Birth.value
+                        elif uid == "adopted":
+                            event_chunk["kind"] = EventKind.Adopted.value
+                        elif uid == "death":
+                            event_chunk["kind"] = EventKind.Death.value
+                        elif uid in (
+                            "CustomIndividual",
+                            "emotionStartEvent",
+                            "emotionEndEvent",
+                            "",
+                            None,
+                        ):
+                            event_chunk["kind"] = EventKind.Shift.value
+                        else:
+                            event_chunk["kind"] = uid
+
+                    # Ensure event has ID
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Set person/child references based on event type
+                    event_kind = event_chunk.get("kind")
+                    if event_kind in [EventKind.Birth.value, EventKind.Adopted.value]:
+                        # Birth/Adopted are pair-bond (offspring) events
+                        event_chunk["child"] = person_chunk["id"]
+
+                        # Try to find existing parents
+                        parent1_id, parent2_id, marriage_id = find_parents_from_childof(
+                            person_chunk, data
+                        )
+
+                        if parent1_id and parent2_id:
+                            # Use existing parents
+                            event_chunk["person"] = parent1_id
+                            event_chunk["spouse"] = parent2_id
+                        else:
+                            # Create inferred parents
+                            child_size = person_chunk.get(
+                                "size", util.DEFAULT_PERSON_SIZE
+                            )
+                            parent_size = max(child_size - 1, 1)  # One size smaller
+                            child_pos = person_chunk.get("itemPos", {"x": 0, "y": 0})
+                            child_layers = person_chunk.get("layers", [])
+
+                            # Use shared utility to ensure parents exist
+                            parents = util.ensureInferredParents(
+                                child_pos, parent_size, child_layers, next_id
+                            )
+
+                            # Update next_id based on created items
+                            if parents.created_male:
+                                next_id += 1
+                            if parents.created_female:
+                                next_id += 1
+                            if parents.created_marriage:
+                                next_id += 1
+
+                            # Add newly created items to data
+                            if parents.male_data:
+                                data["people"].append(parents.male_data)
+                            if parents.female_data:
+                                data["people"].append(parents.female_data)
+                            if parents.marriage_data:
+                                data["marriages"].append(parents.marriage_data)
+
+                            # Link child to parents via childOf
+                            person_chunk["childOf"] = {
+                                "person": person_chunk["id"],
+                                "parents": parents.marriage_id,
+                                "multipleBirth": None,
+                            }
+
+                            # Set event references
+                            event_chunk["person"] = parents.male_id
+                            event_chunk["spouse"] = parents.female_id
+                    else:
+                        # Other events (death, shift, etc.) - just set person reference
+                        event_chunk["person"] = person_chunk["id"]
+
+                    all_events.append(event_chunk)
+
+                # Remove events from person
+                del person_chunk["events"]
+
+        # 2. Extract events from Marriage.events
+        for marriage_chunk in data.get("marriages", []):
+            if "events" in marriage_chunk:
+                for event_chunk in marriage_chunk["events"]:
+                    # Migrate uniqueId → kind
+                    if "uniqueId" in event_chunk:
+                        uid = event_chunk.pop("uniqueId")
+                        if uid == "married":
+                            event_chunk["kind"] = EventKind.Married.value
+                        elif uid == "bonded":
+                            event_chunk["kind"] = EventKind.Bonded.value
+                        elif uid == "separated":
+                            event_chunk["kind"] = EventKind.Separated.value
+                        elif uid == "divorced":
+                            event_chunk["kind"] = EventKind.Divorced.value
+                        elif uid == "moved":
+                            event_chunk["kind"] = EventKind.Moved.value
+                        else:
+                            event_chunk["kind"] = EventKind.Shift.value
+
+                    if "id" not in event_chunk:
+                        event_chunk["id"] = next_id
+                        next_id += 1
+
+                    # Marriage events: person = personA, spouse = personB
+                    event_chunk["person"] = marriage_chunk["person_a"]
+                    event_chunk["spouse"] = marriage_chunk["person_b"]
+
+                    all_events.append(event_chunk)
+
+                del marriage_chunk["events"]
+
+        # 3. Extract and merge Emotion start/end events
+        for emotion_chunk in data.get("emotions", []):
+            # Phase 6.3: Migrate Emotion.kind string to RelationshipKind enum value
+            # Convert old capitalized string kinds to RelationshipKind enum values
+            if "kind" in emotion_chunk and isinstance(emotion_chunk["kind"], str):
+                old_kind = emotion_chunk["kind"]
+                # Map old capitalized strings to RelationshipKind enum values
+                STRING_2_ENUM_VALUE = {
+                    "Fusion": RelationshipKind.Fusion.value,  # "fusion"
+                    "Cutoff": RelationshipKind.Cutoff.value,  # "cutoff"
+                    "Conflict": RelationshipKind.Conflict.value,  # "conflict"
+                    "Projection": RelationshipKind.Projection.value,  # "projection"
+                    "Distance": RelationshipKind.Distance.value,  # "distance"
+                    "DefinedSelf": RelationshipKind.DefinedSelf.value,  # "defined-self"
+                    "Toward": RelationshipKind.Toward.value,  # "toward"
+                    "Away": RelationshipKind.Away.value,  # "away"
+                    "Inside": RelationshipKind.Inside.value,  # "inside"
+                    "Outside": RelationshipKind.Outside.value,  # "outside"
+                    "Reciprocity": RelationshipKind.Underfunctioning.value,  # "underfunctioning" (default for reciprocity)
+                    "Overfunctioning": RelationshipKind.Overfunctioning.value,  # "overfunctioning"
+                    "Underfunctioning": RelationshipKind.Underfunctioning.value,  # "underfunctioning"
+                }
+                if old_kind in STRING_2_ENUM_VALUE:
+                    emotion_chunk["kind"] = STRING_2_ENUM_VALUE[old_kind]
+                    if old_kind != STRING_2_ENUM_VALUE[old_kind]:
+                        _log.info(
+                            f"Migrated emotion kind from '{old_kind}' to '{emotion_chunk['kind']}'"
+                        )
+                elif old_kind not in [rk.value for rk in RelationshipKind]:
+                    # If it's not already a valid enum value, default to conflict
+                    _log.warning(
+                        f"Unknown emotion kind: '{old_kind}', defaulting to 'conflict'"
+                    )
+                    emotion_chunk["kind"] = RelationshipKind.Conflict.value
+
+            if "startEvent" in emotion_chunk and emotion_chunk["startEvent"].get(
+                "dateTime"
+            ):
+                start_event = emotion_chunk.pop("startEvent")
+                end_event = emotion_chunk.pop("endEvent", None)
+
+                # Migrate startEvent uniqueId
+                if "uniqueId" in start_event:
+                    uid = start_event.pop("uniqueId")
+                    if uid in ("emotionStartEvent", "CustomIndividual", "", None):
+                        start_event["kind"] = EventKind.Shift.value
+                    else:
+                        start_event["kind"] = uid
+
+                # Ensure kind is set
+                if "kind" not in start_event:
+                    start_event["kind"] = EventKind.Shift.value
+
+                if "id" not in start_event:
+                    start_event["id"] = next_id
+                    next_id += 1
+
+                # Set person from emotion
+                if "person_a" in emotion_chunk:
+                    start_event["person"] = emotion_chunk["person_a"]
+
+                # Migrate emotion properties to event
+                if "intensity" in emotion_chunk:
+                    start_event["relationshipIntensity"] = emotion_chunk.pop(
+                        "intensity"
+                    )
+                if "notes" in emotion_chunk:
+                    start_event["notes"] = emotion_chunk.pop("notes")
+
+                # Set relationship targets
+                if "person_b" in emotion_chunk and emotion_chunk["person_b"]:
+                    start_event["relationshipTargets"] = [emotion_chunk["person_b"]]
+                else:
+                    start_event["relationshipTargets"] = []
+
+                # Set relationship field matching emotion kind
+                if "kind" in emotion_chunk:
+                    # Convert emotion kind (e.g., "Conflict" or "conflict") to lowercase
+                    emotion_kind = emotion_chunk["kind"]
+                    if isinstance(emotion_kind, str):
+                        if not "dynamicProperties" in start_event:
+                            start_event["dynamicProperties"] = {}
+                        start_event["dynamicProperties"][
+                            "relationship"
+                        ] = emotion_kind.lower()
+
+                # Handle endEvent/isDateRange
+                if (
+                    end_event
+                    and end_event.get("dateTime")
+                    and end_event.get("dateTime") != start_event.get("dateTime")
+                ):
+                    start_event["endDateTime"] = end_event["dateTime"]
+                elif emotion_chunk.get("isDateRange"):
+                    # Mark that this event should have an endDateTime
+                    start_event["endDateTime"] = None
+
+                all_events.append(start_event)
+
+                # Update emotion to reference the event
+                emotion_chunk["event"] = start_event["id"]
+
+                # Migrate person_b → target
+                if "person_b" in emotion_chunk:
+                    emotion_chunk["target"] = emotion_chunk.pop("person_b")
+
+                # Clean up old fields
+                emotion_chunk.pop("person_a", None)
+                emotion_chunk.pop("isDateRange", None)
+                emotion_chunk.pop("isSingularDate", None)
+
+        ensureSymptom = False
+        ensureAnxiety = False
+        ensureRelationship = False
+        ensureFunctiong = False
+
+        # 4. Post-process all events
+        for event in all_events:
+
+            # Ensure kind is never None
+            if not event.get("kind"):
+                event["kind"] = EventKind.Shift.value
+
+            # Migrate SARF from event chunk to dynamicProperties
+
+            dynamicProperties = {}
+
+            if "symptom" in event:
+                dynamicProperties["symptom"] = event.pop("symptom")
+                ensureSymptom = True
+
+            if "anxiety" in event:
+                dynamicProperties["anxiety"] = event.pop("anxiety")
+                ensureAnxiety = True
+
+            if "relationship" in event:
+                dynamicProperties["relationship"] = event.pop("relationship")
+                ensureRelationship = True
+
+            if "functioning" in event:
+                dynamicProperties["functioning"] = event.pop("functioning")
+                ensureFunctiong = True
+
+            if dynamicProperties:
+                if event.get("dynamicProperties"):
+                    event["dynamicProperties"].update(dynamicProperties)
+                else:
+                    event["dynamicProperties"] = dynamicProperties
+
+        # Migrate SARF attrs right in event to Scene.eventProperties
+
+        eventProperties = []
+        eventPropertyAttrs = [x["attr"] for x in data.get("eventProperties", [])]
+
+        if ensureSymptom and "symptom" not in eventPropertyAttrs:
+            _log.warning("Adding `symptom` to Scene.eventProperties")
+            eventProperties.append(
+                {"attr": slugify(util.ATTR_SYMPTOM), "name": util.ATTR_SYMPTOM}
+            )
+        if ensureAnxiety and "anxiety" not in eventPropertyAttrs:
+            _log.warning("Adding `anxiety` to Scene.eventProperties")
+            eventProperties.append(
+                {"attr": slugify(util.ATTR_ANXIETY), "name": util.ATTR_ANXIETY}
+            )
+        if ensureRelationship and "relationship" not in eventPropertyAttrs:
+            _log.warning("Adding `relationship` to Scene.eventProperties")
+            eventProperties.append(
+                {
+                    "attr": slugify(util.ATTR_RELATIONSHIP),
+                    "name": util.ATTR_RELATIONSHIP,
+                }
+            )
+        if ensureFunctiong and "functioning" not in eventPropertyAttrs:
+            _log.warning("Adding `functioning` to Scene.eventProperties")
+            eventProperties.append(
+                {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
+            )
+
+        if eventProperties:
+            if not "eventProperties" in data:
+                data["eventProperties"] = []
+            data["eventProperties"].extend(eventProperties)
+
+        # 5. Add all collected events to data["events"]
+        data["events"] = all_events
+
+        # 6. Update lastItemId
+        data["lastItemId"] = next_id - 1
+
+        # Event.
 
     ## Add more version fixes here
     # if ....

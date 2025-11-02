@@ -1,4 +1,4 @@
-from .eventkind import EventKind
+from .itemmode import ItemMode
 from .property import Property
 from .itemgarbage import ItemGarbage
 from .variablesdatabase import VariablesDatabase
@@ -12,9 +12,9 @@ from .layeritem import LayerItem
 from .layer import Layer
 from .childof import ChildOf
 from .multiplebirth import MultipleBirth
+from .person import Person
 from .marriage import Marriage
 from .emotions import Emotion
-from .person import Person
 from .pencilstroke import PencilStroke
 from .callout import Callout
 from .scene import Scene

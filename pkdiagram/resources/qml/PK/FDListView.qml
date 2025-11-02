@@ -15,7 +15,7 @@ ListView {
     property bool editMode: false
     property bool adminMode: false
     property bool isServer: false
-    property bool canShowServer: session.hash && session.hasFeature(vedana.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
+    property bool canShowServer: session.hash && session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
 
     signal selected(string path)
     signal finishedEditingTitle;

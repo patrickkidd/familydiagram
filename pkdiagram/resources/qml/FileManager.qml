@@ -25,7 +25,7 @@ Rectangle {
         searchText: serverSearchBar.text
     }
     property bool localFilesShown: stack.currentIndex == 0
-    property bool canShowServer: session.hash && session.hasFeature(vedana.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
+    property bool canShowServer: session.hash && session.hasFeature(btcopilot.LICENSE_PROFESSIONAL) && util.ENABLE_SERVER_VIEW
 
     property var userIdEdit
     property var mine: 123

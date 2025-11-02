@@ -1,6 +1,6 @@
 import pickle
 from typing import List
-import vedana
+import btcopilot
 from pkdiagram.pyqt import (
     Qt,
     pyqtSlot,
@@ -21,7 +21,7 @@ class AccessRightsModel(QAbstractListModel):
     UsernameRole = Qt.UserRole + 1
     RightRole = UsernameRole + 1
 
-    S_CLIENT_ONLY_ALLOWED_ONE_RIGHT = "You are using the Client license which only allows adding a single access right. This can be for any user with a professional license, for example your therapist or coach. If you want to grant a different person access to your diagram, you will need to remove the existing access right first."
+    S_CLIENT_ONLY_ALLOWED_ONE_RIGHT = "You are using the Client license which only allows adding a single access right. This can be for any user with a professional license, for example your personal or coach. If you want to grant a different person access to your diagram, you will need to remove the existing access right first."
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -144,7 +144,7 @@ class AccessRightsModel(QAbstractListModel):
                     )
                     return False
             if (
-                self._session.hasFeature(vedana.LICENSE_CLIENT)
+                self._session.hasFeature(btcopilot.LICENSE_CLIENT)
                 and len(self._diagram.access_rights) >= 1
             ):
                 QMessageBox.warning(
@@ -159,7 +159,7 @@ class AccessRightsModel(QAbstractListModel):
                 data={
                     "diagram_id": self._diagram.id,
                     "user_id": user.id,
-                    "right": vedana.ACCESS_READ_ONLY,
+                    "right": btcopilot.ACCESS_READ_ONLY,
                     "session": self._session.token,
                 },
             )

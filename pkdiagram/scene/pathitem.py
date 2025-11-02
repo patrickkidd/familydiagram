@@ -204,7 +204,7 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
         To get around `if self.isUpdatingAll()` and set the position in the
         current layer now.
 
-        Currently only used for AddAnythingDialog since it is the only way that
+        Currently only used for EventForm since it is the only way that
         people are added other than manually with the left toolbar.
         """
         self.setItemPos(pos)
@@ -372,7 +372,7 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
             return
         on = self.shouldShowRightNow()
         self._shouldShowForDateLayersAndTags = on
-        # Commenting out after adding event via addanything / prop sheets sets
+        # Commenting out after adding event via eventform / prop sheets sets
         # Scene.currentDateTime, thereby triggering this deselection line. It
         # wasn't clear why this was here in the first place.
         #

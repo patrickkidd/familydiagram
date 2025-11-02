@@ -1,6 +1,7 @@
 import os, shutil, random, logging, math
 from typing import Union
 
+from btcopilot.schema import RelationshipKind, EventKind, VariableShift
 from _pkdiagram import PersonDelegate
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -23,36 +24,31 @@ from pkdiagram.pyqt import (
     QAbstractAnimation,
     QPointF,
 )
-from pkdiagram import util, slugify
+from pkdiagram import util
 from pkdiagram.scene import (
-    EventKind,
-    Property,
     PathItem,
     ItemDetails,
-    Event,
-    Emotion,
-    Marriage,
     ChildOf,
     MultipleBirth,
     VariablesDatabase,
     random_names,
+    Event,
 )
-from pkdiagram.scene.commands import SetParents
 
 
 _log = logging.getLogger(__name__)
 
 
 ANXIETY_COLORS = {
-    util.VAR_VALUE_UP: "red",
-    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
-    util.VAR_VALUE_DOWN: "green",
+    VariableShift.Up: "red",
+    VariableShift.Same: QColor(0, 0, 255, 127),
+    VariableShift.Down: "green",
 }
 
 FUNCTIONING_COLORS = {
-    util.VAR_VALUE_UP: "green",
-    util.VAR_VALUE_SAME: QColor(0, 0, 255, 127),
-    util.VAR_VALUE_DOWN: "red",
+    VariableShift.Up: "green",
+    VariableShift.Same: QColor(0, 0, 255, 127),
+    VariableShift.Down: "red",
 }
 
 
@@ -143,13 +139,13 @@ class Person(PathItem):
         ANXIETY_STEP_SAME = 10
         ANXIETY_STEP_UP = 5
 
-        if anxiety == util.VAR_ANXIETY_DOWN:
+        if anxiety == VariableShift.Down:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_DOWN
             STEP = ANXIETY_STEP_DOWN
-        elif anxiety == util.VAR_ANXIETY_SAME:
+        elif anxiety == VariableShift.Same:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_SAME
             STEP = ANXIETY_STEP_SAME
-        elif anxiety == util.VAR_ANXIETY_UP:
+        elif anxiety == VariableShift.Up:
             JAGGEDNESS = ANXIETY_JAGGEDNESS_UP
             STEP = ANXIETY_STEP_UP
 
@@ -157,9 +153,9 @@ class Person(PathItem):
             scale = util.scaleForPersonSize(size)
         if kind == util.PERSON_KIND_MALE:
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 WIDTH = int(rect.width() * scale)
                 CENTER_X, CENTER_Y = 0, 0
@@ -200,9 +196,9 @@ class Person(PathItem):
             path.closeSubpath()
         elif kind == util.PERSON_KIND_FEMALE:
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 CENTER_X, CENTER_Y = 0, 0
                 radius = (rect.width() / 2) * scale
@@ -237,14 +233,9 @@ class Person(PathItem):
 
         return path
 
-    eventAdded = pyqtSignal(Event)
-    eventRemoved = pyqtSignal(Event)
-    eventChanged = pyqtSignal(Property)
-    emotionAdded = pyqtSignal(Emotion)
-    emotionChanged = pyqtSignal(Property)
-    emotionRemoved = pyqtSignal(Emotion)
-    marriageAdded = pyqtSignal(Marriage)
-    marriageRemoved = pyqtSignal(Marriage)
+    # eventAdded = pyqtSignal(Event)
+    # eventRemoved = pyqtSignal(Event)
+    # eventChanged = pyqtSignal(Property)
     fileAdded = pyqtSignal(str)
 
     ITEM_Z = util.PERSON_Z
@@ -269,10 +260,12 @@ class Person(PathItem):
         self.isUpdatingDependents = False
         self.childOf = None
         self.marriages = []
+        self._birthEvent = None
+        self._adoptedEvents = []
+        self._deathEvent = None
         self.setShapeMargin(0)  # override from PathItem
         self.setShapeIsBoundingRect(True)
-        self._events = []
-        self._eventsCache = []
+        self._events = None  # Used for efficiently updating self.variablesDatabase
         self._emotions = []
         self._layers = []  # cache for &.prop('layers')
         self._layerItems = []
@@ -280,9 +273,6 @@ class Person(PathItem):
         self._onShowAliases = False
         self._lastVariableLines = []
         self.variablesDatabase = VariablesDatabase()
-        self.birthEvent = Event(self, uniqueId=EventKind.Birth.value)
-        self.deathEvent = Event(self, uniqueId=EventKind.Death.value)
-        self.adoptedEvent = Event(self, uniqueId=EventKind.Adopted.value)
         self.snappedOther = (
             None  # person this item is snapped to; set on master person only
         )
@@ -311,23 +301,9 @@ class Person(PathItem):
         self.detailsText.setParentRequestsToShow(False)
         if not "alias" in kwargs:
             self.initAlias()
-        if "birthDateTime" in kwargs:
-            self.setBirthDateTime(kwargs["birthDateTime"])
-        if "adoptedDateTime" in kwargs:
-            self.setAdoptedDateTime(kwargs["adoptedDateTime"])
-        if "deceasedDateTime" in kwargs:
-            self.setDeceasedDateTime(kwargs["deceasedDateTime"])
-        if "name" in kwargs:
-            for event in self._events + [
-                self.birthEvent,
-                self.adoptedEvent,
-                self.deathEvent,
-            ]:
-                event.updateParentName()
-        if "layers" in kwargs:
-            raise KeyError(
-                'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
-            )
+        assert (
+            "layers" not in kwargs
+        ), 'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
         self.isInit = True
 
     def initialDetailsPos(self):
@@ -359,17 +335,6 @@ class Person(PathItem):
         chunk["layers"] = [l.id for l in self._layers if not l.internal()]
         #
         chunk["marriages"] = [m.id for m in self.marriages]
-        chunk["events"] = []
-        chunk["birthEvent"] = {}
-        self.birthEvent.write(chunk["birthEvent"])
-        chunk["deathEvent"] = {}
-        self.deathEvent.write(chunk["deathEvent"])
-        chunk["adoptedEvent"] = {}
-        self.adoptedEvent.write(chunk["adoptedEvent"])
-        for i in self._events:
-            x = {}
-            i.write(x)
-            chunk["events"].append(x)
         chunk["childOf"] = {}
         if self.childOf:
             self.childOf.write(chunk["childOf"])
@@ -407,34 +372,7 @@ class Person(PathItem):
             _log.warning("*** None in self.marriages!")
             self.marriages = [m for m in self.marriages if m]
         #
-        self._events = []
-        for eChunk in chunk.get("events", []):
-            if util.IS_DEV:
-                # test for duplicates created from some bugs in dev
-                skip = False
-                for e in self._events:
-                    if e.id == eChunk["id"]:
-                        _log.warning("Ignoring duplicate event: %s" % e.id)
-                        skip = True
-                        break
-                if skip:
-                    continue
-            event = Event(self, id=eChunk["id"])
-            event.read(eChunk, byId)
-        self.birthEvent.read(chunk.get("birthEvent", {}), byId)
-        self.deathEvent.read(chunk.get("deathEvent", {}), byId)
-        self.adoptedEvent.read(chunk.get("adoptedEvent", {}), byId)
-        # re-set props in case they change in future versions
-        self.birthEvent.setUniqueId(EventKind.Birth.value)
-        self.deathEvent.setUniqueId(EventKind.Death.value)
-        self.adoptedEvent.setUniqueId(EventKind.Adopted.value)
-        self.birthEvent.setDescription(util.BIRTH_TEXT)
-        self.deathEvent.setDescription(util.DEATH_TEXT)
-        self.adoptedEvent.setDescription(util.ADOPTED_TEXT)
-        self.birthEvent.updateParentName()
-        self.deathEvent.updateParentName()
-        self.adoptedEvent.updateParentName()
-        self.updateVariablesDatabase()
+        self.updateEvents()
         self._delegate.setPrimary(self.primary())
         self._delegate.setGender(self.gender())
         self.isInit = True
@@ -444,17 +382,6 @@ class Person(PathItem):
     def clone(self, scene):
         x = super().clone(scene)
         self.initAlias()
-        for event in list(
-            self._events
-        ):  # I wonder if excluding events would be a good idea?
-            newEvent = event.clone(scene)
-            newEvent._cloned_parent_id = self.id
-            x._events.append(newEvent)
-        x.birthEvent = self.birthEvent.clone(scene)
-        x.deathEvent = self.deathEvent.clone(scene)
-        x.adoptedEvent = self.adoptedEvent.clone(scene)
-        x._cloned_marriage_ids = [m.id for m in self.marriages]
-        x._cloned_emotion_ids = [e.id for e in self.emotions()]
         if self.childOf:
             x._cloned_childOf_id = self.childOf.id
         else:
@@ -464,19 +391,6 @@ class Person(PathItem):
         return x
 
     def remap(self, map):
-        for event in self._events:
-            parent = map.find(event._cloned_parent_id)
-            event.setParent(parent)
-            delattr(event, "_cloned_parent_id")
-        self.birthEvent.setParent(self)
-        self.adoptedEvent.setParent(self)
-        self.deathEvent.setParent(self)
-        self.marriages = [map.find(id) for id in self._cloned_marriage_ids]
-        self.marriages = [i for i in self.marriages if i is not None]
-        delattr(self, "_cloned_marriage_ids")
-        self._emotions = [map.find(id) for id in self._cloned_emotion_ids]
-        self._emotions = [i for i in self._emotions if i is not None]
-        delattr(self, "_cloned_emotion_ids")
         self.childOf = map.find(self._cloned_childOf_id)
         delattr(self, "_cloned_childOf_id")
         return True
@@ -493,7 +407,10 @@ class Person(PathItem):
         elif self.scene() and self.scene().shouldShowAliases():
             return "[%s]" % self.alias()
         else:
-            return self.name()
+            ret = self.name()
+            if self.nickName() and self.showNickName():
+                ret += " (%s)" % self.nickName()
+            return ret
 
     @pyqtSlot(result=str)
     def fullNameOrAlias(self):
@@ -532,61 +449,11 @@ class Person(PathItem):
         duplicate names.
         """
         return self.fullNameOrAlias()
-        # if self.birthDateTime():
-        #     return f"{self.fullNameOrAlias()} b. {self.birthDateTime(string=True)}"
-        # else:
-        #     return self.fullNameOrAlias()
 
     def itemName(self):
         return self.fullNameOrAlias()
 
-    @pyqtSlot(result=QDateTime)
-    def birthDateTime(self, string=False):
-        if string:
-            return util.dateString(self.birthEvent.dateTime())
-        else:
-            return self.birthEvent.dateTime()
-
-    def setBirthDateTime(self, x, **kwargs):
-        self.birthEvent.setDateTime(x, **kwargs)
-        self.birthEvent.setLoggedDateTime(QDateTime.currentDateTime())
-        self.updateGeometryAndDependents()
-
-    def deceasedDateTime(self, string=False):
-        if string:
-            return util.dateString(self.deathEvent.dateTime())
-        else:
-            return self.deathEvent.dateTime()
-
-    def setDeceasedDateTime(self, x, **kwargs):
-        self.deathEvent.setDateTime(x, **kwargs)
-        self.deathEvent.setLoggedDateTime(QDateTime.currentDateTime())
-        self.updateDetails()
-
-    def deceasedDateUnsure(self):
-        return self.deathEvent.unsure()
-
-    def setDeceasedDateUnsure(self, x, **kwargs):
-        self.deathEvent.setUnsure(x, **kwargs)
-        self.updateDetails()
-
-    def adoptedDateTime(self, string=False):
-        if string:
-            return util.dateString(self.adoptedEvent.dateTime())
-        else:
-            return self.adoptedEvent.dateTime()
-
-    def setAdoptedDateTime(self, x, **kwargs):
-        self.adoptedEvent.setDateTime(x, **kwargs)
-        self.adoptedEvent.setLoggedDateTime(QDateTime.currentDateTime())
-        self.updateDetails()
-
-    def adoptedUnsure(self):
-        return self.adoptedEvent.unsure()
-
-    def setAdoptedDateUnsure(self, x, **kwargs):
-        self.adoptedEvent.setUnsure(x, **kwargs)
-        self.updateDetails()
+    #
 
     def age(self):
         if self.birthDateTime() and not self.deceased():
@@ -628,7 +495,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
-                util.ATTR_ANXIETY, self.scene().currentDateTime()
+                "varsdb-anxiety", self.scene().currentDateTime()
             )
             if ok:
                 return anxiety
@@ -639,7 +506,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
-                util.ATTR_FUNCTIONING, self.scene().currentDateTime()
+                "varsdb-functioning", self.scene().currentDateTime()
             )
             if ok:
                 return functioning
@@ -650,7 +517,7 @@ class Person(PathItem):
         """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
-                util.ATTR_SYMPTOM, self.scene().currentDateTime()
+                "varsdb-symptom", self.scene().currentDateTime()
             )
             if ok:
                 return symptom
@@ -686,7 +553,8 @@ class Person(PathItem):
                     self.scene().removeItem(multipleBirth)
                 self.childOf._onRemoveMultipleBirth()
             self.parents()._onRemoveChild(self)
-            self.scene().removeItem(self.childOf)
+            if self.childOf.scene():  # loading during Scene.read()
+                self.scene().removeItem(self.childOf)
             self.childOf = None
         #
         if parentItem:
@@ -726,21 +594,14 @@ class Person(PathItem):
             if self.scene() and not self.scene().isInitializing:
                 self.childOf.updateGeometry()
 
-    def setParents(self, target: Union[Marriage, ChildOf], undo=False):
+    def setParents(self, target: "Union[Marriage, ChildOf]", undo=False) -> ChildOf:
         if undo:
+            from pkdiagram.scene.commands import SetParents
+
             self.scene().push(SetParents(self, target))
         else:
             self._do_setParents(target)
-
-    def _onAddMarriage(self, m):
-        if not m in self.marriages:
-            self.marriages.append(m)
-            self.marriageAdded.emit(m)
-
-    def _onRemoveMarriage(self, m):
-        if m in self.marriages:
-            self.marriages.remove(m)
-            self.marriageRemoved.emit(m)
+        return self.childOf
 
     def shouldShowAliases(self):
         scene = self.scene()
@@ -789,20 +650,7 @@ class Person(PathItem):
 
     @util.blocked
     def onProperty(self, prop):
-        if prop.name() in ("name", "middleName", "lastName", "nickName"):
-            for marriage in self.marriages:
-                marriage.onPersonNameChanged(self)
-            for event in self.events():
-                event.updateParentName()
-            for emotion in self.emotions():
-                emotion.onPeopleChanged()
-            self.birthEvent.updateParentName()
-            if self.adopted():
-                self.adoptedEvent.updateParentName()
-            if self.deceased():
-                self.deathEvent.updateParentName()
-            self.setObjectName("Person_" + self.fullNameOrAlias())
-        elif prop.name() == "gender":
+        if prop.name() == "gender":
             self._delegate.setGender(prop.get())
             self.updateAgeText()
             self.initAlias()
@@ -865,9 +713,10 @@ class Person(PathItem):
                 self.updateNotes()
         elif prop.name() == "primary":
             self._delegate.setPrimary(prop.get())
-            for emotion in self.emotions():
-                if emotion.kind() == util.ITEM_CUTOFF:
-                    emotion.updateGeometry()
+            if self.scene():
+                for emotion in self.scene().emotionsFor(self):
+                    if emotion.kind() == RelationshipKind.Cutoff:
+                        emotion.updateGeometry()
         elif prop.name() == "layers":
             if self.scene():
                 # Defensive, some layers were disappearing. Emotional Units?
@@ -885,41 +734,77 @@ class Person(PathItem):
                 self._layers = []
         super().onProperty(prop)
 
+    def updateEmotions(self):
+        if self.scene():
+            self._emotions = self.scene().emotionsFor(self)
+        else:
+            self._emotions = None
+
     ## Events
 
-    def events(self):
-        ret = []
-        if self.birthDateTime():
-            ret.append(self.birthEvent)
-        if self.adopted() and self.adoptedDateTime():
-            ret.append(self.adoptedEvent)
-        if self.deceased() and self.deceasedDateTime():
-            ret.append(self.deathEvent)
-        return ret + self._events
-
     def updateEvents(self):
-        """handle add|remove changes."""
+        """
+        Doesn't store events by id, so it is resolved after instantiation-time.
+        """
         added = []
         removed = []
-        newEvents = self.events()
-        oldEvents = self._eventsCache
+        newEvents = self.scene().eventsFor(self) if self.scene() else []
+        oldEvents = self._events if self._events is not None else []
         for newEvent in newEvents:
             if not newEvent in oldEvents:
                 added.append(newEvent)
         for oldEvent in oldEvents:
             if not oldEvent in newEvents:
                 removed.append(oldEvent)
-        self._eventsCache = newEvents
+        self._events = newEvents
         for event in added:
             # When variables are set in AddEventDialog
             for prop in event.dynamicProperties:
                 if prop.isset():
                     self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())
-            self.eventAdded.emit(event)
+            # self.eventAdded.emit(event)
         for event in removed:
             for prop in event.dynamicProperties:
                 self.variablesDatabase.unset(prop.attr, event.dateTime())
-            self.eventRemoved.emit(event)
+            # self.eventRemoved.emit(event)
+
+        # Built-in variables
+        # Reset before caching
+        self._birthEvent = None
+        self._adoptedEvents = []
+        self._deathEvent = None
+
+        for event in self._events:
+            if event.kind() == EventKind.Birth:
+                # Only cache if this person is the child being born
+                if event.child() == self:
+                    self._birthEvent = event
+            elif event.kind() == EventKind.Adopted:
+                # Only cache if this person is the child being adopted
+                if event.child() == self:
+                    self._adoptedEvents.append(event)
+            elif event.kind() == EventKind.Death:
+                # Only cache if this person is the subject
+                if event.person() == self:
+                    self._deathEvent = event
+
+        # Variables database
+
+        self.variablesDatabase.clear()
+        for event in self.events():
+            for prop in [
+                event.prop("symptom"),
+                event.prop("anxiety"),
+                event.prop("functioning"),
+            ] + event.dynamicProperties:
+                if event.dateTime() and prop.isset():
+                    attr = (
+                        prop.attr
+                        if prop in event.dynamicProperties
+                        else f"varsdb-{prop.attr}"
+                    )
+                    self.variablesDatabase.set(attr, event.dateTime(), prop.get())
+
         return {
             "oldEvents": oldEvents,
             "newEvents": newEvents,
@@ -927,23 +812,81 @@ class Person(PathItem):
             "removed": removed,
         }
 
+    def onEventAdded(self):
+        self.updateEvents()  # Recalc variables database
+        self.updateDetails()  # Birth/death dates affect display
+        self.updateGeometry()  # Adopted status affects visuals
+
+    def onEventRemoved(self):
+        self.updateEvents()
+        self.updateDetails()
+        self.updateGeometry()
+
     def onEventProperty(self, prop):
         if not self.isInit:
             return
         changes = self.updateEvents()
-        if prop.item in (self.birthEvent, self.adoptedEvent, self.deathEvent):
+        if prop.item.kind() in (EventKind.Birth, EventKind.Adopted, EventKind.Death):
             self.updateGeometry()
             self.onAgeChanged()
             self.updatePathItemVisible()
         if (
-            prop.item in (self.birthEvent, self.deathEvent)
+            prop.item.kind() in (EventKind.Birth, EventKind.Death)
             and prop.name() == "dateTime"
         ):
             self.onAgeChanged()
-        if prop.item in changes["newEvents"] and not prop.item in changes["added"]:
-            self.eventChanged.emit(prop)
-        if prop.isDynamic:
-            self.variablesDatabase.set(prop.attr, prop.item.dateTime(), prop.get())
+        # if prop.item in changes["newEvents"] and not prop.item in changes["added"]:
+        #     self.eventChanged.emit(prop)
+        if prop.name in ("symptom", "anxiety", "functioning") or prop.isDynamic:
+            self.variablesDatabase.set(
+                f"varsdb-{prop.attr}", prop.item.dateTime(), prop.get()
+            )
+
+    # Event getters
+
+    def events(self) -> list[Event]:
+        """
+        Cached list of events to avoid excessive querying of the scene.
+
+        This is expected to always be kept up to date by updateEvents().
+        """
+        assert self._events is not None
+        return self._events
+
+    def birthEvent(self) -> Event:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return self._birthEvent
+
+    def birthDateTime(self) -> QDateTime:
+        if self._birthEvent:
+            return self._birthEvent.dateTime()
+        return QDateTime()
+
+    def adoptedEvents(self) -> list[Event]:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return list(self._adoptedEvents)
+
+    def deathEvent(self) -> Event:
+        """
+        This is expected to always be kept up to date by updateEvents().
+        """
+        return self._deathEvent
+
+    def deceased(self) -> bool:
+        if self.prop("deceased").get():
+            return True
+        return bool(self.deceasedDateTime())
+
+    def deceasedDateTime(self) -> QDateTime:
+        if self._deathEvent:
+            return self._deathEvent.dateTime()
+        return QDateTime()
+
+    # Showing / Hiding
 
     @util.fblocked  # needed to avoid recursion in multiple births
     def updatePathItemVisible(self):
@@ -968,59 +911,10 @@ class Person(PathItem):
         else:
             self.setPathItemVisible(False)
 
-    def updateVariablesDatabase(self):
-        self.variablesDatabase.clear()
-        for event in self.events():
-            for prop in event.dynamicProperties:
-                if event.dateTime() and prop.isset():
-                    self.variablesDatabase.set(prop.attr, event.dateTime(), prop.get())
-
     def onAgeChanged(self):
         if self.scene():
             self.updateAgeText()
             self.updatePen()
-
-    def _onAddEvent(self, x):
-        """Called from Event.setParent."""
-        if x.uniqueId() in (
-            EventKind.Birth.value,
-            EventKind.Adopted.value,
-            EventKind.Death.value,
-        ):  # called from Person()
-            return
-        if x not in self._events:
-            self._events.append(x)
-            self.updateEvents()
-
-    def _onRemoveEvent(self, x):
-        """Called from Event.setParent."""
-        if x in self._events:
-            self._events.remove(x)
-            self.updateEvents()
-
-    ## Emotions
-
-    def onEmotionProperty(self, prop):
-        if not self.isInit:
-            return
-        self.emotionChanged[Property].emit(prop)
-
-    def emotions(self):
-        return list(self._emotions)
-
-    def _onAddEmotion(self, emotion):
-        if not emotion in self._emotions:  # wasn't allowing swap action
-            if not emotion.isDyadic():
-                emotion.setParentItem(self)
-            self._emotions.append(emotion)
-            self.emotionAdded.emit(emotion)
-
-    def _onRemoveEmotion(self, emotion):
-        if emotion in self._emotions:  # wasn't allowing swap action
-            if not emotion.isDyadic():
-                emotion.setParentItem(None)
-            self._emotions.remove(emotion)
-            self.emotionRemoved.emit(emotion)
 
     ## Layers and Layer Items
 
@@ -1051,9 +945,9 @@ class Person(PathItem):
         else:
             anxiety = self.anxietyLevelNow()
             if anxiety in (
-                util.VAR_ANXIETY_DOWN,
-                util.VAR_ANXIETY_SAME,
-                util.VAR_ANXIETY_UP,
+                VariableShift.Down,
+                VariableShift.Same,
+                VariableShift.Up,
             ):
                 c = QColor(ANXIETY_COLORS[anxiety])
                 pen.setColor(c)
@@ -1182,15 +1076,15 @@ class Person(PathItem):
 
         functioning = self.functioningLevelNow()
         if functioning in (
-            util.VAR_FUNCTIONING_DOWN,
-            util.VAR_FUNCTIONING_SAME,
-            util.VAR_FUNCTIONING_UP,
+            VariableShift.Down,
+            VariableShift.Same,
+            VariableShift.Up,
         ):
-            if functioning == util.VAR_FUNCTIONING_DOWN:
+            if functioning == VariableShift.Down:
                 num = 1
-            elif functioning == util.VAR_FUNCTIONING_SAME:
+            elif functioning == VariableShift.Same:
                 num = 2
-            elif functioning == util.VAR_FUNCTIONING_UP:
+            elif functioning == VariableShift.Up:
                 num = 3
             functioningPath = util.bolts_path(self.boundingRect().width(), num)
             self.functioningItem.setPath(functioningPath)
@@ -1264,11 +1158,12 @@ class Person(PathItem):
             if self.deceasedReason() and not ignoreDeath:
                 lines.append(self.deceasedReason())
         if not hideDates and self.adopted():
-            ignoreAdoption = (
-                self.adoptedDateTime() and self.adoptedDateTime() > currentDateTime
-            )
-            if self.adoptedDateTime() and not ignoreAdoption:
-                lines.append("a. " + util.dateString(self.adoptedDateTime()))
+            for event in self.events():
+                if (
+                    event.kind() == EventKind.Adopted
+                    and event.dateTime() <= currentDateTime
+                ):
+                    lines.append("a. " + util.dateString(event.dateTime()))
 
         # Compile Custom Details
         if not hideDetails and self.diagramNotes():
@@ -1289,22 +1184,27 @@ class Person(PathItem):
             else:
                 vBaseColor = QColor(self.VARIABLE_BASE_COLOR_LIGHT_MODE)
             hideVariableSteadyStates = self.scene().hideVariableSteadyStates()
-            for i, entry in enumerate(self.scene().eventProperties()):
+            properties = [
+                {"attr": "varsdb-symptom", "name": util.ATTR_SYMPTOM},
+                {"attr": "varsdb-anxiety", "name": util.ATTR_ANXIETY},
+                {"attr": "varsdb-functioning", "name": util.ATTR_FUNCTIONING},
+            ] + self.scene().eventProperties()
+            for i, entry in enumerate(properties):
                 value, isChange = self.variablesDatabase.get(
                     entry["attr"], currentDateTime
                 )
                 if value is None or (not isChange and hideVariableSteadyStates):
                     continue
                 # if entry["attr"] in (slugify(util.ATTR_ANXIETY),) and value in (
-                #     util.VAR_ANXIETY_DOWN,
-                #     util.VAR_ANXIETY_SAME,
-                #     util.VAR_ANXIETY_UP,
+                #     VariableShift.Down,
+                #     VariableShift.Same,
+                #     VariableShift.Up,
                 # ):
                 #     continue
                 # if entry["attr"] in (slugify(util.ATTR_FUNCTIONING),) and value in (
-                #     util.VAR_FUNCTIONING_DOWN,
-                #     util.VAR_FUNCTIONING_SAME,
-                #     util.VAR_FUNCTIONING_UP,
+                #     VariableShift.Down,
+                #     VariableShift.Same,
+                #     VariableShift.Up,
                 # ):
                 #     continue
                 variableLines.append("%s: %s" % (entry["name"], value))
@@ -1465,12 +1365,6 @@ class Person(PathItem):
                 if self.childOf:
                     self.scene().removeItem(self.childOf)
                 self.scene().removeItem(self.detailsText)
-                self.scene().removeItem(self.birthEvent)
-                self.scene().removeItem(self.deathEvent)
-                self.scene().removeItem(self.adoptedEvent)
-                for event in self._events:
-                    self.scene().removeItem(event)
-            self.updateDetails()
         elif change == QGraphicsItem.ItemSceneHasChanged:
             if self.scene():
                 if self.childOf:
@@ -1480,16 +1374,10 @@ class Person(PathItem):
                         self.scene().addItem(self.childOf.multipleBirth)
                 self.detailsText.setParentItem(self)
                 self.scene().addItem(self.detailsText)
-                self.scene().addItem(self.birthEvent)
-                self.scene().addItem(self.deathEvent)
-                self.scene().addItem(self.adoptedEvent)
-                for event in self._events:
-                    self.scene().addItem(event)
                 if self.scene().readOnly():
                     self.setFlag(QGraphicsItem.ItemIsMovable, False)
                 else:
                     self.setFlag(QGraphicsItem.ItemIsMovable, True)
-                self.updateVariablesDatabase()
         elif change == QGraphicsItem.ItemPositionChange:
             if self.scene() and not self.scene().isInitializing:
                 if self.scene().mousePressOnDraggable:
@@ -1502,7 +1390,7 @@ class Person(PathItem):
             elif self.scene() and self.scene().readOnly():
                 # Prevent moving person after double-click and hold when drawer is animating open
                 variant = self.pos()
-            # Re-enabled to accomodate correcting arrangements from AddAnythingDialog.
+            # Re-enabled to accomodate correcting arrangements from EventForm.
             # elif (
             #     self.scene()
             #     and self.scene().isAnimatingDrawer()
@@ -1573,7 +1461,7 @@ class Person(PathItem):
             self.cachedPosChangeOldPos = self.pos()
         elif change == QGraphicsItem.ItemPositionHasChanged:
             if self.scene():  # None when commands.AddPerson
-                for emotion in self.emotions():
+                for emotion in self.scene().emotionsFor(self):
                     # update emotions fanned box offsets before updating their geometry
                     if emotion.fannedBox:
                         emotion.fannedBox.updateOffsets()  # double calls when more than one person/emotion moved...
@@ -1612,9 +1500,10 @@ class Person(PathItem):
 
     def onUpdateAll(self):
         super().onUpdateAll()
-        for emotion in self.emotions():
-            if emotion.kind() == util.ITEM_CUTOFF:
-                emotion.setParentItem(self)
+        if self.scene():
+            for emotion in self.scene().emotionsFor(self):
+                if emotion.kind() == RelationshipKind.Cutoff:
+                    emotion.setParentItem(self)
         self.onAgeChanged()
 
     ## Files

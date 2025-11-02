@@ -1,3 +1,4 @@
+from btcopilot.schema import EventKind
 from pkdiagram.pyqt import (
     Qt,
     QObject,
@@ -6,7 +7,6 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
 )
 from pkdiagram import util, scene
-from pkdiagram.scene import EventKind
 from pkdiagram.models import ModelHelper
 
 
@@ -20,6 +20,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
             {"attr": "showLastName", "convertTo": Qt.CheckState},
             {"attr": "showNickName", "convertTo": Qt.CheckState},
             {"attr": "adopted", "convertTo": Qt.CheckState},
+            {"attr": "everAdopted", "convertTo": Qt.CheckState},
             {"attr": "deceased", "convertTo": Qt.CheckState},
             {"attr": "primary", "convertTo": Qt.CheckState},
             {"attr": "hideDetails", "convertTo": Qt.CheckState},
@@ -28,15 +29,7 @@ class PersonPropertiesModel(QObject, ModelHelper):
             {"attr": "bigFont", "convertTo": Qt.CheckState},
             {"attr": "age", "type": int, "default": -1},
             {"attr": "birthDateTime", "type": QDateTime, "default": QDateTime()},
-            {"attr": "adoptedDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "deceasedDateTime", "type": QDateTime, "default": QDateTime()},
-            {"attr": "birthDateUnsure", "type": bool, "convertTo": Qt.CheckState},
-            {"attr": "adoptedDateUnsure", "type": bool, "convertTo": Qt.CheckState},
-            {"attr": "deceasedDateUnsure", "type": bool, "convertTo": Qt.CheckState},
-            {"attr": "birthLocation"},
-            {"attr": "adoptedLocation"},
-            {"attr": "deceasedLocation"},
-            {"attr": "deceasedReason"},
             {"attr": "sizeIndex", "type": int, "default": -1},
             {"attr": "genderIndex", "type": int, "default": -1},
             {
@@ -76,69 +69,47 @@ class PersonPropertiesModel(QObject, ModelHelper):
             self.refreshProperty("isItemPosSetInCurrentLayer")
 
     def onEventProperty(self, prop):
+        if not self._items or prop.item.person() not in self._items:
+            return
+
         if prop.name() == "dateTime":
-            if prop.item.uniqueId() == EventKind.Birth.value:
+            if prop.item.kind() == EventKind.Birth:
                 self.refreshProperty("birthDateTime")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
-                self.refreshProperty("adoptedDateTime")
-            elif prop.item.uniqueId() == EventKind.Death.value:
+            elif prop.item.kind() == EventKind.Death:
                 self.refreshProperty("deceasedDateTime")
-        elif prop.name() == "location":
-            if prop.item.uniqueId() == EventKind.Birth.value:
-                self.refreshProperty("birthLocation")
-            elif prop.item.uniqueId() == EventKind.Adopted.value:
-                self.refreshProperty("adoptedLocation")
-            elif prop.item.uniqueId() == EventKind.Death.value:
-                self.refreshProperty("deceasedLocation")
 
     def onItemEventAddedOrRemoved(self, event):
         """Undo+redo wasn't resetting date fields because it
         wasn't getting the added|removed signals.
         """
-        if event.uniqueId() == EventKind.Birth.value:
+        if not self._items or event.person() not in self._items:
+            return
+
+        if event.kind() == EventKind.Birth:
             self.refreshProperty("birthDateTime")
-            self.refreshProperty("birthLocation")
-        elif event.uniqueId() == EventKind.Adopted.value:
-            self.refreshProperty("adoptedDateTime")
-            self.refreshProperty("adoptedLocation")
-        elif event.uniqueId() == EventKind.Death.value:
+        elif event.kind() == EventKind.Adopted:
+            self.refreshProperty("everAdopted")
+        elif event.kind() == EventKind.Death:
             self.refreshProperty("deceasedDateTime")
-            self.refreshProperty("deceasedLocation")
 
     def set(self, attr, value):
-        if attr == "items":
-            if self._items:
-                for item in self._items:
-                    item.eventChanged.disconnect(self.onEventProperty)
-                    item.eventAdded.disconnect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.disconnect(self.onItemEventAddedOrRemoved)
-            if value:
-                for item in value:
-                    item.eventChanged.connect(self.onEventProperty)
-                    item.eventAdded.connect(self.onItemEventAddedOrRemoved)
-                    item.eventRemoved.connect(self.onItemEventAddedOrRemoved)
+        if attr == "scene":
+            if self._scene:
+                self._scene.eventAdded.disconnect(self.onItemEventAddedOrRemoved)
+                self._scene.eventRemoved.disconnect(self.onItemEventAddedOrRemoved)
+                self._scene.eventChanged.disconnect(self.onEventProperty)
+            super().set(attr, value)
+            if self._scene:
+                self._scene.eventAdded.connect(self.onItemEventAddedOrRemoved)
+                self._scene.eventRemoved.connect(self.onItemEventAddedOrRemoved)
+                self._scene.eventChanged.connect(self.onEventProperty)
+            return
         elif attr == "sizeIndex":
             size = util.personSizeFromIndex(value)
             self.set("size", size)
         elif attr == "genderIndex":
             gender = util.personKindFromIndex(value)
             self.set("gender", gender)
-        elif attr == "deceasedLocation":
-            with self._scene.macro("Set deceased location"):
-                for item in self._items:
-                    item.deathEvent.setLocation(value, undo=True)
-        elif attr == "birthDateUnsure":
-            with self._scene.macro("Set birth datetime unsure"):
-                for item in self._items:
-                    item.birthEvent.setUnsure(value, undo=True)
-        elif attr == "adoptedDateUnsure":
-            with self._scene.macro("Set adopted datetime unsure"):
-                for item in self._items:
-                    item.adoptedEvent.setUnsure(value, undo=True)
-        elif attr == "deceasedDateUnsure":
-            with self._scene.macro("Set deceased datetime unsure"):
-                for item in self._items:
-                    item.deathEvent.setUnsure(value, undo=True)
         elif attr == "deemphasize":
             with self._scene.macro("Set person(s) deemphasized"):
                 if value:
@@ -147,46 +118,32 @@ class PersonPropertiesModel(QObject, ModelHelper):
                 else:
                     for item in self._items:
                         item.prop("itemOpacity").reset(undo=True)
-        elif attr == "age":
-            if self.deceased and self.deceasedDateTime:
-                x = self.deceasedDateTime.addYears(-value)
-            else:
-                x = QDateTime.currentDateTime().addYears(-value)
-            self.birthDateTime = QDateTime(QDate(x.date().year(), 1, 1))
-            self.refreshProperty("age")
-        elif attr in (
-            "birthDateTime",
-            "adoptedDateTime",
-            "deceasedDateTime",
-            "birthLocation",
-            "adoptedLocation",
-            "deceasedLocation",
-        ):
-            x = self.setterConvertTo(attr, value)
-            with self._scene.macro(f"Set '{attr}' on person(s)"):
-                if attr == "birthDateTime":
-                    [item.birthEvent.setDateTime(x, undo=True) for item in self._items]
-                    self.refreshProperty("age")
-                elif attr == "adoptedDateTime":
-                    [
-                        item.adoptedEvent.setDateTime(x, undo=True)
-                        for item in self._items
-                    ]
-                elif attr == "deceasedDateTime":
-                    [item.deathEvent.setDateTime(x, undo=True) for item in self._items]
-                    self.refreshProperty("age")
-                elif attr == "birthLocation":
-                    [item.birthEvent.setLocation(x, undo=True) for item in self._items]
-                elif attr == "adoptedLocation":
-                    [
-                        item.adoptedEvent.setLocation(x, undo=True)
-                        for item in self._items
-                    ]
-                elif attr == "deceasedLocation":
-                    [item.deathEvent.setLocation(x, undo=True) for item in self._items]
+        # elif attr == "age":
+        #     # Calculate birth year from age
+        #     if self.deceased and self.deceasedDateTime:
+        #         x = self.deceasedDateTime.addYears(-value)
+        #     else:
+        #         x = QDateTime.currentDateTime().addYears(-value)
+        #     birthDateTime = QDateTime(QDate(x.date().year(), 1, 1))
+
+        #     # Update birth events directly without using property setter
+        #     with self._scene.macro("Set birth datetime from age"):
+        #         for item in self._items:
+        #             events = item.scene().eventsFor(item, kinds=EventKind.Birth)
+        #             if events:
+        #                 events[0].setDateTime(birthDateTime, undo=True)
+        #             else:
+        #                 self._scene.addItem(
+        #                     Event(EventKind.Birth, item, dateTime=birthDateTime)
+        #                 )
+        #     self.refreshProperty("age")
+        #     self.refreshProperty("birthDateTime")
+
         return super().set(attr, value)
 
     def get(self, attr):
+        if not self._scene:
+            return super().get(attr)
         ret = None
         if attr == "fullNameOrAlias":
             ret = self.sameOf(attr, lambda item: item.fullNameOrAlias())
@@ -229,38 +186,26 @@ class PersonPropertiesModel(QObject, ModelHelper):
             ret = self.sameOf(attr, lambda item: item.notes())  # obsolete?
         elif attr == "age":
             ret = self.sameOf(attr, lambda item: item.age())
-        elif attr in (
-            "birthDateTime",
-            "adoptedDateTime",
-            "deceasedDateTime",
-            "birthLocation",
-            "adoptedLocation",
-            "deceasedLocation",
-            "birthDateUnsure",
-            "adoptedDateUnsure",
-            "deceasedDateUnsure",
-        ):
-            if attr == "birthDateTime":
-                x = self.sameOf(attr, lambda item: item.birthEvent.dateTime())
-            elif attr == "adoptedDateTime":
-                x = self.sameOf(attr, lambda item: item.adoptedEvent.dateTime())
-            elif attr == "deceasedDateTime":
-                x = self.sameOf(attr, lambda item: item.deathEvent.dateTime())
-            elif attr == "birthLocation":
-                x = self.sameOf(attr, lambda item: item.birthEvent.location())
-            elif attr == "adoptedLocation":
-                x = self.sameOf(attr, lambda item: item.adoptedEvent.location())
-            elif attr == "deceasedLocation":
-                x = self.sameOf(attr, lambda item: item.deathEvent.location())
-            elif attr == "birthDateUnsure":
-                x = self.sameOf(attr, lambda item: item.birthEvent.unsure())
-            elif attr == "adoptedDateUnsure":
-                x = self.sameOf(attr, lambda item: item.adoptedEvent.unsure())
-            elif attr == "deceasedDateUnsure":
-                x = self.sameOf(attr, lambda item: item.deathEvent.unsure())
+        elif attr == "birthDateTime":
+            ret = self.sameOf(attr, lambda item: item.birthDateTime())
+        elif attr == "everAdopted":
+            adoptedEvents = {
+                item: self._scene.eventsFor(item, kinds=EventKind.Adopted)
+                for item in self._items
+            }
+            ret = util.sameOf(
+                self._items,
+                lambda item: len(self._scene.eventsFor(item, kinds=EventKind.Adopted))
+                > 0,
+            )
+            if all(len(events) > 0 for events in adoptedEvents.values()):
+                ret = Qt.Checked
+            elif any(len(events) > 0 for events in adoptedEvents.values()):
+                ret = Qt.PartiallyChecked
             else:
-                x = super().get(attr)
-            ret = self.getterConvertTo(attr, x)
+                ret = Qt.Unchecked
+        elif attr == "deceasedDateTime":
+            ret = self.sameOf(attr, lambda item: item.deceasedDateTime())
         else:
             ret = super().get(attr)
         return ret
@@ -272,32 +217,8 @@ class PersonPropertiesModel(QObject, ModelHelper):
             super().reset("gender")
         elif attr == "deemphasize":
             super().reset("itemOpacity")
-        elif attr == "birthDateTime":
-            with self._scene.macro("Reset birth datetime"):
-                for item in self._items:
-                    item.birthEvent.prop("dateTime").reset(undo=True)
-        elif attr == "adoptedDateTime":
-            with self._scene.macro("Reset adopted datetime"):
-                for item in self._items:
-                    item.adoptedEvent.prop("dateTime").reset(undo=True)
-        elif attr == "deceasedDateTime":
-            with self._scene.macro("Reset deceased datetime"):
-                for item in self._items:
-                    item.deathEvent.prop("dateTime").reset(undo=True)
-        elif attr == "birthLocation":
-            with self._scene.macro("Reset birth location"):
-                for item in self._items:
-                    item.birthEvent.prop("location").reset(undo=True)
-        elif attr == "adoptedLocation":
-            with self._scene.macro("Reset adopted location"):
-                for item in self._items:
-                    item.adoptedEvent.prop("location").reset(undo=True)
-        elif attr == "deceasedLocation":
-            with self._scene.macro("Reset deceased location"):
-                for item in self._items:
-                    item.deathEvent.prop("location").reset(undo=True)
         elif attr == "itemPos":
-            with self.scene.resettingSomeLayerProps():
+            with self._scene.resettingSomeLayerProps():
                 super().reset(attr)
         else:
             super().reset(attr)

@@ -22,14 +22,16 @@ class EmotionalUnit:
         """
         Ensure all the people are added to the layer.
         """
-        x = 1
         for person in self.people():
-            if self._layer and self._marriage.scene():
+            if (
+                self._layer
+                and self._marriage.scene()
+                and self._layer in self._marriage.scene().layers()  # removing
+            ):
                 if self._layer.id not in person.layers():
-                    person.setLayers(person.layers() + [self._layer.id])
+                    person.setLayers(list(set(person.layers() + [self._layer.id])))
             else:
                 person.setLayers(x for x in person.layers() if x != self._layer.id)
-        y = 2
 
     def name(self) -> str:
         return self._marriage.itemName()
