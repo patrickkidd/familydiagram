@@ -23,7 +23,7 @@ dependencies = [
     "appdirs==1.4.4",
     "xlsxwriter==0.9.8",
     "sortedcontainers==2.2.2",
-    "python-dateutil==2.8.2",
+    "python-dateutil==2.9.0.post0",
     "btcopilot[app]",
 ]
 
