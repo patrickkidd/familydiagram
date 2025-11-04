@@ -52,7 +52,6 @@ def _main_impl():
     import xlsxwriter
     import dateutil
     import sortedcontainers
-    import appdirs
 
     ENABLE_THERAPIST = util.IS_DEV or util.IS_IOS
 

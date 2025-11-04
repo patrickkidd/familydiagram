@@ -48,7 +48,7 @@ from btcopilot.tests.conftest import *
 from btcopilot.tests.pro.conftest import *
 import flask_bcrypt
 
-import appdirs
+from pkdiagram import appdirs
 
 
 version.IS_ALPHA = False

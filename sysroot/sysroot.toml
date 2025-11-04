@@ -150,11 +150,6 @@ plugin = "wheel"
 wheel = "six-1.14.0-py2.py3-none-any.whl"
 version = "1.14.0"
 
-[appdirs]
-plugin = "wheel"
-wheel = "appdirs-1.4.4-py2.py3-none-any.whl"
-version = "1.4.4"
-
 [dateutil]
 plugin = "wheel"
 project = "python-dateutil"
