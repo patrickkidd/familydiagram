@@ -3,13 +3,14 @@ import logging
 import datetime
 
 import pytest
-import mock
+from mock import patch
 import flask_mail
 
 import btcopilot
 from pkdiagram.pyqt import QApplication
 from pkdiagram import util
 from pkdiagram.views import AccountDialog
+from pkdiagram.pyqt import QMessageBox
 
 from btcopilot.extensions import mail
 from btcopilot.extensions import db
@@ -104,24 +105,23 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
     sentResetEmail = util.Condition(dlg.qml.rootObject().sentResetEmail)
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            mock.patch(
+            patch(
                 "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
             )
         )
         send = stack.enter_context(
-            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
+            patch.object(flask_mail.Mail, "send", wraps=mail.send)
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
 
-        qtbot.clickOkAfter(lambda: dlg.mouseClick("authSubmitButton"))
-        # dlg.mouseClick("authSubmitButton")
-        # with mock.patch("PyQt5.QtWidgets.QMessageBox.information") as information:
-        #     util.waitALittle(100)
-        # assert information.call_count == 1
-        # assert information.call_args[0][1] == util.S_EMAIL_SENT_TO_CHANGE_PASSWORD
+        question = stack.enter_context(patch("PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes))
+        information = stack.enter_context(patch("PyQt5.QtWidgets.QMessageBox.information", return_value=QMessageBox.Yes))
+        dlg.mouseClick("authSubmitButton")
+        util.waitALittle(100)
+        assert "No account exists for " in question.call_args[0][2]
+        assert "An email was sent with " in information.call_args[0][2]
 
     _log.info("sentResetEmail.wait()")
-    assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"
     assert send.call_count == 1
 
@@ -169,12 +169,12 @@ def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     authStateChanged = util.Condition(dlg.qml.rootObject().authStateChanged)
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            mock.patch(
+            patch(
                 "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
             )
         )
         send = stack.enter_context(
-            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
+            patch.object(flask_mail.Mail, "send", wraps=mail.send)
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
         dlg.mouseClick("authSubmitButton")
@@ -229,12 +229,12 @@ def test_reset_password(flask_app, test_user, qtbot, create_dlg, qmlEngine):
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            mock.patch(
+            patch(
                 "uuid.uuid4", return_value="a568655e-072e-459c-b352-871a559426e6"
             )
         )
         send = stack.enter_context(
-            mock.patch.object(flask_mail.Mail, "send", wraps=mail.send)
+            patch.object(flask_mail.Mail, "send", wraps=mail.send)
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
         dlg.mouseClick("authSubmitButton")
