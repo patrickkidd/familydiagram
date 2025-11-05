@@ -13,9 +13,6 @@ class wheelPlugin(Component):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._provides_cache = None
-        # Log that our custom plugin is being used
-        import sys
-        print(f"[CUSTOM WHEEL PLUGIN] Loaded for component '{args[0] if args else '?'}' from {__file__}", file=sys.stderr)
 
     @property
     def provides(self):
@@ -37,28 +34,37 @@ class wheelPlugin(Component):
         except Exception:
             pass
 
-        # CRITICAL: During build phase, get_archive() may not be available
-        # For single-module wheels like six, we need to declare them as PythonModule
-        # based on the wheel filename pattern, not archive inspection
-
-        # Check if this is a known single-module wheel based on naming conventions
-        # Wheels like "six-X.Y.Z-py2.py3-none-any.whl" contain a single six.py file
+        # Default fallback: try to determine from wheel contents if possible
+        # Check if the wheel has been downloaded to the cache
+        cache_dir = os.path.join(os.path.expanduser('~'), '.pyqtdeploy', 'cache')
         wheel_name = getattr(self, 'wheel', '')
-        if wheel_name.startswith('six-'):
-            # six.py is a single module
-            self._provides_cache = {
-                'six': PythonModule(version=self.version, deps=dependencies)
-            }
-            return self._provides_cache
+        wheel_path = os.path.join(cache_dir, wheel_name) if wheel_name else None
 
-        # Default fallback: assume wheel provides a package matching component name
-        default_provides = {
-            self.name: PythonPackage(
-                version=self.version,
-                deps=dependencies,
-                exclusions=exclusions
-            )
-        }
+        is_module = False
+        if wheel_path and os.path.exists(wheel_path):
+            try:
+                # Quick check: does the wheel contain {name}.py or {name}/__init__.py?
+                with zipfile.ZipFile(wheel_path, 'r') as whl:
+                    names = whl.namelist()
+                    has_py_file = f"{self.name}.py" in names
+                    has_package_dir = any(n.startswith(f"{self.name}/") for n in names)
+                    is_module = has_py_file and not has_package_dir
+            except Exception:
+                pass
+
+        if is_module:
+            default_provides = {
+                self.name: PythonModule(version=self.version, deps=dependencies)
+            }
+        else:
+            default_provides = {
+                self.name: PythonPackage(
+                    version=self.version,
+                    deps=dependencies,
+                    exclusions=exclusions
+                )
+            }
+
         self._provides_cache = default_provides
         return default_provides
 
@@ -69,8 +75,12 @@ class wheelPlugin(Component):
             top_level_items = set()
 
             for name in whl.namelist():
-                # Skip files in root (no path separator)
+                # Handle root-level .py files (single-file modules like six.py)
                 if '/' not in name and '\\' not in name:
+                    if name.endswith('.py'):
+                        module_name = name[:-3]
+                        if module_name != '__init__':
+                            top_level_items.add(('module', module_name))
                     continue
 
                 parts = Path(name).parts

@@ -146,8 +146,8 @@ installed_modules = [
 # Misc Third-Party ####################################################################
 
 [six]
-plugin = "wheel"
-wheel = "six-1.14.0-py2.py3-none-any.whl"
+# plugin = "wheel"
+# wheel = "six-1.14.0-py2.py3-none-any.whl"
 version = "1.14.0"
 
 [dateutil]
