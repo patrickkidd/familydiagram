@@ -43,7 +43,9 @@ class ItemMode(enum.Enum):
     @staticmethod
     def fromRelationshipKind(kind: RelationshipKind) -> "ItemMode | None":
         """Get the ItemMode for a RelationshipKind, if any."""
-        if kind == RelationshipKind.Cutoff:
+        if kind == RelationshipKind.Fusion:
+            return ItemMode.Fusion
+        elif kind == RelationshipKind.Cutoff:
             return ItemMode.Cutoff
         elif kind == RelationshipKind.Conflict:
             return ItemMode.Conflict
@@ -72,6 +74,7 @@ class ItemMode(enum.Enum):
     def toRelationshipKind(self) -> RelationshipKind | None:
         """Get the RelationshipKind for this ItemMode, if any."""
         mapping = {
+            ItemMode.Fusion: RelationshipKind.Fusion,
             ItemMode.Conflict: RelationshipKind.Conflict,
             ItemMode.Distance: RelationshipKind.Distance,
             ItemMode.Reciprocity: RelationshipKind.Underfunctioning,
