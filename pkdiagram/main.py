@@ -49,8 +49,9 @@ def _main_impl():
     import sys  # no idea
 
     # Third-party modules from sysroot
+    import six 
+    import dateutil.parser
     import xlsxwriter
-    import dateutil
     import sortedcontainers
 
     ENABLE_THERAPIST = util.IS_DEV or util.IS_IOS
