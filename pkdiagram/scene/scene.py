@@ -1559,7 +1559,9 @@ class Scene(QGraphicsScene, Item):
                 person = self.personUnder(e.scenePos())
                 kind = self.itemMode().toRelationshipKind()
                 if self.itemMode() == ItemMode.Cutoff:  # monadic
-                    emotion = Emotion(kind=kind, person=person)
+                    emotion = Emotion(kind=kind, target=None, person=person)
+                    if person:
+                        emotion.setParentItem(person)
                 elif person and person is not self.dragStartItem:  # dyadic
                     emotion = Emotion(
                         kind=kind, person=self.dragStartItem, target=person
@@ -1570,7 +1572,8 @@ class Scene(QGraphicsScene, Item):
                     emotion.isCreating = True
                     self.addItem(emotion, undo=True)
                     emotion.person().updateEmotions()
-                    emotion.target().updateEmotions()
+                    if emotion.target():
+                        emotion.target().updateEmotions()
                     emotion.isCreating = False
                 success = emotion is not None
             if self.dragCreateItem:
