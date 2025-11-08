@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_notes:
-        description: "Enter release notes for appcast (multi-line supported)"
+        description: "Enter release notes for appcast (optional - will auto-extract from doc/CHANGELOG-RELEASE.txt if empty)"
         required: false
         type: string
       skip_release:
@@ -619,6 +619,27 @@ jobs:
       contents: write
     steps:
 
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract release notes from CHANGELOG
+      id: extract-notes
+      run: |
+        # If manual release notes provided, use those; otherwise extract from CHANGELOG
+        if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+          echo "Using manually provided release notes"
+          NOTES="${{ github.event.inputs.release_notes }}"
+        else
+          echo "Extracting release notes from doc/CHANGELOG-RELEASE.txt"
+          NOTES=$(python bin/extract_latest_release_notes.py)
+        fi
+        # Save to output using heredoc to preserve newlines
+        {
+          echo 'notes<<EOF'
+          echo "$NOTES"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
     - uses: actions/download-artifact@v4
 
     - name: Create Release
@@ -631,7 +652,7 @@ jobs:
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
         prerelease: true
-        body: ${{ github.event.inputs.release_notes }}
+        body: ${{ steps.extract-notes.outputs.notes }}
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
