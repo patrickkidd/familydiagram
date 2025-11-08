@@ -3,7 +3,7 @@ import pytest
 from btcopilot.schema import EventKind
 from pkdiagram.pyqt import Qt
 from pkdiagram import util
-from pkdiagram.scene import Person, Marriage, Event
+from pkdiagram.scene import Person, Marriage, Event, Property
 from pkdiagram.views import QmlDrawer
 
 
@@ -88,6 +88,50 @@ def test_anyMarriedEvents(scene, model, marriage):
     )
     assert model.anyMarriedEvents == True
     assert model.anySeparatedEvents == True
+    assert model.anyDivorcedEvents == True
+
+
+def test_onEventsChanged_with_property_wrapper(scene, model, marriage):
+    model.items = [marriage]
+    model.scene = scene
+    assert model.anyMarriedEvents == False
+    assert model.anySeparatedEvents == False
+    assert model.anyDivorcedEvents == False
+
+    marriedEvent = scene.addItem(
+        Event(
+            EventKind.Married,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1900, 1, 1),
+        )
+    )
+    marriedProp = Property(marriedEvent, attr="kind")
+    model.onEventsChanged(marriedProp)
+    assert model.anyMarriedEvents == True
+
+    separatedEvent = scene.addItem(
+        Event(
+            EventKind.Separated,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1910, 1, 1),
+        )
+    )
+    separatedProp = Property(separatedEvent, attr="kind")
+    model.onEventsChanged(separatedProp)
+    assert model.anySeparatedEvents == True
+
+    divorcedEvent = scene.addItem(
+        Event(
+            EventKind.Divorced,
+            marriage.personA(),
+            spouse=marriage.personB(),
+            dateTime=util.Date(1920, 1, 1),
+        )
+    )
+    divorcedProp = Property(divorcedEvent, attr="kind")
+    model.onEventsChanged(divorcedProp)
     assert model.anyDivorcedEvents == True
 
 
