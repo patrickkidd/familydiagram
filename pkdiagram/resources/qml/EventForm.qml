@@ -7,9 +7,13 @@ import PK.Models 1.0
 import "js/Global.js" as Global
 import "js/Underscore.js" as Underscore
 
-PK.Drawer {
+Page {
 
     id: root
+
+    // PK.Drawer stuff
+    signal resize
+    signal done
 
     signal cancel
     signal inspectEmotions(var events)
