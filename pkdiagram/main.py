@@ -48,6 +48,12 @@ if sys.version_info[1] > 7:
 def _main_impl():
     import sys  # no idea
 
+    # Third-party modules from sysroot
+    import six 
+    import dateutil.parser
+    import xlsxwriter
+    import sortedcontainers
+
     ENABLE_THERAPIST = util.IS_DEV or util.IS_IOS
 
     parser = OptionParser()

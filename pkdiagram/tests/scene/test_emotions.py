@@ -630,3 +630,77 @@ def test_emotion_ignores_layers_for_event_based():
     eventEmotion.setLayers([])
     assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer1]) == True
     assert eventEmotion.shouldShowFor(util.Date(2000, 1, 1), layers=[layer2]) == True
+
+
+@pytest.mark.parametrize(
+    "item_mode,expected_kind",
+    [
+        (ItemMode.Fusion, RelationshipKind.Fusion),
+        (ItemMode.Conflict, RelationshipKind.Conflict),
+        (ItemMode.Distance, RelationshipKind.Distance),
+        (ItemMode.Projection, RelationshipKind.Projection),
+        (ItemMode.Reciprocity, RelationshipKind.Underfunctioning),
+        (ItemMode.DefinedSelf, RelationshipKind.DefinedSelf),
+        (ItemMode.Toward, RelationshipKind.Toward),
+        (ItemMode.Away, RelationshipKind.Away),
+        (ItemMode.Inside, RelationshipKind.Inside),
+        (ItemMode.Outside, RelationshipKind.Outside),
+    ],
+)
+def test_drag_create_all_emotion_modes(qtbot, item_mode, expected_kind):
+    from pkdiagram.pyqt import Qt, QGraphicsView, QPointF
+
+    class View(QGraphicsView):
+        def getVisibleSceneScaleRatio(self):
+            return 1.0
+
+    scene = Scene()
+    view = View()
+    view.resize(600, 800)
+    view.show()
+    view.setScene(scene)
+    personA, personB = scene.addItems(
+        Person(name="A", pos=QPointF(50, 50)), Person(name="B", pos=QPointF(-50, 50))
+    )
+    scene.setItemMode(item_mode)
+    qtbot.mousePress(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personA.pos())
+    )
+    qtbot.mouseMove(view.viewport(), view.mapFromScene(personA.pos() - personB.pos()))
+    qtbot.mouseRelease(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(personB.pos())
+    )
+    assert len(scene.emotions()) == 1
+    emotion = scene.emotions()[0]
+    assert emotion.person() == personA
+    assert emotion.target() == personB
+    assert emotion.kind() == expected_kind
+
+
+def test_drag_create_cutoff_emotion(qtbot):
+    from pkdiagram.pyqt import Qt, QGraphicsView, QPointF
+
+    class View(QGraphicsView):
+        def getVisibleSceneScaleRatio(self):
+            return 1.0
+
+    scene = Scene()
+    view = View()
+    view.resize(600, 800)
+    view.show()
+    view.setScene(scene)
+    person = scene.addItem(Person(name="A", pos=QPointF(50, 50)))
+    scene.setItemMode(ItemMode.Cutoff)
+    qtbot.mousePress(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(person.pos())
+    )
+    qtbot.mouseRelease(
+        view.viewport(), Qt.LeftButton, pos=view.mapFromScene(person.pos())
+    )
+    assert len(scene.emotions()) == 1
+    emotion = scene.emotions()[0]
+    assert emotion.person() == person
+    assert emotion.target() is None
+    assert emotion.kind() == RelationshipKind.Cutoff
+    assert emotion.pos() == QPointF(0, 0)
+    assert emotion.parentItem() == person

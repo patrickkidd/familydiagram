@@ -146,20 +146,15 @@ installed_modules = [
 # Misc Third-Party ####################################################################
 
 [six]
-plugin = "wheel"
-wheel = "six-1.14.0-py2.py3-none-any.whl"
+# plugin = "wheel"
+# wheel = "six-1.14.0-py2.py3-none-any.whl"
 version = "1.14.0"
-
-[appdirs]
-plugin = "wheel"
-wheel = "appdirs-1.4.4-py2.py3-none-any.whl"
-version = "1.4.4"
 
 [dateutil]
 plugin = "wheel"
 project = "python-dateutil"
-wheel = "python_dateutil-2.8.2-py2.py3-none-any.whl"
-version = "2.8.2"
+wheel = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl"
+version = "2.9.0.post0"
 
 [sortedcontainers]
 plugin = "wheel"

@@ -38,7 +38,7 @@ class MarriagePropertiesModel(QObject, ModelHelper):
         wasn't getting the added|removed signals.
         """
         if isinstance(item, Property):
-            event = prop.item
+            event = item.item
         else:
             event = item
         if event.kind() == EventKind.Married:

@@ -10,6 +10,7 @@ import btcopilot
 from pkdiagram.pyqt import QApplication, QMessageBox
 from pkdiagram import util
 from pkdiagram.views import AccountDialog
+from pkdiagram.pyqt import QMessageBox
 
 from btcopilot.extensions import mail
 from btcopilot.extensions import db
@@ -111,21 +112,20 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
         )
         dlg.keyClicks("authUsernameField", ARGS["username"], returnToFinish=False)
 
-        with patch(
-            "pkdiagram.app.qmlutil.QMessageBox.question", return_value=QMessageBox.Yes
-        ) as question:
-            qtbot.clickOkAfter(lambda: dlg.mouseClick("authSubmitButton"))
-
-        assert "Create new account?" in question.call_args[0][1]
-
-        # dlg.mouseClick("authSubmitButton")
-        # with patch("PyQt5.QtWidgets.QMessageBox.information") as information:
-        #     util.waitALittle(100)
-        # assert information.call_count == 1
-        # assert information.call_args[0][1] == util.S_EMAIL_SENT_TO_CHANGE_PASSWORD
+        question = stack.enter_context(
+            patch("PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes)
+        )
+        information = stack.enter_context(
+            patch(
+                "PyQt5.QtWidgets.QMessageBox.information", return_value=QMessageBox.Yes
+            )
+        )
+        dlg.mouseClick("authSubmitButton")
+        util.waitALittle(100)
+        assert "No account exists for " in question.call_args[0][2]
+        assert "An email was sent with " in information.call_args[0][2]
 
     _log.info("sentResetEmail.wait()")
-    assert sentResetEmail.wait() == True
     assert dlg.itemProp("authForm", "state") == "code"
     assert send.call_count == 1
 

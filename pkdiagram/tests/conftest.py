@@ -48,7 +48,7 @@ from btcopilot.tests.conftest import *
 from btcopilot.tests.pro.conftest import *
 import flask_bcrypt
 
-import appdirs
+from pkdiagram import appdirs
 
 
 version.IS_ALPHA = False
@@ -76,12 +76,12 @@ def pytest_addoption(parser):
         default=False,
         help="Disable Qt watchdog for kill hung tests.",
     )
-    parser.addoption(
-        "--disable-dependencies",
-        action="store_true",
-        default=False,
-        help="Disable skipping tests when a component test fails.",
-    )
+    # parser.addoption(
+    #     "--disable-dependencies",
+    #     action="store_true",
+    #     default=False,
+    #     help="Disable skipping tests when a component test fails.",
+    # )
     parser.addoption(
         "--integration",
         action="store_true",
@@ -92,7 +92,7 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.watchdog_disabled = config.getoption("--disable-watchdog")
-    config.dependency_disabled = config.getoption("--disable-dependencies")
+    # config.dependency_disabled = config.getoption("--disable-dependencies")
     config.addinivalue_line("markers", "integration: mark test as integration test.")
 
 
@@ -170,8 +170,8 @@ def pytest_runtest_setup(item):
 
     _test_case_name = f"{item.fspath}::{item.name}"
 
-    if item.config.dependency_disabled:
-        return
+    # if item.config.dependency_disabled:
+    #     return
 
     _currentTestItem = item
 
@@ -188,8 +188,8 @@ def pytest_report_teststatus(report, config):
     """Track failures for components so dependent tests case be skipped."""
     global _currentTestItem, _componentStatus
 
-    if config.dependency_disabled:
-        return
+    # if config.dependency_disabled:
+    #     return
 
     if _currentTestItem and report.failed:  # during call
         component_marker = _currentTestItem.get_closest_marker("component")
