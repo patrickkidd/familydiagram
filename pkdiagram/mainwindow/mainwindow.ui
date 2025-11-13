@@ -1338,7 +1338,7 @@
     <string>Arrange Selection (AI)</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+A</string>
+    <string>Ctrl+Shift+E</string>
    </property>
   </action>
  </widget>

@@ -93,7 +93,7 @@ class DocumentController(QObject):
         # Edit
         self.ui.actionUndo.triggered.connect(self.onUndo)
         self.ui.actionRedo.triggered.connect(self.onRedo)
-        self.ui.actionArrange_Selection.connect(self.onArrangeSelection)
+        self.ui.actionArrange_Selection.triggered.connect(self.onArrangeSelection)
         self.ui.actionInspect.triggered.connect(self.onInspect)
         self.ui.actionInspect_Item.triggered.connect(self.onInspectItemTab)
         self.ui.actionInspect_Timeline.triggered.connect(self.onInspectTimelineTab)
@@ -872,13 +872,13 @@ class DocumentController(QObject):
     def onArrangeSelection(self):
         from dataclasses import asdict
         from pkdiagram.server_types import HTTPError
-        from btcopilot.arrange import Diagram, Person, Marriage, Rect, Point
+        from btcopilot.arrange import Diagram, Person, Rect, Point
 
         diagram = Diagram()
         for person in self.scene.people():
             parents = person.parents()
-            parent_a = parents[0].id if parents else None
-            parent_b = parents[1].id if parents else None
+            parent_a = parents.people[0].id if parents else None
+            parent_b = parents.people[1].id if parents else None
             boundingRect = person.sceneBoundingRect()
             diagram.people.append(
                 Person(
@@ -909,17 +909,24 @@ class DocumentController(QObject):
                 for id, newPos in idToNewPos.items():
                     person = scenePeopleById.get(id)
                     if person and person.isSelected():
-                        person.setPos(QPointF(newPos.x, newPos.y), undo=True)
+                        # log.info(
+                        #     f"    Moving person {person.id} from {person.itemPos()} to {newPos}"
+                        # )
+                        person.setItemPos(QPointF(newPos.x, newPos.y), undo=True)
+                        person.setPos(
+                            QPointF(newPos.x, newPos.y)
+                        )  # reflect on diagram now
 
-        def _onError(error: str):
+        def _onError():
             try:
-                errorMsg = error.get("message", "Unknown error")
+                self.dv.session.server().checkHTTPReply(reply)
             except HTTPError as e:
-                log.error(f"Auto-Arrange request failed {reply.read()}")
+                log.error(f"Auto-Arrange request failed {e.status_code}")
 
         reply = self.dv.session.server().nonBlockingRequest(
+            "POST",
             "/arrange",
-            asdict(diagram),
+            data=asdict(diagram),
             headers={"Content-Type": "application/json"},
             success=_onSuccess,
             error=_onError,
