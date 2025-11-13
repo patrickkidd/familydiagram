@@ -880,6 +880,8 @@ class DocumentController(QObject):
             parent_a = parents.people[0].id if parents else None
             parent_b = parents.people[1].id if parents else None
             boundingRect = person.sceneBoundingRect()
+            birthDT = person.birthDateTime()
+            birthDateTime = birthDT.toString("yyyy-MM-dd") if birthDT and birthDT.isValid() else None
             diagram.people.append(
                 Person(
                     id=person.id,
@@ -891,11 +893,12 @@ class DocumentController(QObject):
                         width=boundingRect.width(),
                         height=boundingRect.height(),
                     ),
-                    spouses=[
-                        x.id for marriage in person.marriages for x in marriage.people
+                    partners=[
+                        x.id for marriage in person.marriages for x in marriage.people if x != person
                     ],
                     parent_a=parent_a,
                     parent_b=parent_b,
+                    birthDateTime=birthDateTime,
                 )
             )
 
