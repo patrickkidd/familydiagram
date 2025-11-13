@@ -766,4 +766,4 @@ class Ui_MainWindow(object):
         self.actionShow_Copilot.setText(_translate("MainWindow", "Show Copilot"))
         self.actionShow_Copilot.setShortcut(_translate("MainWindow", "Ctrl+4"))
         self.actionArrange_Selection.setText(_translate("MainWindow", "Arrange Selection (AI)"))
-        self.actionArrange_Selection.setShortcut(_translate("MainWindow", "Ctrl+Shift+A"))
+        self.actionArrange_Selection.setShortcut(_translate("MainWindow", "Ctrl+Shift+E"))
