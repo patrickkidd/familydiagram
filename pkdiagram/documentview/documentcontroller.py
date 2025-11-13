@@ -93,6 +93,7 @@ class DocumentController(QObject):
         # Edit
         self.ui.actionUndo.triggered.connect(self.onUndo)
         self.ui.actionRedo.triggered.connect(self.onRedo)
+        self.ui.actionArrange_Selection.connect(self.onArrangeSelection)
         self.ui.actionInspect.triggered.connect(self.onInspect)
         self.ui.actionInspect_Item.triggered.connect(self.onInspectItemTab)
         self.ui.actionInspect_Timeline.triggered.connect(self.onInspectTimelineTab)
@@ -714,6 +715,7 @@ class DocumentController(QObject):
             on = bool(people)
         else:
             on = False
+        self.ui.actionArrange_Selection.setEnabled(on)
         self.ui.actionParents_to_Selection.setEnabled(on)
         self.ui.actionClear_All_Events.setEnabled(on)
         self.ui.actionDeselect.setEnabled(on)
@@ -866,6 +868,62 @@ class DocumentController(QObject):
     def onRedo(self):
         self.scene.redo()
         self.view.onRedo()
+
+    def onArrangeSelection(self):
+        from dataclasses import asdict
+        from pkdiagram.server_types import HTTPError
+        from btcopilot.arrange import Diagram, Person, Marriage, Rect, Point
+
+        diagram = Diagram()
+        for person in self.scene.people():
+            parents = person.parents()
+            parent_a = parents[0].id if parents else None
+            parent_b = parents[1].id if parents else None
+            boundingRect = person.sceneBoundingRect()
+            diagram.people.append(
+                Person(
+                    id=person.id,
+                    center=Point(x=person.scenePos().x(), y=person.scenePos().y()),
+                    isMovable=person.isSelected(),
+                    boundingRect=Rect(
+                        x=boundingRect.x(),
+                        y=boundingRect.y(),
+                        width=boundingRect.width(),
+                        height=boundingRect.height(),
+                    ),
+                    spouses=[
+                        x.id for marriage in person.marriages for x in marriage.people
+                    ],
+                    parent_a=parent_a,
+                    parent_b=parent_b,
+                )
+            )
+
+        def _onSuccess(data: dict):
+            idToNewPos = {
+                entry["id"]: Point(x=entry["center"]["x"], y=entry["center"]["y"])
+                for entry in data.get("people", [])
+            }
+            scenePeopleById = {person.id: person for person in self.scene.people()}
+            with self.scene.macro("Arrange selection"):
+                for id, newPos in idToNewPos.items():
+                    person = scenePeopleById.get(id)
+                    if person and person.isSelected():
+                        person.setPos(QPointF(newPos.x, newPos.y), undo=True)
+
+        def _onError(error: str):
+            try:
+                errorMsg = error.get("message", "Unknown error")
+            except HTTPError as e:
+                log.error(f"Auto-Arrange request failed {reply.read()}")
+
+        reply = self.dv.session.server().nonBlockingRequest(
+            "/arrange",
+            asdict(diagram),
+            headers={"Content-Type": "application/json"},
+            success=_onSuccess,
+            error=_onError,
+        )
 
     def onDelete(self):
         fw = QApplication.focusWidget()
