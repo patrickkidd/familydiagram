@@ -129,6 +129,7 @@
     <addaction name="actionDeselect"/>
     <addaction name="actionDelete"/>
     <addaction name="actionClear_All_Events"/>
+    <addaction name="actionArrange_Selection"/>
     <addaction name="menuTransform"/>
     <addaction name="separator"/>
     <addaction name="actionInspect"/>
@@ -1330,6 +1331,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionArrange_Selection">
+   <property name="text">
+    <string>Arrange Selection (AI)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
    </property>
   </action>
  </widget>

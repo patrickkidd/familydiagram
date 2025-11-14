@@ -79,7 +79,7 @@ class DocumentController(QObject):
         self.ui = self.dv.ui
 
         self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
-        self.dv.eventForm.qmlInitialized.connect(self.onEventFormInit)
+        self.dv.eventFormDrawer.qmlInitialized.connect(self.onEventFormInit)
 
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
@@ -93,6 +93,7 @@ class DocumentController(QObject):
         # Edit
         self.ui.actionUndo.triggered.connect(self.onUndo)
         self.ui.actionRedo.triggered.connect(self.onRedo)
+        self.ui.actionArrange_Selection.triggered.connect(self.onArrangeSelection)
         self.ui.actionInspect.triggered.connect(self.onInspect)
         self.ui.actionInspect_Item.triggered.connect(self.onInspectItemTab)
         self.ui.actionInspect_Timeline.triggered.connect(self.onInspectTimelineTab)
@@ -192,7 +193,7 @@ class DocumentController(QObject):
         self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.emotionProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.layerItemProps.hideRequested.connect(self.onHideCurrentDrawer)
-        self.dv.eventForm.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.eventFormDrawer.hideRequested.connect(self.onHideCurrentDrawer)
 
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
@@ -222,7 +223,7 @@ class DocumentController(QObject):
         ].connect(self.onEventPropertiesTemplateIndexChanged)
 
     def onEventFormInit(self):
-        self.dv.eventForm.qml.rootObject().inspectEmotions.connect(
+        self.dv.eventFormDrawer.qml.rootObject().inspectEmotions.connect(
             self.onInspectEmotionsFromEventForm
         )
 
@@ -368,27 +369,27 @@ class DocumentController(QObject):
         person = personModel.items[0]
         birthEvents = person.birthEvent()
         if birthEvents:
-            self.dv.eventForm.editEvents(birthEvents)
+            self.dv.eventFormDrawer.editEvents(birthEvents)
         else:
-            self.dv.eventForm.addBirthEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addBirthEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditPersonDeathEvent(self):
         personModel = self.dv.personProps.getPropSheetModel()
         person = personModel.items[0]
         deathEvents = person.deathEvent()
         if deathEvents:
-            self.dv.eventForm.editEvents(deathEvents)
+            self.dv.eventFormDrawer.editEvents(deathEvents)
         else:
-            self.dv.eventForm.addDeathEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addDeathEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditEmotionEvent(self):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
         event = emotion.sourceEvent()
-        self.dv.eventForm.editEvents([event])
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+        self.dv.eventFormDrawer.editEvents([event])
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):
@@ -714,6 +715,7 @@ class DocumentController(QObject):
             on = bool(people)
         else:
             on = False
+        self.ui.actionArrange_Selection.setEnabled(on)
         self.ui.actionParents_to_Selection.setEnabled(on)
         self.ui.actionClear_All_Events.setEnabled(on)
         self.ui.actionDeselect.setEnabled(on)
@@ -867,6 +869,72 @@ class DocumentController(QObject):
         self.scene.redo()
         self.view.onRedo()
 
+    def onArrangeSelection(self):
+        from dataclasses import asdict
+        from pkdiagram.server_types import HTTPError
+        from btcopilot.arrange import Diagram, Person, Rect, Point
+
+        diagram = Diagram()
+        for person in self.scene.people():
+            parents = person.parents()
+            parent_a = parents.people[0].id if parents else None
+            parent_b = parents.people[1].id if parents else None
+            boundingRect = person.sceneBoundingRect()
+            birthDT = person.birthDateTime()
+            birthDateTime = birthDT.toString("yyyy-MM-dd") if birthDT and birthDT.isValid() else None
+            diagram.people.append(
+                Person(
+                    id=person.id,
+                    center=Point(x=person.scenePos().x(), y=person.scenePos().y()),
+                    isMovable=person.isSelected(),
+                    boundingRect=Rect(
+                        x=boundingRect.x(),
+                        y=boundingRect.y(),
+                        width=boundingRect.width(),
+                        height=boundingRect.height(),
+                    ),
+                    partners=[
+                        x.id for marriage in person.marriages for x in marriage.people if x != person
+                    ],
+                    parent_a=parent_a,
+                    parent_b=parent_b,
+                    birthDateTime=birthDateTime,
+                )
+            )
+
+        def _onSuccess(data: dict):
+            idToNewPos = {
+                entry["id"]: Point(x=entry["center"]["x"], y=entry["center"]["y"])
+                for entry in data.get("people", [])
+            }
+            scenePeopleById = {person.id: person for person in self.scene.people()}
+            with self.scene.macro("Arrange selection"):
+                for id, newPos in idToNewPos.items():
+                    person = scenePeopleById.get(id)
+                    if person and person.isSelected():
+                        # log.info(
+                        #     f"    Moving person {person.id} from {person.itemPos()} to {newPos}"
+                        # )
+                        person.setItemPos(QPointF(newPos.x, newPos.y), undo=True)
+                        person.setPos(
+                            QPointF(newPos.x, newPos.y)
+                        )  # reflect on diagram now
+
+        def _onError():
+            try:
+                self.dv.session.server().checkHTTPReply(reply)
+            except HTTPError as e:
+                log.error(f"Auto-Arrange request failed {e.status_code}")
+
+        reply = self.dv.session.server().nonBlockingRequest(
+            "POST",
+            "/arrange",
+            data=asdict(diagram),
+            headers={"Content-Type": "application/json"},
+            success=_onSuccess,
+            error=_onError,
+        )
+
     def onDelete(self):
         fw = QApplication.focusWidget()
         if fw in (self.view, self.view.rightToolBar):
@@ -937,8 +1005,8 @@ class DocumentController(QObject):
 
     def inspectEvents(self, events: list[Event]):
         self.dv.session.trackView("Edit event(s)")
-        self.dv.setCurrentDrawer(self.dv.eventForm)
-        self.dv.eventForm.editEvents(events)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
+        self.dv.eventFormDrawer.editEvents(events)
 
     def inspectEmotions(self, emotions: list[Emotion]):
         self.dv.session.trackView("Edit emotions(s)")
@@ -1029,7 +1097,7 @@ class DocumentController(QObject):
         consistency with action and button states.
         """
         if drawer.canClose():
-            if drawer is self.dv.eventForm:
+            if drawer is self.dv.eventFormDrawer:
                 if self.ui.actionAdd_Anything.isChecked():
                     self.ui.actionAdd_Anything.setChecked(False)
                     return True

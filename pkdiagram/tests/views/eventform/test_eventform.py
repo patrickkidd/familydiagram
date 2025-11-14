@@ -5,7 +5,7 @@ import pytest
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
 from pkdiagram.scene import Person
-from pkdiagram.views import EventForm
+from pkdiagram.views import EventFormDrawer
 
 from pkdiagram.tests.views import TestEventForm
 
@@ -23,7 +23,7 @@ DEPENDS = pytest.mark.depends_on("PersonPicker", "PeoplePicker", "DatePicker")
 def view(qtbot, scene, qmlEngine):
     qmlEngine.sceneModel.onEditorMode(True)
     qmlEngine.setScene(scene)
-    widget = EventForm(qmlEngine)
+    widget = EventFormDrawer(qmlEngine)
     widget.resize(600, 1000)
     widget.setScene(scene)
     widget.show()

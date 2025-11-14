@@ -22,8 +22,8 @@ def test_close_after_adding_lots(
 ):
     ac, mw = create_ac_mw()
     mw.new()
-    mw.documentView.eventForm.checkInitQml()
-    dlg = TestEventForm(mw.documentView.eventForm)
+    mw.documentView.eventFormDrawer.checkInitQml()
+    dlg = TestEventForm(mw.documentView.eventFormDrawer)
     assert mw.scene != None
     qtbot.clickAndProcessEvents(mw.documentView.view.rightToolBar.addAnythingButton)
     assert mw.documentView.currentDrawer == dlg.view
