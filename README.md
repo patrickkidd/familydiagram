@@ -14,6 +14,19 @@ assumptions. The goal is to create a framework that organizes factual
 observations into testable models that predict behavior, moving clinical
 psychology away from untested assumptions and toward empirical knowledge.
 
+
+### What Makes This Different
+
+Traditional clinical tools are essentially chalkboards where therapists
+illustrate their pre-existing assumptions about a case. These assumptions
+usually are subjective and opinion-based. Family Diagram takes a different
+approach by combining **structure** (the family diagram) with **process over
+time** (the timeline).
+
+The timeline is the backbone of scientific assessment. By forcing clinicians to organize facts chronologically—births, deaths, relationship changes, shifts in functioning—it distinguishes between **objective facts** and **subjective impressions**. This shift from "my mother never liked me" to documenting when specific relationship patterns emerged transforms opinion into testable predictions.
+
+**Functional facts** are central to this approach: not what a dream "meant," but that it occurred on a specific date in relation to other family events. Not whether a political shift was "right," but that it happened alongside changes in health or family relationships. This chronological organization of facts reveals predictable patterns in how families manage stress and anxiety—patterns that can be studied empirically rather than assumed theoretically.
+
 ### Applications
 
 Family Diagram enables professionals to quickly gain a broader perspective on
@@ -28,9 +41,10 @@ include:
 ### Target Users
 
 The tool is designed for clinicians, coaches, and researchers interested in
-evidence-based approaches to behavioral health. It provides a practical method
+evidence-based approaches to behavioral health. It provides a rigorous method
 for documenting and analyzing how individuals function within their relational
-contexts.
+contexts—not by drawing assumptions, but by systematically organizing what is
+and is not known about a family's history.
 
 ## Related Articles
 
