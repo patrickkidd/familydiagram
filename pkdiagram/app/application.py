@@ -11,6 +11,7 @@ from pkdiagram.pyqt import (
     QStandardPaths,
     QFontDatabase,
     QSettings,
+    QUrl,
 )
 from pkdiagram import util, version, extensions
 from pkdiagram.app import QmlUtil
@@ -80,6 +81,7 @@ class Application(QApplication):
         self._appType = appType
         self._prefsName = prefsName
         self._prefs = None
+        self.pendingUrlOpen = None
         # prefsPath = QFileInfo(self.prefs().fileName()).filePath()
         self.prefs().setValue("lastVersion", version.VERSION)
 
@@ -88,6 +90,7 @@ class Application(QApplication):
 
         # Move global app filtering to C++ for speed
         self.appFilter = AppFilter(self)
+        self.appFilter.urlOpened.connect(self.onUrlOpened)
         self.installEventFilter(self.appFilter)
 
         # Register Windows URL scheme on startup
@@ -183,6 +186,12 @@ class Application(QApplication):
 
     # def onPaletteChanged(self):
     #     self.here(CUtil.isUIDarkMode())
+
+    def onUrlOpened(self, url: QUrl):
+        """
+        Catches it on launche before the AppController is setup.
+        """
+        self.pendingUrlOpen = url
 
     def onFocusWindowChanged(self, w):
         if self.firstFocusWindow is None and w:
