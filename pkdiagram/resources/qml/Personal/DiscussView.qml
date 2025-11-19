@@ -24,7 +24,7 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
-    property var newButton: newButton
+    property var newDiscussionButton: newDiscussionButton
     property var discussionsButton: discussionsButton
     property var discussionsDrawer: discussionsDrawer
     property var discussionList: discussionList
@@ -41,22 +41,22 @@ Page {
     property bool initSelectedDiscussion: false
 
     Connections {
-        target: personal
+        target: personalApp
         function onDiscussionsChanged() {
             if(!initSelectedDiscussion) {
                 initSelectedDiscussion = true
-                var lastDiscussion = personal.discussions[personal.discussions.length-1]
+                var lastDiscussion = personalApp.discussions[personalApp.discussions.length-1]
                 // print('initSelectedDiscussion: ' + lastDiscussion)
                 if(lastDiscussion !== undefined) {
-                    personal.setCurrentDiscussion(lastDiscussion.id)
+                    personalApp.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
         function onStatementsChanged() {
-            // print('onStatementsChanged: ' + personal.statements.length + ' statements')
+            // print('onStatementsChanged: ' + personalApp.statements.length + ' statements')
             chatModel.clear()
-            for(var i=0; i < personal.statements.length; i++) {
-                var statement = personal.statements[i];
+            for(var i=0; i < personalApp.statements.length; i++) {
+                var statement = personalApp.statements[i];
                 // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
@@ -114,7 +114,7 @@ Page {
             id: discussionList
 
             anchors.fill: parent
-            model: personal ? personal.discussions : undefined
+            model: personalApp ? personalApp.discussions : undefined
             clip: true
 
             delegate: ItemDelegate {
@@ -127,7 +127,7 @@ Page {
                 palette.text: util.QML_TEXT_COLOR
 
                 onClicked: {
-                    personal.setCurrentDiscussion(modelData.id)
+                    personalApp.setCurrentDiscussion(modelData.id)
                     discussionsDrawer.visible = false
                 }
             }
@@ -141,7 +141,7 @@ Page {
                     right: parent.right
                     margins: util.QML_MARGINS
                 }
-                onClicked: personal.createDiscussion()
+                onClicked: personalApp.createDiscussion()
             }
 
         }
@@ -202,7 +202,7 @@ Page {
         PK.ToolButton {
             id: discussionsButton
             text: "Discussions"
-            visible: personal && personal.discussions.length > 0
+            visible: personalApp && personalApp.discussions.length > 0
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
             onClicked: root.showDiscussions()
@@ -357,7 +357,7 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    personal.sendStatement(textEdit.text);
+                    personalApp.sendStatement(textEdit.text);
                     textEdit.text = ''
                     textEdit.focus = false
                     // Qt.inputMethod.hide()

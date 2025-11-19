@@ -237,6 +237,7 @@ class DocumentView(QWidget):
         self.layerItemProps.deinit()
         self.eventFormDrawer.deinit()
         self.searchDialog.deinit()
+        self.eventFormDrawer.eventForm.deinit()
         self._qmlEngine.deinit()
 
     def onCasePropsInit(self):

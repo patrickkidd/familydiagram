@@ -12,7 +12,12 @@ from mock import patch
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.personal import Response, Personal, Discussion, Statement
+from familydiagram.pkdiagram.personal.models import (
+    Response,
+    Personal,
+    Discussion,
+    Statement,
+)
 
 from pkdiagram.tests.widgets.qmlwidgets import QmlHelper
 

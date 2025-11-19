@@ -77,6 +77,9 @@ class EventForm(QObject):
     #             f"nextItem: {nextItemParent.objectName()}.{nextItem.objectName() if nextItem else None}"
     #         )
 
+    def deinit(self):
+        self._tagsModel.scene = None
+
     def setScene(self, scene: Scene):
         self.scene = scene
 

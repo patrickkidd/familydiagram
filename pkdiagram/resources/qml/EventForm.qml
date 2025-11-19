@@ -1064,7 +1064,7 @@ Page {
                     PK.Text {
                         id: tagsLabel
                         text: "Tags"
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                     PK.FormField {
@@ -1075,7 +1075,7 @@ Page {
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
                         backTabItem: tagsField.firstTabItem
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -1105,7 +1105,7 @@ Page {
                         text: util.S_TAGS_HELP_TEXT
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                 }
