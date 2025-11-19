@@ -915,6 +915,16 @@ class EventFormDrawer(QmlDrawer):
         self.eventForm: EventForm = EventForm(self.qml.rootObject(), parent=self)
         self.item = self.eventForm.item
 
+    def onDone(self):
+        # Only hide the drawer when editing events, not when adding new ones.
+        # When adding, we want to keep the drawer open so users can add multiple events.
+        # The doneEditing signal (emitted from EventForm._save when isEditing=True)
+        # will handle switching to case props after editing.
+        isEditing = self.item.property("isEditing")
+        if isEditing:
+            self.hideRequested.emit()
+        # Otherwise, don't hide - the drawer stays open for adding more events
+
     def setScene(self, scene: Scene):
         super().setScene(scene)
         self.eventForm.setScene(scene)
