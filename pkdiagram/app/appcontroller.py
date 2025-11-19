@@ -340,6 +340,7 @@ class AppController(QObject):
             if self._pendingOpenUrl:
                 self.onURLOpened(self._pendingOpenUrl)
 
+        else:
             # When the user logs out, already promted to confirm via Qml.
             self.appConfig.delete("lastSessionData")
             self.mw.fileManager.hide()
