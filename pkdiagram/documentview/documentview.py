@@ -84,6 +84,7 @@ class DocumentView(QWidget):
             objectName="caseProps",
         )
         self.caseProps.qmlInitialized.connect(self.onCasePropsInit)
+        self.caseProps.qmlInitialized.connect(self.controller.onCasePropsInit)
         self.personProps = QmlDrawer(
             self._qmlEngine,
             "qml/PersonProperties.qml",
@@ -118,6 +119,7 @@ class DocumentView(QWidget):
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
         self.eventFormDrawer = EventFormDrawer(self._qmlEngine, self)
+        self.eventFormDrawer.qmlInitialized.connect(self.controller.onEventFormInit)
         QWidget.hide(self.caseProps)
         QWidget.hide(self.personProps)
         QWidget.hide(self.marriageProps)
@@ -150,6 +152,9 @@ class DocumentView(QWidget):
                 self.controller.onEditEmotionEvent
             )
         )
+        # EventFormDrawer initializes QML immediately in its constructor,
+        # so we need to call the init handler directly after connecting the signal
+        self.controller.onEventFormInit()
         self.eventFormDrawer.eventForm.doneEditing.connect(
             self.controller.onEventFormDoneEditing
         )

@@ -78,9 +78,6 @@ class DocumentController(QObject):
         assert self.ui is None
         self.ui = self.dv.ui
 
-        self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
-        self.dv.eventFormDrawer.qmlInitialized.connect(self.onEventFormInit)
-
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
         )
@@ -881,7 +878,11 @@ class DocumentController(QObject):
             parent_b = parents.people[1].id if parents else None
             boundingRect = person.sceneBoundingRect()
             birthDT = person.birthDateTime()
-            birthDateTime = birthDT.toString("yyyy-MM-dd") if birthDT and birthDT.isValid() else None
+            birthDateTime = (
+                birthDT.toString("yyyy-MM-dd")
+                if birthDT and birthDT.isValid()
+                else None
+            )
             diagram.people.append(
                 Person(
                     id=person.id,
@@ -894,7 +895,10 @@ class DocumentController(QObject):
                         height=boundingRect.height(),
                     ),
                     partners=[
-                        x.id for marriage in person.marriages for x in marriage.people if x != person
+                        x.id
+                        for marriage in person.marriages
+                        for x in marriage.people
+                        if x != person
                     ],
                     parent_a=parent_a,
                     parent_b=parent_b,
