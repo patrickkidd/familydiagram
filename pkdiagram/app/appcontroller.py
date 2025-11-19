@@ -44,6 +44,7 @@ class AppController(QObject):
         self.app = app
         self.prefs = QApplication.instance().prefs()
         self._pendingOpenFilePath = None
+        self._pendingOpenUrl = QApplication.instance().pendingUrlOpen
         self.appConfig = AppConfig(app, prefsName=prefsName)
         self._analytics = Analytics(datadog_api_key=pepper.DATADOG_API_KEY)
         self.session = Session(self._analytics)
@@ -178,6 +179,9 @@ class AppController(QObject):
             if self.prefs.value("reopenLastFile", defaultValue=True, type=bool):
                 mw.openLastFile()
 
+        if self._pendingOpenUrl:
+            self.onURLOpened(self._pendingOpenUrl)
+
     def _event_loop(self, mw):
         mw.closed.connect(self.app.quit)
         self.app.exec()
@@ -226,15 +230,20 @@ class AppController(QObject):
 
     def onURLOpened(self, url):
         """Called when familydiagram:// URL is opened"""
-        log.info(f"URL opened: {url}")
+        self._pendingOpenUrl = url
 
+        log.info(f"URL opened: {url}")
         if not url.startswith("familydiagram://"):
             log.warning(f"Ignoring non-familydiagram URL: {url}")
+            self._pendingOpenUrl = None
+            QApplication.instance().onUrlOpened(None)
             return
 
         if "authenticate" not in url:
             log.warning(f"Unknown URL path: {url}")
             QMessageBox.warning(None, "Unknown URL", f"Unknown URL action: {url}")
+            self._pendingOpenUrl = None
+            QApplication.instance().onUrlOpened(None)
             return
 
         if not self.session.isLoggedIn():
@@ -245,6 +254,8 @@ class AppController(QObject):
             )
             return
 
+        self._pendingOpenUrl = None
+        QApplication.instance().onUrlOpened(None)
         try:
             import pickle
 
@@ -326,7 +337,9 @@ class AppController(QObject):
             else:
                 log.info(f"Unknown active features: {self.session.activeFeatures()}")
 
-        else:
+            if self._pendingOpenUrl:
+                self.onURLOpened(self._pendingOpenUrl)
+
             # When the user logs out, already promted to confirm via Qml.
             self.appConfig.delete("lastSessionData")
             self.mw.fileManager.hide()
