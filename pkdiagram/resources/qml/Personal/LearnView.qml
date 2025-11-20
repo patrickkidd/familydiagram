@@ -35,10 +35,10 @@ Page {
     }
 
     Connections {
-        target: personal
+        target: personalApp
         function onPdpChanged() {
-            // console.log('onPdpChanged:', personal.pdp);
-            root.updatePDP(personal.pdp);
+            // console.log('onPdpChanged:', personalApp.pdp);
+            root.updatePDP(personalApp.pdp);
         }
     }
 
@@ -94,7 +94,7 @@ Page {
                     Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
                     onClicked: {
                         print('onClicked: Accepting item:', model.id);
-                        personal.acceptPDPItem(model.id)
+                        personalApp.acceptPDPItem(model.id)
                         pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
@@ -106,7 +106,7 @@ Page {
                     Layout.maximumWidth: util.QML_MICRO_BUTTON_WIDTH
                     onClicked: {
                         print('onClicked: Rejecting item:', model.id);
-                        personal.rejectPDPItem(model.id)
+                        personalApp.rejectPDPItem(model.id)
                         pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter

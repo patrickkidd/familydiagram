@@ -12,7 +12,11 @@ from mock import patch
 from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
 from pkdiagram import util
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.personal import Response, Personal, Discussion, Statement
+from familydiagram.pkdiagram.personal.models import (
+    Response,
+    Discussion,
+    Statement,
+)
 
 from pkdiagram.tests.widgets.qmlwidgets import QmlHelper
 
@@ -37,8 +41,8 @@ def controller(qmlEngine):
         #         ],
         #     )
         # )
-        stack.enter_context(patch.object(controller.personal, "_refreshDiscussion"))
-        stack.enter_context(patch.object(controller.personal, "_refreshPDP"))
+        stack.enter_context(patch.object(controller, "_refreshDiscussion"))
+        stack.enter_context(patch.object(controller, "_refreshPDP"))
 
         controller.init(qmlEngine)
 
@@ -79,7 +83,7 @@ def test_init_with_pdp(view: QQuickWidget, controller: PersonalAppController):
     pdpList = view.rootObject().property("pdpList")
     assert pdpList.property("numDelegates") == 0
 
-    controller.personal.setPDP(
+    controller.setPDP(
         {
             "people": [{"id": -1, "name": "Alice"}, {"id": -2, "name": "Bob"}],
             "events": [

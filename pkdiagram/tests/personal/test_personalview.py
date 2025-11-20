@@ -14,7 +14,7 @@ from PyQt5.QtCore import QUrl
 from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
 from pkdiagram.condition import Condition
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.personal import Discussion
+from familydiagram.pkdiagram.personal.models import Discussion
 
 
 class MockSession(QObject):

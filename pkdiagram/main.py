@@ -49,7 +49,7 @@ def _main_impl():
     import sys  # no idea
 
     # Third-party modules from sysroot
-    import six 
+    import six
     import dateutil.parser
     import xlsxwriter
     import sortedcontainers

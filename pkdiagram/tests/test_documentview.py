@@ -38,6 +38,7 @@ from pkdiagram.scene import (
 from pkdiagram.documentview import DocumentView, DocumentController, RightDrawerView
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.app import Session
+from pkdiagram.widgets import QmlWidgetHelper
 
 from pkdiagram.tests.widgets import TestActiveListEdit
 from pkdiagram.tests.views.eventform.testeventform import TestEventForm
@@ -406,8 +407,8 @@ def test_inspect_events_from_graphical_timeline(qtbot, scene, dv: DocumentView):
     dv.graphicalTimelineView.timeline.setFocus(True)
     qtbot.mouseClick(dv.graphicalTimelineView.inspectButton, Qt.LeftButton)
     # dv.ui.actionInspect.triggered.emit()
-    assert dv.currentDrawer == dv.eventForm
-    assert set(dv.eventForm._events) == {event_1, event_2}
+    assert dv.currentDrawer == dv.eventFormDrawer
+    assert set(dv.eventFormDrawer.eventForm._events) == {event_1, event_2}
 
 
 def test_inspect_new_emotion_via_click_select(qtbot, scene, dv: DocumentView):
@@ -450,10 +451,10 @@ def test_inspect_emotion_from_eventform(scene, dv: DocumentView):
     )
     emotions = scene.emotionsFor(event)
     dv.controller.inspectEvents([event])
-    assert dv.currentDrawer == dv.eventForm
+    assert dv.currentDrawer == dv.eventFormDrawer
 
-    inspectEmotionsButton = dv.eventForm.rootProp("inspectEmotionButton")
-    dv.eventForm.mouseClick(inspectEmotionsButton)
+    inspectEmotionsButton = dv.eventFormDrawer.rootProp("inspectEmotionButton")
+    dv.eventFormDrawer.mouseClick(inspectEmotionsButton)
     assert dv.currentDrawer == dv.emotionProps
     assert dv.emotionProps.getPropSheetModel().items == emotions
 
@@ -475,11 +476,11 @@ def test_change_graphical_timeline_selection_hides_event_props(scene, dv):
     dv.setCurrentDrawer(dv.caseProps)
     dv.caseProps.qml.setFocus(True)
     dv.controller.onInspect()
-    assert dv.currentDrawer == dv.eventForm
+    assert dv.currentDrawer == dv.eventFormDrawer
 
     dv.setShowGraphicalTimeline(True)
     dv.graphicalTimelineView.timeline.canvas.selectRowsInRect(QRect())
-    assert dv.currentDrawer == dv.eventForm
+    assert dv.currentDrawer == dv.eventFormDrawer
 
 
 def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
@@ -500,10 +501,10 @@ def test_edit_datetime_in_event_props_doesnt_hide_event_props(scene, dv):
     dv.setCurrentDrawer(dv.caseProps)
     dv.caseProps.qml.setFocus(True)
     dv.controller.onInspect()
-    assert dv.currentDrawer == dv.eventForm
+    assert dv.currentDrawer == dv.eventFormDrawer
 
-    TestEventForm(dv.eventForm).set_startDateTime(util.Date(2000, 1, 1))
-    assert dv.currentDrawer == dv.eventForm
+    TestEventForm(dv.eventFormDrawer).set_startDateTime(util.Date(2000, 1, 1))
+    assert dv.currentDrawer == dv.eventFormDrawer
 
 
 @pytest.mark.skip("Couldn't get the correct bounding rect for the event delegate")
@@ -611,7 +612,7 @@ def test_toggle_search_tag_via_model(scene, dv):
     dv.ui.actionFind.trigger()
     tagsEdit = dv.searchDialog.rootProp("tagsEdit")
     propsPage = dv.searchDialog.rootProp("propsPage")
-    dv.searchDialog.scrollChildToVisible(propsPage, tagsEdit)
+    QmlWidgetHelper.scrollChildToVisible(propsPage, tagsEdit)
     tagsEdit_list = TestActiveListEdit(
         dv.searchDialog, dv.searchDialog.qml.rootObject().property("tagsEdit")
     )
@@ -697,7 +698,7 @@ def test_search_show_emotional_unit(dv, bothUnits):
 
     propsPage = dv.searchDialog.rootProp("propsPage")
     emotionalUnitsEdit = dv.searchDialog.qml.rootObject().property("emotionalUnitsEdit")
-    dv.searchDialog.scrollChildToVisible(propsPage, emotionalUnitsEdit)
+    QmlWidgetHelper.scrollChildToVisible(propsPage, emotionalUnitsEdit)
 
     emotionalUnitsEdit_list = TestActiveListEdit(dv.searchDialog, emotionalUnitsEdit)
     emotionalUnitsEdit_list.clickActiveBox(marriage_1.itemName())
@@ -1215,8 +1216,8 @@ def test_personprops_birth_event_button(
         )
 
     with (
-        patch.object(dv.eventForm, "editEvents") as editEvents,
-        patch.object(dv.eventForm, "addBirthEvent") as addBirthEvent,
+        patch.object(dv.eventFormDrawer, "editEvents") as editEvents,
+        patch.object(dv.eventFormDrawer, "addBirthEvent") as addBirthEvent,
     ):
         dv.personProps.qml.rootObject().editBirthEvent.emit()
 
@@ -1254,8 +1255,8 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
 
     if hasDeathEvent:
         with (
-            patch.object(dv.eventForm, "editEvents") as editEvents,
-            patch.object(dv.eventForm, "addDeathEvent") as addDeathEvent,
+            patch.object(dv.eventFormDrawer, "editEvents") as editEvents,
+            patch.object(dv.eventFormDrawer, "addDeathEvent") as addDeathEvent,
         ):
             dv.personProps.qml.rootObject().editDeathEvent.emit()
 
@@ -1273,8 +1274,8 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
         )
 
         with (
-            patch.object(dv.eventForm, "editEvents") as editEvents,
-            patch.object(dv.eventForm, "addDeathEvent") as addDeathEvent,
+            patch.object(dv.eventFormDrawer, "editEvents") as editEvents,
+            patch.object(dv.eventFormDrawer, "addDeathEvent") as addDeathEvent,
         ):
             dv.personProps.qml.rootObject().editDeathEvent.emit()
 

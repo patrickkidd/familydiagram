@@ -7,6 +7,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
+import ".." 1.0
 
 
 Page {
@@ -23,13 +24,15 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
-    property var newButton: newButton
+    property var newDiscussionButton: newDiscussionButton
     property var discussionsButton: discussionsButton
     property var discussionsDrawer: discussionsDrawer
     property var discussionList: discussionList
     property var statementsList: statementsList
 
     property var chatMargin: util.QML_MARGINS * 1.5
+    property var eventDrawer: eventDrawer
+    property var eventForm: eventForm
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -39,22 +42,22 @@ Page {
     property bool initSelectedDiscussion: false
 
     Connections {
-        target: personal
+        target: personalApp
         function onDiscussionsChanged() {
             if(!initSelectedDiscussion) {
                 initSelectedDiscussion = true
-                var lastDiscussion = personal.discussions[personal.discussions.length-1]
+                var lastDiscussion = personalApp.discussions[personalApp.discussions.length-1]
                 // print('initSelectedDiscussion: ' + lastDiscussion)
                 if(lastDiscussion !== undefined) {
-                    personal.setCurrentDiscussion(lastDiscussion.id)
+                    personalApp.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
         function onStatementsChanged() {
-            // print('onStatementsChanged: ' + personal.statements.length + ' statements')
+            // print('onStatementsChanged: ' + personalApp.statements.length + ' statements')
             chatModel.clear()
-            for(var i=0; i < personal.statements.length; i++) {
-                var statement = personal.statements[i];
+            for(var i=0; i < personalApp.statements.length; i++) {
+                var statement = personalApp.statements[i];
                 // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
@@ -94,7 +97,11 @@ Page {
     }
 
     function showDiscussions() {
-        discussionsDrawer.visible = true        
+        discussionsDrawer.visible = true
+    }
+
+    function showEventForm() {
+        eventDrawer.open()
     }
 
 
@@ -108,23 +115,36 @@ Page {
             id: discussionList
 
             anchors.fill: parent
-            model: personal ? personal.discussions : undefined
+            model: personalApp ? personalApp.discussions : undefined
             clip: true
 
             delegate: ItemDelegate {
                 id: dRoot
                 property int dId: modelData.id
                 property var dText: modelData.summary
-                
+
                 text: dText
                 width: discussionList.width
                 palette.text: util.QML_TEXT_COLOR
 
                 onClicked: {
-                    personal.setCurrentDiscussion(modelData.id)
+                    personalApp.setCurrentDiscussion(modelData.id)
                     discussionsDrawer.visible = false
                 }
             }
+
+            PK.Button {
+                id: newDiscussionButton
+                source: '../../plus-button.png'
+                width: 18
+                height: 20
+                anchors {
+                    right: parent.right
+                    margins: util.QML_MARGINS
+                }
+                onClicked: personalApp.createDiscussion()
+            }
+
         }
         background: Rectangle {
             color: util.QML_WINDOW_BG
@@ -141,6 +161,36 @@ Page {
         }
     }
 
+    Popup {
+        id: eventDrawer
+        width: parent.width
+        height: parent.height
+        modal: true
+        closePolicy: Popup.CloseOnEscape
+        parent: Overlay.overlay
+        padding: 0
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "y"; from: parent.height; to: 0; duration: 250; easing.type: Easing.OutQuad }
+        }
+
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "y"; from: 0; to: parent.height; duration: 250; easing.type: Easing.InQuad }
+        }
+
+        EventForm {
+            id: eventForm
+            anchors.fill: parent
+            onCancel: eventDrawer.close()
+        }
+
+        background: Rectangle {
+            color: util.QML_WINDOW_BG
+        }
+    }
+
 
     header: PK.ToolBar {
         PK.ToolButton {
@@ -153,20 +203,24 @@ Page {
         PK.ToolButton {
             id: discussionsButton
             text: "Discussions"
-            visible: personal && personal.discussions.length > 0
+            visible: personalApp && personalApp.discussions.length > 0
             anchors.left: parent.left
             anchors.leftMargin: util.QML_MARGINS
             onClicked: root.showDiscussions()
         }
 
-        PK.ToolButton {
-            id: newButton
-            text: 'New'
+        PK.Button {
+            id: addButton
+            source: '../../plus-button-green.png'
+            invertForDarkMode: false
+            height: 25
+            width: 25
             anchors {
                 right: parent.right
+                verticalCenter: parent.verticalCenter
                 margins: util.QML_MARGINS
             }
-            onClicked: personal.createDiscussion()
+            onClicked: root.showEventForm()
         }
     }
 
@@ -308,7 +362,7 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    personal.sendStatement(textEdit.text);
+                    personalApp.sendStatement(textEdit.text);
                     textEdit.text = ''
                     textEdit.focus = false
                     // Qt.inputMethod.hide()

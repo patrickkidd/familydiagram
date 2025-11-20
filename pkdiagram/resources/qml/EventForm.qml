@@ -7,9 +7,13 @@ import PK.Models 1.0
 import "js/Global.js" as Global
 import "js/Underscore.js" as Underscore
 
-PK.Drawer {
+Page {
 
     id: root
+
+    // PK.Drawer stuff
+    signal resize
+    signal done
 
     signal cancel
     signal inspectEmotions(var events)
@@ -1060,7 +1064,7 @@ PK.Drawer {
                     PK.Text {
                         id: tagsLabel
                         text: "Tags"
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                     PK.FormField {
@@ -1071,7 +1075,7 @@ PK.Drawer {
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
                         backTabItem: tagsField.firstTabItem
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -1101,7 +1105,7 @@ PK.Drawer {
                         text: util.S_TAGS_HELP_TEXT
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                 }

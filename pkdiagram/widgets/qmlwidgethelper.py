@@ -632,7 +632,8 @@ class QmlWidgetHelper(QObjectHelper):
             flickable.setProperty("contentY", y + itemHeight)
         QApplication.processEvents()
 
-    def scrollChildToVisible(self, flickable: QQuickItem, item: QQuickItem):
+    @staticmethod
+    def scrollChildToVisible(flickable: QQuickItem, item: QQuickItem):
         positionInContent = item.mapToItem(
             flickable.property("contentItem"), QPointF(0, 0)
         )
