@@ -330,7 +330,7 @@ class EventForm(QObject):
             msg = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text)
             _log.debug(f"Warning: Unconfirmed field, {msg}")
             QMessageBox.warning(
-                self,
+                None,
                 "Unconfirmed field",
                 msg,
                 QMessageBox.Ok,
@@ -401,7 +401,7 @@ class EventForm(QObject):
                 msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
                 _log.debug(f"EventForm validation DIALOG: {msg}")
                 QMessageBox.warning(
-                    self,
+                    None,
                     "Required field",
                     msg,
                     QMessageBox.Ok,
@@ -428,7 +428,7 @@ class EventForm(QObject):
                 and self.scene.eventsFor(childPerson, kinds=EventKind.Adopted)
             ):
                 button = QMessageBox.question(
-                    self,
+                    None,
                     f"Replace {kind.name} event(s)?",
                     self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                 )
@@ -442,7 +442,7 @@ class EventForm(QObject):
             person = personEntry["person"]
             if person.deceasedDateTime():
                 button = QMessageBox.question(
-                    self,
+                    None,
                     f"Replace {kind.name} event?",
                     self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                 )
@@ -861,7 +861,7 @@ class EventForm(QObject):
     def canClose(self):
         if self.property("dirty"):
             discard = QMessageBox.question(
-                self,
+                None,
                 "Discard changes?",
                 "Are you sure you want to discard your changes to this event? Click 'Yes' to discard your changes, or click 'No' to finish adding the event.",
             )

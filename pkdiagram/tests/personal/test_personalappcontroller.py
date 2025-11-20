@@ -2,9 +2,11 @@ import contextlib
 
 import pytest
 from mock import patch
+from pkdiagram.pyqt import QApplication
 
 from pkdiagram.app import Session
-from pkdiagram.personal import PersonalAppController, Discussion, Statement
+from pkdiagram.personal import PersonalAppController
+from pkdiagram.personal.models import Discussion, Statement
 from pkdiagram import util
 
 from btcopilot.extensions import db
@@ -28,9 +30,10 @@ def discussion(test_user):
 
 @pytest.fixture
 def controller(test_session):
-    session = Session()
-    session.init(sessionData=test_session.account_editor_dict(), syncWithServer=False)
-    _controller = PersonalAppController(session)
+    _controller = PersonalAppController(QApplication.instance())
+    _controller.session.init(
+        sessionData=test_session.account_editor_dict(), syncWithServer=False
+    )
 
     yield _controller
 

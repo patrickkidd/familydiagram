@@ -13,6 +13,8 @@ from pkdiagram.pyqt import (
     pyqtSlot,
     QNetworkReply,
     QNetworkRequest,
+    QQuickItem,
+    QUrl,
 )
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Diagram, Discussion
@@ -48,6 +50,8 @@ class PersonalAppController(QObject):
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
         self._pdp: dict | None = None
+        self._rootObject = None
+        self._engine: QQmlEngine | None = None
         self.scene = None
 
         self.util = QApplication.instance().qmlUtil()  # should be local, not global
@@ -69,31 +73,38 @@ class PersonalAppController(QObject):
         engine.rootContext().setContextProperty("personalApp", self)
         engine.rootContext().setContextProperty("sceneModel", self.sceneModel)
         engine.rootContext().setContextProperty("peopleModel", self.peopleModel)
-        self.eventForm = EventForm(self.rootObject(), self)
+        engine.objectCreated[QObject, QUrl].connect(self.onQmlObjectCreated)
+        self._engine = engine
         self.analytics.init()
         self.appConfig.init()
         self.session.setQmlEngine(engine)
         lastSessionData = self.appConfig.get("lastSessionData", pickled=True)
         if lastSessionData and not self.appConfig.wasTamperedWith:
             self.session.init(sessionData=lastSessionData)
-            self._refreshDiagram()
-            self._refreshPDP()
         else:
             self.session.init()
 
     def deinit(self):
         self.analytics.init()
         self.session.deinit()
-        self.eventView
+        self.eventForm.deinit()
+        self._engine = None
+
+    def onQmlObjectCreated(self, rootObject: QQuickItem, url: QUrl):
+        if not self.eventForm:
+            self.eventForm = EventForm(
+                rootObject.property("personalView")
+                .property("discussView")
+                .property("eventForm"),
+                self,
+            )
+            self.eventForm.setScene(self.scene)
 
     def setScene(self, scene: Scene):
         self.scene = scene
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
         self.eventForm.setScene(scene)
-
-    def rootObject(self) -> QObject:
-        return self.rootObjects()[0]
 
     def exec(self, mw):
         """
@@ -127,7 +138,6 @@ class PersonalAppController(QObject):
             self._currentDiscussion = None
         else:
             self._refreshDiagram()
-            self._refreshPDP()
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
@@ -151,6 +161,10 @@ class PersonalAppController(QObject):
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
+            assert self.scene is None
+            scene = Scene()
+            scene.read(data)
+            self.setScene(scene)
 
         reply = self.session.server().nonBlockingRequest(
             "GET",
@@ -258,25 +272,25 @@ class PersonalAppController(QObject):
 
     ## PDP
 
-    @pyqtSlot()
-    def refreshPDP(self):
-        self._refreshPDP()
+    # @pyqtSlot()
+    # def refreshPDP(self):
+    #     self._refreshPDP()
 
-    def _refreshPDP(self):
-        def onSuccess(data):
-            self.setPDP(data)
-            # _log.info(f"pdpChanged.emit(): {self._pdp}")
-            self.pdpChanged.emit()
+    # def _refreshPDP(self):
+    #     def onSuccess(data):
+    #         self.setPDP(data)
+    #         # _log.info(f"pdpChanged.emit(): {self._pdp}")
+    #         self.pdpChanged.emit()
 
-        reply = self.session.server().nonBlockingRequest(
-            "GET",
-            "/personal/pdp",
-            data={},
-            error=lambda: self.onError(reply),
-            success=onSuccess,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
-        )
+    #     reply = self.session.server().nonBlockingRequest(
+    #         "GET",
+    #         "/personal/pdp",
+    #         data={},
+    #         error=lambda: self.onError(reply),
+    #         success=onSuccess,
+    #         headers={"Content-Type": "application/json", "Accept": "application/json"},
+    #         from_root=True,
+    #     )
 
     @pyqtSlot(int)
     def acceptPDPItem(self, id: int):

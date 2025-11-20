@@ -32,6 +32,7 @@ Page {
 
     property var chatMargin: util.QML_MARGINS * 1.5
     property var eventDrawer: eventDrawer
+    property var eventForm: eventForm
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -211,8 +212,12 @@ Page {
         PK.Button {
             id: addButton
             source: '../../plus-button-green.png'
+            invertForDarkMode: false
+            height: 25
+            width: 25
             anchors {
                 right: parent.right
+                verticalCenter: parent.verticalCenter
                 margins: util.QML_MARGINS
             }
             onClicked: root.showEventForm()
