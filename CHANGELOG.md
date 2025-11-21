@@ -2,7 +2,7 @@
 
 All notable changes to Family Diagram are documented in this file.
 
-## 2.1.10
+## 2.1.9
 
 ## 2.1.10b1
 - Added autosave
