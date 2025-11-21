@@ -64,6 +64,13 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="autoSaveBox">
+        <property name="text">
+         <string>Enable auto-save on file open, and then every so often</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

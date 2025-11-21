@@ -56,7 +56,7 @@ from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
 from pkdiagram.documentview import DocumentView
-from pkdiagram.mainwindow import FileManager, Preferences, Welcome
+from pkdiagram.mainwindow import FileManager, Preferences, Welcome, AutoSaveManager
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 
 
@@ -213,6 +213,10 @@ class MainWindow(QMainWindow):
         self.prefsDialog = None
         self.documentView.raise_()
 
+        ## Auto-Save Manager
+
+        self.autoSaveManager = AutoSaveManager(self)
+
         # Welcome
         self.welcomeDialog = Welcome(self)
         self.welcomeDialog.hidden.connect(self.onWelcomeHidden)
@@ -252,6 +256,7 @@ class MainWindow(QMainWindow):
         self.ui.actionAbout.triggered.connect(self.showAbout)
         self.ui.actionView_Diagram.triggered.connect(self.showDiagram)
         self.ui.actionDocuments_Folder.triggered.connect(self.openDocumentsFolder)
+        self.ui.actionAutosave_Folder.triggered.connect(self.openAutosaveFolder)
         # Edit
         self.ui.actionCopy.triggered.connect(self.onCopy)
         self.ui.actionCut.triggered.connect(self.onCut)
@@ -864,6 +869,8 @@ class MainWindow(QMainWindow):
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
+        # Document load is now complete for server diagrams
+        self._onDocumentLoadComplete()
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():
@@ -1240,6 +1247,10 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
+            # For local files, document load is complete now
+            # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
+            if not self._isOpeningServerDiagram:
+                self._onDocumentLoadComplete()
         else:
             self.ui.actionSave.setEnabled(False)
             self.ui.actionSave_As.setEnabled(False)
@@ -1247,11 +1258,27 @@ class MainWindow(QMainWindow):
             self.ui.actionImport_Diagram.setEnabled(False)
             self.ui.actionClose.setEnabled(False)
             self.serverPollTimer.stop()
+            # Stop auto-save when no document
+            self.autoSaveManager.setDocument(None, None)
         self.updateWindowTitle()
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
             self.documentChanged.emit(oldDoc, newDoc)
         self._isOpeningDiagram = False
+
+    def _onDocumentLoadComplete(self):
+        """
+        Called when document loading is fully complete.
+
+        For local files: called at the end of setDocument()
+        For server diagrams: called in onServerFileClicked() after setServerDiagram()
+        """
+        if self.document and self.scene:
+            autoSaveEnabled = self.prefs.value(
+                "autoSaveEnabled", defaultValue=True, type=bool
+            )
+            if autoSaveEnabled:
+                self.autoSaveManager.setDocument(self.document, self.scene)
 
     def onServerPollTimer(self):
         if self.scene:
@@ -1543,6 +1570,16 @@ class MainWindow(QMainWindow):
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()
+        import os, sys
+
+        if sys.platform == "win32":
+            s = os.path.abspath(s)
+            os.system('explorer "%s"' % s)
+        elif os.path.isdir(s):
+            os.system('open "%s"' % s)
+
+    def openAutosaveFolder(self):
+        s = self.autoSaveManager._autosaveFolderPath
         import os, sys
 
         if sys.platform == "win32":
