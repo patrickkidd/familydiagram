@@ -923,9 +923,10 @@ class MainWindow(QMainWindow):
                         newScene = Scene()
                         bdata = f.read()
                         data = pickle.loads(bdata)
-                        ret = newScene.read(data)
-                        if ret:
-                            self.onOpenFileError(ret)
+                        try:
+                            newScene.read(data)
+                        except Exception as e:
+                            self.onOpenFileError(e)
 
                         if self.session.hasFeature(btcopilot.LICENSE_FREE):
 
@@ -988,8 +989,14 @@ class MainWindow(QMainWindow):
                 else:
                     self.open(filePath=lastFileReadPath)
 
-    def onOpenFileError(self, x):
-        QMessageBox.warning(self, "Error opening file", x)
+    def onOpenFileError(self, etype, value, tb):
+        QMessageBox.warning(
+            self,
+            "Error opening file",
+            f"This file is corrupted and cannot be opened\n\n{value}",
+        )
+        self.session.error(etype, value, tb)
+        log.error("Error opening file", exc_info=(etype, value, tb))
 
     def setDocument(self, document):
         """Called from CUtil.openExistingFile() async open."""
@@ -1039,30 +1046,32 @@ class MainWindow(QMainWindow):
 
             newScene = Scene(document=document)
 
-            ret = None
+            data = None
+            etype, value, tb = None, None, None
             if bdata:
-
                 try:
                     data = pickle.loads(bdata)
-                except:
-                    ret = "This file is currupt and cannot be opened"
-                    import traceback
-
-                    traceback.print_exc()
+                except Exception as e:
+                    etype, value, tb = sys.exc_info()
             else:
                 data = {}
 
-            if not ret:
-                ret = newScene.read(data)
-                if readOnly is not None:
-                    newScene.setReadOnly(readOnly)
+            if etype is None:
+                try:
+                    newScene.read(data)
+                except Exception as e:
+                    etype, value, tb = sys.exc_info()
+                finally:
+                    pass
 
-            # Error loading scene
-            if ret:
-                self.onOpenFileError(ret)
+            if etype is not None:
+                self.onOpenFileError(etype, value, tb)
                 self.fileManager.setEnabled(True)
                 self._isOpeningDiagram = False
                 return
+
+            if readOnly is not None:
+                newScene.setReadOnly(readOnly)
 
             #
             # if not newScene.activeLayers():
