@@ -15,7 +15,6 @@ from pkdiagram.scene import Person, Scene, Marriage, Layer
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import DocumentController
 from pkdiagram.app import AppController
-from pkdiagram.extensions import datadog_excepthook
 
 
 pytestmark = [
