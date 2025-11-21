@@ -2,15 +2,34 @@
 No pkdiagram dependencies allowed here except thirdparty packages
 """
 
-import enum
 import datetime
-import xml.etree.ElementTree as ET
+import enum
+import os
+import sys
 import xml.dom.minidom
+import xml.etree.ElementTree as ET
 
 
 class OS(enum.Enum):
     Windows = "windows"
     MacOS = "macos"
+
+
+def extract_changelog_for_version(version: str) -> str:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    bin_dir = os.path.join(script_dir, "..", "bin")
+    sys.path.insert(0, bin_dir)
+
+    try:
+        from extract_changelog import extract_changelog
+
+        changelog_path = os.path.join(script_dir, "..", "CHANGELOG.md")
+        return extract_changelog(version, changelog_path)
+    except Exception:
+        return ""
+    finally:
+        if bin_dir in sys.path:
+            sys.path.remove(bin_dir)
 
 
 def actions_2_appcast(
@@ -71,9 +90,13 @@ def actions_2_appcast(
         title = ET.SubElement(item, "title")
         title.text = release["name"] or release["tag_name"]
 
-        # TODO: This is viewable & useful to the user, should have changelog.
         description = ET.SubElement(item, "description")
-        description.text = release["body"]
+        version = release["name"] or release["tag_name"]
+        changelog_html = extract_changelog_for_version(version)
+        if changelog_html:
+            description.text = changelog_html
+        else:
+            description.text = release["body"] or ""
 
         pubDate = ET.SubElement(item, "pubDate")
         pubDate.text = datetime.datetime.strptime(
