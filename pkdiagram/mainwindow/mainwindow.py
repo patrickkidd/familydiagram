@@ -256,6 +256,7 @@ class MainWindow(QMainWindow):
         self.ui.actionAbout.triggered.connect(self.showAbout)
         self.ui.actionView_Diagram.triggered.connect(self.showDiagram)
         self.ui.actionDocuments_Folder.triggered.connect(self.openDocumentsFolder)
+        self.ui.actionAutosave_Folder.triggered.connect(self.openAutosaveFolder)
         # Edit
         self.ui.actionCopy.triggered.connect(self.onCopy)
         self.ui.actionCut.triggered.connect(self.onCut)
@@ -1273,7 +1274,11 @@ class MainWindow(QMainWindow):
         For server diagrams: called in onServerFileClicked() after setServerDiagram()
         """
         if self.document and self.scene:
-            self.autoSaveManager.setDocument(self.document, self.scene)
+            autoSaveEnabled = self.prefs.value(
+                "autoSaveEnabled", defaultValue=True, type=bool
+            )
+            if autoSaveEnabled:
+                self.autoSaveManager.setDocument(self.document, self.scene)
 
     def onServerPollTimer(self):
         if self.scene:
@@ -1565,6 +1570,16 @@ class MainWindow(QMainWindow):
 
     def openDocumentsFolder(self):
         s = CUtil.instance().documentsFolderPath()
+        import os, sys
+
+        if sys.platform == "win32":
+            s = os.path.abspath(s)
+            os.system('explorer "%s"' % s)
+        elif os.path.isdir(s):
+            os.system('open "%s"' % s)
+
+    def openAutosaveFolder(self):
+        s = self.autoSaveManager._autosaveFolderPath
         import os, sys
 
         if sys.platform == "win32":

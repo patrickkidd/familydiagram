@@ -52,7 +52,7 @@ def test_autosave_on_document_open(tmp_path, create_ac_mw):
     # Verify auto-save was triggered
     assert len(autosave_paths) == 1
     assert os.path.isdir(autosave_paths[0])
-    assert "test_autosave_" in autosave_paths[0]
+    assert "test_" in autosave_paths[0]
 
     # Verify the autosaved file exists and contains pickle data
     pickle_path = os.path.join(autosave_paths[0], "diagram.pickle")
@@ -78,12 +78,12 @@ def test_autosave_filename_format(tmp_path, create_ac_mw):
     assert len(autosave_paths) == 1
     filename = os.path.basename(autosave_paths[0])
 
-    # Should be: my_family_autosave_YYYYMMDD_HHMMSS.fd
-    assert filename.startswith("my_family_autosave_")
+    # Should be: my_family_YYYYMMDD_HHMMSS.fd
+    assert filename.startswith("my_family_")
     assert filename.endswith(".fd")
 
     # Extract timestamp portion and verify format
-    timestamp_part = filename.replace("my_family_autosave_", "").replace(".fd", "")
+    timestamp_part = filename.replace("my_family_", "").replace(".fd", "")
     parts = timestamp_part.split("_")
     assert len(parts) == 2  # date_time
     assert len(parts[0]) == 8  # YYYYMMDD
@@ -200,5 +200,5 @@ def test_autosave_server_diagram_uses_name(tmp_path, create_ac_mw):
     assert len(autosave_paths) >= 1
     # Check the most recent autosave
     filename = os.path.basename(autosave_paths[-1])
-    assert filename.startswith("Mrs Olodort_autosave_")
-    assert not filename.startswith("1778_autosave_")
+    assert filename.startswith("Mrs Olodort_")
+    assert not filename.startswith("1778_")

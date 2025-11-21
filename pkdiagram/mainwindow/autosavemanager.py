@@ -119,7 +119,7 @@ class AutoSaveManager(QObject):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Create autosave filename
-        autosaveFileName = f"{baseName}_autosave_{timestamp}.fd"
+        autosaveFileName = f"{baseName}_{timestamp}.fd"
         autosavePath = os.path.join(self._autosaveFolderPath, autosaveFileName)
 
         # Serialize the scene data

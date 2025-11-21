@@ -17,6 +17,7 @@ class Preferences(QDialog):
         self.ui.reopenFileBox.toggled[bool].connect(self.onReopenLastFile)
         self.ui.enablePinchZoomBox.toggled[bool].connect(self.onEnablePinchZoom)
         self.ui.enableWheelPanBox.toggled[bool].connect(self.onEnableWheelPan)
+        self.ui.autoSaveBox.toggled[bool].connect(self.onAutoSave)
 
         self.ui.darkLightSystemBox.toggled[bool].connect(self.onDarkLightMode)
         self.ui.darkLightDarkBox.toggled[bool].connect(self.onDarkLightMode)
@@ -53,6 +54,11 @@ class Preferences(QDialog):
         )
         self.ui.checkForUpdatesBox.setChecked(checkForUpdatesAutomatically)
         self.ui.checkForUpdatesBox.setEnabled(not version.IS_ALPHA_BETA)
+        #
+        autoSaveEnabled = self.prefs.value(
+            "autoSaveEnabled", defaultValue=True, type=bool
+        )
+        self.ui.autoSaveBox.setChecked(autoSaveEnabled)
         #
         darkLightMode = self.prefs.value(
             "darkLightMode", defaultValue=util.PREFS_UI_HONOR_SYSTEM_DARKLIGHT_MODE
@@ -107,6 +113,22 @@ class Preferences(QDialog):
     def onEnableWheelPan(self, on):
         util.ENABLE_WHEEL_PAN = on
         self.prefs.setValue("enableWheelPan", on)
+
+    @util.blocked
+    def onAutoSave(self, on):
+        # Check if the value is actually changing
+        currentValue = self.prefs.value("autoSaveEnabled", defaultValue=True, type=bool)
+        if currentValue == on:
+            return
+
+        self.prefs.setValue("autoSaveEnabled", on)
+        # If turning off auto-save, stop the current timer
+        if not on:
+            self.mw.autoSaveManager.stop()
+        # If turning on auto-save and document is loaded, start auto-save
+        elif self.mw.document and self.mw.scene:
+            self.mw.autoSaveManager.setDocument(self.mw.document, self.mw.scene)
+        self.mw.session.track("Prefs: autoSaveEnabled %s" % on)
 
     @util.blocked
     def onCheckForUpdatesAutomatically(self, on):
