@@ -2,6 +2,8 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.10
+
 ## 2.1.10b1
 - Added autosave
     Implements automatic saving of diagrams to a dedicated "Family Diagram Autosaves"
