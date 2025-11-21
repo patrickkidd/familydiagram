@@ -868,6 +868,8 @@ class MainWindow(QMainWindow):
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
+        # Document load is now complete for server diagrams
+        self._onDocumentLoadComplete()
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():
@@ -1244,8 +1246,10 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
-            # Start auto-save for this document
-            self.autoSaveManager.setDocument(self.document, self.scene)
+            # For local files, document load is complete now
+            # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
+            if not self._isOpeningServerDiagram:
+                self._onDocumentLoadComplete()
         else:
             self.ui.actionSave.setEnabled(False)
             self.ui.actionSave_As.setEnabled(False)
@@ -1260,6 +1264,16 @@ class MainWindow(QMainWindow):
         if oldDoc or newDoc:
             self.documentChanged.emit(oldDoc, newDoc)
         self._isOpeningDiagram = False
+
+    def _onDocumentLoadComplete(self):
+        """
+        Called when document loading is fully complete.
+
+        For local files: called at the end of setDocument()
+        For server diagrams: called in onServerFileClicked() after setServerDiagram()
+        """
+        if self.document and self.scene:
+            self.autoSaveManager.setDocument(self.document, self.scene)
 
     def onServerPollTimer(self):
         if self.scene:

@@ -3,14 +3,13 @@ import os.path
 import pickle
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import QObject, QTimer, QDir, QFileInfo, pyqtSignal
+from pkdiagram.pyqt import QObject, QDir, pyqtSignal
 from pkdiagram import util
 
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class AutoSaveManager(QObject):
@@ -33,8 +32,7 @@ class AutoSaveManager(QObject):
         super().__init__(parent)
         self._scene = None
         self._document = None
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self._onTimerTimeout)
+        self._timerId = None
         self._autosaveFolderPath = None
         self._ensureAutosaveFolder()
 
@@ -48,11 +46,9 @@ class AutoSaveManager(QObject):
         dir = QDir(self._autosaveFolderPath)
         if not dir.exists():
             if dir.mkpath("."):
-                log.info(
-                    f"Created autosave folder: {self._autosaveFolderPath}"
-                )
+                _log.debug(f"Created autosave folder: {self._autosaveFolderPath}")
             else:
-                log.error(
+                _log.error(
                     f"Failed to create autosave folder: {self._autosaveFolderPath}"
                 )
 
@@ -60,78 +56,91 @@ class AutoSaveManager(QObject):
         """
         Set the current document and scene to auto-save.
 
+        Called from MainWindow.setDocument() after document is fully loaded
+        and serverDiagram is set (for server diagrams).
+
         Args:
             document: FDDocument instance or None
             scene: Scene instance or None
         """
         # Stop existing timer
-        self._timer.stop()
+        if self._timerId is not None:
+            self.killTimer(self._timerId)
+            self._timerId = None
 
         self._document = document
         self._scene = scene
 
         if document and scene:
-            # Perform immediate auto-save when document is opened
-            log.info(f"Starting auto-save for document: {document.url().toLocalFile()}")
+            _log.debug(
+                f"Starting auto-save for document: {document.url().toLocalFile()}"
+            )
             self._performAutoSave()
 
             # Start periodic auto-save timer (30 minutes)
-            self._timer.start(util.AUTOSAVE_INTERVAL_S * 1000)
+            self._timerId = self.startTimer(util.AUTOSAVE_INTERVAL_S * 1000)
         else:
-            log.info("Auto-save stopped (no document)")
+            _log.debug("Auto-save stopped (no document)")
 
-    def _onTimerTimeout(self):
+    def timerEvent(self, a0):
         """Called when the auto-save timer expires."""
         self._performAutoSave()
 
     def _performAutoSave(self):
         """Perform the actual auto-save operation."""
         if not self._scene or not self._document:
-            log.warning("Cannot auto-save: no scene or document")
+            _log.warning("Cannot auto-save: no scene or document")
             return
 
         # Don't auto-save read-only documents
         if self._scene.readOnly():
-            log.debug("Skipping auto-save for read-only document")
+            _log.debug("Skipping auto-save for read-only document")
             return
 
-        try:
-            # Get the original file path and name
+        # Determine base name for autosave file
+        serverDiagram = self._scene.serverDiagram()
+        if serverDiagram and serverDiagram.name:
+            # Server diagram - use diagram name
+            baseName = serverDiagram.name
+        else:
+            # Local file - extract from document URL
             originalPath = self._document.url().toLocalFile()
-            fileInfo = QFileInfo(originalPath)
+            if originalPath:
+                from pkdiagram.pyqt import QFileInfo
 
-            # Extract base name without .fd extension
-            baseName = fileInfo.completeBaseName()
-            if baseName.endswith(".fd"):
-                baseName = baseName[:-3]
+                fileInfo = QFileInfo(originalPath)
+                baseName = fileInfo.completeBaseName()
+                if baseName.endswith(".fd"):
+                    baseName = baseName[:-3]
+            else:
+                baseName = "diagram"
 
-            # Generate timestamp in format: YYYYMMDD_HHMMSS
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Generate timestamp in format: YYYYMMDD_HHMMSS
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Create autosave filename
-            autosaveFileName = f"{baseName}_autosave_{timestamp}.fd"
-            autosavePath = os.path.join(self._autosaveFolderPath, autosaveFileName)
+        # Create autosave filename
+        autosaveFileName = f"{baseName}_autosave_{timestamp}.fd"
+        autosavePath = os.path.join(self._autosaveFolderPath, autosaveFileName)
 
-            # Serialize the scene data
-            data = self._scene.data()
-            bdata = pickle.dumps(data)
+        # Serialize the scene data
+        data = self._scene.data()
+        bdata = pickle.dumps(data)
 
-            # Create the .fd directory
-            os.makedirs(autosavePath, exist_ok=True)
+        # Create the .fd directory
+        os.makedirs(autosavePath, exist_ok=True)
 
-            # Write the pickle file
-            picklePath = os.path.join(autosavePath, "diagram.pickle")
-            with open(picklePath, "wb") as f:
-                f.write(bdata)
+        # Write the pickle file
+        picklePath = os.path.join(autosavePath, "diagram.pickle")
+        with open(picklePath, "wb") as f:
+            f.write(bdata)
 
-            log.info(f"Auto-saved to: {autosavePath}")
-            self.autoSaved.emit(autosavePath)
-
-        except Exception as e:
-            log.error(f"Auto-save failed: {e}", exc_info=True)
+        _log.debug(f"Auto-saved to: {autosavePath}")
+        self.autoSaved.emit(autosavePath)
 
     def stop(self):
         """Stop auto-saving."""
-        self._timer.stop()
+        if self._timerId is not None:
+            self.killTimer(self._timerId)
+            self._timerId = None
         self._document = None
         self._scene = None
