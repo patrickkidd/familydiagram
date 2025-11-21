@@ -58,6 +58,19 @@ The changelog is maintained in [CHANGELOG.md](../CHANGELOG.md) at the repository
 - Bullet points use standard markdown: `- Change description`
 - **Empty release sections**: When a release version section is empty, the automated system aggregates all beta/alpha versions with the same base version (e.g., all `2.1.9b*` entries for release `2.1.9`)
 
+## Version Strategy
+
+**Most common**: Beta and release at parity with same changes
+- Master: `2.1.9b1`
+- Release: `2.1.9` (auto-aggregates from `2.1.9b1`)
+
+**When beta has experimental features**: Beta ahead
+- Master: `2.1.10b1` (experimental, unstable)
+- Release: `2.1.9` (stable, no merge yet)
+- Later: Once `2.1.10` stabilizes, merge and release as `2.1.10`
+
+**Key rule**: Beta version should be at or ahead of release, never behind.
+
 ## Workflow: Normal Release Cycle
 
 ### 1. Creating a Beta Version

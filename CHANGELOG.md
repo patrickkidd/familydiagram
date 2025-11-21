@@ -2,7 +2,7 @@
 
 All notable changes to Family Diagram are documented in this file.
 
-## 2.1.9
+## 2.1.10
 
 ## 2.1.10b1
 - Added autosave
@@ -15,7 +15,6 @@ All notable changes to Family Diagram are documented in this file.
     - Timestamped filenames (YYYYMMDD_HHMMSS format) compatible with tiered retention
     - Auto-save stops when document is closed or for read-only documents
 - Added changelog to auto updates
-
 
 ## 1.5.2
 - Flash associated items on the diagram for newly highlighted events in next / previous event.
