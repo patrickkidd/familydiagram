@@ -212,7 +212,7 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(pk_fileloc)-26s %(message)s"
 
 def init_logging():
 
-    from pkdiagram import appdirs
+    from pkdiagram import appdirs, extensions
 
     FD_LOG_LEVEL = os.getenv("FD_LOG_LEVEL", "INFO").upper()
     if FD_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
@@ -229,32 +229,20 @@ def init_logging():
     consoleHandler.setLevel(getattr(logging, FD_LOG_LEVEL))
     handlers.append(consoleHandler)
 
-    if not IS_IOS:
-        appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
-        if not os.path.isdir(appDataDir):
-            Path(appDataDir).mkdir()
-        fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
-        filePath = os.path.join(appDataDir, fileName)
-        if not os.path.isfile(filePath):
-            Path(filePath).touch()
-        fileHandler = logging.FileHandler(filePath, mode="a+")
-        fileHandler.addFilter(logging_allFilter)
-        fileHandler.setLevel(logging.DEBUG)
-        fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-        handlers.append(fileHandler)
+    # Session tracking handler - sends logs to _activeSession.track()
+    FD_TRACK_LOG_LEVEL = os.getenv("FD_TRACK_LOG_LEVEL", "WARNING").upper()
+    if FD_TRACK_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+        sys.stderr.write(
+            f"Invalid FD_TRACK_LOG_LEVEL: '{FD_TRACK_LOG_LEVEL}', must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL\n"
+        )
+        sys.exit(1)
 
-    # class DatadogHandler(logging.Handler):
-
-    #     def emit(self, record):
-
-    #         mainwindow = findTheMainWindow()
-    #         if not mainwindow:
-    #             return
-
-    #         mainwindow.session.handleLog(record)
-
-    # datadogHandler = DatadogHandler()
-    # handlers.append(datadogHandler)
+    sessionTrackingHandler = extensions.SessionTrackingHandler(
+        min_level=getattr(logging, FD_TRACK_LOG_LEVEL)
+    )
+    # Use simple message-only format for session tracking (no timestamp, level, file, line)
+    sessionTrackingHandler.setFormatter(logging.Formatter("%(message)s"))
+    handlers.append(sessionTrackingHandler)
 
     logging.basicConfig(level=logging.INFO, handlers=handlers)
 
