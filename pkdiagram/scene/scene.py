@@ -2,7 +2,7 @@ import os, sys, re, logging
 import contextlib
 from typing import Union
 import shutil
-import pprint
+import contextlib
 
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import (
@@ -989,7 +989,8 @@ class Scene(QGraphicsScene, Item):
         # TODO: copy this forward, sort of like future items...
         self.lastLoadData = dict(((p.name(), p.get()) for p in self.props))
         self.lastLoadData["name"] = data.get("name")
-        try:
+
+        with self.initializing():
             compat.update_data(data)
             self._pruned = data.get("pruned", []) + self.prune(data)
             super().read(data, None)
@@ -1137,13 +1138,18 @@ class Scene(QGraphicsScene, Item):
                         layer.prop("storeGeometry").set(True, notify=False)
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
-        except Exception as e:
-            import traceback
 
-            traceback.print_exc()
-            return "This file is currupt and cannot be opened"
-        finally:
-            self.isInitializing = False
+    @contextlib.contextmanager
+    def initializing(self):
+        self._isInitializing = True
+        exception = None
+        try:
+            yield
+        except Exception as e:
+            exception = e
+        self._isInitializing = False
+        if exception:
+            raise exception
 
     def write(self, data, selectionOnly=False):
         super().write(data)

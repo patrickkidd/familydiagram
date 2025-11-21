@@ -763,6 +763,15 @@ def update_data(data):
 
         # Event.
 
+    if UP_TO(data, "2.1.7b2"):
+        # Migrate old 'variable-shift' event kinds to 'shift'
+        for event_chunk in data.get("events", []):
+            if event_chunk.get("kind") == "variable-shift":
+                _log.info(
+                    f"Migrating event ID {event_chunk.get('id')} kind from 'variable-shift' to 'shift'"
+                )
+                event_chunk["kind"] = EventKind.Shift.value
+
     ## Add more version fixes here
     # if ....
 
