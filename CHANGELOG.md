@@ -2,6 +2,19 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.10b1
+- Added autosave
+    Implements automatic saving of diagrams to a dedicated "Family Diagram Autosaves"
+    folder in the user's documents directory.
+    
+    Features:
+    - Immediate auto-save when a document is opened
+    - Periodic auto-save every 30 minutes while document is open
+    - Timestamped filenames (YYYYMMDD_HHMMSS format) compatible with tiered retention
+    - Auto-save stops when document is closed or for read-only documents
+- Added changelog to auto updates
+
+
 ## 1.5.2
 - Flash associated items on the diagram for newly highlighted events in next / previous event.
 - Fixed deleting a large selection of events in the timeline.
