@@ -60,6 +60,7 @@
     <addaction name="menuOpen_Recent"/>
     <addaction name="actionImport_Diagram"/>
     <addaction name="actionDocuments_Folder"/>
+    <addaction name="actionAutosave_Folder"/>
     <addaction name="actionClose"/>
     <addaction name="separator"/>
     <addaction name="actionRefresh_Server"/>
@@ -463,6 +464,11 @@
   <action name="actionDocuments_Folder">
    <property name="text">
     <string>Open Documents Folder</string>
+   </property>
+  </action>
+  <action name="actionAutosave_Folder">
+   <property name="text">
+    <string>Open Autosave Folder</string>
    </property>
   </action>
   <action name="actionInspect">
