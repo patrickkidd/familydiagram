@@ -14,7 +14,11 @@ snapshots['test_actions_2_appcast[OS.MacOS] 1'] = '''<?xml version="1.0" ?>
         <link>https://github.com/patrickidd/familydiagram</link>
         <item>
             <title>2.0.0b5</title>
-            <description/>
+            <description>&lt;ul&gt;
+  &lt;li&gt;Fix beta update url&lt;/li&gt;
+  &lt;li&gt;Added reduced left item toolbar back in&lt;/li&gt;
+  &lt;li&gt;Improved performance&lt;/li&gt;
+&lt;/ul&gt;</description>
             <pubDate>Fri, 11 Oct 2024 18:23:02 +0000</pubDate>
             <enclosure sparkle:version="2.0.0b5" sparkle:shortVersionString="2.0.0b5" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b5/Family.Diagram.2.0.0b5.dmg" length="122638956" type="application/octet-stream"/>
             <sparkle:minimumSystemVersion/>
@@ -30,7 +34,11 @@ snapshots['test_actions_2_appcast[OS.Windows] 1'] = '''<?xml version="1.0" ?>
         <link>https://github.com/patrickidd/familydiagram</link>
         <item>
             <title>2.0.0b5</title>
-            <description/>
+            <description>&lt;ul&gt;
+  &lt;li&gt;Fix beta update url&lt;/li&gt;
+  &lt;li&gt;Added reduced left item toolbar back in&lt;/li&gt;
+  &lt;li&gt;Improved performance&lt;/li&gt;
+&lt;/ul&gt;</description>
             <pubDate>Fri, 11 Oct 2024 18:23:02 +0000</pubDate>
             <enclosure sparkle:version="2.0.0b5" sparkle:shortVersionString="2.0.0b5" url="https://github.com/patrickkidd/familydiagram/releases/download/2.0.0b5/Family.Diagram.2.0.0b5.zip" length="25551219" type="application/octet-stream"/>
             <sparkle:minimumSystemVersion/>

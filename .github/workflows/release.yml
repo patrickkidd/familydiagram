@@ -3,10 +3,6 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      release_notes:
-        description: "Enter release notes for appcast (multi-line supported)"
-        required: false
-        type: string
       skip_release:
         description: "Skip the release stage (only build)"
         required: false
@@ -46,6 +42,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.get-version.outputs.version }}
+      is_prerelease: ${{ steps.get-version.outputs.is_prerelease }}
+      changelog_html: ${{ steps.get-changelog.outputs.changelog_html }}
     steps:
 
     - uses: actions/checkout@v4
@@ -53,7 +51,28 @@ jobs:
     - name: Get Version
       id: get-version
       run: |
-        echo "version=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`" >> $GITHUB_OUTPUT
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        IS_PRERELEASE=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print('true' if version.IS_ALPHA_BETA else 'false')"`
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
+
+    - name: Get Changelog
+      id: get-changelog
+      run: |
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        CHANGELOG_HTML=`python bin/extract_changelog.py ${VERSION}`
+        echo "changelog_html<<EOF" >> $GITHUB_OUTPUT
+        echo "${CHANGELOG_HTML}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Validate Changelog Entry
+      run: |
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        if ! grep -q "^## ${VERSION}" CHANGELOG.md; then
+          echo "ERROR: No changelog entry found for version ${VERSION}"
+          echo "Please add a section to CHANGELOG.md with: ## ${VERSION}"
+          exit 1
+        fi
 
   build-osx:
     # x86 w/ python-3.12.5
@@ -630,8 +649,8 @@ jobs:
         tag_name: ${{ needs.setup.outputs.version }}
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
-        prerelease: true
-        body: ${{ github.event.inputs.release_notes }}
+        prerelease: ${{ needs.setup.outputs.is_prerelease }}
+        body: ${{ needs.setup.outputs.changelog_html }}
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
