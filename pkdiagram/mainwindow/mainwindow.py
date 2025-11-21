@@ -56,7 +56,7 @@ from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
 from pkdiagram.documentview import DocumentView
-from pkdiagram.mainwindow import FileManager, Preferences, Welcome
+from pkdiagram.mainwindow import FileManager, Preferences, Welcome, AutoSaveManager
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 
 
@@ -212,6 +212,10 @@ class MainWindow(QMainWindow):
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
+
+        ## Auto-Save Manager
+
+        self.autoSaveManager = AutoSaveManager(self)
 
         # Welcome
         self.welcomeDialog = Welcome(self)
@@ -1240,6 +1244,8 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
+            # Start auto-save for this document
+            self.autoSaveManager.setDocument(self.document, self.scene)
         else:
             self.ui.actionSave.setEnabled(False)
             self.ui.actionSave_As.setEnabled(False)
@@ -1247,6 +1253,8 @@ class MainWindow(QMainWindow):
             self.ui.actionImport_Diagram.setEnabled(False)
             self.ui.actionClose.setEnabled(False)
             self.serverPollTimer.stop()
+            # Stop auto-save when no document
+            self.autoSaveManager.setDocument(None, None)
         self.updateWindowTitle()
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
