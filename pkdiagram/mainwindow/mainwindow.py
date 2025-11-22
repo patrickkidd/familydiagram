@@ -1579,14 +1579,14 @@ class MainWindow(QMainWindow):
             os.system('open "%s"' % s)
 
     def openAutosaveFolder(self):
-        s = self.autoSaveManager._autosaveFolderPath
+        dpath = AutoSaveManager.autosaveFolderPath()
         import os, sys
 
         if sys.platform == "win32":
-            s = os.path.abspath(s)
-            os.system('explorer "%s"' % s)
-        elif os.path.isdir(s):
-            os.system('open "%s"' % s)
+            dpath = os.path.abspath(dpath)
+            os.system('explorer "%s"' % dpath)
+        elif os.path.isdir(dpath):
+            os.system('open "%s"' % dpath)
 
     def openServerFolder(self):
         import os, sys

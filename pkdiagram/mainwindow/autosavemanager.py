@@ -28,6 +28,12 @@ class AutoSaveManager(QObject):
 
     AUTOSAVE_FOLDER_NAME = "Family Diagram Autosaves"
 
+    @staticmethod
+    def autosaveFolderPath():
+        """Return the path to the autosave folder."""
+        documentsPath = CUtil.instance().documentsFolderPath()
+        return os.path.join(documentsPath, AutoSaveManager.AUTOSAVE_FOLDER_NAME)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._scene = None
@@ -38,10 +44,7 @@ class AutoSaveManager(QObject):
 
     def _ensureAutosaveFolder(self):
         """Create the autosave folder if it doesn't exist."""
-        documentsPath = CUtil.instance().documentsFolderPath()
-        self._autosaveFolderPath = os.path.join(
-            documentsPath, self.AUTOSAVE_FOLDER_NAME
-        )
+        self._autosaveFolderPath = AutoSaveManager.autosaveFolderPath()
 
         dir = QDir(self._autosaveFolderPath)
         if not dir.exists():
