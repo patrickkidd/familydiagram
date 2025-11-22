@@ -175,7 +175,11 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
+        if [ "${{ needs.setup.outputs.is_prerelease }}" = "true" ]; then
+          qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta
+        else
+          qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
+        fi
 
     - name: Setup provisioning profile
       run: |
@@ -542,7 +546,11 @@ jobs:
         run: |
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
-          qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
+          if "${{ needs.setup.outputs.is_prerelease }}" == "true" (
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+          ) else (
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
+          )
         shell: cmd # has to be shell or qmake won't work
   
       - name: Build
