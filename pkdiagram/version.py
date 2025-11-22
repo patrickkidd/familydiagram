@@ -3,7 +3,7 @@
 ##
 
 
-ALPHABETA = ""  # set this to '' for release
+ALPHABETA = "b"  # set this to '' for release
 ALPHABETA_SUFFIX = 0
 VERSION_MAJOR = 2
 VERSION_MINOR = 1
