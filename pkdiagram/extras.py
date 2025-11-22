@@ -82,7 +82,10 @@ def actions_2_appcast(
         if release["draft"]:
             return  # Skip drafts
 
-        if release["prerelease"] and not prerelease:
+        if prerelease and not release["prerelease"]:
+            continue
+
+        if not prerelease and release["prerelease"]:
             continue
 
         item = ET.SubElement(channel, "item")
