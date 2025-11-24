@@ -209,6 +209,9 @@ class MainWindow(QMainWindow):
         self.fileManager.serverFileModel.dataChanged.connect(
             self.onServerFileModelDataChanged
         )
+        self.fileManager.serverFileModel.reloadDiagramRequested[str, Diagram].connect(
+            self.onServerFileClicked
+        )
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
@@ -495,25 +498,9 @@ class MainWindow(QMainWindow):
             model = self.fileManager.serverFileModel
             loadedRow = model.rowForDiagramId(diagram.id)
             if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
-                if not self.prefs.value(
-                    "dontShowServerFileUpdated", type=bool, defaultValue=False
-                ):
-                    box = QMessageBox(
-                        QMessageBox.Information,
-                        "Diagram updated from server",
-                        self.S_DIAGRAM_UPDATED_FROM_SERVER,
-                        QMessageBox.Ok,
-                    )
-                    cb = QCheckBox(
-                        "Don't show this any more."
-                    )  # segfault on accessing box.checkBox()
-                    box.setCheckBox(cb)
-                    box.exec()
-                    self.prefs.setValue("dontShowServerFileUpdated", cb.isChecked())
-                filePath = self.serverFileModel.localPathForID(diagram.id)
-                self.documentView.setReloadingCurrentDiagram(True)
-                self.onServerFileClicked(filePath, diagram)
-                self.documentView.setReloadingCurrentDiagram(False)
+                updatedDiagram = model.diagramForRow(loadedRow)
+                fpath = model.localPathForID(diagram.id)
+                model.handleDiagramConflict(updatedDiagram, updatedDiagram.data, fpath)
 
     def onShowUndoView(self, on):
         if on:

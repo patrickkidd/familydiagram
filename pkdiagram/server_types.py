@@ -12,7 +12,7 @@ import hashlib
 import urllib.parse
 import wsgiref.handlers
 from dataclasses import dataclass, InitVar, field
-from typing import Union
+from typing import Union, Callable
 
 import btcopilot
 from pkdiagram.pyqt import (
@@ -174,6 +174,7 @@ class Diagram:
     access_rights: list[AccessRight]
     created_at: datetime
     updated_at: datetime | None = None
+    version: int = 1
     name: str | None = None
     user: User | None = None
     use_real_names: bool | None = None
@@ -206,6 +207,63 @@ class Diagram:
         response = session.server().blockingRequest("GET", f"/diagrams/{diagram_id}")
         data = pickle.loads(response.body)
         return cls.create(data)
+
+    def save(
+        self,
+        server,
+        applyChange: Callable[[any], None],
+        stillValidAfterRefresh: Callable[[any], bool],
+        maxRetries: int = 3,
+        useJson: bool = False,
+    ) -> bool:
+        """Save diagram with optimistic locking (version check). Returns True on success."""
+        for attempt in range(maxRetries):
+            diagramData = pickle.loads(self.data) if not useJson else self.data
+
+            applyChange(diagramData)
+
+            if useJson:
+                endpoint = f"/personal/diagrams/{self.id}"
+                requestData = {
+                    "diagram_data": diagramData,
+                    "expected_version": self.version,
+                }
+                bdata = json.dumps(requestData).encode("utf-8")
+            else:
+                endpoint = f"/diagrams/{self.id}"
+                requestData = {
+                    "data": pickle.dumps(diagramData),
+                    "updated_at": datetime.utcnow(),
+                    "expected_version": self.version,
+                }
+                bdata = pickle.dumps(requestData)
+
+            response = server.blockingRequest(
+                "PUT", endpoint, bdata=bdata, statuses=[200, 409]
+            )
+
+            if useJson:
+                responseData = json.loads(response.body.decode("utf-8"))
+            else:
+                responseData = pickle.loads(response.body)
+
+            if response.status_code == 200:
+                self.version = responseData.get("version", self.version + 1)
+                self.data = diagramData if useJson else pickle.dumps(diagramData)
+                return True
+
+            if response.status_code == 409:
+                self.version = responseData["version"]
+                self.data = (
+                    responseData["diagram_data"] if useJson else responseData["data"]
+                )
+
+                if not stillValidAfterRefresh(self.data):
+                    return False
+
+                continue
+
+        return False
 
     def check_access(self, user_id, right):
         if user_id == self.user_id:
