@@ -5,7 +5,8 @@ This server provides tools for Claude Code to:
 - Launch and control the application
 - Take UI screenshots
 - Send keyboard and mouse input events
-- Query UI element state
+- Query UI element state by objectName (via Qt test bridge)
+- Interact with elements by objectName (click, type, etc.)
 - Perform visual regression testing
 
 Usage:
@@ -23,6 +24,7 @@ import base64
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -45,55 +47,112 @@ logger = logging.getLogger("familydiagram-mcp")
 # Initialize MCP server
 mcp = FastMCP("familydiagram-testing")
 
+# Default port for the Qt test bridge
+BRIDGE_PORT = 9876
+
 
 # =============================================================================
-# Data Classes for Structured Responses
+# Qt Test Bridge Client
 # =============================================================================
 
 
-@dataclass
-class AppStatus:
-    """Application status information."""
-    running: bool
-    pid: Optional[int]
-    uptime_seconds: Optional[float]
-    window_title: Optional[str]
+class BridgeClient:
+    """
+    Client for communicating with the Qt test bridge running in the app.
 
+    The bridge provides deep Qt integration:
+    - Find elements by objectName
+    - Get element properties
+    - Click/type on elements by name
+    - Access QML items and scene items
+    """
 
-@dataclass
-class ScreenshotResult:
-    """Screenshot capture result."""
-    success: bool
-    path: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    base64_data: Optional[str] = None
-    error: Optional[str] = None
+    def __init__(self, host: str = "127.0.0.1", port: int = BRIDGE_PORT):
+        self._host = host
+        self._port = port
+        self._socket: Optional[socket.socket] = None
+        self._connected = False
 
+    @property
+    def is_connected(self) -> bool:
+        """Check if connected to the bridge."""
+        return self._connected and self._socket is not None
 
-@dataclass
-class ElementInfo:
-    """UI element information."""
-    found: bool
-    object_name: Optional[str] = None
-    class_name: Optional[str] = None
-    visible: Optional[bool] = None
-    enabled: Optional[bool] = None
-    x: Optional[int] = None
-    y: Optional[int] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    text: Optional[str] = None
-    properties: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    def connect(self, timeout: float = 10.0) -> bool:
+        """
+        Connect to the Qt test bridge.
 
+        Args:
+            timeout: Connection timeout in seconds
 
-@dataclass
-class ActionResult:
-    """Result of an action (click, type, etc.)."""
-    success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
+        Returns:
+            True if connected successfully
+        """
+        if self._connected:
+            return True
+
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self._socket.settimeout(5.0)
+                self._socket.connect((self._host, self._port))
+                self._connected = True
+                logger.info(f"Connected to Qt test bridge at {self._host}:{self._port}")
+                return True
+            except (socket.error, ConnectionRefusedError):
+                if self._socket:
+                    self._socket.close()
+                    self._socket = None
+                time.sleep(0.5)
+
+        logger.warning(f"Failed to connect to bridge after {timeout}s")
+        return False
+
+    def disconnect(self):
+        """Disconnect from the bridge."""
+        if self._socket:
+            try:
+                self._socket.close()
+            except Exception:
+                pass
+            self._socket = None
+        self._connected = False
+
+    def send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Send a command to the bridge and get response.
+
+        Args:
+            command: Command dict with 'command' key and parameters
+
+        Returns:
+            Response dict from the bridge
+        """
+        if not self.is_connected:
+            if not self.connect():
+                return {"success": False, "error": "Not connected to bridge"}
+
+        try:
+            # Send command
+            data = json.dumps(command) + "\n"
+            self._socket.sendall(data.encode("utf-8"))
+
+            # Receive response
+            buffer = b""
+            while b"\n" not in buffer:
+                chunk = self._socket.recv(4096)
+                if not chunk:
+                    raise ConnectionError("Connection closed")
+                buffer += chunk
+
+            line = buffer.split(b"\n")[0]
+            return json.loads(line.decode("utf-8"))
+
+        except Exception as e:
+            logger.exception(f"Bridge communication error: {e}")
+            self.disconnect()
+            return {"success": False, "error": str(e)}
 
 
 # =============================================================================
@@ -108,7 +167,7 @@ class TestSession:
     This class handles:
     - Application lifecycle (launch, close)
     - Process management
-    - Communication with the running app
+    - Communication with the Qt test bridge
     """
 
     _instance: Optional["TestSession"] = None
@@ -118,6 +177,8 @@ class TestSession:
         self.start_time: Optional[float] = None
         self.project_root = Path(__file__).parent.parent
         self._screenshot_counter = 0
+        self._bridge: Optional[BridgeClient] = None
+        self._bridge_port = BRIDGE_PORT
 
     @classmethod
     def get_instance(cls) -> "TestSession":
@@ -147,9 +208,17 @@ class TestSession:
             return time.time() - self.start_time
         return None
 
+    @property
+    def bridge(self) -> Optional[BridgeClient]:
+        """Get the bridge client."""
+        return self._bridge
+
     def launch(
         self,
         headless: bool = False,
+        personal: bool = False,
+        enable_bridge: bool = True,
+        bridge_port: int = BRIDGE_PORT,
         extra_args: Optional[List[str]] = None,
         timeout: int = 30,
     ) -> Tuple[bool, str]:
@@ -158,6 +227,9 @@ class TestSession:
 
         Args:
             headless: Run in headless mode (for CI/testing)
+            personal: Run the personal/mobile UI
+            enable_bridge: Enable the Qt test bridge for element inspection
+            bridge_port: Port for the test bridge
             extra_args: Additional command-line arguments
             timeout: Maximum time to wait for startup
 
@@ -170,6 +242,13 @@ class TestSession:
         try:
             # Build command
             cmd = ["uv", "run", "python", "-m", "pkdiagram"]
+
+            if personal:
+                cmd.append("--personal")
+
+            if enable_bridge:
+                cmd.extend(["--test-server", "--test-server-port", str(bridge_port)])
+                self._bridge_port = bridge_port
 
             if extra_args:
                 cmd.extend(extra_args)
@@ -202,6 +281,17 @@ class TestSession:
                 stderr = self.process.stderr.read().decode() if self.process.stderr else ""
                 return False, f"Application failed to start: {stderr}"
 
+            # Connect to bridge if enabled
+            if enable_bridge:
+                self._bridge = BridgeClient(port=bridge_port)
+                if not self._bridge.connect(timeout=10):
+                    logger.warning("Failed to connect to test bridge")
+                else:
+                    # Verify connection
+                    response = self._bridge.send_command({"command": "ping"})
+                    if response.get("success"):
+                        logger.info("Qt test bridge connected and verified")
+
             logger.info(f"Application started (PID: {self.pid})")
             return True, f"Application started successfully (PID: {self.pid})"
 
@@ -224,6 +314,11 @@ class TestSession:
             return True, "Application not running"
 
         pid = self.pid
+
+        # Disconnect bridge
+        if self._bridge:
+            self._bridge.disconnect()
+            self._bridge = None
 
         try:
             # Try graceful shutdown first
@@ -263,13 +358,15 @@ class TestSession:
 
 
 # =============================================================================
-# MCP Tools
+# MCP Tools - Application Control
 # =============================================================================
 
 
 @mcp.tool()
 def launch_app(
     headless: bool = False,
+    personal: bool = False,
+    enable_bridge: bool = True,
     wait_seconds: int = 3,
 ) -> Dict[str, Any]:
     """
@@ -277,13 +374,19 @@ def launch_app(
 
     Args:
         headless: Run in headless mode without display (for CI/automated testing)
+        personal: Run the personal/mobile UI instead of desktop
+        enable_bridge: Enable Qt test bridge for element-level interaction
         wait_seconds: Seconds to wait after launch for app to initialize
 
     Returns:
-        Status dict with success, pid, and message
+        Status dict with success, pid, message, and bridge_connected
     """
     session = TestSession.get_instance()
-    success, message = session.launch(headless=headless)
+    success, message = session.launch(
+        headless=headless,
+        personal=personal,
+        enable_bridge=enable_bridge,
+    )
 
     if success and wait_seconds > 0:
         time.sleep(wait_seconds)
@@ -292,6 +395,7 @@ def launch_app(
         "success": success,
         "pid": session.pid,
         "message": message,
+        "bridge_connected": session.bridge.is_connected if session.bridge else False,
     }
 
 
@@ -321,7 +425,7 @@ def get_app_status() -> Dict[str, Any]:
     Get the current application status.
 
     Returns:
-        Status dict with running state, pid, uptime
+        Status dict with running state, pid, uptime, and bridge connection
     """
     session = TestSession.get_instance()
 
@@ -329,7 +433,389 @@ def get_app_status() -> Dict[str, Any]:
         "running": session.is_running,
         "pid": session.pid,
         "uptime_seconds": session.uptime,
+        "bridge_connected": session.bridge.is_connected if session.bridge else False,
     }
+
+
+# =============================================================================
+# MCP Tools - Element Inspection (via Bridge)
+# =============================================================================
+
+
+@mcp.tool()
+def find_element(object_name: str) -> Dict[str, Any]:
+    """
+    Find a UI element by its objectName.
+
+    This uses the Qt test bridge to find widgets and QML items by their
+    objectName property. Returns position and state information.
+
+    Args:
+        object_name: The objectName of the element (supports dot notation for nested QML)
+
+    Returns:
+        Element info including type, position, visibility, enabled state, text
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected. Launch app with enable_bridge=True"}
+
+    response = session.bridge.send_command({
+        "command": "find_element",
+        "objectName": object_name,
+    })
+
+    return response
+
+
+@mcp.tool()
+def list_elements(
+    element_type: Optional[str] = None,
+    max_depth: int = 5,
+) -> Dict[str, Any]:
+    """
+    List all UI elements in the application.
+
+    This scans the Qt widget tree, QML items, and scene items.
+
+    Args:
+        element_type: Filter by type - "widget", "qml", "scene", or None for all
+        max_depth: Maximum depth to traverse (default 5 to avoid huge output)
+
+    Returns:
+        List of elements with their properties
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "list_elements",
+        "type": element_type,
+        "maxDepth": max_depth,
+    })
+
+    return response
+
+
+@mcp.tool()
+def get_element_property(object_name: str, property_name: str) -> Dict[str, Any]:
+    """
+    Get a property value from a UI element.
+
+    Args:
+        object_name: Element objectName
+        property_name: Property to get (e.g., "text", "checked", "enabled")
+
+    Returns:
+        Dict with property value
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "get_property",
+        "objectName": object_name,
+        "property": property_name,
+    })
+
+    return response
+
+
+@mcp.tool()
+def set_element_property(
+    object_name: str,
+    property_name: str,
+    value: Any,
+) -> Dict[str, Any]:
+    """
+    Set a property value on a UI element.
+
+    Args:
+        object_name: Element objectName
+        property_name: Property to set
+        value: New value
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "set_property",
+        "objectName": object_name,
+        "property": property_name,
+        "value": value,
+    })
+
+    return response
+
+
+# =============================================================================
+# MCP Tools - Element Interaction (via Bridge)
+# =============================================================================
+
+
+@mcp.tool()
+def click_element(
+    object_name: str,
+    button: str = "left",
+) -> Dict[str, Any]:
+    """
+    Click on a UI element by its objectName.
+
+    This is more reliable than clicking by coordinates as it finds the
+    element's current position automatically.
+
+    Args:
+        object_name: Element objectName
+        button: Mouse button - "left", "right", or "middle"
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "click",
+        "objectName": object_name,
+        "button": button,
+    })
+
+    return response
+
+
+@mcp.tool()
+def double_click_element(object_name: str) -> Dict[str, Any]:
+    """
+    Double-click on a UI element by its objectName.
+
+    Args:
+        object_name: Element objectName
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "double_click",
+        "objectName": object_name,
+    })
+
+    return response
+
+
+@mcp.tool()
+def type_into_element(
+    text: str,
+    object_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Type text into a UI element.
+
+    Uses Qt's QTest for accurate text input. If object_name is provided,
+    focuses that element first.
+
+    Args:
+        text: Text to type
+        object_name: Optional element to focus before typing
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "type_text",
+        "text": text,
+        "objectName": object_name,
+    })
+
+    return response
+
+
+@mcp.tool()
+def press_key_on_element(
+    key: str,
+    object_name: Optional[str] = None,
+    modifiers: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Press a key, optionally on a specific element.
+
+    Args:
+        key: Key name (e.g., "return", "tab", "escape", "a")
+        object_name: Optional element to focus first
+        modifiers: Optional list of modifiers (e.g., ["ctrl"], ["ctrl", "shift"])
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "press_key",
+        "key": key,
+        "objectName": object_name,
+        "modifiers": modifiers,
+    })
+
+    return response
+
+
+@mcp.tool()
+def focus_element(object_name: str) -> Dict[str, Any]:
+    """
+    Set focus to a UI element.
+
+    Args:
+        object_name: Element objectName
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "focus",
+        "objectName": object_name,
+    })
+
+    return response
+
+
+# =============================================================================
+# MCP Tools - Scene Items (via Bridge)
+# =============================================================================
+
+
+@mcp.tool()
+def click_scene_item(name: str, button: str = "left") -> Dict[str, Any]:
+    """
+    Click on a scene item in the diagram view.
+
+    Scene items are Person, Marriage, Event, etc. in the QGraphicsView.
+
+    Args:
+        name: Scene item name
+        button: Mouse button
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "click_scene_item",
+        "name": name,
+        "button": button,
+    })
+
+    return response
+
+
+@mcp.tool()
+def get_scene_items(item_type: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get all scene items in the diagram.
+
+    Args:
+        item_type: Optional type filter (e.g., "Person", "Marriage", "Event")
+
+    Returns:
+        List of scene items with their properties
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "get_scene_items",
+        "type": item_type,
+    })
+
+    return response
+
+
+# =============================================================================
+# MCP Tools - Windows (via Bridge)
+# =============================================================================
+
+
+@mcp.tool()
+def get_windows() -> Dict[str, Any]:
+    """
+    Get all top-level windows.
+
+    Returns:
+        List of windows with titles and geometry
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "get_windows",
+    })
+
+    return response
+
+
+@mcp.tool()
+def activate_window(object_name: str) -> Dict[str, Any]:
+    """
+    Activate (bring to front) a window.
+
+    Args:
+        object_name: Window objectName
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    response = session.bridge.send_command({
+        "command": "activate_window",
+        "objectName": object_name,
+    })
+
+    return response
+
+
+# =============================================================================
+# MCP Tools - Screenshots (via pyautogui)
+# =============================================================================
 
 
 @mcp.tool()
@@ -405,426 +891,6 @@ def take_screenshot(
 
 
 @mcp.tool()
-def click(
-    x: int,
-    y: int,
-    button: str = "left",
-    clicks: int = 1,
-) -> Dict[str, Any]:
-    """
-    Click at screen coordinates.
-
-    Args:
-        x: X coordinate on screen
-        y: Y coordinate on screen
-        button: Mouse button - "left", "right", or "middle"
-        clicks: Number of clicks (1 for single, 2 for double-click)
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.is_running:
-        return {
-            "success": False,
-            "error": "Application not running",
-        }
-
-    try:
-        import pyautogui
-
-        pyautogui.click(x=x, y=y, button=button, clicks=clicks)
-
-        logger.info(f"Clicked at ({x}, {y}) with {button} button, {clicks} time(s)")
-        return {
-            "success": True,
-            "message": f"Clicked at ({x}, {y})",
-        }
-
-    except Exception as e:
-        logger.exception("Click failed")
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def double_click(x: int, y: int) -> Dict[str, Any]:
-    """
-    Double-click at screen coordinates.
-
-    Args:
-        x: X coordinate on screen
-        y: Y coordinate on screen
-
-    Returns:
-        Dict with success status
-    """
-    return click(x=x, y=y, button="left", clicks=2)
-
-
-@mcp.tool()
-def right_click(x: int, y: int) -> Dict[str, Any]:
-    """
-    Right-click at screen coordinates.
-
-    Args:
-        x: X coordinate on screen
-        y: Y coordinate on screen
-
-    Returns:
-        Dict with success status
-    """
-    return click(x=x, y=y, button="right", clicks=1)
-
-
-@mcp.tool()
-def move_mouse(x: int, y: int, duration: float = 0.25) -> Dict[str, Any]:
-    """
-    Move mouse to screen coordinates.
-
-    Args:
-        x: X coordinate
-        y: Y coordinate
-        duration: Time in seconds for the movement
-
-    Returns:
-        Dict with success status
-    """
-    try:
-        import pyautogui
-
-        pyautogui.moveTo(x=x, y=y, duration=duration)
-
-        return {
-            "success": True,
-            "message": f"Moved mouse to ({x}, {y})",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def drag(
-    start_x: int,
-    start_y: int,
-    end_x: int,
-    end_y: int,
-    duration: float = 0.5,
-    button: str = "left",
-) -> Dict[str, Any]:
-    """
-    Drag from one position to another.
-
-    Args:
-        start_x: Starting X coordinate
-        start_y: Starting Y coordinate
-        end_x: Ending X coordinate
-        end_y: Ending Y coordinate
-        duration: Time for the drag operation
-        button: Mouse button to hold during drag
-
-    Returns:
-        Dict with success status
-    """
-    try:
-        import pyautogui
-
-        pyautogui.moveTo(start_x, start_y)
-        pyautogui.drag(
-            end_x - start_x,
-            end_y - start_y,
-            duration=duration,
-            button=button,
-        )
-
-        logger.info(f"Dragged from ({start_x}, {start_y}) to ({end_x}, {end_y})")
-        return {
-            "success": True,
-            "message": f"Dragged from ({start_x}, {start_y}) to ({end_x}, {end_y})",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def type_text(
-    text: str,
-    interval: float = 0.02,
-) -> Dict[str, Any]:
-    """
-    Type text using the keyboard.
-
-    Args:
-        text: Text to type
-        interval: Delay between keystrokes in seconds
-
-    Returns:
-        Dict with success status
-    """
-    try:
-        import pyautogui
-
-        # pyautogui.write() only works with ASCII
-        # For special characters, we need to use write() for ASCII and hotkey for others
-        pyautogui.write(text, interval=interval)
-
-        logger.info(f"Typed text: {text[:50]}{'...' if len(text) > 50 else ''}")
-        return {
-            "success": True,
-            "message": f"Typed {len(text)} characters",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def press_key(
-    key: str,
-    modifiers: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """
-    Press a keyboard key, optionally with modifiers.
-
-    Args:
-        key: Key to press (e.g., "enter", "tab", "escape", "a", "f1")
-        modifiers: Optional list of modifier keys (e.g., ["ctrl"], ["ctrl", "shift"])
-
-    Returns:
-        Dict with success status
-
-    Examples:
-        press_key("enter")           # Press Enter
-        press_key("s", ["ctrl"])     # Ctrl+S
-        press_key("z", ["ctrl", "shift"])  # Ctrl+Shift+Z
-    """
-    try:
-        import pyautogui
-
-        if modifiers:
-            # Use hotkey for key combinations
-            keys = modifiers + [key]
-            pyautogui.hotkey(*keys)
-            logger.info(f"Pressed: {'+'.join(keys)}")
-        else:
-            pyautogui.press(key)
-            logger.info(f"Pressed: {key}")
-
-        return {
-            "success": True,
-            "message": f"Pressed {'+'.join(modifiers + [key]) if modifiers else key}",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def hotkey(*keys: str) -> Dict[str, Any]:
-    """
-    Press a key combination (hotkey).
-
-    Args:
-        *keys: Keys to press together (e.g., "ctrl", "s" for Ctrl+S)
-
-    Returns:
-        Dict with success status
-
-    Examples:
-        hotkey("ctrl", "s")           # Save
-        hotkey("ctrl", "shift", "z")  # Redo
-        hotkey("alt", "f4")           # Close window
-    """
-    try:
-        import pyautogui
-
-        pyautogui.hotkey(*keys)
-
-        combo = "+".join(keys)
-        logger.info(f"Hotkey: {combo}")
-        return {
-            "success": True,
-            "message": f"Pressed {combo}",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def scroll(
-    clicks: int,
-    x: Optional[int] = None,
-    y: Optional[int] = None,
-) -> Dict[str, Any]:
-    """
-    Scroll the mouse wheel.
-
-    Args:
-        clicks: Number of scroll clicks (positive = up, negative = down)
-        x: Optional X coordinate to scroll at
-        y: Optional Y coordinate to scroll at
-
-    Returns:
-        Dict with success status
-    """
-    try:
-        import pyautogui
-
-        pyautogui.scroll(clicks, x=x, y=y)
-
-        direction = "up" if clicks > 0 else "down"
-        logger.info(f"Scrolled {direction} {abs(clicks)} clicks")
-        return {
-            "success": True,
-            "message": f"Scrolled {direction} {abs(clicks)} clicks",
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def wait(seconds: float) -> Dict[str, Any]:
-    """
-    Wait for a specified number of seconds.
-
-    Useful for waiting for UI animations, dialogs to appear, etc.
-
-    Args:
-        seconds: Time to wait in seconds
-
-    Returns:
-        Dict with success status
-    """
-    time.sleep(seconds)
-    return {
-        "success": True,
-        "message": f"Waited {seconds} seconds",
-    }
-
-
-@mcp.tool()
-def get_screen_size() -> Dict[str, Any]:
-    """
-    Get the screen dimensions.
-
-    Returns:
-        Dict with width and height of the screen
-    """
-    try:
-        import pyautogui
-
-        size = pyautogui.size()
-        return {
-            "success": True,
-            "width": size.width,
-            "height": size.height,
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def get_mouse_position() -> Dict[str, Any]:
-    """
-    Get the current mouse cursor position.
-
-    Returns:
-        Dict with x and y coordinates
-    """
-    try:
-        import pyautogui
-
-        pos = pyautogui.position()
-        return {
-            "success": True,
-            "x": pos.x,
-            "y": pos.y,
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
-def locate_on_screen(
-    image_path: str,
-    confidence: float = 0.9,
-) -> Dict[str, Any]:
-    """
-    Locate an image on the screen.
-
-    This is useful for finding UI elements by their appearance.
-
-    Args:
-        image_path: Path to the image file to find on screen
-        confidence: Matching confidence threshold (0.0 to 1.0)
-
-    Returns:
-        Dict with success status and location if found
-    """
-    try:
-        import pyautogui
-
-        location = pyautogui.locateOnScreen(image_path, confidence=confidence)
-
-        if location:
-            return {
-                "success": True,
-                "found": True,
-                "x": location.left,
-                "y": location.top,
-                "width": location.width,
-                "height": location.height,
-                "center_x": location.left + location.width // 2,
-                "center_y": location.top + location.height // 2,
-            }
-        else:
-            return {
-                "success": True,
-                "found": False,
-                "message": "Image not found on screen",
-            }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
-
-
-@mcp.tool()
 def list_screenshots() -> Dict[str, Any]:
     """
     List all saved screenshots.
@@ -871,7 +937,6 @@ def compare_screenshots(
     """
     try:
         from PIL import Image
-        import io
 
         # Load baseline
         baseline = Image.open(baseline_path)
@@ -917,6 +982,211 @@ def compare_screenshots(
             "success": False,
             "error": str(e),
         }
+
+
+# =============================================================================
+# MCP Tools - Coordinate-based Input (via pyautogui)
+# =============================================================================
+
+
+@mcp.tool()
+def click(
+    x: int,
+    y: int,
+    button: str = "left",
+    clicks: int = 1,
+) -> Dict[str, Any]:
+    """
+    Click at screen coordinates.
+
+    For element-based clicking, use click_element() instead.
+
+    Args:
+        x: X coordinate on screen
+        y: Y coordinate on screen
+        button: Mouse button - "left", "right", or "middle"
+        clicks: Number of clicks (1 for single, 2 for double-click)
+
+    Returns:
+        Dict with success status
+    """
+    session = TestSession.get_instance()
+
+    if not session.is_running:
+        return {"success": False, "error": "Application not running"}
+
+    try:
+        import pyautogui
+        pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+
+        logger.info(f"Clicked at ({x}, {y}) with {button} button, {clicks} time(s)")
+        return {"success": True, "message": f"Clicked at ({x}, {y})"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def type_text(text: str, interval: float = 0.02) -> Dict[str, Any]:
+    """
+    Type text using the keyboard (coordinate-independent).
+
+    For typing into a specific element, use type_into_element() instead.
+
+    Args:
+        text: Text to type
+        interval: Delay between keystrokes in seconds
+
+    Returns:
+        Dict with success status
+    """
+    try:
+        import pyautogui
+        pyautogui.write(text, interval=interval)
+
+        logger.info(f"Typed text: {text[:50]}{'...' if len(text) > 50 else ''}")
+        return {"success": True, "message": f"Typed {len(text)} characters"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def press_key(key: str, modifiers: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    Press a keyboard key (coordinate-independent).
+
+    Args:
+        key: Key to press (e.g., "enter", "tab", "escape", "a", "f1")
+        modifiers: Optional list of modifier keys (e.g., ["ctrl"], ["ctrl", "shift"])
+
+    Returns:
+        Dict with success status
+    """
+    try:
+        import pyautogui
+
+        if modifiers:
+            keys = modifiers + [key]
+            pyautogui.hotkey(*keys)
+            logger.info(f"Pressed: {'+'.join(keys)}")
+        else:
+            pyautogui.press(key)
+            logger.info(f"Pressed: {key}")
+
+        return {"success": True, "message": f"Pressed {'+'.join(modifiers + [key]) if modifiers else key}"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def drag(
+    start_x: int,
+    start_y: int,
+    end_x: int,
+    end_y: int,
+    duration: float = 0.5,
+    button: str = "left",
+) -> Dict[str, Any]:
+    """
+    Drag from one position to another.
+
+    Args:
+        start_x: Starting X coordinate
+        start_y: Starting Y coordinate
+        end_x: Ending X coordinate
+        end_y: Ending Y coordinate
+        duration: Time for the drag operation
+        button: Mouse button to hold during drag
+
+    Returns:
+        Dict with success status
+    """
+    try:
+        import pyautogui
+
+        pyautogui.moveTo(start_x, start_y)
+        pyautogui.drag(end_x - start_x, end_y - start_y, duration=duration, button=button)
+
+        logger.info(f"Dragged from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+        return {"success": True, "message": f"Dragged from ({start_x}, {start_y}) to ({end_x}, {end_y})"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def scroll(clicks: int, x: Optional[int] = None, y: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Scroll the mouse wheel.
+
+    Args:
+        clicks: Number of scroll clicks (positive = up, negative = down)
+        x: Optional X coordinate to scroll at
+        y: Optional Y coordinate to scroll at
+
+    Returns:
+        Dict with success status
+    """
+    try:
+        import pyautogui
+        pyautogui.scroll(clicks, x=x, y=y)
+
+        direction = "up" if clicks > 0 else "down"
+        return {"success": True, "message": f"Scrolled {direction} {abs(clicks)} clicks"}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def wait(seconds: float) -> Dict[str, Any]:
+    """
+    Wait for a specified number of seconds.
+
+    Args:
+        seconds: Time to wait in seconds
+
+    Returns:
+        Dict with success status
+    """
+    time.sleep(seconds)
+    return {"success": True, "message": f"Waited {seconds} seconds"}
+
+
+@mcp.tool()
+def get_screen_size() -> Dict[str, Any]:
+    """
+    Get the screen dimensions.
+
+    Returns:
+        Dict with width and height of the screen
+    """
+    try:
+        import pyautogui
+        size = pyautogui.size()
+        return {"success": True, "width": size.width, "height": size.height}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def get_mouse_position() -> Dict[str, Any]:
+    """
+    Get the current mouse cursor position.
+
+    Returns:
+        Dict with x and y coordinates
+    """
+    try:
+        import pyautogui
+        pos = pyautogui.position()
+        return {"success": True, "x": pos.x, "y": pos.y}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # =============================================================================

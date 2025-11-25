@@ -95,6 +95,20 @@ def _main_impl():
         help="Force an exception to test error logging to startup_errors.txt",
         default=False,
     )
+    parser.add_option(
+        "--test-server",
+        dest="test_server",
+        action="store_true",
+        help="Start the Qt test bridge server for MCP integration",
+        default=False,
+    )
+    parser.add_option(
+        "--test-server-port",
+        dest="test_server_port",
+        type="int",
+        help="Port for the test bridge server (default: 9876)",
+        default=9876,
+    )
     options, args = parser.parse_args(sys.argv)
 
     if util.IS_IOS:
@@ -153,7 +167,19 @@ def _main_impl():
         engine.load("resources:qml/PersonalApplication.qml")
         extensions.setActiveSession(session=controller.session)
 
+        # Start test bridge server if requested
+        testBridgeServer = None
+        if options.test_server:
+            from pkdiagram.testbridge import TestBridgeServer
+            testBridgeServer = TestBridgeServer(port=options.test_server_port)
+            testBridgeServer.start()
+            _log.info(f"Test bridge server started on port {options.test_server_port}")
+
         ret = app.exec_()
+
+        # Stop test bridge server
+        if testBridgeServer:
+            testBridgeServer.stop()
 
         controller.deinit()
         app.sendPostedEvents()
@@ -175,7 +201,20 @@ def _main_impl():
         mainWindow.init()
 
         extensions.setActiveSession(session=controller.session)
+
+        # Start test bridge server if requested
+        testBridgeServer = None
+        if options.test_server:
+            from pkdiagram.testbridge import TestBridgeServer
+            testBridgeServer = TestBridgeServer(port=options.test_server_port)
+            testBridgeServer.start()
+            _log.info(f"Test bridge server started on port {options.test_server_port}")
+
         controller.exec(mainWindow)
+
+        # Stop test bridge server
+        if testBridgeServer:
+            testBridgeServer.stop()
 
         mainWindow.deinit()
         controller.deinit()
