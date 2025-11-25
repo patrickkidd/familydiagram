@@ -1,12 +1,13 @@
 """
-Example tests demonstrating the Map Server usage for end-to-end testing.
+Example tests demonstrating the Qt-based testing utilities.
 
-These tests show how to use the Map Server to:
-1. Launch and control the PyQt application
-2. Take UI snapshots
-3. Send keyboard and mouse events
-4. Query UI state
-5. Perform snapshot-based regression testing
+These tests show how to use the in-process testing utilities for:
+1. Controlling the PyQt application
+2. Taking UI snapshots
+3. Sending keyboard and mouse events
+4. Querying UI state
+
+For external/MCP-based testing with Claude Code, see mcp-server/.
 
 To run these tests:
     uv run pytest pkdiagram/tests/mapserver/test_mapserver_example.py -v
@@ -28,12 +29,11 @@ pytestmark = [
 ]
 
 
-class TestMapServerDirect:
+class TestAppTestController:
     """
-    Tests using the Map Server components directly (without HTTP).
+    Tests for the AppTestController.
 
-    This is useful for in-process testing where you want the speed
-    of direct method calls.
+    This controller manages application lifecycle for testing.
     """
 
     @pytest.fixture
@@ -227,82 +227,19 @@ class TestElementFinder:
         assert isinstance(widgets, list)
 
 
-class TestMapServerHTTP:
-    """
-    Tests using the Map Server over HTTP.
-
-    These tests demonstrate the full client-server architecture.
-    """
-
-    @pytest.fixture
-    def client(self):
-        """Create a Map Server client."""
-        from pkdiagram.mapserver import MapClient
-
-        # Use a random port to avoid conflicts
-        import random
-        port = random.randint(10000, 60000)
-
-        client = MapClient(port=port)
-        yield client
-
-        # Clean up
-        try:
-            client.shutdown()
-        except Exception:
-            pass
-
-    @pytest.mark.skip(reason="Requires running server - integration test")
-    def test_full_workflow(self, client):
-        """
-        Full end-to-end workflow test.
-
-        This test demonstrates:
-        1. Starting the server
-        2. Initializing the application
-        3. Creating the main window
-        4. Taking snapshots
-        5. Interacting with UI elements
-        6. Shutdown
-        """
-        # Start server (would need to actually start it)
-        # client.startServer(headless=True)
-
-        # Initialize app
-        # assert client.initApp(headless=True)
-
-        # Create window
-        # assert client.createWindow(show=False)
-
-        # Get status
-        # status = client.getStatus()
-        # assert status["initialized"]
-        # assert status["hasMainWindow"]
-
-        # Take snapshot
-        # snapshot = client.capture()
-        # assert len(snapshot) > 0
-
-        # Save snapshot
-        # client.saveSnapshot("test_workflow", snapshot)
-
-        # Clean up
-        # client.shutdown()
-        pass
-
-
 # ============================================================================
 # Example usage patterns for documentation
 # ============================================================================
 
-def example_direct_usage():
+
+def example_in_process_testing():
     """
-    Example: Direct usage without HTTP server.
+    Example: In-process testing with Qt utilities.
 
     This pattern is useful for:
-    - Fast in-process testing
-    - Debugging UI issues
-    - Simple test scenarios
+    - Fast unit/integration tests
+    - Direct Qt object access
+    - Precise QML item manipulation
     """
     from pkdiagram.mapserver import (
         AppTestController,
@@ -324,7 +261,8 @@ def example_direct_usage():
 
     # Take initial snapshot
     initial = snapshots.captureWindow()
-    snapshots.saveSnapshot("initial_state", initial)
+    if initial:
+        snapshots.saveSnapshot("initial_state", initial)
 
     # Find and interact with elements
     # (Example: Click a button if it exists)
@@ -337,103 +275,54 @@ def example_direct_usage():
     after = snapshots.captureWindow()
 
     # Compare snapshots
-    result = snapshots.compare("initial_state", after)
-    print(f"Snapshots match: {result['match']}")
+    if initial and after:
+        result = snapshots.compare("initial_state", after)
+        print(f"Snapshots match: {result['match']}")
 
     # Cleanup
     controller.shutdown()
 
 
-def example_client_server_usage():
+def example_mcp_testing():
     """
-    Example: Client-server usage pattern.
+    Example: MCP-based testing with Claude Code.
 
-    This pattern is useful for:
-    - Testing from external processes
-    - Remote testing scenarios
-    - CI/CD pipelines
+    For external/remote testing, use the MCP server in mcp-server/.
+
+    The MCP server provides these tools to Claude Code:
+    - launch_app: Start the application
+    - close_app: Stop the application
+    - take_screenshot: Capture UI state
+    - click, double_click, right_click: Mouse input
+    - type_text, press_key, hotkey: Keyboard input
+    - drag, scroll: Advanced input
+    - compare_screenshots: Visual regression testing
+
+    Configuration is in .mcp.json at the project root.
+
+    Example Claude Code conversation:
+
+        User: "Test adding a person to the diagram"
+
+        Claude: I'll launch the app and test the add person workflow.
+
+        [Uses launch_app tool]
+        [Uses take_screenshot to see initial state]
+        [Uses click to press Add Person button]
+        [Uses type_text to enter name]
+        [Uses press_key("enter") to confirm]
+        [Uses take_screenshot to verify result]
+        [Uses compare_screenshots for regression check]
+        [Uses close_app to clean up]
     """
-    from pkdiagram.mapserver import MapClient
-
-    # Create client and start server
-    with MapClient(port=8765) as client:
-        # Start the server subprocess
-        client.startServer(headless=True)
-
-        # Initialize application
-        client.initApp()
-        client.createWindow()
-        client.newDocument()
-
-        # Interact with UI
-        client.click("newPersonButton")
-        client.waitForElement("personDialog")
-        client.type("John Doe", target="nameField")
-        client.keyPress("enter")
-
-        # Verify result
-        items = client.getSceneItems(itemType="Person")
-        assert any(item["name"] == "John Doe" for item in items)
-
-        # Take and compare snapshot
-        client.assertSnapshot("after_add_person")
-
-        # Server stops automatically on context exit
-
-
-def example_snapshot_testing():
-    """
-    Example: Snapshot-based regression testing.
-
-    This pattern is useful for:
-    - Visual regression testing
-    - UI consistency verification
-    - Cross-platform testing
-    """
-    from pkdiagram.mapserver import MapClient
-
-    client = MapClient(port=8765)
-    client.startServer(headless=True)
-
-    try:
-        client.initApp()
-        client.createWindow()
-
-        # Test various UI states
-        test_cases = [
-            ("empty_document", lambda: client.newDocument()),
-            ("with_person", lambda: (
-                client.newDocument(),
-                client.click("addPersonButton"),
-                client.processEvents(),
-            )),
-            ("with_marriage", lambda: (
-                client.newDocument(),
-                # ... add marriage setup ...
-            )),
-        ]
-
-        for name, setup_fn in test_cases:
-            setup_fn()
-            client.processEvents()
-
-            # Assert snapshot matches baseline
-            # On first run, creates the baseline
-            # On subsequent runs, compares against baseline
-            client.assertSnapshot(
-                name,
-                threshold=0.01,  # Allow 1% difference
-                updateOnFail=False,  # Set True to update baselines
-            )
-
-    finally:
-        client.shutdown()
+    pass  # This is documentation, not runnable code
 
 
 if __name__ == "__main__":
     # Run examples
-    print("Map Server Examples")
+    print("Testing Utilities Examples")
     print("=" * 50)
-    print("\nSee the test functions above for usage patterns.")
+    print("\nIn-process testing: Use pkdiagram.mapserver module")
+    print("MCP testing: See mcp-server/ directory")
     print("\nTo run tests:")
     print("  uv run pytest pkdiagram/tests/mapserver/test_mapserver_example.py -v")
