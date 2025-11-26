@@ -166,26 +166,22 @@ class Person(PathItem):
                 for i, x in enumerate(range(int(WIDTH * -0.5), int(WIDTH * 0.5), STEP)):
                     y = WIDTH * -0.5 + random.uniform(-JAGGEDNESS, JAGGEDNESS)
                     path.lineTo(x, y)
-                    # _log.info(f"top, x: {x}, y: {y}")
                 # right
                 for i, y in enumerate(range(int(WIDTH * -0.5), int(WIDTH * 0.5), STEP)):
                     x = (WIDTH * 0.5) + random.uniform(-JAGGEDNESS, JAGGEDNESS)
                     path.lineTo(x, y)
-                    # _log.info(f"right, x: {x}, y: {y}")
                 # bottom
                 for i, x in enumerate(
                     reversed(range(int(WIDTH * -0.5), int(WIDTH * 0.5), STEP))
                 ):
                     y = WIDTH * 0.5 + random.uniform(-JAGGEDNESS, JAGGEDNESS)
                     path.lineTo(x, y)
-                    # _log.info(f"bottom, x: {x}, y: {y}")
                 # left
                 for i, y in enumerate(
                     reversed(range(int(WIDTH * -0.5), int(WIDTH * 0.5), STEP))
                 ):
                     x = (WIDTH * -0.5) + random.uniform(-JAGGEDNESS, JAGGEDNESS)
                     path.lineTo(x, y)
-                    # _log.info(f"left, x: {x}, y: {y}")
                 path.closeSubpath()
             else:
                 path.addRect(rect)
@@ -338,6 +334,8 @@ class Person(PathItem):
         # Write parents as simple ID (quietly deprecates nested childOf format)
         if self.childOf and self.childOf.parents():
             chunk["parents"] = self.childOf.parents().id
+            if self.childOf.multipleBirth:
+                chunk["childOfMultipleBirth"] = self.childOf.multipleBirth.id
         chunk["detailsText"] = {}
         self.detailsText.write(chunk["detailsText"])
 
@@ -363,6 +361,10 @@ class Person(PathItem):
             if marriage:
                 self.childOf = ChildOf(self, marriage)
                 marriage._onAddChild(self)
+                if chunk.get("childOfMultipleBirth"):
+                    multipleBirth = byId(chunk["childOfMultipleBirth"])
+                    if multipleBirth:
+                        self.childOf.multipleBirth = multipleBirth
         #
         if "detailsText" in chunk:
             self.detailsText.read(chunk["detailsText"], byId)
@@ -440,9 +442,7 @@ class Person(PathItem):
     def matchesName(self, searchText: str):
         selfText = self.fullNameOrAlias().lower()
         otherText = searchText.lower()
-        ret = otherText in selfText
-        # _log.info(f"Person['{selfText}'].matchesName('{otherText}'): {ret}")
-        return ret
+        return otherText in selfText
 
     @pyqtSlot(result=str)
     def listLabel(self):
@@ -492,9 +492,6 @@ class Person(PathItem):
             return age
 
     def anxietyLevelNow(self):
-        """
-        Formalize dynamic variable since drawing uses it now.
-        """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             anxiety, ok = self.variablesDatabase.get(
                 "varsdb-anxiety", self.scene().currentDateTime()
@@ -503,9 +500,6 @@ class Person(PathItem):
                 return anxiety
 
     def functioningLevelNow(self):
-        """
-        Formalize dynamic variable since drawing uses it now.
-        """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             functioning, ok = self.variablesDatabase.get(
                 "varsdb-functioning", self.scene().currentDateTime()
@@ -514,9 +508,6 @@ class Person(PathItem):
                 return functioning
 
     def symptomLevelNow(self):
-        """
-        Formalize dynamic variable since drawing uses it now.
-        """
         if self.scene() and not self.scene().hideVariableSteadyStates():
             symptom, ok = self.variablesDatabase.get(
                 "varsdb-symptom", self.scene().currentDateTime()
@@ -892,7 +883,6 @@ class Person(PathItem):
 
     @util.fblocked  # needed to avoid recursion in multiple births
     def updatePathItemVisible(self):
-        """Override."""
         if self.shouldShowForDateAndLayerTags():
             opacity = self.itemOpacity()
             if opacity is None:
@@ -1282,36 +1272,6 @@ class Person(PathItem):
         #                 return True
         #     return False
         return ret
-
-    # def __paint(self, painter, option, widget):
-    #     # paint background
-    #     painter.save()
-    #     painter.setBrush(self.brush())
-    #     painter.setPen(Qt.transparent)
-    #     path = QPainterPath(self.path())
-    #     path.setFillRule(Qt.WindingFill)
-    #     painter.drawPath(path)
-    #     painter.restore()
-    #     super().paint(painter, option, widget)
-    #     if self.gender() == "unknown":
-    #         painter.save()
-    #         painter.setPen(self.pen())
-    #         font = QFont(util.AGE_FONT)
-    #         font.setPointSize(font.pointSize() * 2)
-    #         painter.setFont(font)
-    #         painter.drawText(self.boundingRect(), Qt.AlignCenter, "?")
-    #         painter.restore()
-    #     elif self.age() is not None:
-    #         painter.save()
-    #         p = QPen(self.pen())
-    #         if self.isSelected() and not self.primary():
-    #             p.setColor(util.contrastTo(self.brush().color()))
-    #         painter.setPen(p)
-    #         font = QFont(util.AGE_FONT)
-    #         font.setPointSize(font.pointSize() * 2)
-    #         painter.setFont(font)
-    #         painter.drawText(self.boundingRect(), Qt.AlignCenter, str(self.age()))
-    #         painter.restore()
 
     def mousePressEvent(self, e):
         if self.view().dragMode() == QGraphicsView.ScrollHandDrag:

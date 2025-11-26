@@ -10,10 +10,7 @@ _log = logging.getLogger(__name__)
 
 def UP_TO(data, compatVer):
     ver = data.get("version")
-    if ver is None or version.lessThanOrEqual(ver, compatVer):
-        return True
-    else:
-        return False
+    return ver is None or version.lessThanOrEqual(ver, compatVer)
 
 
 def find_parents_from_childof(person_chunk, data):
@@ -49,7 +46,7 @@ def update_data(data):
     if UP_TO(data, "1.0.0b7"):
         for chunk in data.get("items", []):
             if chunk["kind"] == "Person":
-                if "pos" in chunk and not "nonLayerPos" in chunk:
+                if "pos" in chunk and "nonLayerPos" not in chunk:
                     chunk["nonLayerPos"] = QPointF(chunk["pos"][0], chunk["pos"][1])
 
     if UP_TO(data, "1.0.0a16"):
@@ -85,13 +82,13 @@ def update_data(data):
 
         for chunk in data.get("items", []):
             if chunk["kind"] in ("Person", "Marriage"):
-                if not "detailsText" in chunk:
+                if "detailsText" not in chunk:
                     chunk["detailsText"] = {"itemPos": QPointF()}
                 if "detailsPos" in chunk:
                     chunk["detailsText"]["itemPos"] = chunk["detailsPos"]
                     del chunk["detailsPos"]
                 elif (
-                    not "itemPos" in chunk["detailsText"]
+                    "itemPos" not in chunk["detailsText"]
                     and "nonLayerPos" in chunk["detailsText"]
                 ):
                     chunk["detailsText"]["itemPos"] = chunk["detailsText"][
@@ -126,7 +123,7 @@ def update_data(data):
                 if "nonLayerPos" in chunk:
                     chunk["itemPos"] = chunk["nonLayerPos"]
                     del chunk["nonLayerPos"]
-                if not "childOf" in chunk:
+                if "childOf" not in chunk:
                     if chunk.get("parents") is not None:
                         chunk["childOf"] = {
                             "person": chunk["id"],
@@ -653,7 +650,7 @@ def update_data(data):
                     # Convert emotion kind (e.g., "Conflict" or "conflict") to lowercase
                     emotion_kind = emotion_chunk["kind"]
                     if isinstance(emotion_kind, str):
-                        if not "dynamicProperties" in start_event:
+                        if "dynamicProperties" not in start_event:
                             start_event["dynamicProperties"] = {}
                         start_event["dynamicProperties"][
                             "relationship"
@@ -687,7 +684,7 @@ def update_data(data):
         ensureSymptom = False
         ensureAnxiety = False
         ensureRelationship = False
-        ensureFunctiong = False
+        ensureFunctioning = False
 
         # 4. Post-process all events
         for event in all_events:
@@ -706,7 +703,7 @@ def update_data(data):
             if "relationship" in event:
                 ensureRelationship = True
             if "functioning" in event:
-                ensureFunctiong = True
+                ensureFunctioning = True
 
         # Migrate SARF attrs right in event to Scene.eventProperties
 
@@ -731,14 +728,14 @@ def update_data(data):
                     "name": util.ATTR_RELATIONSHIP,
                 }
             )
-        if ensureFunctiong and "functioning" not in eventPropertyAttrs:
+        if ensureFunctioning and "functioning" not in eventPropertyAttrs:
             _log.warning("Adding `functioning` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
             )
 
         if eventProperties:
-            if not "eventProperties" in data:
+            if "eventProperties" not in data:
                 data["eventProperties"] = []
             data["eventProperties"].extend(eventProperties)
 
@@ -762,18 +759,24 @@ def update_data(data):
     ## Add more version fixes here
     # if UP_TO(data, ....)
 
-    if UP_TO(data, "2.1.10"):
+    if UP_TO(data, "2.0.11b1"):
         # Convert childOf nested structure to simple parents ID
         for person_chunk in data.get("people", []):
             childOf = person_chunk.get("childOf")
             if childOf and childOf.get("parents"):
                 person_chunk["parents"] = childOf["parents"]
+                if childOf.get("multipleBirth"):
+                    person_chunk["childOfMultipleBirth"] = childOf["multipleBirth"]
                 del person_chunk["childOf"]
 
         # Rename btcopilot schema field names to Scene property names (snake_case → camelCase)
         for person_chunk in data.get("people", []):
             if "last_name" in person_chunk:
                 person_chunk["lastName"] = person_chunk.pop("last_name")
+
+        # Rename marriages to pair_bonds
+        if "marriages" in data and "pair_bonds" not in data:
+            data["pair_bonds"] = data.pop("marriages")
 
 
 def update_scene(scene, data):
