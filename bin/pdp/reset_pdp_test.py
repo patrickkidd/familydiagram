@@ -7,7 +7,12 @@ import pickle
 
 # bin/pdp -> bin -> familydiagram -> theapp
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "btcopilot"))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "btcopilot"
+    ),
+)
 
 os.environ.setdefault("FLASK_CONFIG", "development")
 
@@ -54,11 +59,42 @@ def reset_diagram(diagram_id: int):
                 Person(id=-4, name="Diana"),
             ],
             events=[
-                Event(id=-5, kind=EventKind.Birth, person=-1, description="Alice born"),
-                Event(id=-6, kind=EventKind.Birth, person=-2, description="Bob born"),
-                Event(id=-7, kind=EventKind.Married, person=-1, spouse=-2, description="Wedding"),
-                Event(id=-8, kind=EventKind.Birth, person=-3, description="Charlie born"),
-                Event(id=-9, kind=EventKind.Shift, person=-1, description="Alice stress event"),
+                Event(
+                    id=-5,
+                    kind=EventKind.Birth,
+                    person=-1,
+                    description="Alice born",
+                    dateTime="1980-03-15",
+                ),
+                Event(
+                    id=-6,
+                    kind=EventKind.Birth,
+                    person=-2,
+                    description="Bob born",
+                    dateTime="1978-07-22",
+                ),
+                Event(
+                    id=-7,
+                    kind=EventKind.Married,
+                    person=-1,
+                    spouse=-2,
+                    description="Wedding",
+                    dateTime="2005-06-10",
+                ),
+                Event(
+                    id=-8,
+                    kind=EventKind.Birth,
+                    person=-3,
+                    description="Charlie born",
+                    dateTime="2008-11-03",
+                ),
+                Event(
+                    id=-9,
+                    kind=EventKind.Shift,
+                    person=-1,
+                    description="Alice stress event",
+                    dateTime="2020-04-01",
+                ),
             ],
             pair_bonds=[
                 PairBond(id=-10, person_a=-1, person_b=-2),
@@ -70,7 +106,7 @@ def reset_diagram(diagram_id: int):
             events=[],
             pair_bonds=[],
             pdp=pdp,
-            last_id=100,
+            lastItemId=0,
         )
 
         diagram.data = pickle.dumps(asdict(diagram_data))
@@ -78,12 +114,18 @@ def reset_diagram(diagram_id: int):
         db.session.commit()
 
         print(f"Reset diagram {diagram_id}")
+        print(f"Diagram version: {diagram.version}")
+        print(f"  People: {len(diagram_data.people)}")
+        print(f"  Events: {len(diagram_data.events)}")
+        print(f"  PairBonds: {len(diagram_data.pair_bonds)}")
         print(f"  PDP People: {len(pdp.people)}")
         for p in pdp.people:
             print(f"    id={p.id}, name={p.name}, parents={p.parents}")
         print(f"  PDP Events: {len(pdp.events)}")
         for e in pdp.events:
-            print(f"    id={e.id}, kind={e.kind.value}, description={e.description}")
+            print(
+                f"    id={e.id}, kind={e.kind.value}, date={e.dateTime}, desc={e.description}"
+            )
         print(f"  PDP PairBonds: {len(pdp.pair_bonds)}")
         for pb in pdp.pair_bonds:
             print(f"    id={pb.id}, person_a={pb.person_a}, person_b={pb.person_b}")

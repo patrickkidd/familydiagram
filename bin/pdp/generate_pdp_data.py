@@ -175,7 +175,7 @@ def generate_diagram_data(scenario_name):
         events=[],
         pair_bonds=[],
         pdp=pdp,
-        last_id=100,
+        lastItemId=100,
     )
 
     return diagram_data
