@@ -4,6 +4,7 @@ Client-side representations of server-side scene.
 Just implementation of server-side structs and protocols to CRUD them on the server.
 """
 
+import os
 import time, pickle, logging
 import json
 import enum
@@ -34,6 +35,8 @@ from pkdiagram.qnam import QNAM
 
 
 log = logging.getLogger(__name__)
+
+FD_NETWORK_TIMEOUT_MS = int(os.getenv("FD_NETWORK_TIMEOUT_MS", 10000))
 
 
 @dataclass
@@ -210,7 +213,7 @@ class Diagram:
         for attempt in range(maxRetries):
             diagramData = self.getDiagramData()
 
-            applyChange(diagramData)
+            diagramData = applyChange(diagramData)
 
             newData = pickle.dumps(asdict(diagramData))
 
@@ -292,14 +295,14 @@ class Diagram:
             events=data.get("events", []),
             pair_bonds=data.get("pair_bonds", []),
             pdp=from_dict(PDP, pdp_dict) if pdp_dict else PDP(),
-            last_id=data.get("last_id", 0),
+            lastItemId=data.get("lastItemId", 0),
         )
 
     def setDiagramData(self, diagramData: DiagramData):
         data = pickle.loads(self.data) if self.data else {}
 
         data["pdp"] = asdict(diagramData.pdp)
-        data["last_id"] = diagramData.last_id
+        data["lastItemId"] = diagramData.lastItemId
         if diagramData.people:
             data["people"] = diagramData.people
         if diagramData.events:
@@ -567,7 +570,7 @@ class Server(QObject):
         headers=None,
         anonymous=False,
         statuses=None,
-        timeout_ms=4000,
+        timeout_ms=FD_NETWORK_TIMEOUT_MS,
         from_root=False,
     ) -> HTTPResponse:
         if statuses is None:
@@ -586,7 +589,15 @@ class Server(QObject):
         )
         self._checkRequestsComplete(reply)
         reply.finished.connect(loop.quit)
-        QTimer.singleShot(timeout_ms, loop.quit)
+
+        def _timeout():
+            nonlocal loop
+
+            log.error(f"Request timeout: {reply.request().url().toString()}")
+            reply.abort()
+            loop.quit()
+
+        QTimer.singleShot(timeout_ms, _timeout)
         loop.exec_()
         self.checkHTTPReply(reply, statuses=statuses)
         # status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)

@@ -1,6 +1,7 @@
 import os, os.path, pickle, shutil, datetime, logging
 import dataclasses
 
+from btcopilot.schema import DiagramData
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
@@ -525,8 +526,7 @@ class ServerFileManagerModel(FileManagerModel):
             fpath = self.localPathForID(diagram.id)
 
             def applyChange(data):
-                data.clear()
-                data.update(pickle.loads(dataToSave))
+                return DiagramData(**pickle.loads(dataToSave))
 
             def stillValid(refreshedData):
                 return self.handleDiagramConflict(diagram, refreshedData, fpath)

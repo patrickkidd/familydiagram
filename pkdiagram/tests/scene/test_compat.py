@@ -87,11 +87,7 @@ def test_phase_6_2_extract_person_builtin_events():
                 "kind": "Person",
                 "id": 1,
                 "name": "Alice",
-                "childOf": {
-                    "person": 1,
-                    "parents": 13,
-                    "multipleBirth": None,
-                },
+                "parents": 13,
             },
             {
                 "kind": "Person",
@@ -509,7 +505,7 @@ def test_phase_6_2_migrate_uniqueid_to_kind():
                 "kind": "Person",
                 "id": 1,
                 "name": "Alice",
-                "childOf": {"person": 1, "parents": 10, "multipleBirth": None},
+                "parents": 10,
             },
             {"kind": "Person", "id": 4, "name": "Parent1"},
             {"kind": "Person", "id": 5, "name": "Parent2"},
@@ -575,11 +571,7 @@ def test_phase_6_2_assign_event_ids():
             {
                 "kind": "Person",
                 "id": 1,
-                "childOf": {
-                    "person": 1,
-                    "parents": 9,
-                    "multipleBirth": None,
-                },
+                "parents": 9,
             },
             {
                 "kind": "Person",
@@ -727,11 +719,7 @@ def test_birth_event_with_existing_parents():
                 "id": 1,
                 "name": "Alice",
                 "size": 3,
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {"kind": "Person", "id": 2, "name": "Parent1"},
             {"kind": "Person", "id": 3, "name": "Parent2"},
@@ -788,11 +776,7 @@ def test_birth_event_without_parents_creates_inferred():
                 "name": "Orphan",
                 "size": 3,
                 "itemPos": {"x": 100, "y": 100},
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {
                 "kind": "Person",
@@ -874,11 +858,7 @@ def test_adopted_event_with_existing_parents():
                 "kind": "Person",
                 "id": 1,
                 "name": "Bob",
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {"kind": "Person", "id": 2, "name": "AdoptiveParent1"},
             {"kind": "Person", "id": 3, "name": "AdoptiveParent2"},
@@ -977,11 +957,7 @@ def test_birth_event_in_custom_events_without_parents():
                 "id": 1,
                 "name": "Child",
                 "size": 2,
-                "childOf": {
-                    "person": 1,
-                    "parents": 8,
-                    "multipleBirth": None,
-                },
+                "parents": 8,
             },
             {
                 "kind": "Person",
@@ -1057,11 +1033,7 @@ def test_inferred_parent_size_minimum():
                 "id": 1,
                 "name": "TinyChild",
                 "size": 1,
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {
                 "kind": "Person",

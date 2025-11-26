@@ -3,7 +3,7 @@ import logging
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
 from pkdiagram import version, util, slugify
-from pkdiagram.scene import ItemDetails, Emotion, Emotion
+from pkdiagram.scene import ItemDetails, Emotion
 
 _log = logging.getLogger(__name__)
 
@@ -348,8 +348,9 @@ def update_data(data):
         # Track next available ID for new events
         next_id = data.get("lastItemId", -1) + 1
 
-        # Collect all events from nested locations
-        all_events = []
+        # Collect all events from nested locations. Start with any existing
+        # top-level events so they are preserved and processed together.
+        all_events = data.pop("events", [])
 
         # 1a. Extract Person built-in events (birthEvent, adoptedEvent, deathEvent)
         for person_chunk in data.get("people", []):
@@ -695,31 +696,17 @@ def update_data(data):
             if not event.get("kind"):
                 event["kind"] = EventKind.Shift.value
 
-            # Migrate SARF from event chunk to dynamicProperties
-
-            dynamicProperties = {}
-
+            # Track which SARF fields exist (for eventProperties migration)
+            # Note: symptom/anxiety/relationship/functioning are now first-class
+            # Event properties, so they stay in the event chunk (not dynamicProperties)
             if "symptom" in event:
-                dynamicProperties["symptom"] = event.pop("symptom")
                 ensureSymptom = True
-
             if "anxiety" in event:
-                dynamicProperties["anxiety"] = event.pop("anxiety")
                 ensureAnxiety = True
-
             if "relationship" in event:
-                dynamicProperties["relationship"] = event.pop("relationship")
                 ensureRelationship = True
-
             if "functioning" in event:
-                dynamicProperties["functioning"] = event.pop("functioning")
                 ensureFunctiong = True
-
-            if dynamicProperties:
-                if event.get("dynamicProperties"):
-                    event["dynamicProperties"].update(dynamicProperties)
-                else:
-                    event["dynamicProperties"] = dynamicProperties
 
         # Migrate SARF attrs right in event to Scene.eventProperties
 
@@ -773,7 +760,20 @@ def update_data(data):
                 event_chunk["kind"] = EventKind.Shift.value
 
     ## Add more version fixes here
-    # if ....
+    # if UP_TO(data, ....)
+
+    if UP_TO(data, "2.1.10"):
+        # Convert childOf nested structure to simple parents ID
+        for person_chunk in data.get("people", []):
+            childOf = person_chunk.get("childOf")
+            if childOf and childOf.get("parents"):
+                person_chunk["parents"] = childOf["parents"]
+                del person_chunk["childOf"]
+
+        # Rename btcopilot schema field names to Scene property names (snake_case → camelCase)
+        for person_chunk in data.get("people", []):
+            if "last_name" in person_chunk:
+                person_chunk["lastName"] = person_chunk.pop("last_name")
 
 
 def update_scene(scene, data):

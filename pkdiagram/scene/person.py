@@ -335,9 +335,9 @@ class Person(PathItem):
         chunk["layers"] = [l.id for l in self._layers if not l.internal()]
         #
         chunk["marriages"] = [m.id for m in self.marriages]
-        chunk["childOf"] = {}
-        if self.childOf:
-            self.childOf.write(chunk["childOf"])
+        # Write parents as simple ID (quietly deprecates nested childOf format)
+        if self.childOf and self.childOf.parents():
+            chunk["parents"] = self.childOf.parents().id
         chunk["detailsText"] = {}
         self.detailsText.write(chunk["detailsText"])
 
@@ -358,9 +358,11 @@ class Person(PathItem):
         if self.name() is not None and not self.name():
             self.setName(None, notify=False)
         #
-        if chunk.get("childOf", {}):
-            self.childOf = ChildOf(self, None)
-            self.childOf.read(chunk["childOf"], byId)
+        if chunk.get("parents"):
+            marriage = byId(chunk["parents"])
+            if marriage:
+                self.childOf = ChildOf(self, marriage)
+                marriage._onAddChild(self)
         #
         if "detailsText" in chunk:
             self.detailsText.read(chunk["detailsText"], byId)

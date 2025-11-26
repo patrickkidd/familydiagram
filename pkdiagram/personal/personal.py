@@ -418,6 +418,7 @@ class Personal(QObject):
 
         def applyChange(diagramData: DiagramData):
             diagramData.commit_pdp_items([id])
+            return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
             return True
@@ -439,7 +440,7 @@ class Personal(QObject):
         def applyChange(diagramData: DiagramData):
             if not diagramData.pdp:
                 _log.warning("No PDP data available")
-                return
+                return diagramData
 
             ids_to_remove = {id}
 
@@ -470,6 +471,8 @@ class Personal(QObject):
             diagramData.pdp.pair_bonds = [
                 pb for pb in diagramData.pdp.pair_bonds if pb.id not in ids_to_remove
             ]
+
+            return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
             return True

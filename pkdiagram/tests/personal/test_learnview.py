@@ -80,13 +80,30 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def personal_with_diagram():
-    session = MagicMock()
-    session.user = MagicMock()
-    session.user.free_diagram_id = 1
-    session.changed = MagicMock()
-    session.changed.connect = MagicMock()
+def session():
+    """Mock session with required properties."""
+    s = MagicMock()
+    s.user = MagicMock()
+    s.user.free_diagram_id = 1
+    s.changed = MagicMock()
+    s.changed.connect = MagicMock()
+    return s
 
+
+def _create_save_func(diagram):
+    """Create a save function for mocking diagram.save()."""
+
+    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
+        diagramData = diagram.getDiagramData()
+        diagramData = applyChange(diagramData)
+        diagram.setDiagramData(diagramData)
+        return True
+
+    return save
+
+
+@pytest.fixture
+def personal_with_diagram(session):
     undoStack = QUndoStack()
     personal = Personal(session, undoStack)
 
@@ -101,7 +118,7 @@ def personal_with_diagram():
             ],
             pair_bonds=[],
         ),
-        last_id=0,
+        lastItemId=0,
     )
     diagram = Diagram(
         id=1,
@@ -118,13 +135,7 @@ def personal_with_diagram():
 def test_accept_person(personal_with_diagram):
     personal, diagram = personal_with_diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-1, undo=False)
 
     assert result is True
@@ -142,13 +153,7 @@ def test_accept_person(personal_with_diagram):
 def test_accept_event(personal_with_diagram):
     personal, diagram = personal_with_diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-3, undo=False)
 
     assert result is True
@@ -170,13 +175,7 @@ def test_accept_event(personal_with_diagram):
 def test_reject_person(personal_with_diagram):
     personal, diagram = personal_with_diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.rejectPDPItem(-1, undo=False)
 
     assert result is True
@@ -194,13 +193,7 @@ def test_reject_person(personal_with_diagram):
 def test_reject_event(personal_with_diagram):
     personal, diagram = personal_with_diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.rejectPDPItem(-3, undo=False)
 
     assert result is True
@@ -215,13 +208,7 @@ def test_reject_event(personal_with_diagram):
     assert len(final_data.events) == 0
 
 
-def test_accept_with_pair_bond():
-    session = MagicMock()
-    session.user = MagicMock()
-    session.user.free_diagram_id = 1
-    session.changed = MagicMock()
-    session.changed.connect = MagicMock()
-
+def test_accept_with_pair_bond(session):
     undoStack = QUndoStack()
     personal = Personal(session, undoStack)
 
@@ -237,7 +224,7 @@ def test_accept_with_pair_bond():
                 PairBond(id=-4, person_a=-1, person_b=-2),
             ],
         ),
-        last_id=0,
+        lastItemId=0,
     )
     diagram = Diagram(
         id=1,
@@ -248,13 +235,7 @@ def test_accept_with_pair_bond():
     )
     personal._diagram = diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-3, undo=False)
 
     assert result is True
@@ -275,18 +256,12 @@ def test_accept_with_pair_bond():
     assert pair_bond["person_b"] > 0
 
 
-def test_accept_event_after_person_already_committed():
+def test_accept_event_after_person_already_committed(session):
     """Accept person first, then accept event referencing that person.
 
     This tests the scenario where an event references a person via negative ID,
     but that person has already been committed (now has positive ID).
     """
-    session = MagicMock()
-    session.user = MagicMock()
-    session.user.free_diagram_id = 1
-    session.changed = MagicMock()
-    session.changed.connect = MagicMock()
-
     undoStack = QUndoStack()
     personal = Personal(session, undoStack)
 
@@ -307,7 +282,7 @@ def test_accept_event_after_person_already_committed():
             ],
             pair_bonds=[],
         ),
-        last_id=100,
+        lastItemId=100,
     )
     diagram = Diagram(
         id=1,
@@ -318,14 +293,8 @@ def test_accept_event_after_person_already_committed():
     )
     personal._diagram = diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
     # First accept Bob (-2)
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-2, undo=False)
     assert result is True
 
@@ -339,7 +308,7 @@ def test_accept_event_after_person_already_committed():
 
     # Now accept the wedding event (-3) which references spouse=-2
     # This should work even though Bob is no longer in PDP
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-3, undo=False)
     assert result is True
 
@@ -361,14 +330,8 @@ def test_accept_event_after_person_already_committed():
     assert event["spouse"] == bob_committed_id
 
 
-def test_accept_event_with_spouse_both_in_pdp():
+def test_accept_event_with_spouse_both_in_pdp(session):
     """Accept event where both person and spouse are still in PDP."""
-    session = MagicMock()
-    session.user = MagicMock()
-    session.user.free_diagram_id = 1
-    session.changed = MagicMock()
-    session.changed.connect = MagicMock()
-
     undoStack = QUndoStack()
     personal = Personal(session, undoStack)
 
@@ -389,7 +352,7 @@ def test_accept_event_with_spouse_both_in_pdp():
             ],
             pair_bonds=[],
         ),
-        last_id=100,
+        lastItemId=100,
     )
     diagram = Diagram(
         id=1,
@@ -400,14 +363,8 @@ def test_accept_event_with_spouse_both_in_pdp():
     )
     personal._diagram = diagram
 
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
-        applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
-        return True
-
     # Accept wedding event - should transitively commit both Alice and Bob
-    with patch.object(diagram, "save", save):
+    with patch.object(diagram, "save", _create_save_func(diagram)):
         result = personal.acceptPDPItem(-3, undo=False)
     assert result is True
 
@@ -424,3 +381,76 @@ def test_accept_event_with_spouse_both_in_pdp():
     event = final_data.events[0]
     assert event["person"] > 0
     assert event["spouse"] > 0
+
+
+def test_committed_pdp_events_load_in_scene():
+    """Events committed from PDP with string dateTimes should load correctly in Scene.
+
+    This tests the bug where PDP events stored dateTime as strings (e.g. "1980-03-15")
+    which couldn't be converted to QDateTime by Item.read(), causing events to be
+    pruned by Scene.prune() because they appeared to have no dateTime.
+    """
+    from pkdiagram.scene import Scene
+
+    # Create diagram data with PDP containing events with string dateTimes
+    diagramData = DiagramData(
+        pdp=PDP(
+            people=[
+                Person(id=-1, name="Alice"),
+                Person(id=-2, name="Bob"),
+            ],
+            events=[
+                Event(
+                    id=-3,
+                    kind=EventKind.Shift,
+                    person=-1,
+                    dateTime="1980-03-15",
+                    description="Alice stress event",
+                ),
+                Event(
+                    id=-4,
+                    kind=EventKind.Married,
+                    person=-1,
+                    spouse=-2,
+                    dateTime="2005-06-10",
+                    description="Wedding",
+                ),
+            ],
+            pair_bonds=[],
+        ),
+        lastItemId=0,
+    )
+
+    # Commit the PDP events - this should convert string dateTimes to QDateTime
+    diagramData.commit_pdp_items([-3, -4])
+
+    # Convert to dict format that Scene.read expects
+    scene_data = schema_asdict(diagramData)
+
+    # Load into scene
+    scene = Scene()
+    error = scene.read(scene_data)
+    assert error is None, f"Scene.read failed: {error}"
+
+    # Verify people were loaded
+    people = scene.people()
+    assert len(people) == 2
+
+    # Verify events were loaded (not pruned due to missing dateTime)
+    events = list(scene.events())
+    assert (
+        len(events) == 2
+    ), f"Expected 2 events but got {len(events)} - events may have been pruned"
+
+    # Verify dateTimes were properly converted from strings
+    shift_event = next(e for e in events if e.kind() == EventKind.Shift)
+    assert shift_event.dateTime() is not None
+    assert not shift_event.dateTime().isNull()
+    assert shift_event.dateTime().date().year() == 1980
+    assert shift_event.dateTime().date().month() == 3
+    assert shift_event.dateTime().date().day() == 15
+
+    wedding_event = next(e for e in events if e.kind() == EventKind.Married)
+    assert wedding_event.dateTime() is not None
+    assert not wedding_event.dateTime().isNull()
+    assert wedding_event.dateTime().date().year() == 2005

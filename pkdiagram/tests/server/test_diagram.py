@@ -27,7 +27,7 @@ def diagram_with_json():
             events=[Event(id=-2, kind=EventKind.Shift, person=-1)],
             pair_bonds=[],
         ),
-        last_id=100,
+        lastItemId=100,
     )
     return Diagram(
         id=1,
@@ -42,7 +42,7 @@ def diagram_with_json():
 def test_getDiagramData_with_json():
     initial_data = DiagramData(
         pdp=PDP(people=[Person(id=-1, name="Alice")]),
-        last_id=50,
+        lastItemId=50,
     )
     diagram = Diagram(
         id=1,
@@ -55,14 +55,14 @@ def test_getDiagramData_with_json():
     result = diagram.getDiagramData()
 
     assert isinstance(result, DiagramData)
-    assert result.last_id == 50
+    assert result.lastItemId == 50
     assert len(result.pdp.people) == 1
     assert result.pdp.people[0].name == "Alice"
     assert result.pdp.people[0].id == -1
 
 
 def test_getDiagramData_with_empty_pdp():
-    initial_data = DiagramData(last_id=10)
+    initial_data = DiagramData(lastItemId=10)
     diagram = Diagram(
         id=1,
         user_id=1,
@@ -93,14 +93,14 @@ def test_setDiagramData_with_json():
             people=[Person(id=-1, name="Bob")],
             events=[Event(id=-2, kind=EventKind.Birth, person=-1)],
         ),
-        last_id=75,
+        lastItemId=75,
     )
 
     diagram.setDiagramData(new_data)
 
     assert isinstance(diagram.data, bytes)
     unpickled = pickle.loads(diagram.data)
-    assert unpickled["last_id"] == 75
+    assert unpickled["lastItemId"] == 75
     assert len(unpickled["pdp"]["people"]) == 1
     assert unpickled["pdp"]["people"][0]["name"] == "Bob"
 
@@ -112,7 +112,7 @@ def test_getDiagramData_setDiagramData_roundtrip():
             events=[Event(id=-2, kind=EventKind.Married, person=-1, spouse=-3)],
             pair_bonds=[PairBond(id=-4, person_a=-1, person_b=-3)],
         ),
-        last_id=200,
+        lastItemId=200,
     )
 
     diagram = Diagram(
@@ -127,7 +127,7 @@ def test_getDiagramData_setDiagramData_roundtrip():
     diagram.setDiagramData(retrieved)
     final = diagram.getDiagramData()
 
-    assert final.last_id == 200
+    assert final.lastItemId == 200
     assert len(final.pdp.people) == 1
     assert final.pdp.people[0].name == "Charlie"
     assert final.pdp.people[0].last_name == "Brown"
@@ -157,7 +157,7 @@ def test_commit_pdp_items_adds_to_main_diagram():
             people=[Person(id=-1, name="Test Person")],
             events=[Event(id=-2, kind=EventKind.Shift, person=-1)],
         ),
-        last_id=100,
+        lastItemId=100,
     )
     diagram = Diagram(
         id=1,
@@ -198,7 +198,7 @@ def test_commit_pdp_items_with_transitive_closure():
             ],
             pair_bonds=[PairBond(id=-4, person_a=-1, person_b=-2)],
         ),
-        last_id=50,
+        lastItemId=50,
     )
 
     diagram = Diagram(
@@ -223,10 +223,10 @@ def test_commit_pdp_items_with_transitive_closure():
     assert child["parents"] == id_mapping[-4]
 
 
-def test_commit_pdp_items_preserves_last_id():
+def test_commit_pdp_items_preserves_lastItemId():
     initial_data = DiagramData(
         pdp=PDP(people=[Person(id=-1, name="Test")]),
-        last_id=100,
+        lastItemId=100,
     )
 
     diagram = Diagram(
@@ -240,8 +240,8 @@ def test_commit_pdp_items_preserves_last_id():
     diagram_data = diagram.getDiagramData()
     id_mapping = diagram_data.commit_pdp_items([-1])
 
-    assert diagram_data.last_id == id_mapping[-1]
-    assert diagram_data.last_id > 100
+    assert diagram_data.lastItemId == id_mapping[-1]
+    assert diagram_data.lastItemId > 100
 
 
 def test_commit_pdp_items_raises_on_positive_id():
@@ -285,7 +285,7 @@ def test_commit_pdp_items_raises_on_missing_item():
 def test_setDiagramData_after_commit_persists():
     initial_data = DiagramData(
         pdp=PDP(people=[Person(id=-1, name="Test")]),
-        last_id=50,
+        lastItemId=50,
     )
 
     diagram = Diagram(

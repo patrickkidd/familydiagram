@@ -278,7 +278,7 @@ def test_diagram_save_shows_error_on_unexpected_status(test_user):
     with patch.object(QMessageBox, "critical") as mock_critical:
 
         def applyChange(diagramData: DiagramData):
-            pass
+            return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
             return True

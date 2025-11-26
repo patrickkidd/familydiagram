@@ -19,7 +19,7 @@ class Item:
     def registerProperties(propAttrs):
         # set type attr
         for kwargs in propAttrs:
-            if not "type" in kwargs:
+            if "type" not in kwargs:
                 default = kwargs.get("default")
                 if default is not None:
                     kwargs["type"] = type(default)
@@ -105,7 +105,7 @@ class Item:
     def __repr__(self, exclude=[]):
         if not isinstance(exclude, list):
             exclude = [exclude]
-        if not "id" in exclude:
+        if "id" not in exclude:
             exclude.append("id")
         props = {}
         for prop in self.props:
@@ -216,7 +216,7 @@ class Item:
             x.onItemProperty(prop)
 
     def addPropertyListener(self, x):
-        if not x in self.propertyListeners:
+        if x not in self.propertyListeners:
             self.propertyListeners.append(x)
 
     def removePropertyListener(self, x):
@@ -266,7 +266,7 @@ class Item:
         if not isinstance(x, str):
             raise ValueError("Tag must be a string")
         tags = list(self.tags())
-        if not x in tags:
+        if x not in tags:
             tags.append(x)
             tags.sort()
             self.prop("tags").set(tags, notify=notify, undo=undo)
@@ -274,7 +274,7 @@ class Item:
     def addTags(self, newTags, notify=True, undo=False):
         itemTags = list(self.tags())
         for tag in newTags:
-            if not tag in itemTags:
+            if tag not in itemTags:
                 itemTags.append(tag)
         itemTags.sort()
         if itemTags != self.tags():
