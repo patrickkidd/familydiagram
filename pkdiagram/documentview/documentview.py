@@ -60,8 +60,10 @@ class DocumentView(QWidget):
         self.eventSelectionModel = self._qmlEngine.eventSelectionModel
 
         self.view = View(self, parent.ui)
+        self.view.setObjectName("View")
 
         self.controller = DocumentController(self)
+        self.controller.setObjectName("documentController")
 
         ## Just sits under the drawer to move the view over.
         ## Allows the drawer to be parented to the DocumentView
@@ -166,6 +168,11 @@ class DocumentView(QWidget):
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
         self.graphicalTimelineView = GraphicalTimelineView(
             self.searchModel, self.eventSelectionModel, self
+        )
+        self.graphicalTimelineView.setObjectName("graphicalTimelineView")
+        self.graphicalTimelineView.timeline.setObjectName("graphicalTimeline")
+        self.graphicalTimelineView.timeline.canvas.setObjectName(
+            "graphicalTimelineCanvas"
         )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded

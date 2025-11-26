@@ -24,11 +24,16 @@ import base64
 import json
 import logging
 import os
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
-from dataclasses import dataclass, asdict
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -75,7 +80,6 @@ class BridgeClient:
 
     @property
     def is_connected(self) -> bool:
-        """Check if connected to the bridge."""
         return self._connected and self._socket is not None
 
     def connect(self, timeout: float = 10.0) -> bool:
@@ -110,11 +114,10 @@ class BridgeClient:
         return False
 
     def disconnect(self):
-        """Disconnect from the bridge."""
         if self._socket:
             try:
                 self._socket.close()
-            except Exception:
+            except OSError:
                 pass
             self._socket = None
         self._connected = False
@@ -149,10 +152,172 @@ class BridgeClient:
             line = buffer.split(b"\n")[0]
             return json.loads(line.decode("utf-8"))
 
-        except Exception as e:
+        except (socket.error, ConnectionError, json.JSONDecodeError) as e:
             logger.exception(f"Bridge communication error: {e}")
             self.disconnect()
             return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# Enums
+# =============================================================================
+
+
+class LoginState(str, Enum):
+    NoData = "no_data"
+    LoggedIn = "logged_in"
+
+
+# =============================================================================
+# Sandbox Management
+# =============================================================================
+
+
+class SandboxManager:
+    """Creates and manages isolated test sandboxes for application test sessions."""
+
+    def __init__(self):
+        self.sandbox_dir: Optional[Path] = None
+        self.prefs_dir: Optional[Path] = None
+        self.app_data_dir: Optional[Path] = None
+        self.documents_dir: Optional[Path] = None
+
+    def create_sandbox(
+        self, login_state: LoginState = LoginState.NoData
+    ) -> Dict[str, str]:
+        """
+        Create isolated sandbox for test session.
+
+        Args:
+            login_state: LoginState.NoData for fresh login test, LoginState.LoggedIn for pre-authenticated
+
+        Returns:
+            Dict with environment variables to pass to app
+        """
+        self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
+        self.prefs_dir = self.sandbox_dir / "prefs"
+        self.app_data_dir = self.sandbox_dir / "appdata"
+        self.documents_dir = self.sandbox_dir / "Documents"
+
+        self.prefs_dir.mkdir(parents=True, exist_ok=True)
+        self.app_data_dir.mkdir(parents=True, exist_ok=True)
+        self.documents_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Created test sandbox: {self.sandbox_dir}")
+        logger.info(f"Documents directory: {self.documents_dir}")
+
+        env = {
+            "QT_QPA_PLATFORMTHEME": "offscreen",
+            "HOME": str(self.sandbox_dir),
+        }
+
+        if login_state == LoginState.LoggedIn:
+            self._populate_logged_in_data()
+
+        return env
+
+    def _populate_logged_in_data(self) -> None:
+        appconfig_dir = self.app_data_dir / "Family Diagram"
+        appconfig_dir.mkdir(parents=True, exist_ok=True)
+
+        appconfig_file = appconfig_dir / "appconfig"
+
+        logger.info("Populating sandbox with logged-in user data")
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "familydiagram"))
+
+        try:
+            import btcopilot
+            from dataclasses import asdict
+            from pkdiagram.app import AppConfig
+            from pkdiagram.server_types import (
+                User,
+                Diagram,
+                License,
+                Policy,
+                Activation,
+            )
+
+            now = datetime.now(timezone.utc)
+            session_id = str(uuid.uuid4())
+            session_token = str(uuid.uuid4())
+            future_date = datetime(2099, 12, 31, tzinfo=timezone.utc)
+
+            user = User(
+                id=1,
+                username="patrickkidd+unitest@gmail.com",
+                first_name="Test",
+                last_name="User",
+                roles=[btcopilot.ROLE_SUBSCRIBER],
+                secret=b"test_secret",
+                free_diagram_id=1,
+                created_at=now,
+                updated_at=now,
+                licenses=[
+                    License(
+                        id=1,
+                        policy=Policy(
+                            id=1,
+                            code=btcopilot.LICENSE_PROFESSIONAL,
+                            product="professional",
+                            name="Professional",
+                            interval="month",
+                            maxActivations=1,
+                            amount=9.99,
+                            active=True,
+                            public=True,
+                            created_at=now,
+                        ),
+                        active=True,
+                        canceled=False,
+                        user_id=1,
+                        policy_id=1,
+                        key="test_key",
+                        stripe_id="test_stripe",
+                        activations=[Activation(license_id=1, machine_id=1)],
+                        activated_at=now,
+                        canceled_at=future_date,
+                        created_at=now,
+                        created_at_readable="Today",
+                    )
+                ],
+                free_diagram=Diagram(
+                    id=1,
+                    user_id=1,
+                    access_rights=[],
+                    created_at=now,
+                ),
+            )
+
+            session_data = {
+                "session": {
+                    "id": session_id,
+                    "token": session_token,
+                    "user": asdict(user),
+                },
+                "users": [asdict(user)],
+                "deactivated_versions": [],
+            }
+
+            appconfig = AppConfig(filePath=str(appconfig_file))
+            appconfig.hardwareUUID = "test_hardware_uuid"
+            appconfig.set("lastSessionData", session_data, pickled=True)
+            appconfig.write()
+
+            logger.info(f"Wrote session data to {appconfig_file}")
+        except (ImportError, OSError, AttributeError, ValueError) as e:
+            logger.error(f"Failed to populate session data: {e}", exc_info=True)
+            raise
+
+    def cleanup(self) -> None:
+        """Remove sandbox directory."""
+        if self.sandbox_dir and self.sandbox_dir.exists():
+            try:
+                shutil.rmtree(self.sandbox_dir)
+                logger.info(f"Cleaned up sandbox: {self.sandbox_dir}")
+            except OSError as e:
+                logger.warning(f"Failed to clean up sandbox: {e}")
+            self.sandbox_dir = None
 
 
 # =============================================================================
@@ -181,6 +346,7 @@ class TestSession:
         self._bridge_port = BRIDGE_PORT
         self._stdout_lines: List[str] = []
         self._stderr_lines: List[str] = []
+        self._sandbox = SandboxManager()
 
     @classmethod
     def get_instance(cls) -> "TestSession":
@@ -224,6 +390,7 @@ class TestSession:
         open_file: Optional[str] = None,
         extra_args: Optional[List[str]] = None,
         timeout: int = 30,
+        login_state: LoginState = LoginState.NoData,
     ) -> Tuple[bool, str]:
         """
         Launch the Family Diagram application.
@@ -236,6 +403,7 @@ class TestSession:
             open_file: Path to .fd file to open at startup
             extra_args: Additional command-line arguments
             timeout: Maximum time to wait for startup
+            login_state: LoginState.NoData (fresh) or LoginState.LoggedIn (pre-auth)
 
         Returns:
             Tuple of (success, message)
@@ -262,6 +430,13 @@ class TestSession:
 
             # Set up environment
             env = os.environ.copy()
+
+            # Clear problematic virtual environment variable from MCP server venv
+            env.pop("VIRTUAL_ENV", None)
+
+            # Create sandbox and get sandbox-specific env vars
+            sandbox_env = self._sandbox.create_sandbox(login_state=login_state)
+            env.update(sandbox_env)
 
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
@@ -304,7 +479,7 @@ class TestSession:
             logger.info(f"Application started (PID: {self.pid})")
             return True, f"Application started successfully (PID: {self.pid})"
 
-        except Exception as e:
+        except OSError as e:
             logger.exception("Failed to launch application")
             return False, f"Failed to launch: {str(e)}"
 
@@ -329,7 +504,7 @@ class TestSession:
                     self._stdout_lines.append(
                         line.decode("utf-8", errors="replace").rstrip()
                     )
-            except:
+            except (OSError, ValueError):
                 pass
 
         # Non-blocking read from stderr
@@ -346,7 +521,7 @@ class TestSession:
                     self._stderr_lines.append(
                         line.decode("utf-8", errors="replace").rstrip()
                     )
-            except:
+            except (OSError, ValueError):
                 pass
 
     def close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
@@ -387,12 +562,13 @@ class TestSession:
                 else:
                     return False, "Graceful shutdown timed out. Use force=True to kill."
 
-        except Exception as e:
+        except OSError as e:
             logger.exception("Failed to close application")
             return False, f"Failed to close: {str(e)}"
         finally:
             self.process = None
             self.start_time = None
+            self._sandbox.cleanup()
 
     def get_screenshot_path(self, name: Optional[str] = None) -> Path:
         """Get a unique screenshot path."""
@@ -419,14 +595,27 @@ def launch_app(
     enable_bridge: bool = True,
     wait_seconds: int = 3,
     open_file: Optional[str] = None,
+    login_state: str = "no_data",
 ) -> Dict[str, Any]:
     """Launch app. Returns {success, pid, bridge_connected}."""
     session = TestSession.get_instance()
+
+    try:
+        login_enum = LoginState(login_state)
+    except ValueError:
+        return {
+            "success": False,
+            "pid": None,
+            "message": f"Invalid login_state: {login_state}. Use 'no_data' or 'logged_in'",
+            "bridge_connected": False,
+        }
+
     success, message = session.launch(
         headless=headless,
         personal=personal,
         enable_bridge=enable_bridge,
         open_file=open_file,
+        login_state=login_enum,
     )
 
     if success and wait_seconds > 0:
@@ -701,7 +890,7 @@ def screenshot(
             }
         except ImportError:
             return {"success": False, "error": "Pillow not installed"}
-        except Exception as e:
+        except (OSError, IOError, ValueError) as e:
             return {"success": False, "error": str(e)}
 
     elif action == "compare" and baseline:
@@ -734,7 +923,7 @@ def screenshot(
                 "match": ratio <= threshold,
                 "difference_ratio": ratio,
             }
-        except Exception as e:
+        except (OSError, IOError, ValueError) as e:
             return {"success": False, "error": str(e)}
 
     else:
@@ -806,7 +995,7 @@ def report_testing_limitation(
         try:
             with open(limitations_file) as f:
                 limitations_list = json.load(f)
-        except:
+        except (OSError, json.JSONDecodeError):
             pass
 
     limitations_list.append(limitation)

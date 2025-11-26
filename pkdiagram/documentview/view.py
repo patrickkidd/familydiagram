@@ -282,6 +282,7 @@ class View(QGraphicsView):
 
         self.helpOverlay = HelpOverlay(self)
         self.helpOverlay.setVisible(False, animate=False)
+        self.helpOverlay.setObjectName("helpOverlay")
 
         # # Purchase Button
         # self.purchaseButton = PixmapPushButton(self,
@@ -295,18 +296,21 @@ class View(QGraphicsView):
 
         # Toolbars
         self.sceneToolBar = SceneToolBar(self, ui)
+        self.sceneToolBar.setObjectName("sceneToolBar")
         self.sceneTBAnimation = QPropertyAnimation(self.sceneToolBar, bytes(b"pos"))
         self.sceneTBAnimation.setDuration(util.ANIM_DURATION_MS)
         self.sceneTB_y = 0
         self.sceneToolBarShown = True
         #
         self.itemToolBar = ItemToolBar(self, ui)
+        self.itemToolBar.setObjectName("itemToolBar")
         self.itemTBAnimation = QPropertyAnimation(self.itemToolBar, bytes(b"pos"))
         self.itemTBAnimation.setDuration(util.ANIM_DURATION_MS)
         self.itemTB_x = 0
         self.itemToolBarShown = True
         #
         self.rightToolBar = RightToolBar(self, ui)
+        self.rightToolBar.setObjectName("rightToolBar")
         self.rightTBAnimation = QPropertyAnimation(self.rightToolBar, bytes(b"pos"))
         self.rightTBAnimation.setDuration(util.ANIM_DURATION_MS)
         self.rightTB_x = self.width() - self.rightToolBar.width()

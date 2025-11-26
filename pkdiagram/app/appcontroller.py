@@ -114,7 +114,11 @@ class AppController(QObject):
 
         lastSessionData = self.appConfig.get("lastSessionData", pickled=True)
         if lastSessionData and not self.appConfig.wasTamperedWith:
-            self.session.init(sessionData=lastSessionData)
+            try:
+                self.session.init(sessionData=lastSessionData)
+            except (ValueError, KeyError, TypeError) as e:
+                log.exception(f"Failed to load session data, starting fresh: {e}")
+                self.session.init()
         else:
             self.session.init()
 
@@ -264,7 +268,7 @@ class AppController(QObject):
             )
             data = pickle.loads(response.body)
             authUrl = data["url"]
-        except Exception as e:
+        except (ValueError, KeyError, pickle.UnpicklingError) as e:
             log.error(f"Failed to get auth URL: {e}", exc_info=True)
             QMessageBox.critical(
                 None,
