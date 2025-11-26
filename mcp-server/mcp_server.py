@@ -420,23 +420,7 @@ def launch_app(
     wait_seconds: int = 3,
     open_file: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Launch the Family Diagram application.
-
-    Args:
-        headless: Run in headless mode without display (for CI/automated testing)
-        personal: Run the personal/mobile UI instead of desktop
-        enable_bridge: Enable Qt test bridge for element-level interaction
-        wait_seconds: Seconds to wait after launch for app to initialize
-        open_file: Path to .fd file to open at startup (avoids async loading issues)
-
-    Returns:
-        Status dict with success, pid, message, and bridge_connected
-
-    NOTE: For file operations, prefer open_file parameter over open_file tool.
-    If using headless mode with open_file, set headless=False to avoid QPainter
-    errors during scene rendering.
-    """
+    """Launch app. Returns {success, pid, bridge_connected}."""
     session = TestSession.get_instance()
     success, message = session.launch(
         headless=headless,
@@ -458,15 +442,7 @@ def launch_app(
 
 @mcp.tool()
 def close_app(force: bool = False) -> Dict[str, Any]:
-    """
-    Close the Family Diagram application.
-
-    Args:
-        force: Force kill if graceful shutdown fails
-
-    Returns:
-        Status dict with success and message
-    """
+    """Close app. Use force=True to kill."""
     session = TestSession.get_instance()
     success, message = session.close(force=force)
 
@@ -477,138 +453,33 @@ def close_app(force: bool = False) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def get_app_status() -> Dict[str, Any]:
-    """
-    Get the current application status.
-
-    Returns:
-        Status dict with running state, pid, uptime, and bridge connection
-    """
+def get_app_state(include_process: bool = False) -> Dict[str, Any]:
+    """Get app state. Use FIRST before other tools. Returns windows, dialogs, semantic state."""
     session = TestSession.get_instance()
 
-    return {
-        "running": session.is_running,
-        "pid": session.pid,
-        "uptime_seconds": session.uptime,
-        "bridge_connected": session.bridge.is_connected if session.bridge else False,
-    }
-
-
-@mcp.tool()
-def get_app_state() -> Dict[str, Any]:
-    """
-    Get high-level semantic state of the application UI.
-
-    IMPORTANT: Use this tool FIRST before taking actions to understand what
-    state the app is in. This is much more efficient than listing all elements.
-
-    Returns:
-        - welcomeDialogVisible: True if the Welcome dialog is shown
-        - fileManagerTab: "local" or "server" indicating which file tab is active
-        - loadedFileName: Name of the currently loaded file, or None
-        - visibleDialogs: List of any open dialogs
-        - visibleWindows: List of all visible windows
-    """
-    session = TestSession.get_instance()
+    result = {}
+    if include_process:
+        result.update(
+            {
+                "running": session.is_running,
+                "pid": session.pid,
+                "uptime": session.uptime,
+            }
+        )
 
     if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+        result["success"] = False
+        result["error"] = "Bridge not connected"
+        return result
 
     response = session.bridge.send_command({"command": "get_app_state"})
-    return response
-
-
-# =============================================================================
-# MCP Tools - High-Level Actions
-# =============================================================================
-
-
-@mcp.tool()
-def dismiss_welcome_dialog() -> Dict[str, Any]:
-    """
-    Dismiss the Welcome dialog if it's visible.
-
-    Use get_app_state() first to check if the dialog is actually visible.
-    This is more reliable than clicking the OK button directly.
-
-    Returns:
-        success: True if dismissed or wasn't visible, False on error
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    # First check if welcome dialog is visible
-    state_response = session.bridge.send_command({"command": "get_app_state"})
-    if not state_response.get("success"):
-        return state_response
-
-    state = state_response.get("state", {})
-    if not state.get("welcomeDialogVisible"):
-        return {"success": True, "message": "Welcome dialog not visible"}
-
-    # Try clicking the OK button
-    response = session.bridge.send_command(
-        {"command": "click", "objectName": "okButton"}
-    )
-
-    if response.get("success"):
-        time.sleep(0.2)  # Brief wait for dialog to close
-        return {"success": True, "message": "Welcome dialog dismissed"}
-
-    # Fallback: press Escape
-    response = session.bridge.send_command({"command": "press_key", "key": "escape"})
-    time.sleep(0.2)
-
-    return {"success": True, "message": "Attempted to dismiss via Escape"}
-
-
-@mcp.tool()
-def switch_file_tab(tab: str) -> Dict[str, Any]:
-    """
-    Switch the FileManager to show local or server files.
-
-    Args:
-        tab: "local" or "server"
-
-    Returns:
-        success: True if switched successfully
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    if tab not in ("local", "server"):
-        return {"success": False, "error": "tab must be 'local' or 'server'"}
-
-    button_name = "localViewButton" if tab == "local" else "serverViewButton"
-    response = session.bridge.send_command(
-        {"command": "click", "objectName": button_name}
-    )
-
-    if response.get("success"):
-        time.sleep(0.3)  # Brief wait for view to switch
-        return {"success": True, "message": f"Switched to {tab} files tab"}
-
-    return response
+    result.update(response)
+    return result
 
 
 @mcp.tool()
 def open_file(file_path: str) -> Dict[str, Any]:
-    """
-    Open a .fd file directly by path.
-
-    This bypasses the file manager and native file dialog, opening the file
-    directly in the application.
-
-    Args:
-        file_path: Absolute path to the .fd file
-
-    Returns:
-        success: True if file opened successfully
-    """
+    """Open .fd file by path."""
     session = TestSession.get_instance()
 
     if not session.bridge or not session.bridge.is_connected:
@@ -628,60 +499,24 @@ def open_file(file_path: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def find_element(object_name: str) -> Dict[str, Any]:
-    """
-    Find a UI element by its objectName.
-
-    This uses the Qt test bridge to find widgets and QML items by their
-    objectName property. Returns position and state information.
-
-    Args:
-        object_name: The objectName of the element (supports dot notation for nested QML)
-
-    Returns:
-        Element info including type, position, visibility, enabled state, text
-    """
+def find_element(name: str) -> Dict[str, Any]:
+    """Find element by objectName. Returns {name, type, text}."""
     session = TestSession.get_instance()
 
     if not session.bridge or not session.bridge.is_connected:
-        return {
-            "success": False,
-            "error": "Bridge not connected. Launch app with enable_bridge=True",
-        }
+        return {"success": False, "error": "Bridge not connected"}
 
-    response = session.bridge.send_command(
-        {
-            "command": "find_element",
-            "objectName": object_name,
-        }
-    )
-
-    return response
+    return session.bridge.send_command({"command": "find_element", "objectName": name})
 
 
 @mcp.tool()
 def list_elements(
-    element_type: Optional[str] = None,
-    max_depth: int = 3,
-    visible_only: bool = True,
-    named_only: bool = True,
+    type: Optional[str] = None,
+    depth: int = 3,
+    limit: int = 50,
+    verbose: bool = False,
 ) -> Dict[str, Any]:
-    """
-    List UI elements in the application. Returns only visible, named elements by default.
-
-    IMPORTANT: Before calling this, use get_app_state() to understand the semantic
-    state of the app. Only use list_elements when you need to discover specific
-    element objectNames for interaction.
-
-    Args:
-        element_type: Filter by type - "widget", "qml", "scene", or None for all
-        max_depth: Maximum depth to traverse (default 3 for compact output)
-        visible_only: Only include visible elements (default True)
-        named_only: Only include elements with objectName (default True)
-
-    Returns:
-        List of elements with their properties (filtered for smaller payload)
-    """
+    """List named visible elements. Returns [{name, type, text}]. Use get_app_state() first."""
     session = TestSession.get_instance()
 
     if not session.bridge or not session.bridge.is_connected:
@@ -690,10 +525,12 @@ def list_elements(
     response = session.bridge.send_command(
         {
             "command": "list_elements",
-            "type": element_type,
-            "maxDepth": max_depth,
-            "visibleOnly": visible_only,
-            "namedOnly": named_only,
+            "type": type,
+            "maxDepth": depth,
+            "visibleOnly": True,
+            "namedOnly": True,
+            "verbose": verbose,
+            "limit": limit,
         }
     )
 
@@ -701,628 +538,240 @@ def list_elements(
 
 
 @mcp.tool()
-def get_element_property(object_name: str, property_name: str) -> Dict[str, Any]:
-    """
-    Get a property value from a UI element.
-
-    Args:
-        object_name: Element objectName
-        property_name: Property to get (e.g., "text", "checked", "enabled")
-
-    Returns:
-        Dict with property value
-    """
+def prop(name: str, property: str, value: Any = None) -> Dict[str, Any]:
+    """Get/set element property. Omit value to get, provide value to set."""
     session = TestSession.get_instance()
 
     if not session.bridge or not session.bridge.is_connected:
         return {"success": False, "error": "Bridge not connected"}
 
-    response = session.bridge.send_command(
-        {
-            "command": "get_property",
-            "objectName": object_name,
-            "property": property_name,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def set_element_property(
-    object_name: str,
-    property_name: str,
-    value: Any,
-) -> Dict[str, Any]:
-    """
-    Set a property value on a UI element.
-
-    Args:
-        object_name: Element objectName
-        property_name: Property to set
-        value: New value
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "set_property",
-            "objectName": object_name,
-            "property": property_name,
-            "value": value,
-        }
-    )
-
-    return response
-
-
-# =============================================================================
-# MCP Tools - Element Interaction (via Bridge)
-# =============================================================================
-
-
-@mcp.tool()
-def click_element(
-    object_name: str,
-    button: str = "left",
-) -> Dict[str, Any]:
-    """
-    Click on a UI element by its objectName.
-
-    This is more reliable than clicking by coordinates as it finds the
-    element's current position automatically.
-
-    Args:
-        object_name: Element objectName
-        button: Mouse button - "left", "right", or "middle"
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "click",
-            "objectName": object_name,
-            "button": button,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def double_click_element(object_name: str) -> Dict[str, Any]:
-    """
-    Double-click on a UI element by its objectName.
-
-    Args:
-        object_name: Element objectName
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "double_click",
-            "objectName": object_name,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def type_into_element(
-    text: str,
-    object_name: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Type text into a UI element.
-
-    Uses Qt's QTest for accurate text input. If object_name is provided,
-    focuses that element first.
-
-    Args:
-        text: Text to type
-        object_name: Optional element to focus before typing
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "type_text",
-            "text": text,
-            "objectName": object_name,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def press_key_on_element(
-    key: str,
-    object_name: Optional[str] = None,
-    modifiers: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """
-    Press a key, optionally on a specific element.
-
-    Args:
-        key: Key name (e.g., "return", "tab", "escape", "a")
-        object_name: Optional element to focus first
-        modifiers: Optional list of modifiers (e.g., ["ctrl"], ["ctrl", "shift"])
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "press_key",
-            "key": key,
-            "objectName": object_name,
-            "modifiers": modifiers,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def focus_element(object_name: str) -> Dict[str, Any]:
-    """
-    Set focus to a UI element.
-
-    Args:
-        object_name: Element objectName
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "focus",
-            "objectName": object_name,
-        }
-    )
-
-    return response
-
-
-# =============================================================================
-# MCP Tools - Scene Items (via Bridge)
-# =============================================================================
-
-
-@mcp.tool()
-def click_scene_item(name: str, button: str = "left") -> Dict[str, Any]:
-    """
-    Click on a scene item in the diagram view.
-
-    Scene items are Person, Marriage, Event, etc. in the QGraphicsView.
-
-    Args:
-        name: Scene item name
-        button: Mouse button
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "click_scene_item",
-            "name": name,
-            "button": button,
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def get_scene_items(item_type: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Get all scene items in the diagram.
-
-    Args:
-        item_type: Optional type filter (e.g., "Person", "Marriage", "Event")
-
-    Returns:
-        List of scene items with their properties
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "get_scene_items",
-            "type": item_type,
-        }
-    )
-
-    return response
-
-
-# =============================================================================
-# MCP Tools - Windows (via Bridge)
-# =============================================================================
-
-
-@mcp.tool()
-def get_windows() -> Dict[str, Any]:
-    """
-    Get all top-level windows.
-
-    Returns:
-        List of windows with titles and geometry
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "get_windows",
-        }
-    )
-
-    return response
-
-
-@mcp.tool()
-def activate_window(object_name: str) -> Dict[str, Any]:
-    """
-    Activate (bring to front) a window.
-
-    Args:
-        object_name: Window objectName
-
-    Returns:
-        Dict with success status
-    """
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {
-            "command": "activate_window",
-            "objectName": object_name,
-        }
-    )
-
-    return response
-
-
-# =============================================================================
-# MCP Tools - Screenshots (via Qt Bridge)
-# =============================================================================
-
-
-@mcp.tool()
-def take_screenshot(
-    name: Optional[str] = None,
-    return_base64: bool = False,
-) -> Dict[str, Any]:
-    """
-    Take a screenshot of the application window.
-
-    This uses Qt's internal screenshot capability via the test bridge,
-    which works even when the window is minimized, on a secondary monitor,
-    or running headless. No OS-level window focus required.
-
-    Args:
-        name: Optional name for the screenshot file (without extension)
-        return_base64: If True, include base64-encoded image data in response
-
-    Returns:
-        Dict with success, path, dimensions, and optionally base64 data
-    """
-    session = TestSession.get_instance()
-
-    if not session.is_running:
-        return {
-            "success": False,
-            "error": "Application not running. Use launch_app first.",
-        }
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {
-            "success": False,
-            "error": "Test bridge not connected. Launch app with enable_bridge=True.",
-        }
-
-    try:
-        from PIL import Image
-        from datetime import datetime
-        import io
-
-        # Add timestamp prefix to name
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        if name:
-            name = f"{timestamp}_{name}"
-        else:
-            name = timestamp
-
-        # Get screenshot path
-        output_path = session.get_screenshot_path(name)
-
-        # Capture screenshot via bridge
-        response = session.bridge.send_command({"command": "take_screenshot"})
-
-        if not response.get("success"):
-            return {
-                "success": False,
-                "error": response.get("error", "Screenshot failed"),
+    if value is None:
+        return session.bridge.send_command(
+            {"command": "get_property", "objectName": name, "property": property}
+        )
+    else:
+        return session.bridge.send_command(
+            {
+                "command": "set_property",
+                "objectName": name,
+                "property": property,
+                "value": value,
             }
-
-        # Decode base64 image data
-        image_data = response["data"]
-        image_bytes = base64.b64decode(image_data)
-
-        # Load image
-        screenshot = Image.open(io.BytesIO(image_bytes))
-
-        # Resize if too large (to stay within MCP response limits)
-        max_dimension = 1920
-        if screenshot.width > max_dimension or screenshot.height > max_dimension:
-            ratio = min(
-                max_dimension / screenshot.width, max_dimension / screenshot.height
-            )
-            new_size = (int(screenshot.width * ratio), int(screenshot.height * ratio))
-            screenshot = screenshot.resize(new_size, Image.Resampling.LANCZOS)
-
-        # Save
-        screenshot.save(str(output_path), "PNG")
-
-        result = {
-            "success": True,
-            "path": str(output_path),
-            "width": screenshot.width,
-            "height": screenshot.height,
-        }
-
-        if return_base64:
-            buffer = io.BytesIO()
-            screenshot.save(buffer, format="PNG")
-            result["base64_data"] = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-        logger.info(f"Screenshot saved: {output_path}")
-        return result
-
-    except ImportError:
-        return {
-            "success": False,
-            "error": "Pillow not installed. Run: pip install Pillow",
-        }
-    except Exception as e:
-        logger.exception("Screenshot failed")
-        return {
-            "success": False,
-            "error": str(e),
-        }
+        )
 
 
 @mcp.tool()
-def list_screenshots() -> Dict[str, Any]:
-    """
-    List all saved screenshots.
-
-    Returns:
-        Dict with list of screenshot files
-    """
+def click(name: str, double: bool = False, button: str = "left") -> Dict[str, Any]:
+    """Click element. Use double=True for double-click."""
     session = TestSession.get_instance()
-    screenshot_dir = session.project_root / "screenshots"
 
-    if not screenshot_dir.exists():
-        return {
-            "success": True,
-            "screenshots": [],
-            "directory": str(screenshot_dir),
-        }
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
 
-    screenshots = sorted(screenshot_dir.glob("*.png"))
-
-    return {
-        "success": True,
-        "screenshots": [str(p) for p in screenshots],
-        "count": len(screenshots),
-        "directory": str(screenshot_dir),
-    }
+    cmd = "double_click" if double else "click"
+    return session.bridge.send_command(
+        {"command": cmd, "objectName": name, "button": button}
+    )
 
 
 @mcp.tool()
-def compare_screenshots(
-    baseline_path: str,
-    current_path: Optional[str] = None,
+def input(
+    text: str = None, key: str = None, name: str = None, modifiers: List[str] = None
+) -> Dict[str, Any]:
+    """Type text or press key. Provide text for typing, key for key press."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    if text is not None:
+        return session.bridge.send_command(
+            {"command": "type_text", "text": text, "objectName": name}
+        )
+    elif key is not None:
+        return session.bridge.send_command(
+            {
+                "command": "press_key",
+                "key": key,
+                "objectName": name,
+                "modifiers": modifiers,
+            }
+        )
+    else:
+        return {"success": False, "error": "Provide text or key"}
+
+
+@mcp.tool()
+def scene(
+    action: str = "list", name: str = None, type: str = None, button: str = "left"
+) -> Dict[str, Any]:
+    """Scene items. action="list" to list items, action="click" with name to click."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    if action == "list":
+        return session.bridge.send_command({"command": "get_scene_items", "type": type})
+    elif action == "click" and name:
+        return session.bridge.send_command(
+            {"command": "click_scene_item", "name": name, "button": button}
+        )
+    else:
+        return {
+            "success": False,
+            "error": "Use action='list' or action='click' with name",
+        }
+
+
+@mcp.tool()
+def window(name: str = None) -> Dict[str, Any]:
+    """List windows if no name, activate window if name provided."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    if name is None:
+        return session.bridge.send_command({"command": "get_windows"})
+    else:
+        return session.bridge.send_command(
+            {"command": "activate_window", "objectName": name}
+        )
+
+
+@mcp.tool()
+def screenshot(
+    action: str = "take",
+    name: str = None,
+    baseline: str = None,
+    current: str = None,
     threshold: float = 0.01,
 ) -> Dict[str, Any]:
-    """
-    Compare two screenshots for visual differences.
+    """Screenshots. action="take"(default), "list", or "compare" with baseline path."""
+    session = TestSession.get_instance()
 
-    Args:
-        baseline_path: Path to the baseline screenshot
-        current_path: Path to current screenshot (if None, takes a new screenshot)
-        threshold: Maximum acceptable difference ratio (0.0 to 1.0)
+    if action == "list":
+        screenshot_dir = session.project_root / "screenshots"
+        if not screenshot_dir.exists():
+            return {"success": True, "screenshots": [], "count": 0}
+        screenshots = sorted(screenshot_dir.glob("*.png"))
+        return {
+            "success": True,
+            "screenshots": [str(p) for p in screenshots],
+            "count": len(screenshots),
+        }
 
-    Returns:
-        Dict with comparison results
-    """
-    try:
-        from PIL import Image
+    elif action == "take":
+        if not session.is_running:
+            return {"success": False, "error": "App not running"}
+        if not session.bridge or not session.bridge.is_connected:
+            return {"success": False, "error": "Bridge not connected"}
 
-        # Load baseline
-        baseline = Image.open(baseline_path)
+        try:
+            from PIL import Image
+            from datetime import datetime
+            import io
 
-        # Get current (either from file or take new)
-        if current_path:
-            current = Image.open(current_path)
-        else:
-            # Take new screenshot via Qt bridge
-            session = TestSession.get_instance()
-            if not session.bridge or not session.bridge.is_connected:
-                return {"success": False, "error": "Test bridge not connected"}
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            fname = f"{timestamp}_{name}" if name else timestamp
+            output_path = session.get_screenshot_path(fname)
 
             response = session.bridge.send_command({"command": "take_screenshot"})
             if not response.get("success"):
-                return {
-                    "success": False,
-                    "error": f"Failed to capture current screenshot: {response.get('error')}",
-                }
+                return {"success": False, "error": response.get("error", "Failed")}
 
-            # Decode base64 image data
-            import base64
+            image_bytes = base64.b64decode(response["data"])
+            img = Image.open(io.BytesIO(image_bytes))
+
+            max_dim = 1920
+            if img.width > max_dim or img.height > max_dim:
+                ratio = min(max_dim / img.width, max_dim / img.height)
+                img = img.resize(
+                    (int(img.width * ratio), int(img.height * ratio)),
+                    Image.Resampling.LANCZOS,
+                )
+
+            img.save(str(output_path), "PNG")
+            return {
+                "success": True,
+                "path": str(output_path),
+                "width": img.width,
+                "height": img.height,
+            }
+        except ImportError:
+            return {"success": False, "error": "Pillow not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    elif action == "compare" and baseline:
+        try:
+            from PIL import Image
             import io
 
-            image_data = response["data"]
-            image_bytes = base64.b64decode(image_data)
-            current = Image.open(io.BytesIO(image_bytes))
+            baseline_img = Image.open(baseline)
+            if current:
+                current_img = Image.open(current)
+            else:
+                if not session.bridge or not session.bridge.is_connected:
+                    return {"success": False, "error": "Bridge not connected"}
+                response = session.bridge.send_command({"command": "take_screenshot"})
+                if not response.get("success"):
+                    return {"success": False, "error": response.get("error", "Failed")}
+                current_img = Image.open(io.BytesIO(base64.b64decode(response["data"])))
 
-        # Resize current to match baseline if needed
-        if baseline.size != current.size:
-            current = current.resize(baseline.size, Image.Resampling.LANCZOS)
+            if baseline_img.size != current_img.size:
+                current_img = current_img.resize(
+                    baseline_img.size, Image.Resampling.LANCZOS
+                )
 
-        # Compare pixels
-        baseline_data = list(baseline.getdata())
-        current_data = list(current.getdata())
-
-        if len(baseline_data) != len(current_data):
+            baseline_data = list(baseline_img.getdata())
+            current_data = list(current_img.getdata())
+            different = sum(1 for b, c in zip(baseline_data, current_data) if b != c)
+            ratio = different / len(baseline_data)
             return {
-                "success": False,
-                "error": "Image sizes don't match",
+                "success": True,
+                "match": ratio <= threshold,
+                "difference_ratio": ratio,
             }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
-        different_pixels = sum(1 for b, c in zip(baseline_data, current_data) if b != c)
-        total_pixels = len(baseline_data)
-        difference_ratio = different_pixels / total_pixels
-
-        match = difference_ratio <= threshold
-
-        return {
-            "success": True,
-            "match": match,
-            "difference_ratio": difference_ratio,
-            "different_pixels": different_pixels,
-            "total_pixels": total_pixels,
-            "threshold": threshold,
-        }
-
-    except Exception as e:
+    else:
         return {
             "success": False,
-            "error": str(e),
+            "error": "Use action='take', 'list', or 'compare' with baseline",
         }
-
-
-# =============================================================================
-# MCP Tools - Utility
-# =============================================================================
 
 
 @mcp.tool()
 def wait(seconds: float) -> Dict[str, Any]:
-    """
-    Wait for a specified number of seconds.
-
-    Args:
-        seconds: Time to wait in seconds
-
-    Returns:
-        Dict with success status
-    """
+    """Wait seconds."""
     time.sleep(seconds)
-    return {"success": True, "message": f"Waited {seconds} seconds"}
+    return {"success": True}
 
 
 @mcp.tool()
 def get_app_output(
-    stream: str = "both",
-    last_n_lines: Optional[int] = None,
-    clear_after_read: bool = False,
+    stream: str = "both", last_n: Optional[int] = None, clear: bool = False
 ) -> Dict[str, Any]:
-    """
-    Get stdout/stderr output from the running application.
-
-    This tool collects console output from the app process, which is useful
-    for debugging and verifying behavior during tests.
-
-    Args:
-        stream: Which stream to read - "stdout", "stderr", or "both"
-        last_n_lines: If specified, only return the last N lines
-        clear_after_read: If True, clear the output buffer after reading
-
-    Returns:
-        Dict with success status and output lines
-    """
+    """Get app stdout/stderr. stream="stdout", "stderr", or "both"."""
     session = TestSession.get_instance()
 
     if not session.is_running:
-        return {
-            "success": False,
-            "error": "Application not running. Use launch_app first.",
-        }
+        return {"success": False, "error": "App not running"}
 
-    # Collect any new output from the process
     session.collect_output()
-
     result = {"success": True}
 
     if stream in ("stdout", "both"):
-        stdout_lines = session._stdout_lines
-        if last_n_lines:
-            stdout_lines = stdout_lines[-last_n_lines:]
-        result["stdout"] = stdout_lines
-        result["stdout_count"] = len(session._stdout_lines)
-
+        lines = session._stdout_lines[-last_n:] if last_n else session._stdout_lines
+        result["stdout"] = lines
     if stream in ("stderr", "both"):
-        stderr_lines = session._stderr_lines
-        if last_n_lines:
-            stderr_lines = stderr_lines[-last_n_lines:]
-        result["stderr"] = stderr_lines
-        result["stderr_count"] = len(session._stderr_lines)
+        lines = session._stderr_lines[-last_n:] if last_n else session._stderr_lines
+        result["stderr"] = lines
 
-    if clear_after_read:
+    if clear:
         if stream in ("stdout", "both"):
             session._stdout_lines.clear()
         if stream in ("stderr", "both"):
@@ -1333,52 +782,22 @@ def get_app_output(
 
 @mcp.tool()
 def report_testing_limitation(
-    feature: str,
-    reason: str,
-    missing_controls: Optional[List[str]] = None,
-    workaround: Optional[str] = None,
+    feature: str, missing_controls: List[str], workaround: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Report when the testing framework cannot access controls needed to test a feature.
-
-    Use this tool to document limitations in the test infrastructure so they can
-    be addressed. This helps track what features cannot be fully tested and why.
-
-    Args:
-        feature: Name of the feature that cannot be tested (e.g., "File Open Dialog")
-        reason: Explanation of why it cannot be tested (e.g., "QFileDialog has no objectName")
-        missing_controls: List of controls/elements that need objectNames set
-        workaround: Optional workaround or alternative testing approach
-
-    Returns:
-        Dict with success status and logged limitation
-
-    Example:
-        report_testing_limitation(
-            feature="Welcome Dialog Close Button",
-            reason="buttonBox container found but clicking it doesn't close the dialog",
-            missing_controls=["okButton", "cancelButton"],
-            workaround="Try pressing Escape key or use keyboard shortcuts instead"
-        )
-    """
+    """Report missing objectNames needed to test a feature. Logged for developer action."""
     session = TestSession.get_instance()
 
     limitation = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "feature": feature,
-        "reason": reason,
-        "missing_controls": missing_controls or [],
+        "missing_controls": missing_controls,
         "workaround": workaround,
     }
 
-    logger.warning(f"Testing limitation reported: {feature}")
-    logger.warning(f"  Reason: {reason}")
-    if missing_controls:
-        logger.warning(f"  Missing controls: {', '.join(missing_controls)}")
-    if workaround:
-        logger.warning(f"  Workaround: {workaround}")
+    logger.warning(
+        f"Testing limitation: {feature} - missing: {', '.join(missing_controls)}"
+    )
 
-    # Save to limitations file for tracking
     limitations_file = session.project_root / "screenshots" / "testing_limitations.json"
     limitations_file.parent.mkdir(exist_ok=True)
 
@@ -1391,15 +810,13 @@ def report_testing_limitation(
             pass
 
     limitations_list.append(limitation)
+    # Keep only last 100 entries
+    limitations_list = limitations_list[-100:]
 
     with open(limitations_file, "w") as f:
         json.dump(limitations_list, f, indent=2)
 
-    return {
-        "success": True,
-        "limitation": limitation,
-        "message": f"Limitation logged to {limitations_file}",
-    }
+    return {"success": True, "limitation": limitation}
 
 
 # =============================================================================

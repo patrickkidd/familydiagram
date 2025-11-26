@@ -133,19 +133,10 @@ class QtInspector:
         maxDepth: int = 3,
         visibleOnly: bool = True,
         namedOnly: bool = True,
+        verbose: bool = False,
+        limit: int = 50,
     ) -> List[Dict[str, Any]]:
-        """
-        List all elements in the UI.
-
-        Args:
-            elementType: Filter by type ("widget", "qml", "scene", or None for all)
-            maxDepth: Maximum depth to traverse (default 3 for performance)
-            visibleOnly: Only include visible elements (default True)
-            namedOnly: Only include elements with objectName set (default True)
-
-        Returns:
-            List of element info dicts
-        """
+        """List UI elements. Returns compact format by default."""
         elements = []
 
         # Collect widgets
@@ -154,22 +145,22 @@ class QtInspector:
                 if visibleOnly and not window.isVisible():
                     continue
                 self._collectWidgets(
-                    window, elements, 0, maxDepth, visibleOnly, namedOnly
+                    window, elements, 0, maxDepth, visibleOnly, namedOnly, verbose
                 )
 
         # Collect QML items
         if elementType is None or elementType == "qml":
             for root in self._getQmlRoots():
                 self._collectQmlItems(
-                    root, elements, 0, maxDepth, visibleOnly, namedOnly
+                    root, elements, 0, maxDepth, visibleOnly, namedOnly, verbose
                 )
 
-        # Collect scene items (always include since they represent data)
+        # Collect scene items
         if elementType is None or elementType == "scene":
             for view in self._getGraphicsViews():
-                self._collectSceneItems(view, elements, visibleOnly)
+                self._collectSceneItems(view, elements, visibleOnly, verbose)
 
-        return elements
+        return elements[:limit]
 
     def _findWidget(self, objectName: str) -> Optional[QWidget]:
         """Find a widget by objectName."""
@@ -247,6 +238,7 @@ class QtInspector:
         maxDepth: int,
         visibleOnly: bool = True,
         namedOnly: bool = True,
+        verbose: bool = False,
     ):
         """Collect widgets recursively."""
         if depth > maxDepth:
@@ -257,22 +249,33 @@ class QtInspector:
 
         objName = widget.objectName()
         if namedOnly and not objName:
-            # Still traverse children even if this widget has no name
             for child in widget.children():
                 if isinstance(child, QWidget):
                     self._collectWidgets(
-                        child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                        child,
+                        elements,
+                        depth + 1,
+                        maxDepth,
+                        visibleOnly,
+                        namedOnly,
+                        verbose,
                     )
             return
 
-        info = self._getWidgetInfo(widget)
+        info = self._getWidgetInfo(widget, verbose)
         if info:
             elements.append(info)
 
         for child in widget.children():
             if isinstance(child, QWidget):
                 self._collectWidgets(
-                    child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                    child,
+                    elements,
+                    depth + 1,
+                    maxDepth,
+                    visibleOnly,
+                    namedOnly,
+                    verbose,
                 )
 
     def _collectQmlItems(
@@ -283,6 +286,7 @@ class QtInspector:
         maxDepth: int,
         visibleOnly: bool = True,
         namedOnly: bool = True,
+        verbose: bool = False,
     ):
         """Collect QML items recursively."""
         if depth > maxDepth:
@@ -293,24 +297,33 @@ class QtInspector:
 
         objName = item.objectName()
         if namedOnly and not objName:
-            # Still traverse children even if this item has no name
             for child in item.childItems():
                 self._collectQmlItems(
-                    child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                    child,
+                    elements,
+                    depth + 1,
+                    maxDepth,
+                    visibleOnly,
+                    namedOnly,
+                    verbose,
                 )
             return
 
-        info = self._getQmlItemInfo(item)
+        info = self._getQmlItemInfo(item, verbose)
         if info:
             elements.append(info)
 
         for child in item.childItems():
             self._collectQmlItems(
-                child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                child, elements, depth + 1, maxDepth, visibleOnly, namedOnly, verbose
             )
 
     def _collectSceneItems(
-        self, view: QGraphicsView, elements: List[Dict], visibleOnly: bool = True
+        self,
+        view: QGraphicsView,
+        elements: List[Dict],
+        visibleOnly: bool = True,
+        verbose: bool = False,
     ):
         """Collect scene items from a QGraphicsView."""
         scene = view.scene()
@@ -320,7 +333,7 @@ class QtInspector:
         for item in scene.items():
             if visibleOnly and not item.isVisible():
                 continue
-            info = self._getSceneItemInfo(item, view)
+            info = self._getSceneItemInfo(item, view, verbose)
             if info:
                 elements.append(info)
 
@@ -328,93 +341,103 @@ class QtInspector:
     # Element Info
     # -------------------------------------------------------------------------
 
-    def _getWidgetInfo(self, widget: QWidget) -> Dict[str, Any]:
-        """Get info about a widget."""
-        globalPos = widget.mapToGlobal(QPoint(0, 0))
-        rect = widget.rect()
-
-        return {
+    def _getWidgetInfo(self, widget: QWidget, verbose: bool = False) -> Dict[str, Any]:
+        """Get info about a widget. Compact by default."""
+        info = {
+            "name": widget.objectName() or None,
             "type": "widget",
-            "objectName": widget.objectName() or None,
-            "className": type(widget).__name__,
-            "visible": widget.isVisible(),
-            "enabled": widget.isEnabled(),
-            "focused": widget.hasFocus(),
-            "geometry": {
-                "x": globalPos.x(),
-                "y": globalPos.y(),
-                "width": rect.width(),
-                "height": rect.height(),
-            },
             "text": self._getTextProperty(widget),
-            "checked": widget.property("checked"),
         }
+        if verbose:
+            globalPos = widget.mapToGlobal(QPoint(0, 0))
+            rect = widget.rect()
+            info.update(
+                {
+                    "className": type(widget).__name__,
+                    "visible": widget.isVisible(),
+                    "enabled": widget.isEnabled(),
+                    "focused": widget.hasFocus(),
+                    "geometry": {
+                        "x": globalPos.x(),
+                        "y": globalPos.y(),
+                        "width": rect.width(),
+                        "height": rect.height(),
+                    },
+                    "checked": widget.property("checked"),
+                }
+            )
+        return info
 
-    def _getQmlItemInfo(self, item: QQuickItem) -> Dict[str, Any]:
-        """Get info about a QML item."""
-        # Get screen position
-        window = item.window()
-        quickWidget = self._findQuickWidgetForItem(item)
-
-        if quickWidget is not None:
-            # Map to widget coordinates then to global
-            scenePos = item.mapToScene(QPointF(0, 0))
-            globalPos = quickWidget.mapToGlobal(scenePos.toPoint())
-            x, y = globalPos.x(), globalPos.y()
-        else:
-            x, y = int(item.x()), int(item.y())
-
-        return {
+    def _getQmlItemInfo(
+        self, item: QQuickItem, verbose: bool = False
+    ) -> Dict[str, Any]:
+        """Get info about a QML item. Compact by default."""
+        info = {
+            "name": item.objectName() or None,
             "type": "qml",
-            "objectName": item.objectName() or None,
-            "className": type(item).__name__,
-            "qmlType": item.metaObject().className() if item.metaObject() else None,
-            "visible": item.isVisible(),
-            "enabled": item.isEnabled(),
-            "focused": item.hasActiveFocus(),
-            "geometry": {
-                "x": x,
-                "y": y,
-                "width": int(item.width()),
-                "height": int(item.height()),
-            },
             "text": item.property("text"),
-            "checked": item.property("checked"),
         }
+        if verbose:
+            quickWidget = self._findQuickWidgetForItem(item)
+            if quickWidget is not None:
+                scenePos = item.mapToScene(QPointF(0, 0))
+                globalPos = quickWidget.mapToGlobal(scenePos.toPoint())
+                x, y = globalPos.x(), globalPos.y()
+            else:
+                x, y = int(item.x()), int(item.y())
+            info.update(
+                {
+                    "className": type(item).__name__,
+                    "qmlType": (
+                        item.metaObject().className() if item.metaObject() else None
+                    ),
+                    "visible": item.isVisible(),
+                    "enabled": item.isEnabled(),
+                    "focused": item.hasActiveFocus(),
+                    "geometry": {
+                        "x": x,
+                        "y": y,
+                        "width": int(item.width()),
+                        "height": int(item.height()),
+                    },
+                    "checked": item.property("checked"),
+                }
+            )
+        return info
 
     def _getSceneItemInfo(
-        self, item: QGraphicsItem, view: QGraphicsView
+        self, item: QGraphicsItem, view: QGraphicsView, verbose: bool = False
     ) -> Dict[str, Any]:
-        """Get info about a scene item."""
-        # Get screen position
-        sceneRect = item.sceneBoundingRect()
-        viewPos = view.mapFromScene(sceneRect.topLeft())
-        globalPos = view.viewport().mapToGlobal(viewPos)
-
-        # Try to get name from item
+        """Get info about a scene item. Compact by default."""
         name = None
         if hasattr(item, "name"):
             name = getattr(item, "name", None)
             if callable(name):
                 name = name()
 
-        itemId = None
-        if hasattr(item, "id"):
-            itemId = getattr(item, "id", None)
-
-        return {
+        info = {
+            "name": name,
             "type": "scene",
-            "objectName": name,
-            "id": itemId,
             "className": type(item).__name__,
-            "visible": item.isVisible(),
-            "geometry": {
-                "x": globalPos.x(),
-                "y": globalPos.y(),
-                "width": int(sceneRect.width()),
-                "height": int(sceneRect.height()),
-            },
         }
+        if verbose:
+            sceneRect = item.sceneBoundingRect()
+            viewPos = view.mapFromScene(sceneRect.topLeft())
+            globalPos = view.viewport().mapToGlobal(viewPos)
+            itemId = getattr(item, "id", None) if hasattr(item, "id") else None
+            info.update(
+                {
+                    "id": itemId,
+                    "visible": item.isVisible(),
+                    "geometry": {
+                        "x": globalPos.x(),
+                        "y": globalPos.y(),
+                        "width": int(sceneRect.width()),
+                        "height": int(sceneRect.height()),
+                    },
+                }
+            )
+        return info
 
     def _getTextProperty(self, obj: QObject) -> Optional[str]:
         """Get text property from various widget types."""

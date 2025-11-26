@@ -283,9 +283,11 @@ class TestBridgeServer(QObject):
         maxDepth = command.get("maxDepth", 3)
         visibleOnly = command.get("visibleOnly", True)
         namedOnly = command.get("namedOnly", True)
+        verbose = command.get("verbose", False)
+        limit = command.get("limit", 50)
 
         elements = self._inspector.listElements(
-            elementType, maxDepth, visibleOnly, namedOnly
+            elementType, maxDepth, visibleOnly, namedOnly, verbose, limit
         )
         return {"success": True, "elements": elements, "count": len(elements)}
 
