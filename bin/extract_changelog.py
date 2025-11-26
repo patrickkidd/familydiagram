@@ -28,7 +28,7 @@ def extract_section_content(changelog_content: str, version: str) -> list[str]:
     bullets = []
 
     for line in lines:
-        if re.match(rf"^##\s+\[?{re.escape(version)}\]?", line):
+        if re.match(rf"^##\s+\[?{re.escape(version)}\]?(?:\s|$)", line):
             in_section = True
             continue
 
@@ -48,7 +48,7 @@ def find_beta_versions(changelog_content: str, base_version: str) -> list[str]:
     versions = []
 
     for line in lines:
-        match = re.match(r"^##\s+\[?(\d+\.\d+\.\d+[ab]\d+)\]?", line)
+        match = re.match(r"^##\s+\[?(\d+\.\d+\.\d+[ab]\d+)\]?(?:\s|$)", line)
         if match:
             version = match.group(1)
             if get_base_version(version) == base_version:
@@ -93,15 +93,11 @@ def main():
     version = sys.argv[1]
     changelog_path = sys.argv[2] if len(sys.argv) > 2 else None
 
-    try:
-        html = extract_changelog(version, changelog_path)
-        if html:
-            print(html)
-        else:
-            print(f"No changelog found for version {version}", file=sys.stderr)
-            sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    html = extract_changelog(version, changelog_path)
+    if html:
+        print(html)
+    else:
+        print(f"No changelog found for version {version}", file=sys.stderr)
         sys.exit(1)
 
 
