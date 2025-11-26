@@ -1176,8 +1176,6 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
-            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
-            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)

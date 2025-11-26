@@ -7,6 +7,7 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 import time, pickle, logging
 import json
 import enum
+import base64
 from datetime import datetime
 import hashlib
 import urllib.parse
@@ -15,6 +16,7 @@ from dataclasses import dataclass, InitVar, field
 from typing import Union, Callable
 
 import btcopilot
+from btcopilot.schema import DiagramData, PDP, asdict, from_dict
 from pkdiagram.pyqt import (
     QObject,
     QNetworkRequest,
@@ -24,6 +26,7 @@ from pkdiagram.pyqt import (
     QUrlQuery,
     QApplication,
     QTimer,
+    QMessageBox,
     pyqtSignal,
 )
 from pkdiagram import version, util
@@ -155,19 +158,6 @@ class AccessRight:
 
 
 @dataclass
-class Database:
-    id: int
-    name: str
-    user_id: int
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-    def __post_init__(self):
-        if isinstance(self.user_id, dict):
-            self.user_id = User(**self.user_id)
-
-
-@dataclass
 class Diagram:
     id: int
     user_id: int
@@ -182,7 +172,6 @@ class Diagram:
     data: bytes | None = None
     status: int | None = None
     alias: str | None = None
-    database: Database | None = None
     discussions: list[Discussion] = field(default_factory=list)
     pdp: dict | None = None
 
@@ -211,36 +200,57 @@ class Diagram:
     def save(
         self,
         server,
-        applyChange: Callable[[any], None],
-        stillValidAfterRefresh: Callable[[any], bool],
+        applyChange: Callable[[DiagramData], None],
+        stillValidAfterRefresh: Callable[[DiagramData], bool],
         maxRetries: int = 3,
         useJson: bool = False,
     ) -> bool:
         """Save diagram with optimistic locking (version check). Returns True on success."""
+
         for attempt in range(maxRetries):
-            diagramData = pickle.loads(self.data) if not useJson else self.data
+            diagramData = self.getDiagramData()
 
             applyChange(diagramData)
+
+            newData = pickle.dumps(asdict(diagramData))
 
             if useJson:
                 endpoint = f"/personal/diagrams/{self.id}"
                 requestData = {
-                    "diagram_data": diagramData,
+                    "data": base64.b64encode(newData).decode("utf-8"),
                     "expected_version": self.version,
                 }
                 bdata = json.dumps(requestData).encode("utf-8")
+                headers = {"Content-Type": "application/json"}
+
             else:
-                endpoint = f"/diagrams/{self.id}"
+                endpoint = f"/v1/diagrams/{self.id}"
                 requestData = {
-                    "data": pickle.dumps(diagramData),
+                    "data": newData,
                     "updated_at": datetime.utcnow(),
                     "expected_version": self.version,
                 }
                 bdata = pickle.dumps(requestData)
+                headers = None
 
-            response = server.blockingRequest(
-                "PUT", endpoint, bdata=bdata, statuses=[200, 409]
-            )
+            try:
+                response = server.blockingRequest(
+                    "PUT",
+                    endpoint,
+                    bdata=bdata,
+                    headers=headers,
+                    statuses=[200, 409],
+                    from_root=True,
+                )
+            except HTTPError as e:
+                log.error(f"Error saving diagram: {e}")
+                QMessageBox.critical(
+                    None,
+                    "Save Error",
+                    f"Unexpected server error (HTTP {e.status_code}) while saving diagram.\n\n"
+                    f"Please check your connection and try again.",
+                )
+                return False
 
             if useJson:
                 responseData = json.loads(response.body.decode("utf-8"))
@@ -249,21 +259,52 @@ class Diagram:
 
             if response.status_code == 200:
                 self.version = responseData.get("version", self.version + 1)
-                self.data = diagramData if useJson else pickle.dumps(diagramData)
+                self.data = newData
                 return True
 
             if response.status_code == 409:
                 self.version = responseData["version"]
-                self.data = (
-                    responseData["diagram_data"] if useJson else responseData["data"]
-                )
+                conflictData = responseData["data"]
 
-                if not stillValidAfterRefresh(self.data):
+                if useJson:
+                    self.data = base64.b64decode(conflictData)
+                else:
+                    self.data = conflictData
+
+                refreshedData = self.getDiagramData()
+
+                if not stillValidAfterRefresh(refreshedData):
                     return False
 
                 continue
 
         return False
+
+    def getDiagramData(self) -> DiagramData:
+        data = pickle.loads(self.data) if self.data else {}
+
+        pdp_dict = data.get("pdp", {})
+        return DiagramData(
+            people=data.get("people", []),
+            events=data.get("events", []),
+            pair_bonds=data.get("pair_bonds", []),
+            pdp=from_dict(PDP, pdp_dict) if pdp_dict else PDP(),
+            last_id=data.get("last_id", 0),
+        )
+
+    def setDiagramData(self, diagramData: DiagramData):
+        data = pickle.loads(self.data) if self.data else {}
+
+        data["pdp"] = asdict(diagramData.pdp)
+        data["last_id"] = diagramData.last_id
+        if diagramData.people:
+            data["people"] = diagramData.people
+        if diagramData.events:
+            data["events"] = diagramData.events
+        if diagramData.pair_bonds:
+            data["pair_bonds"] = diagramData.pair_bonds
+
+        self.data = pickle.dumps(data)
 
     def check_access(self, user_id, right):
         if user_id == self.user_id:
@@ -518,9 +559,11 @@ class Server(QObject):
         data=None,
         success=None,
         error=None,
+        headers=None,
         anonymous=False,
         statuses=None,
         timeout_ms=4000,
+        from_root=False,
     ) -> HTTPResponse:
         if statuses is None:
             statuses = [200]
@@ -532,7 +575,9 @@ class Server(QObject):
             data=data,
             success=success,
             error=error,
+            headers=headers,
             anonymous=anonymous,
+            from_root=from_root,
         )
         self._checkRequestsComplete(reply)
         reply.finished.connect(loop.quit)

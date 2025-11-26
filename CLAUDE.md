@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code / design rules
+
+- keep as much app logic in python as possible. qml javascript is hard to debug
+- For undoable app verbs, keep with the pattern of a verb method with `undo=False` and then a `def _do_<VERB>` method that does the actual work.
+
 ## Development Commands
 
 ### Environment Setup

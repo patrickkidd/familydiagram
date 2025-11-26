@@ -3,13 +3,26 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
-
+import "../js/Global.js" as Global
 
 Page {
 
     id: root
 
     property var pdpList: pdpList
+
+    function _addPDPItem(kind, text, id) {
+        pdpModel.append({ "kind": kind, "text": text, "id": id });
+    }
+
+    function _removePDPItemById(id) {
+        for(var i=0; i < pdpModel.count; i++) {
+            if(pdpModel.get(i).id === id) {
+                pdpModel.remove(i);
+                return;
+            }
+        }
+    }
 
     function updatePDP(pdp) {
         pdpModel.clear()
@@ -21,15 +34,13 @@ Page {
         if(pdp.people && pdp.people.length > 0) {
             for(var i=0; i < pdp.people.length; i++) {
                 var person = pdp.people[i];
-                // console.log('Person:', JSON.stringify(person));
-                pdpModel.append({ "kind": "Person", "text": person.name, "id": person.id });
+                _addPDPItem("Person", person.name, person.id);
             }
         }
         if(pdp.events && pdp.events.length > 0) {
             for(var i=0; i < pdp.events.length; i++) {
                 var event = pdp.events[i];
-                // console.log('Event:', JSON.stringify(event), 'text:', event.description, 'id:', event.id )
-                pdpModel.append({ "kind": "Event", "text": event.description, "id": event.id });
+                _addPDPItem("Event", event.description, event.id);
             }
         }
     }
@@ -39,6 +50,16 @@ Page {
         function onPdpChanged() {
             // console.log('onPdpChanged:', personal.pdp);
             root.updatePDP(personal.pdp);
+        }
+        function onPdpItemAdded(item) {
+            util.info('onPdpItemAdded:', item.id, 'personal.pdp:', personal.pdp);
+            Global.printObject(item)
+            _addPDPItem(item.kind, item.text, item.id);
+        }
+        function onPdpItemRemoved(id) {
+            util.info('onPdpItemRemoved:', id, 'personal.pdp:', personal.pdp);
+            Global.printObject(item)
+            _removePDPItemById(id);
         }
     }
 
@@ -95,7 +116,6 @@ Page {
                     onClicked: {
                         print('onClicked: Accepting item:', model.id);
                         personal.acceptPDPItem(model.id)
-                        pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 }
@@ -107,7 +127,6 @@ Page {
                     onClicked: {
                         print('onClicked: Rejecting item:', model.id);
                         personal.rejectPDPItem(model.id)
-                        pdpModel.remove(index)
                     }
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 }
