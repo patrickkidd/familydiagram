@@ -24,6 +24,11 @@ from pkdiagram.pyqt import (
     QTest,
     QMetaObject,
     Q_ARG,
+    QPixmap,
+    QBuffer,
+    QByteArray,
+    QIODevice,
+    QTimer,
 )
 
 log = logging.getLogger(__name__)
@@ -42,6 +47,59 @@ class QtInspector:
 
     def __init__(self, app: Optional[QApplication] = None):
         self._app = app or QApplication.instance()
+
+    # -------------------------------------------------------------------------
+    # App State (High-level semantic state)
+    # -------------------------------------------------------------------------
+
+    def getAppState(self) -> Dict[str, Any]:
+        """
+        Get high-level semantic app state.
+
+        Returns dict with:
+        - welcomeDialogVisible: bool
+        - fileManagerTab: "local" | "server" | None
+        - loadedFileName: str | None
+        - visibleDialogs: list of dialog info
+        """
+        state = {
+            "welcomeDialogVisible": False,
+            "fileManagerTab": None,
+            "loadedFileName": None,
+            "visibleDialogs": [],
+            "visibleWindows": [],
+        }
+
+        try:
+            # Check all top-level widgets
+            for window in self._app.topLevelWidgets():
+                if not window.isVisible():
+                    continue
+
+                className = type(window).__name__
+                windowInfo = {
+                    "objectName": window.objectName() or None,
+                    "className": className,
+                    "title": window.windowTitle() or None,
+                }
+                state["visibleWindows"].append(windowInfo)
+
+                # Check for Welcome dialog
+                if className == "Welcome":
+                    state["welcomeDialogVisible"] = True
+                    state["visibleDialogs"].append(windowInfo)
+                    continue
+
+                # Check for other dialogs
+                if "Dialog" in className or "QMessageBox" in className:
+                    state["visibleDialogs"].append(windowInfo)
+                    continue
+
+        except Exception as e:
+            log.exception(f"Error in getAppState: {e}")
+            return {"success": False, "error": str(e)}
+
+        return {"success": True, "state": state}
 
     # -------------------------------------------------------------------------
     # Element Finding
@@ -72,14 +130,18 @@ class QtInspector:
     def listElements(
         self,
         elementType: Optional[str] = None,
-        maxDepth: int = 10,
+        maxDepth: int = 3,
+        visibleOnly: bool = True,
+        namedOnly: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         List all elements in the UI.
 
         Args:
             elementType: Filter by type ("widget", "qml", "scene", or None for all)
-            maxDepth: Maximum depth to traverse
+            maxDepth: Maximum depth to traverse (default 3 for performance)
+            visibleOnly: Only include visible elements (default True)
+            namedOnly: Only include elements with objectName set (default True)
 
         Returns:
             List of element info dicts
@@ -89,17 +151,23 @@ class QtInspector:
         # Collect widgets
         if elementType is None or elementType == "widget":
             for window in self._app.topLevelWidgets():
-                self._collectWidgets(window, elements, 0, maxDepth)
+                if visibleOnly and not window.isVisible():
+                    continue
+                self._collectWidgets(
+                    window, elements, 0, maxDepth, visibleOnly, namedOnly
+                )
 
         # Collect QML items
         if elementType is None or elementType == "qml":
             for root in self._getQmlRoots():
-                self._collectQmlItems(root, elements, 0, maxDepth)
+                self._collectQmlItems(
+                    root, elements, 0, maxDepth, visibleOnly, namedOnly
+                )
 
-        # Collect scene items
+        # Collect scene items (always include since they represent data)
         if elementType is None or elementType == "scene":
             for view in self._getGraphicsViews():
-                self._collectSceneItems(view, elements)
+                self._collectSceneItems(view, elements, visibleOnly)
 
         return elements
 
@@ -177,9 +245,24 @@ class QtInspector:
         elements: List[Dict],
         depth: int,
         maxDepth: int,
+        visibleOnly: bool = True,
+        namedOnly: bool = True,
     ):
         """Collect widgets recursively."""
         if depth > maxDepth:
+            return
+
+        if visibleOnly and not widget.isVisible():
+            return
+
+        objName = widget.objectName()
+        if namedOnly and not objName:
+            # Still traverse children even if this widget has no name
+            for child in widget.children():
+                if isinstance(child, QWidget):
+                    self._collectWidgets(
+                        child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                    )
             return
 
         info = self._getWidgetInfo(widget)
@@ -188,7 +271,9 @@ class QtInspector:
 
         for child in widget.children():
             if isinstance(child, QWidget):
-                self._collectWidgets(child, elements, depth + 1, maxDepth)
+                self._collectWidgets(
+                    child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                )
 
     def _collectQmlItems(
         self,
@@ -196,9 +281,23 @@ class QtInspector:
         elements: List[Dict],
         depth: int,
         maxDepth: int,
+        visibleOnly: bool = True,
+        namedOnly: bool = True,
     ):
         """Collect QML items recursively."""
         if depth > maxDepth:
+            return
+
+        if visibleOnly and not item.isVisible():
+            return
+
+        objName = item.objectName()
+        if namedOnly and not objName:
+            # Still traverse children even if this item has no name
+            for child in item.childItems():
+                self._collectQmlItems(
+                    child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+                )
             return
 
         info = self._getQmlItemInfo(item)
@@ -206,15 +305,21 @@ class QtInspector:
             elements.append(info)
 
         for child in item.childItems():
-            self._collectQmlItems(child, elements, depth + 1, maxDepth)
+            self._collectQmlItems(
+                child, elements, depth + 1, maxDepth, visibleOnly, namedOnly
+            )
 
-    def _collectSceneItems(self, view: QGraphicsView, elements: List[Dict]):
+    def _collectSceneItems(
+        self, view: QGraphicsView, elements: List[Dict], visibleOnly: bool = True
+    ):
         """Collect scene items from a QGraphicsView."""
         scene = view.scene()
         if scene is None:
             return
 
         for item in scene.items():
+            if visibleOnly and not item.isVisible():
+                continue
             info = self._getSceneItemInfo(item, view)
             if info:
                 elements.append(info)
@@ -335,9 +440,7 @@ class QtInspector:
     # Element Properties
     # -------------------------------------------------------------------------
 
-    def getProperty(
-        self, objectName: str, propertyName: str
-    ) -> Dict[str, Any]:
+    def getProperty(self, objectName: str, propertyName: str) -> Dict[str, Any]:
         """
         Get a property value from an element.
 
@@ -694,9 +797,7 @@ class QtInspector:
 
         return {"success": False, "error": f"Scene item not found: {name}"}
 
-    def getSceneItems(
-        self, itemType: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def getSceneItems(self, itemType: Optional[str] = None) -> Dict[str, Any]:
         """
         Get all scene items.
 
@@ -731,18 +832,83 @@ class QtInspector:
         windows = []
         for window in self._app.topLevelWidgets():
             if window.isVisible():
-                windows.append({
-                    "objectName": window.objectName() or None,
-                    "className": type(window).__name__,
-                    "title": window.windowTitle(),
-                    "geometry": {
-                        "x": window.x(),
-                        "y": window.y(),
-                        "width": window.width(),
-                        "height": window.height(),
-                    },
-                })
+                windows.append(
+                    {
+                        "objectName": window.objectName() or None,
+                        "className": type(window).__name__,
+                        "title": window.windowTitle(),
+                        "geometry": {
+                            "x": window.x(),
+                            "y": window.y(),
+                            "width": window.width(),
+                            "height": window.height(),
+                        },
+                    }
+                )
         return {"success": True, "windows": windows}
+
+    def openFile(self, filePath: str) -> Dict[str, Any]:
+        """
+        Open a file in the application.
+
+        Uses QTimer.singleShot to schedule the open operation after the
+        command response is sent, preventing the bridge from blocking.
+
+        Args:
+            filePath: Absolute path to the .fd file to open
+
+        Returns:
+            Dict with success status
+        """
+        import os
+
+        try:
+            # Find MainWindow
+            mainWindow = None
+            for window in self._app.topLevelWidgets():
+                if type(window).__name__ == "MainWindow":
+                    mainWindow = window
+                    break
+
+            if mainWindow is None:
+                return {"success": False, "error": "MainWindow not found"}
+
+            # Validate file path exists
+            if not os.path.exists(filePath):
+                return {"success": False, "error": f"File does not exist: {filePath}"}
+
+            # Check if it's a valid .fd bundle (directory with .fd extension)
+            if not os.path.isdir(filePath):
+                return {
+                    "success": False,
+                    "error": f"Not a directory/bundle: {filePath}",
+                }
+
+            if not filePath.endswith(".fd"):
+                return {"success": False, "error": f"Not a .fd file: {filePath}"}
+
+            # Get initial state for verification
+            initialTitle = mainWindow.windowTitle()
+            initialScene = mainWindow.scene if hasattr(mainWindow, "scene") else None
+            initialItemCount = len(initialScene.items()) if initialScene else 0
+
+            # Schedule the open operation via QTimer so it runs after
+            # the bridge response is sent. This prevents blocking.
+            QTimer.singleShot(0, lambda: mainWindow.open(filePath=filePath))
+
+            return {
+                "success": True,
+                "message": f"Open scheduled for: {filePath}",
+                "note": "File load is async. Wait briefly, then use get_scene_items or get_windows to verify.",
+                "initialState": {
+                    "title": initialTitle,
+                    "itemCount": initialItemCount,
+                },
+            }
+
+        except Exception as e:
+            log.exception(f"Error opening file: {e}")
+            return {"success": False, "error": str(e)}
 
     def activateWindow(self, objectName: str) -> Dict[str, Any]:
         """Activate a window."""
@@ -753,3 +919,61 @@ class QtInspector:
                 self._app.processEvents()
                 return {"success": True}
         return {"success": False, "error": f"Window not found: {objectName}"}
+
+    def takeScreenshot(self, objectName: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Take a screenshot of a widget or the main window.
+
+        Args:
+            objectName: Optional widget to screenshot, defaults to main window
+
+        Returns:
+            Dict with success status and base64-encoded PNG data
+        """
+        import base64
+
+        widget = None
+        if objectName:
+            widget = self._findWidget(objectName)
+            if widget is None:
+                return {"success": False, "error": f"Widget not found: {objectName}"}
+        else:
+            # Default to main window
+            for window in self._app.topLevelWidgets():
+                if window.isVisible() and window.objectName() == "MainWindow":
+                    widget = window
+                    break
+
+            if widget is None:
+                # Fallback to any visible top-level widget
+                for window in self._app.topLevelWidgets():
+                    if window.isVisible():
+                        widget = window
+                        break
+
+        if widget is None:
+            return {"success": False, "error": "No visible widget found"}
+
+        # Ensure widget is fully rendered
+        self._app.processEvents()
+
+        # Grab the widget
+        pixmap = widget.grab()
+
+        # Convert to PNG bytes
+        byteArray = QByteArray()
+        buffer = QBuffer(byteArray)
+        buffer.open(QIODevice.WriteOnly)
+        pixmap.save(buffer, "PNG")
+        buffer.close()
+
+        # Encode to base64
+        imageData = base64.b64encode(bytes(byteArray)).decode("utf-8")
+
+        return {
+            "success": True,
+            "width": pixmap.width(),
+            "height": pixmap.height(),
+            "format": "png",
+            "data": imageData,
+        }

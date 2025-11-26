@@ -61,29 +61,30 @@ class TestBridgeServer(QObject):
     def _setupHandlers(self):
         """Set up command handlers."""
         self._handlers = {
+            # App state (high-level)
+            "get_app_state": self._handleGetAppState,
             # Element finding
             "find_element": self._handleFindElement,
             "list_elements": self._handleListElements,
-
             # Properties
             "get_property": self._handleGetProperty,
             "set_property": self._handleSetProperty,
-
             # Interaction
             "click": self._handleClick,
             "double_click": self._handleDoubleClick,
             "type_text": self._handleTypeText,
             "press_key": self._handlePressKey,
             "focus": self._handleFocus,
-
             # Scene items
             "click_scene_item": self._handleClickSceneItem,
             "get_scene_items": self._handleGetSceneItems,
-
             # Windows
             "get_windows": self._handleGetWindows,
             "activate_window": self._handleActivateWindow,
-
+            # File operations
+            "open_file": self._handleOpenFile,
+            # Screenshots
+            "take_screenshot": self._handleTakeScreenshot,
             # Status
             "ping": self._handlePing,
         }
@@ -219,7 +220,9 @@ class TestBridgeServer(QObject):
 
         handler = self._handlers.get(cmdName)
         if handler is None:
-            return json.dumps({"success": False, "error": f"Unknown command: {cmdName}"})
+            return json.dumps(
+                {"success": False, "error": f"Unknown command: {cmdName}"}
+            )
 
         # Execute on main thread and wait for result
         result = {"pending": True}
@@ -227,6 +230,7 @@ class TestBridgeServer(QObject):
 
         # Wait for result (with timeout)
         import time
+
         timeout = 30
         start = time.time()
         while result.get("pending") and time.time() - start < timeout:
@@ -235,7 +239,9 @@ class TestBridgeServer(QObject):
         if result.get("pending"):
             return json.dumps({"success": False, "error": "Command timeout"})
 
-        return json.dumps(result.get("response", {"success": False, "error": "No response"}))
+        return json.dumps(
+            result.get("response", {"success": False, "error": "No response"})
+        )
 
     def _onExecuteOnMain(self, handler: Callable, result: Dict):
         """Execute a handler on the main thread."""
@@ -256,6 +262,10 @@ class TestBridgeServer(QObject):
         """Handle ping command."""
         return {"success": True, "message": "pong"}
 
+    def _handleGetAppState(self, command: Dict) -> Dict:
+        """Handle get_app_state command."""
+        return self._inspector.getAppState()
+
     def _handleFindElement(self, command: Dict) -> Dict:
         """Handle find_element command."""
         objectName = command.get("objectName")
@@ -270,10 +280,14 @@ class TestBridgeServer(QObject):
     def _handleListElements(self, command: Dict) -> Dict:
         """Handle list_elements command."""
         elementType = command.get("type")
-        maxDepth = command.get("maxDepth", 10)
+        maxDepth = command.get("maxDepth", 3)
+        visibleOnly = command.get("visibleOnly", True)
+        namedOnly = command.get("namedOnly", True)
 
-        elements = self._inspector.listElements(elementType, maxDepth)
-        return {"success": True, "elements": elements}
+        elements = self._inspector.listElements(
+            elementType, maxDepth, visibleOnly, namedOnly
+        )
+        return {"success": True, "elements": elements, "count": len(elements)}
 
     def _handleGetProperty(self, command: Dict) -> Dict:
         """Handle get_property command."""
@@ -307,8 +321,13 @@ class TestBridgeServer(QObject):
             pos = tuple(pos)
 
         from pkdiagram.pyqt import Qt
+
         button = command.get("button", "left")
-        buttonMap = {"left": Qt.LeftButton, "right": Qt.RightButton, "middle": Qt.MiddleButton}
+        buttonMap = {
+            "left": Qt.LeftButton,
+            "right": Qt.RightButton,
+            "middle": Qt.MiddleButton,
+        }
         qtButton = buttonMap.get(button, Qt.LeftButton)
 
         return self._inspector.click(objectName, qtButton, pos)
@@ -324,6 +343,7 @@ class TestBridgeServer(QObject):
             pos = tuple(pos)
 
         from pkdiagram.pyqt import Qt
+
         return self._inspector.doubleClick(objectName, Qt.LeftButton, pos)
 
     def _handleTypeText(self, command: Dict) -> Dict:
@@ -361,6 +381,7 @@ class TestBridgeServer(QObject):
             return {"success": False, "error": "Missing 'name'"}
 
         from pkdiagram.pyqt import Qt
+
         button = command.get("button", "left")
         buttonMap = {"left": Qt.LeftButton, "right": Qt.RightButton}
         qtButton = buttonMap.get(button, Qt.LeftButton)
@@ -383,6 +404,19 @@ class TestBridgeServer(QObject):
             return {"success": False, "error": "Missing 'objectName'"}
 
         return self._inspector.activateWindow(objectName)
+
+    def _handleOpenFile(self, command: Dict) -> Dict:
+        """Handle open_file command."""
+        filePath = command.get("filePath")
+        if not filePath:
+            return {"success": False, "error": "Missing 'filePath'"}
+
+        return self._inspector.openFile(filePath)
+
+    def _handleTakeScreenshot(self, command: Dict) -> Dict:
+        """Handle take_screenshot command."""
+        objectName = command.get("objectName")
+        return self._inspector.takeScreenshot(objectName)
 
 
 def startTestBridgeServer(port: int = DEFAULT_PORT) -> TestBridgeServer:
