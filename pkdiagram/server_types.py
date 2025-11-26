@@ -216,27 +216,30 @@ class Diagram:
 
             if useJson:
                 endpoint = f"/personal/diagrams/{self.id}"
-                requestData = {
+                data = {
                     "data": base64.b64encode(newData).decode("utf-8"),
                     "expected_version": self.version,
                 }
-                bdata = json.dumps(requestData).encode("utf-8")
+                bdata = None
                 headers = {"Content-Type": "application/json"}
 
             else:
                 endpoint = f"/v1/diagrams/{self.id}"
-                requestData = {
-                    "data": newData,
-                    "updated_at": datetime.utcnow(),
-                    "expected_version": self.version,
-                }
-                bdata = pickle.dumps(requestData)
+                bdata = pickle.dumps(
+                    {
+                        "data": newData,
+                        "updated_at": datetime.utcnow(),
+                        "expected_version": self.version,
+                    }
+                )
+                data = None
                 headers = None
 
             try:
                 response = server.blockingRequest(
                     "PUT",
                     endpoint,
+                    data=data,
                     bdata=bdata,
                     headers=headers,
                     statuses=[200, 409],
@@ -400,6 +403,8 @@ class Server(QObject):
         error = reply.error()
         failMessage = None
         status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if status_code != 0 and status_code in statuses:
+            pass
         if error == QNetworkReply.NoError and status_code in statuses:
             pass
         elif error == QNetworkReply.HostNotFoundError:  # no internet connection
