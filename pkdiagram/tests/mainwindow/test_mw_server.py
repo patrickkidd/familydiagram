@@ -6,13 +6,13 @@ import mock
 from sqlalchemy import inspect
 
 import btcopilot
-from pkdiagram.pyqt import QFileInfo, QMessageBox
+from pkdiagram.pyqt import QFileInfo, QMessageBox, Qt, QApplication
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person
 from pkdiagram.documentview import DocumentController
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import AppController
-
+from pkdiagram.models.serverfilemanagermodel import ServerFileManagerModel
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
@@ -272,12 +272,14 @@ def test_current_server_file_updated_elsewhere(
     model = mw.fileManager.serverFileModel
     util.wait(mw.serverFileModel.updateFinished)
 
-    mw.prefs.setValue("dontShowServerFileUpdated", dontShowServerFileUpdated)
+    mw.prefs.setValue(
+        ServerFileManagerModel.PREF_DONT_SHOW_SERVER_FILE_UPDATED,
+        dontShowServerFileUpdated,
+    )
     _open_server_file_item(mw, 0)
     assert mw.scene.query1(name="Patrick") == None
 
     # Simulate save on another machine
-
     data = {}
     scene = Scene()
     scene.addItems(Person(name="Patrick"))
@@ -292,8 +294,18 @@ def test_current_server_file_updated_elsewhere(
     if dontShowServerFileUpdated:
         util.wait(mw.serverFileModel.updateFinished)
     else:
-        qtbot.clickOkAfter(
+
+        def clickReloadButton():
+            widget = QApplication.activeModalWidget()
+            if isinstance(widget, QMessageBox):
+                for button in widget.buttons():
+                    if button.text() == "Reload Their Changes":
+                        qtbot.mouseClick(button, Qt.LeftButton)
+                        return True
+            return False
+
+        qtbot.qWaitForMessageBox(
             lambda: util.wait(mw.serverFileModel.updateFinished),
-            contains=MainWindow.S_DIAGRAM_UPDATED_FROM_SERVER,
+            handleClick=clickReloadButton,
         )
     assert mw.scene.query1(name="Patrick")

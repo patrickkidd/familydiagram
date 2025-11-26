@@ -10,9 +10,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QApplication,
     QMessageBox,
-    QApplication,
     QDateTime,
-    QMessageBox,
     QNetworkRequest,
     QUrl,
 )
@@ -48,6 +46,7 @@ class ServerFileManagerModel(FileManagerModel):
     S_CONFIRM_DELETE_SERVER_FILE = (
         "Are you sure you want to delete this file? This cannot be undone."
     )
+    PREF_DONT_SHOW_SERVER_FILE_UPDATED = "dontShowServerFileUpdated"
 
     DiagramDataRole = FileManagerModel.OwnerRole + 1
 
@@ -476,6 +475,12 @@ class ServerFileManagerModel(FileManagerModel):
             return super().data(index, role)
 
     def handleDiagramConflict(self, diagram, refreshedData, fpath):
+        if self.prefs and self.prefs.value(self.PREF_DONT_SHOW_SERVER_FILE_UPDATED):
+            updatedDiagram = diagram
+            updatedDiagram.data = refreshedData
+            self.reloadDiagramRequested.emit(fpath, updatedDiagram)
+            return False
+
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle("Diagram Modified by Another User")
