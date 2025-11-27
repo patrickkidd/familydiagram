@@ -9,9 +9,10 @@ on:
         type: boolean
         default: false
 
-  # push:
-  #   branches:
-  #     - master
+  push:
+    branches-ignore:
+      - master
+      - release
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
@@ -639,7 +640,7 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     needs: [setup, test-macos, test-windows]
-    if: ${{ !inputs.skip_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_release }}
     permissions:
       contents: write
     steps:
@@ -683,7 +684,7 @@ jobs:
   update-appcast:
     runs-on: ubuntu-24.04
     needs: publish
-    if: ${{ !inputs.skip_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_release }}
       
     steps:
 
