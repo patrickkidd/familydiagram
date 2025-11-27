@@ -203,7 +203,7 @@ class Diagram:
     def save(
         self,
         server,
-        applyChange: Callable[[DiagramData], None],
+        applyChange: Callable[[DiagramData], DiagramData],
         stillValidAfterRefresh: Callable[[DiagramData], bool],
         maxRetries: int = 3,
         useJson: bool = False,
