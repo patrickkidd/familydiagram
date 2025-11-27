@@ -62,14 +62,14 @@ def reset_diagram(diagram_id: int):
                 Event(
                     id=-5,
                     kind=EventKind.Birth,
-                    person=-1,
+                    child=-1,
                     description="Alice born",
                     dateTime="1980-03-15",
                 ),
                 Event(
                     id=-6,
                     kind=EventKind.Birth,
-                    person=-2,
+                    child=-2,
                     description="Bob born",
                     dateTime="1978-07-22",
                 ),
@@ -84,7 +84,7 @@ def reset_diagram(diagram_id: int):
                 Event(
                     id=-8,
                     kind=EventKind.Birth,
-                    person=-3,
+                    child=-3,
                     description="Charlie born",
                     dateTime="2008-11-03",
                 ),

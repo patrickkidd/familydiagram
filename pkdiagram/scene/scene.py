@@ -1854,7 +1854,7 @@ class Scene(QGraphicsScene, Item):
                 and x.kind().isPairBond()
             ]
         else:
-            raise TypeError("item must be Person or Marriage")
+            raise TypeError(f"item must be Person or Marriage, not {item}")
 
         if kinds is not None:
             if isinstance(kinds, list):
