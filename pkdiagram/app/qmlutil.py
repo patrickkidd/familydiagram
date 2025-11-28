@@ -6,6 +6,7 @@ qmlEngine. maybe even moved to qmlengine.py.
 import pickle, json, datetime, time, logging
 
 from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot import schema
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     Qt,
@@ -316,7 +317,7 @@ class QmlUtil(QObject, QObjectHelper):
         """
         dateText = dateText.strip()
         timeText = timeText.strip()
-        ret = util.validatedDateTimeText(dateText, timeText)
+        ret = schema.validatedDateTimeText(dateText, timeText)
         if ret:
             return ret
         else:

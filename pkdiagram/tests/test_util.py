@@ -2,6 +2,7 @@ import os.path, tempfile
 import mock
 import pytest
 
+from btcopilot import schema
 from pkdiagram import util
 from pkdiagram.pyqt import QDate, QDateTime, QComboBox, QRect, QMessageBox, QTimer
 
@@ -11,20 +12,20 @@ pytestmark = pytest.mark.no_gui
 
 def test_dates():
     bday = util.Date(1980, 5, 11)
-    assert bday == util.validatedDateTimeText("05/11/1980")
+    assert bday == schema.validatedDateTimeText("05/11/1980")
     assert util.dateString(bday) == "05/11/1980"
 
 
 def test_dateTimes():
     bday = util.Date(1980, 5, 11, 15, 35)
-    assert bday == util.validatedDateTimeText("05/11/1980 3:35 pm")
+    assert bday == schema.validatedDateTimeText("05/11/1980 3:35 pm")
     assert util.dateString(bday) == "05/11/1980"
     assert util.dateTimeString(bday) == "05/11/1980 3:35 pm"
 
 
 def test_dateTimes_useTime():
     bday = util.Date(1980, 5, 11, 15, 35)
-    assert bday == util.validatedDateTimeText("05/11/1980", "3:35 pm")
+    assert bday == schema.validatedDateTimeText("05/11/1980", "3:35 pm")
     assert util.dateString(bday) == "05/11/1980"
     assert util.dateTimeString(bday) == "05/11/1980 3:35 pm"
 
