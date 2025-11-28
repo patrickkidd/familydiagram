@@ -1826,6 +1826,9 @@ def touchFD(filePath, bdata=None):
 
 
 def appDataDir():
+    test_data_dir = os.environ.get("FD_TEST_DATA_DIR")
+    if test_data_dir:
+        return test_data_dir
     return QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation)
 
 

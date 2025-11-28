@@ -30,17 +30,29 @@ import subprocess
 import sys
 import tempfile
 import time
-import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
+
 
 # Add parent directory to path to import pkdiagram modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mcp.server.fastmcp import FastMCP
+
+
+import btcopilot
+from dataclasses import asdict
+from pkdiagram.app import AppConfig
+from pkdiagram.server_types import (
+    User,
+    Diagram,
+    License,
+    Policy,
+    Activation,
+)
+
 
 # Configure logging
 logging.basicConfig(
@@ -209,6 +221,9 @@ class SandboxManager:
         env = {
             "QT_QPA_PLATFORMTHEME": "offscreen",
             "HOME": str(self.sandbox_dir),
+            "XDG_DATA_HOME": str(self.app_data_dir),
+            "XDG_CONFIG_HOME": str(self.prefs_dir),
+            "FD_TEST_DATA_DIR": str(self.app_data_dir / "Family Diagram"),
         }
 
         if login_state == LoginState.LoggedIn:
@@ -217,97 +232,82 @@ class SandboxManager:
         return env
 
     def _populate_logged_in_data(self) -> None:
+        """Populate sandbox with logged-in session data using subprocess."""
         appconfig_dir = self.app_data_dir / "Family Diagram"
         appconfig_dir.mkdir(parents=True, exist_ok=True)
-
-        appconfig_file = appconfig_dir / "appconfig"
+        appconfig_file = appconfig_dir / "cherries"
 
         logger.info("Populating sandbox with logged-in user data")
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "familydiagram"))
 
-        try:
-            import btcopilot
-            from dataclasses import asdict
-            from pkdiagram.app import AppConfig
-            from pkdiagram.server_types import (
-                User,
-                Diagram,
-                License,
-                Policy,
-                Activation,
-            )
+        now = datetime.now(timezone.utc)
+        session_id = str(uuid.uuid4())
+        session_token = str(uuid.uuid4())
+        future_date = datetime(2099, 12, 31, tzinfo=timezone.utc)
 
-            now = datetime.now(timezone.utc)
-            session_id = str(uuid.uuid4())
-            session_token = str(uuid.uuid4())
-            future_date = datetime(2099, 12, 31, tzinfo=timezone.utc)
-
-            user = User(
-                id=1,
-                username="patrickkidd+unitest@gmail.com",
-                first_name="Test",
-                last_name="User",
-                roles=[btcopilot.ROLE_SUBSCRIBER],
-                secret=b"test_secret",
-                free_diagram_id=1,
-                created_at=now,
-                updated_at=now,
-                licenses=[
-                    License(
-                        id=1,
-                        policy=Policy(
-                            id=1,
-                            code=btcopilot.LICENSE_PROFESSIONAL,
-                            product="professional",
-                            name="Professional",
-                            interval="month",
-                            maxActivations=1,
-                            amount=9.99,
-                            active=True,
-                            public=True,
-                            created_at=now,
-                        ),
-                        active=True,
-                        canceled=False,
-                        user_id=1,
-                        policy_id=1,
-                        key="test_key",
-                        stripe_id="test_stripe",
-                        activations=[Activation(license_id=1, machine_id=1)],
-                        activated_at=now,
-                        canceled_at=future_date,
-                        created_at=now,
-                        created_at_readable="Today",
-                    )
-                ],
-                free_diagram=Diagram(
+        user = User(
+            id=1,
+            username="patrickkidd+unitest@gmail.com",
+            first_name="Test",
+            last_name="User",
+            roles=[btcopilot.ROLE_SUBSCRIBER],
+            secret=b"test_secret",
+            free_diagram_id=1,
+            created_at=now,
+            updated_at=now,
+            licenses=[
+                License(
                     id=1,
+                    policy=Policy(
+                        id=1,
+                        code=btcopilot.LICENSE_PROFESSIONAL,
+                        product="professional",
+                        name="Professional",
+                        interval="month",
+                        maxActivations=1,
+                        amount=9.99,
+                        active=True,
+                        public=True,
+                        created_at=now,
+                    ),
+                    active=True,
+                    canceled=False,
                     user_id=1,
-                    access_rights=[],
+                    policy_id=1,
+                    key="test_key",
+                    stripe_id="test_stripe",
+                    activations=[Activation(license_id=1, machine_id=1)],
+                    activated_at=now,
+                    canceled_at=future_date,
                     created_at=now,
-                ),
-            )
+                    created_at_readable="Today",
+                )
+            ],
+            free_diagram=Diagram(
+                id=1,
+                user_id=1,
+                access_rights=[],
+                created_at=now,
+            ),
+        )
 
-            session_data = {
-                "session": {
-                    "id": session_id,
-                    "token": session_token,
-                    "user": asdict(user),
-                },
-                "users": [asdict(user)],
-                "deactivated_versions": [],
-            }
+        session_data = {
+            "session": {
+                "id": session_id,
+                "token": session_token,
+                "user": asdict(user),
+            },
+            "users": [asdict(user)],
+            "deactivated_versions": [],
+        }
 
-            appconfig = AppConfig(filePath=str(appconfig_file))
-            appconfig.hardwareUUID = "test_hardware_uuid"
-            appconfig.set("lastSessionData", session_data, pickled=True)
-            appconfig.write()
+        appconfig = AppConfig(filePath=str(appconfig_file))
+        appconfig.hardwareUUID = "test_hardware_uuid"
+        appconfig.set("lastSessionData", session_data, pickled=True)
+        appconfig.write()
 
-            logger.info(f"Wrote session data to {appconfig_file}")
-        except (ImportError, OSError, AttributeError, ValueError) as e:
-            logger.error(f"Failed to populate session data: {e}", exc_info=True)
-            raise
+        logger.info(f"Wrote session data to {appconfig_file}")
 
     def cleanup(self) -> None:
         """Remove sandbox directory."""
@@ -412,8 +412,17 @@ class TestSession:
             return False, f"Application already running (PID: {self.pid})"
 
         try:
-            # Build command
-            cmd = ["uv", "run", "python", "-m", "pkdiagram"]
+            # Use uv run from workspace root to get proper venv with built _pkdiagram
+            workspace_root = self.project_root.parent
+            cmd = [
+                "uv",
+                "run",
+                "--directory",
+                str(workspace_root),
+                "python",
+                "-m",
+                "pkdiagram",
+            ]
 
             if personal:
                 cmd.append("--personal")
@@ -444,7 +453,10 @@ class TestSession:
             # Disable GPU for stability
             env["QT_QUICK_BACKEND"] = "software"
 
+            # Log sandbox environment for debugging
             logger.info(f"Launching application: {' '.join(cmd)}")
+            logger.info(f"Sandbox HOME: {env.get('HOME', 'NOT SET')}")
+            logger.info(f"FD_TEST_DATA_DIR: {env.get('FD_TEST_DATA_DIR', 'NOT SET')}")
 
             self.process = subprocess.Popen(
                 cmd,
@@ -595,18 +607,19 @@ def launch_app(
     enable_bridge: bool = True,
     wait_seconds: int = 3,
     open_file: Optional[str] = None,
-    login_state: str = "no_data",
+    login_state: str = LoginState.LoggedIn.value,
 ) -> Dict[str, Any]:
-    """Launch app. Returns {success, pid, bridge_connected}."""
+    """Launch app. Returns {success, pid, bridge_connected}. Default login_state is 'logged_in'."""
     session = TestSession.get_instance()
 
     try:
         login_enum = LoginState(login_state)
     except ValueError:
+        valid_values = [e.value for e in LoginState]
         return {
             "success": False,
             "pid": None,
-            "message": f"Invalid login_state: {login_state}. Use 'no_data' or 'logged_in'",
+            "message": f"Invalid login_state: {login_state}. Use one of: {valid_values}",
             "bridge_connected": False,
         }
 

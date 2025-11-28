@@ -6,7 +6,26 @@ including widgets, QML items, and QGraphicsView scene items.
 """
 
 import logging
+from enum import Enum
 from typing import Optional, Dict, Any, List, Union
+
+
+class AppLoginState(str, Enum):
+    """Login state as observed from the app UI."""
+
+    Unknown = "unknown"
+    AccountDialogVisible = "account_dialog_visible"
+    NotLoggedIn = "not_logged_in"
+    LoggedIn = "logged_in"
+
+
+class AppView(str, Enum):
+    """Current view shown in the app."""
+
+    Unknown = "unknown"
+    FileManager = "file_manager"
+    DocumentView = "document_view"
+
 
 from pkdiagram.pyqt import (
     Qt,
@@ -29,6 +48,8 @@ from pkdiagram.pyqt import (
     QByteArray,
     QIODevice,
     QTimer,
+    QMessageBox,
+    QDialog,
 )
 
 log = logging.getLogger(__name__)
@@ -57,21 +78,32 @@ class QtInspector:
         Get high-level semantic app state.
 
         Returns dict with:
-        - welcomeDialogVisible: bool
+        - loginState: "account_dialog_visible" | "not_logged_in" | "logged_in"
+        - currentView: "file_manager" | "document_view" | "unknown"
         - fileManagerTab: "local" | "server" | None
         - loadedFileName: str | None
+        - currentDrawer: str | None (e.g., "eventForm", "caseProps", "personProps", etc.)
         - visibleDialogs: list of dialog info
         """
         state = {
-            "welcomeDialogVisible": False,
+            "loginState": AppLoginState.Unknown.value,
+            "currentView": AppView.Unknown.value,
             "fileManagerTab": None,
             "loadedFileName": None,
+            "currentDrawer": None,
             "visibleDialogs": [],
             "visibleWindows": [],
         }
 
         try:
-            # Check all top-level widgets
+            # Find MainWindow
+            mainWindow = None
+            for window in self._app.topLevelWidgets():
+                if type(window).__name__ == "MainWindow":
+                    mainWindow = window
+                    break
+
+            # Check all top-level widgets for dialogs
             for window in self._app.topLevelWidgets():
                 if not window.isVisible():
                     continue
@@ -82,11 +114,28 @@ class QtInspector:
                     "className": className,
                     "title": window.windowTitle() or None,
                 }
+
+                # Capture message text if this is a QMessageBox
+                if isinstance(window, QMessageBox):
+                    windowInfo["message"] = window.text() or None
+                    windowInfo["detailedText"] = window.detailedText() or None
+                    windowInfo["informativeText"] = window.informativeText() or None
+                # Capture label text if this is a QDialog
+                elif isinstance(window, QDialog):
+                    labels = window.findChildren(QWidget)
+                    texts = []
+                    for label in labels:
+                        text = self._getTextProperty(label)
+                        if text:
+                            texts.append(text)
+                    if texts:
+                        windowInfo["dialogText"] = " ".join(texts)
+
                 state["visibleWindows"].append(windowInfo)
 
-                # Check for Welcome dialog
-                if className == "Welcome":
-                    state["welcomeDialogVisible"] = True
+                # Check for AccountDialog
+                if className == "AccountDialog":
+                    state["loginState"] = AppLoginState.AccountDialogVisible.value
                     state["visibleDialogs"].append(windowInfo)
                     continue
 
@@ -94,6 +143,80 @@ class QtInspector:
                 if "Dialog" in className or "QMessageBox" in className:
                     state["visibleDialogs"].append(windowInfo)
                     continue
+
+            if mainWindow is None:
+                return {"success": True, "state": state}
+
+            # Check login state
+            if state["loginState"] == AppLoginState.Unknown.value:
+                if hasattr(mainWindow, "session") and mainWindow.session:
+                    if mainWindow.session.isLoggedIn():
+                        state["loginState"] = AppLoginState.LoggedIn.value
+                    else:
+                        state["loginState"] = AppLoginState.NotLoggedIn.value
+
+            # Determine current view (FileManager vs DocumentView)
+            if hasattr(mainWindow, "fileManager") and hasattr(
+                mainWindow, "documentView"
+            ):
+                fileManager = mainWindow.fileManager
+                documentView = mainWindow.documentView
+
+                # Check z-order using QWidget.isVisibleTo() - more reliable than checking positions
+                if fileManager.isVisible() and documentView.isVisible():
+                    # Both visible - check which is on top by comparing positions
+                    # If fileManager is at origin and documentView is off-screen, fileManager is showing
+                    fmPos = fileManager.pos()
+                    dvPos = documentView.pos()
+                    if fmPos.x() == 0 and dvPos.x() > mainWindow.width() / 2:
+                        state["currentView"] = AppView.FileManager.value
+                    else:
+                        state["currentView"] = AppView.DocumentView.value
+                elif fileManager.isVisible():
+                    state["currentView"] = AppView.FileManager.value
+                elif documentView.isVisible():
+                    state["currentView"] = AppView.DocumentView.value
+
+                # Get FileManager tab if showing
+                if state["currentView"] == AppView.FileManager.value:
+                    try:
+                        localFilesShown = fileManager.rootProp("localFilesShown")
+                        state["fileManagerTab"] = (
+                            "local" if localFilesShown else "server"
+                        )
+                    except:
+                        pass
+
+                # Get DocumentView state if showing
+                if state["currentView"] == AppView.DocumentView.value:
+                    # Check if file is loaded
+                    if hasattr(mainWindow, "scene") and mainWindow.scene:
+                        if hasattr(mainWindow.scene, "documentUrl"):
+                            url = mainWindow.scene.documentUrl()
+                            if url and url != "":
+                                state["loadedFileName"] = url
+                        elif hasattr(mainWindow, "document") and mainWindow.document:
+                            state["loadedFileName"] = mainWindow.document.url()
+
+                    # Check current drawer
+                    if (
+                        hasattr(documentView, "currentDrawer")
+                        and documentView.currentDrawer
+                    ):
+                        drawerMap = {
+                            "eventForm": "eventForm",
+                            "caseProps": "caseProps",
+                            "personProps": "personProps",
+                            "emotionProps": "emotionProps",
+                            "layerItemProps": "layerItemProps",
+                        }
+                        # Try to identify the drawer
+                        for attrName, drawerName in drawerMap.items():
+                            if hasattr(documentView, attrName):
+                                drawer = getattr(documentView, attrName)
+                                if drawer == documentView.currentDrawer:
+                                    state["currentDrawer"] = drawerName
+                                    break
 
         except Exception as e:
             log.exception(f"Error in getAppState: {e}")
