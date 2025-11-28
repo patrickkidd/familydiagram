@@ -1236,8 +1236,8 @@ def qtHTTPReply2String(reply: QNetworkReply) -> str:
         verb = "<custom>"
     else:
         verb = None
-    body = reply.readAll().data().decode()
-    if reply.rawHeader(b"Content-Type") == b"application/json":
+    body = bytes(getattr(reply, "_pk_body", b"") or reply.readAll()).decode()
+    if body and reply.rawHeader(b"Content-Type") == b"application/json":
         body = json.dumps(json.loads(body), indent=4)
     message = "\n".join(
         [

@@ -5,7 +5,9 @@ Just implementation of server-side structs and protocols to CRUD them on the ser
 """
 
 import os
-import time, pickle, logging
+import time
+import pickle
+import logging
 import json
 import enum
 import base64
@@ -519,21 +521,20 @@ class Server(QObject):
                 reply.property("pk_finished"),
                 reply.property("pk_server"),
             )
+            # Read body first since QNetworkReply is a sequential QIODevice
+            bdata = reply._pk_body = reply.readAll()
             try:
                 server.checkHTTPReply(reply)
-            except HTTPError as e:
+            except HTTPError:
                 if error:
                     error()
             else:
-                # lazy hack to only read once since QNetworkReply is a
-                # sequential QIODevice
-                bdata = reply._pk_body = reply.readAll()
                 if reply.request().rawHeader(b"Content-Type") == b"application/json":
                     data = json.loads(bytes(bdata).decode("utf-8"))
                 else:
                     try:
                         data = pickle.loads(bdata)
-                    except pickle.UnpicklingError as e:
+                    except pickle.UnpicklingError:
                         data = None
                 if success:
                     success(data)
