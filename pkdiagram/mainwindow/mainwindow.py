@@ -92,6 +92,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
+        self.setObjectName("WainWindow")
 
         if hasattr(Qt, "WA_ContentsMarginsRespectsSafeArea"):
             self.setAttribute(Qt.WA_ContentsMarginsRespectsSafeArea, False)
@@ -179,6 +180,7 @@ class MainWindow(QMainWindow):
 
         self.documentView = DocumentView(self, self.session)
         self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
+        self.documentView.setObjectName("documentView")
         self.view = self.documentView.view
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
         self.view.showToolBarButton.clicked.connect(self.ui.actionHide_ToolBars.trigger)
@@ -194,10 +196,12 @@ class MainWindow(QMainWindow):
 
         self.accountDialog = AccountDialog(self.documentView.qmlEngine(), self)
         self.accountDialog.init()
+        self.accountDialog.setObjectName("accountDialog")
 
         ## File Manager
 
         self.fileManager = FileManager(self.documentView.qmlEngine(), self)
+        self.fileManager.setObjectName("fileManager")
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -216,10 +220,12 @@ class MainWindow(QMainWindow):
         ## Auto-Save Manager
 
         self.autoSaveManager = AutoSaveManager(self)
+        self.autoSaveManager.setObjectName("autoSaveManager")
 
         # Welcome
         self.welcomeDialog = Welcome(self)
         self.welcomeDialog.hidden.connect(self.onWelcomeHidden)
+        self.welcomeDialog.setObjectName("welcomeDialog")
 
         # Analytics
         for action in self.findChildren(QAction):
