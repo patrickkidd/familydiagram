@@ -151,6 +151,7 @@ class SnapshotManager:
 
         # Find the containing QQuickWidget
         from .element_finder import ElementFinder
+
         finder = ElementFinder(self._controller)
         quickWidget = finder.findContainingQuickWidget(item)
 
@@ -426,9 +427,7 @@ class SnapshotManager:
 
         return result
 
-    def _calculateDifference(
-        self, img1: QImage, img2: QImage
-    ) -> tuple[float, QImage]:
+    def _calculateDifference(self, img1: QImage, img2: QImage) -> tuple[float, QImage]:
         """
         Calculate the difference between two images.
 

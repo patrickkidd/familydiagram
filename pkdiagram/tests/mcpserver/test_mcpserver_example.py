@@ -10,7 +10,7 @@ These tests show how to use the in-process testing utilities for:
 For external/MCP-based testing with Claude Code, see mcp-server/.
 
 To run these tests:
-    uv run pytest pkdiagram/tests/mapserver/test_mapserver_example.py -v
+    uv run pytest pkdiagram/tests/mcpserver/test_mcpserver_example.py -v
 
 Note: These tests require a display or the QT_QPA_PLATFORM=offscreen environment variable.
 """
@@ -23,7 +23,8 @@ import pytest
 pytestmark = [
     pytest.mark.slow,
     pytest.mark.skipif(
-        os.environ.get("CI") == "true" and os.environ.get("QT_QPA_PLATFORM") != "offscreen",
+        os.environ.get("CI") == "true"
+        and os.environ.get("QT_QPA_PLATFORM") != "offscreen",
         reason="Requires display or offscreen platform",
     ),
 ]
@@ -39,7 +40,7 @@ class TestAppTestController:
     @pytest.fixture
     def controller(self):
         """Create an AppTestController for testing."""
-        from pkdiagram.mapserver import AppTestController
+        from pkdiagram.mcpserver import AppTestController
 
         controller = AppTestController()
         yield controller
@@ -90,7 +91,7 @@ class TestInputSimulator:
     @pytest.fixture
     def setup(self):
         """Set up controller and input simulator."""
-        from pkdiagram.mapserver import AppTestController, InputSimulator
+        from pkdiagram.mcpserver import AppTestController, InputSimulator
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -122,7 +123,7 @@ class TestSnapshotManager:
     @pytest.fixture
     def setup(self):
         """Set up controller and snapshot manager."""
-        from pkdiagram.mapserver import AppTestController, SnapshotManager
+        from pkdiagram.mcpserver import AppTestController, SnapshotManager
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -196,7 +197,7 @@ class TestElementFinder:
     @pytest.fixture
     def setup(self):
         """Set up controller and element finder."""
-        from pkdiagram.mapserver import AppTestController, ElementFinder
+        from pkdiagram.mcpserver import AppTestController, ElementFinder
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -241,7 +242,7 @@ def example_in_process_testing():
     - Direct Qt object access
     - Precise QML item manipulation
     """
-    from pkdiagram.mapserver import (
+    from pkdiagram.mcpserver import (
         AppTestController,
         InputSimulator,
         SnapshotManager,
@@ -322,7 +323,7 @@ if __name__ == "__main__":
     # Run examples
     print("Testing Utilities Examples")
     print("=" * 50)
-    print("\nIn-process testing: Use pkdiagram.mapserver module")
+    print("\nIn-process testing: Use pkdiagram.mcpserver module")
     print("MCP testing: See mcp-server/ directory")
     print("\nTo run tests:")
-    print("  uv run pytest pkdiagram/tests/mapserver/test_mapserver_example.py -v")
+    print("  uv run pytest pkdiagram/tests/mcpserver/test_mcpserver_example.py -v")

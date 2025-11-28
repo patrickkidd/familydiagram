@@ -3,10 +3,8 @@
     "familydiagram-testing": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "mcp-server", "python", "mcp_server.py"],
-      "env": {
-        "PYTHONPATH": "."
-      }
+      "args": ["run", "--directory", "..", "python", "familydiagram/mcp-server/mcp_server.py"],
+      "env": {}
     }
   }
 }

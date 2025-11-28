@@ -41,9 +41,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mcp.server.fastmcp import FastMCP
 
+import uuid
+from dataclasses import asdict
+from datetime import datetime, timezone
 
 import btcopilot
-from dataclasses import asdict
 from pkdiagram.app import AppConfig
 from pkdiagram.server_types import (
     User,
@@ -52,6 +54,7 @@ from pkdiagram.server_types import (
     Policy,
     Activation,
 )
+import pkdiagram.util as util
 
 
 # Configure logging
@@ -232,14 +235,12 @@ class SandboxManager:
         return env
 
     def _populate_logged_in_data(self) -> None:
-        """Populate sandbox with logged-in session data using subprocess."""
+        """Populate sandbox with logged-in session data."""
         appconfig_dir = self.app_data_dir / "Family Diagram"
         appconfig_dir.mkdir(parents=True, exist_ok=True)
         appconfig_file = appconfig_dir / "cherries"
 
         logger.info("Populating sandbox with logged-in user data")
-
-        sys.path.insert(0, str(Path(__file__).parent.parent / "familydiagram"))
 
         now = datetime.now(timezone.utc)
         session_id = str(uuid.uuid4())
@@ -292,18 +293,24 @@ class SandboxManager:
             ),
         )
 
+        user_dict = asdict(user)
+        # Add machine info to activations (required by session.setData)
+        for license in user_dict["licenses"]:
+            for activation in license["activations"]:
+                activation["machine"] = {"code": util.HARDWARE_UUID, "id": 1}
+
         session_data = {
             "session": {
                 "id": session_id,
                 "token": session_token,
-                "user": asdict(user),
+                "user": user_dict,
             },
-            "users": [asdict(user)],
+            "users": [user_dict],
             "deactivated_versions": [],
         }
 
         appconfig = AppConfig(filePath=str(appconfig_file))
-        appconfig.hardwareUUID = "test_hardware_uuid"
+        appconfig.hardwareUUID = util.HARDWARE_UUID
         appconfig.set("lastSessionData", session_data, pickled=True)
         appconfig.write()
 

@@ -14,7 +14,7 @@ Use Cases:
 For external/MCP-based testing, see the mcp-server/ directory.
 
 Usage:
-    from pkdiagram.mapserver import (
+    from pkdiagram.mcpserver import (
         AppTestController,
         InputSimulator,
         SnapshotManager,

@@ -120,7 +120,7 @@ class AppTestController:
     def _setupTestEnvironment(self, headless: bool):
         """Set up environment variables for testing."""
         # Create temp directory for test data
-        self._tempDir = tempfile.mkdtemp(prefix="mapserver_test_")
+        self._tempDir = tempfile.mkdtemp(prefix="mcpserver_test_")
 
         # Set environment for headless mode
         if headless:
@@ -258,6 +258,7 @@ class AppTestController:
             # Clean up temp directory
             if self._tempDir and os.path.exists(self._tempDir):
                 import shutil
+
                 shutil.rmtree(self._tempDir, ignore_errors=True)
 
             self._initialized = False
@@ -296,7 +297,8 @@ class AppTestController:
             return None
 
         # Search through all QML drawers and views
-        from pkdiagram.mapserver.element_finder import ElementFinder
+        from pkdiagram.mcpserver.element_finder import ElementFinder
+
         finder = ElementFinder(self)
         return finder.findQmlItem(objectName)
 

@@ -204,7 +204,9 @@ class ElementFinder:
                     root = obj.rootObject()
                     if root is not None:
                         roots.append(root)
-                elif hasattr(obj, "qml") and isinstance(getattr(obj, "qml", None), QQuickWidget):
+                elif hasattr(obj, "qml") and isinstance(
+                    getattr(obj, "qml", None), QQuickWidget
+                ):
                     root = obj.qml.rootObject()
                     if root is not None:
                         roots.append(root)
@@ -679,6 +681,7 @@ class ElementFinder:
         Returns:
             The element if found, None if timeout
         """
+
         def check():
             widget = self.findWidget(objectName)
             if widget is not None:
