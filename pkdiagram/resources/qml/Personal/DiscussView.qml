@@ -7,6 +7,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
+import "." 1.0 as Personal
 
 
 Page {
@@ -28,8 +29,11 @@ Page {
     property var discussionsDrawer: discussionsDrawer
     property var discussionList: discussionList
     property var statementsList: statementsList
+    property var pdpSheet: pdpSheet
+    property var pdpBadge: pdpBadge
 
     property var chatMargin: util.QML_MARGINS * 1.5
+    property int pdpCount: 0
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -86,6 +90,20 @@ Page {
                 "speakerType": 'expert'
             });
             statementsList.delayedScrollToBottom()
+        }
+        function onPdpChanged() {
+            var pdp = personal.pdp
+            if (pdp) {
+                var count = 0
+                if (pdp.people) count += pdp.people.length
+                if (pdp.events) count += pdp.events.length
+                if (pdp.pair_bonds) count += pdp.pair_bonds.length
+                root.pdpCount = count
+                pdpSheet.pdp = pdp
+                pdpSheet.updateItems()
+            } else {
+                root.pdpCount = 0
+            }
         }
     }
 
@@ -410,7 +428,60 @@ Page {
 
                 onClicked: inputField.submit()
             }
-            
+
+        }
+    }
+
+    Rectangle {
+        id: pdpBadge
+        visible: root.pdpCount > 0
+        width: 48
+        height: 48
+        radius: 24
+        color: "transparent"
+        border.color: util.QML_ITEM_BORDER_COLOR
+        border.width: 1.5
+        z: 100
+
+        x: parent.width - width - util.QML_MARGINS
+        y: util.QML_MARGINS
+
+        Text {
+            anchors.centerIn: parent
+            text: root.pdpCount.toString()
+            font.pixelSize: 18
+            font.bold: true
+            color: util.QML_TEXT_COLOR
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: pdpSheet.open()
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: util.ANIM_DURATION_MS; easing.type: Easing.InOutQuad }
+        }
+    }
+
+    Personal.PDPSheet {
+        id: pdpSheet
+        parent: Overlay.overlay
+
+        onItemAccepted: function(id) {
+            personal.acceptPDPItem(id)
+            pdpSheet.removeItemById(id)
+        }
+        onItemRejected: function(id) {
+            personal.rejectPDPItem(id)
+            pdpSheet.removeItemById(id)
+        }
+        onAcceptAllClicked: {
+            personal.acceptAllPDPItems()
+            pdpSheet.close()
+        }
+        onFieldChanged: function(id, field, value) {
+            personal.updatePDPItem(id, field, value)
         }
     }
 }

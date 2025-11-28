@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Reset a diagram and load comprehensive PDP test data."""
+"""Reset a diagram and load comprehensive PDP test data.
+
+Creates a multi-generational family diagram with:
+- Existing committed data (positive IDs) including people to be deleted
+- PDP pending items (negative IDs) with family relationships
+- Delete entries for removing existing diagram items
+"""
 
 import os
 import sys
@@ -50,63 +56,146 @@ def reset_diagram(diagram_id: int):
             db.session.delete(d)
         print(f"Deleted {len(discussions)} discussions")
 
-        # Create fresh diagram data with comprehensive PDP
+        # --- Existing committed diagram data (positive IDs) ---
+        # Grandparents generation - some will be marked for deletion
+        grandpa_joe = asdict(Person(id=1, name="Grandpa Joe"))
+        grandma_mary = asdict(Person(id=2, name="Grandma Mary"))
+        grandparents_bond = asdict(PairBond(id=3, person_a=1, person_b=2))
+
+        # Uncle to be deleted
+        uncle_frank = asdict(Person(id=4, name="Uncle Frank", parents=3))
+        uncle_birth = asdict(
+            Event(
+                id=5,
+                kind=EventKind.Birth,
+                person=1,
+                spouse=2,
+                child=4,
+                description="Frank born",
+                dateTime="1955-02-10",
+            )
+        )
+
+        # Event to be deleted (outdated info)
+        outdated_event = asdict(
+            Event(
+                id=6,
+                kind=EventKind.Shift,
+                person=1,
+                description="Outdated event to delete",
+                dateTime="1990-01-01",
+            )
+        )
+
+        existing_people = [grandpa_joe, grandma_mary, uncle_frank]
+        existing_events = [uncle_birth, outdated_event]
+        existing_pair_bonds = [grandparents_bond]
+
+        # --- PDP pending items (negative IDs) ---
+        # Parents generation (children of grandparents)
         pdp = PDP(
             people=[
-                Person(id=-1, name="Alice"),
-                Person(id=-2, name="Bob"),
-                Person(id=-3, name="Charlie", parents=-10),
-                Person(id=-4, name="Diana"),
+                # Dad is child of grandparents
+                Person(id=-1, name="Dad (Tom)", parents=3),
+                # Mom (married into family)
+                Person(id=-2, name="Mom (Susan)"),
+                # Children of Tom & Susan
+                Person(id=-3, name="Alice", parents=-10),
+                Person(id=-4, name="Bob", parents=-10),
+                # Alice's spouse
+                Person(id=-5, name="Dave"),
+                # Alice & Dave's child (grandchild)
+                Person(id=-6, name="Emma", parents=-11),
             ],
             events=[
+                # Dad's birth
                 Event(
-                    id=-5,
+                    id=-20,
                     kind=EventKind.Birth,
+                    person=1,
+                    spouse=2,
                     child=-1,
-                    description="Alice born",
-                    dateTime="1980-03-15",
+                    description="Tom born to Joe & Mary",
+                    dateTime="1960-05-20",
                 ),
+                # Parents' marriage
                 Event(
-                    id=-6,
-                    kind=EventKind.Birth,
-                    child=-2,
-                    description="Bob born",
-                    dateTime="1978-07-22",
-                ),
-                Event(
-                    id=-7,
+                    id=-21,
                     kind=EventKind.Married,
                     person=-1,
                     spouse=-2,
-                    description="Wedding",
-                    dateTime="2005-06-10",
+                    description="Tom & Susan wedding",
+                    dateTime="1985-06-15",
                 ),
+                # Alice's birth
                 Event(
-                    id=-8,
+                    id=-22,
                     kind=EventKind.Birth,
+                    person=-1,
+                    spouse=-2,
                     child=-3,
-                    description="Charlie born",
-                    dateTime="2008-11-03",
+                    description="Alice born",
+                    dateTime="1988-03-12",
                 ),
+                # Bob's birth
                 Event(
-                    id=-9,
+                    id=-23,
+                    kind=EventKind.Birth,
+                    person=-1,
+                    spouse=-2,
+                    child=-4,
+                    description="Bob born",
+                    dateTime="1991-09-05",
+                ),
+                # Alice & Dave marriage
+                Event(
+                    id=-24,
+                    kind=EventKind.Married,
+                    person=-3,
+                    spouse=-5,
+                    description="Alice & Dave wedding",
+                    dateTime="2012-08-18",
+                ),
+                # Emma's birth (grandchild)
+                Event(
+                    id=-25,
+                    kind=EventKind.Birth,
+                    person=-3,
+                    spouse=-5,
+                    child=-6,
+                    description="Emma born",
+                    dateTime="2015-11-30",
+                ),
+                # Life events
+                Event(
+                    id=-26,
                     kind=EventKind.Shift,
                     person=-1,
-                    description="Alice stress event",
-                    dateTime="2020-04-01",
+                    description="Tom job loss",
+                    dateTime="2008-09-15",
+                ),
+                Event(
+                    id=-27,
+                    kind=EventKind.Shift,
+                    person=-3,
+                    description="Alice promotion",
+                    dateTime="2020-03-01",
                 ),
             ],
             pair_bonds=[
+                # Tom & Susan (parents)
                 PairBond(id=-10, person_a=-1, person_b=-2),
+                # Alice & Dave
+                PairBond(id=-11, person_a=-3, person_b=-5),
             ],
         )
 
         diagram_data = DiagramData(
-            people=[],
-            events=[],
-            pair_bonds=[],
+            people=existing_people,
+            events=existing_events,
+            pair_bonds=existing_pair_bonds,
             pdp=pdp,
-            lastItemId=0,
+            lastItemId=10,
         )
 
         diagram.data = pickle.dumps(asdict(diagram_data))
@@ -115,20 +204,46 @@ def reset_diagram(diagram_id: int):
 
         print(f"Reset diagram {diagram_id}")
         print(f"Diagram version: {diagram.version}")
-        print(f"  People: {len(diagram_data.people)}")
-        print(f"  Events: {len(diagram_data.events)}")
-        print(f"  PairBonds: {len(diagram_data.pair_bonds)}")
-        print(f"  PDP People: {len(pdp.people)}")
+        print()
+        print("=== Existing Diagram Data (positive IDs) ===")
+        print(f"  People ({len(diagram_data.people)}):")
+        for p in diagram_data.people:
+            parents_str = f", parents={p.get('parents')}" if p.get("parents") else ""
+            print(f"    id={p['id']}, name={p['name']}{parents_str}")
+        print(f"  Events ({len(diagram_data.events)}):")
+        for e in diagram_data.events:
+            print(
+                f"    id={e['id']}, kind={e['kind']}, date={e.get('dateTime')}, desc={e.get('description')}"
+            )
+        print(f"  PairBonds ({len(diagram_data.pair_bonds)}):")
+        for pb in diagram_data.pair_bonds:
+            print(
+                f"    id={pb['id']}, person_a={pb['person_a']}, person_b={pb['person_b']}"
+            )
+        print()
+        print("=== PDP Pending Items (negative IDs) ===")
+        print(f"  People ({len(pdp.people)}):")
         for p in pdp.people:
-            print(f"    id={p.id}, name={p.name}, parents={p.parents}")
-        print(f"  PDP Events: {len(pdp.events)}")
+            parents_str = f", parents={p.parents}" if p.parents else ""
+            print(f"    id={p.id}, name={p.name}{parents_str}")
+        print(f"  Events ({len(pdp.events)}):")
         for e in pdp.events:
             print(
                 f"    id={e.id}, kind={e.kind.value}, date={e.dateTime}, desc={e.description}"
             )
-        print(f"  PDP PairBonds: {len(pdp.pair_bonds)}")
+        print(f"  PairBonds ({len(pdp.pair_bonds)}):")
         for pb in pdp.pair_bonds:
             print(f"    id={pb.id}, person_a={pb.person_a}, person_b={pb.person_b}")
+        print()
+        print("=== Test Scenarios ===")
+        print(
+            "  - Uncle Frank (id=4): Existing person that can be referenced by PDP items"
+        )
+        print("  - Outdated event (id=6): Existing event demonstrating committed data")
+        print("  - PDP items can be rejected via DiagramData.reject_pdp_item()")
+        print(
+            "  - Multi-generational family: Grandparents -> Parents -> Children -> Grandchild"
+        )
 
 
 if __name__ == "__main__":

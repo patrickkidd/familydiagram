@@ -5,6 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Code / design rules
 
 - keep as much app logic in python as possible. qml javascript is hard to debug
+
+### UI/UX Changes
+
+When modifying QML files, UI components, or any visual elements in the Pro or Personal apps, read and follow the design system in `doc/agents/ui-planner.md` before making changes. This includes the Liquid Glass style guide and existing app patterns.
 - For undoable app verbs, keep with the pattern of a verb method with `undo=False` and then a `def _do_<VERB>` method that does the actual work.
 
 ## Development Commands

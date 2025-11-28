@@ -496,6 +496,83 @@ class Personal(QObject):
                 return asdict(diagramData.pdp)
         return {}
 
+    @pyqtSlot()
+    def acceptAllPDPItems(self):
+        if not self._diagram:
+            return
+
+        diagramData = self._diagram.getDiagramData()
+        if not diagramData.pdp:
+            return
+
+        all_ids = []
+        for person in diagramData.pdp.people:
+            if person.id is not None:
+                all_ids.append(person.id)
+        for event in diagramData.pdp.events:
+            all_ids.append(event.id)
+        for pair_bond in diagramData.pdp.pair_bonds:
+            if pair_bond.id is not None:
+                all_ids.append(pair_bond.id)
+
+        if not all_ids:
+            return
+
+        _log.info(f"Accepting all PDP items: {all_ids}")
+
+        def applyChange(diagramData: DiagramData):
+            diagramData.commit_pdp_items(all_ids)
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
+
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning("Failed to accept all PDP items after retries")
+
+    @pyqtSlot(int, str, "QVariant")
+    def updatePDPItem(self, id: int, field: str, value):
+        if not self._diagram:
+            return
+
+        _log.info(f"Updating PDP item {id}: {field} = {value}")
+
+        def applyChange(diagramData: DiagramData):
+            if not diagramData.pdp:
+                return diagramData
+
+            for event in diagramData.pdp.events:
+                if event.id == id:
+                    if hasattr(event, field):
+                        setattr(event, field, value)
+                    break
+
+            for person in diagramData.pdp.people:
+                if person.id == id:
+                    if hasattr(person, field):
+                        setattr(person, field, value)
+                    break
+
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
+
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to update PDP item {id} after retries")
+
 
 qmlRegisterType(Discussion, "Personal", 1, 0, "Discussion")
 qmlRegisterType(Statement, "Personal", 1, 0, "Statement")

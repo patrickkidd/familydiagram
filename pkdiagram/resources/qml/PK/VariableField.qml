@@ -54,7 +54,7 @@ RowLayout {
                 currentIndex
         }
         KeyNavigation.tab: clearButton
-        KeyNavigation.backtab: root.backTabItem
+        KeyNavigation.backtab: root.backTabItem ? root.backTabItem : null
         onCurrentIndexChanged: {
             if(currentIndex != -1) {                
                 let newValue = root.model[currentIndex].value
@@ -76,7 +76,7 @@ RowLayout {
         Layout.leftMargin: 2
         opacity: valueBox.currentIndex != -1 ? util.CLEAR_BUTTON_OPACITY : 0
         enabled: opacity > 0
-        KeyNavigation.tab: root.tabItem
+        KeyNavigation.tab: root.tabItem ? root.tabItem : null
         KeyNavigation.backtab: valueBox
         onClicked: {
             root.forceActiveFocus()
