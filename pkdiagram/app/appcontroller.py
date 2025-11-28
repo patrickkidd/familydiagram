@@ -114,7 +114,11 @@ class AppController(QObject):
 
         lastSessionData = self.appConfig.get("lastSessionData", pickled=True)
         if lastSessionData and not self.appConfig.wasTamperedWith:
-            self.session.init(sessionData=lastSessionData)
+            try:
+                self.session.init(sessionData=lastSessionData)
+            except (ValueError, KeyError, TypeError) as e:
+                log.exception(f"Failed to load session data, starting fresh: {e}")
+                self.session.init()
         else:
             self.session.init()
 
