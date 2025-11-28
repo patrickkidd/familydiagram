@@ -12,6 +12,8 @@ Drawer {
     property bool showTutorial: true
     property var editingItem: null
     property string editingItemType: ""
+    property bool isInitializingFields: false
+    readonly property bool editOverlayVisible: editOverlay.visible
 
     readonly property bool editingPairBondEvent: editingItemType === "event" && editingItem && [
         util.EventKind.Bonded,
@@ -29,6 +31,14 @@ Drawer {
     signal itemRejected(int id)
     signal acceptAllClicked()
     signal fieldChanged(int id, string field, var value)
+
+    function updateField(field, value) {
+        if (editingItem) {
+            editingItem[field] = value
+            editingItemChanged()
+            fieldChanged(editingItem.id, field, value)
+        }
+    }
 
     edge: Qt.BottomEdge
     width: parent.width
@@ -68,20 +78,20 @@ Drawer {
         itemCount = itemsModel.count
     }
 
-    function findPersonById(id) {
-        if (!pdp || !pdp.people) return null
-        for (var i = 0; i < pdp.people.length; i++) {
-            if (pdp.people[i].id == id) return pdp.people[i]
+    function findItemById(items, id) {
+        if (!items) return null
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].id == id) return items[i]
         }
         return null
     }
 
+    function findPersonById(id) {
+        return findItemById(pdp ? pdp.people : null, id)
+    }
+
     function findEventById(id) {
-        if (!pdp || !pdp.events) return null
-        for (var i = 0; i < pdp.events.length; i++) {
-            if (pdp.events[i].id == id) return pdp.events[i]
-        }
-        return null
+        return findItemById(pdp ? pdp.events : null, id)
     }
 
     function removeItemById(id) {
@@ -130,6 +140,7 @@ Drawer {
     function openEventEditOverlay(eventData) {
         editingItem = eventData
         editingItemType = "event"
+        initEditFields()
         editOverlay.visible = true
     }
 
@@ -141,8 +152,17 @@ Drawer {
 
     function closeEditOverlay() {
         editOverlay.visible = false
-        editingItem = null
-        editingItemType = ""
+    }
+
+    function initEditFields() {
+        if (editingItemType === "event" && editingItem) {
+            isInitializingFields = true
+            editSymptomField.value = editingItem.symptom !== undefined ? editingItem.symptom : null
+            editAnxietyField.value = editingItem.anxiety !== undefined ? editingItem.anxiety : null
+            editFunctioningField.value = editingItem.functioning !== undefined ? editingItem.functioning : null
+            editRelationshipField.value = editingItem.relationship !== undefined ? editingItem.relationship : null
+            isInitializingFields = false
+        }
     }
 
     Timer {
@@ -270,12 +290,7 @@ Drawer {
             Layout.bottomMargin: util.QML_MARGINS
             count: itemsModel.count
             currentIndex: cardStack.currentIndex
-            interactive: true
-            onCurrentIndexChanged: {
-                if (currentIndex !== cardStack.currentIndex) {
-                    cardStack.currentIndex = currentIndex
-                }
-            }
+            interactive: false
 
             delegate: Rectangle {
                 implicitWidth: 8
@@ -286,6 +301,13 @@ Drawer {
 
                 Behavior on opacity {
                     NumberAnimation { duration: 100 }
+                }
+
+                MouseArea {
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    onClicked: cardStack.currentIndex = index
                 }
             }
         }
@@ -436,7 +458,7 @@ Drawer {
                             text: root.editingItem && root.editingItemType === "person" ? (root.editingItem.name || "") : ""
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "person") {
-                                    root.fieldChanged(root.editingItem.id, "name", text)
+                                    root.updateField("name", text)
                                 }
                             }
                         }
@@ -459,7 +481,7 @@ Drawer {
                             text: root.editingItem && root.editingItemType === "person" ? (root.editingItem.last_name || "") : ""
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "person") {
-                                    root.fieldChanged(root.editingItem.id, "last_name", text)
+                                    root.updateField("last_name", text)
                                 }
                             }
                         }
@@ -482,7 +504,7 @@ Drawer {
                             text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.description || "") : ""
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "event") {
-                                    root.fieldChanged(root.editingItem.id, "description", text)
+                                    root.updateField("description", text)
                                 }
                             }
                         }
@@ -563,7 +585,7 @@ Drawer {
                             text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.dateTime || "") : ""
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "event") {
-                                    root.fieldChanged(root.editingItem.id, "dateTime", text)
+                                    root.updateField("dateTime", text)
                                 }
                             }
                         }
@@ -587,7 +609,7 @@ Drawer {
                             text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.endDateTime || "") : ""
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "event") {
-                                    root.fieldChanged(root.editingItem.id, "endDateTime", text)
+                                    root.updateField("endDateTime", text)
                                 }
                             }
                         }
@@ -607,10 +629,9 @@ Drawer {
                         PK.VariableField {
                             id: editSymptomField
                             Layout.fillWidth: true
-                            value: root.editingItem && root.editingItemType === "event" ? root.editingItem.symptom : null
                             onValueChanged: {
-                                if (root.editingItem && root.editingItemType === "event" && value !== root.editingItem.symptom) {
-                                    root.fieldChanged(root.editingItem.id, "symptom", value)
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.symptom) {
+                                    root.updateField("symptom", value)
                                 }
                             }
                         }
@@ -630,10 +651,9 @@ Drawer {
                         PK.VariableField {
                             id: editAnxietyField
                             Layout.fillWidth: true
-                            value: root.editingItem && root.editingItemType === "event" ? root.editingItem.anxiety : null
                             onValueChanged: {
-                                if (root.editingItem && root.editingItemType === "event" && value !== root.editingItem.anxiety) {
-                                    root.fieldChanged(root.editingItem.id, "anxiety", value)
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.anxiety) {
+                                    root.updateField("anxiety", value)
                                 }
                             }
                         }
@@ -653,10 +673,9 @@ Drawer {
                         PK.VariableField {
                             id: editFunctioningField
                             Layout.fillWidth: true
-                            value: root.editingItem && root.editingItemType === "event" ? root.editingItem.functioning : null
                             onValueChanged: {
-                                if (root.editingItem && root.editingItemType === "event" && value !== root.editingItem.functioning) {
-                                    root.fieldChanged(root.editingItem.id, "functioning", value)
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.functioning) {
+                                    root.updateField("functioning", value)
                                 }
                             }
                         }
@@ -676,7 +695,6 @@ Drawer {
                         PK.VariableField {
                             id: editRelationshipField
                             Layout.fillWidth: true
-                            value: root.editingItem && root.editingItemType === "event" ? root.editingItem.relationship : null
                             model: [
                                 { 'name': "Conflict", 'value': 'conflict' },
                                 { 'name': "Distance", 'value': 'distance' },
@@ -691,8 +709,8 @@ Drawer {
                                 { 'name': "Defined Self", 'value': 'defined-self' }
                             ]
                             onValueChanged: {
-                                if (root.editingItem && root.editingItemType === "event" && value !== root.editingItem.relationship) {
-                                    root.fieldChanged(root.editingItem.id, "relationship", value)
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.relationship) {
+                                    root.updateField("relationship", value)
                                 }
                             }
                         }

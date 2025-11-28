@@ -9,7 +9,6 @@ import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
 import "." 1.0 as Personal
 
-
 Page {
 
     id: root
@@ -45,36 +44,31 @@ Page {
     Connections {
         target: personal
         function onDiscussionsChanged() {
-            if(!initSelectedDiscussion) {
+            if (!initSelectedDiscussion) {
                 initSelectedDiscussion = true
-                var lastDiscussion = personal.discussions[personal.discussions.length-1]
-                // print('initSelectedDiscussion: ' + lastDiscussion)
-                if(lastDiscussion !== undefined) {
+                var lastDiscussion = personal.discussions[personal.discussions.length - 1]
+                if (lastDiscussion !== undefined) {
                     personal.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
         function onStatementsChanged() {
-            // print('onStatementsChanged: ' + personal.statements.length + ' statements')
             chatModel.clear()
-            for(var i=0; i < personal.statements.length; i++) {
-                var statement = personal.statements[i];
-                // print('    statement[' + i + '] (' + statement.speaker.type + '):', statement.text)
+            for (var i = 0; i < personal.statements.length; i++) {
+                var statement = personal.statements[i]
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
-            } 
+            }
             statementsList.delayedScrollToBottom()
         }
         function onRequestSent(text) {
-            // print('onRequestSent:', text)
-            chatModel.append({ "text": text, "speakerType": 'subject' });
+            chatModel.append({ "text": text, "speakerType": 'subject' })
         }
         function onResponseReceived(text, added) {
-            // print('onResponseReceived:', text, added)
             chatModel.append({
                 "text": text,
                 "speakerType": 'expert'
-            });
+            })
             statementsList.delayedScrollToBottom()
         }
         function onServerDown() {
@@ -92,6 +86,9 @@ Page {
             statementsList.delayedScrollToBottom()
         }
         function onPdpChanged() {
+            if (pdpSheet.editOverlayVisible) {
+                return
+            }
             var pdp = personal.pdp
             if (pdp) {
                 var count = 0
@@ -260,7 +257,7 @@ Page {
                 Rectangle {
                     id: bubble
                     color: util.QML_ITEM_ALTERNATE_BG
-                    border.color: "#ccc"
+                    border.color: util.QML_ITEM_BORDER_COLOR
                     radius: 8
                     width: Math.min(questionText.implicitWidth + util.QML_MARGINS, statementsList.width - util.QML_MARGINS * 6)
                     implicitHeight: questionText.implicitHeight + 20
