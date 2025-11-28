@@ -268,7 +268,7 @@ class AppController(QObject):
             )
             data = pickle.loads(response.body)
             authUrl = data["url"]
-        except (ValueError, KeyError, pickle.UnpicklingError) as e:
+        except Exception as e:
             log.error(f"Failed to get auth URL: {e}", exc_info=True)
             QMessageBox.critical(
                 None,

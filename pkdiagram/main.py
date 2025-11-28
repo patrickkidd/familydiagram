@@ -49,7 +49,7 @@ def _main_impl():
     import sys  # no idea
 
     # Third-party modules from sysroot
-    import six 
+    import six
     import dateutil.parser
     import xlsxwriter
     import sortedcontainers
@@ -95,26 +95,27 @@ def _main_impl():
         help="Force an exception to test error logging to startup_errors.txt",
         default=False,
     )
-    parser.add_option(
-        "--test-server",
-        dest="test_server",
-        action="store_true",
-        help="Start the Qt test bridge server for MCP integration",
-        default=False,
-    )
-    parser.add_option(
-        "--test-server-port",
-        dest="test_server_port",
-        type="int",
-        help="Port for the test bridge server (default: 9876)",
-        default=9876,
-    )
-    parser.add_option(
-        "--open-file",
-        dest="open_file",
-        help="Path to .fd file to open at startup",
-        default=None,
-    )
+    if util.IS_DEV:
+        parser.add_option(
+            "--test-server",
+            dest="test_server",
+            action="store_true",
+            help="Start the Qt test bridge server for MCP integration",
+            default=False,
+        )
+        parser.add_option(
+            "--test-server-port",
+            dest="test_server_port",
+            type="int",
+            help="Port for the test bridge server (default: 9876)",
+            default=9876,
+        )
+        parser.add_option(
+            "--open-file",
+            dest="open_file",
+            help="Path to .fd file to open at startup",
+            default=None,
+        )
     options, args = parser.parse_args(sys.argv)
 
     if util.IS_IOS:
@@ -175,8 +176,9 @@ def _main_impl():
 
         # Start test bridge server if requested
         testBridgeServer = None
-        if options.test_server:
+        if util.IS_DEV and options.test_server:
             from pkdiagram.tests.mcpbridge.server import TestBridgeServer
+
             testBridgeServer = TestBridgeServer(port=options.test_server_port)
             testBridgeServer.start()
             _log.info(f"Test bridge server started on port {options.test_server_port}")
@@ -210,15 +212,17 @@ def _main_impl():
 
         # Start test bridge server if requested
         testBridgeServer = None
-        if options.test_server:
+        if util.IS_DEV and options.test_server:
             from pkdiagram.tests.mcpbridge.server import TestBridgeServer
+
             testBridgeServer = TestBridgeServer(port=options.test_server_port)
             testBridgeServer.start()
             _log.info(f"Test bridge server started on port {options.test_server_port}")
 
         # Open file at startup if specified (scheduled after event loop starts)
-        if options.open_file:
+        if util.IS_DEV and options.open_file:
             from pkdiagram.pyqt import QTimer
+
             _log.info(f"Will open file at startup: {options.open_file}")
             QTimer.singleShot(100, lambda: mainWindow.open(filePath=options.open_file))
 
