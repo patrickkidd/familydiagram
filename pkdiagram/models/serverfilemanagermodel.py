@@ -546,12 +546,11 @@ class ServerFileManagerModel(FileManagerModel):
                 )
                 self.dataChanged.emit(index, index, [role])
             else:
-                if not success:
-                    QMessageBox.warning(
-                        None,
-                        "Save Failed After Retries",
-                        "Could not save diagram after 3 attempts due to concurrent modifications. Please try again.",
-                    )
+                QMessageBox.warning(
+                    None,
+                    "Save Failed After Retries",
+                    "Could not save diagram after 3 attempts due to concurrent modifications. Please try again.",
+                )
 
             return success
         elif role == self.ModifiedRole:

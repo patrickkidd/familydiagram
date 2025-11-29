@@ -365,21 +365,6 @@ class Personal(QObject):
             cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
             self._undoStack.push(cmd)
 
-        if item:
-            if isinstance(item, Person):
-                text = item.name or "<blank>"
-            elif isinstance(item, Event):
-                text = item.description or "<blank>"
-            else:
-                text = "<blank type>"
-            # self.pdpItemAdded.emit(
-            #     {
-            #         "id": id,
-            #         "text": text,
-            #         "kind": "Person" if isinstance(item, Person) else "Event",
-            #     }
-            # )
-
         return True
 
     @pyqtSlot(int, result=bool)
@@ -395,21 +380,6 @@ class Personal(QObject):
         if undo:
             cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
             self._undoStack.push(cmd)
-
-        if item:
-            if isinstance(item, Person):
-                text = item.name or "<blank>"
-            elif isinstance(item, Event):
-                text = item.description or "<blank>"
-            else:
-                text = "<blank type>"
-            # self.pdpItemRemoved.emit(
-            #     {
-            #         "id": id,
-            #         "text": text,
-            #         "kind": "Person" if isinstance(item, Person) else "Event",
-            #     }
-            # )
 
         return True
 

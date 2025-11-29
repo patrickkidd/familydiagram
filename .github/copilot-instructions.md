@@ -1,0 +1,3 @@
+- Read through ./CLAUDE.md for code architecture
+- Ignore unused imports
+- The priority for all PR's is to keep the pro app working in production. Read ./CLAUDE.md for architeture to infer the implications of a PR's changes.
