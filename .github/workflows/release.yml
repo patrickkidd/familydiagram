@@ -293,7 +293,7 @@ jobs:
     needs: [build-osx]
     strategy:
       matrix:
-        os: [macos-13, macos-14, macos-15]
+        os: [macos-14, macos-15]
     steps:
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4

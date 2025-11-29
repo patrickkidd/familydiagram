@@ -756,9 +756,6 @@ def update_data(data):
                 )
                 event_chunk["kind"] = EventKind.Shift.value
 
-    ## Add more version fixes here
-    # if UP_TO(data, ....)
-
     if UP_TO(data, "2.0.11b1"):
         # Convert childOf nested structure to simple parents ID
         for person_chunk in data.get("people", []):
@@ -774,9 +771,13 @@ def update_data(data):
             if "last_name" in person_chunk:
                 person_chunk["lastName"] = person_chunk.pop("last_name")
 
-        # Rename marriages to pair_bonds
+        # Rename marriages to pair_bonds - runs unconditionally since UP_TO 2.0.12b1
+        # populates data["marriages"] from items array, and this must run after that
         if "marriages" in data and "pair_bonds" not in data:
             data["pair_bonds"] = data.pop("marriages")
+
+    ## Add more version fixes here
+    # if UP_TO(data, ....)
 
 
 def update_scene(scene, data):
