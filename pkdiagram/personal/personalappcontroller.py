@@ -1,6 +1,7 @@
-import logging
-from typing import Callable
 import base64
+import logging
+import pickle
+from typing import Callable
 
 from btcopilot.schema import Person, Event, DiagramData
 from _pkdiagram import CUtil
@@ -159,15 +160,17 @@ class PersonalAppController(QObject):
             return
 
         def onSuccess(data):
-            data["data"] = base64.b64decode(data["data"])
+            raw_data = base64.b64decode(data["data"])
+            data["data"] = raw_data
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
             assert self.scene is None
+            scene_data = pickle.loads(raw_data)
             scene = Scene()
-            scene.read(data)
+            scene.read(scene_data)
             self.setScene(scene)
 
         reply = self.session.server().nonBlockingRequest(
