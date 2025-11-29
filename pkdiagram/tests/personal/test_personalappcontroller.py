@@ -4,11 +4,17 @@ from datetime import datetime
 
 import pytest
 from mock import patch
-from pkdiagram.pyqt import QApplication
+from pkdiagram.pyqt import QQmlApplicationEngine
 
 from pkdiagram.app import Session
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.models import Diagram, Discussion, Statement
+from pkdiagram.personal.models import (
+    Diagram,
+    Discussion,
+    Statement,
+    Speaker,
+    SpeakerType,
+)
 from pkdiagram import util
 
 from btcopilot.extensions import db
@@ -31,22 +37,40 @@ def discussion(test_user):
 
 
 @pytest.fixture
-def personalApp(test_session):
+def personalApp(qApp, test_session):
     _personalApp = PersonalAppController()
-    _personalApp.appConfig.init()
+    engine = QQmlApplicationEngine()
+
+    qmlErrors = []
+    engine.warnings.connect(lambda errors: qmlErrors.extend(errors))
+
+    engine.addImportPath("resources:")
+    _personalApp.init(engine)
     _personalApp.session.init(
         sessionData=test_session.account_editor_dict(), syncWithServer=False
     )
+    engine.load("resources:qml/PersonalApplication.qml")
+
+    from pkdiagram.pyqt import QApplication
+
+    QApplication.processEvents()
+    util.waitALittle()
+
+    if qmlErrors:
+        pytest.fail(f"QML load errors: {[e.toString() for e in qmlErrors]}")
+    if not engine.rootObjects():
+        pytest.fail("QML failed to load - rootObjects() is empty")
 
     yield _personalApp
+
+    engine.clearComponentCache()
 
 
 def test_refreshDiagram(
     flask_app, test_user, discussion, personalApp: PersonalAppController
 ):
-    discussionsChanged = util.Condition(personalApp.discussionsChanged)
-    personalApp._refreshDiagram()
-    assert discussionsChanged.wait() == True
+    # _refreshDiagram is already called by fixture via session.init -> onSessionChanged
+    # Just verify the result
     assert set(x.id for x in personalApp.discussions) == {discussion.id}
 
 
@@ -55,7 +79,8 @@ def test_sendStatement(
     server_error, test_user, discussion, personalApp: PersonalAppController, success
 ):
 
-    from btcopilot.controller.chat import Response, PDP
+    from btcopilot.personal.chat import Response
+    from btcopilot.schema import PDP
 
     RESPONSE = Response(statement="some response", pdp=PDP())
 
@@ -66,7 +91,7 @@ def test_sendStatement(
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
-            patch("btcopilot.controller.routes.discussions.ask", return_value=RESPONSE)
+            patch("btcopilot.personal.routes.discussions.ask", return_value=RESPONSE)
         )
         stack.enter_context(
             patch.object(
@@ -75,7 +100,16 @@ def test_sendStatement(
                 Discussion(
                     id=discussion.id,
                     user_id=test_user.id,
-                    statements=[Statement(text="blah")],
+                    diagram_id=test_user.free_diagram_id,
+                    statements=[
+                        Statement(
+                            id=1,
+                            text="blah",
+                            speaker=Speaker(
+                                id=1, person_id=1, name="Test", type=SpeakerType.Subject
+                            ),
+                        )
+                    ],
                 ),
             )
         )

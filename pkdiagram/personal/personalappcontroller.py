@@ -3,7 +3,8 @@ import logging
 import pickle
 from typing import Callable
 
-from btcopilot.schema import Person, Event, DiagramData
+from btcopilot.schema import Person, Event, DiagramData, asdict
+from pkdiagram.personal.commands import HandlePDPItem, PDPAction
 from _pkdiagram import CUtil
 from pkdiagram import pepper
 from pkdiagram.app import AppConfig

@@ -8,6 +8,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
 import "." 1.0 as Personal
+import ".." 1.0 as Root
 
 Page {
 
@@ -57,8 +58,8 @@ Page {
         }
         function onStatementsChanged() {
             chatModel.clear()
-            for (var i = 0; i < personal.statements.length; i++) {
-                var statement = personal.statements[i]
+            for (var i = 0; i < personalApp.statements.length; i++) {
+                var statement = personalApp.statements[i]
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
             }
@@ -92,7 +93,7 @@ Page {
             if (pdpSheet.editOverlayVisible) {
                 return
             }
-            var pdp = personal.pdp
+            var pdp = personalApp.pdp
             if (pdp) {
                 var count = 0
                 if (pdp.people) count += pdp.people.length
@@ -195,7 +196,7 @@ Page {
             NumberAnimation { property: "y"; from: 0; to: parent.height; duration: 250; easing.type: Easing.InQuad }
         }
 
-        EventForm {
+        Root.EventForm {
             id: eventForm
             anchors.fill: parent
             onCancel: eventDrawer.close()
@@ -520,19 +521,19 @@ Page {
         parent: Overlay.overlay
 
         onItemAccepted: function(id) {
-            personal.acceptPDPItem(id)
+            personalApp.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onItemRejected: function(id) {
-            personal.rejectPDPItem(id)
+            personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onAcceptAllClicked: {
-            personal.acceptAllPDPItems()
+            personalApp.acceptAllPDPItems()
             pdpSheet.close()
         }
         onFieldChanged: function(id, field, value) {
-            personal.updatePDPItem(id, field, value)
+            personalApp.updatePDPItem(id, field, value)
         }
     }
 }
