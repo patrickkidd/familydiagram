@@ -3,19 +3,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      release_notes:
-        description: "Enter release notes for appcast (multi-line supported)"
-        required: false
-        type: string
       skip_release:
         description: "Skip the release stage (only build)"
         required: false
         type: boolean
         default: false
 
-  # push:
-  #   branches:
-  #     - master
+  push:
+    branches-ignore:
+      - master
+      - release
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
@@ -28,8 +25,6 @@ env:
   FD_BUILD_PRIVATE_KEY_FPATH: ${{ github.workspace }}/build/osx/Release/FD_certificate.pem
   FD_BUILD_AC_AUTH_KEY_FPATH: ${{ github.workspace }}/build/osx/Release/AuthKey_${{ secrets.FD_BUILD_AC_AUTH_KEY_ID }}.p8
   FD_APP_PATH: ${{ github.workspace }}/build/osx/Release/Family\ Diagram.app
-  FD_BUILD_APPLE_ID: "${{ secrets.FD_BUILD_APPLE_ID }}"
-  FD_BUILD_APPLE_ID_PASSWORD: "${{ secrets.FD_BUILD_APPLE_ID_PASSWORD }}"
   FD_BUILD_PROVISIONING_PROFILE_BASE64: "${{ secrets.FD_BUILD_PROVISIONING_PROFILE_BASE64 }}"
   FD_BUILD_CERTIFICATE_BASE64: "${{ secrets.FD_BUILD_CERTIFICATE_BASE64 }}"
   FD_BUILD_PRIVATE_KEY_BASE64: "${{ secrets.FD_BUILD_PRIVATE_KEY_BASE64 }}"
@@ -46,6 +41,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.get-version.outputs.version }}
+      is_prerelease: ${{ steps.get-version.outputs.is_prerelease }}
+      changelog_html: ${{ steps.get-changelog.outputs.changelog_html }}
     steps:
 
     - uses: actions/checkout@v4
@@ -53,7 +50,28 @@ jobs:
     - name: Get Version
       id: get-version
       run: |
-        echo "version=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`" >> $GITHUB_OUTPUT
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        IS_PRERELEASE=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print('true' if version.IS_ALPHA_BETA else 'false')"`
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
+
+    - name: Get Changelog
+      id: get-changelog
+      run: |
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        CHANGELOG_HTML=`python bin/extract_changelog.py ${VERSION}`
+        echo "changelog_html<<EOF" >> $GITHUB_OUTPUT
+        echo "${CHANGELOG_HTML}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Validate Changelog Entry
+      run: |
+        VERSION=`python -c "import sys; sys.path.insert(0, './pkdiagram'); import version; print(version.VERSION)"`
+        if ! grep -q "^## ${VERSION}" CHANGELOG.md; then
+          echo "ERROR: No changelog entry found for version ${VERSION}"
+          echo "Please add a section to CHANGELOG.md with: ## ${VERSION}"
+          exit 1
+        fi
 
   build-osx:
     # x86 w/ python-3.12.5
@@ -156,7 +174,11 @@ jobs:
       run: |
         export PATH="`pwd`/sysroot/sysroot-macos-64/Qt/bin:${PATH}"
         cd build/osx
-        qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta
+        if [ "${{ needs.setup.outputs.is_prerelease }}" = "true" ]; then
+          qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release CONFIG+=beta
+        else
+          qmake -spec macx-xcode CONFIG+=no_autoqmake CONFIG-=debug CONFIG+=release
+        fi
 
     - name: Setup provisioning profile
       run: |
@@ -271,7 +293,7 @@ jobs:
     needs: [build-osx]
     strategy:
       matrix:
-        os: [macos-13, macos-14, macos-15]
+        os: [macos-14, macos-15]
     steps:
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
@@ -523,7 +545,11 @@ jobs:
         run: |
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
-          qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+          if "${{ needs.setup.outputs.is_prerelease }}" == "true" (
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+          ) else (
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
+          )
         shell: cmd # has to be shell or qmake won't work
   
       - name: Build
@@ -614,7 +640,7 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     needs: [setup, test-macos, test-windows]
-    if: ${{ !inputs.skip_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_release }}
     permissions:
       contents: write
     steps:
@@ -630,8 +656,8 @@ jobs:
         tag_name: ${{ needs.setup.outputs.version }}
         release_name: ${{ needs.setup.outputs.version }}
         draft: false
-        prerelease: true
-        body: ${{ github.event.inputs.release_notes }}
+        prerelease: ${{ needs.setup.outputs.is_prerelease }}
+        body: ${{ needs.setup.outputs.changelog_html }}
 
     - name: Upload macOS Build
       uses: actions/upload-release-asset@v1
@@ -658,7 +684,7 @@ jobs:
   update-appcast:
     runs-on: ubuntu-24.04
     needs: publish
-    if: ${{ !inputs.skip_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_release }}
       
     steps:
 

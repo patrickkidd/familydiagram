@@ -420,14 +420,6 @@ class Session(QObject, QObjectHelper):
     def error(self, etype, value, tb):
         import traceback
         from pkdiagram.app import DatadogLog
-        from pkdiagram.extensions import AccumulativeLogHandler
-
-        log_txt = None
-        for handler in logging.getLogger().handlers:
-            if isinstance(handler, AccumulativeLogHandler):
-                handler.flush()
-                log_txt = handler.read()
-                break
 
         self._analytics.send(
             DatadogLog(
@@ -435,11 +427,10 @@ class Session(QObject, QObjectHelper):
                 time=time.time(),
                 user=self._user,
                 status=DatadogLogStatus.Error,
-                log_txt=log_txt,
             )
         )
 
-    def track(self, eventName: str, properties=None):
+    def track(self, eventName: str, properties=None, level=logging.INFO):
         """
         The typical entrypoint for analytics is from a session, includes the
         username and that user's session. Tracking without a session is handled
@@ -457,9 +448,27 @@ class Session(QObject, QObjectHelper):
                 fdtype=DatadogFDType.Action,
                 message=eventName,
                 user=properties.get("user", self._user),
-                status=DatadogLogStatus.Info,
+                status=DatadogLogStatus.from_python_level(level),
                 session_id=session_id,
                 time=time.time(),
+            )
+        )
+
+    def log(self, msg: str, level=logging.INFO, extras: dict = None):
+        if not self._analytics:
+            # log.warning("Analytics not initialized on Session object.")
+            return
+
+        session_id = self._data["session"]["id"] if self._data else None
+        self._analytics.send(
+            DatadogLog(
+                fdtype=DatadogFDType.Log,
+                message=msg,
+                time=time.time(),
+                user=self._user,
+                status=DatadogLogStatus.from_python_level(level),
+                session_id=session_id,
+                extras=extras,
             )
         )
 

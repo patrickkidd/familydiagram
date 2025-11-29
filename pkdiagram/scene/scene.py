@@ -1,46 +1,48 @@
-import os, sys, re, logging
 import contextlib
-from typing import Union
+import logging
+import math
+import os
+import re
 import shutil
-import pprint
+import sys
+import time
+from typing import Union
 
 from btcopilot.schema import EventKind, RelationshipKind
+from pkdiagram import slugify, util, version
 from pkdiagram.pyqt import (
-    pyqtSlot,
-    pyqtSignal,
-    pyqtProperty,
-    Qt,
-    QDateTime,
-    QElapsedTimer,
-    QPen,
-    QGraphicsTextItem,
-    QGraphicsRectItem,
-    QMarginsF,
-    QRectF,
-    QColor,
-    QGraphicsScene,
-    QGraphicsObject,
-    QGraphicsItem,
-    QEvent,
-    QGraphicsSimpleTextItem,
-    QGraphicsLineItem,
-    QGraphicsPathItem,
-    QGraphicsTextItem,
-    QGraphicsRectItem,
-    QParallelAnimationGroup,
-    QPointF,
-    QApplePencilEvent,
-    QCursor,
-    QPoint,
-    QLineF,
     QAbstractAnimation,
     QApplication,
-    QMessageBox,
+    QApplePencilEvent,
+    QColor,
+    QCursor,
+    QDateTime,
+    QElapsedTimer,
+    QEvent,
     QFileInfo,
-    QUndoStack,
+    QGraphicsItem,
+    QGraphicsLineItem,
+    QGraphicsObject,
+    QGraphicsPathItem,
+    QGraphicsRectItem,
+    QGraphicsScene,
+    QGraphicsSimpleTextItem,
+    QGraphicsTextItem,
+    QLineF,
+    QMarginsF,
+    QMessageBox,
+    QParallelAnimationGroup,
+    QPoint,
+    QPointF,
+    QPen,
+    QRectF,
+    Qt,
     QUndoCommand,
+    QUndoStack,
+    pyqtProperty,
+    pyqtSignal,
+    pyqtSlot,
 )
-from pkdiagram import version, util, version, slugify
 from pkdiagram.scene import (
     EmotionalUnit,
     Property,
@@ -77,11 +79,7 @@ from pkdiagram.scene.commands import (
 AUTO_PENCIL_MODE = True
 MOUSE_PRESSURE = 0.2
 
-
 log = logging.getLogger(__name__)
-
-
-import math, time
 
 
 def mousePressure():
@@ -913,7 +911,7 @@ class Scene(QGraphicsScene, Item):
         for chunk in (
             data.get("events", [])
             + data.get("people", [])
-            + data.get("marriages", [])
+            + data.get("pair_bonds", [])
             + data.get("emotions", [])
             + data.get("multipleBirths", [])
             + data.get("layers", [])
@@ -989,7 +987,8 @@ class Scene(QGraphicsScene, Item):
         # TODO: copy this forward, sort of like future items...
         self.lastLoadData = dict(((p.name(), p.get()) for p in self.props))
         self.lastLoadData["name"] = data.get("name")
-        try:
+
+        with self.initializing():
             compat.update_data(data)
             self._pruned = data.get("pruned", []) + self.prune(data)
             super().read(data, None)
@@ -1012,8 +1011,8 @@ class Scene(QGraphicsScene, Item):
                 items.append(item)
                 itemChunks.append((item, chunk))
 
-            # Load marriages
-            for chunk in data.get("marriages", []):
+            # Load marriages (pair_bonds)
+            for chunk in data.get("pair_bonds", []):
                 item = Marriage()
                 item.id = chunk["id"]
                 items.append(item)
@@ -1137,13 +1136,18 @@ class Scene(QGraphicsScene, Item):
                         layer.prop("storeGeometry").set(True, notify=False)
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
-        except Exception as e:
-            import traceback
 
-            traceback.print_exc()
-            return "This file is currupt and cannot be opened"
-        finally:
-            self.isInitializing = False
+    @contextlib.contextmanager
+    def initializing(self):
+        self._isInitializing = True
+        exception = None
+        try:
+            yield
+        except Exception as e:
+            exception = e
+        self._isInitializing = False
+        if exception:
+            raise exception
 
     def write(self, data, selectionOnly=False):
         super().write(data)
@@ -1154,7 +1158,7 @@ class Scene(QGraphicsScene, Item):
 
         # Initialize typed arrays
         data["people"] = []
-        data["marriages"] = []
+        data["pair_bonds"] = []
         data["emotions"] = []
         data["events"] = []
         data["layers"] = []
@@ -1186,7 +1190,7 @@ class Scene(QGraphicsScene, Item):
             elif item.isMarriage:
                 chunk["kind"] = "Marriage"
                 item.write(chunk)
-                data["marriages"].append(chunk)
+                data["pair_bonds"].append(chunk)
             elif item.isEmotion:
                 chunk["kind"] = item.kind()
                 item.write(chunk)
@@ -1850,7 +1854,7 @@ class Scene(QGraphicsScene, Item):
                 and x.kind().isPairBond()
             ]
         else:
-            raise TypeError("item must be Person or Marriage")
+            raise TypeError(f"item must be Person or Marriage, not {item}")
 
         if kinds is not None:
             if isinstance(kinds, list):

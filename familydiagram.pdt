@@ -180,6 +180,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "autosavemanager.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "filemanager.py"
 included = true
 is_directory = false
@@ -1599,16 +1604,6 @@ name = "data"
 included = false
 is_directory = true
 [[Application.Package.Content.Content.Content]]
-name = "blow-up-itemdetails.fd"
-included = false
-is_directory = true
-[[Application.Package.Content.Content.Content.Content]]
-name = "diagram.pickle"
-included = false
-is_directory = false
-
-
-[[Application.Package.Content.Content.Content]]
 name = "cherries_1x"
 included = false
 is_directory = false
@@ -1629,7 +1624,7 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "mod_test.fd"
+name = "stale-refs.fd"
 included = false
 is_directory = true
 [[Application.Package.Content.Content.Content.Content]]
@@ -1639,14 +1634,9 @@ is_directory = false
 
 
 [[Application.Package.Content.Content.Content]]
-name = "stale-refs.fd"
-included = false
-is_directory = true
-[[Application.Package.Content.Content.Content.Content]]
-name = "diagram.pickle"
+name = "test_changelog.md"
 included = false
 is_directory = false
-
 
 [[Application.Package.Content.Content.Content]]
 name = "v114a7_simplefamily.pickle"
@@ -1665,6 +1655,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "test_appcontroller.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_autosave.py"
 included = false
 is_directory = false
 
@@ -1934,6 +1929,11 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "test_itemmode.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "test_layeritems.py"
 included = false
 is_directory = false
@@ -2041,6 +2041,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "test_extensions.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "test_extract_changelog.py"
 included = false
 is_directory = false
 

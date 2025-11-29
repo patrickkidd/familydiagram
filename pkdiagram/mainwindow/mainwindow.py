@@ -56,7 +56,7 @@ from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
 from pkdiagram.documentview import DocumentView
-from pkdiagram.mainwindow import FileManager, Preferences, Welcome
+from pkdiagram.mainwindow import FileManager, Preferences, Welcome, AutoSaveManager
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 
 
@@ -92,6 +92,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
+        self.setObjectName("WainWindow")
 
         if hasattr(Qt, "WA_ContentsMarginsRespectsSafeArea"):
             self.setAttribute(Qt.WA_ContentsMarginsRespectsSafeArea, False)
@@ -179,6 +180,7 @@ class MainWindow(QMainWindow):
 
         self.documentView = DocumentView(self, self.session)
         self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
+        self.documentView.setObjectName("documentView")
         self.view = self.documentView.view
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
         self.view.showToolBarButton.clicked.connect(self.ui.actionHide_ToolBars.trigger)
@@ -194,10 +196,12 @@ class MainWindow(QMainWindow):
 
         self.accountDialog = AccountDialog(self.documentView.qmlEngine(), self)
         self.accountDialog.init()
+        self.accountDialog.setObjectName("accountDialog")
 
         ## File Manager
 
         self.fileManager = FileManager(self.documentView.qmlEngine(), self)
+        self.fileManager.setObjectName("fileManager")
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -209,13 +213,22 @@ class MainWindow(QMainWindow):
         self.fileManager.serverFileModel.dataChanged.connect(
             self.onServerFileModelDataChanged
         )
+        self.fileManager.serverFileModel.reloadDiagramRequested[str, Diagram].connect(
+            self.onServerFileClicked
+        )
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
 
+        ## Auto-Save Manager
+
+        self.autoSaveManager = AutoSaveManager(self)
+        self.autoSaveManager.setObjectName("autoSaveManager")
+
         # Welcome
         self.welcomeDialog = Welcome(self)
         self.welcomeDialog.hidden.connect(self.onWelcomeHidden)
+        self.welcomeDialog.setObjectName("welcomeDialog")
 
         # Analytics
         for action in self.findChildren(QAction):
@@ -252,6 +265,7 @@ class MainWindow(QMainWindow):
         self.ui.actionAbout.triggered.connect(self.showAbout)
         self.ui.actionView_Diagram.triggered.connect(self.showDiagram)
         self.ui.actionDocuments_Folder.triggered.connect(self.openDocumentsFolder)
+        self.ui.actionAutosave_Folder.triggered.connect(self.openAutosaveFolder)
         # Edit
         self.ui.actionCopy.triggered.connect(self.onCopy)
         self.ui.actionCut.triggered.connect(self.onCut)
@@ -490,25 +504,9 @@ class MainWindow(QMainWindow):
             model = self.fileManager.serverFileModel
             loadedRow = model.rowForDiagramId(diagram.id)
             if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
-                if not self.prefs.value(
-                    "dontShowServerFileUpdated", type=bool, defaultValue=False
-                ):
-                    box = QMessageBox(
-                        QMessageBox.Information,
-                        "Diagram updated from server",
-                        self.S_DIAGRAM_UPDATED_FROM_SERVER,
-                        QMessageBox.Ok,
-                    )
-                    cb = QCheckBox(
-                        "Don't show this any more."
-                    )  # segfault on accessing box.checkBox()
-                    box.setCheckBox(cb)
-                    box.exec()
-                    self.prefs.setValue("dontShowServerFileUpdated", cb.isChecked())
-                filePath = self.serverFileModel.localPathForID(diagram.id)
-                self.documentView.setReloadingCurrentDiagram(True)
-                self.onServerFileClicked(filePath, diagram)
-                self.documentView.setReloadingCurrentDiagram(False)
+                updatedDiagram = model.diagramForRow(loadedRow)
+                fpath = model.localPathForID(diagram.id)
+                model.handleDiagramConflict(updatedDiagram, updatedDiagram.data, fpath)
 
     def onShowUndoView(self, on):
         if on:
@@ -864,6 +862,8 @@ class MainWindow(QMainWindow):
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
+        # Document load is now complete for server diagrams
+        self._onDocumentLoadComplete()
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
         # def doOpen():
@@ -923,9 +923,10 @@ class MainWindow(QMainWindow):
                         newScene = Scene()
                         bdata = f.read()
                         data = pickle.loads(bdata)
-                        ret = newScene.read(data)
-                        if ret:
-                            self.onOpenFileError(ret)
+                        try:
+                            newScene.read(data)
+                        except Exception as e:
+                            self.onOpenFileError(e)
 
                         if self.session.hasFeature(btcopilot.LICENSE_FREE):
 
@@ -988,8 +989,14 @@ class MainWindow(QMainWindow):
                 else:
                     self.open(filePath=lastFileReadPath)
 
-    def onOpenFileError(self, x):
-        QMessageBox.warning(self, "Error opening file", x)
+    def onOpenFileError(self, etype, value, tb):
+        QMessageBox.warning(
+            self,
+            "Error opening file",
+            f"This file is corrupted and cannot be opened\n\n{value}",
+        )
+        self.session.error(etype, value, tb)
+        log.error("Error opening file", exc_info=(etype, value, tb))
 
     def setDocument(self, document):
         """Called from CUtil.openExistingFile() async open."""
@@ -1039,30 +1046,32 @@ class MainWindow(QMainWindow):
 
             newScene = Scene(document=document)
 
-            ret = None
+            data = None
+            etype, value, tb = None, None, None
             if bdata:
-
                 try:
                     data = pickle.loads(bdata)
-                except:
-                    ret = "This file is currupt and cannot be opened"
-                    import traceback
-
-                    traceback.print_exc()
+                except Exception as e:
+                    etype, value, tb = sys.exc_info()
             else:
                 data = {}
 
-            if not ret:
-                ret = newScene.read(data)
-                if readOnly is not None:
-                    newScene.setReadOnly(readOnly)
+            if etype is None:
+                try:
+                    newScene.read(data)
+                except Exception as e:
+                    etype, value, tb = sys.exc_info()
+                finally:
+                    pass
 
-            # Error loading scene
-            if ret:
-                self.onOpenFileError(ret)
+            if etype is not None:
+                self.onOpenFileError(etype, value, tb)
                 self.fileManager.setEnabled(True)
                 self._isOpeningDiagram = False
                 return
+
+            if readOnly is not None:
+                newScene.setReadOnly(readOnly)
 
             #
             # if not newScene.activeLayers():
@@ -1173,8 +1182,6 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
-            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
-            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -1231,6 +1238,10 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
+            # For local files, document load is complete now
+            # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
+            if not self._isOpeningServerDiagram:
+                self._onDocumentLoadComplete()
         else:
             self.ui.actionSave.setEnabled(False)
             self.ui.actionSave_As.setEnabled(False)
@@ -1238,11 +1249,27 @@ class MainWindow(QMainWindow):
             self.ui.actionImport_Diagram.setEnabled(False)
             self.ui.actionClose.setEnabled(False)
             self.serverPollTimer.stop()
+            # Stop auto-save when no document
+            self.autoSaveManager.setDocument(None, None)
         self.updateWindowTitle()
         self.documentView.controller.updateActions()
         if oldDoc or newDoc:
             self.documentChanged.emit(oldDoc, newDoc)
         self._isOpeningDiagram = False
+
+    def _onDocumentLoadComplete(self):
+        """
+        Called when document loading is fully complete.
+
+        For local files: called at the end of setDocument()
+        For server diagrams: called in onServerFileClicked() after setServerDiagram()
+        """
+        if self.document and self.scene:
+            autoSaveEnabled = self.prefs.value(
+                "autoSaveEnabled", defaultValue=True, type=bool
+            )
+            if autoSaveEnabled:
+                self.autoSaveManager.setDocument(self.document, self.scene)
 
     def onServerPollTimer(self):
         if self.scene:
@@ -1541,6 +1568,16 @@ class MainWindow(QMainWindow):
             os.system('explorer "%s"' % s)
         elif os.path.isdir(s):
             os.system('open "%s"' % s)
+
+    def openAutosaveFolder(self):
+        dpath = AutoSaveManager.autosaveFolderPath()
+        import os, sys
+
+        if sys.platform == "win32":
+            dpath = os.path.abspath(dpath)
+            os.system('explorer "%s"' % dpath)
+        elif os.path.isdir(dpath):
+            os.system('open "%s"' % dpath)
 
     def openServerFolder(self):
         import os, sys

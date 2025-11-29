@@ -4,3 +4,6 @@ PlanView 1.0 PlanView.qml
 PersonalContainer 1.0 PersonalContainer.qml
 singleton Style 1.0 Style.qml
 PersonalView 1.0 PersonalView.qml
+PDPSheet 1.0 PDPSheet.qml
+PDPPersonCard 1.0 PDPPersonCard.qml
+PDPEventCard 1.0 PDPEventCard.qml

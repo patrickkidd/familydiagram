@@ -14,19 +14,6 @@ if [ "${FD_BUILD_DIR}" = "" ]; then
 fi
 
 # Must be in environment, not set in build_env.sh
-if [ "$FD_BUILD_APPLE_ID" == "" ]; then
-    echo "FD_BUILD_APPLE_ID must be set"
-    exit 1
-fi
-
-# Must be in environment, not set in build_env.sh
-if [ "$FD_BUILD_APPLE_ID_PASSWORD" == "" ]; then
-    echo "FD_BUILD_APPLE_ID_PASSWORD must be set"
-    exit 1
-fi
-
-
-# Must be in environment, not set in build_env.sh
 if [ "$FD_BUILD_CERTIFICATE_PASSWORD" == "" ]; then
     echo "FD_BUILD_CERTIFICATE_PASSWORD must be set"
     exit 1
@@ -68,10 +55,7 @@ echo "PKS Importing private key"
 security import $FD_BUILD_PRIVATE_KEY_FPATH -t priv -P "${FD_BUILD_CERTIFICATE_PASSWORD}" -A -T /usr/bin/codesign -k $FD_BUILD_KEYCHAIN_NAME 
 
 echo "PKS Importing signing certificate"
-security import $FD_BUILD_CERTIFICATE_FPATH -P "${FD_BUILD_CERTIFICATE_PASSWORD}" -k $FD_BUILD_KEYCHAIN_NAME 
-
-echo "PKS Storing password in the keychain"
-xcrun altool --store-password-in-keychain-item "${FD_BUILD_APPLE_ID}" -u "${FD_BUILD_APPLE_ID}" -p "${FD_BUILD_APPLE_ID_PASSWORD}"
+security import $FD_BUILD_CERTIFICATE_FPATH -P "${FD_BUILD_CERTIFICATE_PASSWORD}" -k $FD_BUILD_KEYCHAIN_NAME
 
 echo "PKS Setting keychain partitions list"
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $FD_BUILD_CERTIFICATE_PASSWORD $FD_BUILD_KEYCHAIN_NAME

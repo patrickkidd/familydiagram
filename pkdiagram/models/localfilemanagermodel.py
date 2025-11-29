@@ -44,15 +44,22 @@ class LocalFileManagerModel(FileManagerModel):
         return False
 
     def onFileAdded(self, url, status):
-        fileInfo = QFileInfo(url.toLocalFile())
-        if fileInfo.exists(
-            url.toLocalFile()
-        ):  # files don't exist when not downloaded yet
-            modified = os.stat(url.toLocalFile()).st_mtime
+        filePath = url.toLocalFile()
+
+        # Skip files in the autosave folder
+        from pkdiagram.mainwindow.autosavemanager import AutoSaveManager
+
+        autosaveFolderPath = AutoSaveManager.autosaveFolderPath()
+        if os.path.commonpath([filePath, autosaveFolderPath]) == autosaveFolderPath:
+            return
+
+        fileInfo = QFileInfo(filePath)
+        if fileInfo.exists(filePath):  # files don't exist when not downloaded yet
+            modified = os.stat(filePath).st_mtime
         else:
             modified = None
         self.addFileEntry(
-            url.toLocalFile(),
+            filePath,
             name=fileInfo.fileName().replace(util.DOT_EXTENSION, ""),
             status=status,
             id="",

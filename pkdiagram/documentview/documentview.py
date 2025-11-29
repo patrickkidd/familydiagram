@@ -48,7 +48,6 @@ class DocumentView(QWidget):
         self.scene = None
         self.isAnimatingDrawer = False
         self._isInitializing = True
-        self._isReloadingCurrentDiagram = False
         self._settingCurrentDrawer = False
 
         self._qmlEngine = QmlEngine(session, parent)
@@ -60,8 +59,10 @@ class DocumentView(QWidget):
         self.eventSelectionModel = self._qmlEngine.eventSelectionModel
 
         self.view = View(self, parent.ui)
+        self.view.setObjectName("View")
 
         self.controller = DocumentController(self)
+        self.controller.setObjectName("documentController")
 
         ## Just sits under the drawer to move the view over.
         ## Allows the drawer to be parented to the DocumentView
@@ -174,6 +175,11 @@ class DocumentView(QWidget):
         self.graphicalTimelineView = GraphicalTimelineView(
             self.searchModel, self.eventSelectionModel, self
         )
+        self.graphicalTimelineView.setObjectName("graphicalTimelineView")
+        self.graphicalTimelineView.timeline.setObjectName("graphicalTimeline")
+        self.graphicalTimelineView.timeline.canvas.setObjectName(
+            "graphicalTimelineCanvas"
+        )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded
         )
@@ -263,14 +269,6 @@ class DocumentView(QWidget):
     def onApplicationPaletteChanged(self):
         self.drawerShim.setStyleSheet("background-color: %s " % util.QML_CONTROL_BG)
 
-    def setReloadingCurrentDiagram(self, on):
-        """Not currently used, but saved for later."""
-        self._isReloadingCurrentDiagram = on
-
-    def isReloadingCurrentDiagram(self):
-        """Not currently used, but saved for later."""
-        return self._isReloadingCurrentDiagram
-
     def setScene(self, scene):
         self._isInitializing = True
         self.graphicalTimelineView.setScene(scene)
@@ -287,11 +285,15 @@ class DocumentView(QWidget):
             self.sceneModel.inspectItem[int].disconnect(
                 self.controller.onInspectItemById
             )
+            self.scene.stack().canUndoChanged.disconnect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.disconnect(self.ui.actionRedo.setEnabled)
         self.scene = scene
         self._qmlEngine.setScene(scene)
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
+            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             if self.scene.hideDateSlider() or self.timelineModel.rowCount() == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:

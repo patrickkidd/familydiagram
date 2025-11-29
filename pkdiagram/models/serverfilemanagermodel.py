@@ -1,6 +1,7 @@
 import os, os.path, pickle, shutil, datetime, logging
 import dataclasses
 
+from btcopilot.schema import DiagramData
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
@@ -9,9 +10,7 @@ from pkdiagram.pyqt import (
     qmlRegisterType,
     QApplication,
     QMessageBox,
-    QApplication,
     QDateTime,
-    QMessageBox,
     QNetworkRequest,
     QUrl,
 )
@@ -43,15 +42,17 @@ class ServerFileManagerModel(FileManagerModel):
 
     QObjectHelper.registerQtProperties([{"attr": "userId", "default": -1}])
 
-    SERVER_SYNC_MS = 1000 * 60 * 30  # 30 minutes
+    SERVER_SYNC_MS = 1000 * 60 * 2  # 2 minutes
     S_CONFIRM_DELETE_SERVER_FILE = (
         "Are you sure you want to delete this file? This cannot be undone."
     )
+    PREF_DONT_SHOW_SERVER_FILE_UPDATED = "dontShowServerFileUpdated"
 
     DiagramDataRole = FileManagerModel.OwnerRole + 1
 
     serverError = pyqtSignal(int)
     updateFinished = pyqtSignal()
+    reloadDiagramRequested = pyqtSignal(str, Diagram, arguments=["fpath", "diagram"])
 
     # for testing
     indexGETResponse = pyqtSignal(object)
@@ -473,6 +474,42 @@ class ServerFileManagerModel(FileManagerModel):
         else:
             return super().data(index, role)
 
+    def handleDiagramConflict(self, diagram, refreshedData, fpath):
+        if self.prefs and self.prefs.value(self.PREF_DONT_SHOW_SERVER_FILE_UPDATED):
+            updatedDiagram = diagram
+            updatedDiagram.data = refreshedData
+            self.reloadDiagramRequested.emit(fpath, updatedDiagram)
+            return False
+
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle("Diagram Modified by Another User")
+        msgBox.setText(
+            "This diagram was modified by another user while you were editing."
+        )
+        msgBox.setInformativeText("What would you like to do?")
+
+        overwriteBtn = msgBox.addButton(
+            "Overwrite Their Changes", QMessageBox.DestructiveRole
+        )
+        reloadBtn = msgBox.addButton("Reload Their Changes", QMessageBox.AcceptRole)
+        cancelBtn = msgBox.addButton("Cancel", QMessageBox.RejectRole)
+
+        msgBox.setDefaultButton(cancelBtn)
+        msgBox.exec_()
+
+        clickedButton = msgBox.clickedButton()
+
+        if clickedButton == overwriteBtn:
+            return True
+        elif clickedButton == reloadBtn:
+            updatedDiagram = diagram
+            updatedDiagram.data = refreshedData
+            self.reloadDiagramRequested.emit(fpath, updatedDiagram)
+            return False
+        else:
+            return False
+
     def setData(self, index, value, role=Qt.DisplayRole):
         if role == self.ShownRole:
             log.warning(
@@ -490,21 +527,32 @@ class ServerFileManagerModel(FileManagerModel):
                 self.dataChanged.emit(index, index, [role])
         elif role == self.DiagramDataRole:
             diagram = self.diagramForRow(index.row())
-            diagram.updated_at = datetime.datetime.utcnow()
-            diagram.updated_at.isoformat()
-            diagram.data = value
-            self.session.server().blockingRequest(
-                "PUT",
-                f"/diagrams/{diagram.id}",
-                bdata=pickle.dumps(
-                    {"data": diagram.data, "updated_at": diagram.updated_at}
-                ),
-                statuses=[200],
+            dataToSave = value
+            fpath = self.localPathForID(diagram.id)
+
+            def applyChange(data):
+                return DiagramData(**pickle.loads(dataToSave))
+
+            def stillValid(refreshedData):
+                return self.handleDiagramConflict(diagram, refreshedData, fpath)
+
+            success = diagram.save(
+                self.session.server(), applyChange, stillValid, useJson=False
             )
-            log.info(
-                f"Pushed diagram {diagram.id} to server, bytes: {len(diagram.data)}, updated_at: {diagram.updated_at}"
-            )
-            self.dataChanged.emit(index, index, [role])
+
+            if success:
+                log.info(
+                    f"Pushed diagram {diagram.id} to server, bytes: {len(diagram.data)}, version: {diagram.version}"
+                )
+                self.dataChanged.emit(index, index, [role])
+            else:
+                QMessageBox.warning(
+                    None,
+                    "Save Failed After Retries",
+                    "Could not save diagram after 3 attempts due to concurrent modifications. Please try again.",
+                )
+
+            return success
         elif role == self.ModifiedRole:
             diagram = self.diagramForRow(index.row())
             self.diagram.updated_at = value

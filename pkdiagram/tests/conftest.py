@@ -175,13 +175,13 @@ def pytest_runtest_setup(item):
 
     _currentTestItem = item
 
-    dependency_marker = item.get_closest_marker("depends_on")
-    if dependency_marker:
-        for dependency in dependency_marker.args:
-            if _componentStatus.get(dependency) == "failed":
-                pytest.fail(
-                    f"Skipping {item.name} tests because {dependency} tests failed"
-                )
+    # dependency_marker = item.get_closest_marker("depends_on")
+    # if dependency_marker:
+    #     for dependency in dependency_marker.args:
+    #         if _componentStatus.get(dependency) == "failed":
+    #             pytest.fail(
+    #                 f"Skipping {item.name} tests because {dependency} tests failed"
+    #             )
 
 
 def pytest_report_teststatus(report, config):

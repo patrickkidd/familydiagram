@@ -8,11 +8,6 @@ from typing import Callable, Optional
 from dataclasses import dataclass
 
 
-from btcopilot.schema import VariableShift
-
-log = logging.getLogger(__name__)
-
-
 # to import vendor packages like xlsxwriter
 try:
     import pdytools  # type: ignore
@@ -22,10 +17,17 @@ except:
     IS_BUNDLE = False
 
 import btcopilot
+import btcopilot.schema
+from btcopilot.schema import VariableShift
+
 from _pkdiagram import CUtil
 
 from PyQt5.QtCore import QSysInfo
 from pkdiagram.pyqt import pyqtProperty
+
+
+log = logging.getLogger(__name__)
+
 
 IS_DEBUGGER = bool(sys.gettrace() is not None)
 IS_TEST = "pytest" in sys.modules
@@ -212,7 +214,7 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(pk_fileloc)-26s %(message)s"
 
 def init_logging():
 
-    from pkdiagram import appdirs
+    from pkdiagram import appdirs, extensions
 
     FD_LOG_LEVEL = os.getenv("FD_LOG_LEVEL", "INFO").upper()
     if FD_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
@@ -229,32 +231,20 @@ def init_logging():
     consoleHandler.setLevel(getattr(logging, FD_LOG_LEVEL))
     handlers.append(consoleHandler)
 
-    if not IS_IOS:
-        appDataDir = appdirs.user_data_dir("Family Diagram", appauthor="")
-        if not os.path.isdir(appDataDir):
-            Path(appDataDir).mkdir()
-        fileName = "log.txt" if IS_BUNDLE else "log_dev.txt"
-        filePath = os.path.join(appDataDir, fileName)
-        if not os.path.isfile(filePath):
-            Path(filePath).touch()
-        fileHandler = logging.FileHandler(filePath, mode="a+")
-        fileHandler.addFilter(logging_allFilter)
-        fileHandler.setLevel(logging.DEBUG)
-        fileHandler.setFormatter(logging.Formatter(LOG_FORMAT))
-        handlers.append(fileHandler)
+    # Session tracking handler - sends logs to _activeSession.track()
+    FD_TRACK_LOG_LEVEL = os.getenv("FD_TRACK_LOG_LEVEL", "WARNING").upper()
+    if FD_TRACK_LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+        sys.stderr.write(
+            f"Invalid FD_TRACK_LOG_LEVEL: '{FD_TRACK_LOG_LEVEL}', must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL\n"
+        )
+        sys.exit(1)
 
-    # class DatadogHandler(logging.Handler):
-
-    #     def emit(self, record):
-
-    #         mainwindow = findTheMainWindow()
-    #         if not mainwindow:
-    #             return
-
-    #         mainwindow.session.handleLog(record)
-
-    # datadogHandler = DatadogHandler()
-    # handlers.append(datadogHandler)
+    sessionTrackingHandler = extensions.SessionTrackingHandler(
+        min_level=getattr(logging, FD_TRACK_LOG_LEVEL)
+    )
+    # Use simple message-only format for session tracking (no timestamp, level, file, line)
+    sessionTrackingHandler.setFormatter(logging.Formatter("%(message)s"))
+    handlers.append(sessionTrackingHandler)
 
     logging.basicConfig(level=logging.INFO, handlers=handlers)
 
@@ -1024,53 +1014,12 @@ def Date_from_datetime(dt):
     return Date(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
 
 
-def validatedDateTimeText(dateText, timeText=None):
-    """mm/dd/yyyy. useTime is a QDateTime to take the time from."""
-    import dateutil.parser
-
-    ret = None
-    if len(dateText) == 8 and "/" in dateText:  # 05111980
-        try:
-            x = int(dateText)
-        except ValueError:
-            x = None
-        if x is not None:
-            mm = int(dateText[:2])
-            dd = int(dateText[2:4])
-            yyyy = int(dateText[4:8])
-            ret = QDateTime(QDate(yyyy, mm, dd))
-    if ret is None and dateText not in (None, "", BLANK_DATE_TEXT):
-        # normal route
-        try:
-            dt = dateutil.parser.parse(dateText)
-        except ValueError:
-            ret = QDateTime()
-        if ret is None:
-            ret = Date(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    if timeText not in (None, "", BLANK_TIME_TEXT):
-        try:
-            dt2 = dateutil.parser.parse(timeText)
-        except ValueError:
-            dt2 = None
-        if dt2:
-            if not ret:
-                ret = QDateTime.currentDateTime()
-            ret.setTime(
-                QTime(dt2.hour, dt2.minute, dt2.second, int(dt2.microsecond / 1000))
-            )
-    return ret
+def validatedDateText(dateText, timeText=None):
+    return btcopilot.schema.validatedDateText(dateText, timeText)
 
 
 def pyDateTimeString(dateTime: datetime) -> str:
-    if isinstance(dateTime, str):
-        import dateutil.parser
-
-        dateTime = dateutil.parser.parse(dateTime)
-    # .strftime("%a %B %d, %I:%M%p")
-    # .replace("AM", "am")
-    # .replace("PM", "pm")
-
-    return dateTime.strftime("%m/%d/%Y %I:%M %p")
+    return btcopilot.schema.pyDateTimeString(dateTime)
 
 
 def dateString(dateTime: QDateTime):
@@ -1248,8 +1197,8 @@ def qtHTTPReply2String(reply: QNetworkReply) -> str:
         verb = "<custom>"
     else:
         verb = None
-    body = reply.readAll().data().decode()
-    if reply.rawHeader(b"Content-Type") == b"application/json":
+    body = bytes(getattr(reply, "_pk_body", b"") or reply.readAll()).decode()
+    if body and reply.rawHeader(b"Content-Type") == b"application/json":
         body = json.dumps(json.loads(body), indent=4)
     message = "\n".join(
         [
@@ -1838,6 +1787,8 @@ def touchFD(filePath, bdata=None):
 
 
 def appDataDir():
+    if IS_DEV and os.getenv("FD_TEST_DATA_DIR"):
+        return os.getenv("FD_TEST_DATA_DIR")
     return QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation)
 
 

@@ -2,6 +2,8 @@ import os.path
 import logging
 import json
 import contextlib
+import base64
+import pickle
 from pathlib import Path
 from dataclasses import asdict
 
@@ -39,11 +41,7 @@ def controller(test_session, flask_app, qmlEngine):
     controller.appConfig.set(
         "lastSessionData", test_session.account_editor_dict(), pickled=True
     )
-    with (
-        patch.object(controller, "init"),
-        patch.object(controller, "_refreshPDP"),
-    ):
-
+    with patch.object(controller, "init"):
         controller.init(qmlEngine)
         yield controller
 
@@ -128,7 +126,7 @@ def test_refresh_diagram(
             data["discussions"] = [
                 x.as_dict(include=["statements", "speakers"]) for x in DISCUSSIONS
             ]
-            data["diagram_data"] = asdict(diagram.get_diagram_data())
+            data["data"] = base64.b64encode(diagram.data).decode("utf-8")
             kwargs["success"](data)
 
             return type("MockReply", (), {})()

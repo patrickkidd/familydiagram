@@ -33,6 +33,19 @@ class DatadogLogStatus(enum.Enum):
     Info = "info"
     Debug = "debug"
 
+    @staticmethod
+    def from_python_level(level: int):
+        if level >= logging.CRITICAL:
+            return DatadogLogStatus.Critical
+        elif level >= logging.ERROR:
+            return DatadogLogStatus.Error
+        elif level >= logging.WARNING:
+            return DatadogLogStatus.Warning
+        elif level >= logging.INFO:
+            return DatadogLogStatus.Info
+        else:
+            return DatadogLogStatus.Debug
+
 
 class DatadogFDType(enum.Enum):
     Action = "action"
@@ -46,8 +59,8 @@ class DatadogLog:
     status: DatadogLogStatus = DatadogLogStatus.Info
     user: User = None
     session_id: str = None
-    log_txt: str = ""
     fdtype: DatadogFDType = DatadogFDType.Log
+    extras: dict = None
 
 
 def time_2_iso8601(x: float) -> str:
@@ -228,7 +241,7 @@ class Analytics(QObject):
                     },
                     "platform": sys.platform,
                     "version": version.VERSION,
-                    # "log_txt": x.log_txt,
+                    **(x.extras if x.extras else {}),  # Include extras if provided
                 }
                 for x in chunk
             ]
@@ -238,15 +251,11 @@ class Analytics(QObject):
             return
 
         def onSuccess(reply):
-            log.debug(
-                f"Sent {len(reply._chunk)} logs to Datadog (status_code: {reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)})"
-            )
             self._numLogsSent += len(reply._chunk)
 
         def onFinished(reply, *args):
             _consume(reply._chunk)
 
-        log.debug(f"Attempting to send {len(chunk)} logs to Datadog: {data}")
         reply = self.sendJSONRequest(
             self.logsUrl(),
             data,
@@ -273,7 +282,7 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
-        if (not util.IS_BUNDLE) or util.IS_TEST:
+        if util.IS_TEST:
             return
         if not self._enabled:
             return
