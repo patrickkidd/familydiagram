@@ -72,6 +72,7 @@ class PersonalAppController(QObject):
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
         self.eventForm = None
+        self._pendingScene: Scene | None = None
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())
@@ -105,7 +106,11 @@ class PersonalAppController(QObject):
                 .property("eventForm"),
                 self,
             )
-            self.eventForm.setScene(self.scene)
+            if self._pendingScene:
+                self.setScene(self._pendingScene)
+                self._pendingScene = None
+            else:
+                self.eventForm.setScene(self.scene)
 
     def setScene(self, scene: Scene):
         self.scene = scene
@@ -135,8 +140,6 @@ class PersonalAppController(QObject):
         else:
             self.appConfig.delete("lastSessionData")
         self.appConfig.write()
-
-        #
 
         if not self.session.user:
             self._diagram = None
@@ -172,7 +175,10 @@ class PersonalAppController(QObject):
             scene_data = pickle.loads(raw_data)
             scene = Scene()
             scene.read(scene_data)
-            self.setScene(scene)
+            if self.eventForm:
+                self.setScene(scene)
+            else:
+                self._pendingScene = scene
 
         reply = self.session.server().nonBlockingRequest(
             "GET",
@@ -292,7 +298,6 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
-        item = self._pdpItem(id)
         prev_data = self._diagram.getDiagramData() if undo else None
 
         success = self._doAcceptPDPItem(id)
@@ -308,7 +313,6 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
-        item = self._pdpItem(id)
         prev_data = self._diagram.getDiagramData() if undo else None
 
         success = self._doRejectPDPItem(id)

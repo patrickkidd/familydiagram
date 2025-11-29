@@ -99,9 +99,10 @@ def _create_save_func(personalApp: PersonalAppController) -> Callable:
 
 
 @pytest.fixture
-def personalApp(session):
+def personalApp(qApp, session):
     undoStack = QUndoStack()
-    personalApp = PersonalAppController(session, undoStack)
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -125,7 +126,7 @@ def personalApp(session):
     )
     personalApp._diagram = diagram
 
-    return personalApp
+    yield personalApp
 
 
 def test_accept_person(personalApp):
@@ -196,7 +197,7 @@ def test_reject_event(personalApp):
     assert len(final_data.events) == 0
 
 
-def test_accept_with_pair_bond(session):
+def test_accept_with_pair_bond(qApp, session):
     undoStack = QUndoStack()
 
     diagramData = DiagramData(
@@ -220,7 +221,8 @@ def test_accept_with_pair_bond(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(session, undoStack)
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
     personalApp._diagram = diagram
 
     with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
@@ -244,7 +246,7 @@ def test_accept_with_pair_bond(session):
     assert pair_bond["person_b"] > 0
 
 
-def test_accept_event_after_person_already_committed(session):
+def test_accept_event_after_person_already_committed(qApp, session):
     """Accept person first, then accept event referencing that person.
 
     This tests the scenario where an event references a person via negative ID,
@@ -278,7 +280,8 @@ def test_accept_event_after_person_already_committed(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(session, undoStack)
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
     personalApp._diagram = diagram
 
     # First accept Bob (-2)
@@ -318,7 +321,7 @@ def test_accept_event_after_person_already_committed(session):
     assert event["spouse"] == bob_committed_id
 
 
-def test_accept_event_with_spouse_both_in_pdp(session):
+def test_accept_event_with_spouse_both_in_pdp(qApp, session):
     """Accept event where both person and spouse are still in PDP."""
     undoStack = QUndoStack()
 
@@ -348,7 +351,8 @@ def test_accept_event_with_spouse_both_in_pdp(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(session, undoStack)
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
     personalApp._diagram = diagram
 
     # Accept wedding event - should transitively commit both Alice and Bob

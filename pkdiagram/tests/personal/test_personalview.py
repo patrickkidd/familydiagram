@@ -1,20 +1,17 @@
 import pytest
 from mock import patch
 
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QDir, QFileInfo
-from PyQt5.QtQml import qmlRegisterType
-from PyQt5.QtQml import QQmlEngine, qmlRegisterType
-from PyQt5.QtQuick import QQuickView
-from PyQt5.QtQuickWidgets import QQuickWidget
-from PyQt5.QtCore import QUrl
-
-
-# from pkdiagram.tests.models.test_copilotengine import copilot
-
-from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
-from pkdiagram.condition import Condition
+from pkdiagram.pyqt import (
+    QObject,
+    pyqtSlot,
+    QQuickWidget,
+    QUrl,
+    QApplication,
+    QQuickView,
+)
+from pkdiagram.util import Condition
 from pkdiagram.personal import PersonalAppController
-from familydiagram.pkdiagram.personal.models import Discussion
+from pkdiagram.personal.models import Discussion
 
 
 class MockSession(QObject):
