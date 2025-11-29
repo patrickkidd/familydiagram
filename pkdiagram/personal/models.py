@@ -109,17 +109,17 @@ class Discussion(QObject):
         user_id: int,
         diagram_id: int,
         summary: str | None = None,
-        statements: list[Statement] = [],
-        speakers: list[Speaker] = [],
+        statements: list[Statement] | None = None,
+        speakers: list[Speaker] | None = None,
         parent: QObject | None = None,
     ):
         super().__init__(parent)
         self._id = id
         self._user_id = user_id
         self._summary = summary
-        self._statements = statements
+        self._statements = statements if statements is not None else []
         self._diagram_id = diagram_id
-        self._speakers = speakers
+        self._speakers = speakers if speakers is not None else []
 
     def as_dict(self) -> dict:
         return {

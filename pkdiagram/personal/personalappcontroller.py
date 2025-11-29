@@ -1,5 +1,6 @@
 import logging
 from typing import Callable
+import base64
 
 from _pkdiagram import CUtil
 from pkdiagram import pepper
@@ -15,6 +16,7 @@ from pkdiagram.pyqt import (
     QNetworkRequest,
     QQuickItem,
     QUrl,
+    QMessageBox,
 )
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Diagram, Discussion
@@ -42,7 +44,7 @@ class PersonalAppController(QObject):
     diagramChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
-    def __init__(self, app: QApplication, parent=None):
+    def __init__(self, app: QApplication, undoStack=None, parent=None):
         super().__init__(parent)
 
         self.app = app
@@ -53,6 +55,7 @@ class PersonalAppController(QObject):
         self._rootObject = None
         self._engine: QQmlEngine | None = None
         self.scene = None
+        self._undoStack = undoStack if undoStack else QUndoStack(self)
 
         self.util = QApplication.instance().qmlUtil()  # should be local, not global
 
@@ -154,8 +157,7 @@ class PersonalAppController(QObject):
             return
 
         def onSuccess(data):
-            if "diagram_data" in data:
-                data.pop("diagram_data")
+            data["data"] = base64.b64decode(data["data"])
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
             self.discussionsChanged.emit()
@@ -238,97 +240,238 @@ class PersonalAppController(QObject):
         Mockable because qml latches on to slots at init time.
         """
 
-        def onSuccess(data):
-            # added_data_points = data["added_data_points"]
-            # response = Response(
-            #     statement=data["statement"],
-            #     added_data_points=data["added_data_points"],
-            #     removed_data_points=data["removed_data_points"],
-            #     guidance=data["guidance"],
-            # )
-            self.setPDP(data["pdp"])
-            self.responseReceived.emit(data["statement"], data["pdp"])
+        def _doSendStatement():
+            if not self._currentDiscussion:
+                QMessageBox.information(
+                    "Cannot send statement without current discussion"
+                )
+                return
 
-        # Create a discussion with the statement if there is no current discussion
+            def onSuccess(data):
+                self.responseReceived.emit(data["statement"], data["pdp"])
+
+            args = {
+                "statement": statement,
+            }
+            reply = self._session.server().nonBlockingRequest(
+                "POST",
+                f"/personal/discussions/{self._currentDiscussion.id}/statements",
+                data=args,
+                error=lambda: self.onError(reply),
+                success=onSuccess,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                from_root=True,
+            )
+            self._session.track(f"personal.Engine.sendStatement: {statement}")
+            self.requestSent.emit(statement)
+
         if self._currentDiscussion:
-            url = f"/personal/discussions/{self._currentDiscussion.id}/statements"
+            _doSendStatement()
         else:
-            url = "/personal/discussions/"
-        args = {"statement": statement}
-        reply = self.session.server().nonBlockingRequest(
-            "POST",
-            url,
-            data=args,
-            error=lambda: self.onError(reply),
-            success=onSuccess,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            from_root=True,
-        )
-        self.session.track(f"personal.Engine.sendStatement: {statement}")
-        self.requestSent.emit(statement)
+            self._createDiscussion(callback=_doSendStatement)
 
     ## PDP
 
-    # @pyqtSlot()
-    # def refreshPDP(self):
-    #     self._refreshPDP()
+    def _pdpItem(self, id: int) -> Person | Event | None:
+        if self._diagram:
+            diagramData = self._diagram.getDiagramData()
+            if diagramData.pdp:
+                for item in diagramData.pdp.people + diagramData.pdp.events:
+                    if item.id == id:
+                        return item
+        return None
 
-    # def _refreshPDP(self):
-    #     def onSuccess(data):
-    #         self.setPDP(data)
-    #         # _log.info(f"pdpChanged.emit(): {self._pdp}")
-    #         self.pdpChanged.emit()
+    @pyqtSlot(int, result=bool)
+    def acceptPDPItem(self, id: int, undo=True):
+        item = self._pdpItem(id)
+        prev_data = self._diagram.getDiagramData() if undo else None
 
-    #     reply = self.session.server().nonBlockingRequest(
-    #         "GET",
-    #         "/personal/pdp",
-    #         data={},
-    #         error=lambda: self.onError(reply),
-    #         success=onSuccess,
-    #         headers={"Content-Type": "application/json", "Accept": "application/json"},
-    #         from_root=True,
-    #     )
+        success = self._doAcceptPDPItem(id)
 
-    @pyqtSlot(int)
-    def acceptPDPItem(self, id: int):
-        if not self._diagram:
-            _log.warning("Cannot accept PDP item without diagram")
-            return
+        if not success:
+            return False
+
+        if undo:
+            cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
+            self._undoStack.push(cmd)
+
+        return True
+
+    @pyqtSlot(int, result=bool)
+    def rejectPDPItem(self, id: int, undo=True):
+        item = self._pdpItem(id)
+        prev_data = self._diagram.getDiagramData() if undo else None
+
+        success = self._doRejectPDPItem(id)
+
+        if not success:
+            return False
+
+        if undo:
+            cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
+            self._undoStack.push(cmd)
+
+        return True
+
+    def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
-        reply = self.session.server().nonBlockingRequest(
-            "POST",
-            f"/personal/diagrams/{self._diagram.id}/pdp/{-id}/accept",
-            data={},
-            error=lambda: self.onError(reply),
-            success=lambda data: _log.info(f"Accepted PDP item: {data}"),
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
+
+        def applyChange(diagramData: DiagramData):
+            diagramData.commit_pdp_items([id])
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
-    @pyqtSlot(int)
-    def rejectPDPItem(self, id: int):
-        if not self._diagram:
-            _log.warning("Cannot reject PDP item without diagram")
-            return
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to accept PDP item after retries")
+
+        return success
+
+    def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
-        reply = self.session.server().nonBlockingRequest(
-            "POST",
-            f"/personal/diagrams/{self._diagram.id}/pdp/{-id}/reject",
-            data={},
-            error=lambda: self.onError(reply),
-            success=lambda data: _log.info(f"Rejected PDP item: {data}"),
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            from_root=True,
+
+        def applyChange(diagramData: DiagramData):
+            if not diagramData.pdp:
+                _log.warning("No PDP data available")
+                return diagramData
+
+            ids_to_remove = {id}
+
+            for event in diagramData.pdp.events:
+                if (
+                    event.person == id
+                    or event.spouse == id
+                    or event.child == id
+                    or id in event.relationshipTargets
+                    or id in event.relationshipTriangles
+                ):
+                    ids_to_remove.add(event.id)
+
+            for pair_bond in diagramData.pdp.pair_bonds:
+                if pair_bond.person_a == id or pair_bond.person_b == id:
+                    ids_to_remove.add(pair_bond.id)
+
+            for person in diagramData.pdp.people:
+                if person.parents == id:
+                    ids_to_remove.add(person.id)
+
+            diagramData.pdp.people = [
+                p for p in diagramData.pdp.people if p.id not in ids_to_remove
+            ]
+            diagramData.pdp.events = [
+                e for e in diagramData.pdp.events if e.id not in ids_to_remove
+            ]
+            diagramData.pdp.pair_bonds = [
+                pb for pb in diagramData.pdp.pair_bonds if pb.id not in ids_to_remove
+            ]
+
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
-    @pyqtProperty("QVariantMap", notify=diagramChanged)
-    def pdp(self):
-        return self._pdp if self._pdp is not None else {}
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to reject PDP item after retries")
 
-    def setPDP(self, pdp: dict):
-        self._pdp = pdp
-        _log.debug(f"diagramChanged.emit(): {self._pdp}")
-        self.diagramChanged.emit()
+        return success
+
+    @pyqtProperty("QVariantMap", notify=pdpChanged)
+    def pdp(self):
+        if self._diagram:
+            diagramData = self._diagram.getDiagramData()
+            if diagramData.pdp:
+                return asdict(diagramData.pdp)
+        return {}
+
+    @pyqtSlot()
+    def acceptAllPDPItems(self):
+        if not self._diagram:
+            return
+
+        diagramData = self._diagram.getDiagramData()
+        if not diagramData.pdp:
+            return
+
+        all_ids = []
+        for person in diagramData.pdp.people:
+            if person.id is not None:
+                all_ids.append(person.id)
+        for event in diagramData.pdp.events:
+            all_ids.append(event.id)
+        for pair_bond in diagramData.pdp.pair_bonds:
+            if pair_bond.id is not None:
+                all_ids.append(pair_bond.id)
+
+        if not all_ids:
+            return
+
+        _log.info(f"Accepting all PDP items: {all_ids}")
+
+        def applyChange(diagramData: DiagramData):
+            diagramData.commit_pdp_items(all_ids)
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
+
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning("Failed to accept all PDP items after retries")
+
+    @pyqtSlot(int, str, "QVariant")
+    def updatePDPItem(self, id: int, field: str, value):
+        if not self._diagram:
+            return
+
+        _log.info(f"Updating PDP item {id}: {field} = {value}")
+
+        def applyChange(diagramData: DiagramData):
+            if not diagramData.pdp:
+                return diagramData
+
+            for event in diagramData.pdp.events:
+                if event.id == id:
+                    if hasattr(event, field):
+                        setattr(event, field, value)
+                    break
+
+            for person in diagramData.pdp.people:
+                if person.id == id:
+                    if hasattr(person, field):
+                        setattr(person, field, value)
+                    break
+
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
+
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to update PDP item {id} after retries")
