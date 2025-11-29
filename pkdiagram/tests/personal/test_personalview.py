@@ -67,7 +67,7 @@ def controller(test_user, test_session, qmlEngine):
 
     # diagram.database.add_discussion()
 
-    controller = PersonalAppController(QApplication.instance())
+    controller = PersonalAppController()
     with patch.object(
         controller.appConfig,
         "get",

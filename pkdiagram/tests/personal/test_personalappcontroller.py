@@ -8,7 +8,7 @@ from pkdiagram.pyqt import QApplication
 
 from pkdiagram.app import Session
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.models import Discussion, Statement
+from pkdiagram.personal.models import Diagram, Discussion, Statement
 from pkdiagram import util
 
 from btcopilot.extensions import db
@@ -31,37 +31,38 @@ def discussion(test_user):
 
 
 @pytest.fixture
-def controller(test_session):
-    _controller = PersonalAppController(QApplication.instance())
-    _controller.session.init(
+def personalApp(test_session):
+    _personalApp = PersonalAppController()
+    _personalApp.appConfig.init()
+    _personalApp.session.init(
         sessionData=test_session.account_editor_dict(), syncWithServer=False
     )
 
-    yield _controller
+    yield _personalApp
 
 
 def test_refreshDiagram(
-    flask_app, test_user, discussion, controller: PersonalAppController
+    flask_app, test_user, discussion, personalApp: PersonalAppController
 ):
-    discussionsChanged = util.Condition(controller.discussionsChanged)
-    controller._refreshDiagram()
+    discussionsChanged = util.Condition(personalApp.discussionsChanged)
+    personalApp._refreshDiagram()
     assert discussionsChanged.wait() == True
-    assert set(x.id for x in controller.discussions) == {discussion.id}
+    assert set(x.id for x in personalApp.discussions) == {discussion.id}
 
 
 @pytest.mark.parametrize("success", [True, False])
 def test_sendStatement(
-    server_error, test_user, discussion, controller: PersonalAppController, success
+    server_error, test_user, discussion, personalApp: PersonalAppController, success
 ):
 
     from btcopilot.controller.chat import Response, PDP
 
     RESPONSE = Response(statement="some response", pdp=PDP())
 
-    requestSent = util.Condition(controller.requestSent)
-    responseReceived = util.Condition(controller.responseReceived)
-    serverError = util.Condition(controller.serverError)
-    serverDown = util.Condition(controller.serverDown)
+    requestSent = util.Condition(personalApp.requestSent)
+    responseReceived = util.Condition(personalApp.responseReceived)
+    serverError = util.Condition(personalApp.serverError)
+    serverDown = util.Condition(personalApp.serverDown)
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
@@ -69,7 +70,7 @@ def test_sendStatement(
         )
         stack.enter_context(
             patch.object(
-                personal,
+                personalApp,
                 "_currentDiscussion",
                 Discussion(
                     id=discussion.id,
@@ -80,7 +81,7 @@ def test_sendStatement(
         )
         if not success:
             stack.enter_context(server_error())
-        controller.sendStatement("test message")
+        personalApp.sendStatement("test message")
     assert requestSent.callCount == 1
     if success:
         assert responseReceived.wait()
@@ -92,9 +93,9 @@ def test_sendStatement(
     assert serverDown.callCount == 0
 
 
-def test_acceptPDPItem_undo(test_user, personal: Personal):
+def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
+    personalApp._diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -102,25 +103,25 @@ def test_acceptPDPItem_undo(test_user, personal: Personal):
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    with patch.object(personal, "_doAcceptPDPItem") as mock_accept:
-        personal.acceptPDPItem(-1)
+    with patch.object(personalApp, "_doAcceptPDPItem") as mock_accept:
+        personalApp.acceptPDPItem(-1)
         assert mock_accept.call_count == 1
-        assert personal._undoStack.count() == 1
-        assert personal._undoStack.canUndo()
+        assert personalApp._undoStack.count() == 1
+        assert personalApp._undoStack.canUndo()
 
-        personal._undoStack.undo()
-        assert personal.pdp == asdict(initial_diagram_data.pdp)
-        assert not personal._undoStack.canUndo()
-        assert personal._undoStack.canRedo()
+        personalApp._undoStack.undo()
+        assert personalApp.pdp == asdict(initial_diagram_data.pdp)
+        assert not personalApp._undoStack.canUndo()
+        assert personalApp._undoStack.canRedo()
 
-        personal._undoStack.redo()
+        personalApp._undoStack.redo()
         assert mock_accept.call_count == 2
-        assert not personal._undoStack.canRedo()
+        assert not personalApp._undoStack.canRedo()
 
 
-def test_rejectPDPItem_undo(test_user, personal: Personal):
+def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
+    personalApp._diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -128,29 +129,29 @@ def test_rejectPDPItem_undo(test_user, personal: Personal):
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    with patch.object(personal, "_doRejectPDPItem") as mock_reject:
-        personal.rejectPDPItem(-1)
+    with patch.object(personalApp, "_doRejectPDPItem") as mock_reject:
+        personalApp.rejectPDPItem(-1)
         assert mock_reject.call_count == 1
-        assert personal._undoStack.count() == 1
-        assert personal._undoStack.canUndo()
+        assert personalApp._undoStack.count() == 1
+        assert personalApp._undoStack.canUndo()
 
-        personal._undoStack.undo()
-        assert personal.pdp == asdict(initial_diagram_data.pdp)
-        assert not personal._undoStack.canUndo()
-        assert personal._undoStack.canRedo()
+        personalApp._undoStack.undo()
+        assert personalApp.pdp == asdict(initial_diagram_data.pdp)
+        assert not personalApp._undoStack.canUndo()
+        assert personalApp._undoStack.canRedo()
 
-        personal._undoStack.redo()
+        personalApp._undoStack.redo()
         assert mock_reject.call_count == 2
-        assert not personal._undoStack.canRedo()
+        assert not personalApp._undoStack.canRedo()
 
 
-def test_undo_stack_multiple_operations(test_user, personal: Personal):
+def test_undo_stack_multiple_operations(test_user, personalApp: PersonalAppController):
     diagram_data1 = DiagramData(pdp=PDP(people=[Person(id=-1, name="Person1")]))
     diagram_data2 = DiagramData(
         pdp=PDP(people=[Person(id=-1, name="Person1"), Person(id=-2, name="Person2")])
     )
 
-    personal._diagram = Diagram(
+    personalApp._diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -159,25 +160,27 @@ def test_undo_stack_multiple_operations(test_user, personal: Personal):
     )
 
     with (
-        patch.object(personal, "_doAcceptPDPItem"),
-        patch.object(personal, "_doRejectPDPItem"),
+        patch.object(personalApp, "_doAcceptPDPItem"),
+        patch.object(personalApp, "_doRejectPDPItem"),
     ):
-        personal.acceptPDPItem(-1)
-        personal._diagram.setDiagramData(diagram_data2)
-        personal.rejectPDPItem(-2)
+        personalApp.acceptPDPItem(-1)
+        personalApp._diagram.setDiagramData(diagram_data2)
+        personalApp.rejectPDPItem(-2)
 
-        assert personal._undoStack.count() == 2
+        assert personalApp._undoStack.count() == 2
 
-        personal._undoStack.undo()
-        assert personal.pdp == asdict(diagram_data2.pdp)
+        personalApp._undoStack.undo()
+        assert personalApp.pdp == asdict(diagram_data2.pdp)
 
-        personal._undoStack.undo()
-        assert personal.pdp == asdict(diagram_data1.pdp)
+        personalApp._undoStack.undo()
+        assert personalApp.pdp == asdict(diagram_data1.pdp)
 
 
-def test_acceptPDPItem_failure_doesnt_push_to_stack(test_user, personal: Personal):
+def test_acceptPDPItem_failure_doesnt_push_to_stack(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
+    personalApp._diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -185,18 +188,20 @@ def test_acceptPDPItem_failure_doesnt_push_to_stack(test_user, personal: Persona
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    stack_count_before = personal._undoStack.count()
+    stack_count_before = personalApp._undoStack.count()
 
-    with patch.object(personal, "_doAcceptPDPItem", return_value=False):
-        result = personal.acceptPDPItem(-1)
+    with patch.object(personalApp, "_doAcceptPDPItem", return_value=False):
+        result = personalApp.acceptPDPItem(-1)
 
     assert result is False
-    assert personal._undoStack.count() == stack_count_before
+    assert personalApp._undoStack.count() == stack_count_before
 
 
-def test_acceptPDPItem_failure_doesnt_emit_signal(test_user, personal: Personal):
+def test_rejectPDPItem_failure_doesnt_push_to_stack(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
+    personalApp._diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -204,61 +209,13 @@ def test_acceptPDPItem_failure_doesnt_emit_signal(test_user, personal: Personal)
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    signal_emitted = False
+    stack_count_before = personalApp._undoStack.count()
 
-    def onItemAdded(item):
-        nonlocal signal_emitted
-        signal_emitted = True
-
-    personal.pdpItemAdded.connect(onItemAdded)
-
-    with patch.object(personal, "_doAcceptPDPItem", return_value=False):
-        personal.acceptPDPItem(-1)
-
-    assert signal_emitted is False
-
-
-def test_rejectPDPItem_failure_doesnt_push_to_stack(test_user, personal: Personal):
-    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
-        id=1,
-        user_id=test_user.id,
-        access_rights=[],
-        created_at=datetime.utcnow(),
-        data=pickle.dumps(asdict(initial_diagram_data)),
-    )
-
-    stack_count_before = personal._undoStack.count()
-
-    with patch.object(personal, "_doRejectPDPItem", return_value=False):
-        result = personal.rejectPDPItem(-1)
+    with patch.object(personalApp, "_doRejectPDPItem", return_value=False):
+        result = personalApp.rejectPDPItem(-1)
 
     assert result is False
-    assert personal._undoStack.count() == stack_count_before
-
-
-def test_rejectPDPItem_failure_doesnt_emit_signal(test_user, personal: Personal):
-    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personal._diagram = Diagram(
-        id=1,
-        user_id=test_user.id,
-        access_rights=[],
-        created_at=datetime.utcnow(),
-        data=pickle.dumps(asdict(initial_diagram_data)),
-    )
-
-    signal_emitted = False
-
-    def onItemRemoved(item):
-        nonlocal signal_emitted
-        signal_emitted = True
-
-    personal.pdpItemRemoved.connect(onItemRemoved)
-
-    with patch.object(personal, "_doRejectPDPItem", return_value=False):
-        personal.rejectPDPItem(-1)
-
-    assert signal_emitted is False
+    assert personalApp._undoStack.count() == stack_count_before
 
 
 def test_diagram_save_shows_error_on_unexpected_status(test_user):

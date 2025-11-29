@@ -2,6 +2,7 @@ import logging
 from typing import Callable
 import base64
 
+from btcopilot.schema import Person, Event, DiagramData
 from _pkdiagram import CUtil
 from pkdiagram import pepper
 from pkdiagram.app import AppConfig
@@ -17,6 +18,7 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QUrl,
     QMessageBox,
+    QUndoStack,
 )
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Diagram, Discussion
@@ -44,10 +46,10 @@ class PersonalAppController(QObject):
     diagramChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
-    def __init__(self, app: QApplication, undoStack=None, parent=None):
+    def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
 
-        self.app = app
+        self.app = QApplication.instance()
         self._diagram: Diagram | None = None
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
@@ -57,7 +59,7 @@ class PersonalAppController(QObject):
         self.scene = None
         self._undoStack = undoStack if undoStack else QUndoStack(self)
 
-        self.util = QApplication.instance().qmlUtil()  # should be local, not global
+        self.util = self.app.qmlUtil()  # should be local, not global
 
         self.analytics = Analytics(datadog_api_key=pepper.DATADOG_API_KEY)
         self.session = Session(self.analytics)
@@ -253,7 +255,7 @@ class PersonalAppController(QObject):
             args = {
                 "statement": statement,
             }
-            reply = self._session.server().nonBlockingRequest(
+            reply = self.session.server().nonBlockingRequest(
                 "POST",
                 f"/personal/discussions/{self._currentDiscussion.id}/statements",
                 data=args,
@@ -265,7 +267,7 @@ class PersonalAppController(QObject):
                 },
                 from_root=True,
             )
-            self._session.track(f"personal.Engine.sendStatement: {statement}")
+            self.session.track(f"personal.Engine.sendStatement: {statement}")
             self.requestSent.emit(statement)
 
         if self._currentDiscussion:
@@ -327,7 +329,7 @@ class PersonalAppController(QObject):
             return True
 
         success = self._diagram.save(
-            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
         if success:
@@ -381,7 +383,7 @@ class PersonalAppController(QObject):
             return True
 
         success = self._diagram.save(
-            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
         if success:
@@ -431,7 +433,7 @@ class PersonalAppController(QObject):
             return True
 
         success = self._diagram.save(
-            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
         if success:
@@ -468,7 +470,7 @@ class PersonalAppController(QObject):
             return True
 
         success = self._diagram.save(
-            self._session.server(), applyChange, stillValidAfterRefresh, useJson=True
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
         )
 
         if success:

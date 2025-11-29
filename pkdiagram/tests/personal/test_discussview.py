@@ -37,7 +37,7 @@ _log = logging.getLogger(__name__)
 
 @pytest.fixture
 def controller(test_session, flask_app, qmlEngine):
-    controller = PersonalAppController(QApplication.instance())
+    controller = PersonalAppController()
     controller.appConfig.set(
         "lastSessionData", test_session.account_editor_dict(), pickled=True
     )
