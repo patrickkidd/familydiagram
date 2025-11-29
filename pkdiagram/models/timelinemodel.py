@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 # from sortedcontainers import SortedList
 from btcopilot.schema import EventKind
+from btcopilot import schema
 from pkdiagram.pyqt import (
     Qt,
     QApplication,
@@ -626,12 +627,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 if value == "":
                     value = None
                 elif role in (Qt.EditRole, Qt.DisplayRole):  # date only
-                    date = util.validatedDateTimeText(value).date()
+                    date = schema.validatedDateTimeText(value).date()
                     dateTime = event.dateTime()
                     dateTime.setDate(date)
                     value = dateTime
                 elif role == self.DisplayExpandedRole:  # date + time
-                    value = util.validatedDateTimeText(value)
+                    value = schema.validatedDateTimeText(value)
             elif role == self.DateTimeRole:
                 if value.isNull():
                     value = None

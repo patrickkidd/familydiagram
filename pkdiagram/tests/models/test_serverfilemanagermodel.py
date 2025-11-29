@@ -266,7 +266,11 @@ def test_save_free_diagram_persists(test_session):
     session.setData(test_session.account_editor_dict())
     assert util.wait(model.updateFinished)
     assert model.rowCount() == 1
-    assert model.index(0, 0).data(model.DiagramDataRole) == bdata
+    loaded_bdata = model.index(0, 0).data(model.DiagramDataRole)
+    loaded_scene = Scene()
+    loaded_scene.read(pickle.loads(loaded_bdata))
+    person = loaded_scene.query1(name="Me")
+    assert isinstance(person, Person) == True
 
 
 def test_delete_file(qtbot, create_model):

@@ -4,17 +4,22 @@ Client-side representations of server-side scene.
 Just implementation of server-side structs and protocols to CRUD them on the server.
 """
 
-import time, pickle, logging
+import os
+import time
+import pickle
+import logging
 import json
 import enum
+import base64
 from datetime import datetime
 import hashlib
 import urllib.parse
 import wsgiref.handlers
 from dataclasses import dataclass, InitVar, field
-from typing import Union
+from typing import Union, Callable
 
 import btcopilot
+from btcopilot.schema import DiagramData, PDP, asdict, from_dict
 from pkdiagram.pyqt import (
     QObject,
     QNetworkRequest,
@@ -24,6 +29,7 @@ from pkdiagram.pyqt import (
     QUrlQuery,
     QApplication,
     QTimer,
+    QMessageBox,
     pyqtSignal,
 )
 from pkdiagram import version, util
@@ -31,6 +37,8 @@ from pkdiagram.qnam import QNAM
 
 
 log = logging.getLogger(__name__)
+
+FD_NETWORK_TIMEOUT_MS = int(os.getenv("FD_NETWORK_TIMEOUT_MS", 10000))
 
 
 @dataclass
@@ -155,25 +163,13 @@ class AccessRight:
 
 
 @dataclass
-class Database:
-    id: int
-    name: str
-    user_id: int
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-    def __post_init__(self):
-        if isinstance(self.user_id, dict):
-            self.user_id = User(**self.user_id)
-
-
-@dataclass
 class Diagram:
     id: int
     user_id: int
     access_rights: list[AccessRight]
     created_at: datetime
     updated_at: datetime | None = None
+    version: int = 1
     name: str | None = None
     user: User | None = None
     use_real_names: bool | None = None
@@ -181,7 +177,6 @@ class Diagram:
     data: bytes | None = None
     status: int | None = None
     alias: str | None = None
-    database: Database | None = None
     discussions: list[Discussion] = field(default_factory=list)
     pdp: dict | None = None
 
@@ -206,6 +201,118 @@ class Diagram:
         response = session.server().blockingRequest("GET", f"/diagrams/{diagram_id}")
         data = pickle.loads(response.body)
         return cls.create(data)
+
+    def save(
+        self,
+        server,
+        applyChange: Callable[[DiagramData], DiagramData],
+        stillValidAfterRefresh: Callable[[DiagramData], bool],
+        maxRetries: int = 3,
+        useJson: bool = False,
+    ) -> bool:
+        """Save diagram with optimistic locking (version check). Returns True on success."""
+
+        for attempt in range(maxRetries):
+            diagramData = self.getDiagramData()
+
+            diagramData = applyChange(diagramData)
+
+            newData = pickle.dumps(asdict(diagramData))
+
+            if useJson:
+                endpoint = f"/personal/diagrams/{self.id}"
+                data = {
+                    "data": base64.b64encode(newData).decode("utf-8"),
+                    "expected_version": self.version,
+                }
+                bdata = None
+                headers = {"Content-Type": "application/json"}
+
+            else:
+                endpoint = f"/v1/diagrams/{self.id}"
+                bdata = pickle.dumps(
+                    {
+                        "data": newData,
+                        "updated_at": datetime.utcnow(),
+                        "expected_version": self.version,
+                    }
+                )
+                data = None
+                headers = None
+
+            try:
+                response = server.blockingRequest(
+                    "PUT",
+                    endpoint,
+                    data=data,
+                    bdata=bdata,
+                    headers=headers,
+                    statuses=[200, 409],
+                    from_root=True,
+                )
+            except HTTPError as e:
+                log.error(f"Error saving diagram: {e}")
+                QMessageBox.critical(
+                    None,
+                    "Save Error",
+                    f"Unexpected server error (HTTP {e.status_code}) while saving diagram.\n\n"
+                    f"Please check your connection and try again.",
+                )
+                return False
+
+            if useJson:
+                responseData = json.loads(response.body.decode("utf-8"))
+            else:
+                responseData = pickle.loads(response.body)
+
+            if response.status_code == 200:
+                self.version = responseData.get("version", self.version + 1)
+                self.data = newData
+                return True
+
+            if response.status_code == 409:
+                self.version = responseData["version"]
+                conflictData = responseData["data"]
+
+                if useJson:
+                    self.data = base64.b64decode(conflictData)
+                else:
+                    self.data = conflictData
+
+                refreshedData = self.getDiagramData()
+
+                if not stillValidAfterRefresh(refreshedData):
+                    return False
+
+                continue
+
+        return False
+
+    def getDiagramData(self) -> DiagramData:
+        data = pickle.loads(self.data) if self.data else {}
+
+        pdp_dict = data.get("pdp", {})
+        return DiagramData(
+            people=data.get("people", []),
+            events=data.get("events", []),
+            pair_bonds=data.get("pair_bonds", []),
+            pdp=from_dict(PDP, pdp_dict) if pdp_dict else PDP(),
+            lastItemId=data.get("lastItemId", 0),
+        )
+
+    def setDiagramData(self, diagramData: DiagramData):
+        data = pickle.loads(self.data) if self.data else {}
+
+        data["pdp"] = asdict(diagramData.pdp)
+        data["lastItemId"] = diagramData.lastItemId
+        if diagramData.people:
+            data["people"] = diagramData.people
+        if diagramData.events:
+            data["events"] = diagramData.events
+        if diagramData.pair_bonds:
+            data["pair_bonds"] = diagramData.pair_bonds
+
+        self.data = pickle.dumps(data)
 
     def check_access(self, user_id, right):
         if user_id == self.user_id:
@@ -301,6 +408,8 @@ class Server(QObject):
         error = reply.error()
         failMessage = None
         status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if status_code != 0 and status_code in statuses:
+            pass
         if error == QNetworkReply.NoError and status_code in statuses:
             pass
         elif error == QNetworkReply.HostNotFoundError:  # no internet connection
@@ -412,21 +521,20 @@ class Server(QObject):
                 reply.property("pk_finished"),
                 reply.property("pk_server"),
             )
+            # Read body first since QNetworkReply is a sequential QIODevice
+            bdata = reply._pk_body = reply.readAll()
             try:
                 server.checkHTTPReply(reply)
-            except HTTPError as e:
+            except HTTPError:
                 if error:
                     error()
             else:
-                # lazy hack to only read once since QNetworkReply is a
-                # sequential QIODevice
-                bdata = reply._pk_body = reply.readAll()
                 if reply.request().rawHeader(b"Content-Type") == b"application/json":
                     data = json.loads(bytes(bdata).decode("utf-8"))
                 else:
                     try:
                         data = pickle.loads(bdata)
-                    except pickle.UnpicklingError as e:
+                    except pickle.UnpicklingError:
                         data = None
                 if success:
                     success(data)
@@ -460,9 +568,11 @@ class Server(QObject):
         data=None,
         success=None,
         error=None,
+        headers=None,
         anonymous=False,
         statuses=None,
-        timeout_ms=4000,
+        timeout_ms=FD_NETWORK_TIMEOUT_MS,
+        from_root=False,
     ) -> HTTPResponse:
         if statuses is None:
             statuses = [200]
@@ -474,11 +584,21 @@ class Server(QObject):
             data=data,
             success=success,
             error=error,
+            headers=headers,
             anonymous=anonymous,
+            from_root=from_root,
         )
         self._checkRequestsComplete(reply)
         reply.finished.connect(loop.quit)
-        QTimer.singleShot(timeout_ms, loop.quit)
+
+        def _timeout():
+            nonlocal loop
+
+            log.error(f"Request timeout: {reply.request().url().toString()}")
+            reply.abort()
+            loop.quit()
+
+        QTimer.singleShot(timeout_ms, _timeout)
         loop.exec_()
         self.checkHTTPReply(reply, statuses=statuses)
         # status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)

@@ -597,10 +597,12 @@ class DocumentController(QObject):
         self.ui.actionShow_Legend.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
 
-        canUndo = self.scene.stack().canUndo() if self.scene else False
-        self.ui.actionUndo.setEnabled(on and canUndo)
-        canRedo = self.scene.stack().canRedo() if self.scene else False
-        self.ui.actionRedo.setEnabled(on and canRedo)
+        if self.scene:
+            self.ui.actionUndo.setEnabled(on and self.scene.stack().canUndo())
+            self.ui.actionRedo.setEnabled(on and self.scene.stack().canRedo())
+        else:
+            self.ui.actionUndo.setEnabled(False)
+            self.ui.actionRedo.setEnabled(False)
         if self.scene:
             numLayers = len(self.scene.layers(includeInternal=False))
             iActiveLayer = self.scene.activeLayer()
@@ -805,16 +807,6 @@ class DocumentController(QObject):
             if action.isCheckable() and action.isChecked():
                 action.blockSignals(True)
                 action.setChecked(False)
-        else:
-            prevDate = events[prevRow].dateTime()
-        if prevDate:
-            self.scene.setCurrentDateTime(prevDate)
-
-    def onDeselectAllTags(self):
-        for action in self.ui.menuTags.actions():
-            if action.isCheckable() and action.isChecked():
-                action.blockSignals(True)
-                action.setChecked(False)
                 action.blockSignals(False)
         self.dv.searchModel.reset("tags")
 
@@ -862,12 +854,14 @@ class DocumentController(QObject):
         self.dv.graphicalTimelineCallout.hide()
 
     def onUndo(self):
-        self.scene.undo()
-        self.view.onUndo()
+        if self.scene:
+            self.scene.stack().undo()
+            self.view.onUndo()
 
     def onRedo(self):
-        self.scene.redo()
-        self.view.onRedo()
+        if self.scene:
+            self.scene.stack().redo()
+            self.view.onRedo()
 
     def onArrangeSelection(self):
         from dataclasses import asdict
@@ -881,7 +875,11 @@ class DocumentController(QObject):
             parent_b = parents.people[1].id if parents else None
             boundingRect = person.sceneBoundingRect()
             birthDT = person.birthDateTime()
-            birthDateTime = birthDT.toString("yyyy-MM-dd") if birthDT and birthDT.isValid() else None
+            birthDateTime = (
+                birthDT.toString("yyyy-MM-dd")
+                if birthDT and birthDT.isValid()
+                else None
+            )
             diagram.people.append(
                 Person(
                     id=person.id,
@@ -894,7 +892,10 @@ class DocumentController(QObject):
                         height=boundingRect.height(),
                     ),
                     partners=[
-                        x.id for marriage in person.marriages for x in marriage.people if x != person
+                        x.id
+                        for marriage in person.marriages
+                        for x in marriage.people
+                        if x != person
                     ],
                     parent_a=parent_a,
                     parent_b=parent_b,

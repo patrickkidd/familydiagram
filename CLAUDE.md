@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code / design rules
+
+- keep as much app logic in python as possible. qml javascript is hard to debug
+
+### UI/UX Changes
+
+When modifying QML files, UI components, or any visual elements in the Pro or Personal apps, read and follow the design system in `doc/agents/ui-planner.md` before making changes. This includes the Liquid Glass style guide and existing app patterns.
+- For undoable app verbs, keep with the pattern of a verb method with `undo=False` and then a `def _do_<VERB>` method that does the actual work.
+
 ## Development Commands
 
 ### Environment Setup
@@ -17,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Build System
 - **CMake-based build**: Uses CMakeLists.txt for C++ extensions and Qt UI compilation
-- **Build C++ extension and Qt UI Forms**: `make` (builds the native _pkdiagram module using SIP, compiles .ui files to _form.py files)
+- **Build C++ extension and Qt UI Forms**: `cd familydiagram && uv run --env-file ../.env make` (builds the native _pkdiagram module using SIP, compiles .ui files to _form.py files)
 - **Run application**: `python -m pkdiagram`
 
 ### Linting and Type Checking
@@ -28,8 +37,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Overview
 
 ### Core Application Structure
-- **Desktop Application**: PyQt5-based family diagramming application with QML UI
-- **Main Entry**: `pkdiagram/main.py` - application startup and configuration
+- **Pro/Desktop App**: PyQt5-based family diagramming application with QML UI
+- **Pro/Mobile App**: PyQt5-based family diagramming application with QML UI
+- **Main Entry**: `pkdiagram/__main__.py` - application startup and configuration
 - **Application Class**: `pkdiagram/app/application.py:Application` - custom QApplication with Qt message handling and extensions
 - **PyQt Bridge**: `pkdiagram/pyqt.py` - centralized PyQt5 imports and platform detection
 
@@ -105,3 +115,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **QML Integration**: Context properties exposed via QmlEngine for data binding
 - **Model Updates**: Use `refreshAllProperties()` to sync model changes to QML bindings
 - Use camelCasing for all method and variable names. Capitalize class names like MyNewClass.
+
+## Release and Beta Process
+
+**IMPORTANT**: Read `doc/RELEASE_PROCESS.md` for the complete release workflow. Key points:
+
+### Release/Beta Relationship
+- **Beta and release versions are separate**: Beta version `2.1.9b1` and release `2.1.9` appear in **different appcasts**
+- **Changelog aggregation**: When release section is empty (`## 2.1.9` with no content), the system automatically aggregates all matching beta versions (e.g., `2.1.9b1`, `2.1.9b2`)
+- **Separate feeds**: Beta users see beta appcast with prerelease versions. Release users see release appcast without beta versions
+- **GitHub prerelease flag**: Beta versions must have `"prerelease": true`, release versions have `"prerelease": false`
+
+### Changelog Format
+```markdown
+## 2.1.9           # Empty = auto-aggregate from beta versions
+
+## 2.1.9b2
+- Fix edge case from b1
+
+## 2.1.9b1
+- New feature X
+```
+
+When release `2.1.9` is published with empty section, users upgrading from `2.1.8` to `2.1.9` see combined changelog from both `2.1.9b1` and `2.1.9b2`.
+
+### Test Data
+- Test changelog: `pkdiagram/tests/data/test_changelog.md`
+- GitHub release data: `pkdiagram/tests/data/github_releases.json`
+- Appcast generation: `pkdiagram/extras.py:actions_2_appcast()` and `bin/github_releases_2_appcast.py`
+- Changelog extraction: `bin/extract_changelog.py` (handles version parsing and markdown→HTML conversion)
