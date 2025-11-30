@@ -119,86 +119,107 @@ Rectangle {
             color: util.QML_ITEM_BORDER_COLOR
         }
 
-        Flickable {
-            id: flickable
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentHeight: fieldsColumn.height
-            clip: true
-            flickableDirection: Flickable.VerticalFlick
-            boundsBehavior: Flickable.StopAtBounds
 
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AlwaysOn
-                visible: flickable.contentHeight > flickable.height
+            MouseArea {
+                anchors.fill: parent
+                z: 1
+                acceptedButtons: Qt.NoButton
+                onWheel: function(event) {
+                    if (Math.abs(event.angleDelta.y) > Math.abs(event.angleDelta.x)) {
+                        flickable.contentY = Math.max(0,
+                            Math.min(flickable.contentHeight - flickable.height,
+                                flickable.contentY - event.angleDelta.y))
+                        event.accepted = true
+                    } else {
+                        event.accepted = false
+                    }
+                }
             }
 
-            ColumnLayout {
-                id: fieldsColumn
-                width: flickable.width - 12
-                spacing: 6
+            Flickable {
+                id: flickable
+                anchors.fill: parent
+                contentHeight: fieldsColumn.height
+                clip: true
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: false
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-                    visible: personData !== null && personData !== undefined && typeof personData.name === "string" && personData.name.length > 0
-
-                    Text {
-                        text: "Name"
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: util.QML_TEXT_COLOR
-                        opacity: 0.7
-                    }
-                    Text {
-                        text: personData ? (personData.name || "") : ""
-                        font.pixelSize: util.QML_TITLE_FONT_SIZE
-                        font.family: util.FONT_FAMILY_TITLE
-                        color: util.QML_TEXT_COLOR
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                    visible: flickable.contentHeight > flickable.height
                 }
 
                 ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-                    visible: personData !== null && personData !== undefined && typeof personData.last_name === "string" && personData.last_name.length > 0
+                    id: fieldsColumn
+                    width: flickable.width - 12
+                    spacing: 6
 
-                    Text {
-                        text: "Last Name"
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: util.QML_TEXT_COLOR
-                        opacity: 0.7
-                    }
-                    Text {
-                        text: personData ? (personData.last_name || "") : ""
-                        font.pixelSize: util.TEXT_FONT_SIZE
-                        color: util.QML_TEXT_COLOR
-                        wrapMode: Text.WordWrap
+                    ColumnLayout {
                         Layout.fillWidth: true
-                    }
-                }
+                        spacing: 2
+                        visible: personData !== null && personData !== undefined && typeof personData.name === "string" && personData.name.length > 0
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-                    visible: resolveParentNames() !== ""
-
-                    Text {
-                        text: "Parents"
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: util.QML_TEXT_COLOR
-                        opacity: 0.7
+                        Text {
+                            text: "Name"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personData ? (personData.name || "") : ""
+                            font.pixelSize: util.QML_TITLE_FONT_SIZE
+                            font.family: util.FONT_FAMILY_TITLE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
-                    Text {
-                        text: resolveParentNames()
-                        font.pixelSize: util.TEXT_FONT_SIZE
-                        color: util.QML_TEXT_COLOR
-                        wrapMode: Text.WordWrap
+
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: 2
+                        visible: personData !== null && personData !== undefined && typeof personData.last_name === "string" && personData.last_name.length > 0
+
+                        Text {
+                            text: "Last Name"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personData ? (personData.last_name || "") : ""
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: resolveParentNames() !== ""
+
+                        Text {
+                            text: "Parents"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: resolveParentNames()
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
             }
