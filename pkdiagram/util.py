@@ -1,8 +1,15 @@
-import sys, os, os.path, pickle, subprocess, hashlib, bisect, logging, bisect, contextlib
+import sys
+import os
+import os.path
+import pickle
+import subprocess
+import hashlib
+import bisect
+import logging
+import contextlib
 import enum
 import json
 from functools import wraps
-import sys, os.path
 from pathlib import Path
 from typing import Callable, Optional
 from dataclasses import dataclass
@@ -13,7 +20,7 @@ try:
     import pdytools  # type: ignore
 
     IS_BUNDLE = True
-except:
+except ImportError:
     IS_BUNDLE = False
 
 import btcopilot
@@ -1197,7 +1204,9 @@ def qtHTTPReply2String(reply: QNetworkReply) -> str:
         verb = "<custom>"
     else:
         verb = None
-    body = bytes(getattr(reply, "_pk_body", b"") or reply.readAll()).decode()
+    body = bytes(getattr(reply, "_pk_body", b"") or reply.readAll()).decode(
+        errors="backslashreplace"
+    )
     if body and reply.rawHeader(b"Content-Type") == b"application/json":
         body = json.dumps(json.loads(body), indent=4)
     message = "\n".join(
@@ -1308,15 +1317,16 @@ def printQObject(o):
             slots.append(bytes(meth.methodSignature()).decode())
         else:
             etc.append(bytes(meth.methodSignature()).decode())
-    s += f'QOBJECT: {o.__class__.__name__}, objectName: "{o.objectName()}"'
+    s = f'QOBJECT: {o.__class__.__name__}, objectName: "{o.objectName()}"'
     for i in sorted(properties):
         s += f"\n    PROPERTY: {i}"
     for i in sorted(signals):
-        s += f"    SIGNAL:   {i}"
+        s += f"\n    SIGNAL:   {i}"
     for i in sorted(slots):
-        s += f"    SLOT:     {i}"
+        s += f"\n    SLOT:     {i}"
     for i in sorted(etc):
-        s += f"    METHOD:   {i}"
+        s += f"\n    METHOD:   {i}"
+    return s
 
 
 def dumpWidget(widget):
@@ -1863,7 +1873,7 @@ def validate_uuid4(uuid_string):
         # If it's a value error, then the string
         # is not a valid hex code for a UUID.
         return False
-    except:
+    except Exception:
         # pks: Well, if it's an error at all then it isn't valid
         return False
 
@@ -1923,7 +1933,7 @@ class LoggedContext:
     def __enter__(self):
         print(f">>> {self._scope}")
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         print(f"<<< {self._scope}")
 
 

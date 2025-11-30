@@ -393,29 +393,37 @@ class PersonalAppController(QObject):
         return success
 
     def _addCommittedItemsToScene(self, committedItems: dict):
-        """Add committed PDP items to the existing Scene.
-
-        This syncs DiagramData changes to Scene without recreating Scene,
-        which is required when personal app is embedded in pro app.
-        """
-        byId = self.scene.itemRegistry.get
+        # Phase 1: Create items and build local map (two-phase approach like Scene.read())
+        itemChunks = []
+        localMap = {}
 
         for chunk in committedItems["people"]:
             item = Person()
             item.id = chunk["id"]
-            item.read(chunk, byId)
-            self.scene.addItem(item)
+            localMap[item.id] = item
+            itemChunks.append((item, chunk))
 
         for chunk in committedItems["pair_bonds"]:
             item = Marriage()
             item.id = chunk["id"]
-            item.read(chunk, byId)
-            self.scene.addItem(item)
+            localMap[item.id] = item
+            itemChunks.append((item, chunk))
 
         for chunk in committedItems["events"]:
             item = Event(kind=EventKind.Shift, person=None)
             item.id = chunk["id"]
+            localMap[item.id] = item
+            itemChunks.append((item, chunk))
+
+        # Phase 2: Read all chunks before adding to scene
+        def byId(id):
+            return localMap.get(id) or self.scene.itemRegistry.get(id)
+
+        for item, chunk in itemChunks:
             item.read(chunk, byId)
+
+        # Phase 3: Add all items to scene (triggers side effects)
+        for item, chunk in itemChunks:
             self.scene.addItem(item)
 
     def _doRejectPDPItem(self, id: int) -> bool:
