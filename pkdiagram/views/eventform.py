@@ -12,16 +12,12 @@ from pkdiagram.pyqt import (
     QVariant,
     QMessageBox,
     QDateTime,
+    QQuickItem,
+    QObject,
+    QQmlEngine,
 )
 from pkdiagram import util
-from pkdiagram.scene import (
-    Person,
-    Emotion,
-    Event,
-    Marriage,
-    Item,
-    Property,
-)
+from pkdiagram.scene import Person, Event, Marriage, Item, Property, Scene
 from pkdiagram.models import TagsModel
 from pkdiagram.views import QmlDrawer
 
@@ -36,7 +32,6 @@ class TagsProxyItem(Item):
         self.editedTags = None
 
     def tags(self) -> list[str]:
-        """Callback"""
         if self.editedTags is None:
             return self._proxy.tags()
         else:
@@ -47,31 +42,10 @@ class TagsProxyItem(Item):
             self.editedTags = prop.get()
 
 
-class EventForm(QmlDrawer):
-
-    QmlDrawer.registerQmlMethods(
-        [
-            {"name": "clear"},
-            {"name": "initWithPerson"},
-            {"name": "initWithNoSelection"},
-            {"name": "setVariable"},
-            {"name": "personEntry", "return": True, "parser": lambda x: x.toVariant()},
-            {"name": "spouseEntry", "return": True, "parser": lambda x: x.toVariant()},
-            {"name": "childEntry", "return": True, "parser": lambda x: x.toVariant()},
-            {
-                "name": "targetsEntries",
-                "return": True,
-                "parser": lambda x: [x for x in x.toVariant()],
-            },
-            {
-                "name": "trianglesEntries",
-                "return": True,
-                "parser": lambda x: [x for x in x.toVariant()],
-            },
-        ]
-    )
+class EventForm(QObject):
 
     doneEditing = pyqtSignal()
+    saved = pyqtSignal()
 
     S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
@@ -80,18 +54,15 @@ class EventForm(QmlDrawer):
     )
     S_PICKER_NEW_PERSON_NOT_SUBMITTED = "You have entered a name for a new person in the '{pickerLabel}' field, but have not pressed enter yet."
 
-    def __init__(self, engine, parent=None, **contextProperties):
-        super().__init__(
-            engine,
-            "qml/EventForm.qml",
-            parent=parent,
-            resizable=False,
-            objectName="addEverythingDialog",
-            **contextProperties,
-        )
+    def __init__(self, item: QQuickItem, parent=None):
+        super().__init__(parent=parent)
+        self.item = item
+        self.item.done.connect(self.onDone)
+        self.item.cancel.connect(self.onCancel)
+        self._tagsModel: TagsModel = self.item.property("tagsModel")
         self._events = []
         self._dummyItems = []
-        self._tagsModel: TagsModel | None = None
+        self.scene: Scene | None = None
 
         # self.startTimer(1000)
 
@@ -106,12 +77,12 @@ class EventForm(QmlDrawer):
     #             f"nextItem: {nextItemParent.objectName()}.{nextItem.objectName() if nextItem else None}"
     #         )
 
-    def onInitQml(self):
-        super().onInitQml()
-        self.item = self.qml.rootObject()
-        self.item.setProperty("widget", self)
-        self.item.cancel.connect(self.onCancel)
-        self._tagsModel = self.item.property("tagsModel")
+    def deinit(self):
+        self.setScene(None)
+
+    def setScene(self, scene: Scene):
+        self.scene = scene
+        self._tagsModel.scene = scene
 
     @staticmethod
     def nextItemInChain(item):
@@ -145,7 +116,7 @@ class EventForm(QmlDrawer):
     #     )
 
     def addEvent(self, selection: list[Item] = None):
-        self.clear()
+        self.item.clear()
         self.item.setProperty("isEditing", False)
         self.item.setProperty("events", [])
         self._events = []
@@ -156,13 +127,13 @@ class EventForm(QmlDrawer):
             people = [x for x in selection if x.isPerson]
             marriages = [x for x in selection if x.isMarriage]
             if people:
-                self.initWithPerson(people[0].id)
+                self.item.initWithPerson(people[0].id)
             elif marriages:
-                self.initWithPerson(marriages[0].personA().id)
+                self.item.initWithPerson(marriages[0].personA().id)
             else:
-                self.initWithNoSelection()
+                self.item.initWithNoSelection()
         else:
-            self.initWithNoSelection()
+            self.item.initWithNoSelection()
 
     def addBirthEvent(self, child: Person):
         self.addEvent()
@@ -195,7 +166,7 @@ class EventForm(QmlDrawer):
         """
         if isinstance(events, Event):
             events = [events]
-        self.clear()
+        self.item.clear()
         self.item.setProperty("isEditing", True)
         self.item.setProperty("events", events)
         self._events = events
@@ -360,7 +331,7 @@ class EventForm(QmlDrawer):
             msg = self.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(pickerLabel=text)
             _log.debug(f"Warning: Unconfirmed field, {msg}")
             QMessageBox.warning(
-                self,
+                None,
                 "Unconfirmed field",
                 msg,
                 QMessageBox.Ok,
@@ -376,6 +347,8 @@ class EventForm(QmlDrawer):
         isEditing = self.item.property("isEditing")
 
         invalidLabel = None
+
+        targetsEntries = [x for x in self.item.targetsEntries().toVariant()]
 
         if not isEditing:
 
@@ -403,7 +376,7 @@ class EventForm(QmlDrawer):
                 invalidLabel = "descriptionLabel"
 
             elif relationship and (
-                not self.targetsEntries()
+                not targetsEntries
                 or not self.item.property("targetsPicker").allSubmitted()
             ):
                 invalidLabel = "targetsLabel"
@@ -429,7 +402,7 @@ class EventForm(QmlDrawer):
                 msg = self.S_REQUIRED_FIELD_ERROR.format(name=name)
                 _log.debug(f"EventForm validation DIALOG: {msg}")
                 QMessageBox.warning(
-                    self,
+                    None,
                     "Required field",
                     msg,
                     QMessageBox.Ok,
@@ -438,8 +411,12 @@ class EventForm(QmlDrawer):
 
         # Validation: Confirmations
 
-        childEntry = self.childEntry()
-        personEntry = self.personEntry()
+        childEntry = (
+            self.item.childEntry().toVariant() if self.item.childEntry() else None
+        )
+        personEntry = (
+            self.item.personEntry().toVariant() if self.item.personEntry() else None
+        )
         if (
             kind in (EventKind.Birth, EventKind.Adopted)
             and childEntry
@@ -452,7 +429,7 @@ class EventForm(QmlDrawer):
                 and self.scene.eventsFor(childPerson, kinds=EventKind.Adopted)
             ):
                 button = QMessageBox.question(
-                    self,
+                    None,
                     f"Replace {kind.name} event(s)?",
                     self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                 )
@@ -466,7 +443,7 @@ class EventForm(QmlDrawer):
             person = personEntry["person"]
             if person.deceasedDateTime():
                 button = QMessageBox.question(
-                    self,
+                    None,
                     f"Replace {kind.name} event?",
                     self.S_REPLACE_EXISTING.format(n_existing=1, kind=kind.name),
                 )
@@ -861,7 +838,9 @@ class EventForm(QmlDrawer):
         #     for i, person in enumerate(newPeople):
         #         person.setItemPosNow(peopleReference + QPointF(-spacing, i * (spacing)))
 
-        timelineModel = self.qmlEngine().rootContext().contextProperty("timelineModel")
+        timelineModel = QQmlEngine.contextForObject(self.item).contextProperty(
+            "timelineModel"
+        )
         # Prevent the new person being invisible.
         if (
             newPeople
@@ -875,15 +854,17 @@ class EventForm(QmlDrawer):
             self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:
             pathItem.flash()
+        self.saved.emit()
         if self.item.property("isEditing"):
             self.doneEditing.emit()
-        self.clear()
+        else:
+            self.item.clear()
         self._cleanup()
 
     def canClose(self):
         if self.property("dirty"):
             discard = QMessageBox.question(
-                self,
+                None,
                 "Discard changes?",
                 "Are you sure you want to discard your changes to this event? Click 'Yes' to discard your changes, or click 'No' to finish adding the event.",
             )
@@ -896,7 +877,7 @@ class EventForm(QmlDrawer):
         Same as onDone but no add logic.
         """
         self._cleanup()
-        self.hideRequested.emit()
+        self.doneEditing.emit()
 
     def _cleanup(self):
         # if self._events and isinstance(self._events[0], DummyEvent):
@@ -905,3 +886,80 @@ class EventForm(QmlDrawer):
         self.scene.removeItems(self._dummyItems)
         self._dummyItems = []
         self._tagsModel.items = []
+
+    def personEntry(self):
+        entry = self.item.personEntry()
+        if entry:
+            return entry.toVariant()
+        return None
+
+    def spouseEntry(self):
+        entry = self.item.spouseEntry()
+        if entry:
+            return entry.toVariant()
+        return None
+
+    def childEntry(self):
+        entry = self.item.childEntry()
+        if entry:
+            return entry.toVariant()
+        return None
+
+    def targetsEntries(self):
+        entries = self.item.targetsEntries()
+        return [x for x in entries.toVariant()]
+
+    def trianglesEntries(self):
+        entries = self.item.trianglesEntries()
+        return [x for x in entries.toVariant()]
+
+
+class EventFormDrawer(QmlDrawer):
+    def __init__(self, qmlEngine, parent=None):
+        super().__init__(qmlEngine, "qml/EventForm.qml", parent=parent, resizable=False)
+        self.checkInitQml()
+        self.eventForm: EventForm = EventForm(self.qml.rootObject(), parent=self)
+        self.item = self.eventForm.item
+
+    def onDone(self):
+        # Only hide the drawer when editing events, not when adding new ones.
+        # When adding, we want to keep the drawer open so users can add multiple events.
+        # The doneEditing signal (emitted from EventForm._save when isEditing=True)
+        # will handle switching to case props after editing.
+        isEditing = self.item.property("isEditing")
+        if isEditing:
+            self.hideRequested.emit()
+        # Otherwise, don't hide - the drawer stays open for adding more events
+
+    def setScene(self, scene: Scene):
+        super().setScene(scene)
+        self.eventForm.setScene(scene)
+
+    # backward compat for tests
+
+    def addEvent(self, selection: list[Item] = None):
+        self.eventForm.addEvent(selection)
+
+    def addBirthEvent(self, child: Person):
+        self.eventForm.addBirthEvent(child)
+
+    def addDeathEvent(self, person: Person):
+        self.eventForm.addDeathEvent(person)
+
+    def editEvents(self, events: Union[list[Event], Event]):
+        self.eventForm.editEvents(events)
+
+    def personEntry(self):
+        return self.eventForm.personEntry()
+
+    def spouseEntry(self):
+        return self.eventForm.spouseEntry()
+
+    def childEntry(self):
+        return self.eventForm.childEntry()
+
+    def targetsEntries(self):
+        return self.eventForm.targetsEntries()
+
+    def trianglesEntries(self):
+        return self.eventForm.trianglesEntries()

@@ -137,7 +137,10 @@ class Application(QApplication):
         # self.setQuitOnLastWindowClosed(True)
         self.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
         if util.IS_DEV:
-            self.setWindowIcon(QIcon(QPixmap(util.QRC + "PKDiagram.png")))
+            if self._appType == Application.Type.Desktop:
+                self.setWindowIcon(QIcon(QPixmap(util.QRC + "PKDiagram.png")))
+            elif self._appType == Application.Type.Mobile:
+                self.setWindowIcon(QIcon(QPixmap(util.QRC + "PKDiagram-Personal.png")))
         self.focusWindowChanged.connect(self.onFocusWindowChanged)
         self.firstFocusWindow = None
 

@@ -3,16 +3,15 @@ import json
 import logging
 import contextlib
 import pickle
+from typing import Callable
 from dataclasses import asdict
 from datetime import datetime
 
 import pytest
 from mock import patch, MagicMock
 
-from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication, QUndoStack
-from pkdiagram import util
+from pkdiagram.pyqt import QUndoStack
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.personal import Response, Personal, Discussion, Statement
 from pkdiagram.server_types import Diagram
 from btcopilot.schema import (
     DiagramData,
@@ -31,7 +30,7 @@ _log = logging.getLogger(__name__)
 # QML-related fixtures and tests are skipped - require full QML infrastructure
 # @pytest.fixture
 # def controller(qmlEngine):
-#     controller = PersonalAppController(QApplication.instance())
+#     controller = PersonalAppController()
 #     with contextlib.ExitStack() as stack:
 #         stack.enter_context(patch.object(controller.personal, "_refreshDiscussion"))
 #         controller.init(qmlEngine)
@@ -67,7 +66,7 @@ _log = logging.getLogger(__name__)
 # def test_init_with_pdp(view: QQuickWidget, controller: PersonalAppController):
 #     pdpList = view.rootObject().property("pdpList")
 #     assert pdpList.property("numDelegates") == 0
-#     controller.personal.setPDP(
+#     controller.personalApp.setPDP(
 #         {
 #             "people": [{"id": -1, "name": "Alice"}, {"id": -2, "name": "Bob"}],
 #             "events": [
@@ -81,7 +80,6 @@ _log = logging.getLogger(__name__)
 
 @pytest.fixture
 def session():
-    """Mock session with required properties."""
     s = MagicMock()
     s.user = MagicMock()
     s.user.free_diagram_id = 1
@@ -90,22 +88,21 @@ def session():
     return s
 
 
-def _create_save_func(diagram):
-    """Create a save function for mocking diagram.save()."""
-
+def _create_save_func(personalApp: PersonalAppController) -> Callable:
     def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = diagram.getDiagramData()
+        diagramData = personalApp.diagram.getDiagramData()
         diagramData = applyChange(diagramData)
-        diagram.setDiagramData(diagramData)
+        personalApp.diagram.setDiagramData(diagramData)
         return True
 
     return save
 
 
 @pytest.fixture
-def personal_with_diagram(session):
+def personalApp(qApp, session):
     undoStack = QUndoStack()
-    personal = Personal(session, undoStack)
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -127,20 +124,21 @@ def personal_with_diagram(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personal._diagram = diagram
+    personalApp._diagram = diagram
 
-    return personal, diagram
+    yield personalApp
 
 
-def test_accept_person(personal_with_diagram):
-    personal, diagram = personal_with_diagram
-
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-1, undo=False)
+def test_accept_person(personalApp):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-1, undo=False)
 
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 1
     assert final_data.pdp.people[0].name == "Bob"
@@ -150,15 +148,16 @@ def test_accept_person(personal_with_diagram):
     assert final_data.people[0]["id"] > 0
 
 
-def test_accept_event(personal_with_diagram):
-    personal, diagram = personal_with_diagram
-
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-3, undo=False)
+def test_accept_event(personalApp):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     assert len(final_data.pdp.events) == 0
     assert len(final_data.pdp.people) == 1
@@ -172,15 +171,13 @@ def test_accept_event(personal_with_diagram):
     assert final_data.people[0]["name"] == "Alice"
 
 
-def test_reject_person(personal_with_diagram):
-    personal, diagram = personal_with_diagram
-
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.rejectPDPItem(-1, undo=False)
+def test_reject_person(personalApp):
+    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+        result = personalApp.rejectPDPItem(-1, undo=False)
 
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 1
     assert final_data.pdp.people[0].name == "Bob"
@@ -190,15 +187,13 @@ def test_reject_person(personal_with_diagram):
     assert len(final_data.events) == 0
 
 
-def test_reject_event(personal_with_diagram):
-    personal, diagram = personal_with_diagram
-
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.rejectPDPItem(-3, undo=False)
+def test_reject_event(personalApp):
+    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+        result = personalApp.rejectPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     assert len(final_data.pdp.events) == 0
 
@@ -208,9 +203,8 @@ def test_reject_event(personal_with_diagram):
     assert len(final_data.events) == 0
 
 
-def test_accept_with_pair_bond(session):
+def test_accept_with_pair_bond(qApp, session):
     undoStack = QUndoStack()
-    personal = Personal(session, undoStack)
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -233,14 +227,19 @@ def test_accept_with_pair_bond(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personal._diagram = diagram
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
+    personalApp._diagram = diagram
 
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-3, undo=False)
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 0
     assert len(final_data.pdp.pair_bonds) == 0
@@ -256,14 +255,13 @@ def test_accept_with_pair_bond(session):
     assert pair_bond["person_b"] > 0
 
 
-def test_accept_event_after_person_already_committed(session):
+def test_accept_event_after_person_already_committed(qApp, session):
     """Accept person first, then accept event referencing that person.
 
     This tests the scenario where an event references a person via negative ID,
     but that person has already been committed (now has positive ID).
     """
     undoStack = QUndoStack()
-    personal = Personal(session, undoStack)
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -291,14 +289,19 @@ def test_accept_event_after_person_already_committed(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personal._diagram = diagram
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
+    personalApp._diagram = diagram
 
     # First accept Bob (-2)
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-2, undo=False)
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-2, undo=False)
     assert result is True
 
-    mid_data = diagram.getDiagramData()
+    mid_data = personalApp.diagram.getDiagramData()
     assert len(mid_data.pdp.people) == 1
     assert mid_data.pdp.people[0].name == "Alice"
     assert len(mid_data.people) == 1
@@ -308,11 +311,14 @@ def test_accept_event_after_person_already_committed(session):
 
     # Now accept the wedding event (-3) which references spouse=-2
     # This should work even though Bob is no longer in PDP
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-3, undo=False)
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     # Event and Alice should be committed
     assert len(final_data.pdp.events) == 0
@@ -330,10 +336,9 @@ def test_accept_event_after_person_already_committed(session):
     assert event["spouse"] == bob_committed_id
 
 
-def test_accept_event_with_spouse_both_in_pdp(session):
+def test_accept_event_with_spouse_both_in_pdp(qApp, session):
     """Accept event where both person and spouse are still in PDP."""
     undoStack = QUndoStack()
-    personal = Personal(session, undoStack)
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -361,14 +366,19 @@ def test_accept_event_with_spouse_both_in_pdp(session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personal._diagram = diagram
+    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp.session = session
+    personalApp._diagram = diagram
 
     # Accept wedding event - should transitively commit both Alice and Bob
-    with patch.object(diagram, "save", _create_save_func(diagram)):
-        result = personal.acceptPDPItem(-3, undo=False)
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
+        result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 
-    final_data = diagram.getDiagramData()
+    final_data = personalApp.diagram.getDiagramData()
 
     # All items should be committed
     assert len(final_data.pdp.people) == 0

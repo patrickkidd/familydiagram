@@ -1,20 +1,9 @@
 import pytest
 from mock import patch
 
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QDir, QFileInfo
-from PyQt5.QtQml import qmlRegisterType
-from PyQt5.QtQml import QQmlEngine, qmlRegisterType
-from PyQt5.QtQuick import QQuickView
-from PyQt5.QtQuickWidgets import QQuickWidget
-from PyQt5.QtCore import QUrl
-
-
-# from pkdiagram.tests.models.test_copilotengine import copilot
-
-from pkdiagram.pyqt import QQuickWidget, QUrl, QApplication
-from pkdiagram.condition import Condition
+from pkdiagram.pyqt import QObject, pyqtSlot, QQuickWidget, QUrl, QQuickView
+from pkdiagram.util import Condition
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.personal import Discussion
 
 
 class MockSession(QObject):
@@ -67,7 +56,7 @@ def controller(test_user, test_session, qmlEngine):
 
     # diagram.database.add_discussion()
 
-    controller = PersonalAppController(QApplication.instance())
+    controller = PersonalAppController()
     with patch.object(
         controller.appConfig,
         "get",

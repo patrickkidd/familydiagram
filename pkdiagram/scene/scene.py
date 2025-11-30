@@ -8,7 +8,7 @@ import sys
 import time
 from typing import Union
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import DiagramData, EventKind, RelationshipKind
 from pkdiagram import slugify, util, version
 from pkdiagram.pyqt import (
     QAbstractAnimation,
@@ -1139,13 +1139,13 @@ class Scene(QGraphicsScene, Item):
 
     @contextlib.contextmanager
     def initializing(self):
-        self._isInitializing = True
+        self.isInitializing = True
         exception = None
         try:
             yield
         except Exception as e:
             exception = e
-        self._isInitializing = False
+        self.isInitializing = False
         if exception:
             raise exception
 
@@ -1227,6 +1227,49 @@ class Scene(QGraphicsScene, Item):
         data = {}
         self.write(data, selectionOnly=selectionOnly)
         return data
+
+    def diagramData(self) -> DiagramData:
+        data = self.data()
+        return DiagramData(
+            people=data.get("people", []),
+            events=data.get("events", []),
+            pair_bonds=data.get("pair_bonds", []),
+            emotions=data.get("emotions", []),
+            multipleBirths=data.get("multipleBirths", []),
+            layers=data.get("layers", []),
+            layerItems=data.get("layerItems", []),
+            items=data.get("items", []),
+            pruned=data.get("pruned", []),
+            uuid=data.get("uuid"),
+            name=data.get("name"),
+            tags=data.get("tags", []),
+            loggedDateTime=data.get("loggedDateTime", []),
+            masterKey=data.get("masterKey"),
+            alias=data.get("alias"),
+            version=data.get("version"),
+            versionCompat=data.get("versionCompat"),
+            lastItemId=data.get("lastItemId", 0),
+            readOnly=data.get("readOnly", False),
+            contributeToResearch=data.get("contributeToResearch", False),
+            useRealNames=data.get("useRealNames", False),
+            password=data.get("password"),
+            requirePasswordForRealNames=data.get("requirePasswordForRealNames", False),
+            showAliases=data.get("showAliases", False),
+            hideNames=data.get("hideNames", False),
+            hideToolBars=data.get("hideToolBars", False),
+            hideEmotionalProcess=data.get("hideEmotionalProcess", False),
+            hideEmotionColors=data.get("hideEmotionColors", False),
+            hideDateSlider=data.get("hideDateSlider", False),
+            hideVariablesOnDiagram=data.get("hideVariablesOnDiagram", False),
+            hideVariableSteadyStates=data.get("hideVariableSteadyStates", False),
+            exclusiveLayerSelection=data.get("exclusiveLayerSelection", True),
+            storePositionsInLayers=data.get("storePositionsInLayers", False),
+            currentDateTime=data.get("currentDateTime"),
+            scaleFactor=data.get("scaleFactor"),
+            pencilColor=data.get("pencilColor"),
+            eventProperties=data.get("eventProperties", []),
+            legendData=data.get("legendData"),
+        )
 
     def getPrintRect(self, forLayers=None, forTags=None):
         rect = QRectF()

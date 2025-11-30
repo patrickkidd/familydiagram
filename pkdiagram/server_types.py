@@ -271,6 +271,9 @@ class Diagram:
                 return True
 
             if response.status_code == 409:
+                log.info(
+                    f"Version conflict when saving diagram {self.id}, attempt {attempt + 1} of {maxRetries}"
+                )
                 self.version = responseData["version"]
                 conflictData = responseData["data"]
 

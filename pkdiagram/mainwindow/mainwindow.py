@@ -46,7 +46,6 @@ from pkdiagram.pyqt import (
     QSize,
     QEasingCurve,
     QEvent,
-    QKeyEvent,
     QQuickWidget,
     QWidget,
 )
@@ -1536,14 +1535,7 @@ class MainWindow(QMainWindow):
         self.ui.actionPaste.setEnabled(on)
 
     def onClipboardChanged(self, mode):
-        return
-        text = QApplication.clipboard().text()
-        if text:
-            self.ui.actionPaste.setEnabled(True)
-        else:
-            self.ui.actionPaste.setEnabled(False)
-            # self.ui.actionCut.setEnabled(on)
-            # self.ui.actionCopy.setEnabled(on)
+        pass
 
     def onCut(self):
         pass
@@ -1809,6 +1801,7 @@ class MainWindow(QMainWindow):
         self.documentView.controller.updateActions()
 
     def onServerRefresh(self):
+        self.serverFileModel.clear()
         self.serverFileModel.update()
 
     def onServerReload(self):

@@ -15,6 +15,7 @@ Control {
     opacity: enabled && !down ? 1.0 : .5
     property string defaultBackgroundColor: pill ? 'transparent' : (text ? util.QML_CONTROL_BG : 'transparent')
     property string textColor: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
+    property bool invertForDarkMode: true
 
     implicitHeight: preferred_implicitHeight
     readonly property var preferred_implicitHeight: pill ? 32 : 40
@@ -70,7 +71,7 @@ Control {
             id: mainImage
             source: root.source
             anchors.fill: parent
-            visible: !util.IS_UI_DARK_MODE && !root.text
+            visible: (!invertForDarkMode || !util.IS_UI_DARK_MODE) && !root.text
         }
 
         Image {
@@ -80,7 +81,7 @@ Control {
         }
 
         Blend {
-            visible: util.IS_UI_DARK_MODE && !root.text
+            visible: (invertForDarkMode && util.IS_UI_DARK_MODE) && !root.text
             source: mainImage
             foregroundSource: allWhite
             mode: 'negation'

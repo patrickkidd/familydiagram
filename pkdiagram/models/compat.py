@@ -681,6 +681,17 @@ def update_data(data):
                 emotion_chunk.pop("isDateRange", None)
                 emotion_chunk.pop("isSingularDate", None)
 
+            else:
+                # Undated emotion - still need to migrate property names
+                emotion_chunk.pop("startEvent", None)
+                emotion_chunk.pop("endEvent", None)
+                emotion_chunk.pop("isDateRange", None)
+                emotion_chunk.pop("isSingularDate", None)
+                if "person_a" in emotion_chunk:
+                    emotion_chunk["person"] = emotion_chunk.pop("person_a")
+                if "person_b" in emotion_chunk:
+                    emotion_chunk["target"] = emotion_chunk.pop("person_b")
+
         ensureSymptom = False
         ensureAnxiety = False
         ensureRelationship = False
@@ -711,17 +722,17 @@ def update_data(data):
         eventPropertyAttrs = [x["attr"] for x in data.get("eventProperties", [])]
 
         if ensureSymptom and "symptom" not in eventPropertyAttrs:
-            _log.warning("Adding `symptom` to Scene.eventProperties")
+            # _log.warning("Adding `symptom` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_SYMPTOM), "name": util.ATTR_SYMPTOM}
             )
         if ensureAnxiety and "anxiety" not in eventPropertyAttrs:
-            _log.warning("Adding `anxiety` to Scene.eventProperties")
+            # _log.warning("Adding `anxiety` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_ANXIETY), "name": util.ATTR_ANXIETY}
             )
         if ensureRelationship and "relationship" not in eventPropertyAttrs:
-            _log.warning("Adding `relationship` to Scene.eventProperties")
+            # _log.warning("Adding `relationship` to Scene.eventProperties")
             eventProperties.append(
                 {
                     "attr": slugify(util.ATTR_RELATIONSHIP),
@@ -729,7 +740,7 @@ def update_data(data):
                 }
             )
         if ensureFunctioning and "functioning" not in eventPropertyAttrs:
-            _log.warning("Adding `functioning` to Scene.eventProperties")
+            # _log.warning("Adding `functioning` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
             )
@@ -756,7 +767,7 @@ def update_data(data):
                 )
                 event_chunk["kind"] = EventKind.Shift.value
 
-    if UP_TO(data, "2.0.11b1"):
+    if UP_TO(data, "2.1.11b1"):
         # Convert childOf nested structure to simple parents ID
         for person_chunk in data.get("people", []):
             childOf = person_chunk.get("childOf")
@@ -773,8 +784,10 @@ def update_data(data):
 
         # Rename marriages to pair_bonds - runs unconditionally since UP_TO 2.0.12b1
         # populates data["marriages"] from items array, and this must run after that
-        if "marriages" in data and "pair_bonds" not in data:
-            data["pair_bonds"] = data.pop("marriages")
+        if "marriages" in data:
+            marriages = data.pop("marriages")
+            if not data.get("pair_bonds"):
+                data["pair_bonds"] = marriages
 
     ## Add more version fixes here
     # if UP_TO(data, ....)

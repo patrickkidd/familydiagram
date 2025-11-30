@@ -162,7 +162,7 @@ def _main_impl():
         app = Application(
             sys.argv, Application.Type.Mobile, prefsName=options.prefsName
         )
-        controller = PersonalAppController(app)
+        controller = PersonalAppController()
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine

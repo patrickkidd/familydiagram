@@ -3,7 +3,7 @@ import os, os.path, pickle
 import pytest
 from mock import patch
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, DiagramData, VariableShift
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Event
@@ -248,3 +248,27 @@ def test_pdp_modifications_preserved():
     output = scene.data()
 
     assert output["pdp"]["people"][0]["name"] == "Modified"
+
+
+def test_diagramData_returns_DiagramData():
+    scene = Scene()
+    person = scene.addItem(Person(name="Alice"))
+    scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            description="Felt stressed",
+            symptom=VariableShift.Down,
+        )
+    )
+
+    result = scene.diagramData()
+
+    assert isinstance(result, DiagramData)
+    assert len(result.people) == 1
+    assert result.people[0]["name"] == "Alice"
+    assert len(result.events) == 1
+    assert result.events[0]["description"] == "Felt stressed"
+    assert result.version is not None
+    assert result.versionCompat is not None

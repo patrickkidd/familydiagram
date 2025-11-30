@@ -15,8 +15,8 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
-from pkdiagram.widgets import TimelineCallout, Drawer
-from pkdiagram.views import EventForm, SearchDialog, QmlDrawer, CaseProperties
+from pkdiagram.widgets import TimelineCallout, Drawer, QmlWidgetHelper
+from pkdiagram.views import EventFormDrawer, SearchDialog, QmlDrawer, CaseProperties
 from pkdiagram.documentview import (
     View,
     QmlEngine,
@@ -85,6 +85,7 @@ class DocumentView(QWidget):
             objectName="caseProps",
         )
         self.caseProps.qmlInitialized.connect(self.onCasePropsInit)
+        self.caseProps.qmlInitialized.connect(self.controller.onCasePropsInit)
         self.personProps = QmlDrawer(
             self._qmlEngine,
             "qml/PersonProperties.qml",
@@ -118,14 +119,15 @@ class DocumentView(QWidget):
         #
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
-        self.eventForm = EventForm(self._qmlEngine, self)
+        self.eventFormDrawer = EventFormDrawer(self._qmlEngine, self)
+        self.eventFormDrawer.qmlInitialized.connect(self.controller.onEventFormInit)
         QWidget.hide(self.caseProps)
         QWidget.hide(self.personProps)
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
         self.drawers = [
-            self.eventForm,
+            self.eventFormDrawer,
             self.caseProps,
             self.personProps,
             self.marriageProps,
@@ -151,7 +153,12 @@ class DocumentView(QWidget):
                 self.controller.onEditEmotionEvent
             )
         )
-        self.eventForm.doneEditing.connect(self.controller.onEventFormDoneEditing)
+        # EventFormDrawer initializes QML immediately in its constructor,
+        # so we need to call the init handler directly after connecting the signal
+        self.controller.onEventFormInit()
+        self.eventFormDrawer.eventForm.doneEditing.connect(
+            self.controller.onEventFormDoneEditing
+        )
         self._forceSceneUpdate = False  # fix for scene update bug
 
         # This one shows/hides it all together.
@@ -234,8 +241,9 @@ class DocumentView(QWidget):
         self.marriageProps.deinit()
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
-        self.eventForm.deinit()
+        self.eventFormDrawer.deinit()
         self.searchDialog.deinit()
+        self.eventFormDrawer.eventForm.deinit()
         self._qmlEngine.deinit()
 
     def onCasePropsInit(self):
@@ -269,7 +277,7 @@ class DocumentView(QWidget):
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
-        self.eventForm.hide(animate=False)
+        self.eventFormDrawer.hide(animate=False)
         self.currentDrawer = None
         self.controller.setScene(None)
         if self.scene:
@@ -294,7 +302,7 @@ class DocumentView(QWidget):
                 )
             self.drawerShim.setFixedWidth(0)
         self.view.setScene(scene)
-        self.eventForm.setScene(scene)
+        self.eventFormDrawer.setScene(scene)
         self.caseProps.setScene(scene)
         self.personProps.setScene(scene)
         self.emotionProps.setScene(scene)
@@ -415,7 +423,10 @@ class DocumentView(QWidget):
             return
         self._settingCurrentDrawer = True
 
-        if drawer != self.eventForm and self.view.ui.actionAdd_Anything.isChecked():
+        if (
+            drawer != self.eventFormDrawer
+            and self.view.ui.actionAdd_Anything.isChecked()
+        ):
             self.view.ui.actionAdd_Anything.setChecked(False)
 
         if self.view.ui.actionShow_Timeline.isChecked() and (
@@ -527,10 +538,11 @@ class DocumentView(QWidget):
     def onCasePropsInspectEventNotes(self, row: int):
         event = self.timelineModel.eventForRow(row)
         if event:
-            self.eventForm.editEvents([event])
-            self.setCurrentDrawer(self.eventForm)
-            self.eventForm.scrollChildToVisible(
-                self.eventForm.rootProp("addPage"), self.eventForm.rootProp("notesEdit")
+            self.eventFormDrawer.eventForm.editEvents([event])
+            self.setCurrentDrawer(self.eventFormDrawer)
+            QmlWidgetHelper.scrollChildToVisible(
+                self.eventFormDrawer.eventForm.item.property("addPage"),
+                self.eventFormDrawer.eventForm.item.property("notesEdit"),
             )
             self.session.trackView("Edit event notes")
 
@@ -667,8 +679,8 @@ class DocumentView(QWidget):
 
     def onShowEventForm(self, on: bool = True):
         if on:
-            self.setCurrentDrawer(self.eventForm)
-            self.eventForm.addEvent(self.scene.selectedItems())
+            self.setCurrentDrawer(self.eventFormDrawer)
+            self.eventFormDrawer.eventForm.addEvent(self.scene.selectedItems())
         else:
             self.setCurrentDrawer(None)
 

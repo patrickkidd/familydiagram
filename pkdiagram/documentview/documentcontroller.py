@@ -78,9 +78,6 @@ class DocumentController(QObject):
         assert self.ui is None
         self.ui = self.dv.ui
 
-        self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
-        self.dv.eventForm.qmlInitialized.connect(self.onEventFormInit)
-
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
         )
@@ -193,7 +190,7 @@ class DocumentController(QObject):
         self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.emotionProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.layerItemProps.hideRequested.connect(self.onHideCurrentDrawer)
-        self.dv.eventForm.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.eventFormDrawer.hideRequested.connect(self.onHideCurrentDrawer)
 
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
@@ -223,7 +220,7 @@ class DocumentController(QObject):
         ].connect(self.onEventPropertiesTemplateIndexChanged)
 
     def onEventFormInit(self):
-        self.dv.eventForm.qml.rootObject().inspectEmotions.connect(
+        self.dv.eventFormDrawer.qml.rootObject().inspectEmotions.connect(
             self.onInspectEmotionsFromEventForm
         )
 
@@ -369,27 +366,27 @@ class DocumentController(QObject):
         person = personModel.items[0]
         birthEvents = person.birthEvent()
         if birthEvents:
-            self.dv.eventForm.editEvents(birthEvents)
+            self.dv.eventFormDrawer.editEvents(birthEvents)
         else:
-            self.dv.eventForm.addBirthEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addBirthEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditPersonDeathEvent(self):
         personModel = self.dv.personProps.getPropSheetModel()
         person = personModel.items[0]
         deathEvents = person.deathEvent()
         if deathEvents:
-            self.dv.eventForm.editEvents(deathEvents)
+            self.dv.eventFormDrawer.editEvents(deathEvents)
         else:
-            self.dv.eventForm.addDeathEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addDeathEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditEmotionEvent(self):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
         event = emotion.sourceEvent()
-        self.dv.eventForm.editEvents([event])
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+        self.dv.eventFormDrawer.editEvents([event])
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):
@@ -1006,8 +1003,8 @@ class DocumentController(QObject):
 
     def inspectEvents(self, events: list[Event]):
         self.dv.session.trackView("Edit event(s)")
-        self.dv.setCurrentDrawer(self.dv.eventForm)
-        self.dv.eventForm.editEvents(events)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
+        self.dv.eventFormDrawer.editEvents(events)
 
     def inspectEmotions(self, emotions: list[Emotion]):
         self.dv.session.trackView("Edit emotions(s)")
@@ -1098,7 +1095,7 @@ class DocumentController(QObject):
         consistency with action and button states.
         """
         if drawer.canClose():
-            if drawer is self.dv.eventForm:
+            if drawer is self.dv.eventFormDrawer:
                 if self.ui.actionAdd_Anything.isChecked():
                     self.ui.actionAdd_Anything.setChecked(False)
                     return True

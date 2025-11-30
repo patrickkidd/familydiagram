@@ -16,7 +16,7 @@ os.environ.setdefault("FLASK_CONFIG", "development")
 from btcopilot.app import create_app
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
-from btcopilot.personal.models import Discussion
+from btcopilot.personal.models import Discussion, Statement, Speaker
 from btcopilot.schema import (
     DiagramData,
     PDP,
@@ -39,13 +39,11 @@ def reset_diagram(diagram_id: int):
             print(f"Diagram {diagram_id} not found")
             sys.exit(1)
 
-        from btcopilot.personal.models import Statement, Speaker
-
         discussions = Discussion.query.filter_by(diagram_id=diagram_id).all()
-        for d in discussions:
-            Statement.query.filter_by(discussion_id=d.id).delete()
-            Speaker.query.filter_by(discussion_id=d.id).delete()
-            db.session.delete(d)
+        for discussion in discussions:
+            Statement.query.filter_by(discussion_id=discussion.id).delete()
+            Speaker.query.filter_by(discussion_id=discussion.id).delete()
+            db.session.delete(discussion)
         print(f"Deleted {len(discussions)} discussions")
 
         existing_people = [
@@ -89,6 +87,24 @@ def reset_diagram(diagram_id: int):
                 child=-5,
                 description="Charlie adopted",
                 dateTime="2005-03-15",
+            ),
+            Event(
+                id=-28,
+                kind=EventKind.Birth,
+                person=-1,
+                spouse=-2,
+                child=-3,
+                description="Alice born",
+                dateTime="1990-01-15",
+            ),
+            Event(
+                id=-29,
+                kind=EventKind.Birth,
+                person=-1,
+                spouse=-2,
+                child=-4,
+                description="Bob born",
+                dateTime="1992-06-20",
             ),
             Event(
                 id=-22,
@@ -265,28 +281,30 @@ def reset_diagram(diagram_id: int):
         for pb in pdp.pair_bonds:
             print(f"    {pb.id}: person_a={pb.person_a}, person_b={pb.person_b}")
         print(f"  Events ({len(pdp.events)}):")
-        for e in pdp.events:
+        for event in pdp.events:
             extras = []
-            if e.symptom:
-                extras.append(f"symptom={e.symptom.value}")
-            if e.anxiety:
-                extras.append(f"anxiety={e.anxiety.value}")
-            if e.functioning:
-                extras.append(f"functioning={e.functioning.value}")
-            if e.relationship:
-                extras.append(f"rel={e.relationship.value}")
-            if e.relationshipTargets:
-                extras.append(f"targets={e.relationshipTargets}")
-            if e.relationshipTriangles:
-                extras.append(f"triangles={e.relationshipTriangles}")
+            if event.symptom:
+                extras.append(f"symptom={event.symptom.value}")
+            if event.anxiety:
+                extras.append(f"anxiety={event.anxiety.value}")
+            if event.functioning:
+                extras.append(f"functioning={event.functioning.value}")
+            if event.relationship:
+                extras.append(f"rel={event.relationship.value}")
+            if event.relationshipTargets:
+                extras.append(f"targets={event.relationshipTargets}")
+            if event.relationshipTriangles:
+                extras.append(f"triangles={event.relationshipTriangles}")
             extras_str = f" [{', '.join(extras)}]" if extras else ""
-            print(f"    {e.id}: {e.kind.value} - {e.description}{extras_str}")
+            print(
+                f"    {event.id}: {event.kind.value} - {event.description}{extras_str}"
+            )
         print()
         print("=== Test Scenarios ===")
         print("  Cascade: Reject Tom (-1) -> cascades to his events and children")
         print("  Cascade: Reject pair bond (-10) -> cascades to Alice/Bob/Charlie")
-        print("  EventKinds: Birth, Adopted, Bonded, Married, Separated, Divorced,")
-        print("              Moved, Death, Shift")
+        print("  EventKinds: Birth (3), Adopted (1), Bonded, Married, Separated,")
+        print("              Divorced, Moved, Death, Shift")
         print("  SARF: symptom, anxiety, functioning (all VariableShift values)")
         print("  Relationships: Conflict, Distance, Cutoff, Projection,")
         print("                 Inside/Outside triangles, Overfunctioning")
