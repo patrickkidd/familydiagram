@@ -32,12 +32,6 @@ _log = logging.getLogger(__name__)
 
 
 class PersonalAppController(QObject):
-    """
-    App controller for the personal app.
-
-    Contains the user's one free diagram.
-    """
-
     requestSent = pyqtSignal(str)
     responseReceived = pyqtSignal(str, dict, arguments=["statement", "pdp"])
     serverError = pyqtSignal(str)
@@ -106,11 +100,32 @@ class PersonalAppController(QObject):
                 .property("eventForm"),
                 self,
             )
+            self.eventForm.saved.connect(self.onEventFormSaved)
             if self._pendingScene:
                 self.setScene(self._pendingScene)
                 self._pendingScene = None
             else:
                 self.eventForm.setScene(self.scene)
+
+    def onEventFormSaved(self):
+        self.saveDiagram()
+
+    def saveDiagram(self):
+        if not self._diagram or not self.scene:
+            return False
+
+        def applyChange(diagramData: DiagramData):
+            sceneData = {}
+            self.scene.write(sceneData)
+            diagramData.scene = sceneData
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        return self._diagram.save(
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
 
     def setScene(self, scene: Scene):
         self.scene = scene

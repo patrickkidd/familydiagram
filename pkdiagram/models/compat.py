@@ -756,7 +756,7 @@ def update_data(data):
                 )
                 event_chunk["kind"] = EventKind.Shift.value
 
-    if UP_TO(data, "2.0.11b1"):
+    if UP_TO(data, "2.1.11b1"):
         # Convert childOf nested structure to simple parents ID
         for person_chunk in data.get("people", []):
             childOf = person_chunk.get("childOf")

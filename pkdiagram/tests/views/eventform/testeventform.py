@@ -306,7 +306,7 @@ class TestEventForm:
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickSaveButton()
             assert warning.call_count == 1
-            assert warning.call_args[0][0] == self.view.eventForm
+            assert warning.call_args[0][0] is None
             assert warning.call_args[0][2] == expectedText
 
     def pickerNotSubmitted(self, pickerLabel: QQuickItem):
@@ -317,7 +317,7 @@ class TestEventForm:
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickSaveButton()
             assert warning.call_count == 1
-            assert warning.call_args[0][0] == self.view.eventForm
+            assert warning.call_args[0][0] is None
             assert warning.call_args[0][2] == expectedText
 
     def set_symptom(self, x: VariableShift):

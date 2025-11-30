@@ -1,12 +1,10 @@
 import contextlib
 import pickle
 from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 import pytest
-from mock import patch
-from pkdiagram.pyqt import QQmlApplicationEngine
 
-from pkdiagram.app import Session
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.personal.models import (
     Diagram,
@@ -34,36 +32,6 @@ def discussion(test_user):
     discussion = Discussion(user_id=test_user.id, diagram_id=test_user.free_diagram_id)
     db.session.add(discussion)
     return discussion
-
-
-@pytest.fixture
-def personalApp(qApp, test_session):
-    _personalApp = PersonalAppController()
-    engine = QQmlApplicationEngine()
-
-    qmlErrors = []
-    engine.warnings.connect(lambda errors: qmlErrors.extend(errors))
-
-    engine.addImportPath("resources:")
-    _personalApp.init(engine)
-    _personalApp.session.init(
-        sessionData=test_session.account_editor_dict(), syncWithServer=False
-    )
-    engine.load("resources:qml/PersonalApplication.qml")
-
-    from pkdiagram.pyqt import QApplication
-
-    QApplication.processEvents()
-    util.waitALittle()
-
-    if qmlErrors:
-        pytest.fail(f"QML load errors: {[e.toString() for e in qmlErrors]}")
-    if not engine.rootObjects():
-        pytest.fail("QML failed to load - rootObjects() is empty")
-
-    yield _personalApp
-
-    engine.clearComponentCache()
 
 
 def test_refreshDiagram(
@@ -137,9 +105,9 @@ def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    with patch.object(personalApp, "_doAcceptPDPItem") as mock_accept:
+    with patch.object(personalApp, "_doAcceptPDPItem") as accept:
         personalApp.acceptPDPItem(-1)
-        assert mock_accept.call_count == 1
+        assert accept.call_count == 1
         assert personalApp._undoStack.count() == 1
         assert personalApp._undoStack.canUndo()
 
@@ -149,7 +117,7 @@ def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
         assert personalApp._undoStack.canRedo()
 
         personalApp._undoStack.redo()
-        assert mock_accept.call_count == 2
+        assert accept.call_count == 2
         assert not personalApp._undoStack.canRedo()
 
 
@@ -163,9 +131,9 @@ def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    with patch.object(personalApp, "_doRejectPDPItem") as mock_reject:
+    with patch.object(personalApp, "_doRejectPDPItem") as reject:
         personalApp.rejectPDPItem(-1)
-        assert mock_reject.call_count == 1
+        assert reject.call_count == 1
         assert personalApp._undoStack.count() == 1
         assert personalApp._undoStack.canUndo()
 
@@ -175,7 +143,7 @@ def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
         assert personalApp._undoStack.canRedo()
 
         personalApp._undoStack.redo()
-        assert mock_reject.call_count == 2
+        assert reject.call_count == 2
         assert not personalApp._undoStack.canRedo()
 
 
@@ -222,13 +190,13 @@ def test_acceptPDPItem_failure_doesnt_push_to_stack(
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    stack_count_before = personalApp._undoStack.count()
+    count_before = personalApp._undoStack.count()
 
     with patch.object(personalApp, "_doAcceptPDPItem", return_value=False):
         result = personalApp.acceptPDPItem(-1)
 
     assert result is False
-    assert personalApp._undoStack.count() == stack_count_before
+    assert personalApp._undoStack.count() == count_before
 
 
 def test_rejectPDPItem_failure_doesnt_push_to_stack(
@@ -243,19 +211,18 @@ def test_rejectPDPItem_failure_doesnt_push_to_stack(
         data=pickle.dumps(asdict(initial_diagram_data)),
     )
 
-    stack_count_before = personalApp._undoStack.count()
+    count_before = personalApp._undoStack.count()
 
     with patch.object(personalApp, "_doRejectPDPItem", return_value=False):
         result = personalApp.rejectPDPItem(-1)
 
     assert result is False
-    assert personalApp._undoStack.count() == stack_count_before
+    assert personalApp._undoStack.count() == count_before
 
 
 def test_diagram_save_shows_error_on_unexpected_status(test_user):
     from pkdiagram.pyqt import QMessageBox
     from pkdiagram.server_types import HTTPError
-    from unittest.mock import MagicMock
 
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
     diagram = Diagram(

@@ -32,7 +32,6 @@ class TagsProxyItem(Item):
         self.editedTags = None
 
     def tags(self) -> list[str]:
-        """Callback"""
         if self.editedTags is None:
             return self._proxy.tags()
         else:
@@ -46,6 +45,7 @@ class TagsProxyItem(Item):
 class EventForm(QObject):
 
     doneEditing = pyqtSignal()
+    saved = pyqtSignal()
 
     S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"
@@ -853,9 +853,11 @@ class EventForm(QObject):
             self.scene.setCurrentDateTime(timelineModel.lastEventDateTime(), undo=True)
         for pathItem in newPeople + newMarriages + newEmotions:
             pathItem.flash()
+        self.saved.emit()
         if self.item.property("isEditing"):
             self.doneEditing.emit()
-        self.item.clear()
+        else:
+            self.item.clear()
         self._cleanup()
 
     def canClose(self):
@@ -874,7 +876,7 @@ class EventForm(QObject):
         Same as onDone but no add logic.
         """
         self._cleanup()
-        self.hideRequested.emit()
+        self.doneEditing.emit()
 
     def _cleanup(self):
         # if self._events and isinstance(self._events[0], DummyEvent):
