@@ -1,4 +1,9 @@
-import os, os.path, pickle, shutil, datetime, logging
+import os
+import os.path
+import pickle
+import shutil
+import datetime
+import logging
 import dataclasses
 
 from btcopilot.schema import DiagramData
@@ -42,7 +47,7 @@ class ServerFileManagerModel(FileManagerModel):
 
     QObjectHelper.registerQtProperties([{"attr": "userId", "default": -1}])
 
-    SERVER_SYNC_MS = 1000 * 60 * 2  # 2 minutes
+    SERVER_SYNC_MS = 1000 * 60 * 30  # 30 minutes
     S_CONFIRM_DELETE_SERVER_FILE = (
         "Are you sure you want to delete this file? This cannot be undone."
     )
@@ -187,9 +192,8 @@ class ServerFileManagerModel(FileManagerModel):
     def update(self):
         """Sync local from server retaining whatever hasn't changed."""
 
-        self.clear()
-
         if not self.session.isLoggedIn():
+            self.clear()
             return
 
         def checkIndexRequestsComplete(reply):

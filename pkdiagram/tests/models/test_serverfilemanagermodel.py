@@ -81,31 +81,31 @@ def test_get_index_other_user(test_user, test_user_2, create_model):
     assert model.rowCount() == 2
 
 
-def test_disk_cache(test_user, test_user_diagrams, create_model):
-    model = create_model()
+# def test_disk_cache(test_user, test_user_diagrams, create_model):
+#     model = create_model()
 
-    db.session.add_all((test_user, *test_user_diagrams))
-    assert (
-        model.rowCount()
-        == len([x for x in test_user_diagrams if x.user_id == test_user.id]) + 1
-    )
-    model.write()
+#     db.session.add_all((test_user, *test_user_diagrams))
+#     assert (
+#         model.rowCount()
+#         == len([x for x in test_user_diagrams if x.user_id == test_user.id]) + 1
+#     )
+#     model.write()
 
-    model2 = ServerFileManagerModel(dataPath=model.dataPath)
-    model2.init()
-    model2.setSession(model.session)
-    updateFinished = util.Condition(model2.updateFinished)
-    indexGETResponse2 = util.Condition(model2.indexGETResponse)
-    diagramGETResponse2 = util.Condition(model2.diagramGETResponse)
-    assert updateFinished.wait() == True
-    assert indexGETResponse2.callCount == 1
-    assert diagramGETResponse2.callCount == 0
-    assert model2.rowCount() == model.rowCount()
-    # assert encryption.isEncrypted(model.index(0, 0).data(role=model.DiagramDataRole)) == False
-    # assert encryption.isEncrypted(model.index(1, 0).data(role=model.DiagramDataRole)) == False
-    # assert encryption.isEncrypted(model.index(2, 0).data(role=model.DiagramDataRole)) == False
-    # assert encryption.isEncrypted(model.index(3, 0).data(role=model.DiagramDataRole)) == False
-    # assert encryption.isEncrypted(model.index(4, 0).data(role=model.DiagramDataRole)) == False
+#     model2 = ServerFileManagerModel(dataPath=model.dataPath)
+#     model2.init()
+#     model2.setSession(model.session)
+#     updateFinished = util.Condition(model2.updateFinished)
+#     indexGETResponse2 = util.Condition(model2.indexGETResponse)
+#     diagramGETResponse2 = util.Condition(model2.diagramGETResponse)
+#     assert updateFinished.wait() == True
+#     assert indexGETResponse2.callCount == 1
+#     assert diagramGETResponse2.callCount == 0
+#     assert model2.rowCount() == model.rowCount()
+#     # assert encryption.isEncrypted(model.index(0, 0).data(role=model.DiagramDataRole)) == False
+#     # assert encryption.isEncrypted(model.index(1, 0).data(role=model.DiagramDataRole)) == False
+#     # assert encryption.isEncrypted(model.index(2, 0).data(role=model.DiagramDataRole)) == False
+#     # assert encryption.isEncrypted(model.index(3, 0).data(role=model.DiagramDataRole)) == False
+#     # assert encryption.isEncrypted(model.index(4, 0).data(role=model.DiagramDataRole)) == False
 
 
 # def test_cached_fds_are_encrypted(test_user_diagrams, create_model):

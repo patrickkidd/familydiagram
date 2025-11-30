@@ -13,9 +13,7 @@ from btcopilot.schema import (
     asdict,
 )
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.models import (
-    Diagram,
-)
+from pkdiagram.server_types import Diagram
 from pkdiagram.scene import Scene
 
 

@@ -23,7 +23,8 @@ from pkdiagram.pyqt import (
     QUndoStack,
 )
 from pkdiagram.app import Session, Analytics
-from pkdiagram.personal.models import Diagram, Discussion
+from pkdiagram.personal.models import Discussion
+from pkdiagram.server_types import Diagram
 from pkdiagram.scene import Scene, Person, Event, Marriage, Emotion
 from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
@@ -89,7 +90,8 @@ class PersonalAppController(QObject):
     def deinit(self):
         self.analytics.init()
         self.session.deinit()
-        self.eventForm.deinit()
+        if self.eventForm:
+            self.eventForm.deinit()
         self._engine = None
 
     def onQmlObjectCreated(self, rootObject: QQuickItem, url: QUrl):
@@ -141,7 +143,8 @@ class PersonalAppController(QObject):
         self.scene = scene
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
-        self.eventForm.setScene(scene)
+        if self.eventForm:
+            self.eventForm.setScene(scene)
 
     def exec(self, mw):
         """

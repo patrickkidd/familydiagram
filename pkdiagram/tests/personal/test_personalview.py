@@ -1,17 +1,9 @@
 import pytest
 from mock import patch
 
-from pkdiagram.pyqt import (
-    QObject,
-    pyqtSlot,
-    QQuickWidget,
-    QUrl,
-    QApplication,
-    QQuickView,
-)
+from pkdiagram.pyqt import QObject, pyqtSlot, QQuickWidget, QUrl, QQuickView
 from pkdiagram.util import Condition
 from pkdiagram.personal import PersonalAppController
-from pkdiagram.personal.models import Discussion
 
 
 class MockSession(QObject):

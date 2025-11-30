@@ -1,5 +1,4 @@
 import contextlib
-import json
 import pickle
 from datetime import datetime
 from unittest.mock import patch, MagicMock
@@ -8,25 +7,16 @@ import pytest
 
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.personal.models import (
-    Diagram,
     Discussion,
     Statement,
     Speaker,
     SpeakerType,
 )
 from pkdiagram import util
-from pkdiagram.scene import Scene
+from pkdiagram.server_types import Diagram
 
 from btcopilot.extensions import db
-from btcopilot.schema import (
-    DiagramData,
-    PDP,
-    Person,
-    Event,
-    EventKind,
-    PairBond,
-    asdict,
-)
+from btcopilot.schema import DiagramData, PDP, Person, asdict
 
 
 pytestmark = [

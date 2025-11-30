@@ -78,10 +78,11 @@ class EventForm(QObject):
     #         )
 
     def deinit(self):
-        self._tagsModel.scene = None
+        self.setScene(None)
 
     def setScene(self, scene: Scene):
         self.scene = scene
+        self._tagsModel.scene = scene
 
     @staticmethod
     def nextItemInChain(item):

@@ -11,7 +11,6 @@ from btcopilot.schema import (
     DiagramData,
     PDP,
     Person as SchemaPerson,
-    Event as SchemaEvent,
     asdict as schema_asdict,
 )
 from pkdiagram.pyqt import QApplication

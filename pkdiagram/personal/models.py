@@ -1,19 +1,8 @@
 import enum
 import logging
 from dataclasses import dataclass
-from typing import Callable
 
-from pkdiagram.pyqt import (
-    pyqtSlot,
-    pyqtSignal,
-    pyqtProperty,
-    QObject,
-    QNetworkRequest,
-    qmlRegisterType,
-    QNetworkReply,
-    QMessageBox,
-)
-from pkdiagram.server_types import User, Diagram
+from pkdiagram.pyqt import pyqtProperty, QObject, qmlRegisterType
 
 # from pkdiagram import util
 # from pkdiagram.models.qobjecthelper import qobject_dataclass

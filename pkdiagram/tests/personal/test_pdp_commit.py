@@ -1,5 +1,3 @@
-import pytest
-
 from btcopilot.schema import (
     DiagramData,
     PDP,
