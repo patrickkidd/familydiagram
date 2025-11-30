@@ -681,6 +681,17 @@ def update_data(data):
                 emotion_chunk.pop("isDateRange", None)
                 emotion_chunk.pop("isSingularDate", None)
 
+            else:
+                # Undated emotion - still need to migrate property names
+                emotion_chunk.pop("startEvent", None)
+                emotion_chunk.pop("endEvent", None)
+                emotion_chunk.pop("isDateRange", None)
+                emotion_chunk.pop("isSingularDate", None)
+                if "person_a" in emotion_chunk:
+                    emotion_chunk["person"] = emotion_chunk.pop("person_a")
+                if "person_b" in emotion_chunk:
+                    emotion_chunk["target"] = emotion_chunk.pop("person_b")
+
         ensureSymptom = False
         ensureAnxiety = False
         ensureRelationship = False

@@ -1139,13 +1139,13 @@ class Scene(QGraphicsScene, Item):
 
     @contextlib.contextmanager
     def initializing(self):
-        self._isInitializing = True
+        self.isInitializing = True
         exception = None
         try:
             yield
         except Exception as e:
             exception = e
-        self._isInitializing = False
+        self.isInitializing = False
         if exception:
             raise exception
 
