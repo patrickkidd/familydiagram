@@ -130,7 +130,10 @@ def personalApp(qApp, session):
 
 
 def test_accept_person(personalApp):
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-1, undo=False)
 
     assert result is True
@@ -146,7 +149,10 @@ def test_accept_person(personalApp):
 
 
 def test_accept_event(personalApp):
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
@@ -225,7 +231,10 @@ def test_accept_with_pair_bond(qApp, session):
     personalApp.session = session
     personalApp._diagram = diagram
 
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
@@ -285,7 +294,10 @@ def test_accept_event_after_person_already_committed(qApp, session):
     personalApp._diagram = diagram
 
     # First accept Bob (-2)
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-2, undo=False)
     assert result is True
 
@@ -299,7 +311,10 @@ def test_accept_event_after_person_already_committed(qApp, session):
 
     # Now accept the wedding event (-3) which references spouse=-2
     # This should work even though Bob is no longer in PDP
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 
@@ -356,7 +371,10 @@ def test_accept_event_with_spouse_both_in_pdp(qApp, session):
     personalApp._diagram = diagram
 
     # Accept wedding event - should transitively commit both Alice and Bob
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with (
+        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+    ):
         result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 

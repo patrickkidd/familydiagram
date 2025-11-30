@@ -531,7 +531,9 @@ class ServerFileManagerModel(FileManagerModel):
             fpath = self.localPathForID(diagram.id)
 
             def applyChange(data):
-                return DiagramData(**pickle.loads(dataToSave))
+                data = pickle.loads(dataToSave)
+                data["pair_bonds"] = data.pop("marriages")
+                return DiagramData(**data)
 
             def stillValid(refreshedData):
                 return self.handleDiagramConflict(diagram, refreshedData, fpath)

@@ -3,7 +3,7 @@ import logging
 import pickle
 from typing import Callable
 
-from btcopilot.schema import Person, Event, DiagramData, asdict
+from btcopilot.schema import EventKind, DiagramData, asdict
 from pkdiagram.personal.commands import HandlePDPItem, PDPAction
 from _pkdiagram import CUtil
 from pkdiagram import pepper
@@ -24,7 +24,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Diagram, Discussion
-from pkdiagram.scene import Scene
+from pkdiagram.scene import Scene, Person, Event, Marriage, Emotion
 from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
 
@@ -115,9 +115,19 @@ class PersonalAppController(QObject):
             return False
 
         def applyChange(diagramData: DiagramData):
-            sceneData = {}
-            self.scene.write(sceneData)
-            diagramData.scene = sceneData
+            sceneDiagramData = self.scene.diagramData()
+            diagramData.people = sceneDiagramData.people
+            diagramData.events = sceneDiagramData.events
+            diagramData.pair_bonds = sceneDiagramData.pair_bonds
+            diagramData.emotions = sceneDiagramData.emotions
+            diagramData.multipleBirths = sceneDiagramData.multipleBirths
+            diagramData.layers = sceneDiagramData.layers
+            diagramData.layerItems = sceneDiagramData.layerItems
+            diagramData.items = sceneDiagramData.items
+            diagramData.pruned = sceneDiagramData.pruned
+            diagramData.version = sceneDiagramData.version
+            diagramData.versionCompat = sceneDiagramData.versionCompat
+            diagramData.name = sceneDiagramData.name
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
@@ -270,7 +280,7 @@ class PersonalAppController(QObject):
         def _doSendStatement():
             if not self._currentDiscussion:
                 QMessageBox.information(
-                    "Cannot send statement without current discussion"
+                    self, "Cannot send statement without current discussion"
                 )
                 return
 
@@ -344,8 +354,27 @@ class PersonalAppController(QObject):
     def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
 
+        committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+
         def applyChange(diagramData: DiagramData):
+            # Capture IDs before commit to identify what was added
+            prevPeopleIds = {p["id"] for p in diagramData.people}
+            prevEventsIds = {e["id"] for e in diagramData.events}
+            prevPairBondsIds = {pb["id"] for pb in diagramData.pair_bonds}
+
             diagramData.commit_pdp_items([id])
+
+            # Find newly committed items
+            committedItems["people"] = [
+                p for p in diagramData.people if p["id"] not in prevPeopleIds
+            ]
+            committedItems["events"] = [
+                e for e in diagramData.events if e["id"] not in prevEventsIds
+            ]
+            committedItems["pair_bonds"] = [
+                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondsIds
+            ]
+
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
@@ -356,11 +385,38 @@ class PersonalAppController(QObject):
         )
 
         if success:
+            self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
         else:
             _log.warning(f"Failed to accept PDP item after retries")
 
         return success
+
+    def _addCommittedItemsToScene(self, committedItems: dict):
+        """Add committed PDP items to the existing Scene.
+
+        This syncs DiagramData changes to Scene without recreating Scene,
+        which is required when personal app is embedded in pro app.
+        """
+        byId = self.scene.itemRegistry.get
+
+        for chunk in committedItems["people"]:
+            item = Person()
+            item.id = chunk["id"]
+            item.read(chunk, byId)
+            self.scene.addItem(item)
+
+        for chunk in committedItems["pair_bonds"]:
+            item = Marriage()
+            item.id = chunk["id"]
+            item.read(chunk, byId)
+            self.scene.addItem(item)
+
+        for chunk in committedItems["events"]:
+            item = Event(kind=EventKind.Shift, person=None)
+            item.id = chunk["id"]
+            item.read(chunk, byId)
+            self.scene.addItem(item)
 
     def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
