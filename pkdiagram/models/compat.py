@@ -711,17 +711,17 @@ def update_data(data):
         eventPropertyAttrs = [x["attr"] for x in data.get("eventProperties", [])]
 
         if ensureSymptom and "symptom" not in eventPropertyAttrs:
-            _log.warning("Adding `symptom` to Scene.eventProperties")
+            # _log.warning("Adding `symptom` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_SYMPTOM), "name": util.ATTR_SYMPTOM}
             )
         if ensureAnxiety and "anxiety" not in eventPropertyAttrs:
-            _log.warning("Adding `anxiety` to Scene.eventProperties")
+            # _log.warning("Adding `anxiety` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_ANXIETY), "name": util.ATTR_ANXIETY}
             )
         if ensureRelationship and "relationship" not in eventPropertyAttrs:
-            _log.warning("Adding `relationship` to Scene.eventProperties")
+            # _log.warning("Adding `relationship` to Scene.eventProperties")
             eventProperties.append(
                 {
                     "attr": slugify(util.ATTR_RELATIONSHIP),
@@ -729,7 +729,7 @@ def update_data(data):
                 }
             )
         if ensureFunctioning and "functioning" not in eventPropertyAttrs:
-            _log.warning("Adding `functioning` to Scene.eventProperties")
+            # _log.warning("Adding `functioning` to Scene.eventProperties")
             eventProperties.append(
                 {"attr": slugify(util.ATTR_FUNCTIONING), "name": util.ATTR_FUNCTIONING}
             )
