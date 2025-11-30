@@ -773,8 +773,10 @@ def update_data(data):
 
         # Rename marriages to pair_bonds - runs unconditionally since UP_TO 2.0.12b1
         # populates data["marriages"] from items array, and this must run after that
-        if "marriages" in data and "pair_bonds" not in data:
-            data["pair_bonds"] = data.pop("marriages")
+        if "marriages" in data:
+            marriages = data.pop("marriages")
+            if not data.get("pair_bonds"):
+                data["pair_bonds"] = marriages
 
     ## Add more version fixes here
     # if UP_TO(data, ....)

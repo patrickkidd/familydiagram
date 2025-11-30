@@ -186,8 +186,10 @@ class ServerFileManagerModel(FileManagerModel):
 
     def update(self):
         """Sync local from server retaining whatever hasn't changed."""
+
+        self.clear()
+
         if not self.session.isLoggedIn():
-            self.clear()
             return
 
         def checkIndexRequestsComplete(reply):
@@ -530,7 +532,7 @@ class ServerFileManagerModel(FileManagerModel):
             dataToSave = value
             fpath = self.localPathForID(diagram.id)
 
-            def applyChange(data):
+            def applyChange(diagramData: DiagramData):
                 return DiagramData(**pickle.loads(dataToSave))
 
             def stillValid(refreshedData):
