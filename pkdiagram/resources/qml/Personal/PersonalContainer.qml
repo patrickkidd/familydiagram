@@ -257,20 +257,17 @@ Page {
         }
     }
 
-    // Overlay for dropdown
-    Rectangle {
+    // Invisible tap catcher for dropdown dismissal
+    MouseArea {
         anchors.fill: parent
-        color: util.IS_UI_DARK_MODE ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.2)"
         visible: discussionMenuOpen
         z: 55
-        MouseArea {
-            anchors.fill: parent
-            onClicked: discussionMenuOpen = false
-        }
+        onClicked: discussionMenuOpen = false
     }
 
     // Discussion dropdown
     Rectangle {
+        id: discussionDropdownRect
         anchors.top: header.bottom
         anchors.topMargin: 8
         anchors.horizontalCenter: parent.horizontalCenter
@@ -280,8 +277,36 @@ Page {
         color: itemBg
         border.width: 1
         border.color: borderColor
-        visible: discussionMenuOpen
+        visible: opacity > 0
+        opacity: discussionMenuOpen ? 1 : 0
+        scale: discussionMenuOpen ? 1 : 0.9
+        transformOrigin: Item.Top
         z: 60
+
+        Behavior on opacity {
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
+        Behavior on scale {
+            NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
+        }
+
+        // Shadow
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -1
+            radius: parent.radius + 1
+            color: "transparent"
+            border.width: 0
+            z: -1
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: 4
+                radius: parent.radius
+                color: util.IS_UI_DARK_MODE ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.15)"
+                z: -1
+            }
+        }
 
         Column {
             id: discussionDropdown

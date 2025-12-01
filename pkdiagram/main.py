@@ -172,6 +172,9 @@ def _main_impl():
         controller.init(engine)
 
         engine.load("resources:qml/PersonalApplication.qml")
+        if not engine.rootObjects():
+            _log.critical("Failed to load QML - application cannot start")
+            sys.exit(1)
         extensions.setActiveSession(session=controller.session)
 
         # Start test bridge server if requested
