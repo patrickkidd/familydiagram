@@ -1,9 +1,9 @@
-I want to add an evaluative visual QmlDrawer view to the right side menu in the
-Pro app that gives the user an aesthetic sense of how the four main SARF
-variables change over time in events on the timeline. That is the main goal of
-the app, anyway, to collect data and then help people look back at a visual to
-see how their own reactivity and anxiety levels overlap with the symptoms they
-or another person is having. It should have it's own button with a graph icon in
+I want to add an evaluative visual aid in the `Learn` tab in the personal app
+that gives the user an aesthetic sense of how the four main SARF variables
+change over time in events on the timeline. That is the main goal of the app,
+anyway, to collect data and then help people look back at a visual to see how
+their own reactivity and anxiety levels overlap with the symptoms they or
+another person is having. It should have it's own button with a graph icon in
 the right toolbar, and QAction in the main menu, alongside the add data point
 button timeline button, settings buttons.
 

@@ -2,13 +2,19 @@
 
 ## 1. Executive Summary
 
-This document outlines the design for a SARF graph visualization feature that provides an aesthetic, evaluative view of how the four main SARF variables (Symptoms, Anxiety, Reactivity, FunctionalLevel) change over time across timeline events. This visualization aims to help users identify patterns of reactivity and anxiety overlapping with symptoms in a low-resolution, gut-feel manner aligned with Bowen theory.
+This document outlines the design for a SARF graph visualization feature that
+provides an aesthetic, evaluative view of how the four main SARF variables
+(Symptoms, Anxiety, Reactivity, FunctionalLevel) change over time across
+timeline events. This visualization aims to help users identify patterns of
+reactivity and anxiety overlapping with symptoms in a low-resolution, gut-feel
+manner aligned with Bowen theory.
 
 ## 2. Core Requirements
 
 ### 2.1 Functional Goals
 - Provide visual correlation between SARF variables over time
-- Support the clinical hypothesis: "S is modulated by R via A, and F is the clinical independent variable"
+- Support the clinical hypothesis: "S is modulated by R via A, and F is the
+  clinical independent variable"
 - Offer a qualitative, aesthetic view rather than precise scientific measurement
 - Enable pattern recognition at a glance
 
@@ -22,7 +28,8 @@ This document outlines the design for a SARF graph visualization feature that pr
 
 ### 2.3 Data Characteristics
 - **S, A, R variables**: Qualitative shifts ("up", "down", "same")
-- **F variable**: RelationshipKind enum (doesn't map directly to up/down but indicates shifts)
+- **F variable**: RelationshipKind enum (doesn't map directly to up/down but
+  indicates shifts)
 - Low temporal resolution (gut-feel correlations)
 - Subjective interpretation of event nature
 
@@ -63,7 +70,8 @@ DocumentView
 - More complex state management
 - Need to handle drawer swapping
 
-**❓ Question 1:** Which integration approach do you prefer? Or should we make it a floating window that can be positioned independently?
+**❓ Question 1:** Which integration approach do you prefer? Or should we make it
+a floating window that can be positioned independently?
 
 ### 3.2 Visualization Approach Options
 
@@ -110,7 +118,8 @@ F: ░░████░░░░██░░████░░
 - Each variable gets its own mini-chart
 - Side-by-side comparison
 
-**❓ Question 2:** Which visualization style resonates most with your clinical understanding? Should we prototype multiple views?
+**❓ Question 2:** Which visualization style resonates most with your clinical
+understanding? Should we prototype multiple views?
 
 ### 3.3 Data Processing Approach
 
@@ -146,7 +155,8 @@ def generateSarfGraph(events):
 - AI for nuanced interpretation
 - User can toggle between views
 
-**❓ Question 3:** Should we start with rules-based and add AI later? Or go straight to AI for the subjective/aesthetic quality you mentioned?
+**❓ Question 3:** Should we start with rules-based and add AI later? Or go
+straight to AI for the subjective/aesthetic quality you mentioned?
 
 ## 4. Implementation Questions
 
@@ -172,7 +182,7 @@ def generateSarfGraph(events):
 - Compressed/expanded based on event density?
 - User-adjustable zoom?
 
-**❓ Question 7:** How should we handle the F variable (RelationshipKind)?
+**❓ Question 7:** How should we handle the R variable (RelationshipKind)?
 - Map to numeric scale (e.g., Conflict=1, Distant=2, Close=3)?
 - Show as discrete states with step changes?
 - Use different visual representation (not a line)?
@@ -187,7 +197,8 @@ def generateSarfGraph(events):
 - Pinch/wheel to zoom?
 - Select time range for focused view?
 
-**❓ Question 9:** Should the graph update in real-time as events are added/edited?
+**❓ Question 9:** Should the graph update in real-time as events are
+added/edited?
 - Live updates as timeline changes?
 - Manual refresh button?
 - Automatic refresh on drawer open?
@@ -280,21 +291,28 @@ If using AI interpretation:
 
 ## 8. Open Questions for Discussion
 
-1. **Clinical Accuracy**: How important is it that the graph reflects "correct" clinical interpretation vs being a useful thinking tool?
+1. **Clinical Accuracy**: How important is it that the graph reflects "correct"
+   clinical interpretation vs being a useful thinking tool?
 
-2. **Training Data**: If using AI, do you have example cases with "correct" SARF graphs we could use for prompting?
+2. **Training Data**: If using AI, do you have example cases with "correct" SARF
+   graphs we could use for prompting?
 
-3. **User Personas**: Who will use this most - clinicians, clients, or both? How does that affect design?
+3. **User Personas**: Who will use this most - clinicians, clients, or both? How
+   does that affect design?
 
-4. **Mobile Experience**: Should the graph work well on mobile (Personal app) or optimize for desktop (Pro app)?
+4. **Mobile Experience**: Should the graph work well on mobile (Personal app) or
+   optimize for desktop (Pro app)?
 
-5. **Export Needs**: Should users be able to export graphs for reports/documentation?
+5. **Export Needs**: Should users be able to export graphs for
+   reports/documentation?
 
-6. **Comparison View**: Should users be able to compare multiple people's SARF graphs?
+6. **Comparison View**: Should users be able to compare multiple people's SARF
+   graphs?
 
 7. **Annotation**: Should users be able to add notes/markers to the graph?
 
-8. **Validation**: How will we know if the visualization is achieving its clinical goals?
+8. **Validation**: How will we know if the visualization is achieving its
+   clinical goals?
 
 ## 9. Next Steps
 
@@ -313,4 +331,5 @@ Once we clarify the above questions, I recommend:
 3. Any aspects I'm misunderstanding about SARF theory or the clinical use case?
 4. What would make this most valuable for your users?
 
-This is a living document - let's iterate until we have a clear vision before implementing.
+This is a living document - let's iterate until we have a clear vision before
+implementing.
