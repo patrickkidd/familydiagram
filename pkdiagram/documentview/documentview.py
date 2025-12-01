@@ -423,29 +423,38 @@ class DocumentView(QWidget):
             return
         self._settingCurrentDrawer = True
 
-        if (
-            drawer != self.eventFormDrawer
-            and self.view.ui.actionAdd_Anything.isChecked()
-        ):
+        if drawer is self.eventFormDrawer:
+            if not self.view.ui.actionAdd_Anything.isChecked():
+                self.view.ui.actionAdd_Anything.setChecked(True)
+        elif self.view.ui.actionAdd_Anything.isChecked():
             self.view.ui.actionAdd_Anything.setChecked(False)
 
-        if self.view.ui.actionShow_Timeline.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Timeline.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Timeline.value
         ):
+            if not self.view.ui.actionShow_Timeline.isChecked():
+                self.view.ui.actionShow_Timeline.setChecked(True)
+        elif self.view.ui.actionShow_Timeline.isChecked():
             self.view.ui.actionShow_Timeline.setChecked(False)
 
-        if self.view.ui.actionShow_Settings.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Settings.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Settings.value
         ):
-            self.view.ui.actionShow_Settings.setChecked(False)
+            if not self.view.rightToolBar.settingsButton.isChecked():
+                self.view.rightToolBar.settingsButton.setChecked(True)
+        elif self.view.rightToolBar.settingsButton.isChecked():
+            self.view.rightToolBar.settingsButton.setChecked(False)
 
-        if self.view.ui.actionShow_Copilot.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Copilot.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Copilot.value
         ):
-            self.view.ui.actionShow_Copilot.setChecked(False)
+            if not self.view.rightToolBar.copilotButton.isChecked():
+                self.view.rightToolBar.copilotButton.setChecked(True)
+        elif self.view.rightToolBar.copilotButton.isChecked():
+            self.view.rightToolBar.copilotButton.setChecked(False)
 
         was = self.currentDrawer
         self.currentDrawer = drawer

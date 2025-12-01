@@ -73,6 +73,7 @@ class DocumentController(QObject):
         self.scene = None
         self.view = self.dv.view
         self._isUpdatingLayerActions = False
+        self._editingEventFromTimeline = False
 
     def init(self):
         assert self.ui is None
@@ -1001,8 +1002,9 @@ class DocumentController(QObject):
                 ret = False
         return ret
 
-    def inspectEvents(self, events: list[Event]):
+    def inspectEvents(self, events: list[Event], fromTimeline=False):
         self.dv.session.trackView("Edit event(s)")
+        self._editingEventFromTimeline = fromTimeline
         self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
         self.dv.eventFormDrawer.editEvents(events)
 
@@ -1015,7 +1017,7 @@ class DocumentController(QObject):
         events = eventList
         if isinstance(events, QJSValue):
             events = events.toVariant()
-        self.inspectEvents(events)
+        self.inspectEvents(events, fromTimeline=True)
 
     def onInspectEmotionsFromEventForm(self, event):
         emotions = self.scene.emotionsFor(event)
@@ -1033,7 +1035,7 @@ class DocumentController(QObject):
                 events = self.dv.caseProps.selectedEvents()
                 if isinstance(events, QJSValue):
                     events = events.toVariant()
-                self.inspectEvents(events)
+                self.inspectEvents(events, fromTimeline=True)
             elif hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
         elif fw is self.dv.graphicalTimelineView.timeline:
@@ -1083,7 +1085,11 @@ class DocumentController(QObject):
             return True
 
     def onEventFormDoneEditing(self):
-        self.dv.setCurrentDrawer(self.dv.caseProps)
+        if self._editingEventFromTimeline:
+            self.dv.setCurrentDrawer(
+                self.dv.caseProps, tab=RightDrawerView.Timeline.value
+            )
+            self._editingEventFromTimeline = False
 
     def onHideCurrentDrawer(self):
         if self.dv.currentDrawer:
