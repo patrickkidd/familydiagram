@@ -165,6 +165,10 @@ Page {
                 property var dSpeakerType: model.speakerType
                 sourceComponent: model.speakerType == 'subject' ? humanQuestion : aiResponse
             }
+            footer: Item {
+                width: statementsList.width
+                height: 15
+            }
 
             function delayedScrollToBottom() {
                 delayedScrollToEndTimer.running = true
