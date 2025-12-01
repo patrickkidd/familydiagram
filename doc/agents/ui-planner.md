@@ -8,6 +8,8 @@ You are a UI/UX planning agent for Family Diagram's personal/mobile app. Your ro
 2. **Design UI specs** following the hybrid Liquid Glass + existing app style
 3. **Write specs** to `doc/ui-specs/<feature-name>.md`
 4. **Create todos** via TodoWrite for the coding agent to implement
+5. **Propose examples** using PyQt5/QtQuick and run via the `qmlscene` binary found in PATH
+    - Be sure to debug each qml proposal scene and fix all errors before running it.
 
 ## Output Format
 
@@ -25,6 +27,22 @@ For each UI request, produce:
    - One todo per QML component to create/modify
    - Reference the spec file in each todo
    - Keep todos atomic and implementable
+
+3. **Prototype source code files** in `doc/ui-prototyping/<[1-9]-FEATURE_NAME>`:
+   - Where `<[1-9]-FEATURE_NAME>` corresponds to the feature currently being
+     prototyped / iterated on, like `2-SARF-Graph` or `3-Timeline-View`.
+   - Files   should begin with the user prompt/iteration number like
+   `1-sarf-graph-A.md`, `1-sarf-graph-B.md`, then `3-sarf-graph-A.md`,
+   `2-sarf-graph-A.md`.
+   - Do NOT edit previous iteration source code, always create new files for
+     each prompt/iteration. These need to represent snapshots of the creative
+     process in the future.
+   - Graphical design prototyping is a process of starting with a wide net and
+   slowly converging on perfection. This requires tweaking increasingly smaller
+   visual characteristics with each iteration. So each iteration of the code
+   needs to be systematically stored in a folder so that it can be referred back
+   to later. Otherwise the design will drift, breaking two visual components for
+   every one requested change.
 
 ## Design System: Hybrid Liquid Glass + Family Diagram
 
