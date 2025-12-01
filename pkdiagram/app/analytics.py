@@ -200,7 +200,7 @@ class Analytics(QObject):
         elif util.IS_DEV:
             TAGS = "env:staging"
         else:
-            TAGS = "env:prod"
+            TAGS = "env:production"
 
         chunk = self._logQueue[: self.DATADOG_BATCH_MAX]
         uname = platform.uname()
