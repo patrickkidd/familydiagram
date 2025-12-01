@@ -42,6 +42,7 @@ class PersonalAppController(QObject):
     discussionsChanged = pyqtSignal()
     pdpChanged = pyqtSignal()
     diagramChanged = pyqtSignal()
+    diagramsChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
     def __init__(self, undoStack=None, parent=None):
@@ -49,6 +50,7 @@ class PersonalAppController(QObject):
 
         self.app = QApplication.instance()
         self._diagram: Diagram | None = None
+        self._diagrams: list[dict] = []
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
         self._pdp: dict | None = None
@@ -154,11 +156,6 @@ class PersonalAppController(QObject):
             self.eventForm.setScene(scene)
 
     def exec(self, mw):
-        """
-        Stuff that happens once per app load on the first MainWindow.
-        At this point the MainWindow is fully initialized with a session
-        and ready for app-level verbs.
-        """
         self.app.exec()
 
     def onError(self, reply: QNetworkReply):
@@ -178,17 +175,43 @@ class PersonalAppController(QObject):
 
         if not self.session.user:
             self._diagram = None
+            self._diagrams = []
             self._discussions = []
             self._pdp = {}
             self._currentDiscussion = None
         else:
+            self._refreshDiagrams()
             self._refreshDiagram()
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
         self.diagramChanged.emit()
+        self.diagramsChanged.emit()
 
     # Diagram
+
+    @pyqtProperty("QVariantList", notify=diagramsChanged)
+    def diagrams(self):
+        return list(self._diagrams)
+
+    def _refreshDiagrams(self):
+        if not self.session.user:
+            return
+
+        def onSuccess(data):
+            self._diagrams = data.get("diagrams", [])
+            self.diagramsChanged.emit()
+            _log.info(f"Loaded {len(self._diagrams)} diagrams")
+
+        reply = self.session.server().nonBlockingRequest(
+            "GET",
+            "/personal/diagrams",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
 
     @pyqtProperty("QVariantMap", notify=diagramChanged)
     def diagram(self):
@@ -221,6 +244,39 @@ class PersonalAppController(QObject):
         reply = self.session.server().nonBlockingRequest(
             "GET",
             f"/personal/diagrams/{self.session.user.free_diagram_id}",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    @pyqtSlot(int)
+    def loadDiagram(self, diagramId: int):
+        if not self.session.user:
+            return
+
+        def onSuccess(data):
+            raw_data = base64.b64decode(data["data"])
+            data["data"] = raw_data
+            self._diagram = Diagram(**data)
+            self._discussions = [Discussion.create(x) for x in data["discussions"]]
+            self._currentDiscussion = None
+            self.discussionsChanged.emit()
+            self.statementsChanged.emit()
+            self.pdpChanged.emit()
+            self.diagramChanged.emit()
+            _log.info(
+                f"Loaded diagram: {self._diagram.id}, version: {self._diagram.version}"
+            )
+            scene_data = pickle.loads(raw_data)
+            scene = Scene()
+            scene.read(scene_data)
+            self.setScene(scene)
+
+        reply = self.session.server().nonBlockingRequest(
+            "GET",
+            f"/personal/diagrams/{diagramId}",
             data={},
             error=lambda: self.onError(reply),
             success=onSuccess,
@@ -290,10 +346,6 @@ class PersonalAppController(QObject):
         self._sendStatement(statement)
 
     def _sendStatement(self, statement: str):
-        """
-        Mockable because qml latches on to slots at init time.
-        """
-
         def _doSendStatement():
             if not self._currentDiscussion:
                 QMessageBox.information(

@@ -128,51 +128,62 @@ Flickable {
 
         Rectangle {
             width: parent.width - 32
-            height: diagramItem.height + newDiagramItem.height + 1
+            height: diagramsColumn.height
             radius: 12
             color: itemBg
             border.width: 1
             border.color: borderColor
 
             Column {
+                id: diagramsColumn
                 width: parent.width
 
-                Rectangle {
-                    id: diagramItem
-                    width: parent.width
-                    height: 50
-                    color: "transparent"
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        spacing: 8
-
-                        Rectangle {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: accentColor
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: personalApp && personalApp.diagram ? (personalApp.diagram.name || "Diagram") : "No Diagram"
-                            color: textColor
-                            font.pixelSize: 15
-                            font.weight: Font.DemiBold
-                        }
-                    }
+                Repeater {
+                    model: personalApp ? personalApp.diagrams : []
 
                     Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.leftMargin: 28
-                        anchors.right: parent.right
-                        height: 1
-                        color: borderColor
+                        width: parent.width
+                        height: 50
+                        color: "transparent"
+
+                        property bool isCurrent: personalApp && personalApp.diagram && personalApp.diagram.id === modelData.id
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 8
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: isCurrent ? accentColor : "transparent"
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.name || "Diagram"
+                                color: textColor
+                                font.pixelSize: 15
+                                font.weight: isCurrent ? Font.DemiBold : Font.Normal
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
+                            anchors.leftMargin: 28
+                            anchors.right: parent.right
+                            height: 1
+                            color: borderColor
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: root.diagramClicked(modelData)
+                        }
                     }
                 }
 
@@ -233,7 +244,7 @@ Flickable {
                 width: parent.width
 
                 Repeater {
-                    model: ["Notifications", "Privacy", "Help & Support"]
+                    model: ["Privacy", "Help & Support"]
 
                     Rectangle {
                         width: parent.width

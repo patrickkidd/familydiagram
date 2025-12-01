@@ -411,8 +411,70 @@ Page {
                 session.logout()
             }
             onAccountClicked: console.log("Open account settings")
+            onDiagramClicked: function(diagram) {
+                drawer.close()
+                personalApp.loadDiagram(diagram.id)
+            }
             onNewDiagramClicked: console.log("Create new diagram")
-            onSettingsClicked: function(setting) { console.log("Open " + setting) }
+            onSettingsClicked: function(setting) {
+                if (setting === "Privacy") {
+                    privacyPopup.open()
+                } else if (setting === "Help & Support") {
+                    helpPopup.open()
+                }
+            }
+        }
+    }
+
+    // Privacy settings popup
+    Popup {
+        id: privacyPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: "transparent" }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+        }
+
+        Personal.SettingsPage {
+            anchors.fill: parent
+            pageTitle: "Privacy"
+            onBackClicked: privacyPopup.close()
+        }
+    }
+
+    // Help & Support settings popup
+    Popup {
+        id: helpPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: "transparent" }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+        }
+
+        Personal.SettingsPage {
+            anchors.fill: parent
+            pageTitle: "Help & Support"
+            onBackClicked: helpPopup.close()
         }
     }
 
