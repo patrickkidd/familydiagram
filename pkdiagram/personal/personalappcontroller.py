@@ -234,6 +234,10 @@ class PersonalAppController(QObject):
     def discussions(self):
         return list(self._discussions)
 
+    @pyqtProperty(int, notify=statementsChanged)
+    def currentDiscussionId(self):
+        return self._currentDiscussion.id if self._currentDiscussion else -1
+
     @pyqtSlot()
     def createDiscussion(self):
         self._createDiscussion()

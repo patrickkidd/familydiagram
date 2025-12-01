@@ -162,6 +162,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             Text {
+                visible: false
                 text: "Tap to edit"
                 font.pixelSize: 11
                 color: util.QML_HIGHLIGHT_COLOR

@@ -24,18 +24,12 @@ Page {
     property var textEdit: textEdit
     property var submitButton: submitButton
     property var noChatLabel: noChatLabel
-    property var newDiscussionButton: newDiscussionButton
-    property var discussionsButton: discussionsButton
-    property var discussionsDrawer: discussionsDrawer
-    property var discussionList: discussionList
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet
-    property var pdpBadge: pdpBadge
-
-    property var chatMargin: util.QML_MARGINS * 1.5
     property var eventDrawer: eventDrawer
     property var eventForm: eventForm
-    property int pdpCount: 0
+
+    property var chatMargin: util.QML_MARGINS * 1.5
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -50,7 +44,6 @@ Page {
             if (!initSelectedDiscussion) {
                 initSelectedDiscussion = true
                 var lastDiscussion = personalApp.discussions[personalApp.discussions.length-1]
-                // print('initSelectedDiscussion: ' + lastDiscussion)
                 if(lastDiscussion !== undefined) {
                     personalApp.setCurrentDiscussion(lastDiscussion.id)
                 }
@@ -95,15 +88,8 @@ Page {
             }
             var pdp = personalApp.pdp
             if (pdp) {
-                var count = 0
-                if (pdp.people) count += pdp.people.length
-                if (pdp.events) count += pdp.events.length
-                if (pdp.pair_bonds) count += pdp.pair_bonds.length
-                root.pdpCount = count
                 pdpSheet.pdp = pdp
                 pdpSheet.updateItems()
-            } else {
-                root.pdpCount = 0
             }
         }
     }
@@ -112,69 +98,8 @@ Page {
         chatModel.clear()
     }
 
-    function showDiscussions() {
-        discussionsDrawer.visible = true
-    }
-
     function showEventForm() {
         eventDrawer.open()
-    }
-
-
-    Drawer {
-        id: discussionsDrawer
-        width: root.width - 20
-        height: root.height
-        dragMargin: 0
-        edge: Qt.LeftEdge
-        ListView {
-            id: discussionList
-
-            anchors.fill: parent
-            model: personalApp ? personalApp.discussions : undefined
-            clip: true
-
-            delegate: ItemDelegate {
-                id: dRoot
-                property int dId: modelData.id
-                property var dText: modelData.summary
-
-                text: dText
-                width: discussionList.width
-                palette.text: util.QML_TEXT_COLOR
-
-                onClicked: {
-                    personalApp.setCurrentDiscussion(modelData.id)
-                    discussionsDrawer.visible = false
-                }
-            }
-
-            PK.Button {
-                id: newDiscussionButton
-                source: '../../plus-button.png'
-                width: 18
-                height: 20
-                anchors {
-                    right: parent.right
-                    margins: util.QML_MARGINS
-                }
-                onClicked: personalApp.createDiscussion()
-            }
-
-        }
-        background: Rectangle {
-            color: util.QML_WINDOW_BG
-            Rectangle {
-                x: parent.width - 1
-                height: parent.height
-                width: 1
-                color: util.QML_ITEM_BORDER_COLOR
-            }
-        }
-        function hide() {
-            position = 0
-            visible = false
-        }
     }
 
     Popup {
@@ -204,39 +129,6 @@ Page {
 
         background: Rectangle {
             color: util.QML_WINDOW_BG
-        }
-    }
-
-
-    header: PK.ToolBar {
-        PK.ToolButton {
-            text: "Logout"
-            Layout.maximumWidth: 25
-            anchors.centerIn: parent
-            onClicked: session.logout()
-        }
-
-        PK.ToolButton {
-            id: discussionsButton
-            text: "Discussions"
-            visible: personalApp && personalApp.discussions.length > 0
-            anchors.left: parent.left
-            anchors.leftMargin: util.QML_MARGINS
-            onClicked: root.showDiscussions()
-        }
-
-        PK.Button {
-            id: addButton
-            source: '../../plus-button-green.png'
-            invertForDarkMode: false
-            height: 25
-            width: 25
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-                margins: util.QML_MARGINS
-            }
-            onClicked: root.showEventForm()
         }
     }
 
@@ -481,38 +373,6 @@ Page {
                 onClicked: inputField.submit()
             }
 
-        }
-    }
-
-    Rectangle {
-        id: pdpBadge
-        visible: root.pdpCount > 0
-        width: 48
-        height: 48
-        radius: 24
-        color: "transparent"
-        border.color: util.QML_ITEM_BORDER_COLOR
-        border.width: 1.5
-        z: 100
-
-        x: parent.width - width - util.QML_MARGINS
-        y: util.QML_MARGINS
-
-        Text {
-            anchors.centerIn: parent
-            text: root.pdpCount.toString()
-            font.pixelSize: 18
-            font.bold: true
-            color: util.QML_TEXT_COLOR
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: pdpSheet.open()
-        }
-
-        Behavior on opacity {
-            NumberAnimation { duration: util.ANIM_DURATION_MS; easing.type: Easing.InOutQuad }
         }
     }
 

@@ -9,7 +9,7 @@ Drawer {
 
     property var pdp
     property int itemCount: 0
-    property bool showTutorial: true
+    property bool showTutorial: false
     property var editingItem: null
     property string editingItemType: ""
     property bool isInitializingFields: false

@@ -1073,6 +1073,11 @@ name = "Personal"
 included = true
 is_directory = true
 [[Application.Package.Content.Content.Content.Content]]
+name = "AccountDrawer.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "DiscussView.qml"
 included = true
 is_directory = false
@@ -1084,17 +1089,17 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "PDPEventCard.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "PDPPersonCard.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "PDPSheet.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]

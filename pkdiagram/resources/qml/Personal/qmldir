@@ -1,4 +1,6 @@
 module Personal
+DiscussView 1.0 DiscussView.qml
+AccountDrawer 1.0 AccountDrawer.qml
 LearnView 1.0 LearnView.qml
 PlanView 1.0 PlanView.qml
 PersonalContainer 1.0 PersonalContainer.qml
