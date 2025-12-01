@@ -305,6 +305,9 @@ class MainWindow(QMainWindow):
         self.ui.actionCrash.triggered.connect(self.onTriggerCrash)
         self.ui.actionRaise_Python_Exception.triggered.connect(self.onTriggerException)
         self.ui.actionExport_Scene_dict.triggered.connect(self.onExportSceneDict)
+        self.ui.actionExport_DiagramData_JSON.triggered.connect(
+            self.onExportDiagramDataJSON
+        )
         self.ui.actionTest_URL_Authentication.triggered.connect(
             self.onTestUrlAuthentication
         )
@@ -994,13 +997,13 @@ class MainWindow(QMainWindow):
                     self.open(filePath=lastFileReadPath)
 
     def onOpenFileError(self, etype, value, tb):
+        log.error("Error opening file", exc_info=(etype, value, tb))
+        self.session.error(etype, value, tb)
         QMessageBox.warning(
             self,
             "Error opening file",
             f"This file is corrupted and cannot be opened\n\n{value}",
         )
-        self.session.error(etype, value, tb)
-        log.error("Error opening file", exc_info=(etype, value, tb))
 
     def setDocument(self, document):
         """Called from CUtil.openExistingFile() async open."""
@@ -1897,6 +1900,10 @@ class MainWindow(QMainWindow):
             data = {}
             self.scene.write(data)
             log.info(data)
+
+    def onExportDiagramDataJSON(self):
+        if self.scene:
+            self.documentView.controller.writeDiagramDataJSON()
 
     def onSaveSceneAsJSON(self):
         self.saveAs(as_json=True)

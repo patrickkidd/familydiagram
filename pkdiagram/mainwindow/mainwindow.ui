@@ -227,6 +227,7 @@
     <addaction name="actionCrash"/>
     <addaction name="actionRaise_Python_Exception"/>
     <addaction name="actionExport_Scene_dict"/>
+    <addaction name="actionExport_DiagramData_JSON"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Local_Files"/>
     <addaction name="actionShow_Server_Files"/>
@@ -1257,6 +1258,11 @@
   <action name="actionExport_Scene_dict">
    <property name="text">
     <string>Export Scene dict</string>
+   </property>
+  </action>
+  <action name="actionExport_DiagramData_JSON">
+   <property name="text">
+    <string>Export DiagramData JSON</string>
    </property>
   </action>
   <action name="actionSave_Scene_as_JSON">
