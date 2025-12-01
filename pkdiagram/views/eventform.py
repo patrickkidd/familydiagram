@@ -920,6 +920,7 @@ class EventFormDrawer(QmlDrawer):
         self.checkInitQml()
         self.eventForm: EventForm = EventForm(self.qml.rootObject(), parent=self)
         self.item = self.eventForm.item
+        self.item.cancel.connect(self.onCancel)
 
     def onDone(self):
         # Only hide the drawer when editing events, not when adding new ones.
@@ -930,6 +931,9 @@ class EventFormDrawer(QmlDrawer):
         if isEditing:
             self.hideRequested.emit()
         # Otherwise, don't hide - the drawer stays open for adding more events
+
+    def onCancel(self):
+        self.hideRequested.emit()
 
     def setScene(self, scene: Scene):
         super().setScene(scene)

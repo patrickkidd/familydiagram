@@ -178,6 +178,9 @@ Page {
         // How
         notesFrame.clear()
 
+        // Meta
+        colorBox.clear()
+
         addPage.scrollToTop()
         tagsEditItem.clear()
         personPicker.focusTextEdit()
@@ -997,7 +1000,7 @@ Page {
                     PK.FormField {
                         id: notesField
                         height: notesFrame.height
-                        tabItem: colorBox
+                        tabItem: colorField.firstTabItem
                         backTabItem: locationField.lastTabItem
                         Layout.minimumHeight: notesFrame.height
                         Layout.maximumHeight: notesFrame.height
@@ -1054,11 +1057,17 @@ Page {
 
                     PK.Text { text: "Color" }
 
-                    PK.ColorPicker {
-                        id: colorBox
-                        KeyNavigation.tab: tagsField.firstTabItem
-                        KeyNavigation.backtab: notesField.lastTabItem
-                        onCurrentIndexChanged: root.color = model[currentIndex]
+                    PK.FormField {
+                        id: colorField
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        tabItem: tagsField.firstTabItem
+                        backTabItem: notesField.lastTabItem
+                        PK.ColorPicker {
+                            id: colorBox
+                            Layout.maximumWidth: 175
+                            Layout.minimumWidth: 175
+                        }
                     }
                     
                     PK.Text {

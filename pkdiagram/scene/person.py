@@ -409,9 +409,9 @@ class Person(PathItem):
         if self.scene() and self.scene().hideNames():
             return ""
         elif self.scene() and self.scene().shouldShowAliases():
-            return "[%s]" % self.alias()
+            return "[%s]" % (self.alias() or "")
         else:
-            ret = self.name()
+            ret = self.name() or ""
             if self.nickName() and self.showNickName():
                 ret += " (%s)" % self.nickName()
             return ret

@@ -856,7 +856,12 @@ class MainWindow(QMainWindow):
         # QTimer.singleShot(10, doOpen) # repaint with disabled state
 
     def onServerFileClicked(self, fpath, diagram):
-        self.session.trackApp("Open server file from file manager")
+        log.info(
+            f"Opening server diagram from file manager: {diagram.id}, version: {diagram.version}"
+        )
+        self.session.trackApp(
+            f"Open server file from file manager: {diagram.id}, version: {diagram.version}"
+        )
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)

@@ -199,6 +199,9 @@ class PersonalAppController(QObject):
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
+            _log.info(
+                f"Loaded personal diagram: {self._diagram.id}, version: {self._diagram.version}"
+            )
             assert self.scene is None
             scene_data = pickle.loads(raw_data)
             scene = Scene()
@@ -360,6 +363,7 @@ class PersonalAppController(QObject):
         committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
 
         def applyChange(diagramData: DiagramData):
+            _log.info(f"Applying accept PDP item change for id: {id}")
             # Capture IDs before commit to identify what was added
             prevPeopleIds = {p["id"] for p in diagramData.people}
             prevEventsIds = {e["id"] for e in diagramData.events}

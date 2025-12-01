@@ -9,7 +9,6 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QApplication,
     qmlRegisterType,
-    QMessageBox,
 )
 from pkdiagram import util
 from .modelhelper import ModelHelper
@@ -242,6 +241,12 @@ class TagsModel(QAbstractListModel, ModelHelper):
             else:  # trigger a cancel
                 self.dataChanged.emit(index, index)
         elif role == self.ActiveRole:
+            if not self._searchModel and not self._items:
+                raise RuntimeError(
+                    f"Setting TagsModel.ActiveRole requires either `items` or `searchModel` to be set."
+                )
+            if value == self.data(index, role):
+                return True
             if self._searchModel:
                 newTags = list(self._searchModel.tags)
                 if value:
@@ -255,11 +260,8 @@ class TagsModel(QAbstractListModel, ModelHelper):
                     self._searchModel.tags = newTags
                     self._settingSearchTags = False
                     success = True
-            elif self._items and value != self.data(index, role):
-                # Emotions and their events are bound to the same tags.
-                # Added here to include prop changes in undo
+            elif self._items:
                 todo = set(self._items)
-                # Do the value set
                 self._settingItemTags = True
                 with self._scene.macro(f"Set tag '{tag}' on items to {value}"):
                     for item in todo:
@@ -272,10 +274,6 @@ class TagsModel(QAbstractListModel, ModelHelper):
                                 item.unsetTag(tag, undo=True)
                                 success = True
                 self._settingItemTags = False
-            else:
-                raise RuntimeError(
-                    f"Setting TagsModel.ActiveRole requires either `items` or `searchModel`  to be set."
-                )
         if success and emit:
             self.dataChanged.emit(index, index, [role])
         return success

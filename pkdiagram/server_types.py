@@ -594,14 +594,14 @@ class Server(QObject):
         self._checkRequestsComplete(reply)
         reply.finished.connect(loop.quit)
 
-        def _timeout():
-            nonlocal loop
+        # def _timeout():
+        #     nonlocal loop
 
-            log.error(f"Request timeout: {reply.request().url().toString()}")
-            reply.abort()
-            loop.quit()
+        #     log.error(f"Request timeout: {reply.request().url().toString()}")
+        #     reply.abort()
+        #     loop.quit()
 
-        QTimer.singleShot(timeout_ms, _timeout)
+        # QTimer.singleShot(timeout_ms, _timeout)
         loop.exec_()
         self.checkHTTPReply(reply, statuses=statuses)
         # status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)

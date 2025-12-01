@@ -161,3 +161,39 @@ def test_set_active_SearchModel():
 
     set(2, False)
     assert model.searchModel.tags == []
+
+
+def test_set_active_noop_with_items():
+    scene = Scene()
+    model = TagsModel()
+    model.scene = scene
+    item = Item()
+    scene.addItem(item)
+    model.items = [item]
+    scene.setTags(["tag1", "tag2"])
+    item.setTags(["tag1"])
+    assert model.setData(model.index(0, 0), Qt.Checked, model.ActiveRole) is True
+    assert item.tags() == ["tag1"]
+
+
+def test_set_active_noop_with_searchModel():
+    scene = Scene()
+    model = TagsModel()
+    model.scene = scene
+    model.searchModel = SearchModel()
+    model.searchModel.scene = scene
+    scene.setTags(["tag1", "tag2"])
+    model.searchModel.tags = ["tag1"]
+    assert model.setData(model.index(0, 0), Qt.Checked, model.ActiveRole) is True
+    assert model.searchModel.tags == ["tag1"]
+
+
+def test_set_active_without_items_or_searchModel():
+    scene = Scene()
+    model = TagsModel()
+    model.scene = scene
+    scene.setTags(["tag1"])
+    with pytest.raises(
+        RuntimeError, match="requires either `items` or `searchModel` to be set"
+    ):
+        model.setData(model.index(0, 0), Qt.Checked, model.ActiveRole)
