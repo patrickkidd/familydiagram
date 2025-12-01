@@ -68,6 +68,7 @@ class PersonalAppController(QObject):
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
         self.sarfGraphModel = SARFGraphModel(self)
+        self.pdpChanged.connect(self.sarfGraphModel.refresh)
         self.eventForm = None
         self._pendingScene: Scene | None = None
 
@@ -91,6 +92,7 @@ class PersonalAppController(QObject):
             self.session.init()
 
     def deinit(self):
+        self.pdpChanged.disconnect(self.sarfGraphModel.refresh)
         self.sarfGraphModel.deinit()
         self.analytics.init()
         self.session.deinit()
