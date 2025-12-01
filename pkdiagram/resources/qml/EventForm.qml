@@ -7,9 +7,13 @@ import PK.Models 1.0
 import "js/Global.js" as Global
 import "js/Underscore.js" as Underscore
 
-PK.Drawer {
+Page {
 
     id: root
+
+    // PK.Drawer stuff
+    signal resize
+    signal done
 
     signal cancel
     signal inspectEmotions(var events)
@@ -173,6 +177,9 @@ PK.Drawer {
 
         // How
         notesFrame.clear()
+
+        // Meta
+        colorBox.clear()
 
         addPage.scrollToTop()
         tagsEditItem.clear()
@@ -993,7 +1000,7 @@ PK.Drawer {
                     PK.FormField {
                         id: notesField
                         height: notesFrame.height
-                        tabItem: colorBox
+                        tabItem: colorField.firstTabItem
                         backTabItem: locationField.lastTabItem
                         Layout.minimumHeight: notesFrame.height
                         Layout.maximumHeight: notesFrame.height
@@ -1050,17 +1057,23 @@ PK.Drawer {
 
                     PK.Text { text: "Color" }
 
-                    PK.ColorPicker {
-                        id: colorBox
-                        KeyNavigation.tab: tagsField.firstTabItem
-                        KeyNavigation.backtab: notesField.lastTabItem
-                        onCurrentIndexChanged: root.color = model[currentIndex]
+                    PK.FormField {
+                        id: colorField
+                        Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                        Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        tabItem: tagsField.firstTabItem
+                        backTabItem: notesField.lastTabItem
+                        PK.ColorPicker {
+                            id: colorBox
+                            Layout.maximumWidth: 175
+                            Layout.minimumWidth: 175
+                        }
                     }
                     
                     PK.Text {
                         id: tagsLabel
                         text: "Tags"
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                     PK.FormField {
@@ -1071,7 +1084,7 @@ PK.Drawer {
                         Layout.minimumHeight: util.QML_LIST_VIEW_MINIMUM_HEIGHT
                         tabItem: notesField.firstTabItem
                         backTabItem: tagsField.firstTabItem
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
 
                         PK.ActiveListEdit {
                             id: tagsEditItem
@@ -1101,7 +1114,7 @@ PK.Drawer {
                         text: util.S_TAGS_HELP_TEXT
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
-                        visible: sceneModel.isInEditorMode
+                        visible: sceneModel && sceneModel.isInEditorMode
                     }
 
                 }

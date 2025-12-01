@@ -46,7 +46,6 @@ from pkdiagram.pyqt import (
     QSize,
     QEasingCurve,
     QEvent,
-    QKeyEvent,
     QQuickWidget,
     QWidget,
 )
@@ -92,6 +91,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
+        self.setObjectName("WainWindow")
 
         if hasattr(Qt, "WA_ContentsMarginsRespectsSafeArea"):
             self.setAttribute(Qt.WA_ContentsMarginsRespectsSafeArea, False)
@@ -179,6 +179,7 @@ class MainWindow(QMainWindow):
 
         self.documentView = DocumentView(self, self.session)
         self.documentView.controller.uploadToServer.connect(self.onUploadToServer)
+        self.documentView.setObjectName("documentView")
         self.view = self.documentView.view
         self.view.filePathDropped.connect(self.onFilePathDroppedOnView)
         self.view.showToolBarButton.clicked.connect(self.ui.actionHide_ToolBars.trigger)
@@ -194,10 +195,12 @@ class MainWindow(QMainWindow):
 
         self.accountDialog = AccountDialog(self.documentView.qmlEngine(), self)
         self.accountDialog.init()
+        self.accountDialog.setObjectName("accountDialog")
 
         ## File Manager
 
         self.fileManager = FileManager(self.documentView.qmlEngine(), self)
+        self.fileManager.setObjectName("fileManager")
         self.fileManager.localFileClicked[str].connect(self.onLocalFileClicked)
         self.fileManager.serverFileClicked[str, Diagram].connect(
             self.onServerFileClicked
@@ -209,6 +212,9 @@ class MainWindow(QMainWindow):
         self.fileManager.serverFileModel.dataChanged.connect(
             self.onServerFileModelDataChanged
         )
+        self.fileManager.serverFileModel.reloadDiagramRequested[str, Diagram].connect(
+            self.onServerFileClicked
+        )
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
@@ -216,10 +222,12 @@ class MainWindow(QMainWindow):
         ## Auto-Save Manager
 
         self.autoSaveManager = AutoSaveManager(self)
+        self.autoSaveManager.setObjectName("autoSaveManager")
 
         # Welcome
         self.welcomeDialog = Welcome(self)
         self.welcomeDialog.hidden.connect(self.onWelcomeHidden)
+        self.welcomeDialog.setObjectName("welcomeDialog")
 
         # Analytics
         for action in self.findChildren(QAction):
@@ -495,25 +503,9 @@ class MainWindow(QMainWindow):
             model = self.fileManager.serverFileModel
             loadedRow = model.rowForDiagramId(diagram.id)
             if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
-                if not self.prefs.value(
-                    "dontShowServerFileUpdated", type=bool, defaultValue=False
-                ):
-                    box = QMessageBox(
-                        QMessageBox.Information,
-                        "Diagram updated from server",
-                        self.S_DIAGRAM_UPDATED_FROM_SERVER,
-                        QMessageBox.Ok,
-                    )
-                    cb = QCheckBox(
-                        "Don't show this any more."
-                    )  # segfault on accessing box.checkBox()
-                    box.setCheckBox(cb)
-                    box.exec()
-                    self.prefs.setValue("dontShowServerFileUpdated", cb.isChecked())
-                filePath = self.serverFileModel.localPathForID(diagram.id)
-                self.documentView.setReloadingCurrentDiagram(True)
-                self.onServerFileClicked(filePath, diagram)
-                self.documentView.setReloadingCurrentDiagram(False)
+                updatedDiagram = model.diagramForRow(loadedRow)
+                fpath = model.localPathForID(diagram.id)
+                model.handleDiagramConflict(updatedDiagram, updatedDiagram.data, fpath)
 
     def onShowUndoView(self, on):
         if on:
@@ -864,7 +856,12 @@ class MainWindow(QMainWindow):
         # QTimer.singleShot(10, doOpen) # repaint with disabled state
 
     def onServerFileClicked(self, fpath, diagram):
-        self.session.trackApp("Open server file from file manager")
+        log.info(
+            f"Opening server diagram from file manager: {diagram.id}, version: {diagram.version}"
+        )
+        self.session.trackApp(
+            f"Open server file from file manager: {diagram.id}, version: {diagram.version}"
+        )
         self.fileManager.setEnabled(False)
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
@@ -1189,8 +1186,6 @@ class MainWindow(QMainWindow):
             )
             self.ui.actionSelect_All.triggered.connect(self.scene.selectAll)
             self.ui.actionDeselect.triggered.connect(self.scene.clearSelection)
-            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
-            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             self.scene.clipboardChanged.connect(self.onSceneClipboard)
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.scene.propertyChanged[Property].connect(self.onSceneProperty)
@@ -1545,14 +1540,7 @@ class MainWindow(QMainWindow):
         self.ui.actionPaste.setEnabled(on)
 
     def onClipboardChanged(self, mode):
-        return
-        text = QApplication.clipboard().text()
-        if text:
-            self.ui.actionPaste.setEnabled(True)
-        else:
-            self.ui.actionPaste.setEnabled(False)
-            # self.ui.actionCut.setEnabled(on)
-            # self.ui.actionCopy.setEnabled(on)
+        pass
 
     def onCut(self):
         pass
@@ -1818,6 +1806,7 @@ class MainWindow(QMainWindow):
         self.documentView.controller.updateActions()
 
     def onServerRefresh(self):
+        self.serverFileModel.clear()
         self.serverFileModel.update()
 
     def onServerReload(self):

@@ -12,8 +12,9 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QDateTime,
 )
-from pkdiagram.scene import Person, Marriage, PathItem
-from pkdiagram.views import EventForm
+from pkdiagram.scene import Person, Marriage
+from pkdiagram.views import EventFormDrawer
+from pkdiagram.widgets import QmlWidgetHelper
 
 from pkdiagram.tests.widgets import (
     TestPersonPicker,
@@ -27,9 +28,9 @@ _log = logging.getLogger(__name__)
 
 class TestEventForm:
 
-    def __init__(self, view: EventForm):
+    def __init__(self, view: EventFormDrawer):
         self.view = view
-        self.item = view.qml.rootObject()
+        self.item = view.eventForm.item
 
         # Controls
 
@@ -301,29 +302,29 @@ class TestEventForm:
 
     def expectedFieldLabel(self, expectedTextLabel: QQuickItem):
         name = expectedTextLabel.property("text")
-        expectedText = self.view.S_REQUIRED_FIELD_ERROR.format(name=name)
+        expectedText = self.view.eventForm.S_REQUIRED_FIELD_ERROR.format(name=name)
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickSaveButton()
             assert warning.call_count == 1
-            assert warning.call_args[0][0] == self.view
+            assert warning.call_args[0][0] is None
             assert warning.call_args[0][2] == expectedText
 
     def pickerNotSubmitted(self, pickerLabel: QQuickItem):
         name = pickerLabel.property("text")
-        expectedText = self.view.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(
+        expectedText = self.view.eventForm.S_PICKER_NEW_PERSON_NOT_SUBMITTED.format(
             pickerLabel=name
         )
         with patch("PyQt5.QtWidgets.QMessageBox.warning") as warning:
             self.clickSaveButton()
             assert warning.call_count == 1
-            assert warning.call_args[0][0] == self.view
+            assert warning.call_args[0][0] is None
             assert warning.call_args[0][2] == expectedText
 
     def set_symptom(self, x: VariableShift):
-        self.view.setVariable("symptom", x.value)
+        self.view.item.setVariable("symptom", x.value)
 
     def set_anxiety(self, x: VariableShift):
-        self.view.setVariable("anxiety", x.value)
+        self.view.item.setVariable("anxiety", x.value)
 
     def set_relationship(self, relationshipKind: RelationshipKind):
         self.view.clickComboBoxItem(
@@ -334,7 +335,7 @@ class TestEventForm:
         util.waitALittle()
 
     def set_functioning(self, x: VariableShift):
-        self.view.setVariable("functioning", x.value)
+        self.view.item.setVariable("functioning", x.value)
 
     # Meta
 
@@ -342,12 +343,16 @@ class TestEventForm:
         self.view.clickComboBoxItem(self.colorBox, color, force=False)
 
     def add_tag(self, tag: str):
-        self.view.scrollChildToVisible(self.item.property("addPage"), self.tagsEdit)
+        QmlWidgetHelper.scrollChildToVisible(
+            self.item.property("addPage"), self.tagsEdit
+        )
         tagsEdit = TestActiveListEdit(self.view, self.tagsEdit)
         tagsEdit.clickAddAndRenameRow(tag)
 
     def set_active_tags(self, tags: list[str]):
-        self.view.scrollChildToVisible(self.item.property("addPage"), self.tagsEdit)
+        QmlWidgetHelper.scrollChildToVisible(
+            self.item.property("addPage"), self.tagsEdit
+        )
         tagsEdit = TestActiveListEdit(self.view, self.tagsEdit)
         for tag in tags:
             tagsEdit.clickActiveBox(tag)

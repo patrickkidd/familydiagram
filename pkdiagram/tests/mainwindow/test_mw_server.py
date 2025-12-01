@@ -1,18 +1,20 @@
-import os.path, pickle, logging
 import datetime
+import logging
+import os.path
+import pickle
+from unittest import mock
 
 import pytest
-import mock
 from sqlalchemy import inspect
 
 import btcopilot
-from pkdiagram.pyqt import QFileInfo, QMessageBox
+from pkdiagram.pyqt import QFileInfo, QMessageBox, Qt, QApplication
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person
 from pkdiagram.documentview import DocumentController
-from pkdiagram.mainwindow import MainWindow
+from pkdiagram.mainwindow import MainWindow, FileManager
 from pkdiagram.app import AppController
-
+from pkdiagram.models.serverfilemanagermodel import ServerFileManagerModel
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
@@ -45,7 +47,7 @@ def test_login_shows_free_diagram(request, test_user, qtbot, create_ac_mw, licen
     # assert mw.accountDialog.isShown() == False
     assert mw.scene.serverDiagram().user_id == ac.session.user.id
     assert mw.scene.serverDiagram().isFreeDiagram()
-    assert mw.documentView.sceneModel.isOnServer == True
+    assert mw.documentView.sceneModel.isOnServer
 
 
 def _open_server_file_item(mw, index):
@@ -63,72 +65,6 @@ def _numServerFileItems(mw):
     return ret
 
 
-@pytest.mark.parametrize("is_server_down", (True, False))
-def test_init_open_n_reopen_server_file(
-    test_activation,
-    test_user_diagrams,
-    test_user,
-    create_ac_mw,
-    server_down,
-    is_server_down,
-):
-    # Load a file from the server in one MainWindow
-    ac1, mw1 = create_ac_mw()
-    assert util.wait(mw1.serverFileModel.updateFinished) == True
-    assert (
-        util.waitForCondition(
-            lambda: _numServerFileItems(mw1) >= len(test_user.diagrams)
-        )
-        == True
-    )
-    _open_server_file_item(mw1, 1)
-    assert mw1.document
-    assert mw1.documentView.sceneModel.isOnServer == True
-    ac1._post_event_loop(mw1)
-    mw1.deinit()
-
-    with server_down(is_server_down):
-        # Load a second window to see if it loads the same file from the server
-        ac2, mw2 = create_ac_mw()
-        util.wait(mw2.serverFileModel.updateFinished)
-        assert mw2.document
-        assert mw2.documentView.sceneModel.isOnServer == True
-        ac2._post_event_loop(mw2)
-        mw2.deinit()
-
-
-def test_open_server_file_no_server(
-    test_activation, test_user_diagrams, test_user, server_down, create_ac_mw
-):
-
-    # Populate server file cache
-    ac1, mw1 = create_ac_mw()
-    util.wait(mw1.serverFileModel.updateFinished)
-    assert (
-        util.waitForCondition(
-            lambda: _numServerFileItems(mw1) >= len(test_user.diagrams)
-        )
-        == True
-    )
-    ac1._post_event_loop(mw1)
-    mw1.deinit()
-
-    with server_down(True):
-        # Load a second window to see if it loads the same file from the server
-        ac2, mw2 = create_ac_mw()
-        util.wait(mw2.serverFileModel.updateFinished)
-        assert (
-            util.waitForCondition(
-                lambda: _numServerFileItems(mw2) >= len(test_user.diagrams)
-            )
-            == True
-        )
-        _open_server_file_item(mw2, 2)
-        assert mw2.document
-        assert mw2.documentView.sceneModel.isOnServer == True
-        mw2.deinit()
-
-
 def test_rw_edit_on_client_diagram(
     test_user, test_activation, test_user_2, create_ac_mw
 ):
@@ -142,11 +78,8 @@ def test_rw_edit_on_client_diagram(
     ac, mw = create_ac_mw()
     util.wait(mw.serverFileModel.updateFinished)
     row = mw.serverFileModel.rowForDiagramId(test_user_2.free_diagram_id)
-    assert (
-        util.waitForCondition(
-            lambda: _numServerFileItems(mw) >= (len(test_user.diagrams) + 1)
-        )
-        == True
+    assert util.waitForCondition(
+        lambda: _numServerFileItems(mw) >= (len(test_user.diagrams) + 1)
     )
 
     _open_server_file_item(mw, row)
@@ -160,6 +93,22 @@ def test_rw_edit_on_client_diagram(
     assert len(scene.people()) == 2
     assert scene.people()[0].name() == "you"
     assert scene.people()[1].name() == "me"
+
+
+def test_open_server_file_no_server(
+    test_activation, test_user_diagrams, test_user, server_down, create_ac_mw
+):
+    ac, mw = create_ac_mw()
+    util.wait(mw.serverFileModel.updateFinished)
+    assert util.waitForCondition(
+        lambda: _numServerFileItems(mw) >= len(test_user.diagrams)
+    )
+
+    with server_down(True):
+        with mock.patch.object(QMessageBox, "warning") as warning:
+            _open_server_file_item(mw, 1)
+            assert warning.call_count == 1
+            assert warning.call_args.args[2] == FileManager.S_SERVER_SYNC_FAILED
 
 
 @pytest.mark.parametrize("delete_local", [True, False])
@@ -196,7 +145,7 @@ def test_upload_to_server(qtbot, test_activation, create_ac_mw, tmp_path, delete
     server_diagram = Diagram.query.get(diagram_id)
     assert server_diagram.data == local_bdata
     assert server_diagram.name == localFileName
-    assert os.path.exists(tmp_fd_path) == (not delete_local)
+    assert os.path.exists(tmp_fd_path) is (not delete_local)
 
 
 @pytest.mark.parametrize("is_owner", [(True, False)])
@@ -225,9 +174,9 @@ def test_server_diagram_access(
     fpath = mw.serverFileModel.pathForDiagram(diagram)
     mw.onServerFileClicked(fpath, diagram)
     if is_owner or has_write:
-        assert mw.documentView.sceneModel.readOnly == False
+        assert not mw.documentView.sceneModel.readOnly
     else:
-        assert mw.documentView.sceneModel.readOnly == True
+        assert mw.documentView.sceneModel.readOnly
 
 
 def test_server_admin_diagram_access_no_rights(
@@ -247,20 +196,19 @@ def test_server_admin_diagram_access_no_rights(
     diagram_id = diagram.id
 
     ac, mw = create_ac_mw()
-    assert util.wait(mw.serverFileModel.updateFinished) == True
+    assert util.wait(mw.serverFileModel.updateFinished)
 
     userIdEdit = mw.fileManager.rootProp("userIdEdit")
     serverFileList = mw.fileManager.rootProp("serverFileList")
-    model = serverFileList.property("model")
     mw.fileManager.mouseClick("tabBar.serverViewButton")
     mw.fileManager.keyClicksItem(userIdEdit, str(test_user_2.id))
-    assert util.wait(mw.serverFileModel.updateFinished) == True
+    assert util.wait(mw.serverFileModel.updateFinished)
 
     diagram = mw.serverFileModel.findDiagram(diagram_id)
     fpath = mw.serverFileModel.pathForDiagram(diagram)
     mw.onServerFileClicked(fpath, diagram)
-    assert mw.documentView.sceneModel.readOnly == True
-    assert mw.ui.actionSave_As.isEnabled() == True
+    assert mw.documentView.sceneModel.readOnly
+    assert mw.ui.actionSave_As.isEnabled()
 
 
 @pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])
@@ -269,15 +217,16 @@ def test_current_server_file_updated_elsewhere(
 ):
     diagram_id = test_user.free_diagram_id
     ac, mw = create_ac_mw()
-    model = mw.fileManager.serverFileModel
     util.wait(mw.serverFileModel.updateFinished)
 
-    mw.prefs.setValue("dontShowServerFileUpdated", dontShowServerFileUpdated)
+    mw.prefs.setValue(
+        ServerFileManagerModel.PREF_DONT_SHOW_SERVER_FILE_UPDATED,
+        dontShowServerFileUpdated,
+    )
     _open_server_file_item(mw, 0)
     assert mw.scene.query1(name="Patrick") == None
 
     # Simulate save on another machine
-
     data = {}
     scene = Scene()
     scene.addItems(Person(name="Patrick"))
@@ -292,8 +241,18 @@ def test_current_server_file_updated_elsewhere(
     if dontShowServerFileUpdated:
         util.wait(mw.serverFileModel.updateFinished)
     else:
-        qtbot.clickOkAfter(
+
+        def clickReloadButton():
+            widget = QApplication.activeModalWidget()
+            if isinstance(widget, QMessageBox):
+                for button in widget.buttons():
+                    if button.text() == "Reload Their Changes":
+                        qtbot.mouseClick(button, Qt.LeftButton)
+                        return True
+            return False
+
+        qtbot.qWaitForMessageBox(
             lambda: util.wait(mw.serverFileModel.updateFinished),
-            contains=MainWindow.S_DIAGRAM_UPDATED_FROM_SERVER,
+            handleClick=clickReloadButton,
         )
     assert mw.scene.query1(name="Patrick")

@@ -30,7 +30,7 @@
     "target_commitish": "faf5713174d4e03a2a17bd05d589f6d5a1db9e26",
     "name": "2.0.0b5",
     "draft": false,
-    "prerelease": false,
+    "prerelease": true,
     "created_at": "2024-10-11T18:13:10Z",
     "published_at": "2024-10-11T18:23:02Z",
     "assets": [

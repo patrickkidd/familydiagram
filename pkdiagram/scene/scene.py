@@ -1,46 +1,48 @@
-import os, sys, re, logging
 import contextlib
-from typing import Union
+import logging
+import math
+import os
+import re
 import shutil
-import contextlib
+import sys
+import time
+from typing import Union
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import DiagramData, EventKind, RelationshipKind
+from pkdiagram import slugify, util, version
 from pkdiagram.pyqt import (
-    pyqtSlot,
-    pyqtSignal,
-    pyqtProperty,
-    Qt,
-    QDateTime,
-    QElapsedTimer,
-    QPen,
-    QGraphicsTextItem,
-    QGraphicsRectItem,
-    QMarginsF,
-    QRectF,
-    QColor,
-    QGraphicsScene,
-    QGraphicsObject,
-    QGraphicsItem,
-    QEvent,
-    QGraphicsSimpleTextItem,
-    QGraphicsLineItem,
-    QGraphicsPathItem,
-    QGraphicsTextItem,
-    QGraphicsRectItem,
-    QParallelAnimationGroup,
-    QPointF,
-    QApplePencilEvent,
-    QCursor,
-    QPoint,
-    QLineF,
     QAbstractAnimation,
     QApplication,
-    QMessageBox,
+    QApplePencilEvent,
+    QColor,
+    QCursor,
+    QDateTime,
+    QElapsedTimer,
+    QEvent,
     QFileInfo,
-    QUndoStack,
+    QGraphicsItem,
+    QGraphicsLineItem,
+    QGraphicsObject,
+    QGraphicsPathItem,
+    QGraphicsRectItem,
+    QGraphicsScene,
+    QGraphicsSimpleTextItem,
+    QGraphicsTextItem,
+    QLineF,
+    QMarginsF,
+    QMessageBox,
+    QParallelAnimationGroup,
+    QPoint,
+    QPointF,
+    QPen,
+    QRectF,
+    Qt,
     QUndoCommand,
+    QUndoStack,
+    pyqtProperty,
+    pyqtSignal,
+    pyqtSlot,
 )
-from pkdiagram import version, util, version, slugify
 from pkdiagram.scene import (
     EmotionalUnit,
     Property,
@@ -77,11 +79,7 @@ from pkdiagram.scene.commands import (
 AUTO_PENCIL_MODE = True
 MOUSE_PRESSURE = 0.2
 
-
 log = logging.getLogger(__name__)
-
-
-import math, time
 
 
 def mousePressure():
@@ -913,7 +911,7 @@ class Scene(QGraphicsScene, Item):
         for chunk in (
             data.get("events", [])
             + data.get("people", [])
-            + data.get("marriages", [])
+            + data.get("pair_bonds", [])
             + data.get("emotions", [])
             + data.get("multipleBirths", [])
             + data.get("layers", [])
@@ -1013,8 +1011,8 @@ class Scene(QGraphicsScene, Item):
                 items.append(item)
                 itemChunks.append((item, chunk))
 
-            # Load marriages
-            for chunk in data.get("marriages", []):
+            # Load marriages (pair_bonds)
+            for chunk in data.get("pair_bonds", []):
                 item = Marriage()
                 item.id = chunk["id"]
                 items.append(item)
@@ -1141,13 +1139,13 @@ class Scene(QGraphicsScene, Item):
 
     @contextlib.contextmanager
     def initializing(self):
-        self._isInitializing = True
+        self.isInitializing = True
         exception = None
         try:
             yield
         except Exception as e:
             exception = e
-        self._isInitializing = False
+        self.isInitializing = False
         if exception:
             raise exception
 
@@ -1160,7 +1158,7 @@ class Scene(QGraphicsScene, Item):
 
         # Initialize typed arrays
         data["people"] = []
-        data["marriages"] = []
+        data["pair_bonds"] = []
         data["emotions"] = []
         data["events"] = []
         data["layers"] = []
@@ -1192,7 +1190,7 @@ class Scene(QGraphicsScene, Item):
             elif item.isMarriage:
                 chunk["kind"] = "Marriage"
                 item.write(chunk)
-                data["marriages"].append(chunk)
+                data["pair_bonds"].append(chunk)
             elif item.isEmotion:
                 chunk["kind"] = item.kind()
                 item.write(chunk)
@@ -1229,6 +1227,49 @@ class Scene(QGraphicsScene, Item):
         data = {}
         self.write(data, selectionOnly=selectionOnly)
         return data
+
+    def diagramData(self) -> DiagramData:
+        data = self.data()
+        return DiagramData(
+            people=data.get("people", []),
+            events=data.get("events", []),
+            pair_bonds=data.get("pair_bonds", []),
+            emotions=data.get("emotions", []),
+            multipleBirths=data.get("multipleBirths", []),
+            layers=data.get("layers", []),
+            layerItems=data.get("layerItems", []),
+            items=data.get("items", []),
+            pruned=data.get("pruned", []),
+            uuid=data.get("uuid"),
+            name=data.get("name"),
+            tags=data.get("tags", []),
+            loggedDateTime=data.get("loggedDateTime", []),
+            masterKey=data.get("masterKey"),
+            alias=data.get("alias"),
+            version=data.get("version"),
+            versionCompat=data.get("versionCompat"),
+            lastItemId=data.get("lastItemId", 0),
+            readOnly=data.get("readOnly", False),
+            contributeToResearch=data.get("contributeToResearch", False),
+            useRealNames=data.get("useRealNames", False),
+            password=data.get("password"),
+            requirePasswordForRealNames=data.get("requirePasswordForRealNames", False),
+            showAliases=data.get("showAliases", False),
+            hideNames=data.get("hideNames", False),
+            hideToolBars=data.get("hideToolBars", False),
+            hideEmotionalProcess=data.get("hideEmotionalProcess", False),
+            hideEmotionColors=data.get("hideEmotionColors", False),
+            hideDateSlider=data.get("hideDateSlider", False),
+            hideVariablesOnDiagram=data.get("hideVariablesOnDiagram", False),
+            hideVariableSteadyStates=data.get("hideVariableSteadyStates", False),
+            exclusiveLayerSelection=data.get("exclusiveLayerSelection", True),
+            storePositionsInLayers=data.get("storePositionsInLayers", False),
+            currentDateTime=data.get("currentDateTime"),
+            scaleFactor=data.get("scaleFactor"),
+            pencilColor=data.get("pencilColor"),
+            eventProperties=data.get("eventProperties", []),
+            legendData=data.get("legendData"),
+        )
 
     def getPrintRect(self, forLayers=None, forTags=None):
         rect = QRectF()
@@ -1856,7 +1897,7 @@ class Scene(QGraphicsScene, Item):
                 and x.kind().isPairBond()
             ]
         else:
-            raise TypeError("item must be Person or Marriage")
+            raise TypeError(f"item must be Person or Marriage, not {item}")
 
         if kinds is not None:
             if isinstance(kinds, list):

@@ -355,7 +355,7 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
-name = "personal.py"
+name = "models.py"
 included = true
 is_directory = false
 

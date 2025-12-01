@@ -87,11 +87,7 @@ def test_phase_6_2_extract_person_builtin_events():
                 "kind": "Person",
                 "id": 1,
                 "name": "Alice",
-                "childOf": {
-                    "person": 1,
-                    "parents": 13,
-                    "multipleBirth": None,
-                },
+                "parents": 13,
             },
             {
                 "kind": "Person",
@@ -110,7 +106,7 @@ def test_phase_6_2_extract_person_builtin_events():
                 "layers": [],
             },
         ],
-        "marriages": [
+        "pair_bonds": [
             {
                 "kind": "Marriage",
                 "id": 13,
@@ -185,7 +181,7 @@ def test_phase_6_1_split_items_into_separate_arrays():
         "version": "2.0.11",
         "lastItemId": 7,
         "people": [{"kind": "Person", "id": 1, "name": "Alice"}],
-        "marriages": [
+        "pair_bonds": [
             {"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3},
         ],
         "emotions": [{"kind": RelationshipKind.Conflict.value, "id": 3}],
@@ -231,7 +227,7 @@ def test_phase_6_2_extract_person_custom_events():
         "version": "2.0.11",
         "lastItemId": 10,
         "people": [{"kind": "Person", "id": 1, "name": "Alice"}],
-        "marriages": [],
+        "pair_bonds": [],
         "emotions": [],
         "events": [
             {
@@ -292,7 +288,7 @@ def test_phase_6_2_extract_marriage_events():
         "version": "2.0.11",
         "lastItemId": 20,
         "people": [],
-        "marriages": [{"kind": "Marriage", "id": 10, "person_a": 1, "person_b": 2}],
+        "pair_bonds": [{"kind": "Marriage", "id": 10, "person_a": 1, "person_b": 2}],
         "emotions": [],
         "events": [
             {
@@ -372,7 +368,7 @@ def test_phase_6_2_extract_emotion_events_with_date_range():
         "version": "2.0.11",
         "lastItemId": 30,
         "people": [],
-        "marriages": [],
+        "pair_bonds": [],
         "emotions": [
             {
                 "kind": RelationshipKind.Conflict.value,
@@ -429,7 +425,7 @@ def test_phase_6_2_extract_emotion_events_singular_date():
         "version": "2.0.11",
         "lastItemId": 30,
         "people": [],
-        "marriages": [],
+        "pair_bonds": [],
         "emotions": [
             {
                 "kind": RelationshipKind.Distance.value,
@@ -509,12 +505,12 @@ def test_phase_6_2_migrate_uniqueid_to_kind():
                 "kind": "Person",
                 "id": 1,
                 "name": "Alice",
-                "childOf": {"person": 1, "parents": 10, "multipleBirth": None},
+                "parents": 10,
             },
             {"kind": "Person", "id": 4, "name": "Parent1"},
             {"kind": "Person", "id": 5, "name": "Parent2"},
         ],
-        "marriages": [{"kind": "Marriage", "id": 10, "person_a": 4, "person_b": 5}],
+        "pair_bonds": [{"kind": "Marriage", "id": 10, "person_a": 4, "person_b": 5}],
         "emotions": [],
         "events": [
             {"id": 3, "kind": EventKind.Death.value, "person": 1},
@@ -575,11 +571,7 @@ def test_phase_6_2_assign_event_ids():
             {
                 "kind": "Person",
                 "id": 1,
-                "childOf": {
-                    "person": 1,
-                    "parents": 9,
-                    "multipleBirth": None,
-                },
+                "parents": 9,
             },
             {
                 "kind": "Person",
@@ -598,7 +590,7 @@ def test_phase_6_2_assign_event_ids():
                 "layers": [],
             },
         ],
-        "marriages": [
+        "pair_bonds": [
             {
                 "kind": "Marriage",
                 "id": 9,
@@ -647,7 +639,7 @@ def test_phase_6_unknown_item_types_preserved():
         "version": "2.0.11",
         "lastItemId": 3,
         "people": [{"kind": "Person", "id": 1}],
-        "marriages": [],
+        "pair_bonds": [],
         "emotions": [],
         "events": [],
         "layerItems": [],
@@ -678,7 +670,7 @@ def test_phase_6_empty_arrays_handling():
         "version": "2.0.11",
         "lastItemId": 5,
         "people": [{"kind": "Person", "id": 1}],
-        "marriages": [{"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3}],
+        "pair_bonds": [{"kind": "Marriage", "id": 2, "person_a": 1, "person_b": 3}],
         "emotions": [{"kind": RelationshipKind.Conflict.value, "id": 3}],
         "events": [],
         "layerItems": [],
@@ -727,16 +719,12 @@ def test_birth_event_with_existing_parents():
                 "id": 1,
                 "name": "Alice",
                 "size": 3,
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {"kind": "Person", "id": 2, "name": "Parent1"},
             {"kind": "Person", "id": 3, "name": "Parent2"},
         ],
-        "marriages": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
+        "pair_bonds": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
         "emotions": [],
         "events": [
             {
@@ -788,11 +776,7 @@ def test_birth_event_without_parents_creates_inferred():
                 "name": "Orphan",
                 "size": 3,
                 "itemPos": {"x": 100, "y": 100},
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {
                 "kind": "Person",
@@ -811,7 +795,7 @@ def test_birth_event_without_parents_creates_inferred():
                 "layers": [],
             },
         ],
-        "marriages": [
+        "pair_bonds": [
             {
                 "kind": "Marriage",
                 "id": 5,
@@ -874,16 +858,12 @@ def test_adopted_event_with_existing_parents():
                 "kind": "Person",
                 "id": 1,
                 "name": "Bob",
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {"kind": "Person", "id": 2, "name": "AdoptiveParent1"},
             {"kind": "Person", "id": 3, "name": "AdoptiveParent2"},
         ],
-        "marriages": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
+        "pair_bonds": [{"kind": "Marriage", "id": 5, "person_a": 2, "person_b": 3}],
         "emotions": [],
         "events": [
             {
@@ -927,7 +907,7 @@ def test_death_event_only_sets_person():
         "version": "2.0.11",
         "lastItemId": 2,
         "people": [{"kind": "Person", "id": 1, "name": "Charlie"}],
-        "marriages": [],
+        "pair_bonds": [],
         "emotions": [],
         "events": [
             {
@@ -977,11 +957,7 @@ def test_birth_event_in_custom_events_without_parents():
                 "id": 1,
                 "name": "Child",
                 "size": 2,
-                "childOf": {
-                    "person": 1,
-                    "parents": 8,
-                    "multipleBirth": None,
-                },
+                "parents": 8,
             },
             {
                 "kind": "Person",
@@ -1000,7 +976,7 @@ def test_birth_event_in_custom_events_without_parents():
                 "layers": [],
             },
         ],
-        "marriages": [
+        "pair_bonds": [
             {
                 "kind": "Marriage",
                 "id": 8,
@@ -1057,11 +1033,7 @@ def test_inferred_parent_size_minimum():
                 "id": 1,
                 "name": "TinyChild",
                 "size": 1,
-                "childOf": {
-                    "person": 1,
-                    "parents": 5,
-                    "multipleBirth": None,
-                },
+                "parents": 5,
             },
             {
                 "kind": "Person",
@@ -1080,7 +1052,7 @@ def test_inferred_parent_size_minimum():
                 "layers": [],
             },
         ],
-        "marriages": [
+        "pair_bonds": [
             {
                 "kind": "Marriage",
                 "id": 5,

@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import QApplication
+from pkdiagram.pyqt import QApplication, QDialogButtonBox
 from pkdiagram import util
 from pkdiagram.widgets import Dialog
 from pkdiagram.mainwindow.welcome_form import Ui_Welcome
@@ -7,9 +7,15 @@ from pkdiagram.mainwindow.welcome_form import Ui_Welcome
 class Welcome(Dialog):
     def __init__(self, mw):
         super().__init__(mw)
+        self.setObjectName("welcomeDialog")
         self.mw = mw
         self.ui = Ui_Welcome()
         self.ui.setupUi(self)
+
+        # Set objectNames on buttons for testing
+        okButton = self.ui.buttonBox.button(QDialogButtonBox.Ok)
+        if okButton:
+            okButton.setObjectName("okButton")
 
         self.ui.dontShowBox.toggled[bool].connect(self.onDontShow)
         QApplication.instance().paletteChanged.connect(self.onSystemPaletteChanged)

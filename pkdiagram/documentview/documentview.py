@@ -15,8 +15,8 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, Event, LayerItem
-from pkdiagram.widgets import TimelineCallout, Drawer
-from pkdiagram.views import EventForm, SearchDialog, QmlDrawer, CaseProperties
+from pkdiagram.widgets import TimelineCallout, Drawer, QmlWidgetHelper
+from pkdiagram.views import EventFormDrawer, SearchDialog, QmlDrawer, CaseProperties
 from pkdiagram.documentview import (
     View,
     QmlEngine,
@@ -48,7 +48,6 @@ class DocumentView(QWidget):
         self.scene = None
         self.isAnimatingDrawer = False
         self._isInitializing = True
-        self._isReloadingCurrentDiagram = False
         self._settingCurrentDrawer = False
 
         self._qmlEngine = QmlEngine(session, parent)
@@ -60,8 +59,10 @@ class DocumentView(QWidget):
         self.eventSelectionModel = self._qmlEngine.eventSelectionModel
 
         self.view = View(self, parent.ui)
+        self.view.setObjectName("View")
 
         self.controller = DocumentController(self)
+        self.controller.setObjectName("documentController")
 
         ## Just sits under the drawer to move the view over.
         ## Allows the drawer to be parented to the DocumentView
@@ -84,6 +85,7 @@ class DocumentView(QWidget):
             objectName="caseProps",
         )
         self.caseProps.qmlInitialized.connect(self.onCasePropsInit)
+        self.caseProps.qmlInitialized.connect(self.controller.onCasePropsInit)
         self.personProps = QmlDrawer(
             self._qmlEngine,
             "qml/PersonProperties.qml",
@@ -117,14 +119,15 @@ class DocumentView(QWidget):
         #
         self.ignoreDrawerAnim = False
         self.currentDrawer = None
-        self.eventForm = EventForm(self._qmlEngine, self)
+        self.eventFormDrawer = EventFormDrawer(self._qmlEngine, self)
+        self.eventFormDrawer.qmlInitialized.connect(self.controller.onEventFormInit)
         QWidget.hide(self.caseProps)
         QWidget.hide(self.personProps)
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
         self.drawers = [
-            self.eventForm,
+            self.eventFormDrawer,
             self.caseProps,
             self.personProps,
             self.marriageProps,
@@ -150,7 +153,12 @@ class DocumentView(QWidget):
                 self.controller.onEditEmotionEvent
             )
         )
-        self.eventForm.doneEditing.connect(self.controller.onEventFormDoneEditing)
+        # EventFormDrawer initializes QML immediately in its constructor,
+        # so we need to call the init handler directly after connecting the signal
+        self.controller.onEventFormInit()
+        self.eventFormDrawer.eventForm.doneEditing.connect(
+            self.controller.onEventFormDoneEditing
+        )
         self._forceSceneUpdate = False  # fix for scene update bug
 
         # This one shows/hides it all together.
@@ -166,6 +174,11 @@ class DocumentView(QWidget):
         # show over the graphicalTimelineShim just like the drawers to allow expanding to fuull screen
         self.graphicalTimelineView = GraphicalTimelineView(
             self.searchModel, self.eventSelectionModel, self
+        )
+        self.graphicalTimelineView.setObjectName("graphicalTimelineView")
+        self.graphicalTimelineView.timeline.setObjectName("graphicalTimeline")
+        self.graphicalTimelineView.timeline.canvas.setObjectName(
+            "graphicalTimelineCanvas"
         )
         self.graphicalTimelineView.expandedChanged.connect(
             self.graphicalTimelineExpanded
@@ -228,8 +241,9 @@ class DocumentView(QWidget):
         self.marriageProps.deinit()
         self.emotionProps.deinit()
         self.layerItemProps.deinit()
-        self.eventForm.deinit()
+        self.eventFormDrawer.deinit()
         self.searchDialog.deinit()
+        self.eventFormDrawer.eventForm.deinit()
         self._qmlEngine.deinit()
 
     def onCasePropsInit(self):
@@ -255,14 +269,6 @@ class DocumentView(QWidget):
     def onApplicationPaletteChanged(self):
         self.drawerShim.setStyleSheet("background-color: %s " % util.QML_CONTROL_BG)
 
-    def setReloadingCurrentDiagram(self, on):
-        """Not currently used, but saved for later."""
-        self._isReloadingCurrentDiagram = on
-
-    def isReloadingCurrentDiagram(self):
-        """Not currently used, but saved for later."""
-        return self._isReloadingCurrentDiagram
-
     def setScene(self, scene):
         self._isInitializing = True
         self.graphicalTimelineView.setScene(scene)
@@ -271,7 +277,7 @@ class DocumentView(QWidget):
         QWidget.hide(self.marriageProps)
         QWidget.hide(self.emotionProps)
         QWidget.hide(self.layerItemProps)
-        self.eventForm.hide(animate=False)
+        self.eventFormDrawer.hide(animate=False)
         self.currentDrawer = None
         self.controller.setScene(None)
         if self.scene:
@@ -279,11 +285,15 @@ class DocumentView(QWidget):
             self.sceneModel.inspectItem[int].disconnect(
                 self.controller.onInspectItemById
             )
+            self.scene.stack().canUndoChanged.disconnect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.disconnect(self.ui.actionRedo.setEnabled)
         self.scene = scene
         self._qmlEngine.setScene(scene)
         if scene:
             self.scene.selectionChanged.connect(self.onSceneSelectionChanged)
             self.sceneModel.inspectItem[int].connect(self.controller.onInspectItemById)
+            self.scene.stack().canUndoChanged.connect(self.ui.actionUndo.setEnabled)
+            self.scene.stack().canRedoChanged.connect(self.ui.actionRedo.setEnabled)
             if self.scene.hideDateSlider() or self.timelineModel.rowCount() == 0:
                 self.graphicalTimelineShim.setFixedHeight(0)
             else:
@@ -292,7 +302,7 @@ class DocumentView(QWidget):
                 )
             self.drawerShim.setFixedWidth(0)
         self.view.setScene(scene)
-        self.eventForm.setScene(scene)
+        self.eventFormDrawer.setScene(scene)
         self.caseProps.setScene(scene)
         self.personProps.setScene(scene)
         self.emotionProps.setScene(scene)
@@ -413,26 +423,38 @@ class DocumentView(QWidget):
             return
         self._settingCurrentDrawer = True
 
-        if drawer != self.eventForm and self.view.ui.actionAdd_Anything.isChecked():
+        if drawer is self.eventFormDrawer:
+            if not self.view.ui.actionAdd_Anything.isChecked():
+                self.view.ui.actionAdd_Anything.setChecked(True)
+        elif self.view.ui.actionAdd_Anything.isChecked():
             self.view.ui.actionAdd_Anything.setChecked(False)
 
-        if self.view.ui.actionShow_Timeline.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Timeline.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Timeline.value
         ):
+            if not self.view.ui.actionShow_Timeline.isChecked():
+                self.view.ui.actionShow_Timeline.setChecked(True)
+        elif self.view.ui.actionShow_Timeline.isChecked():
             self.view.ui.actionShow_Timeline.setChecked(False)
 
-        if self.view.ui.actionShow_Settings.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Settings.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Settings.value
         ):
-            self.view.ui.actionShow_Settings.setChecked(False)
+            if not self.view.rightToolBar.settingsButton.isChecked():
+                self.view.rightToolBar.settingsButton.setChecked(True)
+        elif self.view.rightToolBar.settingsButton.isChecked():
+            self.view.rightToolBar.settingsButton.setChecked(False)
 
-        if self.view.ui.actionShow_Copilot.isChecked() and (
-            drawer != self.caseProps
-            or kwargs.get("tab") != RightDrawerView.Copilot.value
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Copilot.value
         ):
-            self.view.ui.actionShow_Copilot.setChecked(False)
+            if not self.view.rightToolBar.copilotButton.isChecked():
+                self.view.rightToolBar.copilotButton.setChecked(True)
+        elif self.view.rightToolBar.copilotButton.isChecked():
+            self.view.rightToolBar.copilotButton.setChecked(False)
 
         was = self.currentDrawer
         self.currentDrawer = drawer
@@ -525,10 +547,11 @@ class DocumentView(QWidget):
     def onCasePropsInspectEventNotes(self, row: int):
         event = self.timelineModel.eventForRow(row)
         if event:
-            self.eventForm.editEvents([event])
-            self.setCurrentDrawer(self.eventForm)
-            self.eventForm.scrollChildToVisible(
-                self.eventForm.rootProp("addPage"), self.eventForm.rootProp("notesEdit")
+            self.eventFormDrawer.eventForm.editEvents([event])
+            self.setCurrentDrawer(self.eventFormDrawer)
+            QmlWidgetHelper.scrollChildToVisible(
+                self.eventFormDrawer.eventForm.item.property("addPage"),
+                self.eventFormDrawer.eventForm.item.property("notesEdit"),
             )
             self.session.trackView("Edit event notes")
 
@@ -665,8 +688,8 @@ class DocumentView(QWidget):
 
     def onShowEventForm(self, on: bool = True):
         if on:
-            self.setCurrentDrawer(self.eventForm)
-            self.eventForm.addEvent(self.scene.selectedItems())
+            self.setCurrentDrawer(self.eventFormDrawer)
+            self.eventFormDrawer.eventForm.addEvent(self.scene.selectedItems())
         else:
             self.setCurrentDrawer(None)
 

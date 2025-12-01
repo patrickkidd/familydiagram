@@ -1,6 +1,7 @@
 from pkdiagram.pyqt import (
     QWidget,
     QVBoxLayout,
+    QMessageBox,
     pyqtSignal,
 )
 from pkdiagram.widgets import QmlWidgetHelper
@@ -11,6 +12,10 @@ class FileManager(QWidget, QmlWidgetHelper):
 
     QmlWidgetHelper.registerQmlMethods(
         [{"name": "clearSelection"}, {"name": "showLocalFiles"}]
+    )
+
+    S_SERVER_SYNC_FAILED = (
+        "Could not connect to server. Please check your internet connection."
     )
 
     localFileClicked = pyqtSignal(str)
@@ -40,14 +45,12 @@ class FileManager(QWidget, QmlWidgetHelper):
 
     def init(self):
         self.serverFileModel.init()
+        self.serverFileModel.clear()
         self.serverFileModel.setSession(self.qmlEngine().session)
 
     def deinit(self):
         self.serverFileModel.deinit()
         QmlWidgetHelper.deinit(self)
-
-    def showEvent(self, e):
-        super().showEvent(e)
 
     def onLocalFilesShownChanged(self):
         on = self.rootProp("localFilesShown")
@@ -60,13 +63,13 @@ class FileManager(QWidget, QmlWidgetHelper):
         if updatedDiagram:
             self.serverFileClicked.emit(fpath, updatedDiagram)
         else:
-            self.serverFileClicked.emit(fpath, diagram)
+            QMessageBox.warning(self, "Server Unavailable", self.S_SERVER_SYNC_FAILED)
 
     def updateModTimes(self):
         self.localFileModel.updateModTimes()
 
     def onLocalUUIDUpdated(self, url, uuid):
-        self.here("TODO:", url, uuid)
+        pass
 
     def onFileClosed(self):
         self.clearSelection()

@@ -5,11 +5,34 @@ import "." 1.0 as PK
 
 
 PK.ComboBox {
-    
-    property string color: model[currentIndex] != undefined ? model[currentIndex] : 'transparent'
-    currentIndex: model.indexOf(color)
-    
+
     id: root
+
+    property string color: 'transparent'
+
+    property bool isDirty: currentIndex !== -1
+    property Item firstTabItem: this
+    property Item lastTabItem: this
+
+    function clear() {
+        currentIndex = -1
+    }
+
+    onCurrentIndexChanged: {
+        if (currentIndex !== -1 && model[currentIndex] != undefined) {
+            color = model[currentIndex]
+        } else {
+            color = 'transparent'
+        }
+    }
+
+    onColorChanged: {
+        var idx = model.indexOf(color)
+        if (idx !== -1 && idx !== currentIndex) {
+            currentIndex = idx
+        }
+    }
+
     model: util.ABLETON_COLORS
     delegate: ItemDelegate {
         // rightPadding: 15

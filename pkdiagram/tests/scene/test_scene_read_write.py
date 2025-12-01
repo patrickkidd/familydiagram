@@ -3,7 +3,7 @@ import os, os.path, pickle
 import pytest
 from mock import patch
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, DiagramData, VariableShift
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Event
@@ -112,7 +112,8 @@ def test_save_load_delete_items(qtbot):
     qtbot.clickYesAfter(lambda: scene.removeSelection())  # would throw exception
 
 
-def __test_getPrintRect(scene):  # was always changing by a few pixels...
+@pytest.mark.skip(reason="was always changing by a few pixels")
+def test_getPrintRect(scene):
     s.setTags(["NW", "NE", "SW", "SE"])
     northWest = scene.addItem(Person(name="NW", pos=QPointF(-1000, -1000), tags=["NW"]))
     northEast = scene.addItem(Person(name="NE", pos=QPointF(1000, -1000), tags=["NE"]))
@@ -168,7 +169,7 @@ and Robby robby
     )
 
     scene.setShowAliases(True)
-    patrick.notes() == "[Marco] [John]"
+    assert patrick.notes() == "[Marco] [John]"
     assert e1.description() == "[John] came home"
     assert e2.description() == "[John] came home, took [John]'s place"
     assert e3.description() == "[Marco] came home with [John]"
@@ -185,3 +186,89 @@ and Robby robby
 
 
 # test undo macro
+
+
+## Forward compatibility - preserve unknown keys
+
+
+def test_unknown_key_preserved():
+    """Unknown top-level keys should survive Scene.read() then Scene.data()."""
+    data = {"unknownFutureKey": {"some": "data"}}
+
+    scene = Scene()
+    scene.read(data)
+    output = scene.data()
+
+    assert "unknownFutureKey" in output
+    assert output["unknownFutureKey"] == {"some": "data"}
+
+
+def test_pdp_preserved():
+    """PDP data from btcopilot should survive Scene.read() then Scene.data()."""
+    from btcopilot.schema import DiagramData, PDP, Person, asdict
+
+    diagramData = DiagramData(pdp=PDP(people=[Person(id=-1, name="TestPerson")]))
+    data = asdict(diagramData)
+
+    scene = Scene()
+    scene.read(data)
+    output = scene.data()
+
+    assert "pdp" in output
+    assert output["pdp"]["people"][0]["name"] == "TestPerson"
+
+
+def test_lastItemId_preserved():
+    """lastItemId from btcopilot should survive Scene.read() then Scene.data()."""
+    from btcopilot.schema import DiagramData, asdict
+
+    data = asdict(DiagramData(lastItemId=42))
+
+    scene = Scene()
+    scene.read(data)
+    output = scene.data()
+
+    assert "lastItemId" in output
+    assert output["lastItemId"] == 42
+
+
+def test_pdp_modifications_preserved():
+    """Modifications to _readChunk (e.g. pdp) should be preserved on write."""
+    from btcopilot.schema import DiagramData, PDP, Person, asdict
+
+    diagramData = DiagramData(pdp=PDP(people=[Person(id=-1, name="Original")]))
+    data = asdict(diagramData)
+
+    scene = Scene()
+    scene.read(data)
+
+    # Simulate btcopilot modifying pdp during session
+    scene._readChunk["pdp"]["people"][0]["name"] = "Modified"
+
+    output = scene.data()
+
+    assert output["pdp"]["people"][0]["name"] == "Modified"
+
+
+def test_diagramData_returns_DiagramData():
+    scene = Scene()
+    person = scene.addItem(Person(name="Alice"))
+    scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            description="Felt stressed",
+            symptom=VariableShift.Down,
+        )
+    )
+
+    result = scene.diagramData()
+
+    assert isinstance(result, DiagramData)
+    assert len(result.people) == 1
+    assert result.people[0]["name"] == "Alice"
+    assert len(result.events) == 1
+    assert result.events[0]["description"] == "Felt stressed"
+    assert result.version is not None
+    assert result.versionCompat is not None

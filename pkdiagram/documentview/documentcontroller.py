@@ -73,13 +73,11 @@ class DocumentController(QObject):
         self.scene = None
         self.view = self.dv.view
         self._isUpdatingLayerActions = False
+        self._editingEventFromTimeline = False
 
     def init(self):
         assert self.ui is None
         self.ui = self.dv.ui
-
-        self.dv.caseProps.qmlInitialized.connect(self.onCasePropsInit)
-        self.dv.eventForm.qmlInitialized.connect(self.onEventFormInit)
 
         self.dv.graphicalTimelineView.expandButton.clicked.connect(
             self.onGraphicalTimelineViewExpandedOrContracted
@@ -193,7 +191,7 @@ class DocumentController(QObject):
         self.dv.marriageProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.emotionProps.hideRequested.connect(self.onHideCurrentDrawer)
         self.dv.layerItemProps.hideRequested.connect(self.onHideCurrentDrawer)
-        self.dv.eventForm.hideRequested.connect(self.onHideCurrentDrawer)
+        self.dv.eventFormDrawer.hideRequested.connect(self.onHideCurrentDrawer)
 
         self.dv.timelineModel.rowsInserted.connect(self.onTimelineRowsChanged)
         self.dv.timelineModel.rowsRemoved.connect(self.onTimelineRowsChanged)
@@ -223,7 +221,7 @@ class DocumentController(QObject):
         ].connect(self.onEventPropertiesTemplateIndexChanged)
 
     def onEventFormInit(self):
-        self.dv.eventForm.qml.rootObject().inspectEmotions.connect(
+        self.dv.eventFormDrawer.qml.rootObject().inspectEmotions.connect(
             self.onInspectEmotionsFromEventForm
         )
 
@@ -369,27 +367,27 @@ class DocumentController(QObject):
         person = personModel.items[0]
         birthEvents = person.birthEvent()
         if birthEvents:
-            self.dv.eventForm.editEvents(birthEvents)
+            self.dv.eventFormDrawer.editEvents(birthEvents)
         else:
-            self.dv.eventForm.addBirthEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addBirthEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditPersonDeathEvent(self):
         personModel = self.dv.personProps.getPropSheetModel()
         person = personModel.items[0]
         deathEvents = person.deathEvent()
         if deathEvents:
-            self.dv.eventForm.editEvents(deathEvents)
+            self.dv.eventFormDrawer.editEvents(deathEvents)
         else:
-            self.dv.eventForm.addDeathEvent(person)
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+            self.dv.eventFormDrawer.addDeathEvent(person)
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     def onEditEmotionEvent(self):
         emotionModel = self.dv.emotionProps.getPropSheetModel()
         emotion = emotionModel.items[0]
         event = emotion.sourceEvent()
-        self.dv.eventForm.editEvents([event])
-        self.dv.setCurrentDrawer(self.dv.eventForm)
+        self.dv.eventFormDrawer.editEvents([event])
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
 
     @util.blocked
     def onActiveLayers(self, activeLayers):
@@ -597,10 +595,12 @@ class DocumentController(QObject):
         self.ui.actionShow_Legend.setEnabled(on)
         self.ui.actionAdd_Anything.setEnabled(on)
 
-        canUndo = self.scene.stack().canUndo() if self.scene else False
-        self.ui.actionUndo.setEnabled(on and canUndo)
-        canRedo = self.scene.stack().canRedo() if self.scene else False
-        self.ui.actionRedo.setEnabled(on and canRedo)
+        if self.scene:
+            self.ui.actionUndo.setEnabled(on and self.scene.stack().canUndo())
+            self.ui.actionRedo.setEnabled(on and self.scene.stack().canRedo())
+        else:
+            self.ui.actionUndo.setEnabled(False)
+            self.ui.actionRedo.setEnabled(False)
         if self.scene:
             numLayers = len(self.scene.layers(includeInternal=False))
             iActiveLayer = self.scene.activeLayer()
@@ -805,16 +805,6 @@ class DocumentController(QObject):
             if action.isCheckable() and action.isChecked():
                 action.blockSignals(True)
                 action.setChecked(False)
-        else:
-            prevDate = events[prevRow].dateTime()
-        if prevDate:
-            self.scene.setCurrentDateTime(prevDate)
-
-    def onDeselectAllTags(self):
-        for action in self.ui.menuTags.actions():
-            if action.isCheckable() and action.isChecked():
-                action.blockSignals(True)
-                action.setChecked(False)
                 action.blockSignals(False)
         self.dv.searchModel.reset("tags")
 
@@ -862,12 +852,14 @@ class DocumentController(QObject):
         self.dv.graphicalTimelineCallout.hide()
 
     def onUndo(self):
-        self.scene.undo()
-        self.view.onUndo()
+        if self.scene:
+            self.scene.stack().undo()
+            self.view.onUndo()
 
     def onRedo(self):
-        self.scene.redo()
-        self.view.onRedo()
+        if self.scene:
+            self.scene.stack().redo()
+            self.view.onRedo()
 
     def onArrangeSelection(self):
         from dataclasses import asdict
@@ -881,7 +873,11 @@ class DocumentController(QObject):
             parent_b = parents.people[1].id if parents else None
             boundingRect = person.sceneBoundingRect()
             birthDT = person.birthDateTime()
-            birthDateTime = birthDT.toString("yyyy-MM-dd") if birthDT and birthDT.isValid() else None
+            birthDateTime = (
+                birthDT.toString("yyyy-MM-dd")
+                if birthDT and birthDT.isValid()
+                else None
+            )
             diagram.people.append(
                 Person(
                     id=person.id,
@@ -894,7 +890,10 @@ class DocumentController(QObject):
                         height=boundingRect.height(),
                     ),
                     partners=[
-                        x.id for marriage in person.marriages for x in marriage.people if x != person
+                        x.id
+                        for marriage in person.marriages
+                        for x in marriage.people
+                        if x != person
                     ],
                     parent_a=parent_a,
                     parent_b=parent_b,
@@ -1003,10 +1002,11 @@ class DocumentController(QObject):
                 ret = False
         return ret
 
-    def inspectEvents(self, events: list[Event]):
+    def inspectEvents(self, events: list[Event], fromTimeline=False):
         self.dv.session.trackView("Edit event(s)")
-        self.dv.setCurrentDrawer(self.dv.eventForm)
-        self.dv.eventForm.editEvents(events)
+        self._editingEventFromTimeline = fromTimeline
+        self.dv.setCurrentDrawer(self.dv.eventFormDrawer)
+        self.dv.eventFormDrawer.editEvents(events)
 
     def inspectEmotions(self, emotions: list[Emotion]):
         self.dv.session.trackView("Edit emotions(s)")
@@ -1017,7 +1017,7 @@ class DocumentController(QObject):
         events = eventList
         if isinstance(events, QJSValue):
             events = events.toVariant()
-        self.inspectEvents(events)
+        self.inspectEvents(events, fromTimeline=True)
 
     def onInspectEmotionsFromEventForm(self, event):
         emotions = self.scene.emotionsFor(event)
@@ -1035,7 +1035,7 @@ class DocumentController(QObject):
                 events = self.dv.caseProps.selectedEvents()
                 if isinstance(events, QJSValue):
                     events = events.toVariant()
-                self.inspectEvents(events)
+                self.inspectEvents(events, fromTimeline=True)
             elif hasattr(fw.parent(), "onInspect"):
                 fw.parent().onInspect(tab)
         elif fw is self.dv.graphicalTimelineView.timeline:
@@ -1085,7 +1085,11 @@ class DocumentController(QObject):
             return True
 
     def onEventFormDoneEditing(self):
-        self.dv.setCurrentDrawer(self.dv.caseProps)
+        if self._editingEventFromTimeline:
+            self.dv.setCurrentDrawer(
+                self.dv.caseProps, tab=RightDrawerView.Timeline.value
+            )
+            self._editingEventFromTimeline = False
 
     def onHideCurrentDrawer(self):
         if self.dv.currentDrawer:
@@ -1097,7 +1101,7 @@ class DocumentController(QObject):
         consistency with action and button states.
         """
         if drawer.canClose():
-            if drawer is self.dv.eventForm:
+            if drawer is self.dv.eventFormDrawer:
                 if self.ui.actionAdd_Anything.isChecked():
                     self.ui.actionAdd_Anything.setChecked(False)
                     return True

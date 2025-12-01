@@ -40,25 +40,26 @@ RowLayout {
             valueBox.currentIndex = index
     }
 
+    onValueChanged: {
+        var idx = model.findIndex(function(item) { return item.value == value; })
+        if (idx !== valueBox.currentIndex) {
+            valueBox.currentIndex = idx
+        }
+    }
+
     PK.ComboBox {
         id: valueBox
         objectName: root.objectName + "_valueBox"
         width: 175
         model: boxModel
         focus: true
-        currentIndex: {
-            var newCurrentIndex = model.findIndex(function(item) { return item.value == value; })
-            if(newCurrentIndex != currentIndex)
-                newCurrentIndex = -1
-            else
-                currentIndex
-        }
+        currentIndex: -1
         KeyNavigation.tab: clearButton
-        KeyNavigation.backtab: root.backTabItem
+        KeyNavigation.backtab: root.backTabItem ? root.backTabItem : null
         onCurrentIndexChanged: {
-            if(currentIndex != -1) {                
+            if (currentIndex != -1) {
                 let newValue = root.model[currentIndex].value
-                if(root.value != newValue)
+                if (root.value != newValue)
                     root.value = newValue
             } else {
                 root.value = null
@@ -76,7 +77,7 @@ RowLayout {
         Layout.leftMargin: 2
         opacity: valueBox.currentIndex != -1 ? util.CLEAR_BUTTON_OPACITY : 0
         enabled: opacity > 0
-        KeyNavigation.tab: root.tabItem
+        KeyNavigation.tab: root.tabItem ? root.tabItem : null
         KeyNavigation.backtab: valueBox
         onClicked: {
             root.forceActiveFocus()

@@ -20,6 +20,8 @@ ApplicationWindow {
     property var safeAreaMargins_top: 0
     property var safeAreaMargins_bottom: 0
 
+    property var personalView: personalView
+
     Rectangle {
         id: contentArea
         anchors {

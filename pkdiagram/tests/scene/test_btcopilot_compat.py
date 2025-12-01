@@ -47,7 +47,7 @@ def test_fd_can_load_diagram_after_btcopilot_writes_pdp(scene):
 
     # Simulate btcopilot loading and adding PDP
     loaded_data = pickle.loads(pickled)
-    diagram_data = DiagramData(pdp=PDP(), last_id=loaded_data.get("last_id", 0))
+    diagram_data = DiagramData(pdp=PDP(), lastItemId=loaded_data.get("lastItemId", 0))
     pdp_deltas = PDPDeltas(
         people=[BtcopilotPerson(id=-1, name="Mother")],
         events=[
@@ -63,7 +63,7 @@ def test_fd_can_load_diagram_after_btcopilot_writes_pdp(scene):
     diagram_data.pdp = apply_deltas(diagram_data.pdp, pdp_deltas)
     # save back to pickle
     loaded_data["pdp"] = diagram_data.pdp
-    loaded_data["last_id"] = diagram_data.last_id
+    loaded_data["lastItemId"] = diagram_data.lastItemId
     updated_pickled = pickle.dumps(loaded_data)
 
     # Verify FD can load the updated pickle
@@ -116,7 +116,7 @@ def test_btcopilot_preserves_fd_qt_objects_in_pickle(scene):
     assert not isinstance(fd_person, BtcopilotPerson)  # Not btcopilot dataclass
 
     # Add PDP via btcopilot
-    diagram_data = DiagramData(pdp=PDP(), last_id=loaded_data.get("last_id", 0))
+    diagram_data = DiagramData(pdp=PDP(), lastItemId=loaded_data.get("lastItemId", 0))
     pdp_deltas = PDPDeltas(
         people=[BtcopilotPerson(id=-1, name="PDP Person")],
     )
@@ -124,7 +124,7 @@ def test_btcopilot_preserves_fd_qt_objects_in_pickle(scene):
 
     # Simulate btcopilot's set_diagram_data (only updates PDP, not people/events)
     loaded_data["pdp"] = diagram_data.pdp
-    loaded_data["last_id"] = diagram_data.last_id
+    loaded_data["lastItemId"] = diagram_data.lastItemId
 
     # Save back to pickle
     updated_pickled = pickle.dumps(loaded_data)
@@ -161,7 +161,7 @@ def test_empty_pdp_doesnt_break_fd_loading(scene):
 
     # Add empty PDP
     data["pdp"] = PDP()
-    data["last_id"] = 1
+    data["lastItemId"] = 1
 
     pickled = pickle.dumps(data)
 
