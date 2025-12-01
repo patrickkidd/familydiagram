@@ -28,6 +28,7 @@ from pkdiagram.server_types import Diagram
 from pkdiagram.scene import Scene, Person, Event, Marriage, Emotion
 from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
+from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
 
 _log = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ class PersonalAppController(QObject):
         self.sceneModel = SceneModel(self)
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
+        self.sarfGraphModel = SARFGraphModel(self)
         self.eventForm = None
         self._pendingScene: Scene | None = None
 
@@ -76,6 +78,7 @@ class PersonalAppController(QObject):
         engine.rootContext().setContextProperty("personalApp", self)
         engine.rootContext().setContextProperty("sceneModel", self.sceneModel)
         engine.rootContext().setContextProperty("peopleModel", self.peopleModel)
+        engine.rootContext().setContextProperty("sarfGraphModel", self.sarfGraphModel)
         engine.objectCreated[QObject, QUrl].connect(self.onQmlObjectCreated)
         self._engine = engine
         self.analytics.init()
@@ -88,6 +91,7 @@ class PersonalAppController(QObject):
             self.session.init()
 
     def deinit(self):
+        self.sarfGraphModel.deinit()
         self.analytics.init()
         self.session.deinit()
         if self.eventForm:
@@ -143,6 +147,7 @@ class PersonalAppController(QObject):
         self.scene = scene
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
+        self.sarfGraphModel.scene = scene
         if self.eventForm:
             self.eventForm.setScene(scene)
 
