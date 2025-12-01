@@ -221,6 +221,36 @@ is_directory = false
 
 
 [[Application.Package.Content]]
+name = "mcpserver"
+included = false
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "app_controller.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "element_finder.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "input_simulator.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "snapshot.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "models"
 included = true
 is_directory = true
@@ -355,12 +385,22 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "commands.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "models.py"
 included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "personalappcontroller.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "sarfgraphmodel.py"
 included = true
 is_directory = false
 
@@ -920,6 +960,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "PKDiagram-Personal.png"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "PKDiagram.png"
 included = true
 is_directory = false
@@ -1035,6 +1080,21 @@ is_directory = false
 [[Application.Package.Content.Content.Content.Content]]
 name = "LearnView.qml"
 included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PDPEventCard.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PDPPersonCard.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
+name = "PDPSheet.qml"
+included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
@@ -1700,6 +1760,41 @@ is_directory = false
 
 
 [[Application.Package.Content.Content]]
+name = "mcpbridge"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "inspector.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "server.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
+name = "mcpserver"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_mcpserver_example.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
 name = "models"
 included = false
 is_directory = true
@@ -1799,22 +1894,52 @@ included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
+name = "conftest.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_diagramdata.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
 name = "test_discussview.py"
 included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "test_learnview.py"
+name = "test_eventform.py"
 included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
-name = "test_personal.py"
+name = "test_models.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_pdp_2_scene.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_pdp_commit.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_personalappcontroller.py"
 included = false
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "test_personalview.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_sarfgraphmodel.py"
 included = false
 is_directory = false
 
@@ -2000,6 +2125,26 @@ is_directory = false
 
 
 [[Application.Package.Content.Content]]
+name = "server"
+included = false
+is_directory = true
+[[Application.Package.Content.Content.Content]]
+name = "__init__.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_diagram.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_server_types.py"
+included = false
+is_directory = false
+
+
+[[Application.Package.Content.Content]]
 name = "snapshots"
 included = false
 is_directory = true
@@ -2051,11 +2196,6 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "test_extras.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "test_server_types.py"
 included = false
 is_directory = false
 
