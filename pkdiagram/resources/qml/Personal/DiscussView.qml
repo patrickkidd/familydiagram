@@ -136,7 +136,7 @@ Page {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: 0
 
         Rectangle {
             Layout.fillWidth: true
@@ -197,29 +197,29 @@ Page {
                 // top padding
                 Rectangle {
                     width: dRoot.width
-                    height: util.QML_MARGINS
+                    height: 10
                     color: 'transparent'
                 }
 
                 Rectangle {
                     id: bubble
-                    color: util.QML_ITEM_ALTERNATE_BG
-                    border.color: util.QML_ITEM_BORDER_COLOR
-                    radius: 8
-                    width: Math.min(questionText.implicitWidth + util.QML_MARGINS, statementsList.width - util.QML_MARGINS * 6)
+                    color: util.QML_SELECTION_COLOR
+                    radius: 18
+                    width: Math.min(questionText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: questionText.implicitHeight + 20
                     anchors.right: parent.right
-                    anchors.rightMargin: root.chatMargin
+                    anchors.rightMargin: 15
 
                     TextEdit {
                         id: questionText
                         text: dText
-                        color: util.QML_TEXT_COLOR
+                        color: "white"
                         readOnly: true
                         selectByMouse: true
                         wrapMode: Text.WordWrap
+                        font.pixelSize: 15
                         anchors.fill: parent
-                        anchors.margins: 10
+                        anchors.margins: 12
                     }
                 }
             }
@@ -231,7 +231,6 @@ Page {
             Column {
 
                 id: dRoot
-                x: root.chatMargin
 
                 property var responseText: responseText.text
 
@@ -245,35 +244,45 @@ Page {
                 // top padding
                 Rectangle {
                     width: dRoot.width
-                    height: util.QML_MARGINS
+                    height: 10
                     color: 'transparent'
                 }
 
-                TextEdit {
-                    id: responseText
-                    text: dText
-                    color: util.QML_TEXT_COLOR
-                    readOnly: true
-                    selectByMouse: true
-                    wrapMode: Text.WordWrap
-                    width: dRoot.width - dRoot.x * 2
-                    bottomPadding: font.pixelSize
+                Rectangle {
+                    id: aiBubble
+                    color: util.IS_UI_DARK_MODE ? "#373534" : "#e5e5ea"
+                    radius: 18
+                    width: Math.min(responseText.implicitWidth + 24, statementsList.width * 0.8)
+                    implicitHeight: responseText.implicitHeight + 20
+                    anchors.left: parent.left
+                    anchors.leftMargin: 15
+
+                    TextEdit {
+                        id: responseText
+                        text: dText
+                        color: util.QML_TEXT_COLOR
+                        readOnly: true
+                        selectByMouse: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 15
+                        anchors.fill: parent
+                        anchors.margins: 12
+                    }
                 }
-            }    
+            }
         }
 
         Rectangle {
             id: inputField
-            color: util.QML_ITEM_BG
+            color: util.QML_HEADER_BG
             Layout.fillWidth: true
-            implicitHeight: inputFlickable.height + 20
+            implicitHeight: Math.max(56, inputContainer.height + 20)
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
                     personalApp.sendStatement(textEdit.text);
                     textEdit.text = ''
                     textEdit.focus = false
-                    // Qt.inputMethod.hide()
                 }
             }
 
@@ -284,93 +293,120 @@ Page {
                 color: util.QML_ITEM_BORDER_COLOR
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: textEdit.forceActiveFocus()
-            }
-
-            Flickable {
-
-                id: inputFlickable
-
+            Rectangle {
+                id: inputContainer
                 anchors {
                     left: parent.left
-                    right: submitButton.left
+                    right: sendButton.left
                     verticalCenter: parent.verticalCenter
-                    margins: 10
+                    leftMargin: 15
+                    rightMargin: 8
                 }
-                height: Math.min(textEdit.height + 10, 120)  // Cap at 120 px
-                contentWidth: textEdit.width
-                contentHeight: textEdit.height
-                clip: true
+                height: Math.min(inputFlickable.contentHeight + 16, 120)
+                radius: 18
+                color: util.IS_UI_DARK_MODE ? "#3a3a3c" : "#e5e5ea"
 
-                function positionViewAtEnd() {
-                    if (contentHeight > height) {
-                        contentY = contentHeight - height
-                    }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: textEdit.forceActiveFocus()
                 }
 
-                PK.TextEdit {
-                    id: textEdit
-                    width: inputFlickable.width
-                    // color: enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
-                    selectByMouse: true
-                    selectionColor: util.QML_HIGHLIGHT_COLOR
-                    selectedTextColor: 'black'
-                    wrapMode: TextEdit.WordWrap
-                    textFormat: TextEdit.PlainText
-                    cursorVisible: focus
+                Text {
+                    id: placeholderText
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Message"
+                    color: util.IS_UI_DARK_MODE ? "#636366" : "#8E8E93"
+                    font.pixelSize: 15
+                    visible: textEdit.text.length === 0 && !textEdit.activeFocus
+                }
 
-                    background: Rectangle {
-                        color: "transparent"
-                        border.width: 0
+                Flickable {
+                    id: inputFlickable
+                    anchors {
+                        fill: parent
+                        leftMargin: 16
+                        rightMargin: 16
+                        topMargin: 8
+                        bottomMargin: 8
                     }
+                    contentWidth: textEdit.width
+                    contentHeight: textEdit.height
+                    clip: true
 
-                    onCursorRectangleChanged: {
-                        if (cursorRectangle) {
-                            var topLeft = Qt.point(cursorRectangle.x, cursorRectangle.y)
-                            var mappedPos = mapToItem(inputFlickable, topLeft);
-                            if (mappedPos.y < 0) {
-                                inputFlickable.contentY += mappedPos.y;
-                            } else if (mappedPos.y + cursorRectangle.height > inputFlickable.height) {
-                                inputFlickable.contentY += (mappedPos.y + cursorRectangle.height - inputFlickable.height);
-                            }
+                    function positionViewAtEnd() {
+                        if (contentHeight > height) {
+                            contentY = contentHeight - height
                         }
                     }
 
-                    Keys.onReturnPressed: {
-                        inputField.submit()
-                        event.accepted = true
-                        // if (event.modifiers & Qt.ControlModifier || event.modifiers & Qt.MetaModifier) {                        
-                        //     inputField.submit()
-                        //     event.accepted = true;
-                        // } else {
-                        //     event.accepted = false;
-                        // }
-                    }
+                    PK.TextEdit {
+                        id: textEdit
+                        width: inputFlickable.width
+                        selectByMouse: true
+                        selectionColor: util.QML_HIGHLIGHT_COLOR
+                        selectedTextColor: 'black'
+                        wrapMode: TextEdit.WordWrap
+                        textFormat: TextEdit.PlainText
+                        cursorVisible: focus
+                        font.pixelSize: 15
 
+                        background: Rectangle {
+                            color: "transparent"
+                            border.width: 0
+                        }
+
+                        onCursorRectangleChanged: {
+                            if (cursorRectangle) {
+                                var topLeft = Qt.point(cursorRectangle.x, cursorRectangle.y)
+                                var mappedPos = mapToItem(inputFlickable, topLeft);
+                                if (mappedPos.y < 0) {
+                                    inputFlickable.contentY += mappedPos.y;
+                                } else if (mappedPos.y + cursorRectangle.height > inputFlickable.height) {
+                                    inputFlickable.contentY += (mappedPos.y + cursorRectangle.height - inputFlickable.height);
+                                }
+                            }
+                        }
+
+                        Keys.onReturnPressed: {
+                            if (event.modifiers & Qt.ShiftModifier) {
+                                event.accepted = false
+                            } else {
+                                inputField.submit()
+                                event.accepted = true
+                            }
+                        }
+                    }
                 }
             }
 
-            PK.Button {
-                id: submitButton
-                source: '../../up-submit-arrow.png'
-                width: 18
-                height: 20
+            Rectangle {
+                id: sendButton
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
-                    margins: 10
+                    rightMargin: 15
+                }
+                width: 32
+                height: 32
+                radius: 16
+                color: textEdit.text.trim().length > 0 ? util.QML_SELECTION_COLOR : (util.IS_UI_DARK_MODE ? "#5a5a5c" : "#d1d1d6")
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "↑"
+                    font.pixelSize: 18
+                    font.bold: true
+                    color: "white"
                 }
 
-                // background: Rectangle {
-                //     color: 'transparent' // util.QML_CONTROL_BG
-                //     // border.color: root.palette.highlight
-                //     // border.width: root.activeFocus ? 2 : 0
-                //     // radius: submitButton.width / 2
-                // }
-
-                onClicked: inputField.submit()
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: textEdit.text.trim().length > 0
+                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: inputField.submit()
+                }
             }
 
         }
