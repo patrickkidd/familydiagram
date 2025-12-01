@@ -271,8 +271,17 @@ class PersonalAppController(QObject):
             )
             scene_data = pickle.loads(raw_data)
             scene = Scene()
-            scene.read(scene_data)
-            self.setScene(scene)
+            try:
+                scene.read(scene_data)
+            except (pickle.UnpicklingError, KeyError, ValueError, TypeError):
+                _log.exception(f"Failed to load diagram {diagramId}")
+                QMessageBox.critical(
+                    None,
+                    "Error",
+                    "The diagram file is corrupted and cannot be opened.",
+                )
+            else:
+                self.setScene(scene)
 
         reply = self.session.server().nonBlockingRequest(
             "GET",
