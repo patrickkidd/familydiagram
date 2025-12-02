@@ -221,7 +221,7 @@ Drawer {
             Layout.margins: util.QML_MARGINS
 
             Text {
-                text: "Review Data"
+                text: "Review"
                 font.pixelSize: util.QML_TITLE_FONT_SIZE
                 font.family: util.FONT_FAMILY_TITLE
                 color: util.QML_TEXT_COLOR

@@ -15,6 +15,7 @@ Flickable {
     property color textColor: util.QML_TEXT_COLOR
     property color secondaryText: util.QML_INACTIVE_TEXT_COLOR
     property color accentColor: util.QML_SELECTION_COLOR
+    property real safeAreaTop: 0
 
     signal logoutClicked()
     signal accountClicked()
@@ -29,7 +30,7 @@ Flickable {
         id: content
         width: parent.width
         spacing: 20
-        topPadding: 16
+        topPadding: 16 + root.safeAreaTop
         leftPadding: 16
         rightPadding: 16
         bottomPadding: 40

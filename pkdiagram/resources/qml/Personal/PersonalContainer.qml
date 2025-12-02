@@ -25,6 +25,7 @@ Page {
 
     property bool discussionMenuOpen: false
     property int pdpCount: 0
+    property real safeAreaTop: 0
 
     // Colors
     property color headerBg: util.QML_HEADER_BG
@@ -430,6 +431,7 @@ Page {
             textColor: root.textColor
             secondaryText: root.secondaryText
             accentColor: root.accentColor
+            safeAreaTop: root.safeAreaTop
 
             onLogoutClicked: {
                 drawer.close()
