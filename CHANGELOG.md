@@ -2,6 +2,14 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.12
+
+## 2.1.12b1
+
+- Moved autosave out of documents folder to app data folder
+
+## 2.1.11
+
 ## 2.1.11b1
 
 - Server-stored diagram format updates to allow syncing documents with coming
