@@ -219,11 +219,23 @@ Page {
                         text: dText
                         color: "white"
                         readOnly: true
-                        selectByMouse: true
+                        selectByMouse: false
+                        persistentSelection: true
                         wrapMode: Text.WordWrap
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+
+                        MouseArea {
+                            anchors.fill: parent
+                            propagateComposedEvents: true
+                            onPressed: mouse.accepted = false
+                            onReleased: mouse.accepted = false
+                            onPressAndHold: {
+                                questionText.selectAll()
+                                questionText.forceActiveFocus()
+                            }
+                        }
                     }
                 }
             }
@@ -266,11 +278,23 @@ Page {
                         text: dText
                         color: util.QML_TEXT_COLOR
                         readOnly: true
-                        selectByMouse: true
+                        selectByMouse: false
+                        persistentSelection: true
                         wrapMode: Text.WordWrap
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+
+                        MouseArea {
+                            anchors.fill: parent
+                            propagateComposedEvents: true
+                            onPressed: mouse.accepted = false
+                            onReleased: mouse.accepted = false
+                            onPressAndHold: {
+                                responseText.selectAll()
+                                responseText.forceActiveFocus()
+                            }
+                        }
                     }
                 }
             }
