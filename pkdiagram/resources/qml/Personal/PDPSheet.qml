@@ -9,7 +9,7 @@ Drawer {
 
     property var pdp
     property int itemCount: 0
-    property bool showTutorial: true
+    property bool showTutorial: false
     property var editingItem: null
     property string editingItemType: ""
     property bool isInitializingFields: false
@@ -221,7 +221,7 @@ Drawer {
             Layout.margins: util.QML_MARGINS
 
             Text {
-                text: "Review Data"
+                text: "Review"
                 font.pixelSize: util.QML_TITLE_FONT_SIZE
                 font.family: util.FONT_FAMILY_TITLE
                 color: util.QML_TEXT_COLOR

@@ -37,12 +37,22 @@ For each UI request, produce:
    - Do NOT edit previous iteration source code, always create new files for
      each prompt/iteration. These need to represent snapshots of the creative
      process in the future.
+   - Automatically run the protoypes all at the same time using Qt's `qmlscene`
+     binary so that I can comare them side by side.
+   - Use a `Window` as the root qml object and be sure to set the `title`
+     property so that there is a way to differentiate between each proposal in
+     the reply prompt. 
    - Graphical design prototyping is a process of starting with a wide net and
-   slowly converging on perfection. This requires tweaking increasingly smaller
-   visual characteristics with each iteration. So each iteration of the code
-   needs to be systematically stored in a folder so that it can be referred back
-   to later. Otherwise the design will drift, breaking two visual components for
-   every one requested change.
+     slowly converging on perfection. This requires tweaking increasingly smaller
+     visual characteristics with each iteration. So each iteration of the code
+     needs to be systematically stored in a folder so that it can be referred back
+     to later. Otherwise the design will drift, breaking two visual components for
+     every one requested change.
+   - When the user confirms the design is ready for code, write a
+     `FINAL-[*].qml` demo file to the prototypes folder, and then write a
+     markden spec file to `doc/ui-specs` with the essential details required to
+     produce the code, though the final qml demo code file should almost
+     completely speak for itself.
 
 ## Design System: Hybrid Liquid Glass + Family Diagram
 
