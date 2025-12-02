@@ -33,35 +33,4 @@ QtObject {
     readonly property int spacingLarge: 20
     readonly property int buttonHeight: 44
     readonly property int cornerRadius: 10
-
 }
-
-
-    // property var safeLeftMargin: 0
-    // property var safeRightMargin: 0
-    // property var safeTopMargin: 0
-    // property var safeBottomMargin: 0
-    // anchors.leftMargin: safeLeftMargin
-    // anchors.rightMargin: safeRightMargin
-    // anchors.topMargin: safeTopMargin
-    // anchors.bottomMargin: safeBottomMargin    
-
-    // function adjustScreenMargins() {
-    //     var safeAreaMargins = util.safeAreaMargins()
-    //     root.safeLeftMargin = safeAreaMargins.left
-    //     root.safeRightMargin = safeAreaMargins.right
-    //     root.safeTopMargin = safeAreaMargins.top
-    //     root.safeBottomMargin = safeAreaMargins.bottom
-    //     print('left:', safeLeftMargin, 'right:', safeRightMargin, 'top:', safeTopMargin, 'bottom:', safeBottomMargin)
-    // }
-
-    // Connections {
-    //     target: CUtil
-    //     function onScreenOrientationChanged() {
-    //         root.adjustScreenMargins()
-    //     }
-    // }
-
-    // Component.onCompleted: {
-    //     root.adjustScreenMargins()
-    // }

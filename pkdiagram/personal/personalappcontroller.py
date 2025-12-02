@@ -20,6 +20,7 @@ from pkdiagram.pyqt import (
     QQuickItem,
     QUrl,
     QMessageBox,
+    QInputDialog,
     QUndoStack,
 )
 from pkdiagram.app import Session, Analytics
@@ -28,6 +29,7 @@ from pkdiagram.server_types import Diagram
 from pkdiagram.scene import Scene, Person, Event, Marriage, Emotion
 from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
+from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
 
 _log = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ class PersonalAppController(QObject):
     discussionsChanged = pyqtSignal()
     pdpChanged = pyqtSignal()
     diagramChanged = pyqtSignal()
+    diagramsChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
 
     def __init__(self, undoStack=None, parent=None):
@@ -48,6 +51,7 @@ class PersonalAppController(QObject):
 
         self.app = QApplication.instance()
         self._diagram: Diagram | None = None
+        self._diagrams: list[dict] = []
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
         self._pdp: dict | None = None
@@ -66,6 +70,8 @@ class PersonalAppController(QObject):
         self.sceneModel = SceneModel(self)
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
+        self.sarfGraphModel = SARFGraphModel(self)
+        self.pdpChanged.connect(self.sarfGraphModel.refresh)
         self.eventForm = None
         self._pendingScene: Scene | None = None
 
@@ -76,6 +82,7 @@ class PersonalAppController(QObject):
         engine.rootContext().setContextProperty("personalApp", self)
         engine.rootContext().setContextProperty("sceneModel", self.sceneModel)
         engine.rootContext().setContextProperty("peopleModel", self.peopleModel)
+        engine.rootContext().setContextProperty("sarfGraphModel", self.sarfGraphModel)
         engine.objectCreated[QObject, QUrl].connect(self.onQmlObjectCreated)
         self._engine = engine
         self.analytics.init()
@@ -88,6 +95,8 @@ class PersonalAppController(QObject):
             self.session.init()
 
     def deinit(self):
+        self.pdpChanged.disconnect(self.sarfGraphModel.refresh)
+        self.sarfGraphModel.deinit()
         self.analytics.init()
         self.session.deinit()
         if self.eventForm:
@@ -143,15 +152,11 @@ class PersonalAppController(QObject):
         self.scene = scene
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
+        self.sarfGraphModel.scene = scene
         if self.eventForm:
             self.eventForm.setScene(scene)
 
     def exec(self, mw):
-        """
-        Stuff that happens once per app load on the first MainWindow.
-        At this point the MainWindow is fully initialized with a session
-        and ready for app-level verbs.
-        """
         self.app.exec()
 
     def onError(self, reply: QNetworkReply):
@@ -171,41 +176,70 @@ class PersonalAppController(QObject):
 
         if not self.session.user:
             self._diagram = None
+            self._diagrams = []
             self._discussions = []
             self._pdp = {}
             self._currentDiscussion = None
         else:
+            self._refreshDiagrams()
             self._refreshDiagram()
         self.discussionsChanged.emit()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
         self.diagramChanged.emit()
+        self.diagramsChanged.emit()
 
     # Diagram
 
+    @pyqtProperty("QVariantList", notify=diagramsChanged)
+    def diagrams(self):
+        return list(self._diagrams)
+
+    def _refreshDiagrams(self):
+        if not self.session.user:
+            return
+
+        def onSuccess(data):
+            self._diagrams = data.get("diagrams", [])
+            self.diagramsChanged.emit()
+            _log.info(f"Loaded {len(self._diagrams)} diagrams")
+
+        reply = self.session.server().nonBlockingRequest(
+            "GET",
+            "/personal/diagrams",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
     @pyqtProperty("QVariantMap", notify=diagramChanged)
     def diagram(self):
-        return self._diagram if self._diagram is not None else {}
+        if self._diagram is not None:
+            return self._diagram.__dict__
+        return {}
 
     def _refreshDiagram(self):
         if not self.session.user:
             return
 
         def onSuccess(data):
-            raw_data = base64.b64decode(data["data"])
-            data["data"] = raw_data
+            rawData = base64.b64decode(data["data"])
+            data["data"] = rawData
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
+            self.diagramChanged.emit()
             _log.info(
                 f"Loaded personal diagram: {self._diagram.id}, version: {self._diagram.version}"
             )
             assert self.scene is None
-            scene_data = pickle.loads(raw_data)
+            sceneData = pickle.loads(rawData)
             scene = Scene()
-            scene.read(scene_data)
+            scene.read(sceneData)
             if self.eventForm:
                 self.setScene(scene)
             else:
@@ -221,11 +255,87 @@ class PersonalAppController(QObject):
             from_root=True,
         )
 
+    @pyqtSlot(int)
+    def loadDiagram(self, diagramId: int):
+        if not self.session.user:
+            return
+
+        def onSuccess(data):
+            rawData = base64.b64decode(data["data"])
+            data["data"] = rawData
+            self._diagram = Diagram(**data)
+            self._discussions = [Discussion.create(x) for x in data["discussions"]]
+            self._currentDiscussion = None
+            self.discussionsChanged.emit()
+            self.statementsChanged.emit()
+            self.pdpChanged.emit()
+            self.diagramChanged.emit()
+            _log.info(
+                f"Loaded diagram: {self._diagram.id}, version: {self._diagram.version}"
+            )
+            sceneData = pickle.loads(rawData)
+            scene = Scene()
+            try:
+                scene.read(sceneData)
+            except (pickle.UnpicklingError, KeyError, ValueError, TypeError):
+                _log.exception(f"Failed to load diagram {diagramId}")
+                QMessageBox.critical(
+                    None,
+                    "Error",
+                    "The diagram file is corrupted and cannot be opened.",
+                )
+            else:
+                self.setScene(scene)
+
+        reply = self.session.server().nonBlockingRequest(
+            "GET",
+            f"/personal/diagrams/{diagramId}",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    @pyqtSlot()
+    def createDiagram(self):
+        if not self.session.user:
+            return
+
+        name, ok = QInputDialog.getText(
+            None, "New Diagram", "Enter a name for the new diagram:"
+        )
+
+        if not ok or not name.strip():
+            return
+
+        def onSuccess(data):
+            diagramData = data.get("diagram", {})
+            diagramId = diagramData.get("id")
+            _log.info(f"Created diagram '{name}' (ID: {diagramId})")
+            self._refreshDiagrams()
+            if diagramId:
+                self.loadDiagram(diagramId)
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            "/personal/diagrams/",
+            data={"name": name.strip()},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
     # Discussions
 
     @pyqtProperty("QVariantList", notify=discussionsChanged)
     def discussions(self):
         return list(self._discussions)
+
+    @pyqtProperty(int, notify=statementsChanged)
+    def currentDiscussionId(self):
+        return self._currentDiscussion.id if self._currentDiscussion else -1
 
     @pyqtSlot()
     def createDiscussion(self):
@@ -279,10 +389,6 @@ class PersonalAppController(QObject):
         self._sendStatement(statement)
 
     def _sendStatement(self, statement: str):
-        """
-        Mockable because qml latches on to slots at init time.
-        """
-
         def _doSendStatement():
             if not self._currentDiscussion:
                 QMessageBox.information(
@@ -366,8 +472,8 @@ class PersonalAppController(QObject):
             _log.info(f"Applying accept PDP item change for id: {id}")
             # Capture IDs before commit to identify what was added
             prevPeopleIds = {p["id"] for p in diagramData.people}
-            prevEventsIds = {e["id"] for e in diagramData.events}
-            prevPairBondsIds = {pb["id"] for pb in diagramData.pair_bonds}
+            prevEventIds = {e["id"] for e in diagramData.events}
+            prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
 
             diagramData.commit_pdp_items([id])
 
@@ -376,10 +482,10 @@ class PersonalAppController(QObject):
                 p for p in diagramData.people if p["id"] not in prevPeopleIds
             ]
             committedItems["events"] = [
-                e for e in diagramData.events if e["id"] not in prevEventsIds
+                e for e in diagramData.events if e["id"] not in prevEventIds
             ]
             committedItems["pair_bonds"] = [
-                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondsIds
+                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
             ]
 
             return diagramData
@@ -441,7 +547,7 @@ class PersonalAppController(QObject):
                 _log.warning("No PDP data available")
                 return diagramData
 
-            ids_to_remove = {id}
+            idsToRemove = {id}
 
             for event in diagramData.pdp.events:
                 if (
@@ -451,24 +557,24 @@ class PersonalAppController(QObject):
                     or id in event.relationshipTargets
                     or id in event.relationshipTriangles
                 ):
-                    ids_to_remove.add(event.id)
+                    idsToRemove.add(event.id)
 
             for pair_bond in diagramData.pdp.pair_bonds:
                 if pair_bond.person_a == id or pair_bond.person_b == id:
-                    ids_to_remove.add(pair_bond.id)
+                    idsToRemove.add(pair_bond.id)
 
             for person in diagramData.pdp.people:
                 if person.parents == id:
-                    ids_to_remove.add(person.id)
+                    idsToRemove.add(person.id)
 
             diagramData.pdp.people = [
-                p for p in diagramData.pdp.people if p.id not in ids_to_remove
+                p for p in diagramData.pdp.people if p.id not in idsToRemove
             ]
             diagramData.pdp.events = [
-                e for e in diagramData.pdp.events if e.id not in ids_to_remove
+                e for e in diagramData.pdp.events if e.id not in idsToRemove
             ]
             diagramData.pdp.pair_bonds = [
-                pb for pb in diagramData.pdp.pair_bonds if pb.id not in ids_to_remove
+                pb for pb in diagramData.pdp.pair_bonds if pb.id not in idsToRemove
             ]
 
             return diagramData
@@ -504,23 +610,23 @@ class PersonalAppController(QObject):
         if not diagramData.pdp:
             return
 
-        all_ids = []
+        allIds = []
         for person in diagramData.pdp.people:
             if person.id is not None:
-                all_ids.append(person.id)
+                allIds.append(person.id)
         for event in diagramData.pdp.events:
-            all_ids.append(event.id)
+            allIds.append(event.id)
         for pair_bond in diagramData.pdp.pair_bonds:
             if pair_bond.id is not None:
-                all_ids.append(pair_bond.id)
+                allIds.append(pair_bond.id)
 
-        if not all_ids:
+        if not allIds:
             return
 
-        _log.info(f"Accepting all PDP items: {all_ids}")
+        _log.info(f"Accepting all PDP items: {allIds}")
 
         def applyChange(diagramData: DiagramData):
-            diagramData.commit_pdp_items(all_ids)
+            diagramData.commit_pdp_items(allIds)
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):

@@ -8,6 +8,7 @@ import QtQuick.Controls.Material 2.15
 import "./Personal" 1.0 as Personal
 
 ApplicationWindow {
+    id: root
     visible: true
     width: 400
     height: 600
@@ -15,46 +16,45 @@ ApplicationWindow {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     color: util.QML_WINDOW_BG
 
-    property var safeAreaMargins_left: 0
-    property var safeAreaMargins_right: 0
-    property var safeAreaMargins_top: 0
-    property var safeAreaMargins_bottom: 0
+    property real safeAreaLeft: 0
+    property real safeAreaRight: 0
+    property real safeAreaTop: 0
+    property real safeAreaBottom: 0
 
     property var personalView: personalView
+
+    function adjustScreenMargins() {
+        var margins = util.safeAreaMargins()
+        safeAreaLeft = margins.left
+        safeAreaRight = margins.right
+        safeAreaTop = margins.top
+        safeAreaBottom = margins.bottom
+    }
+
+    Component.onCompleted: adjustScreenMargins()
+
+    Connections {
+        target: CUtil
+        function onSafeAreaMarginsChanged() {
+            util.info("PersonalApplication.onSafeAreaMarginsChanged")
+            root.adjustScreenMargins()
+        }
+    }
 
     Rectangle {
         id: contentArea
         anchors {
             fill: parent
-            leftMargin: safeAreaMargins_left
-            rightMargin: safeAreaMargins_right
-            topMargin: safeAreaMargins_top
-            bottomMargin: Qt.inputMethod.visible ? 0 : safeAreaMargins_bottom
-        }
-
-        function adjustScreenMargins() {
-            var safeAreaMargins = util.safeAreaMargins()
-            // print('left:', safeAreaMargins.left, 'right:', safeAreaMargins.right, 'top:', safeAreaMargins.top, 'bottom:', safeAreaMargins.bottom)
-
-            safeAreaMargins_left = safeAreaMargins.left
-            safeAreaMargins_right = safeAreaMargins.right
-            safeAreaMargins_top = safeAreaMargins.top
-            safeAreaMargins_bottom = safeAreaMargins.bottom
-        }
-
-        Component.onCompleted: adjustScreenMargins()
-
-        Connections {
-            target: CUtil
-            function onSafeAreaMarginsChanged() {
-                contentArea.adjustScreenMargins()
-            }
+            leftMargin: safeAreaLeft
+            rightMargin: safeAreaRight
+            topMargin: safeAreaTop
+            bottomMargin: Qt.inputMethod.visible ? 0 : safeAreaBottom
         }
 
         Personal.PersonalContainer {
             id: personalView
             anchors.fill: parent
+            safeAreaTop: root.safeAreaTop
         }
-
     }
 }

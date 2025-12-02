@@ -8,8 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### UI/UX Changes
 
-When modifying QML files, UI components, or any visual elements in the Pro or Personal apps, read and follow the design system in `doc/agents/ui-planner.md` before making changes. This includes the Liquid Glass style guide and existing app patterns.
-- For undoable app verbs, keep with the pattern of a verb method with `undo=False` and then a `def _do_<VERB>` method that does the actual work.
+- For UI constants (colors, spacing, typography, animation), reference
+  `doc/UI_STYLE_SPEC.md`. Values come from `pkdiagram/util.py` and are exposed
+  to QML via `QmlUtil.CONSTANTS` in `pkdiagram/app/qmlutil.py`.
+- When modifying QML files, UI components, or any visual elements in the Pro or
+  Personal apps, read and follow the design system in `doc/agents/ui-planner.md`
+  before making changes. This includes the Liquid Glass style guide and existing
+  app patterns.
+- For undoable app verbs, keep with the pattern of a verb method with
+  `undo=False` and then a `def _do_<VERB>` method that does the actual work.
 
 ## Development Commands
 

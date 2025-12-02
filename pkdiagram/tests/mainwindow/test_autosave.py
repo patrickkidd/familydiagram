@@ -19,18 +19,13 @@ pytestmark = [
 
 
 def test_autosave_manager_creates_folder(tmp_path, qApp):
-    """Test that AutoSaveManager creates the autosave folder."""
-    with mock.patch(
-        "_pkdiagram.CUtil.instance"
-    ) as mock_instance:
-        mock_instance.return_value.documentsFolderPath.return_value = str(tmp_path)
+    with mock.patch("pkdiagram.util.appDataDir", return_value=str(tmp_path)):
         manager = AutoSaveManager()
         autosave_folder = os.path.join(tmp_path, AutoSaveManager.AUTOSAVE_FOLDER_NAME)
         assert os.path.isdir(autosave_folder)
 
 
 def test_autosave_on_document_open(tmp_path, create_ac_mw):
-    """Test that auto-save triggers immediately when a document is opened."""
     # Create a test file
     scene = Scene(items=(Person(name="Test Person"),))
     fd_path = os.path.join(tmp_path, "test.fd")
@@ -63,7 +58,6 @@ def test_autosave_on_document_open(tmp_path, create_ac_mw):
 
 
 def test_autosave_filename_format(tmp_path, create_ac_mw):
-    """Test that auto-save filenames follow the expected format."""
     scene = Scene(items=(Person(name="Alice"),))
     fd_path = os.path.join(tmp_path, "my_family.fd")
     util.touchFD(fd_path, bdata=pickle.dumps(scene.data()))
@@ -91,7 +85,6 @@ def test_autosave_filename_format(tmp_path, create_ac_mw):
 
 
 def test_autosave_stops_when_document_closed(tmp_path, create_ac_mw):
-    """Test that auto-save stops when document is closed."""
     scene = Scene(items=(Person(name="Bob"),))
     fd_path = os.path.join(tmp_path, "test.fd")
     util.touchFD(fd_path, bdata=pickle.dumps(scene.data()))
@@ -112,7 +105,6 @@ def test_autosave_stops_when_document_closed(tmp_path, create_ac_mw):
 
 
 def test_autosave_periodic_save(tmp_path, create_ac_mw, qtbot):
-    """Test that auto-save triggers periodically (mocked timer)."""
     scene = Scene(items=(Person(name="Charlie"),))
     fd_path = os.path.join(tmp_path, "test.fd")
     util.touchFD(fd_path, bdata=pickle.dumps(scene.data()))
@@ -140,7 +132,6 @@ def test_autosave_periodic_save(tmp_path, create_ac_mw, qtbot):
 
 
 def test_autosave_readonly_document(tmp_path, create_ac_mw):
-    """Test that auto-save skips read-only documents."""
     scene = Scene(items=(Person(name="Dave"),))
     fd_path = os.path.join(tmp_path, "test.fd")
     util.touchFD(fd_path, bdata=pickle.dumps(scene.data()))
@@ -170,7 +161,6 @@ def test_autosave_readonly_document(tmp_path, create_ac_mw):
 
 
 def test_autosave_server_diagram_uses_name(tmp_path, create_ac_mw):
-    """Test that server diagram autosaves use the diagram name when available."""
     from pkdiagram.server_types import Diagram
     from unittest.mock import Mock
 

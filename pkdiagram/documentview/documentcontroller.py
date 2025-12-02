@@ -3,7 +3,7 @@ import bisect
 import json
 
 import btcopilot
-from btcopilot.schema import EventKind
+from btcopilot.schema import EventKind, DiagramData, asdict
 from _pkdiagram import CUtil
 from pkdiagram.pyqt import (
     pyqtSignal,
@@ -30,6 +30,7 @@ from pkdiagram.pyqt import (
     QSizeF,
     QPoint,
     QPointF,
+    QFileDialog,
 )
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -1381,6 +1382,76 @@ class DocumentController(QObject):
         log.info(p_sdata)
         with open(filePath, "w") as f:
             f.write(p_sdata)
+
+    def writeDiagramDataJSON(self):
+        filePath, _ = QFileDialog.getSaveFileName(
+            self.dv, "Export DiagramData as JSON", "", "JSON Files (*.json)"
+        )
+        if not filePath:
+            return
+
+        data = {}
+        self.scene.write(data)
+
+        def convertQtToJson(obj):
+            if isinstance(obj, QDateTime):
+                if obj.isNull():
+                    return None
+                return obj.toString("yyyy-MM-ddTHH:mm:ss")
+            elif isinstance(obj, QDate):
+                if obj.isNull():
+                    return None
+                return obj.toString("yyyy-MM-dd")
+            elif isinstance(obj, QColor):
+                return obj.name()
+            elif isinstance(obj, (QSize, QSizeF)):
+                return {"width": obj.width(), "height": obj.height()}
+            elif isinstance(obj, (QPoint, QPointF)):
+                return {"x": obj.x(), "y": obj.y()}
+            elif isinstance(obj, (QRect, QRectF)):
+                return {
+                    "x": obj.x(),
+                    "y": obj.y(),
+                    "width": obj.width(),
+                    "height": obj.height(),
+                }
+            elif isinstance(obj, dict):
+                return {k: convertQtToJson(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convertQtToJson(item) for item in obj]
+            else:
+                return obj
+
+        cleanedData = convertQtToJson(data)
+
+        diagramData = DiagramData(
+            id=cleanedData.get("id"),
+            people=cleanedData.get("people", []),
+            events=cleanedData.get("events", []),
+            pair_bonds=cleanedData.get("pair_bonds", []),
+            emotions=cleanedData.get("emotions", []),
+            multipleBirths=cleanedData.get("multipleBirths", []),
+            layers=cleanedData.get("layers", []),
+            layerItems=cleanedData.get("layerItems", []),
+            items=cleanedData.get("items", []),
+            pruned=cleanedData.get("pruned", []),
+            uuid=cleanedData.get("uuid"),
+            name=cleanedData.get("name"),
+            tags=cleanedData.get("tags", []),
+            loggedDateTime=cleanedData.get("loggedDateTime", []),
+            masterKey=cleanedData.get("masterKey"),
+            alias=cleanedData.get("alias"),
+            version=cleanedData.get("version"),
+            versionCompat=cleanedData.get("versionCompat"),
+        )
+
+        diagramDataDict = asdict(diagramData)
+        jsonStr = json.dumps(diagramDataDict, indent=2, ensure_ascii=False)
+
+        with open(filePath, "w") as f:
+            f.write(jsonStr)
+
+        log.info(f"Exported DiagramData to {filePath}")
 
     def onPrint(self):
         printer = QPrinter()
