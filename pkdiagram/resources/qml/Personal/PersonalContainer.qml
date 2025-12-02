@@ -442,7 +442,10 @@ Page {
                 drawer.close()
                 personalApp.loadDiagram(diagram.id)
             }
-            onNewDiagramClicked: console.log("Create new diagram")
+            onNewDiagramClicked: {
+                drawer.close()
+                personalApp.createDiagram()
+            }
             onSettingsClicked: function(setting) {
                 if (setting === "Privacy") {
                     privacyPopup.open()
