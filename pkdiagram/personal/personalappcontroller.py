@@ -45,6 +45,9 @@ class PersonalAppController(QObject):
     diagramChanged = pyqtSignal()
     diagramsChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
+    pdpItemAccepted = pyqtSignal(int, arguments=["id"])
+    pdpItemRejected = pyqtSignal(int, arguments=["id"])
+    pdpItemFailed = pyqtSignal(int, str, arguments=["id", "action"])
 
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
@@ -166,8 +169,6 @@ class PersonalAppController(QObject):
             self.serverError.emit(reply.errorString())
 
     def onSessionChanged(self, oldFeatures, newFeatures):
-        """Called on login, logout, invalidated token."""
-
         if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
         else:
@@ -397,6 +398,13 @@ class PersonalAppController(QObject):
                 return
 
             def onSuccess(data):
+                if self._diagram and data.get("pdp"):
+                    diagramData = self._diagram.getDiagramData()
+                    from btcopilot.schema import PDP
+
+                    diagramData.pdp = PDP(**data["pdp"])
+                    self._diagram.setDiagramData(diagramData)
+                    self.pdpChanged.emit()
                 self.responseReceived.emit(data["statement"], data["pdp"])
 
             args = {
@@ -500,8 +508,10 @@ class PersonalAppController(QObject):
         if success:
             self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
+            self.pdpItemAccepted.emit(id)
         else:
             _log.warning(f"Failed to accept PDP item after retries")
+            self.pdpItemFailed.emit(id, "accept")
 
         return success
 
@@ -535,9 +545,24 @@ class PersonalAppController(QObject):
         for item, chunk in itemChunks:
             item.read(chunk, byId)
 
-        # Phase 3: Add all items to scene (triggers side effects)
+        # Phase 3: Update events on people and marriages (like Scene.read() does)
         for item, chunk in itemChunks:
-            self.scene.addItem(item)
+            if item.isPerson or item.isMarriage:
+                item.updateEvents()
+
+        # Phase 4: Add all items to scene in batch mode to prevent redundant updateEvents() calls
+        with self.scene.macro(
+            "Adding committed PDP items", undo=False, batchAddRemove=True
+        ):
+            for item, chunk in itemChunks:
+                self.scene.addItem(item)
+
+        # Phase 5: Update layout and visuals for all added items
+        for item, chunk in itemChunks:
+            if hasattr(item, "updateAll"):
+                item.beginUpdateFrame()
+                item.updateAll()
+                item.endUpdateFrame()
 
     def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
@@ -588,8 +613,10 @@ class PersonalAppController(QObject):
 
         if success:
             self.pdpChanged.emit()
+            self.pdpItemRejected.emit(id)
         else:
             _log.warning(f"Failed to reject PDP item after retries")
+            self.pdpItemFailed.emit(id, "reject")
 
         return success
 

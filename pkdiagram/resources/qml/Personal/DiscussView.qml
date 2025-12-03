@@ -22,7 +22,7 @@ Page {
 
     property var chatModel: chatModel
     property var textEdit: textEdit
-    property var submitButton: submitButton
+    property var submitButton: sendButton
     property var noChatLabel: noChatLabel
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet
@@ -439,17 +439,30 @@ Page {
         }
     }
 
+    Connections {
+        target: personalApp
+        function onPdpItemAccepted(id) {
+            pdpSheet.removeItemById(id)
+        }
+        function onPdpItemRejected(id) {
+            pdpSheet.removeItemById(id)
+        }
+        function onPdpItemFailed(id, action) {
+            var title = "Failed to " + action + " PDP item " + id;
+            console.error(title)
+            util.criticalBox(title, "Failed to " + action + " PDP item. Please send a screenshot or photo to support: info@alaskafamilysystems.com")
+        }
+    }
+
     Personal.PDPSheet {
         id: pdpSheet
         parent: Overlay.overlay
 
         onItemAccepted: function(id) {
             personalApp.acceptPDPItem(id)
-            pdpSheet.removeItemById(id)
         }
         onItemRejected: function(id) {
             personalApp.rejectPDPItem(id)
-            pdpSheet.removeItemById(id)
         }
         onAcceptAllClicked: {
             personalApp.acceptAllPDPItems()

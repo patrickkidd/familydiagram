@@ -95,6 +95,39 @@ def test_sendStatement(
     assert serverDown.callCount == 0
 
 
+def test_sendStatement_updates_pdp(
+    test_user, discussion, personalApp: PersonalAppController
+):
+    from btcopilot.personal.chat import Response
+    from btcopilot.schema import PDP, Person
+
+    RESPONSE_PDP = PDP(people=[Person(id=-1, name="Test Person")])
+    RESPONSE = Response(statement="some response", pdp=RESPONSE_PDP)
+
+    pdpChanged = util.Condition(personalApp.pdpChanged)
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch("btcopilot.personal.routes.discussions.ask", return_value=RESPONSE)
+        )
+        stack.enter_context(
+            patch.object(
+                personalApp,
+                "_currentDiscussion",
+                Discussion(
+                    id=discussion.id,
+                    user_id=test_user.id,
+                    diagram_id=test_user.free_diagram_id,
+                    statements=[],
+                ),
+            )
+        )
+        personalApp.sendStatement("test message")
+
+    assert pdpChanged.wait()
+    assert personalApp.pdp["people"][0]["name"] == "Test Person"
+
+
 def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
     personalApp._diagram = Diagram(
@@ -254,3 +287,63 @@ def test_diagram_save_shows_error_on_unexpected_status(test_user):
         assert mock_critical.call_count == 1
         args = mock_critical.call_args[0]
         assert "500" in args[2]
+
+
+@pytest.mark.parametrize("success", [True, False])
+def test_acceptPDPItem_emits_signals(
+    test_user, personalApp: PersonalAppController, success
+):
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    pdpItemAccepted = util.Condition(personalApp.pdpItemAccepted)
+    pdpItemFailed = util.Condition(personalApp.pdpItemFailed)
+
+    with patch.object(personalApp._diagram, "save", return_value=success):
+        personalApp.acceptPDPItem(-1, undo=False)
+
+    if success:
+        assert pdpItemAccepted.wait()
+        assert pdpItemAccepted.callArgs[0][0] == -1
+        assert pdpItemFailed.callCount == 0
+    else:
+        assert pdpItemFailed.wait()
+        assert pdpItemFailed.callArgs[0][0] == -1
+        assert pdpItemFailed.callArgs[0][1] == "accept"
+        assert pdpItemAccepted.callCount == 0
+
+
+@pytest.mark.parametrize("success", [True, False])
+def test_rejectPDPItem_emits_signals(
+    test_user, personalApp: PersonalAppController, success
+):
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    pdpItemRejected = util.Condition(personalApp.pdpItemRejected)
+    pdpItemFailed = util.Condition(personalApp.pdpItemFailed)
+
+    with patch.object(personalApp._diagram, "save", return_value=success):
+        personalApp.rejectPDPItem(-1, undo=False)
+
+    if success:
+        assert pdpItemRejected.wait()
+        assert pdpItemRejected.callArgs[0][0] == -1
+        assert pdpItemFailed.callCount == 0
+    else:
+        assert pdpItemFailed.wait()
+        assert pdpItemFailed.callArgs[0][0] == -1
+        assert pdpItemFailed.callArgs[0][1] == "reject"
+        assert pdpItemRejected.callCount == 0
