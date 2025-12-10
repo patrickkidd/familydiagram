@@ -207,6 +207,16 @@ PK.GroupBox {
                     }
                     propagateComposedEvents: true
                 }
+                
+                // Using a zero-interval timer defers the focus call until after
+                // the button click event is fully processed, ensuring the text
+                // edit properly receives keyboard focus.
+                Timer {
+                    id: focusTimer
+                    interval: 0
+                    onTriggered: dRoot.textEdit.forceActiveFocus()
+                }
+
                 Component.onCompleted: {
                     // Turns out that QObject references in the model index
                     // data, e.g. model.person, are not initialized before the
@@ -218,7 +228,7 @@ PK.GroupBox {
                     // from the beginning, so we pass person id's and then get
                     // the QObject instance later.
                     if(model.personId == -1) {
-                        dRoot.textEdit.focus = true
+                        focusTimer.start()
                         root.itemAddDone(dRoot)
                         if(callAfterDone) {
                             util.debug('callAfterDone: ' + callAfterDone)
