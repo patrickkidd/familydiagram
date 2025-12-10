@@ -183,7 +183,7 @@ Page {
 
         addPage.scrollToTop()
         tagsEditItem.clear()
-        personPicker.focusTextEdit()
+        kindBox.forceActiveFocus()
         root.dirty = false;
     }
 
@@ -198,15 +198,8 @@ Page {
 
     function initWithNoSelection() {
         kindBox.clear()
-        root.initPersonPicker()
-        tagsEdit.isDirty = false
-    }
-
-    function initPersonPicker() {
         personPicker.clear()
-        // util.debug('>>> initPeoplePicker() callback')
-        personPicker.focusTextEdit()
-        // util.debug('<<< initPeoplePicker() callback')
+        tagsEdit.isDirty = false
     }
 
     function setKind(x) {
@@ -319,40 +312,6 @@ Page {
                     columnSpacing: util.QML_MARGINS / 2
                     Layout.margins: util.QML_MARGINS
 
-                    // Who
-
-                    PK.FormDivider {
-                        text: "Who"
-                        Layout.columnSpan: 2
-                    }
-
-                    PK.Text {
-                        id: personLabel
-                        text: 'Actor'
-                    }
-
-                    PK.FormField {
-                        id: personField
-                        visible: personLabel.visible
-                        enabled: ! root.isEditing
-                        backTabItem: notesField.lastTabItem
-                        tabItem: kindBox
-                        Layout.minimumHeight: personPicker.height
-                        Layout.maximumHeight: personPicker.height
-                        PK.PersonPicker {
-                            id: personPicker
-                            objectName: 'personPicker'
-                            scenePeopleModel: peopleModel
-                            selectedPeopleModel: root.selectedPeopleModel
-                            border.width: 1
-                            border.color: util.QML_ITEM_BORDER_COLOR
-                            Layout.maximumWidth: root.fieldWidth
-                            Layout.minimumWidth: root.fieldWidth
-                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
-                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
-                        }
-                    }
-
                     // What
 
                     PK.FormDivider {
@@ -387,8 +346,8 @@ Page {
                         property var lastCurrentIndex: -1
                         Layout.maximumWidth: root.fieldWidth
                         Layout.minimumWidth: root.fieldWidth
-                        KeyNavigation.tab: spouseField.firstTabItem
-                        KeyNavigation.backtab: personField.lastTabItem
+                        KeyNavigation.tab: descriptionField.firstTabItem
+                        KeyNavigation.backtab: childField.lastTabItem
                         delegate: ItemDelegate {
                             width: ListView.view.width
                             text: label
@@ -441,9 +400,64 @@ Page {
                         Layout.columnSpan: 2
                     }
 
+                    // Who
+
+                    PK.FormDivider {
+                        text: "Who"
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.Text {
+                        id: personLabel
+                        text: {
+                            if(root.kind == util.EventKind.Birth || root.kind == util.EventKind.Adopted) {
+                                'Parent 1'
+                            } else if(root.kind == util.EventKind.Death) {
+                                'Person'
+                            } else if(root.kind == util.EventKind.Bonded ||
+                                      root.kind == util.EventKind.Married ||
+                                      root.kind == util.EventKind.Separated ||
+                                      root.kind == util.EventKind.Divorced) {
+                                'Partner 1'
+                            } else {
+                                'Person'
+                            }
+                        }
+                    }
+
+                    PK.FormField {
+                        id: personField
+                        visible: personLabel.visible
+                        enabled: ! root.isEditing
+                        backTabItem: notesField.lastTabItem
+                        tabItem: spouseField.firstTabItem
+                        Layout.minimumHeight: personPicker.height
+                        Layout.maximumHeight: personPicker.height
+                        PK.PersonPicker {
+                            id: personPicker
+                            objectName: 'personPicker'
+                            scenePeopleModel: peopleModel
+                            selectedPeopleModel: root.selectedPeopleModel
+                            border.width: 1
+                            border.color: util.QML_ITEM_BORDER_COLOR
+                            Layout.maximumWidth: root.fieldWidth
+                            Layout.minimumWidth: root.fieldWidth
+                            Layout.minimumHeight: util.QML_FIELD_HEIGHT
+                            Layout.maximumHeight: util.QML_FIELD_HEIGHT
+                        }
+                    }
+
                     PK.Text {
                         id: spouseLabel
-                        text: 'Spouse'
+                        text: {
+                            if(root.kind == util.EventKind.Birth || root.kind == util.EventKind.Adopted) {
+                                'Parent 2'
+                            } else if(root.kind == util.EventKind.Moved) {
+                                'Partner'
+                            } else {
+                                'Partner 2'
+                            }
+                        }
                         visible: [
                             util.EventKind.Bonded,
                             util.EventKind.Married,
@@ -460,7 +474,7 @@ Page {
                         id: spouseField
                         visible: spouseLabel.visible
                         enabled: ! root.isEditing
-                        backTabItem: kindBox
+                        backTabItem: personField.lastTabItem
                         tabItem: childField.firstTabItem
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
@@ -478,6 +492,18 @@ Page {
                         }
                     }
 
+                    PK.HelpText {
+                        text: 'Partner is optional, sometimes useful for pair-bonds.'
+                        visible: (root.kind == util.EventKind.Moved)
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.HelpText {
+                        text: 'Only one of Parent 1, Parent 2, or Child needs to be specified. Parents will be added to the child if not specified.'
+                        visible: childField.visible
+                        Layout.columnSpan: 2
+                    }
+
                     PK.Text {
                         id: childLabel
                         text: 'Child'
@@ -492,8 +518,8 @@ Page {
                         id: childField
                         visible: childLabel.visible
                         enabled: ! root.isEditing
-                        backTabItem: targetsField.lastTabItem
-                        tabItem: spouseField.firstTabItem
+                        backTabItem: spouseField.lastTabItem
+                        tabItem: kindBox
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.PersonPicker {
@@ -516,6 +542,8 @@ Page {
                         Layout.columnSpan: 2
                     }
 
+
+
                     PK.Text {
                         id: descriptionLabel
                         text: "Summary"
@@ -526,7 +554,7 @@ Page {
                         id: descriptionField
                         visible: root.kind == util.EventKind.Shift
                         tabItem: symptomField.firstTabItem
-                        backTabItem: childField.lastTabItem
+                        backTabItem: kindBox
                         Layout.minimumHeight: util.QML_FIELD_HEIGHT
                         Layout.maximumHeight: util.QML_FIELD_HEIGHT
                         PK.TextField {

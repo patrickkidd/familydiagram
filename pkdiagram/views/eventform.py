@@ -138,13 +138,14 @@ class EventForm(QObject):
     def addBirthEvent(self, child: Person):
         self.addEvent()
         self.item.setKind(EventKind.Birth.value)
+        self.item.property("childPicker").setExistingPersonId(child.id)
         marriage = child.parents()
         if marriage:
-            self.item.property("spousePicker").setExistingPersonId(
-                marriage.personB().id
-            )
             self.item.property("personPicker").setExistingPersonId(
                 marriage.personA().id
+            )
+            self.item.property("spousePicker").setExistingPersonId(
+                marriage.personB().id
             )
         else:
             self.item.property("personPicker").setNewPerson(
@@ -153,7 +154,6 @@ class EventForm(QObject):
             self.item.property("spousePicker").setNewPerson(
                 self.scene.newPersonName("Father"), util.PERSON_KIND_MALE
             )
-        self.item.property("childPicker").setExistingPersonId(child.id)
 
     def addDeathEvent(self, person: Person):
         self.addEvent()

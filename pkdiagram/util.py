@@ -480,7 +480,7 @@ When a discrete move, they may be a move toward, away, or defined self by a sing
 S_EVENT_KIND_HELP_TEXT = LONG_TEXT("")
 
 S_DESCRIPTION_HELP_TEXT = LONG_TEXT(
-    "What occurred written as a fact; opinions and other emotions go in quotes, or move into 'Details' below."
+    "3-5 words for what occurred written as a fact. If longer, then enter into 'Details' below."
 )
 
 S_PEOPLE_HELP_TEXT = LONG_TEXT("")
