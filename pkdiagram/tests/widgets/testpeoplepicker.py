@@ -132,13 +132,9 @@ class TestPeoplePicker:
 
     def delete_person(self, delegate: QQuickItem):
         _log.debug(f"delete_person({delegate})")
+        itemRemoveDone = util.Condition(self.item.itemRemoveDone)
         self.view.mouseClickItem(delegate)
         self.view.mouseClickItem(
             self.item.property("buttons").property("removeButtonItem")
         )
-
-    def _get_role_id(model, role_name):
-        roles = model.roleNames()
-        for role_id, name in roles.items():
-            if name == role_name:
-                return role_id
+        assert itemRemoveDone.wait() == True, "PersonPicker delegate not removed"

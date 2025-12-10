@@ -35,12 +35,14 @@ PK.GroupBox {
 
     // Only so FormField will show the clear button
     property var isDirty: root.model.count > 0
+    property bool existingOnly: false
 
     property var listView: list // for tests
     property var buttons: buttons
     // for testing since delegate creation is async
     signal itemAddDone(Item item)
     signal itemRemoveDone(Item item)
+    signal itemSubmitted(Item item, var personOrName)
     property var callAfterDone: null
 
     function onPersonRowClicked(mouse, row) {
@@ -192,6 +194,7 @@ PK.GroupBox {
                 color: util.itemBgColor(selected, current, index % 2 == 1)
                 scenePeopleModel: root.scenePeopleModel
                 selectedPeopleModel: root.selectedPeopleModel
+                existingOnly: root.existingOnly
                 property bool isInitializingWithSubmission: false
 
                 MouseArea {
@@ -238,6 +241,7 @@ PK.GroupBox {
                         } else {
                             root.model.set(model.index, { person: personOrName, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
                         }
+                        root.itemSubmitted(dRoot, personOrName)
                     }
                 }
             }

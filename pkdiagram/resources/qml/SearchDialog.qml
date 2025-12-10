@@ -29,6 +29,7 @@ Page {
     property alias descriptionEdit: descriptionEdit
     property alias tagsEdit: tagsEdit
     property alias emotionalUnitsEdit: emotionalUnitsEdit
+    property alias peoplePicker: peoplePicker
     property var propsPage: propsPage
 
     property int margin: util.QML_MARGINS
@@ -41,10 +42,11 @@ Page {
         PK.ToolButton {
             id: resetButton
             text: 'Reset'
-            visible: ! searchModel.isBlank || emotionalUnitsEdit.model.anyActive
+            visible: ! searchModel.isBlank || emotionalUnitsEdit.model.anyActive || peoplePicker.count > 0
             anchors.left: parent.left
             anchors.leftMargin: margin
             onClicked: {
+                peoplePicker.clear()
                 searchModel.clear()
                 sceneModel.scene.clearActiveLayers()
             }
@@ -124,6 +126,32 @@ Page {
                     }
 
                     PK.FormDivider { Layout.columnSpan: 2 }
+
+                    PK.Text { text: "People" }
+
+                    PK.PeoplePicker {
+                        id: peoplePicker
+                        objectName: 'peoplePicker'
+                        scenePeopleModel: peopleModel
+                        selectedPeopleModel: ListModel {}
+                        existingOnly: true
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                        Layout.maximumHeight: Math.max(model.count + 2, 4) * util.QML_ITEM_HEIGHT
+                        function syncToSearchModel() {
+                            var people = []
+                            for(var i = 0; i < model.count; i++) {
+                                var entry = model.get(i)
+                                if(entry.person) {
+                                    people.push(entry.person)
+                                }
+                            }
+                            searchModel.people = people
+                        }
+                        onItemAddDone: syncToSearchModel()
+                        onItemRemoveDone: syncToSearchModel()
+                        onItemSubmitted: syncToSearchModel()
+                    }
 
                     PK.Text { text: "Description" }
 
