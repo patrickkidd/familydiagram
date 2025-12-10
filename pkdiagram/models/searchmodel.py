@@ -12,6 +12,7 @@ class SearchModel(QObject, QObjectHelper):
     PROPERTIES = ModelHelper.registerQtProperties(
         [
             {"attr": "description", "type": str},
+            {"attr": "people", "type": list},
             {"attr": "startDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "endDateTime", "type": QDateTime, "default": QDateTime()},
             {"attr": "loggedStartDateTime", "type": QDateTime, "default": QDateTime()},
@@ -51,6 +52,7 @@ class SearchModel(QObject, QObjectHelper):
     @pyqtSlot()
     def clear(self):
         self.reset("description")
+        self.reset("people")
         self.reset("startDateTime")
         self.reset("endDateTime")
         self.reset("loggedStartDateTime")
@@ -64,6 +66,7 @@ class SearchModel(QObject, QObjectHelper):
             ret = True
             for name in (
                 "description",
+                "people",
                 "startDateTime",
                 "endDateTime",
                 "loggedStartDateTime",
@@ -97,6 +100,7 @@ class SearchModel(QObject, QObjectHelper):
             return
         if attr in (
             "description",
+            "people",
             "startDateTime",
             "endDateTime",
             "loggedStartDateTime",
@@ -122,7 +126,9 @@ class SearchModel(QObject, QObjectHelper):
             not event.loggedDateTime() or event.loggedDateTime().isNull()
         )
         hidden = False
-        if self.nodal and not event.nodal():
+        if self.people and not any(p in event.people() for p in self.people):
+            hidden = True
+        elif self.nodal and not event.nodal():
             hidden = True
         elif self.hideRelationships and event.relationship():
             hidden = True

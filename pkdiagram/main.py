@@ -160,7 +160,7 @@ def _main_impl():
         util.init_logging()
 
         app = Application(
-            sys.argv, Application.Type.Mobile, prefsName=options.prefsName
+            sys.argv, Application.Type.Personal, prefsName=options.prefsName
         )
         controller = PersonalAppController()
 
@@ -200,9 +200,7 @@ def _main_impl():
     else:
         util.init_logging()
 
-        app = Application(
-            sys.argv, Application.Type.Desktop, prefsName=options.prefsName
-        )
+        app = Application(sys.argv, Application.Type.Pro, prefsName=options.prefsName)
         controller = AppController(app, prefsName=options.prefsName)
         controller.init()
 

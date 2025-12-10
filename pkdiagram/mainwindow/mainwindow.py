@@ -284,6 +284,7 @@ class MainWindow(QMainWindow):
         self.ui.actionHide_Variables_on_Diagram.toggled[bool].connect(
             self.onHideVariablesOnDiagram
         )
+        self.ui.actionHide_SARF_Graphics.toggled[bool].connect(self.onHideSARFGraphics)
         self.ui.actionHide_Variable_Steady_States.toggled[bool].connect(
             self.onHideVariableSteadyStates
         )
@@ -1181,6 +1182,7 @@ class MainWindow(QMainWindow):
                 self.scene.hideEmotionalProcess()
             )
             self.ui.actionHide_Emotion_Colors.setChecked(self.scene.hideEmotionColors())
+            self.ui.actionHide_SARF_Graphics.setChecked(self.scene.hideSARFGraphics())
             self.ui.actionShow_Graphical_Timeline.setChecked(
                 not self.scene.hideDateSlider()
             )
@@ -1692,6 +1694,11 @@ class MainWindow(QMainWindow):
             on = prop.get()
             if on != self.ui.actionHide_Variables_on_Diagram.isChecked():
                 self.ui.actionHide_Variables_on_Diagram.setChecked(on)
+        elif prop.name() == "hideSARFGraphics":
+            on = prop.get()
+            if on != self.ui.actionHide_SARF_Graphics.isChecked():
+                self.ui.actionHide_SARF_Graphics.setChecked(on)
+            self.scene.updateAll()
         elif prop.name() == "hideVariableSteadyStates":
             on = prop.get()
             if on != self.ui.actionHide_Variable_Steady_States.isChecked():
@@ -1762,6 +1769,12 @@ class MainWindow(QMainWindow):
         if on != self.ui.actionHide_Emotion_Colors.isChecked():
             self.ui.actionHide_Emotion_Colors.setChecked(on)
         self.scene.setHideEmotionColors(on, undo=(not self._isOpeningDiagram))
+
+    @util.blocked
+    def onHideSARFGraphics(self, on):
+        if on != self.ui.actionHide_SARF_Graphics.isChecked():
+            self.ui.actionHide_SARF_Graphics.setChecked(on)
+        self.scene.setHideSARFGraphics(on, undo=(not self._isOpeningDiagram))
 
     @util.blocked
     def onHideNames(self, on):

@@ -29,6 +29,7 @@ Rectangle {
     property bool isNewPerson: false
     property bool isSubmitted: false
     property bool isDirty: false
+    property bool existingOnly: false
     property var textEdit: pickerTextEdit // still need this one?
     property var popupListView: popupListView
     property var genderBox: genderBox
@@ -212,8 +213,7 @@ Rectangle {
                 event.accepted = true
             }
             onAccepted: {
-                if(text && ! selectingAutoCompleteItem) {
-                    // print('onAccepted: ' + text)
+                if(text && !selectingAutoCompleteItem && !root.existingOnly) {
                     root.setNewPerson(text)
                     focus = false
                 }

@@ -21,7 +21,7 @@ with open(fpath, "w") as f:
     FD_BUILD_PEPPER = os.getenv("FD_BUILD_PEPPER")
     f.write(f"PEPPER = b'{FD_BUILD_PEPPER}'\n")
     FD_BUILD_DATADOG_API_KEY = os.getenv("FD_BUILD_DATADOG_API_KEY")
-    f.write(f"DATADOG_API_KEY = '{FD_BUILD_DATADOG_API_KEY}'\n")
+    f.write(f"DATADOG_API_KEY = {repr(FD_BUILD_DATADOG_API_KEY)}\n")
 
 
 # Update version in platform-specific locations

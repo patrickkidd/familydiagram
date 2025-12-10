@@ -35,12 +35,14 @@ PK.GroupBox {
 
     // Only so FormField will show the clear button
     property var isDirty: root.model.count > 0
+    property bool existingOnly: false
 
     property var listView: list // for tests
     property var buttons: buttons
     // for testing since delegate creation is async
     signal itemAddDone(Item item)
     signal itemRemoveDone(Item item)
+    signal itemSubmitted(Item item, var personOrName)
     property var callAfterDone: null
 
     function onPersonRowClicked(mouse, row) {
@@ -192,6 +194,7 @@ PK.GroupBox {
                 color: util.itemBgColor(selected, current, index % 2 == 1)
                 scenePeopleModel: root.scenePeopleModel
                 selectedPeopleModel: root.selectedPeopleModel
+                existingOnly: root.existingOnly
                 property bool isInitializingWithSubmission: false
 
                 MouseArea {
@@ -204,6 +207,16 @@ PK.GroupBox {
                     }
                     propagateComposedEvents: true
                 }
+                
+                // Using a zero-interval timer defers the focus call until after
+                // the button click event is fully processed, ensuring the text
+                // edit properly receives keyboard focus.
+                Timer {
+                    id: focusTimer
+                    interval: 0
+                    onTriggered: dRoot.textEdit.forceActiveFocus()
+                }
+
                 Component.onCompleted: {
                     // Turns out that QObject references in the model index
                     // data, e.g. model.person, are not initialized before the
@@ -215,7 +228,7 @@ PK.GroupBox {
                     // from the beginning, so we pass person id's and then get
                     // the QObject instance later.
                     if(model.personId == -1) {
-                        dRoot.textEdit.focus = true
+                        focusTimer.start()
                         root.itemAddDone(dRoot)
                         if(callAfterDone) {
                             util.debug('callAfterDone: ' + callAfterDone)
@@ -238,6 +251,7 @@ PK.GroupBox {
                         } else {
                             root.model.set(model.index, { person: personOrName, isNewPerson: false, gender: person.gender(), personId: person.itemId()})
                         }
+                        root.itemSubmitted(dRoot, personOrName)
                     }
                 }
             }

@@ -73,6 +73,11 @@ Page {
         layerList.forceActiveFocus()
     }
 
+    Connections {
+        target: emotionModel
+        function onColorChanged() { colorBox.color = emotionModel.color }
+    }
+
     KeyNavigation.tab: inspectEventButton
 
     header: PK.ToolBar {
@@ -201,7 +206,7 @@ Page {
                     PK.ColorPicker {
                         id: colorBox
                         visible: ! root.hasEvent
-                        color: emotionModel.color
+                        color: '#000000'
                         KeyNavigation.tab: notesEdit
                         KeyNavigation.backtab: intensityBox
                         onCurrentIndexChanged: emotionModel.color = model[currentIndex]

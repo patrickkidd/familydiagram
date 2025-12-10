@@ -85,7 +85,7 @@ class Analytics(QObject):
         parent=None,
     ):
         super().__init__(parent)
-        if datadog_api_key is None:
+        if datadog_api_key in (None, "None"):
             raise ValueError("datadog_api_key is required")
         self._datadog_api_key = datadog_api_key
         self._enabled = True

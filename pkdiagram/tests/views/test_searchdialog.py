@@ -8,7 +8,7 @@ from pkdiagram import util
 from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views import SearchDialog
 
-from pkdiagram.tests.widgets import TestActiveListEdit
+from pkdiagram.tests.widgets import TestActiveListEdit, TestPeoplePicker
 
 
 pytestmark = [
@@ -374,3 +374,69 @@ def test_emotional_units_names_hidden(qmlEngine, scene, view, model):
         view.rootProp("emotionalUnitsEdit").property("emptyText")
         == util.S_NO_EMOTIONAL_UNITS_SHOWN_NAMES_HIDDEN
     )
+
+
+def test_people_picker_updates_searchmodel(scene, view, model, qmlEngine):
+    """Test that selecting a person in PeoplePicker updates searchModel.people."""
+    personA = scene.addItem(Person(name="Alice", lastName="Smith"))
+    personB = scene.addItem(Person(name="Bob", lastName="Jones"))
+    peoplePicker = TestPeoplePicker(view, view.rootProp("peoplePicker"))
+    assert model.people == []
+    peoplePicker.add_existing_person(personA, autoCompleteInput="Ali")
+    assert model.people == [personA]
+    peoplePicker.add_existing_person(personB, autoCompleteInput="Bob")
+    assert model.people == [personA, personB]
+
+
+def test_people_picker_remove_updates_searchmodel(scene, view, model, qmlEngine):
+    """Test that removing a person from PeoplePicker updates searchModel.people."""
+    personA = scene.addItem(Person(name="Alice", lastName="Smith"))
+    personB = scene.addItem(Person(name="Bob", lastName="Jones"))
+    peoplePicker = TestPeoplePicker(view, view.rootProp("peoplePicker"))
+    delegateA = peoplePicker.add_existing_person(personA, autoCompleteInput="Ali")
+    delegateB = peoplePicker.add_existing_person(personB, autoCompleteInput="Bob")
+    assert model.people == [personA, personB]
+    peoplePicker.delete_person(delegateA)
+    assert model.people == [personB]
+    peoplePicker.delete_person(delegateB)
+    assert model.people == []
+
+
+def test_people_picker_filters_timeline(scene, view, model, qmlEngine):
+    """Test that searchModel.people correctly filters timeline events."""
+    personA = scene.addItem(Person(name="Alice", lastName="Smith"))
+    personB = scene.addItem(Person(name="Bob", lastName="Jones"))
+    eventA = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personA,
+            dateTime=util.Date(1990, 1, 1),
+            description="Alice's event",
+        )
+    )
+    eventB = scene.addItem(
+        Event(
+            EventKind.Shift,
+            personB,
+            dateTime=util.Date(1990, 2, 1),
+            description="Bob's event",
+        )
+    )
+    rowA = qmlEngine.timelineModel.timelineRowsFor(eventA)[0]
+    rowB = qmlEngine.timelineModel.timelineRowsFor(eventB)[0]
+    assert model.shouldHide(rowA) == False
+    assert model.shouldHide(rowB) == False
+    peoplePicker = TestPeoplePicker(view, view.rootProp("peoplePicker"))
+    peoplePicker.add_existing_person(personA, autoCompleteInput="Ali")
+    assert model.shouldHide(rowA) == False
+    assert model.shouldHide(rowB) == True
+
+
+def test_people_picker_existingOnly(scene, view, model, qmlEngine):
+    """Test that PeoplePicker in SearchDialog only allows existing people."""
+    personA = scene.addItem(Person(name="Alice", lastName="Smith"))
+    peoplePicker = TestPeoplePicker(view, view.rootProp("peoplePicker"))
+    assert view.rootProp("peoplePicker").property("existingOnly") == True
+    delegate = peoplePicker.add_new_person("New Person Name", returnToFinish=True)
+    assert delegate.property("isSubmitted") == False
+    assert model.people == []

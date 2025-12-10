@@ -207,7 +207,7 @@ Page {
 
                 Rectangle {
                     id: bubble
-                    color: util.QML_SELECTION_COLOR
+                    color: "#1190F9"
                     radius: 18
                     width: Math.min(questionText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: questionText.implicitHeight + 20
@@ -278,9 +278,9 @@ Page {
 
         Rectangle {
             id: inputField
-            color: util.QML_HEADER_BG
+            color: "transparent"
             Layout.fillWidth: true
-            implicitHeight: Math.max(56, inputContainer.height + 20)
+            implicitHeight: Math.max(36, inputContainer.height + 16)
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
@@ -291,24 +291,20 @@ Page {
             }
 
             Rectangle {
-                anchors.top: parent.top
-                height: 1
-                width: parent.width
-                color: util.QML_ITEM_BORDER_COLOR
-            }
-
-            Rectangle {
                 id: inputContainer
                 anchors {
                     left: parent.left
-                    right: sendButton.left
-                    verticalCenter: parent.verticalCenter
+                    right: parent.right
+                    bottom: parent.bottom
                     leftMargin: 15
-                    rightMargin: 8
+                    rightMargin: 15
+                    bottomMargin: 10
                 }
-                height: Math.min(inputFlickable.contentHeight + 16, 120)
+                height: Math.min(inputFlickable.contentHeight + 8, 100)
                 radius: 18
-                color: util.IS_UI_DARK_MODE ? "#3a3a3c" : "#e5e5ea"
+                color: util.IS_UI_DARK_MODE ? "#252526" : "#F7F7F7"
+                border.width: textEdit.activeFocus ? 1 : 0
+                border.color: util.IS_UI_DARK_MODE ? "#636366" : "#c7c7cc"
 
                 MouseArea {
                     anchors.fill: parent
@@ -318,7 +314,7 @@ Page {
                 Text {
                     id: placeholderText
                     anchors.left: parent.left
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Message"
                     color: util.IS_UI_DARK_MODE ? "#636366" : "#8E8E93"
@@ -329,11 +325,14 @@ Page {
                 Flickable {
                     id: inputFlickable
                     anchors {
-                        fill: parent
-                        leftMargin: 16
-                        rightMargin: 16
-                        topMargin: 8
-                        bottomMargin: 8
+                        left: parent.left
+                        right: sendButton.visible ? sendButton.left : parent.right
+                        top: parent.top
+                        bottom: parent.bottom
+                        leftMargin: 12
+                        rightMargin: sendButton.visible ? 4 : 12
+                        topMargin: 4
+                        bottomMargin: 4
                     }
                     contentWidth: textEdit.width
                     contentHeight: textEdit.height
@@ -383,33 +382,33 @@ Page {
                         }
                     }
                 }
-            }
 
-            Rectangle {
-                id: sendButton
-                anchors {
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    rightMargin: 15
-                }
-                width: 32
-                height: 32
-                radius: 16
-                color: textEdit.text.trim().length > 0 ? util.QML_SELECTION_COLOR : (util.IS_UI_DARK_MODE ? "#5a5a5c" : "#d1d1d6")
+                Rectangle {
+                    id: sendButton
+                    visible: textEdit.text.trim().length > 0
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: 4
+                    }
+                    width: 28
+                    height: 28
+                    radius: 14
+                    color: "#007AFF"
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "↑"
-                    font.pixelSize: 18
-                    font.bold: true
-                    color: "white"
-                }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "↑"
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "white"
+                    }
 
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: textEdit.text.trim().length > 0
-                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: inputField.submit()
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: inputField.submit()
+                    }
                 }
             }
 

@@ -25,8 +25,8 @@ log = logging.getLogger(__name__)
 class Application(QApplication):
 
     class Type(enum.StrEnum):
-        Desktop = "desktop"
-        Mobile = "mobile"
+        Pro = "pro"
+        Personal = "personal"
         Test = "test"
 
     def __init__(self, argv: list[str], appType: Type, prefsName=None, **kwargs):
@@ -137,9 +137,9 @@ class Application(QApplication):
         # self.setQuitOnLastWindowClosed(True)
         self.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
         if util.IS_DEV:
-            if self._appType == Application.Type.Desktop:
+            if self._appType == Application.Type.Pro:
                 self.setWindowIcon(QIcon(QPixmap(util.QRC + "PKDiagram.png")))
-            elif self._appType == Application.Type.Mobile:
+            elif self._appType == Application.Type.Personal:
                 self.setWindowIcon(QIcon(QPixmap(util.QRC + "PKDiagram-Personal.png")))
         self.focusWindowChanged.connect(self.onFocusWindowChanged)
         self.firstFocusWindow = None

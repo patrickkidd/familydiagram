@@ -155,3 +155,13 @@ def test_clear(scene, picker):
     picker.item.clear()
     assert picker.model.rowCount() == 0
     assert picker.item.property("selectedPeopleModel").property("count") == 0
+
+
+def test_add_focuses_textedit(qtbot, picker):
+    addButton = picker.item.property("buttons").property("addButtonItem")
+    itemAddDone = util.Condition(picker.item.itemAddDone)
+    picker.view.mouseClickItem(addButton)
+    assert itemAddDone.wait() == True
+    delegate = itemAddDone.callArgs[-1][0]
+    textEdit = delegate.property("textEdit")
+    qtbot.waitUntil(lambda: textEdit.property("activeFocus") == True, timeout=1000)
