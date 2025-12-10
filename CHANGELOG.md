@@ -2,6 +2,17 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.13
+
+## 2.1.13b1
+
+- Added people field to SearchDialog
+- Rearranged and re-named person fields in EventForm to be more intuitive
+- Edit SARF variables in timeline
+- Add option to hide variable graphics in diagram
+- Auto-focus people picker on click to add person for easier typing
+
+
 ## 2.1.12
 
 ## 2.1.12b1
