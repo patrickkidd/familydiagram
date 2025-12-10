@@ -185,7 +185,12 @@ class Scene(QGraphicsScene, Item):
             {
                 "attr": "hideVariableSteadyStates",
                 "type": bool,
-                "default": False,
+                "default": True,
+            },
+            {
+                "attr": "hideSARFGraphics",
+                "type": bool,
+                "default": True,
             },
             {"attr": "exclusiveLayerSelection", "type": bool, "default": True},
             {

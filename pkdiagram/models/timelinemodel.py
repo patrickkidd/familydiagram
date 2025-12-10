@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 
 # from sortedcontainers import SortedList
-from btcopilot.schema import EventKind
+from btcopilot.schema import EventKind, VariableShift, RelationshipKind
 from btcopilot import schema
 from pkdiagram.pyqt import (
     Qt,
@@ -581,24 +581,25 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.TAGS):
             ret = ", ".join(event.tags())
 
-        elif index.column() == self.COLUMNS.index(self.ANXIETY):
-            ret = event.anxiety()
-            ret = ret.value if ret else None
-        elif index.column() == self.COLUMNS.index(self.SYMPTOM):
-            ret = event.symptom()
-            ret = ret.value if ret else None
-        elif index.column() == self.COLUMNS.index(self.RELATIONSHIP):
-            ret = event.relationship()
-            ret = ret.value if ret else None
-        elif index.column() == self.COLUMNS.index(self.FUNCTIONING):
-            ret = event.functioning()
-            ret = ret.value if ret else None
-
-        else:
+        elif index.column() >= len(self.COLUMNS):
             attr = self.dynamicPropertyAttr(index)
             if attr:
                 prop = event.dynamicProperty(attr)
                 ret = prop.get()
+
+        elif self.isColumn(index, self.ANXIETY):
+            ret = event.anxiety()
+            ret = ret.value if ret else None
+        elif self.isColumn(index, self.SYMPTOM):
+            ret = event.symptom()
+            ret = ret.value if ret else None
+        elif self.isColumn(index, self.RELATIONSHIP):
+            ret = event.relationship()
+            ret = ret.value if ret else None
+        elif self.isColumn(index, self.FUNCTIONING):
+            ret = event.functioning()
+            ret = ret.value if ret else None
+
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):
@@ -655,13 +656,28 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         elif self.isColumn(index, self.LOCATION):
             event.setLocation(value, undo=True)
         elif event.kind() == EventKind.Shift:
-            attr = self.dynamicPropertyAttr(index)
-            if attr:
-                prop = event.dynamicProperty(attr)
-                if value:
-                    prop.set(value, undo=True)
+            if index.column() >= len(self.COLUMNS):
+                attr = self.dynamicPropertyAttr(index)
+                if attr:
+                    prop = event.dynamicProperty(attr)
+                    if value:
+                        prop.set(value, undo=True)
+                    else:
+                        prop.reset(undo=True)
                 else:
-                    prop.reset(undo=True)
+                    success = False
+            elif self.isColumn(index, self.SYMPTOM):
+                shift = VariableShift(value) if value else None
+                event.setSymptom(shift, undo=True)
+            elif self.isColumn(index, self.ANXIETY):
+                shift = VariableShift(value) if value else None
+                event.setAnxiety(shift, undo=True)
+            elif self.isColumn(index, self.FUNCTIONING):
+                shift = VariableShift(value) if value else None
+                event.setFunctioning(shift, undo=True)
+            elif self.isColumn(index, self.RELATIONSHIP):
+                kind = RelationshipKind(value) if value else None
+                event.setRelationship(kind, undo=True)
             else:
                 success = False
         else:

@@ -664,7 +664,7 @@ ColumnLayout {
                 property var thisDisplay: expanded ? model.displayExpanded : model.display
                 text: thisDisplay == undefined ? '' : thisDisplay
                 anchors.verticalCenter: parent.verticalCenter
-                visible: column != 5 || !editMode
+                visible: !editMode || (column != 5 && column != 10 && column != 11 && column != 12 && column != 13)
                 width: parent.width
                 padding: margin
                 readOnly: !editMode
@@ -698,7 +698,8 @@ ColumnLayout {
                     // test for edit mode as well b/c this apparently still has focus
                     // even after hitting enter, leading to editingFinished() emitted
                     // whenever enter is pressed again or app window is focused in.
-                    if(thisColumn != 5 && editMode) {
+                    // Exclude columns with ComboBox editors (5=Person, 10=Symptom, 11=Anxiety, 12=Relationship, 13=Functioning)
+                    if(thisColumn != 5 && thisColumn != 10 && thisColumn != 11 && thisColumn != 12 && thisColumn != 13 && editMode) {
                         if(thisDisplay != text) {
                             if(thisColumn == 1 && expanded) {
                                 displayExpanded = text
@@ -731,6 +732,88 @@ ColumnLayout {
                             if(currentIndex > -1) {
                                 parentId = model.idForRow(currentIndex)
 //                                shouldEdit = false
+                            }
+                        }
+                        Component.onCompleted: popup.visible = true
+                    }
+                }
+            }
+
+            Loader {
+                active: editMode && (column == 10 || column == 11 || column == 13)
+                sourceComponent: MouseArea {
+                    width: sarfBox.implicitWidth
+                    height: sarfBox.implicitHeight
+                    property var sarfModel: [
+                        { 'name': 'Up', 'value': util.VARIABLE_SHIFT_UP },
+                        { 'name': 'Down', 'value': util.VARIABLE_SHIFT_DOWN },
+                        { 'name': 'Same', 'value': util.VARIABLE_SHIFT_SAME }
+                    ]
+                    PK.ComboBox {
+                        id: sarfBox
+                        objectName: 'sarfBox'
+                        anchors.verticalCenter: parent.verticalCenter
+                        model: ['Up', 'Down', 'Same']
+                        currentIndex: {
+                            var val = textEdit.thisDisplay
+                            if (val === util.VARIABLE_SHIFT_UP) return 0
+                            if (val === util.VARIABLE_SHIFT_DOWN) return 1
+                            if (val === util.VARIABLE_SHIFT_SAME) return 2
+                            return -1
+                        }
+                        onCurrentIndexChanged: {
+                            if (currentIndex > -1) {
+                                var newValue = parent.sarfModel[currentIndex].value
+                                if (textEdit.thisDisplay !== newValue) {
+                                    display = newValue
+                                    textEdit.text = newValue
+                                    shouldEdit = false
+                                }
+                            }
+                        }
+                        Component.onCompleted: popup.visible = true
+                    }
+                }
+            }
+
+            Loader {
+                active: editMode && column == 12
+                sourceComponent: MouseArea {
+                    width: relationshipBox.implicitWidth
+                    height: relationshipBox.implicitHeight
+                    property var relationshipModel: [
+                        { 'name': 'Conflict', 'value': 'conflict' },
+                        { 'name': 'Distance', 'value': 'distance' },
+                        { 'name': 'Overfunctioning', 'value': 'overfunctioning' },
+                        { 'name': 'Underfunctioning', 'value': 'underfunctioning' },
+                        { 'name': 'Projection', 'value': 'projection' },
+                        { 'name': 'Cutoff', 'value': 'cutoff' },
+                        { 'name': 'Triangle to inside', 'value': 'inside' },
+                        { 'name': 'Triangle to outside', 'value': 'outside' },
+                        { 'name': 'Toward', 'value': 'toward' },
+                        { 'name': 'Away', 'value': 'away' },
+                        { 'name': 'Defined Self', 'value': 'defined-self' }
+                    ]
+                    PK.ComboBox {
+                        id: relationshipBox
+                        objectName: 'relationshipBox'
+                        anchors.verticalCenter: parent.verticalCenter
+                        model: parent.relationshipModel.map(function(item) { return item.name })
+                        currentIndex: {
+                            var val = textEdit.thisDisplay
+                            for (var i = 0; i < parent.relationshipModel.length; i++) {
+                                if (parent.relationshipModel[i].value === val) return i
+                            }
+                            return -1
+                        }
+                        onCurrentIndexChanged: {
+                            if (currentIndex > -1) {
+                                var newValue = parent.relationshipModel[currentIndex].value
+                                if (textEdit.thisDisplay !== newValue) {
+                                    display = newValue
+                                    textEdit.text = newValue
+                                    shouldEdit = false
+                                }
                             }
                         }
                         Component.onCompleted: popup.visible = true

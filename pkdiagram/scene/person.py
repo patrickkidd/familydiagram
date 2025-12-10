@@ -935,7 +935,10 @@ class Person(PathItem):
             pen.setColor(util.contrastTo(brush.color()))
             self._delegate.setForceNoPaintBackground(True)
         else:
-            anxiety = self.anxietyLevelNow()
+            if self.scene().hideSARFGraphics():
+                anxiety = None
+            else:
+                anxiety = self.anxietyLevelNow()
             if anxiety in (
                 VariableShift.Down,
                 VariableShift.Same,
@@ -1035,13 +1038,21 @@ class Person(PathItem):
             currentDateTime = self.scene().currentDateTime()
         else:
             currentDateTime = QDateTime()
+        if self.scene().hideSARFGraphics():
+            anxiety = None
+            functioning = None
+            symptom = None
+        else:
+            anxiety = self.anxietyLevelNow()
+            functioning = self.functioningLevelNow()
+            symptom = self.symptomLevelNow()
         path = self.pathFor(
             self.gender(),
             self.pos(),
             primary=self.primary(),
-            anxiety=self.anxietyLevelNow(),
-            functioning=self.functioningLevelNow(),
-            symptom=self.symptomLevelNow(),
+            anxiety=anxiety,
+            functioning=functioning,
+            symptom=symptom,
         )
         rect = path.controlPointRect()
         ignoreDeath = (
@@ -1066,7 +1077,6 @@ class Person(PathItem):
                 path.lineTo(rect.bottomRight().x() - w, rect.bottomRight().y() - w)
         self.setPath(path)
 
-        functioning = self.functioningLevelNow()
         if functioning in (
             VariableShift.Down,
             VariableShift.Same,
