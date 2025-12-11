@@ -2,6 +2,14 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+
+## 2.1.14
+
+## 2.1.14b1
+
+- Fixed bug opening diagrams with error about `hideSARFGraphics`
+
+
 ## 2.1.13
 
 ## 2.1.13b1
