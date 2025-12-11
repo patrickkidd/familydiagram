@@ -935,7 +935,7 @@ class Person(PathItem):
             pen.setColor(util.contrastTo(brush.color()))
             self._delegate.setForceNoPaintBackground(True)
         else:
-            if self.scene().hideSARFGraphics():
+            if self.scene() and self.scene().hideSARFGraphics():
                 anxiety = None
             else:
                 anxiety = self.anxietyLevelNow()
@@ -1038,7 +1038,7 @@ class Person(PathItem):
             currentDateTime = self.scene().currentDateTime()
         else:
             currentDateTime = QDateTime()
-        if self.scene().hideSARFGraphics():
+        if self.scene() and self.scene().hideSARFGraphics():
             anxiety = None
             functioning = None
             symptom = None
