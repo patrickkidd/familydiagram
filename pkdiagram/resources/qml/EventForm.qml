@@ -419,6 +419,10 @@ Page {
                                       root.kind == util.EventKind.Separated ||
                                       root.kind == util.EventKind.Divorced) {
                                 'Partner 1'
+                            } else if(root.kind == util.EventKind.Shift && root.relationship == util.RelationshipKind.Overfunctioning) {
+                                'Overfunctioner'
+                            } else if(root.kind == util.EventKind.Shift && root.relationship == util.RelationshipKind.Underfunctioning) {
+                                'Underfunctioner'
                             } else {
                                 'Person'
                             }
@@ -711,9 +715,9 @@ Page {
                             } else if(root.relationship == util.RelationshipKind.Away) {
                                 "From"
                             } else if (root.relationship == util.RelationshipKind.DefinedSelf) {
-                                "Other(s)"
+                                "In relation to"
                             } else {
-                                "Other(s)"
+                                "Person 2"
                             }
                         }
                         visible: root.kind == util.EventKind.Shift && root.relationship != null

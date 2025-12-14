@@ -3,6 +3,14 @@
 All notable changes to Family Diagram are documented in this file.
 
 
+## 2.1.15
+
+## 2.1.15b1
+
+- Fixed bug where SARF shifts show on diagram for people other than the one
+  mover person in the event.
+
+
 ## 2.1.14
 
 ## 2.1.14b1
