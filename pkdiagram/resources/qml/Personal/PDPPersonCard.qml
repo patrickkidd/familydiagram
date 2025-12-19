@@ -7,6 +7,8 @@ import "../PK" 1.0 as PK
 Rectangle {
     id: root
 
+    anchors.fill: parent
+
     property var personData
     property var pdp
 

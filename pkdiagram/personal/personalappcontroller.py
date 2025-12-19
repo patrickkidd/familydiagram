@@ -3,7 +3,7 @@ import logging
 import pickle
 from typing import Callable
 
-from btcopilot.schema import EventKind, DiagramData, asdict
+from btcopilot.schema import EventKind, DiagramData, PDP, asdict, from_dict
 from pkdiagram.personal.commands import HandlePDPItem, PDPAction
 from _pkdiagram import CUtil
 from pkdiagram import pepper
@@ -397,7 +397,13 @@ class PersonalAppController(QObject):
                 return
 
             def onSuccess(data):
+                # Update local diagram with PDP from response
+                if data.get("pdp") and self._diagram:
+                    diagramData = self._diagram.getDiagramData()
+                    diagramData.pdp = from_dict(PDP, data["pdp"])
+                    self._diagram.setDiagramData(diagramData)
                 self.responseReceived.emit(data["statement"], data["pdp"])
+                self.pdpChanged.emit()
 
             args = {
                 "statement": statement,
@@ -598,7 +604,19 @@ class PersonalAppController(QObject):
         if self._diagram:
             diagramData = self._diagram.getDiagramData()
             if diagramData.pdp:
-                return asdict(diagramData.pdp)
+                result = asdict(diagramData.pdp)
+                # Include committed people from scene so QML can resolve relationshipTargets/Triangles
+                committedPeople = []
+                if self.scene:
+                    for person in self.scene.people():
+                        committedPeople.append(
+                            {"id": person.id(), "name": person.name()}
+                        )
+                result["committedPeople"] = committedPeople
+                _log.info(
+                    f"[PDP-DEBUG] pdp property {len(committedPeople)} committed people"
+                )
+                return result
         return {}
 
     @pyqtSlot()
