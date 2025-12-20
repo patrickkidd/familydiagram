@@ -5,6 +5,10 @@ All notable changes to Family Diagram are documented in this file.
 
 ## 2.1.15
 
+## 2.1.15b2
+
+- Fixed bug where birth events would disappear when the person being born was listed on any other events.
+
 ## 2.1.15b1
 
 - Fixed bug where SARF shifts show on diagram for people other than the one
