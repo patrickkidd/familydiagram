@@ -129,7 +129,7 @@ def test_onKindChanged_clears_pairbond_fields(scene, view):
         (RelationshipKind.Projection, "Focused"),
         (RelationshipKind.Toward, "To"),
         (RelationshipKind.Away, "From"),
-        (RelationshipKind.DefinedSelf, "Other(s)"),
+        (RelationshipKind.DefinedSelf, "In relation to"),
         (RelationshipKind.Inside, "Inside(s)"),
         (RelationshipKind.Outside, "Outside(s)"),
     ],

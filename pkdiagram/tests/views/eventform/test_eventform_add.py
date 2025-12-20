@@ -206,12 +206,11 @@ def test_flash_new_items(scene, view):
     personA = scene.query1(name="John", lastName="Doe")
     personB = scene.query1(name="Jane", lastName="Doe")
     emotion = scene.emotionsFor(personA)[0]
-    assert flash.call_count == 5
+    assert flash.call_count == 4
     assert flash.call_args_list[0][0][0] in personA.detailsText.extraTextItems
-    assert flash.call_args_list[1][0][0] in personB.detailsText.extraTextItems
-    assert flash.call_args_list[2][0][0] == personA
-    assert flash.call_args_list[3][0][0] == personB
-    assert flash.call_args_list[4][0][0] == emotion
+    assert flash.call_args_list[1][0][0] == personA
+    assert flash.call_args_list[2][0][0] == personB
+    assert flash.call_args_list[3][0][0] == emotion
 
 
 def test_PairBond_add_existing(scene, view):

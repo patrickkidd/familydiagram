@@ -471,18 +471,22 @@ class Scene(QGraphicsScene, Item):
                     if (
                         item.kind() == EventKind.Birth
                         and event.kind() == EventKind.Birth
+                        and event.child() == person
                         and event is not item
                     ):
                         birthEvent = event
                     elif (
                         item.kind() == EventKind.Death
                         and event.kind() == EventKind.Death
+                        and event.person() == person
                         and event is not item
                     ):
                         deathEvent = event
                 if birthEvent:
+                    log.warning(f"Removing duplicate Birth event: {birthEvent}")
                     self.removeItem(birthEvent)
                 if deathEvent:
+                    log.warning(f"Removing duplicate Death event: {deathEvent}")
                     self.removeItem(deathEvent)
 
             for person in item.people():
