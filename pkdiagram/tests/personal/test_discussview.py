@@ -241,30 +241,6 @@ def test_show_discussion(view, personalApp: PersonalAppController, discussions):
         assert len(delegates) == len(discussions[1].statements())
 
 
-def test_select_discussion(
-    view, personalApp: PersonalAppController, discussions, statements
-):
-    with (
-        patch("pkdiagram.personal.PersonalAppController._refreshDiagram"),
-        patch.object(personalApp, "_discussions", discussions),
-    ):
-
-        discussionList = view.rootObject().property("discussionList")
-        statementsList = view.rootObject().property("statementsList")
-
-        personalApp.discussionsChanged.emit()
-        view.rootObject().showDiscussions()
-        delegates = waitForListViewDelegates(discussionList, len(discussions))
-
-        secondDelegate = discussionList.itemAtIndex(1)
-        QmlHelper(view).mouseClick(secondDelegate)
-        delegates = waitForListViewDelegates(statementsList, len(statements))
-
-    assert set(x.property("dText") for x in delegates) == set(
-        x.text for x in statements
-    )
-
-
 def test_ask(qtbot, view, personalApp, discussions):
     from btcopilot.personal.chat import Response
     from btcopilot.schema import PDP

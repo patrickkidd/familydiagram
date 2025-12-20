@@ -22,7 +22,7 @@ Page {
 
     property var chatModel: chatModel
     property var textEdit: textEdit
-    property var submitButton: submitButton
+    property var submitButton: sendButton
     property var noChatLabel: noChatLabel
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet

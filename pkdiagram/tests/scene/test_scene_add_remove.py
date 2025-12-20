@@ -594,3 +594,112 @@ def test_drag_create_emotion(qtbot):
     assert emotion.person() == personA
     assert emotion.target() == personB
     assert emotion.kind() == RelationshipKind.Conflict
+
+
+def test_add_birth_event_not_removed_when_parent_has_birth(scene):
+    """
+    Regression test: A child's birth event should not be removed when adding
+    a birth event for the parent. The duplicate detection should only match
+    events where the person is the child, not where they are a parent.
+    """
+    father = scene.addItem(Person(name="Father"))
+    mother = scene.addItem(Person(name="Mother"))
+    marriage = scene.addItem(Marriage(father, mother))
+    child = scene.addItem(Person(name="Child"))
+    child.setParents(marriage)
+
+    # Add birth event for child (father is the "person" on this event)
+    childBirth = scene.addItem(
+        Event(
+            EventKind.Birth,
+            person=father,
+            spouse=mother,
+            child=child,
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    assert child.birthEvent() == childBirth
+    assert len(scene.eventsFor(child, kinds=EventKind.Birth)) == 1
+
+    # Now add birth event for father (father is the "child" on this event)
+    grandfather = scene.addItem(Person(name="Grandfather"))
+    grandmother = scene.addItem(Person(name="Grandmother"))
+    grandparentsMarriage = scene.addItem(Marriage(grandfather, grandmother))
+    father.setParents(grandparentsMarriage)
+
+    fatherBirth = scene.addItem(
+        Event(
+            EventKind.Birth,
+            person=grandfather,
+            spouse=grandmother,
+            child=father,
+            dateTime=util.Date(1970, 1, 1),
+        )
+    )
+
+    # Child's birth event should still exist (the key regression test)
+    assert child.birthEvent() == childBirth
+    assert len(scene.eventsFor(child, kinds=EventKind.Birth)) == 1
+
+    # Father's birth event should exist
+    assert father.birthEvent() == fatherBirth
+    # eventsFor returns all events involving father (as parent or child)
+    fatherBirthEvents = [
+        e for e in scene.eventsFor(father, kinds=EventKind.Birth) if e.child() == father
+    ]
+    assert len(fatherBirthEvents) == 1
+    assert fatherBirthEvents[0] == fatherBirth
+
+
+def test_add_duplicate_birth_event_replaces_first(scene):
+    """Adding a second birth event for the same child replaces the first."""
+    father = scene.addItem(Person(name="Father"))
+    mother = scene.addItem(Person(name="Mother"))
+    marriage = scene.addItem(Marriage(father, mother))
+    child = scene.addItem(Person(name="Child"))
+    child.setParents(marriage)
+
+    birth1 = scene.addItem(
+        Event(
+            EventKind.Birth,
+            person=father,
+            spouse=mother,
+            child=child,
+            dateTime=util.Date(2000, 1, 1),
+        )
+    )
+    assert child.birthEvent() == birth1
+
+    birth2 = scene.addItem(
+        Event(
+            EventKind.Birth,
+            person=father,
+            spouse=mother,
+            child=child,
+            dateTime=util.Date(2000, 6, 15),
+        )
+    )
+
+    # First birth should be replaced
+    assert birth1 not in scene.events()
+    assert child.birthEvent() == birth2
+    assert len(scene.eventsFor(child, kinds=EventKind.Birth)) == 1
+
+
+def test_add_duplicate_death_event_replaces_first(scene):
+    """Adding a second death event for the same person replaces the first."""
+    person = scene.addItem(Person(name="Person"))
+
+    death1 = scene.addItem(
+        Event(EventKind.Death, person=person, dateTime=util.Date(2020, 1, 1))
+    )
+    assert person.deathEvent() == death1
+
+    death2 = scene.addItem(
+        Event(EventKind.Death, person=person, dateTime=util.Date(2020, 6, 15))
+    )
+
+    # First death should be replaced
+    assert death1 not in scene.events()
+    assert person.deathEvent() == death2
+    assert len(scene.eventsFor(person, kinds=EventKind.Death)) == 1

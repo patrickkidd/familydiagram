@@ -112,7 +112,9 @@ def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
         assert personalApp._undoStack.canUndo()
 
         personalApp._undoStack.undo()
-        assert personalApp.pdp == asdict(initial_diagram_data.pdp)
+        expected = asdict(initial_diagram_data.pdp)
+        expected["committedPeople"] = []
+        assert personalApp.pdp == expected
         assert not personalApp._undoStack.canUndo()
         assert personalApp._undoStack.canRedo()
 
@@ -138,7 +140,9 @@ def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
         assert personalApp._undoStack.canUndo()
 
         personalApp._undoStack.undo()
-        assert personalApp.pdp == asdict(initial_diagram_data.pdp)
+        expected = asdict(initial_diagram_data.pdp)
+        expected["committedPeople"] = []
+        assert personalApp.pdp == expected
         assert not personalApp._undoStack.canUndo()
         assert personalApp._undoStack.canRedo()
 
@@ -172,10 +176,14 @@ def test_undo_stack_multiple_operations(test_user, personalApp: PersonalAppContr
         assert personalApp._undoStack.count() == 2
 
         personalApp._undoStack.undo()
-        assert personalApp.pdp == asdict(diagram_data2.pdp)
+        expected2 = asdict(diagram_data2.pdp)
+        expected2["committedPeople"] = []
+        assert personalApp.pdp == expected2
 
         personalApp._undoStack.undo()
-        assert personalApp.pdp == asdict(diagram_data1.pdp)
+        expected1 = asdict(diagram_data1.pdp)
+        expected1["committedPeople"] = []
+        assert personalApp.pdp == expected1
 
 
 def test_acceptPDPItem_failure_doesnt_push_to_stack(

@@ -90,9 +90,9 @@ def session():
 
 def _create_save_func(personalApp: PersonalAppController) -> Callable:
     def save(server, applyChange, stillValidAfterRefresh, useJson=False):
-        diagramData = personalApp.diagram.getDiagramData()
+        diagramData = personalApp._diagram.getDiagramData()
         diagramData = applyChange(diagramData)
-        personalApp.diagram.setDiagramData(diagramData)
+        personalApp._diagram.setDiagramData(diagramData)
         return True
 
     return save
@@ -131,14 +131,14 @@ def personalApp(qApp, session):
 
 def test_accept_person(personalApp):
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-1, undo=False)
 
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 1
     assert final_data.pdp.people[0].name == "Bob"
@@ -150,14 +150,14 @@ def test_accept_person(personalApp):
 
 def test_accept_event(personalApp):
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     assert len(final_data.pdp.events) == 0
     assert len(final_data.pdp.people) == 1
@@ -172,12 +172,12 @@ def test_accept_event(personalApp):
 
 
 def test_reject_person(personalApp):
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with patch.object(personalApp._diagram, "save", _create_save_func(personalApp)):
         result = personalApp.rejectPDPItem(-1, undo=False)
 
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 1
     assert final_data.pdp.people[0].name == "Bob"
@@ -188,12 +188,12 @@ def test_reject_person(personalApp):
 
 
 def test_reject_event(personalApp):
-    with patch.object(personalApp.diagram, "save", _create_save_func(personalApp)):
+    with patch.object(personalApp._diagram, "save", _create_save_func(personalApp)):
         result = personalApp.rejectPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     assert len(final_data.pdp.events) == 0
 
@@ -232,14 +232,14 @@ def test_accept_with_pair_bond(qApp, session):
     personalApp._diagram = diagram
 
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     assert len(final_data.pdp.people) == 0
     assert len(final_data.pdp.pair_bonds) == 0
@@ -295,13 +295,13 @@ def test_accept_event_after_person_already_committed(qApp, session):
 
     # First accept Bob (-2)
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-2, undo=False)
     assert result is True
 
-    mid_data = personalApp.diagram.getDiagramData()
+    mid_data = personalApp._diagram.getDiagramData()
     assert len(mid_data.pdp.people) == 1
     assert mid_data.pdp.people[0].name == "Alice"
     assert len(mid_data.people) == 1
@@ -312,13 +312,13 @@ def test_accept_event_after_person_already_committed(qApp, session):
     # Now accept the wedding event (-3) which references spouse=-2
     # This should work even though Bob is no longer in PDP
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     # Event and Alice should be committed
     assert len(final_data.pdp.events) == 0
@@ -372,13 +372,13 @@ def test_accept_event_with_spouse_both_in_pdp(qApp, session):
 
     # Accept wedding event - should transitively commit both Alice and Bob
     with (
-        patch.object(personalApp.diagram, "save", _create_save_func(personalApp)),
+        patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
         patch.object(personalApp, "_addCommittedItemsToScene"),
     ):
         result = personalApp.acceptPDPItem(-3, undo=False)
     assert result is True
 
-    final_data = personalApp.diagram.getDiagramData()
+    final_data = personalApp._diagram.getDiagramData()
 
     # All items should be committed
     assert len(final_data.pdp.people) == 0

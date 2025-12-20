@@ -7,6 +7,8 @@ import "../PK" 1.0 as PK
 Rectangle {
     id: root
 
+    anchors.fill: parent
+
     property var eventData
     property var pdp
 
@@ -46,10 +48,22 @@ Rectangle {
         if (!personId || !pdp || !pdp.people) {
             return ""
         }
-        for (var i = 0; i < pdp.people.length; i++) {
-            var p = pdp.people[i]
-            if (p.id === personId) {
-                return p.name || ""
+        // Check pending PDP people first (negative IDs)
+        if (pdp.people) {
+            for (var i = 0; i < pdp.people.length; i++) {
+                var p = pdp.people[i]
+                if (p.id === personId) {
+                    return p.name || ""
+                }
+            }
+        }
+        // Check committed people (positive IDs)
+        if (pdp.committedPeople) {
+            for (var i = 0; i < pdp.committedPeople.length; i++) {
+                var p = pdp.committedPeople[i]
+                if (p.id === personId) {
+                    return p.name || ""
+                }
             }
         }
         return ""

@@ -785,10 +785,15 @@ class Person(PathItem):
 
         self.variablesDatabase.clear()
         for event in self.events():
+            if event.person() is not self:
+                continue
+            symptomProp = event.prop("symptom")
+            anxietyProp = event.prop("anxiety")
+            functioningProp = event.prop("functioning")
             for prop in [
-                event.prop("symptom"),
-                event.prop("anxiety"),
-                event.prop("functioning"),
+                symptomProp,
+                anxietyProp,
+                functioningProp,
             ] + event.dynamicProperties:
                 if event.dateTime() and prop.isset():
                     attr = (
