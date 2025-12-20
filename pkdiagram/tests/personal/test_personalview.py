@@ -4,6 +4,9 @@ from mock import patch
 from pkdiagram.pyqt import QObject, pyqtSlot, QQuickWidget, QUrl, QQuickView
 from pkdiagram.util import Condition
 from pkdiagram.personal import PersonalAppController
+from pkdiagram.personal.models import Discussion, Statement, Speaker, SpeakerType
+from pkdiagram.tests.widgets.qmlwidgets import waitForListViewDelegates
+from pkdiagram import util
 
 
 class MockSession(QObject):
@@ -116,3 +119,56 @@ def list_qrc_contents():
 
     print("\nRecursive listing of resources:/qml/")
     list_recursive("resources:/qml")
+
+
+@pytest.fixture
+def statements():
+    expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
+    subject = Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject)
+    return [
+        Statement(id=1, text="hello 1", speaker=expert),
+        Statement(id=2, text="hello 2", speaker=subject),
+        Statement(id=3, text="hello 3", speaker=expert),
+        Statement(id=4, text="hello 4", speaker=subject),
+    ]
+
+
+@pytest.fixture
+def discussions(statements):
+    return [
+        Discussion(id=1, diagram_id=123, summary="my dog flew away", user_id=123),
+        Discussion(
+            id=2,
+            diagram_id=123,
+            summary="clouds ate my cake",
+            user_id=123,
+            statements=statements,
+        ),
+        Discussion(
+            id=3, diagram_id=123, summary="clouds ate my cake again", user_id=123
+        ),
+    ]
+
+
+def test_select_discussion(personalApp: PersonalAppController, discussions, statements):
+    with (
+        patch("pkdiagram.personal.PersonalAppController._refreshDiagram"),
+        patch.object(personalApp, "_discussions", discussions),
+    ):
+        root = personalApp._engine.rootObjects()[0]
+        personalView = root.property("personalView")
+        discussView = personalView.property("discussView")
+        statementsList = discussView.property("statementsList")
+
+        personalApp.discussionsChanged.emit()
+
+        # Select the second discussion (id=2) which has statements
+        personalApp.setCurrentDiscussion(2)
+        util.waitALittle()
+
+        # Verify statements are displayed
+        delegates = waitForListViewDelegates(statementsList, len(statements))
+
+    assert set(x.property("dText") for x in delegates) == set(
+        x.text for x in statements
+    )

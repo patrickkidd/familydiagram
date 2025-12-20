@@ -609,9 +609,7 @@ class PersonalAppController(QObject):
                 committedPeople = []
                 if self.scene:
                     for person in self.scene.people():
-                        committedPeople.append(
-                            {"id": person.id(), "name": person.name()}
-                        )
+                        committedPeople.append({"id": person.id, "name": person.name()})
                 result["committedPeople"] = committedPeople
                 _log.info(
                     f"[PDP-DEBUG] pdp property {len(committedPeople)} committed people"

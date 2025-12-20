@@ -82,7 +82,7 @@ def test_add_event_saves_diagram(personalApp):
     eventForm.property("startDateButtons").setProperty("dateTime", START_DATETIME)
 
     server = personalApp.session.server()
-    blockingRequestMock, captured = _createBlockingRequestMock(personalApp.diagram)
+    blockingRequestMock, captured = _createBlockingRequestMock(personalApp._diagram)
     with patch.object(server, "blockingRequest", blockingRequestMock):
         eventForm.done.emit()
         QApplication.processEvents()
@@ -124,7 +124,7 @@ def test_edit_event_saves_diagram(personalApp):
     eventForm.setProperty("symptom", VariableShift.Down.value)
 
     server = personalApp.session.server()
-    blockingRequestMock, captured = _createBlockingRequestMock(personalApp.diagram)
+    blockingRequestMock, captured = _createBlockingRequestMock(personalApp._diagram)
     with patch.object(server, "blockingRequest", blockingRequestMock):
         eventForm.done.emit()
         QApplication.processEvents()
