@@ -51,6 +51,7 @@ Page {
     property var startDateUnsure: startDatePicker.unsure
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
+    property var dateCertainty: dateCertaintyBox.currentValue()
     property var location: null
     property var symptom: symptomField.value
     property var anxiety: anxietyField.value
@@ -107,6 +108,8 @@ Page {
     property var isDateRangeBox: isDateRangeBox
     property var endDatePicker: endDatePicker
     property var endTimePicker: endTimePicker
+    property var dateCertaintyBox: dateCertaintyBox
+    property var dateCertaintyLabel: dateCertaintyLabel
 
     // Where
 
@@ -170,6 +173,7 @@ Page {
         endDatePicker.clear()
         isDateRangeBox.checked = false
         isDateRangeBox.dirty = false // Checkboxes need their own dirty attr
+        dateCertaintyBox.currentIndex = 2 // Default to "Certain"
 
         // Where
 
@@ -966,7 +970,7 @@ Page {
                         visible: isDateRangeLabel.visible
                         property var dirty: false
                         KeyNavigation.backtab: endDateButtons.lastTabItem
-                        KeyNavigation.tab: locationField
+                        KeyNavigation.tab: dateCertaintyBox
                         Layout.fillWidth: true
                         Layout.columnSpan: 1
                         onCheckedChanged: {
@@ -979,6 +983,53 @@ Page {
                             target: root
                             function onIsDateRangeChanged() { isDateRangeBox.checked = root.isDateRange }
                         }
+                    }
+
+                    PK.Text {
+                        id: dateCertaintyLabel
+                        text: "Certainty"
+                        visible: root.kind != null
+                    }
+
+                    PK.ComboBox {
+                        id: dateCertaintyBox
+                        objectName: "dateCertaintyBox"
+                        visible: dateCertaintyLabel.visible
+                        model: ListModel {
+                            ListElement { label: "Uncertain"; value: "uncertain" }
+                            ListElement { label: "Approximate"; value: "approximate" }
+                            ListElement { label: "Certain"; value: "certain" }
+                        }
+                        currentIndex: 2 // Default to "Certain"
+                        textRole: "label"
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        KeyNavigation.backtab: isDateRangeBox
+                        KeyNavigation.tab: locationField
+                        function setCurrentValue(value) {
+                            for (var i = 0; i < model.count; i++) {
+                                if (model.get(i).value === value) {
+                                    currentIndex = i;
+                                    return;
+                                }
+                            }
+                            currentIndex = 2; // Default to "Certain"
+                        }
+                        function clear() { currentIndex = 2 }
+                        function currentValue() {
+                            if (currentIndex == -1) {
+                                return "certain"
+                            } else {
+                                return model.get(currentIndex).value
+                            }
+                        }
+                    }
+
+                    PK.HelpText {
+                        text: "Uncertain: no date info. Approximate: within a year. Certain: exact date."
+                        visible: dateCertaintyLabel.visible
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
                     }
 
                     PK.FormDivider {

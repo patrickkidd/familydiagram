@@ -3,7 +3,7 @@ import logging
 import pytest
 import mock
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, DateCertainty
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Event
 
@@ -229,6 +229,44 @@ def test_inspectEmotionButton_hidden_when_multiple_events(scene, view):
     event2.setDateTime(util.Date(2023, 2, 1))
     view.view.editEvents([event1, event2])
     assert view.rootProp("inspectEmotionButton").property("visible") == False
+
+
+def test_dateCertainty_hidden_when_no_kind(view):
+    assert view.dateCertaintyBox.property("visible") == False
+    assert view.dateCertaintyLabel.property("visible") == False
+
+
+def test_dateCertainty_visible_when_kind_set(view):
+    view.set_kind(EventKind.Birth)
+    assert view.dateCertaintyBox.property("visible") == True
+    assert view.dateCertaintyLabel.property("visible") == True
+
+
+def test_dateCertainty_default_value(view):
+    view.set_kind(EventKind.Birth)
+    assert view.item.property("dateCertainty") == "certain"
+
+
+@pytest.mark.parametrize(
+    "certainty",
+    [DateCertainty.Uncertain, DateCertainty.Approximate, DateCertainty.Certain],
+    ids=["Uncertain", "Approximate", "Certain"],
+)
+def test_dateCertainty_set_value(view, certainty: DateCertainty):
+    view.set_kind(EventKind.Birth)
+    view.set_dateCertainty(certainty)
+    assert view.item.property("dateCertainty") == certainty.value
+
+
+def test_dateCertainty_saved_to_event(scene, view):
+    person = scene.addItem(Person(name="Jane", lastName="Doe"))
+    view.set_kind(EventKind.Death)
+    view.personPicker.set_existing_person(person)
+    view.set_startDateTime(util.Date(2023, 1, 1))
+    view.set_dateCertainty(DateCertainty.Approximate)
+    view.clickSaveButton()
+    event = scene.eventsFor(person)[0]
+    assert event.dateCertainty() == DateCertainty.Approximate
 
 
 # def test_add_new_people_pair_bond(view):

@@ -1,4 +1,5 @@
 import copy
+from enum import Enum
 
 
 class Property:
@@ -52,6 +53,8 @@ class Property:
         else:
             self.type = "default" in kwargs and type(self.default) or str
             kwargs["type"] = self.type
+        # Detect if type is an Enum subclass - store as string, convert on get/set
+        self._isEnum = isinstance(self.type, type) and issubclass(self.type, Enum)
 
     def __repr__(self):
         s = str(self.get()).replace("PyQt5.QtCore.", "")
@@ -108,8 +111,8 @@ class Property:
                 self._currentLayerValue = None
                 self._usingLayer = False
 
-    def get(self, forLayers=None):
-        """Cache value(s)."""
+    def getRaw(self, forLayers=None):
+        """Get raw stored value without enum conversion. Used by Item.write()."""
         ret = None
         if self.layered and forLayers:  # non-cached query
             # last active layer takes precidence
@@ -130,6 +133,13 @@ class Property:
                 ret = None
         return ret
 
+    def get(self, forLayers=None):
+        """Get value, converting to enum if applicable."""
+        ret = self.getRaw(forLayers)
+        if self._isEnum and ret is not None:
+            ret = self.type(ret)
+        return ret
+
     def _do_set(self, x, notify=True, forLayers=None, force=False):
         """Return True if value was changed, otherwise False.
         forLayers == None: current visible value
@@ -141,11 +151,14 @@ class Property:
         else:
             if self.type is type(None):
                 y = None
+            elif self._isEnum:
+                # Store enum as its string value for pickle compatibility
+                y = x.value if isinstance(x, Enum) else str(x)
             else:
                 y = self.type(x)
         if self.strip and y is not None:
             y = y.strip()
-        currentValue = self.get()
+        currentValue = self.getRaw()
         if force or y != currentValue:
             if forLayers is None:
                 layers = self._activeLayers

@@ -2,7 +2,7 @@ import logging
 
 from mock import patch
 
-from btcopilot.schema import EventKind, RelationshipKind, VariableShift
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram import util
 from pkdiagram.pyqt import (
     Q_RETURN_ARG,
@@ -84,6 +84,8 @@ class TestEventForm:
         self.endDatePicker = self.item.property("endDatePicker")
         self.endTimePicker = self.item.property("endTimePicker")
         self.isDateRangeBox = self.item.property("isDateRangeBox")
+        self.dateCertaintyBox = self.item.property("dateCertaintyBox")
+        self.dateCertaintyLabel = self.item.property("dateCertaintyLabel")
 
         # Where
 
@@ -296,6 +298,9 @@ class TestEventForm:
         # Re-set the checkbox since clicking into the text boxes seems to uncheck it
         if not self.item.property("isDateRange"):
             self.isDateRangeBox.setProperty("checked", True)
+
+    def set_dateCertainty(self, certainty: DateCertainty):
+        self.view.clickComboBoxItem(self.dateCertaintyBox, certainty.name, force=False)
 
     def set_notes(self, notes):
         self.view.keyClicksItem(self.notesEdit, notes, returnToFinish=False)

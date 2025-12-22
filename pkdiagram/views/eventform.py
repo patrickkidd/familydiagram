@@ -1,7 +1,7 @@
 import logging
 from typing import Union
 
-from btcopilot.schema import EventKind, RelationshipKind, VariableShift
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram.pyqt import (
     pyqtSignal,
     Q_RETURN_ARG,
@@ -199,6 +199,10 @@ class EventForm(QObject):
         if endDateTime:
             self.item.property("isDateRangeBox").setProperty("checked", True)
             self.item.property("endDateButtons").setProperty("dateTime", endDateTime)
+
+        dateCertainty = util.sameOf(events, lambda e: e.dateCertainty())
+        if dateCertainty is not None:
+            self.item.property("dateCertaintyBox").setCurrentValue(dateCertainty.value)
 
         # Set text fields only if all events agree
         description = util.sameOf(events, lambda e: e.description())
@@ -509,6 +513,11 @@ class EventForm(QObject):
         endDateTime = self.item.property("endDateTime")
         isDateRange = self.item.property("isDateRange")
         isDateRangeDirty = self.item.property("isDateRangeDirty")
+        dateCertaintyValue = self.item.property("dateCertainty")
+        if dateCertaintyValue:
+            dateCertainty = DateCertainty(dateCertaintyValue)
+        else:
+            dateCertainty = None
 
         # Where
 
@@ -617,6 +626,8 @@ class EventForm(QObject):
                     event.setEndDateTime(endDateTime, undo=True)
                 elif isDateRangeDirty and not isDateRange:
                     event.setEndDateTime(QDateTime(), undo=True)
+                if dateCertainty is not None and dateCertainty != event.dateCertainty():
+                    event.setDateCertainty(dateCertainty, undo=True)
                 if symptom is not None and symptom != event.symptom():
                     event.setSymptom(symptom, undo=True)
                 if anxiety is not None and anxiety != event.anxiety():
@@ -695,6 +706,8 @@ class EventForm(QObject):
 
             if endDateTime:
                 kwargs["endDateTime"] = endDateTime
+            if dateCertainty is not None:
+                kwargs["dateCertainty"] = dateCertainty
             if symptom is not None:
                 kwargs["symptom"] = symptom
             if anxiety is not None:

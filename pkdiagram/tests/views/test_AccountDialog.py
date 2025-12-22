@@ -88,7 +88,6 @@ def test_saved_session_one_license(flask_app, test_session, test_license, create
     assert test_session.user.username in dlg.itemProp("accountUsername", "text")
 
 
-@pytest.mark.real_passwords
 def test_register(flask_app, qtbot, create_dlg, qmlEngine):
 
     # 1. Enter email
@@ -159,7 +158,6 @@ def test_register(flask_app, qtbot, create_dlg, qmlEngine):
     assert user.status == "confirmed"
 
 
-@pytest.mark.real_passwords
 def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     flask_app.config["STRIPE_ENABLED"] = False
     test_user.status = "pending"
@@ -219,7 +217,6 @@ def test_register_pending(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     assert user.status == "confirmed"
 
 
-@pytest.mark.real_passwords
 def test_reset_password(flask_app, test_user, qtbot, create_dlg, qmlEngine):
     flask_app.config["STRIPE_ENABLED"] = False
 
