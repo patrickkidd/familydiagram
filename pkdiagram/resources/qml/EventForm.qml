@@ -381,7 +381,6 @@ Page {
                                 // print('setCurrentValue: ' + i + ' / ' + model.get(i).value + ' == ' + value)
                                 if (model.get(i).value === value) {
                                     currentIndex = i;
-                                    print
                                     return;
                                 }
                             }
@@ -996,7 +995,7 @@ Page {
                         objectName: "dateCertaintyBox"
                         visible: dateCertaintyLabel.visible
                         model: ListModel {
-                            ListElement { label: "Uncertain"; value: "uncertain" }
+                            ListElement { label: "Unknown"; value: "unknown" }
                             ListElement { label: "Approximate"; value: "approximate" }
                             ListElement { label: "Certain"; value: "certain" }
                         }
@@ -1023,13 +1022,6 @@ Page {
                                 return model.get(currentIndex).value
                             }
                         }
-                    }
-
-                    PK.HelpText {
-                        text: "Uncertain: no date info. Approximate: within a year. Certain: exact date."
-                        visible: dateCertaintyLabel.visible
-                        Layout.columnSpan: 2
-                        Layout.fillWidth: true
                     }
 
                     PK.FormDivider {
