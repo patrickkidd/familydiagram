@@ -249,8 +249,8 @@ def test_dateCertainty_default_value(view):
 
 @pytest.mark.parametrize(
     "certainty",
-    [DateCertainty.Uncertain, DateCertainty.Approximate, DateCertainty.Certain],
-    ids=["Uncertain", "Approximate", "Certain"],
+    [DateCertainty.Unknown, DateCertainty.Approximate, DateCertainty.Certain],
+    ids=["Unknown", "Approximate", "Certain"],
 )
 def test_dateCertainty_set_value(view, certainty: DateCertainty):
     view.set_kind(EventKind.Birth)
