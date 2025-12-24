@@ -960,7 +960,7 @@ Page {
                     PK.Text {
                         id: isDateRangeLabel
                         text: " "
-                        visible: root.kind != null
+                        visible: root.kind == util.EventKind.Shift && Global.isValidDateTime(root.startDateTime)
                     }
 
                     PK.CheckBox {
@@ -987,7 +987,7 @@ Page {
                     PK.Text {
                         id: dateCertaintyLabel
                         text: "Certainty"
-                        visible: root.kind != null
+                        visible: Global.isValidDateTime(root.startDateTime)
                     }
 
                     PK.ComboBox {
