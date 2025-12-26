@@ -173,7 +173,7 @@ Page {
         endDatePicker.clear()
         isDateRangeBox.checked = false
         isDateRangeBox.dirty = false // Checkboxes need their own dirty attr
-        dateCertaintyBox.currentIndex = 2 // Default to "Certain"
+        dateCertaintyBox.currentIndex = 1 // Default to "Approximate"
 
         // Where
 
@@ -999,7 +999,7 @@ Page {
                             ListElement { label: "Approximate"; value: "approximate" }
                             ListElement { label: "Certain"; value: "certain" }
                         }
-                        currentIndex: 2 // Default to "Certain"
+                        currentIndex: 1 // Default to "Approximate"
                         textRole: "label"
                         Layout.maximumWidth: root.fieldWidth
                         Layout.minimumWidth: root.fieldWidth
@@ -1012,9 +1012,9 @@ Page {
                                     return;
                                 }
                             }
-                            currentIndex = 2; // Default to "Certain"
+                            currentIndex = 1; // Default to "Approximate"
                         }
-                        function clear() { currentIndex = 2 }
+                        function clear() { currentIndex = 1 }
                         function currentValue() {
                             if (currentIndex == -1) {
                                 return "certain"
