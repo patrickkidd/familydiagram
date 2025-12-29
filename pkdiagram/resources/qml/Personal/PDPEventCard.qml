@@ -45,15 +45,15 @@ Rectangle {
     ].indexOf(eventData.kind) !== -1
 
     function resolvePersonName(personId) {
-        if (!personId || !pdp || !pdp.people) {
+        if (personId === null || personId === undefined || !pdp) {
             return ""
         }
         // Check pending PDP people first (negative IDs)
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
                 var p = pdp.people[i]
-                if (p.id === personId) {
-                    return p.name || ""
+                if (p.id == personId) {
+                    return p.name || p.last_name || ""
                 }
             }
         }
@@ -61,12 +61,16 @@ Rectangle {
         if (pdp.committedPeople) {
             for (var i = 0; i < pdp.committedPeople.length; i++) {
                 var p = pdp.committedPeople[i]
-                if (p.id === personId) {
+                if (p.id == personId) {
                     return p.name || ""
                 }
             }
         }
-        return ""
+        // Fallback: Check if personId matches a PDP person with no name
+        console.log("[resolvePersonName] Not found: personId=" + personId +
+                    ", pdp.people=" + JSON.stringify(pdp.people ? pdp.people.map(function(p) { return {id: p.id, name: p.name}; }) : []) +
+                    ", committedPeople=" + JSON.stringify(pdp.committedPeople ? pdp.committedPeople.map(function(p) { return {id: p.id, name: p.name}; }) : []))
+        return "Person #" + personId
     }
 
     function resolvePersonNames(personIds) {
@@ -86,6 +90,15 @@ Rectangle {
     function formatDateTime(dt) {
         if (!dt) return ""
         return dt
+    }
+
+    function formatDateWithCertainty(dt, certainty) {
+        if (!dt) return ""
+        var dateStr = dt
+        if (certainty && certainty !== "certain") {
+            dateStr += " (" + dateCertaintyLabel(certainty) + ")"
+        }
+        return dateStr
     }
 
     function hasValue(val) {
@@ -118,6 +131,26 @@ Rectangle {
             'defined-self': "Defined Self"
         }
         return labels[val] || ""
+    }
+
+    function dateCertaintyLabel(val) {
+        if (val === "unknown") return "Unknown"
+        if (val === "approximate") return "Approximate"
+        if (val === "certain") return "Certain"
+        return ""
+    }
+
+    function variableColor(val, isFunctioning) {
+        // Functioning semantics inverted: up=good(green), down=bad(red)
+        if (isFunctioning) {
+            if (val === util.VARIABLE_SHIFT_UP) return "#27ae60"
+            if (val === util.VARIABLE_SHIFT_DOWN) return "#e74c3c"
+        } else {
+            if (val === util.VARIABLE_SHIFT_UP) return "#e74c3c"
+            if (val === util.VARIABLE_SHIFT_DOWN) return "#27ae60"
+        }
+        if (val === util.VARIABLE_SHIFT_SAME) return "#95a5a6"
+        return util.QML_TEXT_COLOR
     }
 
     function eventKindLabel(kind) {
@@ -246,28 +279,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isShiftEvent && eventData !== null && eventData !== undefined && hasValue(eventData.description)
-
-                        Text {
-                            text: "Description"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: eventData ? (eventData.description || "") : ""
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.person) && resolvePersonName(eventData.person) !== ""
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.person)
 
                         Text {
                             text: "Person"
@@ -330,38 +342,17 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.dateTime)
+                        visible: isShiftEvent && eventData !== null && eventData !== undefined && hasValue(eventData.description)
 
                         Text {
-                            text: "Date"
+                            text: "Description"
                             font.pixelSize: 10
                             font.bold: true
                             color: util.QML_TEXT_COLOR
                             opacity: 0.7
                         }
                         Text {
-                            text: formatDateTime(eventData ? eventData.dateTime : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.endDateTime)
-
-                        Text {
-                            text: "End Date"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: formatDateTime(eventData ? eventData.endDateTime : null)
+                            text: eventData ? (eventData.description || "") : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -384,7 +375,8 @@ Rectangle {
                         Text {
                             text: variableLabel(eventData ? eventData.symptom : null)
                             font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
+                            color: variableColor(eventData ? eventData.symptom : null, false)
+                            font.bold: true
                             Layout.fillWidth: true
                         }
                     }
@@ -404,27 +396,8 @@ Rectangle {
                         Text {
                             text: variableLabel(eventData ? eventData.anxiety : null)
                             font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: isShiftEvent && eventData && hasSarfValue(eventData.functioning)
-
-                        Text {
-                            text: "Functioning"
-                            font.pixelSize: 10
+                            color: variableColor(eventData ? eventData.anxiety : null, false)
                             font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: variableLabel(eventData ? eventData.functioning : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
                             Layout.fillWidth: true
                         }
                     }
@@ -484,6 +457,69 @@ Rectangle {
                         }
                         Text {
                             text: resolvePersonNames(eventData ? eventData.relationshipTriangles : [])
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: isShiftEvent && eventData && hasSarfValue(eventData.functioning)
+
+                        Text {
+                            text: "Functioning"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: variableLabel(eventData ? eventData.functioning : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: variableColor(eventData ? eventData.functioning : null, true)
+                            font.bold: true
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.dateTime)
+
+                        Text {
+                            text: "Date"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: formatDateWithCertainty(eventData ? eventData.dateTime : null, eventData ? eventData.dateCertainty : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.endDateTime)
+
+                        Text {
+                            text: "End Date"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: formatDateTime(eventData ? eventData.endDateTime : null)
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap

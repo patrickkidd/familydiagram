@@ -10,8 +10,8 @@ import "./Personal" 1.0 as Personal
 ApplicationWindow {
     id: root
     visible: true
-    width: 400
-    height: 600
+    width: 393
+    height: 852
 
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     color: util.QML_WINDOW_BG
