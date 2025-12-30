@@ -7,12 +7,9 @@ _log = logging.getLogger(__name__)
 try:
     from PyQt5.QtSensors import QAccelerometer, QAccelerometerReading
 
-    print("QAccelerometer is available.")
-
     HAS_SENSORS = True
 except ImportError:
     HAS_SENSORS = False
-    print("QAccelerometer is NOT available.")
 
 
 class ShakeDetector(QObject):
@@ -64,7 +61,6 @@ class ShakeDetector(QObject):
             if delta > self.THRESHOLD:
                 self._inCooldown = True
                 self._cooldownTimer.start(self.COOLDOWN_MS)
-                print(f"Shake detected with delta: {delta:.2f}")
                 self.shakeDetected.emit()
 
         self._prevReading = (x, y, z)

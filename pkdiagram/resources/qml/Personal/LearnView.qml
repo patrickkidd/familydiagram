@@ -469,12 +469,13 @@ Page {
                 // Swipeable content
                 Rectangle {
                     id: contentRow
-                    x: swipeX
+                    x: delegateRoot.swipeX
                     width: parent.width
                     height: parent.height
                     color: selectedEvent === index ? highlightColor : bgColor
 
                     Behavior on x {
+                        enabled: !swipeArea.pressed
                         NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                     }
 
@@ -483,41 +484,66 @@ Page {
                         anchors.fill: parent
                         property real startX: 0
                         property real startSwipeX: 0
+                        property bool isDragging: false
 
                         onPressed: {
                             startX = mouse.x
-                            startSwipeX = swipeX
+                            startSwipeX = delegateRoot.swipeX
+                            isDragging = false
                         }
 
                         onPositionChanged: {
                             var delta = mouse.x - startX
-                            var newX = startSwipeX + delta
-
-                            // Close other swiped items
-                            if (Math.abs(delta) > 10 && swipedEvent !== index && swipedEvent !== -1) {
-                                swipedEvent = -1
+                            if (Math.abs(delta) > 10) {
+                                isDragging = true
                             }
 
-                            // Clamp swipe range
-                            swipeX = Math.max(-actionWidth, Math.min(actionWidth, newX))
+                            if (isDragging) {
+                                var newX = startSwipeX + delta
+
+                                // Close other swiped items
+                                if (swipedEvent !== index && swipedEvent !== -1) {
+                                    swipedEvent = -1
+                                }
+
+                                // Clamp swipe range
+                                delegateRoot.swipeX = Math.max(-actionWidth, Math.min(actionWidth, newX))
+                            }
                         }
 
                         onReleased: {
                             var threshold = actionWidth * 0.4
-                            if (swipeX > threshold) {
-                                swipeX = actionWidth
+                            if (delegateRoot.swipeX > threshold) {
+                                delegateRoot.swipeX = actionWidth
                                 swipedEvent = index
-                            } else if (swipeX < -threshold) {
-                                swipeX = -actionWidth
+                            } else if (delegateRoot.swipeX < -threshold) {
+                                delegateRoot.swipeX = -actionWidth
                                 swipedEvent = index
                             } else {
-                                swipeX = 0
+                                delegateRoot.swipeX = 0
                                 if (swipedEvent === index) swipedEvent = -1
                             }
+                            isDragging = false
+                        }
+
+                        onCanceled: {
+                            // Reset to nearest snap position on cancel
+                            var threshold = actionWidth * 0.4
+                            if (delegateRoot.swipeX > threshold) {
+                                delegateRoot.swipeX = actionWidth
+                                swipedEvent = index
+                            } else if (delegateRoot.swipeX < -threshold) {
+                                delegateRoot.swipeX = -actionWidth
+                                swipedEvent = index
+                            } else {
+                                delegateRoot.swipeX = 0
+                                if (swipedEvent === index) swipedEvent = -1
+                            }
+                            isDragging = false
                         }
 
                         onClicked: {
-                            if (Math.abs(swipeX) < 5) {
+                            if (!isDragging && Math.abs(delegateRoot.swipeX) < 5) {
                                 // Reset any swiped item
                                 if (swipedEvent !== -1) {
                                     swipedEvent = -1
@@ -539,8 +565,8 @@ Page {
                     Connections {
                         target: root
                         function onSwipedEventChanged() {
-                            if (swipedEvent !== index && swipeX !== 0) {
-                                swipeX = 0
+                            if (swipedEvent !== index && delegateRoot.swipeX !== 0) {
+                                delegateRoot.swipeX = 0
                             }
                         }
                     }
