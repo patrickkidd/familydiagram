@@ -502,12 +502,16 @@ Page {
         }
     }
 
-    // Connect LearnView add event signal
+    // Connect LearnView signals
     Connections {
         target: learnView
         function onAddEventRequested() {
             eventForm.clear()
             eventForm.initWithNoSelection()
+            eventFormDrawer.open()
+        }
+        function onEditEventRequested(eventId) {
+            personalApp.editEvent(eventId)
             eventFormDrawer.open()
         }
     }

@@ -9,6 +9,7 @@ Page {
     objectName: "learnView"
 
     signal addEventRequested
+    signal editEventRequested(int eventId)
 
     property int selectedEvent: -1
     property int highlightedEvent: -1
@@ -552,14 +553,24 @@ Page {
                     }
                 }
 
-                // Chevron
+                // Chevron / Edit link
                 Text {
                     anchors.right: parent.right
                     anchors.rightMargin: 20
                     anchors.verticalCenter: parent.verticalCenter
-                    text: selectedEvent === index ? "\u25BC" : "\u25B6"
-                    font.pixelSize: 12
-                    color: textSecondary
+                    text: selectedEvent === index ? "Edit" : "\u25B6"
+                    font.pixelSize: selectedEvent === index ? 13 : 12
+                    color: selectedEvent === index ? util.QML_SELECTION_COLOR : textSecondary
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -8
+                        enabled: selectedEvent === index
+                        onClicked: {
+                            selectedEvent = -1
+                            editEventRequested(evt.id)
+                        }
+                    }
                 }
             }
         }

@@ -179,3 +179,36 @@ def test_save_preserves_pdp(personalApp):
     assert "pdp" in serverData
     assert len(serverData["pdp"]["people"]) == 1
     assert serverData["pdp"]["people"][0]["name"] == "PendingPerson"
+
+
+def test_edit_event_via_learn_view(personalApp):
+    scene = personalApp.scene
+    person = scene.addItem(Person(name="Test", lastName="Person"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=START_DATETIME,
+            description="Original",
+            symptom=VariableShift.Up,
+        )
+    )
+
+    root = personalApp._engine.rootObjects()[0]
+    personalContainer = root.property("personalView")
+    eventForm = personalContainer.property("eventForm")
+    eventFormDrawer = personalContainer.property("eventFormDrawer")
+    learnView = personalContainer.property("learnView")
+
+    # Trigger edit via Learn view signal
+    learnView.editEventRequested.emit(event.id)
+    QApplication.processEvents()
+
+    assert eventForm.property("isEditing")
+    assert eventFormDrawer.property("visible")
+
+    eventForm.setProperty("description", "Edited via Learn")
+    personalApp.eventForm.onDone()
+    QApplication.processEvents()
+
+    assert event.description() == "Edited via Learn"

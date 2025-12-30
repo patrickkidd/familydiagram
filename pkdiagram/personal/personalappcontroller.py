@@ -123,6 +123,14 @@ class PersonalAppController(QObject):
             if self.scene:
                 self.eventForm.setScene(self.scene)
 
+    @pyqtSlot(int)
+    def editEvent(self, eventId: int):
+        if not self.eventForm or not self.scene:
+            return
+        event = self.scene.find(id=eventId)
+        if event:
+            self.eventForm.editEvents([event])
+
     def saveDiagram(self):
         if not self._diagram or not self.scene:
             return False
