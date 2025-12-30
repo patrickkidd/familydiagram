@@ -30,6 +30,7 @@ from pkdiagram.scene import Scene, Person, Event, Marriage, Emotion
 from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
 from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
+from pkdiagram.personal.shakedetector import ShakeDetector
 
 _log = logging.getLogger(__name__)
 
@@ -75,6 +76,8 @@ class PersonalAppController(QObject):
         self.pdpChanged.connect(self.sarfGraphModel.refresh)
         self.eventForm = None  # EventForm (from PersonalContainer drawer)
         self._pendingScene: Scene | None = None
+        self.shakeDetector = ShakeDetector(self)
+        self.shakeDetector.shakeDetected.connect(self.undo)
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())
@@ -96,6 +99,7 @@ class PersonalAppController(QObject):
             self.session.init()
 
     def deinit(self):
+        self.shakeDetector.stop()
         self.pdpChanged.disconnect(self.sarfGraphModel.refresh)
         self.sarfGraphModel.deinit()
         self.analytics.init()
@@ -137,7 +141,13 @@ class PersonalAppController(QObject):
             return
         event = self.scene.find(id=eventId)
         if event:
-            self.scene.removeItem(event)
+            self.scene.removeItem(event, undo=True)
+            self.saveDiagram()
+
+    @pyqtSlot()
+    def undo(self):
+        if self.scene:
+            self.scene.undo()
             self.saveDiagram()
 
     def saveDiagram(self):
@@ -189,8 +199,10 @@ class PersonalAppController(QObject):
 
         if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
+            self.shakeDetector.start()
         else:
             self.appConfig.delete("lastSessionData")
+            self.shakeDetector.stop()
         self.appConfig.write()
 
         if not self.session.user:

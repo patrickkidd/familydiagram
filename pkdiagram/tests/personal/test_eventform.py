@@ -239,3 +239,37 @@ def test_delete_event_via_learn_view(personalApp):
 
     assert len(scene.eventsFor(person)) == 0
     assert scene.find(id=eventId) is None
+
+
+def test_undo_delete_event(personalApp):
+    scene = personalApp.scene
+    person = scene.addItem(Person(name="Test", lastName="Person"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=START_DATETIME,
+            description="Will be restored",
+            symptom=VariableShift.Up,
+        )
+    )
+    eventId = event.id
+
+    root = personalApp._engine.rootObjects()[0]
+    personalContainer = root.property("personalView")
+    learnView = personalContainer.property("learnView")
+
+    assert len(scene.eventsFor(person)) == 1
+
+    learnView.deleteEventRequested.emit(eventId)
+    QApplication.processEvents()
+
+    assert len(scene.eventsFor(person)) == 0
+
+    personalApp.undo()
+    QApplication.processEvents()
+
+    assert len(scene.eventsFor(person)) == 1
+    restored = scene.find(id=eventId)
+    assert restored is not None
+    assert restored.description() == "Will be restored"

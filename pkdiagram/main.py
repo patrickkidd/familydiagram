@@ -177,6 +177,15 @@ def _main_impl():
             sys.exit(1)
         extensions.setActiveSession(session=controller.session)
 
+        # Dev menu for desktop testing (not on iOS/bundled builds)
+        devMenu = None
+        if util.IS_DEV and not util.IS_BUNDLE:
+            from pkdiagram.personal.devmenu import PersonalDevMenu
+
+            devMenu = PersonalDevMenu(controller)
+            devMenu.menuBar.setNativeMenuBar(True)
+            devMenu.menuBar.show()
+
         # Start test bridge server if requested
         testBridgeServer = None
         if util.IS_DEV and options.test_server:
