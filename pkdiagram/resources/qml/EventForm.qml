@@ -29,6 +29,7 @@ Page {
     property var addButton: addButton
     property var clearButton: clearButton
     property var cancelButton: cancelButton
+    property bool showClearButton: true
 
     // Keys.onPressed: {
     //     // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -256,7 +257,7 @@ Page {
             id: clearButton
             text: "Clear"
             x: cancelButton.x + width + margin
-            visible: root.isEditing == false
+            visible: root.showClearButton && root.isEditing == false
             onClicked: root.clear()
         }
         PK.Label {

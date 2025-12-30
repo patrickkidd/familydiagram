@@ -26,8 +26,6 @@ Page {
     property var noChatLabel: noChatLabel
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet
-    property var eventDrawer: eventDrawer
-    property var eventForm: eventForm
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -97,42 +95,6 @@ Page {
     function clear() {
         chatModel.clear()
     }
-
-    function showEventForm() {
-        eventDrawer.open()
-    }
-
-    Popup {
-        id: eventDrawer
-        width: parent.width
-        height: parent.height
-        modal: true
-        closePolicy: Popup.CloseOnEscape
-        parent: Overlay.overlay
-        padding: 0
-
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
-            NumberAnimation { property: "y"; from: parent.height; to: 0; duration: 250; easing.type: Easing.OutQuad }
-        }
-
-        exit: Transition {
-            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
-            NumberAnimation { property: "y"; from: 0; to: parent.height; duration: 250; easing.type: Easing.InQuad }
-        }
-
-        Root.EventForm {
-            id: eventForm
-            anchors.fill: parent
-            onCancel: eventDrawer.close()
-        }
-
-        background: Rectangle {
-            color: util.QML_WINDOW_BG
-        }
-    }
-
-
 
     ColumnLayout {
         anchors.fill: parent

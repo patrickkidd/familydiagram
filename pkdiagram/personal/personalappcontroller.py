@@ -45,6 +45,7 @@ class PersonalAppController(QObject):
     diagramChanged = pyqtSignal()
     diagramsChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
+    eventFormDoneEditing = pyqtSignal()
 
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
@@ -72,7 +73,7 @@ class PersonalAppController(QObject):
         self.peopleModel = PeopleModel(self)
         self.sarfGraphModel = SARFGraphModel(self)
         self.pdpChanged.connect(self.sarfGraphModel.refresh)
-        self.eventForm = None
+        self.eventForm = None  # EventForm (from PersonalContainer drawer)
         self._pendingScene: Scene | None = None
 
     def init(self, engine: QQmlEngine):
@@ -104,22 +105,23 @@ class PersonalAppController(QObject):
         self._engine = None
 
     def onQmlObjectCreated(self, rootObject: QQuickItem, url: QUrl):
-        if not self.eventForm:
-            self.eventForm = EventForm(
-                rootObject.property("personalView")
-                .property("discussView")
-                .property("eventForm"),
-                self,
-            )
-            self.eventForm.saved.connect(self.onEventFormSaved)
-            if self._pendingScene:
-                self.setScene(self._pendingScene)
-                self._pendingScene = None
-            else:
-                self.eventForm.setScene(self.scene)
+        if self._pendingScene:
+            self.setScene(self._pendingScene)
+            self._pendingScene = None
+        elif self.eventForm and self.scene:
+            self.eventForm.setScene(self.scene)
 
     def onEventFormSaved(self):
         self.saveDiagram()
+
+    @pyqtSlot(QQuickItem)
+    def initEventForm(self, eventFormItem: QQuickItem):
+        if self.eventForm is None:
+            self.eventForm = EventForm(eventFormItem, self)
+            self.eventForm.saved.connect(self.onEventFormSaved)
+            self.eventForm.doneEditing.connect(self.eventFormDoneEditing)
+            if self.scene:
+                self.eventForm.setScene(self.scene)
 
     def saveDiagram(self):
         if not self._diagram or not self.scene:
@@ -609,7 +611,9 @@ class PersonalAppController(QObject):
                 committedPeople = []
                 if self.scene:
                     for person in self.scene.people():
-                        committedPeople.append({"id": person.id, "name": person.fullNameOrAlias()})
+                        committedPeople.append(
+                            {"id": person.id, "name": person.fullNameOrAlias()}
+                        )
                 result["committedPeople"] = committedPeople
                 return result
         return {}

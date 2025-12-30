@@ -70,8 +70,8 @@ class EventForm(QObject):
     def __init__(self, item: QQuickItem, parent=None):
         super().__init__(parent=parent)
         self.item = item
-        self.item.done.connect(self.onDone)
-        self.item.cancel.connect(self.onCancel)
+        self.item.done.connect(lambda: self.onDone())
+        self.item.cancel.connect(lambda: self.onCancel())
         self._tagsModel: TagsModel = self.item.property("tagsModel")
         self._events = []
         self._dummyItems = []

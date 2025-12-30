@@ -8,6 +8,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
+import ".." 1.0 as Root
 import "." 1.0 as Personal
 
 
@@ -21,6 +22,8 @@ Page {
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
     property var drawer: drawer
+    property var eventFormDrawer: eventFormDrawer
+    property var eventForm: eventForm
     property var pdpSheet: discussView.pdpSheet
 
     property bool discussionMenuOpen: false
@@ -157,7 +160,7 @@ Page {
             visible: tabBar.currentIndex !== 0
         }
 
-        // PDP Badge
+        // PDP Badge (Discuss tab only)
         Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 12
@@ -166,7 +169,7 @@ Page {
             height: 28
             radius: 14
             color: "#FF3B30"
-            visible: pdpCount > 0
+            visible: pdpCount > 0 && tabBar.currentIndex === 0
 
             Text {
                 anchors.centerIn: parent
@@ -178,6 +181,31 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: pdpSheet.open()
+            }
+        }
+
+        // Add Event button (Learn tab only)
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: accentColor
+            visible: tabBar.currentIndex === 1
+
+            Text {
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: -1
+                text: "+"
+                font.pixelSize: 20
+                font.weight: Font.Normal
+                color: "#ffffff"
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: learnView.addEventRequested()
             }
         }
     }
@@ -453,6 +481,42 @@ Page {
                     helpPopup.open()
                 }
             }
+        }
+    }
+
+    // Bottom sheet for EventForm (like PDPSheet)
+    Drawer {
+        id: eventFormDrawer
+        width: parent.width
+        height: parent.height
+        edge: Qt.BottomEdge
+
+        background: Rectangle { color: drawerBg }
+
+        Root.EventForm {
+            id: eventForm
+            anchors.fill: parent
+            showClearButton: false
+            onCancel: eventFormDrawer.close()
+            Component.onCompleted: personalApp.initEventForm(eventForm)
+        }
+    }
+
+    // Connect LearnView add event signal
+    Connections {
+        target: learnView
+        function onAddEventRequested() {
+            eventForm.clear()
+            eventForm.initWithNoSelection()
+            eventFormDrawer.open()
+        }
+    }
+
+    // Connect PersonalApp event form done signal
+    Connections {
+        target: personalApp
+        function onEventFormDoneEditing() {
+            eventFormDrawer.close()
         }
     }
 

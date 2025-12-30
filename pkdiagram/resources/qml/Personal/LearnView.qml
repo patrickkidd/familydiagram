@@ -8,6 +8,8 @@ Page {
     id: root
     objectName: "learnView"
 
+    signal addEventRequested
+
     property int selectedEvent: -1
     property int highlightedEvent: -1
     property int pendingSelection: -1

@@ -602,6 +602,7 @@ def personKindIndexFromKind(kind) -> int:
     for i, v in enumerate(PERSON_KINDS):
         if v["kind"] == kind:
             return i
+    return 0
 
 
 def personSizeFromIndex(index) -> int:
