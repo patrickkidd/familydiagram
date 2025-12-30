@@ -212,3 +212,30 @@ def test_edit_event_via_learn_view(personalApp):
     QApplication.processEvents()
 
     assert event.description() == "Edited via Learn"
+
+
+def test_delete_event_via_learn_view(personalApp):
+    scene = personalApp.scene
+    person = scene.addItem(Person(name="Test", lastName="Person"))
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=START_DATETIME,
+            description="To be deleted",
+            symptom=VariableShift.Up,
+        )
+    )
+    eventId = event.id
+
+    root = personalApp._engine.rootObjects()[0]
+    personalContainer = root.property("personalView")
+    learnView = personalContainer.property("learnView")
+
+    assert len(scene.eventsFor(person)) == 1
+
+    learnView.deleteEventRequested.emit(eventId)
+    QApplication.processEvents()
+
+    assert len(scene.eventsFor(person)) == 0
+    assert scene.find(id=eventId) is None

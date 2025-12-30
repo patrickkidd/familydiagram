@@ -131,6 +131,15 @@ class PersonalAppController(QObject):
         if event:
             self.eventForm.editEvents([event])
 
+    @pyqtSlot(int)
+    def deleteEvent(self, eventId: int):
+        if not self.scene:
+            return
+        event = self.scene.find(id=eventId)
+        if event:
+            self.scene.removeItem(event)
+            self.saveDiagram()
+
     def saveDiagram(self):
         if not self._diagram or not self.scene:
             return False

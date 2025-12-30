@@ -514,6 +514,9 @@ Page {
             personalApp.editEvent(eventId)
             eventFormDrawer.open()
         }
+        function onDeleteEventRequested(eventId) {
+            personalApp.deleteEvent(eventId)
+        }
     }
 
     // Connect PersonalApp event form done signal
