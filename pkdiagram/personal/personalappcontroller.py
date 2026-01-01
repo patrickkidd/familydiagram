@@ -22,6 +22,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QInputDialog,
     QUndoStack,
+    QVariant,
 )
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
@@ -47,6 +48,9 @@ class PersonalAppController(QObject):
     diagramsChanged = pyqtSignal()
     statementsChanged = pyqtSignal()
     eventFormDoneEditing = pyqtSignal()
+
+    journalImportCompleted = pyqtSignal(QVariant, arguments=["summary"])
+    journalImportFailed = pyqtSignal(str, arguments=["error"])
 
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
@@ -723,3 +727,32 @@ class PersonalAppController(QObject):
             self.pdpChanged.emit()
         else:
             _log.warning(f"Failed to update PDP item {id} after retries")
+
+    ## Journal Import
+
+    @pyqtSlot(str)
+    def importJournalNotes(self, text: str):
+        if not self._diagram:
+            self.journalImportFailed.emit("No diagram loaded")
+            return
+
+        def onSuccess(data):
+            if data.get("pdp") and self._diagram:
+                diagramData = self._diagram.getDiagramData()
+                diagramData.pdp = from_dict(PDP, data["pdp"])
+                self._diagram.setDiagramData(diagramData)
+            self.pdpChanged.emit()
+            self.journalImportCompleted.emit(data.get("summary", {}))
+
+        def onError():
+            self.journalImportFailed.emit(reply.errorString())
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            f"/personal/diagrams/{self._diagram.id}/import-text",
+            data={"text": text},
+            error=onError,
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )

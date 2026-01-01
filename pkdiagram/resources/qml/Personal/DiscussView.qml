@@ -90,6 +90,13 @@ Page {
                 pdpSheet.updateItems()
             }
         }
+        function onJournalImportCompleted(summary) {
+            util.informationBox("Import Complete",
+                "Added " + summary.people + " people, " + summary.events + " events to pending items.")
+        }
+        function onJournalImportFailed(error) {
+            util.criticalBox("Import Failed", error)
+        }
     }
 
     function clear() {
@@ -334,6 +341,8 @@ Page {
                             }
                         }
 
+                        property int prevTextLength: 0
+
                         Keys.onReturnPressed: {
                             if (event.modifiers & Qt.ShiftModifier) {
                                 event.accepted = false
@@ -341,6 +350,25 @@ Page {
                                 inputField.submit()
                                 event.accepted = true
                             }
+                        }
+
+                        onTextChanged: {
+                            // Detect paste: large text delta in single change (works on iOS and desktop)
+                            var delta = text.length - prevTextLength
+                            if (delta > 20 && prevTextLength === 0) {
+                                var pastedText = text
+                                text = ""
+                                prevTextLength = 0
+                                if (util.questionBox("Import Journal Notes?",
+                                    "Import as bulk data instead of chat message?")) {
+                                    personalApp.importJournalNotes(pastedText)
+                                } else {
+                                    text = pastedText
+                                    prevTextLength = pastedText.length
+                                }
+                                return
+                            }
+                            prevTextLength = text.length
                         }
                     }
                 }

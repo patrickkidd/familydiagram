@@ -262,3 +262,63 @@ def test_diagram_save_shows_error_on_unexpected_status(test_user):
         assert mock_critical.call_count == 1
         args = mock_critical.call_args[0]
         assert "500" in args[2]
+
+
+def test_importJournalNotes_emits_summary_dict_with_correct_keys(
+    test_user, personalApp: PersonalAppController
+):
+    from btcopilot.schema import DiagramData, PDP, PDPDeltas, Event, EventKind
+    from unittest.mock import AsyncMock
+    from pkdiagram.pyqt import QMessageBox
+
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=test_user.free_diagram_id,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    mock_pdp = PDP(
+        people=[Person(id=-1, name="TestPerson"), Person(id=-2, name="Mom")],
+        events=[Event(id=-3, kind=EventKind.Shift, description="called")],
+    )
+    mock_deltas = PDPDeltas(
+        people=[Person(id=-1, name="TestPerson"), Person(id=-2, name="Mom")],
+        events=[Event(id=-3, kind=EventKind.Shift, description="called")],
+        pair_bonds=[],
+    )
+
+    with (
+        patch(
+            "btcopilot.pdp.import_text",
+            AsyncMock(return_value=(mock_pdp, mock_deltas)),
+        ),
+        patch.object(QMessageBox, "information") as info_mock,
+    ):
+        completed = util.Condition(personalApp.journalImportCompleted)
+        personalApp.importJournalNotes("Some journal text")
+        assert completed.wait()
+
+    summary = completed.callArgs[0][0]
+    assert "people" in summary, f"'people' key missing from summary: {summary}"
+    assert "events" in summary, f"'events' key missing from summary: {summary}"
+    assert "pairBonds" in summary, f"'pairBonds' key missing from summary: {summary}"
+    assert summary["people"] == 2
+    assert summary["events"] == 1
+    assert summary["pairBonds"] == 0
+
+
+def test_importJournalNotes_no_diagram(test_user, personalApp: PersonalAppController):
+    from pkdiagram.pyqt import QMessageBox
+
+    personalApp._diagram = None
+
+    failed = util.Condition(personalApp.journalImportFailed)
+
+    with patch.object(QMessageBox, "critical"):
+        personalApp.importJournalNotes("Some journal text")
+        assert failed.wait()
+
+    assert "No diagram loaded" in failed.callArgs[0][0]
