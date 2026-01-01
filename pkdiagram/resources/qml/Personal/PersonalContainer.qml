@@ -491,6 +491,7 @@ Page {
         width: parent.width
         height: parent.height
         edge: Qt.BottomEdge
+        interactive: false  // Disable drag-to-close so Flickable can scroll
 
         background: Rectangle { color: drawerBg }
 
