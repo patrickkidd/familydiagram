@@ -55,6 +55,7 @@ ApplicationWindow {
             id: personalView
             anchors.fill: parent
             safeAreaTop: root.safeAreaTop
+            safeAreaBottom: root.safeAreaBottom
         }
     }
 }

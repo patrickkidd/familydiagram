@@ -23,6 +23,10 @@ Page {
     property bool canInspect: false
     property var selectedPeopleModel: ListModel {}
 
+    // Safe area support for iPhone notch/home indicator
+    property real safeAreaTop: 0
+    property real safeAreaBottom: 0
+
     // Controls
 
     property var addPage: addPage
@@ -246,6 +250,7 @@ Page {
     }
 
     header: PK.ToolBar {
+        safeAreaTop: root.safeAreaTop
         PK.ToolButton {
             id: cancelButton
             text: 'Cancel'
@@ -296,7 +301,8 @@ Page {
             clip: true
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: pageInner.height
+            contentHeight: pageInner.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
 
             function scrollToTop() { contentY = 0 }
 
@@ -304,11 +310,10 @@ Page {
 
                 id: pageInner
                 width: parent.width
+                height: implicitHeight
 
-                MouseArea {
-                    width: parent.width
-                    height: parent.height
-                    onClicked: parent.forceActiveFocus()
+                TapHandler {
+                    onTapped: parent.forceActiveFocus()
                 }
 
                 GridLayout {
@@ -1191,6 +1196,13 @@ Page {
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
                         visible: sceneModel && sceneModel.isInEditorMode
+                    }
+
+                    // Bottom safe area spacer for iPhone home indicator
+                    Item {
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.safeAreaBottom
                     }
 
                 }

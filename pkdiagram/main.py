@@ -258,8 +258,7 @@ def main():
         _main_impl()
     except Exception as e:
 
-        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
-        error_log_path = os.path.join(desktop_dir, "startup_errors.txt")
+        error_log_path = os.path.join(os.path.expanduser("~"), "startup_errors.txt")
 
         from . import version
 

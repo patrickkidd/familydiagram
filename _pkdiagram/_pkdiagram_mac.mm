@@ -31,6 +31,13 @@ static NSURL *SparkleFeedURL = nil;
 #include <unistd.h>
 #include <sys/sysctl.h>
 
+#if TARGET_OS_IOS
+// iOS requires CALayer modifications on main thread; force single-threaded render loop
+__attribute__((constructor)) static void setRenderLoopForIOS() {
+    setenv("QSG_RENDER_LOOP", "basic", 0);
+}
+#endif
+
 static bool AmIBeingDebugged(void)
 // Returns true if the current process is being debugged (either
 // running under the debugger or has a debugger attached post facto).
@@ -991,7 +998,7 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
 - (NSURL *)localRoot {
     if (_localRoot == nil) {
         NSArray * paths = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
-        _localRoot = [paths objectAtIndex:0];
+        self.localRoot = [paths objectAtIndex:0];
     }
     return _localRoot;
 }

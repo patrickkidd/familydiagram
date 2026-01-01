@@ -507,6 +507,10 @@ class Server(QObject):
             secret, verb, content_md5, _headers["Content-Type"], date, resource
         )
         request.setRawHeader(b"FD-Client-Version", bytes(version.VERSION, "utf-8"))
+        request.setRawHeader(
+            b"FD-Client-App-Type",
+            bytes(QApplication.instance().appType().value, "utf-8"),
+        )
         auth_header = btcopilot.httpAuthHeader(user, signature)
         request.setRawHeader(b"FD-Authentication", bytes(auth_header, "utf-8"))
         request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)

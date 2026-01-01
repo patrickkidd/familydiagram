@@ -29,6 +29,7 @@ Page {
     property bool discussionMenuOpen: false
     property int pdpCount: 0
     property real safeAreaTop: 0
+    property real safeAreaBottom: 0
 
     // Colors
     property color headerBg: util.QML_HEADER_BG
@@ -496,6 +497,8 @@ Page {
         Root.EventForm {
             id: eventForm
             anchors.fill: parent
+            safeAreaTop: root.safeAreaTop
+            safeAreaBottom: Qt.inputMethod.visible ? 0 : root.safeAreaBottom
             showClearButton: false
             onCancel: eventFormDrawer.close()
             Component.onCompleted: personalApp.initEventForm(eventForm)
