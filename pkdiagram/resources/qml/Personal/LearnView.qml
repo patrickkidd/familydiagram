@@ -33,7 +33,7 @@ Page {
 
     // Graph properties
     property real graphPadding: 20
-    property real miniGraphY: 90
+    property real miniGraphY: 20
     property real miniGraphH: 100
     property real gLeft: graphPadding + 30
     property real gRight: width - graphPadding
@@ -224,16 +224,10 @@ Page {
             height: miniGraphY + miniGraphH + 80
             color: cardColor
 
+            // Date range label
             Text {
-                x: 20; y: 20
-                text: "The Story"
-                font.pixelSize: 24
-                font.weight: Font.Bold
-                color: textPrimary
-            }
-
-            Text {
-                x: 20; y: 48
+                x: graphPadding + 8
+                y: 8
                 text: sarfGraphModel ? (sarfGraphModel.yearStart + " - " + sarfGraphModel.yearEnd) : ""
                 font.pixelSize: 12
                 color: textSecondary

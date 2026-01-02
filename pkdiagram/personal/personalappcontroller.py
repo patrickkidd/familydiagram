@@ -728,6 +728,54 @@ class PersonalAppController(QObject):
         else:
             _log.warning(f"Failed to update PDP item {id} after retries")
 
+    ## Clear Diagram Data
+
+    @pyqtSlot(bool)
+    def clearDiagramData(self, clearPeople: bool):
+        """Clear diagram data, preserving discussions and default people (ID 1, 2)."""
+        if not self._diagram or not self.scene:
+            return
+
+        _log.info(f"Clearing diagram data (clearPeople={clearPeople})")
+
+        # Clear local scene - use scene's typed accessors
+        for event in list(self.scene.events()):
+            self.scene.removeItem(event)
+
+        if clearPeople:
+            for emotion in list(self.scene.emotions()):
+                self.scene.removeItem(emotion)
+            for marriage in list(self.scene.marriages()):
+                self.scene.removeItem(marriage)
+            for person in list(self.scene.people()):
+                if person.id not in (1, 2):
+                    self.scene.removeItem(person)
+
+        # Clear server diagram data
+        def applyChange(diagramData: DiagramData):
+            diagramData.events = []
+            diagramData.pdp = None
+            if clearPeople:
+                diagramData.people = [
+                    p for p in diagramData.people if p.get("id") in (1, 2)
+                ]
+                diagramData.pair_bonds = []
+                diagramData.emotions = []
+            return diagramData
+
+        def stillValidAfterRefresh(diagramData: DiagramData):
+            return True
+
+        success = self._diagram.save(
+            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
+        )
+
+        if success:
+            self.pdpChanged.emit()
+            _log.info("Diagram data cleared successfully")
+        else:
+            _log.warning("Failed to clear diagram data")
+
     ## Journal Import
 
     @pyqtSlot(str)
