@@ -303,13 +303,38 @@ Page {
                     width: root.width / 3
                     height: parent.height
                     color: "transparent"
+
                     Text {
+                        id: tabLabel
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: 15
                         font.weight: tabBar.currentIndex === index ? Font.DemiBold : Font.Normal
                         color: tabBar.currentIndex === index ? accentColor : secondaryText
                     }
+
+                    // iOS-style notification badge (Discuss tab only)
+                    Rectangle {
+                        visible: index === 0 && pdpCount > 0
+                        anchors.left: tabLabel.right
+                        anchors.leftMargin: 2
+                        anchors.bottom: tabLabel.top
+                        anchors.bottomMargin: -6
+                        width: Math.max(18, badgeText.width + 8)
+                        height: 18
+                        radius: 9
+                        color: "#FF3B30"
+
+                        Text {
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: pdpCount > 99 ? "99+" : pdpCount.toString()
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: "white"
+                        }
+                    }
+
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
