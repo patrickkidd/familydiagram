@@ -305,7 +305,7 @@ Drawer {
 
         SwipeView {
             id: cardStack
-            Layout.fillWidth: true
+            width: root.width - util.QML_MARGINS * 2
             Layout.fillHeight: true
             Layout.margins: util.QML_MARGINS
             clip: true
