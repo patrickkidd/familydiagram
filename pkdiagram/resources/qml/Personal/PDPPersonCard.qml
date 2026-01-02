@@ -31,40 +31,6 @@ Rectangle {
         color: "#40000000"
     }
 
-    function resolveParentNames() {
-        if (!personData || !personData.parents || !pdp || !pdp.pair_bonds) {
-            return ""
-        }
-        for (var i = 0; i < pdp.pair_bonds.length; i++) {
-            var pb = pdp.pair_bonds[i]
-            if (pb.id === personData.parents) {
-                var nameA = resolvePersonName(pb.person_a)
-                var nameB = resolvePersonName(pb.person_b)
-                if (nameA && nameB) {
-                    return nameA + " & " + nameB
-                } else if (nameA) {
-                    return nameA
-                } else if (nameB) {
-                    return nameB
-                }
-            }
-        }
-        return ""
-    }
-
-    function resolvePersonName(personId) {
-        if (!personId || !pdp || !pdp.people) {
-            return ""
-        }
-        for (var i = 0; i < pdp.people.length; i++) {
-            var p = pdp.people[i]
-            if (p.id === personId) {
-                return p.name || ""
-            }
-        }
-        return ""
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
@@ -207,7 +173,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: resolveParentNames() !== ""
+                        visible: personData !== null && personData !== undefined && personData.parents !== null && personData.parents !== undefined && personalApp.resolveParentNames(personData.parents) !== ""
 
                         Text {
                             text: "Parents"
@@ -217,7 +183,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: resolveParentNames()
+                            text: personalApp ? personalApp.resolveParentNames(personData ? personData.parents : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap

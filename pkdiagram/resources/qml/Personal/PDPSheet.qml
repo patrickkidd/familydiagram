@@ -127,44 +127,6 @@ Drawer {
         tutorialOverlay.visible = false
     }
 
-    function resolvePersonName(personId) {
-        if (personId === null || personId === undefined || !pdp) return ""
-        // Check pending PDP people first (negative IDs)
-        if (pdp.people) {
-            for (var i = 0; i < pdp.people.length; i++) {
-                var p = pdp.people[i]
-                if (p.id == personId) {
-                    return p.name || p.last_name || ""
-                }
-            }
-        }
-        // Check committed people (positive IDs)
-        if (pdp.committedPeople) {
-            for (var i = 0; i < pdp.committedPeople.length; i++) {
-                var p = pdp.committedPeople[i]
-                if (p.id == personId) {
-                    return p.name || ""
-                }
-            }
-        }
-        return "Person #" + personId
-    }
-
-    function eventKindLabel(kind) {
-        if (!kind) return "Event"
-        if (kind === util.EventKind.Bonded) return "Bonded"
-        if (kind === util.EventKind.Married) return "Married"
-        if (kind === util.EventKind.Birth) return "Birth"
-        if (kind === util.EventKind.Adopted) return "Adopted"
-        if (kind === util.EventKind.Moved) return "Moved"
-        if (kind === util.EventKind.Separated) return "Separated"
-        if (kind === util.EventKind.Divorced) return "Divorced"
-        if (kind === util.EventKind.Death) return "Death"
-        if (kind === util.EventKind.Shift) return "Shift"
-        if (kind === util.EventKind.Custom) return "Event"
-        return "Event"
-    }
-
     function eventKindColor(kind) {
         if (!kind) return util.QML_INACTIVE_TEXT_COLOR
         if (kind === util.EventKind.Bonded) return "#FF69B4"
@@ -263,22 +225,32 @@ Drawer {
         }
     }
 
+    Rectangle {
+        id: dragHandle
+        width: 40
+        height: 4
+        radius: 2
+        color: util.QML_ITEM_BORDER_COLOR
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 8
+    }
+
     ColumnLayout {
-        anchors.fill: parent
+        id: contentLayout
+        width: root.width
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
         spacing: 0
 
-        Rectangle {
+        Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 4
-            Layout.topMargin: 8
-            Layout.leftMargin: parent.width / 2 - 20
-            Layout.rightMargin: parent.width / 2 - 20
-            radius: 2
-            color: util.QML_ITEM_BORDER_COLOR
+            Layout.preferredHeight: 20
         }
 
         RowLayout {
-            Layout.fillWidth: true
+            Layout.maximumWidth: root.width - util.QML_MARGINS * 2
             Layout.preferredHeight: 50
             Layout.margins: util.QML_MARGINS
 
@@ -495,7 +467,7 @@ Drawer {
 
                         Text {
                             anchors.centerIn: parent
-                            text: eventKindLabel(root.editingItem ? root.editingItem.kind : null)
+                            text: personalApp.eventKindLabel(root.editingItem ? root.editingItem.kind : null)
                             font.pixelSize: 11
                             font.bold: true
                             color: "white"
@@ -595,7 +567,7 @@ Drawer {
                         PK.TextField {
                             id: editEventPersonField
                             Layout.fillWidth: true
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.person : null)
+                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.person : null)
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -615,7 +587,7 @@ Drawer {
                         PK.TextField {
                             id: editEventSpouseField
                             Layout.fillWidth: true
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.spouse : null)
+                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.spouse : null)
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -635,7 +607,7 @@ Drawer {
                         PK.TextField {
                             id: editEventChildField
                             Layout.fillWidth: true
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.child : null)
+                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.child : null)
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }

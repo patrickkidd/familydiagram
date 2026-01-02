@@ -3,7 +3,16 @@ import logging
 import pickle
 from typing import Callable
 
-from btcopilot.schema import EventKind, DiagramData, PDP, asdict, from_dict
+from btcopilot.schema import (
+    EventKind,
+    DiagramData,
+    PDP,
+    asdict,
+    from_dict,
+    VariableShift,
+    RelationshipKind,
+    DateCertainty,
+)
 from pkdiagram.personal.commands import HandlePDPItem, PDPAction
 from _pkdiagram import CUtil
 from pkdiagram import pepper
@@ -188,6 +197,8 @@ class PersonalAppController(QObject):
         self.sarfGraphModel.scene = scene
         if self.eventForm:
             self.eventForm.setScene(scene)
+        # Re-emit pdpChanged so committedPeople gets populated from the scene
+        self.pdpChanged.emit()
 
     def exec(self, mw):
         self.app.exec()
@@ -650,6 +661,105 @@ class PersonalAppController(QObject):
                 result["committedPeople"] = committedPeople
                 return result
         return {}
+
+    # PDP helper slots - model lookups and enum mappings
+
+    @pyqtSlot(int, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def resolvePersonName(self, personId: int | None) -> str:
+        if personId is None:
+            return ""
+        if not self._diagram:
+            return f"Person #{personId}"
+        diagramData = self._diagram.getDiagramData()
+        if diagramData.pdp:
+            for p in diagramData.pdp.people:
+                if p.id == personId:
+                    return p.name or p.last_name or ""
+        if self.scene:
+            for person in self.scene.people():
+                if person.id == personId:
+                    return person.fullNameOrAlias()
+        return f"Person #{personId}"
+
+    @pyqtSlot("QVariantList", result=str)
+    def resolvePersonNames(self, personIds: list[int]) -> str:
+        if not personIds:
+            return ""
+        names = [self.resolvePersonName(pid) for pid in personIds if pid is not None]
+        return ", ".join(n for n in names if n)
+
+    @pyqtSlot(int, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def resolveParentNames(self, parentsId: int | None) -> str:
+        if parentsId is None:
+            return ""
+        if not self._diagram:
+            return ""
+        diagramData = self._diagram.getDiagramData()
+        if not diagramData.pdp:
+            return ""
+        for pb in diagramData.pdp.pair_bonds:
+            if pb.id == parentsId:
+                nameA = self.resolvePersonName(pb.person_a) if pb.person_a else ""
+                nameB = self.resolvePersonName(pb.person_b) if pb.person_b else ""
+                if nameA and nameB:
+                    return f"{nameA} & {nameB}"
+                return nameA or nameB
+        return ""
+
+    @pyqtSlot(str, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def eventKindLabel(self, kind: str | None) -> str:
+        if not kind:
+            return "Event"
+        labels = {
+            EventKind.Bonded.value: "Bonded",
+            EventKind.Married.value: "Married",
+            EventKind.Birth.value: "Birth",
+            EventKind.Adopted.value: "Adopted",
+            EventKind.Moved.value: "Moved",
+            EventKind.Separated.value: "Separated",
+            EventKind.Divorced.value: "Divorced",
+            EventKind.Shift.value: "Shift",
+            EventKind.Death.value: "Death",
+        }
+        return labels.get(kind, "Event")
+
+    @pyqtSlot(str, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def variableLabel(self, val: str | None) -> str:
+        if not val:
+            return ""
+        labels = {
+            VariableShift.Up.value: "Up",
+            VariableShift.Down.value: "Down",
+            VariableShift.Same.value: "Same",
+        }
+        return labels.get(val, "")
+
+    @pyqtSlot(str, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def relationshipLabel(self, val: str | None) -> str:
+        if not val:
+            return ""
+        try:
+            kind = RelationshipKind(val)
+            return kind.menuLabel()
+        except ValueError:
+            return ""
+
+    @pyqtSlot(str, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def dateCertaintyLabel(self, val: str | None) -> str:
+        if not val:
+            return ""
+        labels = {
+            DateCertainty.Unknown.value: "Unknown",
+            DateCertainty.Approximate.value: "Approximate",
+            DateCertainty.Certain.value: "Certain",
+        }
+        return labels.get(val, "")
 
     @pyqtSlot()
     def acceptAllPDPItems(self):
