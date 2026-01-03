@@ -11,8 +11,6 @@ from typing import Optional, Dict, Any, List, Union
 
 
 class AppState(str, Enum):
-    """Application process state (analogous to OS process states)."""
-
     Initializing = "initializing"
     Running = "running"
     Stopped = "stopped"
@@ -20,22 +18,16 @@ class AppState(str, Enum):
 
 
 class AppLoginState(str, Enum):
-    """Login state as observed from the app UI. Only valid when AppState is Running."""
-
     AccountDialogVisible = "account_dialog_visible"
     NotLoggedIn = "not_logged_in"
     LoggedIn = "logged_in"
 
 
 class AppView(str, Enum):
-    """Current view shown in the app. Only valid when AppState is Running."""
-
-    # Pro app views
     FileManager = "file_manager"
     DocumentView = "document_view"
     AccountView = "account_view"
     WelcomeView = "welcome_view"
-    # Personal app views
     DiscussView = "discuss_view"
     LearnView = "learn_view"
     PlanView = "plan_view"
@@ -48,6 +40,7 @@ from pkdiagram.pyqt import (
     QApplication,
     QQuickItem,
     QQuickWidget,
+    QQuickWindow,
     QGraphicsView,
     QGraphicsItem,
     QPoint,
@@ -70,16 +63,6 @@ log = logging.getLogger(__name__)
 
 
 class QtInspector:
-    """
-    Inspects Qt objects and provides element finding/interaction.
-
-    This class enables:
-    - Finding widgets and QML items by objectName
-    - Listing all elements in the UI hierarchy
-    - Getting element properties and geometry
-    - Simulating input on elements
-    """
-
     def __init__(self, app: Optional[QApplication] = None):
         self._app = app or QApplication.instance()
 
@@ -92,24 +75,46 @@ class QtInspector:
         Get high-level semantic app state for MCP testing.
         Fails fast on unexpected states - this is a dev tool, not production code.
         """
-        # Find MainWindow - required for running state
+        # Try Pro app first (MainWindow widget)
         mainWindow = None
         for window in self._app.topLevelWidgets():
             if type(window).__name__ == "MainWindow":
                 mainWindow = window
                 break
 
-        if mainWindow is None:
-            return {
-                "success": True,
-                "state": {
-                    "appState": AppState.Initializing.value,
-                    "loginState": None,
-                    "currentView": None,
-                },
-            }
+        if mainWindow is not None:
+            return self._getProAppState(mainWindow)
 
-        # Collect visible dialogs
+        # Try Personal app (QQuickWindow from QQmlApplicationEngine)
+        personalWindow = self._findPersonalAppWindow()
+        if personalWindow is not None:
+            return self._getPersonalAppState(personalWindow)
+
+        # Neither app type found - still initializing
+        return {
+            "success": True,
+            "state": {
+                "appState": AppState.Initializing.value,
+                "loginState": None,
+                "currentView": None,
+            },
+        }
+
+    def _findPersonalAppWindow(self) -> Optional[QQuickWindow]:
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow):
+                rootItem = window.contentItem()
+                if rootItem:
+                    for child in rootItem.childItems():
+                        if child.objectName() == "personalView" or "PersonalContainer" in type(child).__name__:
+                            return window
+                    # Check if window has personalApp context property
+                    if window.property("personalView") is not None:
+                        return window
+                return window
+        return None
+
+    def _getProAppState(self, mainWindow) -> Dict[str, Any]:
         visibleDialogs = []
         for window in self._app.topLevelWidgets():
             if window.isVisible():
@@ -121,7 +126,6 @@ class QtInspector:
                         "title": window.windowTitle() or None,
                     })
 
-        # Determine loginState - no defensive coding, let it fail if session doesn't exist
         session = mainWindow.session
         if any(d["className"] == "AccountDialog" for d in visibleDialogs):
             loginState = AppLoginState.AccountDialogVisible.value
@@ -130,22 +134,18 @@ class QtInspector:
         else:
             loginState = AppLoginState.NotLoggedIn.value
 
-        # Determine currentView for Pro app
         currentView = None
         loadedFileName = None
 
-        # Check for dialogs that define the view
         if any(d["className"] == "AccountDialog" for d in visibleDialogs):
             currentView = AppView.AccountView.value
         elif any(d["className"] == "WelcomeDialog" for d in visibleDialogs):
             currentView = AppView.WelcomeView.value
         else:
-            # Pro app: FileManager vs DocumentView
             fileManager = mainWindow.fileManager
             documentView = mainWindow.documentView
 
             if fileManager.isVisible() and documentView.isVisible():
-                # Both visible - check positions
                 if fileManager.pos().x() == 0:
                     currentView = AppView.FileManager.value
                 else:
@@ -157,7 +157,6 @@ class QtInspector:
             else:
                 raise RuntimeError("Neither fileManager nor documentView is visible")
 
-            # Get loaded file if in DocumentView
             if currentView == AppView.DocumentView.value:
                 doc = mainWindow.scene.document()
                 if doc:
@@ -169,12 +168,81 @@ class QtInspector:
             "success": True,
             "state": {
                 "appState": AppState.Running.value,
+                "appType": "pro",
                 "loginState": loginState,
                 "currentView": currentView,
                 "loadedFileName": loadedFileName,
                 "visibleDialogs": visibleDialogs,
             },
         }
+
+    def _getPersonalAppState(self, window: QQuickWindow) -> Dict[str, Any]:
+        rootItem = window.contentItem()
+
+        personalContainer = self._findQmlItemByType(rootItem, "PersonalContainer")
+
+        session = None
+        personalApp = None
+
+        for child in rootItem.childItems():
+            if "ApplicationWindow" in type(child).__name__ or child.property("personalView") is not None:
+                engine = child.property("__engine")
+                if engine:
+                    ctx = engine.rootContext()
+                    session = ctx.contextProperty("session")
+                    personalApp = ctx.contextProperty("personalApp")
+                break
+
+        loginState = None
+        currentView = None
+
+        accountDialog = self._findQmlItemInChildren(rootItem, "AccountDialog")
+        if accountDialog and accountDialog.isVisible():
+            loginState = AppLoginState.AccountDialogVisible.value
+            currentView = AppView.AccountView.value
+        elif personalContainer:
+            tabBar = personalContainer.property("tabBar")
+
+            if tabBar is not None and tabBar.property("visible"):
+                loginState = AppLoginState.LoggedIn.value
+                tabIndex = tabBar.property("currentIndex")
+                if tabIndex == 0:
+                    currentView = AppView.DiscussView.value
+                elif tabIndex == 1:
+                    currentView = AppView.LearnView.value
+                elif tabIndex == 2:
+                    currentView = AppView.PlanView.value
+            else:
+                loginState = AppLoginState.NotLoggedIn.value
+        else:
+            loginState = AppLoginState.NotLoggedIn.value
+
+        return {
+            "success": True,
+            "state": {
+                "appState": AppState.Running.value,
+                "appType": "personal",
+                "loginState": loginState,
+                "currentView": currentView,
+                "loadedFileName": None,
+                "visibleDialogs": [],
+            },
+        }
+
+    def _findQmlItemByType(self, parent: QQuickItem, typeName: str) -> Optional[QQuickItem]:
+        if parent is None:
+            return None
+
+        className = type(parent).__name__
+        if typeName in className:
+            return parent
+
+        for child in parent.childItems():
+            result = self._findQmlItemByType(child, typeName)
+            if result is not None:
+                return result
+
+        return None
 
     # -------------------------------------------------------------------------
     # Element Finding
@@ -280,10 +348,23 @@ class QtInspector:
         return None
 
     def _getQmlRoots(self) -> List[QQuickItem]:
-        """Get all QML root items."""
+        """Get all QML root items from both widgets and windows."""
         roots = []
+
+        # Collect from QQuickWidgets embedded in widgets
         for window in self._app.topLevelWidgets():
             self._collectQmlRoots(window, roots)
+
+        # Collect from QQuickWindows (Personal app uses QQmlApplicationEngine)
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow):
+                contentItem = window.contentItem()
+                if contentItem is not None:
+                    # Add all direct children of contentItem as roots
+                    for child in contentItem.childItems():
+                        if child not in roots:
+                            roots.append(child)
+
         return roots
 
     def _collectQmlRoots(self, widget: QWidget, roots: List[QQuickItem]):
@@ -534,6 +615,24 @@ class QtInspector:
                     return qw
         return None
 
+    def _findWindowForQmlItem(self, item: QQuickItem) -> Optional[Union[QQuickWidget, QQuickWindow]]:
+        """Find the QQuickWidget or QQuickWindow containing a QQuickItem."""
+        window = item.window()
+        if window is None:
+            return None
+
+        # First try to find a QQuickWidget (Pro app embeds QML in widgets)
+        for topWidget in self._app.topLevelWidgets():
+            for qw in topWidget.findChildren(QQuickWidget):
+                if qw.quickWindow() == window:
+                    return qw
+
+        # Fall back to returning the QQuickWindow directly (Personal app)
+        if isinstance(window, QQuickWindow):
+            return window
+
+        return None
+
     # -------------------------------------------------------------------------
     # Element Properties
     # -------------------------------------------------------------------------
@@ -654,9 +753,9 @@ class QtInspector:
         self, item: QQuickItem, button: int, pos: Optional[tuple]
     ) -> Dict[str, Any]:
         """Click on a QML item."""
-        quickWidget = self._findQuickWidgetForItem(item)
-        if quickWidget is None:
-            return {"success": False, "error": "Could not find QQuickWidget"}
+        target = self._findWindowForQmlItem(item)
+        if target is None:
+            return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
 
         if pos is None:
             localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -664,9 +763,16 @@ class QtInspector:
             localPos = QPointF(pos[0], pos[1])
 
         scenePos = item.mapToScene(localPos)
-        widgetPos = scenePos.toPoint()
+        clickPos = scenePos.toPoint()
 
-        QTest.mouseClick(quickWidget, button, Qt.NoModifier, widgetPos)
+        # QQuickWindow needs QTest.mouseClick on the window directly
+        # QQuickWidget can be clicked as a QWidget
+        if isinstance(target, QQuickWidget):
+            QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
+        else:
+            # For QQuickWindow, use QTest with the window
+            QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
+
         self._app.processEvents()
         return {"success": True}
 
@@ -689,9 +795,9 @@ class QtInspector:
 
         item = self._findQmlItem(objectName)
         if item is not None:
-            quickWidget = self._findQuickWidgetForItem(item)
-            if quickWidget is None:
-                return {"success": False, "error": "Could not find QQuickWidget"}
+            target = self._findWindowForQmlItem(item)
+            if target is None:
+                return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
 
             if pos is None:
                 localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -699,7 +805,7 @@ class QtInspector:
                 localPos = QPointF(pos[0], pos[1])
 
             scenePos = item.mapToScene(localPos)
-            QTest.mouseDClick(quickWidget, button, Qt.NoModifier, scenePos.toPoint())
+            QTest.mouseDClick(target, button, Qt.NoModifier, scenePos.toPoint())
             self._app.processEvents()
             return {"success": True}
 
@@ -732,7 +838,7 @@ class QtInspector:
                 if item is not None:
                     item.setFocus(True)
                     item.forceActiveFocus()
-                    target = self._findQuickWidgetForItem(item)
+                    target = self._findWindowForQmlItem(item)
 
             if target is None:
                 return {"success": False, "error": f"Element not found: {objectName}"}
@@ -809,7 +915,7 @@ class QtInspector:
                 item = self._findQmlItem(objectName)
                 if item is not None:
                     item.setFocus(True)
-                    target = self._findQuickWidgetForItem(item)
+                    target = self._findWindowForQmlItem(item)
 
             if target is None:
                 return {"success": False, "error": f"Element not found: {objectName}"}
@@ -926,8 +1032,10 @@ class QtInspector:
     # -------------------------------------------------------------------------
 
     def getWindows(self) -> Dict[str, Any]:
-        """Get all top-level windows."""
+        """Get all top-level windows (both widgets and QQuickWindows)."""
         windows = []
+
+        # Collect QWidget windows
         for window in self._app.topLevelWidgets():
             if window.isVisible():
                 windows.append(
@@ -941,8 +1049,28 @@ class QtInspector:
                             "width": window.width(),
                             "height": window.height(),
                         },
+                        "type": "widget",
                     }
                 )
+
+        # Collect QQuickWindow windows (Personal app)
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow) and window.isVisible():
+                windows.append(
+                    {
+                        "objectName": window.objectName() or None,
+                        "className": type(window).__name__,
+                        "title": window.title(),
+                        "geometry": {
+                            "x": window.x(),
+                            "y": window.y(),
+                            "width": window.width(),
+                            "height": window.height(),
+                        },
+                        "type": "quick",
+                    }
+                )
+
         return {"success": True, "windows": windows}
 
     def openFile(self, filePath: str) -> Dict[str, Any]:
@@ -1020,7 +1148,7 @@ class QtInspector:
 
     def takeScreenshot(self, objectName: Optional[str] = None) -> Dict[str, Any]:
         """
-        Take a screenshot of a widget or the main window.
+        Take a screenshot of a widget, QQuickWindow, or the main window.
 
         Args:
             objectName: Optional widget to screenshot, defaults to main window
@@ -1030,33 +1158,60 @@ class QtInspector:
         """
         import base64
 
-        widget = None
+        target = None
+        isQuickWindow = False
+
         if objectName:
-            widget = self._findWidget(objectName)
-            if widget is None:
+            target = self._findWidget(objectName)
+            if target is None:
                 return {"success": False, "error": f"Widget not found: {objectName}"}
         else:
-            # Default to main window
+            # Default to main window - first try MainWindow widget (Pro app)
             for window in self._app.topLevelWidgets():
                 if window.isVisible() and window.objectName() == "MainWindow":
-                    widget = window
+                    target = window
                     break
 
-            if widget is None:
-                # Fallback to any visible top-level widget
-                for window in self._app.topLevelWidgets():
-                    if window.isVisible():
-                        widget = window
+            # If no MainWindow, try QQuickWindow (Personal app)
+            if target is None:
+                for window in self._app.topLevelWindows():
+                    if isinstance(window, QQuickWindow) and window.isVisible():
+                        target = window
+                        isQuickWindow = True
                         break
 
-        if widget is None:
-            return {"success": False, "error": "No visible widget found"}
+            # Fallback to any visible top-level widget
+            if target is None:
+                for window in self._app.topLevelWidgets():
+                    if window.isVisible():
+                        target = window
+                        break
 
-        # Ensure widget is fully rendered
+        if target is None:
+            return {"success": False, "error": "No visible window found"}
+
+        # Ensure fully rendered
         self._app.processEvents()
 
-        # Grab the widget
-        pixmap = widget.grab()
+        # Grab the screenshot
+        if isQuickWindow:
+            # QQuickWindow uses grabWindow() which returns a QImage
+            image = target.grabWindow()
+            if image.isNull():
+                # Fallback: try to render the content item
+                contentItem = target.contentItem()
+                if contentItem:
+                    from pkdiagram.pyqt import QQuickItemGrabResult
+                    # Use QQuickItem.grabToImage() for offscreen rendering
+                    # This is async, but we need sync - fall back to empty pixmap
+                    return {
+                        "success": False,
+                        "error": "QQuickWindow screenshot not available in offscreen mode",
+                    }
+            pixmap = QPixmap.fromImage(image)
+        else:
+            # QWidget uses grab() which returns a QPixmap
+            pixmap = target.grab()
 
         # Convert to PNG bytes
         byteArray = QByteArray()
