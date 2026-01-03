@@ -1230,3 +1230,199 @@ class QtInspector:
             "format": "png",
             "data": imageData,
         }
+
+    # -------------------------------------------------------------------------
+    # Personal App State Introspection
+    # -------------------------------------------------------------------------
+
+    def getPersonalState(self, component: str = "all") -> Dict[str, Any]:
+        """
+        Get state from the Personal app.
+
+        Args:
+            component: Which component to inspect:
+                - "all": Overview of all components
+                - "learn": Learn tab (sarfGraphModel + QML state)
+                - "discuss": Discuss tab (chat state + QML state)
+                - "plan": Plan tab (diagram view state)
+                - "pdp": PDP import state
+
+        Returns:
+            Dict with model data and QML UI state for the component
+        """
+        # Find PersonalAppController
+        controller = self._findPersonalAppController()
+        if controller is None:
+            return {"success": False, "error": "PersonalAppController not found"}
+
+        # Find Personal app window for QML state
+        personalWindow = self._findPersonalAppWindow()
+        rootItem = personalWindow.contentItem() if personalWindow else None
+
+        if component == "all":
+            return self._getPersonalOverview(controller, rootItem)
+        elif component == "learn":
+            return self._getLearnState(controller, rootItem)
+        elif component == "discuss":
+            return self._getDiscussState(controller, rootItem)
+        elif component == "plan":
+            return self._getPlanState(controller, rootItem)
+        elif component == "pdp":
+            return self._getPdpState(controller, rootItem)
+        else:
+            return {"success": False, "error": f"Unknown component: {component}"}
+
+    def _findPersonalAppController(self):
+        """Find the PersonalAppController instance."""
+        # Try app.personalController attribute (set in main.py)
+        controller = getattr(self._app, "personalController", None)
+        if controller:
+            return controller
+
+        # Fallback: try QApplication children
+        from pkdiagram.personal import PersonalAppController
+
+        for child in self._app.children():
+            if isinstance(child, PersonalAppController):
+                return child
+
+        return None
+
+    def _getPersonalOverview(self, controller, rootItem) -> Dict[str, Any]:
+        """Get overview of all Personal app state."""
+        result = {"success": True, "component": "all"}
+
+        # Session info
+        session = controller.session
+        result["session"] = {
+            "isLoggedIn": session.isLoggedIn() if session else False,
+            "hasActiveChat": hasattr(session, "activeChat") and session.activeChat is not None,
+        }
+
+        # Scene info
+        scene = controller.scene
+        result["scene"] = {
+            "personCount": len(list(scene.people())) if scene else 0,
+            "eventCount": len(list(scene.events())) if scene else 0,
+        }
+
+        # Current tab from QML
+        if rootItem:
+            container = self._findQmlItemByType(rootItem, "PersonalContainer")
+            if container:
+                tabBar = container.property("tabBar")
+                if tabBar:
+                    result["currentTab"] = tabBar.property("currentIndex")
+
+        # Model summaries
+        result["sarfGraphModel"] = {
+            "hasData": controller.sarfGraphModel.hasData,
+            "eventCount": len(controller.sarfGraphModel.events),
+        }
+
+        return result
+
+    def _getLearnState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Learn tab state (sarfGraphModel + QML)."""
+        model = controller.sarfGraphModel
+
+        result = {
+            "success": True,
+            "component": "learn",
+            "model": {
+                "hasData": model.hasData,
+                "yearStart": model.yearStart,
+                "yearEnd": model.yearEnd,
+                "yearSpan": model.yearSpan,
+                "eventCount": len(model.events),
+                "events": model.events,
+                "cumulative": model.cumulative,
+            },
+        }
+
+        # QML UI state
+        if rootItem:
+            learnView = self._findQmlItemInChildren(rootItem, "learnView")
+            if learnView:
+                result["ui"] = {
+                    "visible": learnView.isVisible(),
+                    "selectedEvent": learnView.property("selectedEvent"),
+                    "highlightedEvent": learnView.property("highlightedEvent"),
+                }
+
+                # Get storyList state
+                storyList = self._findQmlItemInChildren(learnView, "storyList")
+                if storyList:
+                    result["ui"]["storyList"] = {
+                        "count": storyList.property("count"),
+                        "contentY": storyList.property("contentY"),
+                        "currentIndex": storyList.property("currentIndex"),
+                    }
+
+        return result
+
+    def _getDiscussState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Discuss tab state (chat + QML)."""
+        result = {
+            "success": True,
+            "component": "discuss",
+            "model": {},
+        }
+
+        # Chat state from session if available
+        session = controller.session
+        if session and hasattr(session, "messages"):
+            result["model"]["messageCount"] = len(session.messages) if session.messages else 0
+
+        # QML UI state
+        if rootItem:
+            discussView = self._findQmlItemInChildren(rootItem, "discussView")
+            if discussView:
+                result["ui"] = {
+                    "visible": discussView.isVisible(),
+                }
+
+        return result
+
+    def _getPlanState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Plan tab state (diagram view)."""
+        result = {
+            "success": True,
+            "component": "plan",
+            "model": {},
+        }
+
+        # Scene data
+        scene = controller.scene
+        if scene:
+            result["model"]["personCount"] = len(list(scene.people()))
+            result["model"]["eventCount"] = len(list(scene.events()))
+
+        # QML UI state
+        if rootItem:
+            planView = self._findQmlItemInChildren(rootItem, "planView")
+            if planView:
+                result["ui"] = {
+                    "visible": planView.isVisible(),
+                }
+
+        return result
+
+    def _getPdpState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get PDP import state."""
+        result = {
+            "success": True,
+            "component": "pdp",
+            "model": {},
+        }
+
+        # PDP data from session if available
+        session = controller.session
+        if session:
+            pdp = getattr(session, "pdp", None)
+            if pdp:
+                result["model"]["hasPdp"] = True
+            else:
+                result["model"]["hasPdp"] = False
+
+        return result

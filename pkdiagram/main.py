@@ -163,6 +163,7 @@ def _main_impl():
             sys.argv, Application.Type.Personal, prefsName=options.prefsName
         )
         controller = PersonalAppController()
+        app.personalController = controller  # For MCP test bridge access
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine

@@ -278,6 +278,7 @@ Page {
     // Tab Bar
     Rectangle {
         id: tabBar
+        objectName: "tabBar"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

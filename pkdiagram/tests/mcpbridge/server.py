@@ -85,6 +85,8 @@ class TestBridgeServer(QObject):
             "open_file": self._handleOpenFile,
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
+            # Personal app state
+            "get_personal_state": self._handleGetPersonalState,
             # Status
             "ping": self._handlePing,
         }
@@ -419,6 +421,11 @@ class TestBridgeServer(QObject):
         """Handle take_screenshot command."""
         objectName = command.get("objectName")
         return self._inspector.takeScreenshot(objectName)
+
+    def _handleGetPersonalState(self, command: Dict) -> Dict:
+        """Handle get_personal_state command."""
+        component = command.get("component", "all")
+        return self._inspector.getPersonalState(component)
 
 
 def startTestBridgeServer(port: int = DEFAULT_PORT) -> TestBridgeServer:

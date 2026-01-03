@@ -198,7 +198,10 @@ class SandboxManager:
         self.documents_dir: Optional[Path] = None
 
     def create_sandbox(
-        self, login_state: LoginState = LoginState.NoData, username: str = None
+        self,
+        login_state: LoginState = LoginState.NoData,
+        username: Optional[str] = None,
+        personal: bool = False,
     ) -> Dict[str, str]:
         """
         Create isolated sandbox for test session.
@@ -206,6 +209,7 @@ class SandboxManager:
         Args:
             login_state: LoginState.NoData for fresh login test, LoginState.LoggedIn for pre-authenticated
             username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
+            personal: True for Personal app (uses different prefs file)
 
         Returns:
             Dict with environment variables to pass to app
@@ -237,7 +241,7 @@ class SandboxManager:
                     "btcopilot server not running on port 8888. "
                     "Please start the Flask server before launching with login_state='logged_in'"
                 )
-            self._populate_logged_in_data(username)
+            self._populate_logged_in_data(username, personal=personal)
 
         return env
 
@@ -251,7 +255,7 @@ class SandboxManager:
         except requests.RequestException:
             return False
 
-    def _get_dev_session(self, username: str = None) -> Optional[dict]:
+    def _get_dev_session(self, username: Optional[str] = None) -> Optional[dict]:
         """Call /v1/sessions without password to trigger dev auto-login."""
         import pickle
         import hashlib
@@ -306,13 +310,17 @@ class SandboxManager:
 
         return pickle.loads(response.content)
 
-    def _populate_logged_in_data(self, username: str = None) -> None:
+    def _populate_logged_in_data(
+        self, username: Optional[str] = None, personal: bool = False
+    ) -> None:
         """Get real session from btcopilot server and write to sandbox AppConfig."""
         appconfig_dir = self.app_data_dir / "Family Diagram"
         appconfig_dir.mkdir(parents=True, exist_ok=True)
-        appconfig_file = appconfig_dir / "cherries"
+        # Personal app uses different prefs name
+        prefs_suffix = "-personal.alaskafamilysystems.com" if personal else ""
+        appconfig_file = appconfig_dir / f"cherries{prefs_suffix}"
 
-        logger.info("Getting real session from btcopilot server")
+        logger.info(f"Getting real session from btcopilot server (personal={personal})")
 
         session_data = self._get_dev_session(username)
         if not session_data:
@@ -479,7 +487,7 @@ class TestSession:
 
             # Create sandbox and get sandbox-specific env vars
             sandbox_env = self._sandbox.create_sandbox(
-                login_state=login_state, username=username
+                login_state=login_state, username=username, personal=personal
             )
             env.update(sandbox_env)
 
@@ -1067,6 +1075,24 @@ def report_testing_limitation(
         json.dump(limitations_list, f, indent=2)
 
     return {"success": True, "limitation": limitation}
+
+
+# =============================================================================
+# MCP Tools - Personal App State
+# =============================================================================
+
+
+@mcp.tool()
+def personal_state(component: str = "all") -> Dict[str, Any]:
+    """Get Personal app state. component: 'all', 'learn', 'discuss', 'plan', 'pdp'."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command(
+        {"command": "get_personal_state", "component": component}
+    )
 
 
 # =============================================================================

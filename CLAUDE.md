@@ -123,6 +123,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Model Updates**: Use `refreshAllProperties()` to sync model changes to QML bindings
 - Use camelCasing for all method and variable names. Capitalize class names like MyNewClass.
 
+## MCP Testing with familydiagram-testing Server
+
+### Critical Rules
+
+1. **Close previous app instances first**: Before launching a new app, ALWAYS call `close_app(force=True)` first. Multiple app instances cause port conflicts (bridge server on 9876) and the MCP bridge will connect to the wrong app.
+
+2. **Pro vs Personal app detection**: The `get_app_state()` checks for Pro app MainWindow first. If a Pro app is running, it will always be detected even if you launched Personal. Kill all instances before switching app types.
+
+3. **Wait for full startup**: After launching the Personal app, wait at least 5-6 seconds. The QML UI takes longer to initialize than the Pro app's native widgets.
+
+4. **Verify app type after launch**: Always check `get_app_state()` returns the expected `appType` ("pro" or "personal") before proceeding with tests. Don't assume the launch worked correctly.
+
+5. **One app at a time**: Never attempt to run Pro and Personal apps simultaneously during MCP testing. The bridge server port conflict will cause failures.
+
+### Common Mistakes to Avoid
+
+- **Launching without closing**: Starting a new app while another is running causes bridge connection to wrong process
+- **Wrong app type detection**: Seeing `appType: "pro"` when you expected "personal" means there's a stale Pro app running
+- **Ignoring port errors**: "Address already in use" on port 9876 means close all app instances before retrying
+- **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
+
 ## Release and Beta Process
 
 **IMPORTANT**: Read `doc/RELEASE_PROCESS.md` for the complete release workflow. Key points:
