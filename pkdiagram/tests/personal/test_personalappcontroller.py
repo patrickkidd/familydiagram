@@ -322,3 +322,30 @@ def test_importJournalNotes_no_diagram(test_user, personalApp: PersonalAppContro
         assert failed.wait()
 
     assert "No diagram loaded" in failed.callArgs[0][0]
+
+
+def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppController):
+    from btcopilot.schema import Event, EventKind
+
+    initial_diagram_data = DiagramData(
+        pdp=PDP(
+            people=[Person(id=-1, name="TestPerson")],
+            events=[Event(id=-2, kind=EventKind.Shift, person=-1, description="test")],
+        )
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with patch.object(personalApp, "_addCommittedItemsToScene") as add_mock:
+        with patch.object(personalApp._diagram, "save", return_value=True):
+            personalApp.acceptAllPDPItems()
+            assert add_mock.call_count == 1
+            args = add_mock.call_args[0][0]
+            assert "people" in args
+            assert "events" in args
+            assert "pair_bonds" in args

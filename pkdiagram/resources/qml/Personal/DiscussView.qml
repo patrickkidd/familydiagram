@@ -90,11 +90,16 @@ Page {
                 pdpSheet.updateItems()
             }
         }
+        function onJournalImportStarted() {
+            importOverlay.visible = true
+        }
         function onJournalImportCompleted(summary) {
+            importOverlay.visible = false
             util.informationBox("Import Complete",
                 "Added " + summary.people + " people, " + summary.events + " events to pending items.")
         }
         function onJournalImportFailed(error) {
+            importOverlay.visible = false
             util.criticalBox("Import Failed", error)
         }
     }
@@ -423,6 +428,39 @@ Page {
         }
         onFieldChanged: function(id, field, value) {
             personalApp.updatePDPItem(id, field, value)
+        }
+    }
+
+    Rectangle {
+        id: importOverlay
+        parent: Overlay.overlay
+        anchors.fill: parent
+        visible: false
+        color: "#80000000"
+        z: 1000
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {} // Block clicks
+        }
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+
+            BusyIndicator {
+                anchors.horizontalCenter: parent.horizontalCenter
+                running: importOverlay.visible
+                width: 64
+                height: 64
+            }
+
+            PK.Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Importing journal notes..."
+                color: "white"
+                font.pixelSize: 16
+            }
         }
     }
 }

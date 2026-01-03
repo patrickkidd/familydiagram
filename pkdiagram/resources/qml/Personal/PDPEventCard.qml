@@ -104,7 +104,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: personalApp.eventKindLabel(eventData ? eventData.kind : null)
+                    text: personalApp ? personalApp.eventKindLabel(eventData ? eventData.kind : null) : ""
                     font.pixelSize: 11
                     font.bold: true
                     color: "white"
@@ -320,7 +320,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.relationshipLabel(eventData ? eventData.relationship : null)
+                            text: personalApp ? personalApp.relationshipLabel(eventData ? eventData.relationship : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             Layout.fillWidth: true
@@ -361,7 +361,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.resolvePersonNames(eventData ? eventData.relationshipTriangles : [])
+                            text: personalApp ? personalApp.resolvePersonNames(eventData ? eventData.relationshipTriangles : []) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -382,7 +382,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.variableLabel(eventData ? eventData.functioning : null)
+                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.functioning : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: variableColor(eventData ? eventData.functioning : null, true)
                             font.bold: true

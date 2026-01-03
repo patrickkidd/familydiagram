@@ -58,6 +58,7 @@ class PersonalAppController(QObject):
     statementsChanged = pyqtSignal()
     eventFormDoneEditing = pyqtSignal()
 
+    journalImportStarted = pyqtSignal()
     journalImportCompleted = pyqtSignal(QVariant, arguments=["summary"])
     journalImportFailed = pyqtSignal(str, arguments=["error"])
 
@@ -558,6 +559,9 @@ class PersonalAppController(QObject):
         return success
 
     def _addCommittedItemsToScene(self, committedItems: dict):
+        if not committedItems["people"] and not committedItems["events"] and not committedItems["pair_bonds"]:
+            return
+
         # Phase 1: Create items and build local map (two-phase approach like Scene.read())
         itemChunks = []
         localMap = {}
@@ -587,9 +591,13 @@ class PersonalAppController(QObject):
         for item, chunk in itemChunks:
             item.read(chunk, byId)
 
-        # Phase 3: Add all items to scene (triggers side effects)
-        for item, chunk in itemChunks:
-            self.scene.addItem(item)
+        # Phase 3: Add all items to scene with batch mode to prevent repeated updates
+        self.scene.setBatchAddingRemovingItems(True)
+        try:
+            for item, chunk in itemChunks:
+                self.scene.addItem(item)
+        finally:
+            self.scene.setBatchAddingRemovingItems(False)
 
     def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
@@ -785,8 +793,25 @@ class PersonalAppController(QObject):
 
         _log.info(f"Accepting all PDP items: {allIds}")
 
+        committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+
         def applyChange(diagramData: DiagramData):
+            prevPeopleIds = {p["id"] for p in diagramData.people}
+            prevEventIds = {e["id"] for e in diagramData.events}
+            prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
+
             diagramData.commit_pdp_items(allIds)
+
+            committedItems["people"] = [
+                p for p in diagramData.people if p["id"] not in prevPeopleIds
+            ]
+            committedItems["events"] = [
+                e for e in diagramData.events if e["id"] not in prevEventIds
+            ]
+            committedItems["pair_bonds"] = [
+                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
+            ]
+
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
@@ -797,6 +822,7 @@ class PersonalAppController(QObject):
         )
 
         if success:
+            self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
         else:
             _log.warning("Failed to accept all PDP items after retries")
@@ -893,6 +919,8 @@ class PersonalAppController(QObject):
         if not self._diagram:
             self.journalImportFailed.emit("No diagram loaded")
             return
+
+        self.journalImportStarted.emit()
 
         def onSuccess(data):
             if data.get("pdp") and self._diagram:
