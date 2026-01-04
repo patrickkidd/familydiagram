@@ -268,6 +268,27 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.notes)
+
+                        Text {
+                            text: "Notes"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: eventData ? (eventData.notes || "") : ""
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
                         visible: isShiftEvent && eventData && hasSarfValue(eventData.symptom)
 
                         Text {

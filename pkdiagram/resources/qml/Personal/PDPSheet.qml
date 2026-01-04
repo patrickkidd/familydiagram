@@ -467,7 +467,7 @@ Drawer {
 
                         Text {
                             anchors.centerIn: parent
-                            text: personalApp.eventKindLabel(root.editingItem ? root.editingItem.kind : null)
+                            text: personalApp ? personalApp.eventKindLabel(root.editingItem ? root.editingItem.kind : null) : ""
                             font.pixelSize: 11
                             font.bold: true
                             color: "white"
@@ -567,7 +567,7 @@ Drawer {
                         PK.TextField {
                             id: editEventPersonField
                             Layout.fillWidth: true
-                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.person : null)
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.person : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -587,7 +587,7 @@ Drawer {
                         PK.TextField {
                             id: editEventSpouseField
                             Layout.fillWidth: true
-                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.spouse : null)
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.spouse : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -607,7 +607,7 @@ Drawer {
                         PK.TextField {
                             id: editEventChildField
                             Layout.fillWidth: true
-                            text: personalApp.resolvePersonName(root.editingItem ? root.editingItem.child : null)
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.child : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -631,6 +631,31 @@ Drawer {
                             onTextEdited: {
                                 if (root.editingItem && root.editingItemType === "event") {
                                     root.updateField("description", text)
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.editingItemType === "event"
+
+                        Text {
+                            text: "Notes"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.TextEdit {
+                            id: editNotesField
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 80
+                            wrapMode: TextEdit.Wrap
+                            text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.notes || "") : ""
+                            onTextChanged: {
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event") {
+                                    root.updateField("notes", text)
                                 }
                             }
                         }

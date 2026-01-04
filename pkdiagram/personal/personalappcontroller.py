@@ -579,6 +579,12 @@ class PersonalAppController(QObject):
             itemChunks.append((item, chunk))
 
         for chunk in committedItems["events"]:
+            kind = EventKind(chunk["kind"])
+            if kind.isPairBond() and not chunk.get("spouse"):
+                _log.error(
+                    f"Skipping invalid pair bond event {chunk['id']} (kind={kind.value}): missing spouse"
+                )
+                continue
             item = Event(kind=EventKind.Shift, person=None)
             item.id = chunk["id"]
             localMap[item.id] = item
