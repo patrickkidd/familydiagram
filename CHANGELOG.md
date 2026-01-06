@@ -6,6 +6,8 @@ All notable changes to Family Diagram are documented in this file.
 
 ## 2.1.16b2
 
+- Fixed error when re-opening diagram after deleting a view with people in it.
+
 ## 2.1.16b1
 
 - Added date certainty field
