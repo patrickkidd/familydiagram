@@ -1731,7 +1731,7 @@ class Emotion(PathItem):
                 for layerId in prop.get():
                     layer = self.scene().find(id=layerId)
                     if not layer:
-                        _log.warning(
+                        log.warning(
                             f"Emotion.onProperty[layers]: layer not found: {layerId}"
                         )
                         continue
