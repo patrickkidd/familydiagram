@@ -259,7 +259,9 @@ def main():
         _main_impl()
     except Exception as e:
 
-        error_log_path = os.path.join(os.path.expanduser("~"), "startup_errors.txt")
+        error_log_path = os.path.join(
+            os.path.expanduser("~"), "familydiagram_startup_errors.txt"
+        )
 
         from . import version
 
