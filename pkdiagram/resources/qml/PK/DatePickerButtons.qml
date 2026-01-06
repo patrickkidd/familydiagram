@@ -31,6 +31,7 @@ Rectangle {
     property int unsure: Qt.Unchecked
     property bool hideUnsure: false
     property bool hideReset: false
+    property bool hideTime: false
     property bool showInspectButton: false
     property bool blocked: false
     readonly property var textInput: dateTextInput
@@ -84,16 +85,16 @@ Rectangle {
     function updateState() {
         if(dateTextInput.focus || clearButton.focus /* || unsureBox.focus */) {
             state = 'date-tumbler-shown'
-            datePicker.shouldShow = true
-            timePicker.shouldShow = false
+            if (datePicker) datePicker.shouldShow = true
+            if (timePicker) timePicker.shouldShow = false
         } else if(timeTextInput.focus) {
             state = 'time-tumbler-shown'
-            datePicker.shouldShow = false
-            timePicker.shouldShow = true
+            if (datePicker) datePicker.shouldShow = false
+            if (timePicker) timePicker.shouldShow = true
         } else {
             state = 'tumblers-hidden'
-            datePicker.shouldShow = false
-            timePicker.shouldShow = false
+            if (datePicker) datePicker.shouldShow = false
+            if (timePicker) timePicker.shouldShow = false
         }
     }
 
@@ -102,7 +103,7 @@ Rectangle {
     onDateTimeChanged: {
 
         // update date text
-        if(!dateTextInput.focus || datePicker.moving) {
+        if(!dateTextInput.focus || (datePicker && datePicker.moving)) {
             root.blocked = true
             if(isValid(root.dateTime)) {
                 dateTextInput.text = util.dateString(dateTime)
@@ -113,7 +114,7 @@ Rectangle {
         }
 
         // update time text
-        if(!timeTextInput.focus || timePicker.moving) {
+        if(!timeTextInput.focus || (timePicker && timePicker.moving)) {
             root.blocked = true
             if(isValid(root.dateTime)) {
                 timeTextInput.text = util.timeString(dateTime)
@@ -156,7 +157,7 @@ Rectangle {
                 color: root.enabled ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 palette.base: util.QML_ITEM_BG
                 KeyNavigation.tab: timeTextInput
-                KeyNavigation.backtab: root.backTabItem
+                KeyNavigation.backtab: root.backTabItem ? root.backTabItem : null
                 Keys.onTabPressed: {
                     Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
                     event.accepted = true
@@ -206,6 +207,7 @@ Rectangle {
         Rectangle {
             width: 95
             height: 40
+            visible: !root.hideTime
             color: util.QML_CONTROL_BG
             PK.TextField {
                 id: timeTextInput
@@ -216,7 +218,7 @@ Rectangle {
                 enabled: isValid(root.dateTime)
                 color: (root.enabled && enabled) ? util.QML_ACTIVE_TEXT_COLOR : util.QML_INACTIVE_TEXT_COLOR
                 palette.base: util.QML_ITEM_BG
-                KeyNavigation.tab: root.tabItem
+                KeyNavigation.tab: root.tabItem ? root.tabItem : null
                 KeyNavigation.backtab: inspectButton
                 Keys.onTabPressed: {
                     Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
@@ -305,7 +307,7 @@ Rectangle {
             opacity: (isValid(root.dateTime) && dateTextInput.text != util.BLANK_DATE_TEXT && ! root.hideReset) ? .5 : 0
             enabled: opacity > 0 && ! root.hideReset
             Layout.leftMargin: 2
-            KeyNavigation.tab: root.tabItem
+            KeyNavigation.tab: root.tabItem ? root.tabItem : null
             KeyNavigation.backtab: inspectButton
             onClicked: {
                 root.forceActiveFocus()

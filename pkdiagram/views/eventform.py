@@ -1,7 +1,16 @@
 import logging
+from enum import Enum
 from typing import Union
 
-from btcopilot.schema import EventKind, RelationshipKind, VariableShift
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
+
+
+class BirthRole(Enum):
+    Person = "person"
+    Spouse = "spouse"
+    Child = "child"
+
+
 from pkdiagram.pyqt import (
     pyqtSignal,
     Q_RETURN_ARG,
@@ -53,12 +62,16 @@ class EventForm(QObject):
         "This will replace {n_existing} of the {kind} events in the selected people."
     )
     S_PICKER_NEW_PERSON_NOT_SUBMITTED = "You have entered a name for a new person in the '{pickerLabel}' field, but have not pressed enter yet."
+    S_BIRTH_REQUIRES_ONE = (
+        "At least one of Parent 1, Parent 2, or Child must be specified."
+    )
+    S_CONFIRM_CREATE_PEOPLE = "The following people will be automatically created if not specified:\n\n{names}\n\nContinue?"
 
     def __init__(self, item: QQuickItem, parent=None):
         super().__init__(parent=parent)
         self.item = item
-        self.item.done.connect(self.onDone)
-        self.item.cancel.connect(self.onCancel)
+        self.item.done.connect(lambda: self.onDone())
+        self.item.cancel.connect(lambda: self.onCancel())
         self._tagsModel: TagsModel = self.item.property("tagsModel")
         self._events = []
         self._dummyItems = []
@@ -199,6 +212,10 @@ class EventForm(QObject):
         if endDateTime:
             self.item.property("isDateRangeBox").setProperty("checked", True)
             self.item.property("endDateButtons").setProperty("dateTime", endDateTime)
+
+        dateCertainty = util.sameOf(events, lambda e: e.dateCertainty())
+        if dateCertainty is not None:
+            self.item.property("dateCertaintyBox").setCurrentValue(dateCertainty.value)
 
         # Set text fields only if all events agree
         description = util.sameOf(events, lambda e: e.description())
@@ -355,6 +372,28 @@ class EventForm(QObject):
             if not isEditing and not self.item.property("kind"):
                 invalidLabel = "kindLabel"
 
+            elif kind and kind in (EventKind.Birth, EventKind.Adopted):
+                personSubmitted = self.item.property("personPicker").property(
+                    "isSubmitted"
+                )
+                spouseSubmitted = self.item.property("spousePicker").property(
+                    "isSubmitted"
+                )
+                childSubmitted = self.item.property("childPicker").property(
+                    "isSubmitted"
+                )
+                if not (personSubmitted or spouseSubmitted or childSubmitted):
+                    _log.debug(
+                        f"EventForm validation DIALOG: {self.S_BIRTH_REQUIRES_ONE}"
+                    )
+                    QMessageBox.warning(
+                        None,
+                        "Required field",
+                        self.S_BIRTH_REQUIRES_ONE,
+                        QMessageBox.Ok,
+                    )
+                    return
+
             elif not self.item.property("personPicker").property("isSubmitted"):
                 invalidLabel = "personLabel"
 
@@ -450,6 +489,48 @@ class EventForm(QObject):
                 if button == QMessageBox.NoButton:
                     return
 
+        # Confirmation: Auto-created people for Birth/Adopted
+        if kind in (EventKind.Birth, EventKind.Adopted) and not isEditing:
+            spouseEntry = (
+                self.item.spouseEntry().toVariant() if self.item.spouseEntry() else None
+            )
+
+            def _entryName(entry: dict | None) -> str | None:
+                if not entry:
+                    return None
+                if entry.get("isNewPerson"):
+                    return entry.get("personName")
+                p = entry.get("person")
+                return p.name() if p else None
+
+            pName = _entryName(personEntry)
+            sName = _entryName(spouseEntry)
+            cName = _entryName(childEntry)
+            autoCreatedNames = []
+            if not personEntry:
+                autoCreatedNames.append(
+                    self._birthAutoCreateName(BirthRole.Person, pName, sName, cName)
+                )
+            if not spouseEntry:
+                autoCreatedNames.append(
+                    self._birthAutoCreateName(BirthRole.Spouse, pName, sName, cName)
+                )
+            if not childEntry:
+                autoCreatedNames.append(
+                    self._birthAutoCreateName(BirthRole.Child, pName, sName, cName)
+                )
+
+            if autoCreatedNames:
+                button = QMessageBox.question(
+                    None,
+                    "Create new people?",
+                    self.S_CONFIRM_CREATE_PEOPLE.format(
+                        names="\n".join(f"• {name}" for name in autoCreatedNames)
+                    ),
+                )
+                if button != QMessageBox.Yes:
+                    return
+
         with self.scene.macro(f"Add '{kind.name}' event" if kind else "Add event"):
             self._save()
 
@@ -509,6 +590,11 @@ class EventForm(QObject):
         endDateTime = self.item.property("endDateTime")
         isDateRange = self.item.property("isDateRange")
         isDateRangeDirty = self.item.property("isDateRangeDirty")
+        dateCertaintyValue = self.item.property("dateCertainty")
+        if dateCertaintyValue:
+            dateCertainty = DateCertainty(dateCertaintyValue)
+        else:
+            dateCertainty = None
 
         # Where
 
@@ -617,6 +703,8 @@ class EventForm(QObject):
                     event.setEndDateTime(endDateTime, undo=True)
                 elif isDateRangeDirty and not isDateRange:
                     event.setEndDateTime(QDateTime(), undo=True)
+                if dateCertainty is not None and dateCertainty != event.dateCertainty():
+                    event.setDateCertainty(dateCertainty, undo=True)
                 if symptom is not None and symptom != event.symptom():
                     event.setSymptom(symptom, undo=True)
                 if anxiety is not None and anxiety != event.anxiety():
@@ -653,48 +741,53 @@ class EventForm(QObject):
             if kind.isPairBond():
 
                 marriage = None
-                if spouse:
-                    marriage = self.scene.marriageFor(person, spouse)
 
-                # Default spouse if not added
-                else:
-                    if person.gender() == util.PERSON_KIND_MALE:
-                        spouseKind = util.PERSON_KIND_FEMALE
-                    elif person and person.gender() == util.PERSON_KIND_FEMALE:
-                        spouseKind = util.PERSON_KIND_MALE
-                    else:
-                        spouseKind = util.PERSON_KIND_FEMALE
-                    spouse = self.scene.addItem(
-                        Person(
-                            gender=spouseKind,
-                            size=self.scene.newPersonSize(),
-                        ),
-                        undo=True,
-                    )
-                    newPeople.append(spouse)
-
-                if not marriage:
-                    marriage = self.scene.addItem(Marriage(person, spouse), undo=True)
-                    newMarriages.append(marriage)
-
-                # Default child if not added
+                # For Birth/Adopted: create missing parents/child with meaningful names
                 if kind in (EventKind.Birth, EventKind.Adopted):
-                    if not child:
-
-                        child = self.scene.addItem(
-                            Person(size=self.scene.newPersonSize()), undo=True
+                    person, spouse, child, marriage = self._ensureBirthPeople(
+                        person, spouse, child, newPeople
+                    )
+                    if not marriage:
+                        marriage = self.scene.addItem(
+                            Marriage(person, spouse), undo=True
                         )
-
+                        newMarriages.append(marriage)
                     child.setParents(marriage, undo=True)
+                    if kind == EventKind.Adopted:
+                        child.setAdopted(True, undo=True)
 
-                if kind == EventKind.Adopted:
-                    child.setAdopted(True, undo=True)
+                else:
+                    # Non-Birth pair bonds: existing behavior
+                    if spouse:
+                        marriage = self.scene.marriageFor(person, spouse)
+                    else:
+                        if person.gender() == util.PERSON_KIND_MALE:
+                            spouseKind = util.PERSON_KIND_FEMALE
+                        elif person and person.gender() == util.PERSON_KIND_FEMALE:
+                            spouseKind = util.PERSON_KIND_MALE
+                        else:
+                            spouseKind = util.PERSON_KIND_FEMALE
+                        spouse = self.scene.addItem(
+                            Person(
+                                gender=spouseKind,
+                                size=self.scene.newPersonSize(),
+                            ),
+                            undo=True,
+                        )
+                        newPeople.append(spouse)
+                    if not marriage:
+                        marriage = self.scene.addItem(
+                            Marriage(person, spouse), undo=True
+                        )
+                        newMarriages.append(marriage)
 
                 kwargs["child"] = child
                 kwargs["spouse"] = spouse
 
             if endDateTime:
                 kwargs["endDateTime"] = endDateTime
+            if dateCertainty is not None:
+                kwargs["dateCertainty"] = dateCertainty
             if symptom is not None:
                 kwargs["symptom"] = symptom
             if anxiety is not None:
@@ -912,6 +1005,106 @@ class EventForm(QObject):
     def trianglesEntries(self):
         entries = self.item.trianglesEntries()
         return [x for x in entries.toVariant()]
+
+    @staticmethod
+    def _birthAutoCreateName(
+        role: BirthRole,
+        personName: str | None,
+        spouseName: str | None,
+        childName: str | None,
+    ) -> str:
+        """Generate name for auto-created person in Birth/Adopted event."""
+        if role == BirthRole.Person:
+            if childName:
+                return f"{childName}'s Parent 1"
+            elif spouseName:
+                return f"{spouseName}'s Spouse"
+            return "Parent 1"
+        elif role == BirthRole.Spouse:
+            if childName:
+                return f"{childName}'s Parent 2"
+            elif personName:
+                return f"{personName}'s Spouse"
+            return "Parent 2"
+        elif role == BirthRole.Child:
+            if personName and spouseName:
+                return f"{personName} & {spouseName}'s Child"
+            elif personName:
+                return f"{personName}'s Child"
+            elif spouseName:
+                return f"{spouseName}'s Child"
+            return "Child"
+        raise ValueError(f"Unknown role: {role}")
+
+    def _ensureBirthPeople(
+        self,
+        person: Person | None,
+        spouse: Person | None,
+        child: Person | None,
+        newPeople: list[Person],
+    ) -> tuple[Person, Person, Person, Marriage | None]:
+        """
+        Ensure all three people exist for a Birth/Adopted event.
+        Creates missing people with meaningful names based on who is provided.
+        Returns (person, spouse, child, existingMarriage).
+        """
+        personName = person.name() if person else None
+        spouseName = spouse.name() if spouse else None
+        childName = child.name() if child else None
+
+        marriage = None
+        if person and spouse:
+            marriage = self.scene.marriageFor(person, spouse)
+
+        if not person:
+            name = self._birthAutoCreateName(
+                BirthRole.Person, personName, spouseName, childName
+            )
+            person = self.scene.addItem(
+                Person(
+                    name=name,
+                    gender=util.PERSON_KIND_FEMALE,
+                    size=self.scene.newPersonSize(),
+                ),
+                undo=True,
+            )
+            newPeople.append(person)
+            personName = name
+
+        if not spouse:
+            name = self._birthAutoCreateName(
+                BirthRole.Spouse, personName, spouseName, childName
+            )
+            if person.gender() == util.PERSON_KIND_MALE:
+                spouseGender = util.PERSON_KIND_FEMALE
+            elif person.gender() == util.PERSON_KIND_FEMALE:
+                spouseGender = util.PERSON_KIND_MALE
+            else:
+                spouseGender = util.PERSON_KIND_MALE
+            spouse = self.scene.addItem(
+                Person(
+                    name=name,
+                    gender=spouseGender,
+                    size=self.scene.newPersonSize(),
+                ),
+                undo=True,
+            )
+            newPeople.append(spouse)
+
+        if not child:
+            name = self._birthAutoCreateName(
+                BirthRole.Child, personName, spouseName, childName
+            )
+            child = self.scene.addItem(
+                Person(
+                    name=name,
+                    size=self.scene.newPersonSize(),
+                ),
+                undo=True,
+            )
+            newPeople.append(child)
+
+        return person, spouse, child, marriage
 
 
 class EventFormDrawer(QmlDrawer):

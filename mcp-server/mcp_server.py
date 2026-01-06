@@ -21,16 +21,20 @@ Configuration:
 """
 
 import base64
+import fcntl
 import json
 import logging
 import os
+import select
 import shutil
 import socket
 import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
@@ -40,10 +44,6 @@ from typing import Optional, Dict, Any, List, Tuple
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mcp.server.fastmcp import FastMCP
-
-import uuid
-from dataclasses import asdict
-from datetime import datetime, timezone
 
 import btcopilot
 from pkdiagram.app import AppConfig
@@ -198,13 +198,18 @@ class SandboxManager:
         self.documents_dir: Optional[Path] = None
 
     def create_sandbox(
-        self, login_state: LoginState = LoginState.NoData
+        self,
+        login_state: LoginState = LoginState.NoData,
+        username: Optional[str] = None,
+        personal: bool = False,
     ) -> Dict[str, str]:
         """
         Create isolated sandbox for test session.
 
         Args:
             login_state: LoginState.NoData for fresh login test, LoginState.LoggedIn for pre-authenticated
+            username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
+            personal: True for Personal app (uses different prefs file)
 
         Returns:
             Dict with environment variables to pass to app
@@ -227,94 +232,112 @@ class SandboxManager:
             "XDG_DATA_HOME": str(self.app_data_dir),
             "XDG_CONFIG_HOME": str(self.prefs_dir),
             "FD_TEST_DATA_DIR": str(self.app_data_dir / "Family Diagram"),
+            "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
         }
 
         if login_state == LoginState.LoggedIn:
-            self._populate_logged_in_data()
+            if not self._check_btcopilot_server():
+                raise RuntimeError(
+                    "btcopilot server not running on port 8888. "
+                    "Please start the Flask server before launching with login_state='logged_in'"
+                )
+            self._populate_logged_in_data(username, personal=personal)
 
         return env
 
-    def _populate_logged_in_data(self) -> None:
-        """Populate sandbox with logged-in session data."""
-        appconfig_dir = self.app_data_dir / "Family Diagram"
-        appconfig_dir.mkdir(parents=True, exist_ok=True)
-        appconfig_file = appconfig_dir / "cherries"
+    def _check_btcopilot_server(self) -> bool:
+        """Check if btcopilot Flask server is running."""
+        import requests
 
-        logger.info("Populating sandbox with logged-in user data")
+        try:
+            requests.get("http://127.0.0.1:8888/", timeout=2)
+            return True
+        except requests.RequestException:
+            return False
 
-        now = datetime.now(timezone.utc)
-        session_id = str(uuid.uuid4())
-        session_token = str(uuid.uuid4())
-        future_date = datetime(2099, 12, 31, tzinfo=timezone.utc)
+    def _get_dev_session(self, username: Optional[str] = None) -> Optional[dict]:
+        """Call /v1/sessions without password to trigger dev auto-login."""
+        import pickle
+        import hashlib
+        import time as time_module
+        import wsgiref.handlers
+        import requests
 
-        user = User(
-            id=1,
-            username="patrickkidd+unitest@gmail.com",
-            first_name="Test",
-            last_name="User",
-            roles=[btcopilot.ROLE_SUBSCRIBER],
-            secret=b"test_secret",
-            free_diagram_id=1,
-            created_at=now,
-            updated_at=now,
-            licenses=[
-                License(
-                    id=1,
-                    policy=Policy(
-                        id=1,
-                        code=btcopilot.LICENSE_PROFESSIONAL,
-                        product="professional",
-                        name="Professional",
-                        interval="month",
-                        maxActivations=1,
-                        amount=9.99,
-                        active=True,
-                        public=True,
-                        created_at=now,
-                    ),
-                    active=True,
-                    canceled=False,
-                    user_id=1,
-                    policy_id=1,
-                    key="test_key",
-                    stripe_id="test_stripe",
-                    activations=[Activation(license_id=1, machine_id=1)],
-                    activated_at=now,
-                    canceled_at=future_date,
-                    created_at=now,
-                    created_at_readable="Today",
-                )
-            ],
-            free_diagram=Diagram(
-                id=1,
-                user_id=1,
-                access_rights=[],
-                created_at=now,
-            ),
+        url = "http://127.0.0.1:8888/v1/sessions"
+
+        # Build signed request (anonymous auth, no password = dev auto-login)
+        args = {}
+        if username:
+            args["username"] = username
+        # No password field → triggers dev auto-login on server
+
+        data = pickle.dumps(args)
+        content_md5 = hashlib.md5(data).hexdigest()
+        content_type = "text/html"
+        date = wsgiref.handlers.format_date_time(
+            time_module.mktime(datetime.now().timetuple())
         )
 
-        user_dict = asdict(user)
-        # Add machine info to activations (required by session.setData)
-        for license in user_dict["licenses"]:
-            for activation in license["activations"]:
-                activation["machine"] = {"code": util.HARDWARE_UUID, "id": 1}
+        signature = btcopilot.sign(
+            btcopilot.ANON_SECRET,
+            "POST",
+            content_md5,
+            content_type,
+            date,
+            "/v1/sessions",
+        )
+        auth_header = btcopilot.httpAuthHeader(btcopilot.ANON_USER, signature)
 
-        session_data = {
-            "session": {
-                "id": session_id,
-                "token": session_token,
-                "user": user_dict,
-            },
-            "users": [user_dict],
-            "deactivated_versions": [],
+        headers = {
+            "FD-Authentication": auth_header,
+            "FD-Client-Version": "99.99.99",
+            "Date": date,
+            "Content-MD5": content_md5,
+            "Content-Type": content_type,
         }
+
+        try:
+            response = requests.post(url, data=data, headers=headers, timeout=10)
+        except requests.RequestException as e:
+            logger.error(f"Failed to connect to btcopilot server: {e}")
+            return None
+
+        if response.status_code != 200:
+            logger.error(
+                f"Dev auto-login failed: {response.status_code} {response.text}"
+            )
+            return None
+
+        return pickle.loads(response.content)
+
+    def _populate_logged_in_data(
+        self, username: Optional[str] = None, personal: bool = False
+    ) -> None:
+        """Get real session from btcopilot server and write to sandbox AppConfig."""
+        appconfig_dir = self.app_data_dir / "Family Diagram"
+        appconfig_dir.mkdir(parents=True, exist_ok=True)
+        # Personal app uses different prefs name
+        prefs_suffix = "-personal.alaskafamilysystems.com" if personal else ""
+        appconfig_file = appconfig_dir / f"cherries{prefs_suffix}"
+
+        logger.info(f"Getting real session from btcopilot server (personal={personal})")
+
+        session_data = self._get_dev_session(username)
+        if not session_data:
+            raise RuntimeError(
+                "Failed to get session from btcopilot server. "
+                "Ensure FLASK_AUTO_AUTH_USER is set and the user exists."
+            )
 
         appconfig = AppConfig(filePath=str(appconfig_file))
         appconfig.hardwareUUID = util.HARDWARE_UUID
         appconfig.set("lastSessionData", session_data, pickled=True)
         appconfig.write()
 
-        logger.info(f"Wrote session data to {appconfig_file}")
+        user_email = (
+            session_data.get("session", {}).get("user", {}).get("username", "unknown")
+        )
+        logger.info(f"Wrote real session for {user_email} to {appconfig_file}")
 
     def cleanup(self) -> None:
         """Remove sandbox directory."""
@@ -353,6 +376,8 @@ class TestSession:
         self._bridge_port = BRIDGE_PORT
         self._stdout_lines: List[str] = []
         self._stderr_lines: List[str] = []
+        self._stdout_partial: str = ""
+        self._stderr_partial: str = ""
         self._sandbox = SandboxManager()
 
     @classmethod
@@ -398,6 +423,7 @@ class TestSession:
         extra_args: Optional[List[str]] = None,
         timeout: int = 30,
         login_state: LoginState = LoginState.NoData,
+        username: str = None,
     ) -> Tuple[bool, str]:
         """
         Launch the Family Diagram application.
@@ -411,12 +437,17 @@ class TestSession:
             extra_args: Additional command-line arguments
             timeout: Maximum time to wait for startup
             login_state: LoginState.NoData (fresh) or LoginState.LoggedIn (pre-auth)
+            username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
 
         Returns:
             Tuple of (success, message)
         """
         if self.is_running:
             return False, f"Application already running (PID: {self.pid})"
+
+        # Clear output buffers from previous run
+        self._stdout_lines.clear()
+        self._stderr_lines.clear()
 
         try:
             # Use uv run from workspace root to get proper venv with built _pkdiagram
@@ -427,6 +458,7 @@ class TestSession:
                 "--directory",
                 str(workspace_root),
                 "python",
+                "-u",  # Force unbuffered stdout/stderr
                 "-m",
                 "pkdiagram",
             ]
@@ -447,11 +479,16 @@ class TestSession:
             # Set up environment
             env = os.environ.copy()
 
+            # Force unbuffered stdout/stderr from child process
+            env["PYTHONUNBUFFERED"] = "1"
+
             # Clear problematic virtual environment variable from MCP server venv
             env.pop("VIRTUAL_ENV", None)
 
             # Create sandbox and get sandbox-specific env vars
-            sandbox_env = self._sandbox.create_sandbox(login_state=login_state)
+            sandbox_env = self._sandbox.create_sandbox(
+                login_state=login_state, username=username, personal=personal
+            )
             env.update(sandbox_env)
 
             if headless:
@@ -507,41 +544,47 @@ class TestSession:
         if not self.process or not self.is_running:
             return
 
-        import select
+        def read_nonblocking(pipe, buffer_list, partial_buffer):
+            """Read available data from pipe without blocking."""
+            if not pipe:
+                return partial_buffer
 
-        # Non-blocking read from stdout
-        if self.process.stdout:
+            fd = pipe.fileno()
+
+            # Set non-blocking mode
+            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
             try:
                 while True:
-                    if sys.platform != "win32":
-                        ready, _, _ = select.select([self.process.stdout], [], [], 0)
-                        if not ready:
-                            break
-                    line = self.process.stdout.readline()
-                    if not line:
+                    ready, _, _ = select.select([pipe], [], [], 0)
+                    if not ready:
                         break
-                    self._stdout_lines.append(
-                        line.decode("utf-8", errors="replace").rstrip()
-                    )
+                    try:
+                        chunk = os.read(fd, 4096)
+                        if not chunk:
+                            break
+                        partial_buffer += chunk.decode("utf-8", errors="replace")
+                        # Split into lines, keep partial line for next time
+                        while "\n" in partial_buffer:
+                            line, partial_buffer = partial_buffer.split("\n", 1)
+                            buffer_list.append(line)
+                    except BlockingIOError:
+                        break
             except (OSError, ValueError):
                 pass
+            finally:
+                # Restore blocking mode
+                fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
-        # Non-blocking read from stderr
-        if self.process.stderr:
-            try:
-                while True:
-                    if sys.platform != "win32":
-                        ready, _, _ = select.select([self.process.stderr], [], [], 0)
-                        if not ready:
-                            break
-                    line = self.process.stderr.readline()
-                    if not line:
-                        break
-                    self._stderr_lines.append(
-                        line.decode("utf-8", errors="replace").rstrip()
-                    )
-            except (OSError, ValueError):
-                pass
+            return partial_buffer
+
+        self._stdout_partial = read_nonblocking(
+            self.process.stdout, self._stdout_lines, self._stdout_partial
+        )
+        self._stderr_partial = read_nonblocking(
+            self.process.stderr, self._stderr_lines, self._stderr_partial
+        )
 
     def close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
         """
@@ -615,8 +658,13 @@ def launch_app(
     wait_seconds: int = 3,
     open_file: Optional[str] = None,
     login_state: str = LoginState.LoggedIn.value,
+    username: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Launch app. Returns {success, pid, bridge_connected}. Default login_state is 'logged_in'."""
+    """Launch app. Returns {success, pid, bridge_connected}. Default login_state is 'logged_in'.
+
+    Args:
+        username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
+    """
     session = TestSession.get_instance()
 
     try:
@@ -636,6 +684,7 @@ def launch_app(
         enable_bridge=enable_bridge,
         open_file=open_file,
         login_state=login_enum,
+        username=username,
     )
 
     if success and wait_seconds > 0:
@@ -1026,6 +1075,24 @@ def report_testing_limitation(
         json.dump(limitations_list, f, indent=2)
 
     return {"success": True, "limitation": limitation}
+
+
+# =============================================================================
+# MCP Tools - Personal App State
+# =============================================================================
+
+
+@mcp.tool()
+def personal_state(component: str = "all") -> Dict[str, Any]:
+    """Get Personal app state. component: 'all', 'learn', 'discuss', 'plan', 'pdp'."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command(
+        {"command": "get_personal_state", "component": component}
+    )
 
 
 # =============================================================================

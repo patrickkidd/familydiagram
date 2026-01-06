@@ -1,9 +1,18 @@
 import os, os.path, pickle
+import subprocess
+import sys
+import tempfile
 
 import pytest
 from mock import patch
 
-from btcopilot.schema import EventKind, RelationshipKind, DiagramData, VariableShift
+from btcopilot.schema import (
+    EventKind,
+    RelationshipKind,
+    DiagramData,
+    VariableShift,
+    DateCertainty,
+)
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Event
@@ -272,3 +281,96 @@ def test_diagramData_returns_DiagramData():
     assert result.events[0]["description"] == "Felt stressed"
     assert result.version is not None
     assert result.versionCompat is not None
+
+
+def test_pickle_unpickles_without_custom_modules(qApp):
+    """Scene pickle must unpickle without btcopilot or pkdiagram modules.
+
+    This ensures that diagram files contain only standard Python types and
+    Qt types, not custom enums or classes that would fail to deserialize
+    if those modules are not available or if enum definitions change.
+
+    Qt types (QDateTime, QPointF, etc.) are allowed since they're provided
+    by PyQt5 which is a stable dependency. The key requirement is that no
+    btcopilot or pkdiagram enums/classes are pickled directly.
+    """
+    scene = Scene()
+    person = scene.addItem(Person(name="Alice"))
+    scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            description="Had a conflict",
+            symptom=VariableShift.Down,
+            anxiety=VariableShift.Up,
+            relationship=RelationshipKind.Conflict,
+            functioning=VariableShift.Same,
+            dateCertainty=DateCertainty.Approximate,
+            relationshipTargets=[person],
+        )
+    )
+
+    data = {}
+    scene.write(data)
+    pickle_bytes = pickle.dumps(data)
+
+    with tempfile.NamedTemporaryFile(suffix=".pickle", delete=False) as f:
+        f.write(pickle_bytes)
+        pickle_path = f.name
+
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                f"""
+import sys
+# Block imports of btcopilot and pkdiagram to simulate isolated environment
+# Allow PyQt5/sip since those are stable dependencies for Qt types
+class BlockedImporter:
+    blocked = ('btcopilot', 'pkdiagram')
+    def find_module(self, name, path=None):
+        for blocked in self.blocked:
+            if name == blocked or name.startswith(blocked + '.'):
+                return self
+        return None
+    def load_module(self, name):
+        raise ImportError(f"Blocked import: {{name}}")
+
+sys.meta_path.insert(0, BlockedImporter())
+
+# sip is needed to unpickle Qt types (QDateTime, QPointF, etc.)
+# In modern PyQt5, sip is bundled inside PyQt5
+from PyQt5 import sip
+
+import pickle
+with open({pickle_path!r}, 'rb') as f:
+    data = pickle.load(f)
+
+# Verify key data is accessible
+assert 'people' in data
+assert 'events' in data
+assert len(data['people']) == 1
+assert data['people'][0]['name'] == 'Alice'
+assert len(data['events']) == 1
+event = data['events'][0]
+assert event['symptom'] == 'down', f"Expected 'down', got {{event['symptom']!r}}"
+assert event['anxiety'] == 'up', f"Expected 'up', got {{event['anxiety']!r}}"
+assert event['relationship'] == 'conflict', f"Expected 'conflict', got {{event['relationship']!r}}"
+assert event['functioning'] == 'same', f"Expected 'same', got {{event['functioning']!r}}"
+assert event['dateCertainty'] == 'approximate', f"Expected 'approximate', got {{event['dateCertainty']!r}}"
+print('SUCCESS: Pickle unpickled without custom modules')
+""",
+            ],
+            capture_output=True,
+            text=True,
+            env={**os.environ},
+        )
+        if result.returncode != 0:
+            pytest.fail(
+                f"Subprocess failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+            )
+        assert "SUCCESS" in result.stdout
+    finally:
+        os.unlink(pickle_path)

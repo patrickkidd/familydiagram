@@ -43,7 +43,11 @@ def test_Birth_default_spouse_default_child(scene, view):
     view.set_kind(EventKind.Birth)
     view.personPicker.set_existing_person(mother)
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
 
     assert len(scene.people()) == 3
     assert len(scene.events()) == 1
@@ -55,8 +59,8 @@ def test_Birth_default_spouse_default_child(scene, view):
     assert event.spouse() == spouse
     assert event.child() == child
     assert marriage.personA() == mother
-    assert spouse.name() == None
-    assert child.name() == None
+    assert spouse.name() == "Mother's Spouse"  # auto-generated name
+    assert child.name() == "Mother's Child"  # auto-generated name
     assert child.parents() == marriage
     assert event.kind() == EventKind.Birth
 
@@ -90,7 +94,11 @@ def test_Birth_add_another_sets_currentDateTime(scene, view, before):
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     assert scene.currentDateTime() == START_DATETIME
 
     child = scene.query1(name="John", lastName="Doe")
@@ -106,9 +114,13 @@ def test_Birth_add_another_sets_currentDateTime(scene, view, before):
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(second_dateTime)
-    with patch("PyQt5.QtWidgets.QMessageBox.question") as question:
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ) as question:
         view.clickSaveButton()
-    assert question.call_count == 1
+    # 2 calls: one for auto-create spouse, one for replace birth event
+    assert question.call_count == 2
     if before:
         assert scene.currentDateTime() == START_DATETIME
     else:
@@ -124,7 +136,11 @@ def test_Birth_existing_pairbond_default_spouse(scene, view):
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_existing_person(child)
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
 
     assert len(scene.people()) == 4
     assert len(scene.marriages()) == 2
@@ -169,7 +185,11 @@ def test_add_multiple_events_to_new_person(scene, view):
     view.personPicker.set_existing_person(mother)
     view.childPicker.set_new_person("John Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     newPerson = scene.query1(name="John", lastName="Doe")
     assert len(scene.people()) == 3
     assert len(scene.eventsFor(mother)) == 1
@@ -293,7 +313,11 @@ def test_addBirthEvent(scene, view, has_parents):
     assert view.childPicker.item.property("isSubmitted") == True
 
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
 
     birthEvent = child.birthEvent()
     assert birthEvent is not None

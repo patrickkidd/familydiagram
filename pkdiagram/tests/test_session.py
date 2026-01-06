@@ -119,7 +119,7 @@ def test_login_with_username_password(test_user, analytics):
     assert session.isLoggedIn() == True
 
 
-@pytest.mark.use_bcrypt
+@pytest.mark.real_passwords
 def test_login_incorrect_password(test_user, analytics):
     session = Session(analytics)
     changed = Condition(session.changed)

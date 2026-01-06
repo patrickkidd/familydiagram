@@ -127,14 +127,35 @@ Drawer {
         tutorialOverlay.visible = false
     }
 
-    function resolvePersonName(personId) {
-        if (!personId || !pdp || !pdp.people) return ""
-        for (var i = 0; i < pdp.people.length; i++) {
-            if (pdp.people[i].id === personId) {
-                return pdp.people[i].name || ""
-            }
+    function eventKindColor(kind) {
+        if (!kind) return util.QML_INACTIVE_TEXT_COLOR
+        if (kind === util.EventKind.Bonded) return "#FF69B4"
+        if (kind === util.EventKind.Married) return "#FF1493"
+        if (kind === util.EventKind.Birth) return "#32CD32"
+        if (kind === util.EventKind.Adopted) return "#32CD32"
+        if (kind === util.EventKind.Moved) return "#4169E1"
+        if (kind === util.EventKind.Separated) return "#FFA500"
+        if (kind === util.EventKind.Divorced) return "#FF4500"
+        if (kind === util.EventKind.Shift) return util.QML_HIGHLIGHT_COLOR
+        if (kind === util.EventKind.Death) return "#808080"
+        return util.QML_INACTIVE_TEXT_COLOR
+    }
+
+    function stringToDate(dateStr) {
+        if (!dateStr || dateStr === "") return null
+        var parts = dateStr.split("-")
+        if (parts.length >= 3) {
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
         }
-        return ""
+        return null
+    }
+
+    function dateToString(dt) {
+        if (!dt || isNaN(dt.getTime())) return ""
+        var year = dt.getFullYear()
+        var month = (dt.getMonth() + 1).toString().padStart(2, '0')
+        var day = dt.getDate().toString().padStart(2, '0')
+        return year + "-" + month + "-" + day
     }
 
     function openEventEditOverlay(eventData) {
@@ -161,6 +182,9 @@ Drawer {
             editAnxietyField.value = editingItem.anxiety !== undefined ? editingItem.anxiety : null
             editFunctioningField.value = editingItem.functioning !== undefined ? editingItem.functioning : null
             editRelationshipField.value = editingItem.relationship !== undefined ? editingItem.relationship : null
+            editDateCertaintyBox.setCurrentValue(editingItem.dateCertainty || "approximate")
+            editDateButtons.dateTime = stringToDate(editingItem.dateTime)
+            editEndDateButtons.dateTime = stringToDate(editingItem.endDateTime)
             isInitializingFields = false
         }
     }
@@ -201,22 +225,32 @@ Drawer {
         }
     }
 
+    Rectangle {
+        id: dragHandle
+        width: 40
+        height: 4
+        radius: 2
+        color: util.QML_ITEM_BORDER_COLOR
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 8
+    }
+
     ColumnLayout {
-        anchors.fill: parent
+        id: contentLayout
+        width: root.width
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
         spacing: 0
 
-        Rectangle {
+        Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 4
-            Layout.topMargin: 8
-            Layout.leftMargin: parent.width / 2 - 20
-            Layout.rightMargin: parent.width / 2 - 20
-            radius: 2
-            color: util.QML_ITEM_BORDER_COLOR
+            Layout.preferredHeight: 20
         }
 
         RowLayout {
-            Layout.fillWidth: true
+            Layout.maximumWidth: root.width - util.QML_MARGINS * 2
             Layout.preferredHeight: 50
             Layout.margins: util.QML_MARGINS
 
@@ -243,7 +277,7 @@ Drawer {
 
         SwipeView {
             id: cardStack
-            Layout.fillWidth: true
+            width: root.width - util.QML_MARGINS * 2
             Layout.fillHeight: true
             Layout.margins: util.QML_MARGINS
             clip: true
@@ -255,6 +289,9 @@ Drawer {
 
                 Item {
                     id: cardContainer
+                    width: cardStack.width
+                    height: cardStack.height
+                    clip: true
 
                     Loader {
                         id: cardLoader
@@ -410,11 +447,40 @@ Drawer {
 
                 Item { Layout.fillWidth: true }
 
-                Text {
-                    text: root.editingItemType === "person" ? "Edit Person" : "Edit Event"
-                    font.pixelSize: util.QML_TITLE_FONT_SIZE
-                    font.family: util.FONT_FAMILY_TITLE
-                    color: util.QML_TEXT_COLOR
+                RowLayout {
+                    spacing: 8
+
+                    Text {
+                        text: "Edit"
+                        font.pixelSize: util.QML_TITLE_FONT_SIZE
+                        font.family: util.FONT_FAMILY_TITLE
+                        color: util.QML_TEXT_COLOR
+                    }
+
+                    Rectangle {
+                        visible: root.editingItemType === "event"
+                        Layout.preferredWidth: 70
+                        Layout.preferredHeight: 22
+                        radius: 11
+                        color: eventKindColor(root.editingItem ? root.editingItem.kind : null)
+                        opacity: 0.9
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: personalApp ? personalApp.eventKindLabel(root.editingItem ? root.editingItem.kind : null) : ""
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: "white"
+                        }
+                    }
+
+                    Text {
+                        visible: root.editingItemType === "person"
+                        text: "Person"
+                        font.pixelSize: util.QML_TITLE_FONT_SIZE
+                        font.family: util.FONT_FAMILY_TITLE
+                        color: util.QML_TEXT_COLOR
+                    }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -490,6 +556,66 @@ Drawer {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
+                        visible: root.editingItemType === "event" && root.editingItem && root.editingItem.person !== null && root.editingItem.person !== undefined
+
+                        Text {
+                            text: "Person"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.TextField {
+                            id: editEventPersonField
+                            Layout.fillWidth: true
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.person : null) : ""
+                            enabled: false
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: (root.editingPairBondEvent || root.editingOffspringEvent) && root.editingItem && root.editingItem.spouse
+
+                        Text {
+                            text: "Spouse"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.TextField {
+                            id: editEventSpouseField
+                            Layout.fillWidth: true
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.spouse : null) : ""
+                            enabled: false
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.editingOffspringEvent && root.editingItem && root.editingItem.child
+
+                        Text {
+                            text: "Child"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.TextField {
+                            id: editEventChildField
+                            Layout.fillWidth: true
+                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.child : null) : ""
+                            enabled: false
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
                         visible: root.editingItemType === "event" && root.editingItem && root.editingItem.kind === util.EventKind.Shift
 
                         Text {
@@ -513,103 +639,23 @@ Drawer {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
-                        visible: root.editingItemType === "event" && root.editingItem && root.editingItem.person
-
-                        Text {
-                            text: "Person"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                        }
-                        Text {
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.person : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_INACTIVE_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        visible: (root.editingPairBondEvent || root.editingOffspringEvent) && root.editingItem && root.editingItem.spouse
-
-                        Text {
-                            text: "Spouse"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                        }
-                        Text {
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.spouse : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_INACTIVE_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        visible: root.editingOffspringEvent && root.editingItem && root.editingItem.child
-
-                        Text {
-                            text: "Child"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                        }
-                        Text {
-                            text: root.resolvePersonName(root.editingItem ? root.editingItem.child : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_INACTIVE_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
                         visible: root.editingItemType === "event"
 
                         Text {
-                            text: "Date"
+                            text: "Notes"
                             font.pixelSize: 14
                             font.bold: true
                             color: util.QML_TEXT_COLOR
                         }
-                        PK.TextField {
-                            id: editDateTimeField
+                        PK.TextEdit {
+                            id: editNotesField
                             Layout.fillWidth: true
-                            placeholderText: "YYYY-MM-DD"
-                            text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.dateTime || "") : ""
-                            onTextEdited: {
-                                if (root.editingItem && root.editingItemType === "event") {
-                                    root.updateField("dateTime", text)
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        visible: root.editingItemType === "event"
-
-                        Text {
-                            text: "End Date"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                        }
-                        PK.TextField {
-                            id: editEndDateTimeField
-                            Layout.fillWidth: true
-                            placeholderText: "YYYY-MM-DD"
-                            text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.endDateTime || "") : ""
-                            onTextEdited: {
-                                if (root.editingItem && root.editingItemType === "event") {
-                                    root.updateField("endDateTime", text)
+                            Layout.preferredHeight: 80
+                            wrapMode: TextEdit.Wrap
+                            text: root.editingItem && root.editingItemType === "event" ? (root.editingItem.notes || "") : ""
+                            onTextChanged: {
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event") {
+                                    root.updateField("notes", text)
                                 }
                             }
                         }
@@ -665,28 +711,6 @@ Drawer {
                         visible: root.editingItemType === "event" && root.editingItem && root.editingItem.kind === util.EventKind.Shift
 
                         Text {
-                            text: "Functioning"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                        }
-                        PK.VariableField {
-                            id: editFunctioningField
-                            Layout.fillWidth: true
-                            onValueChanged: {
-                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.functioning) {
-                                    root.updateField("functioning", value)
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        visible: root.editingItemType === "event" && root.editingItem && root.editingItem.kind === util.EventKind.Shift
-
-                        Text {
                             text: "Relationship"
                             font.pixelSize: 14
                             font.bold: true
@@ -713,6 +737,130 @@ Drawer {
                                     root.updateField("relationship", value)
                                 }
                             }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.editingItemType === "event" && root.editingItem && root.editingItem.kind === util.EventKind.Shift
+
+                        Text {
+                            text: "Functioning"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.VariableField {
+                            id: editFunctioningField
+                            Layout.fillWidth: true
+                            onValueChanged: {
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event" && value !== root.editingItem.functioning) {
+                                    root.updateField("functioning", value)
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.editingItemType === "event"
+
+                        Text {
+                            text: "Date"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            PK.DatePickerButtons {
+                                id: editDateButtons
+                                datePicker: editDatePicker
+                                timePicker: null
+                                hideReset: true
+                                hideTime: true
+                                onDateTimeChanged: {
+                                    if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event") {
+                                        root.updateField("dateTime", dateToString(dateTime))
+                                    }
+                                }
+                            }
+                            PK.ComboBox {
+                                id: editDateCertaintyBox
+                                Layout.preferredWidth: 130
+                                model: ListModel {
+                                    ListElement { label: "Unknown"; value: "unknown" }
+                                    ListElement { label: "Approximate"; value: "approximate" }
+                                    ListElement { label: "Certain"; value: "certain" }
+                                }
+                                currentIndex: 1
+                                textRole: "label"
+                                function setCurrentValue(value) {
+                                    for (var i = 0; i < model.count; i++) {
+                                        if (model.get(i).value === value) {
+                                            currentIndex = i
+                                            return
+                                        }
+                                    }
+                                    currentIndex = 1
+                                }
+                                function currentValue() {
+                                    if (currentIndex === -1) return "approximate"
+                                    return model.get(currentIndex).value
+                                }
+                                onCurrentIndexChanged: {
+                                    if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event") {
+                                        var val = currentValue()
+                                        if (val !== root.editingItem.dateCertainty) {
+                                            root.updateField("dateCertainty", val)
+                                        }
+                                    }
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+                        PK.DatePicker {
+                            id: editDatePicker
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: shouldShow ? implicitHeight : 0
+                            visible: shouldShow
+                            onDateTimeChanged: editDateButtons.dateTime = dateTime
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.editingItemType === "event"
+
+                        Text {
+                            text: "End Date"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                        }
+                        PK.DatePickerButtons {
+                            id: editEndDateButtons
+                            datePicker: editEndDatePicker
+                            timePicker: null
+                            hideReset: true
+                            hideTime: true
+                            onDateTimeChanged: {
+                                if (!root.isInitializingFields && root.editingItem && root.editingItemType === "event") {
+                                    root.updateField("endDateTime", dateToString(dateTime))
+                                }
+                            }
+                        }
+                        PK.DatePicker {
+                            id: editEndDatePicker
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: shouldShow ? implicitHeight : 0
+                            visible: shouldShow
+                            onDateTimeChanged: editEndDateButtons.dateTime = dateTime
                         }
                     }
 

@@ -8,6 +8,7 @@ import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
+import ".." 1.0 as Root
 import "." 1.0 as Personal
 
 
@@ -21,11 +22,15 @@ Page {
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
     property var drawer: drawer
+    property var eventFormDrawer: eventFormDrawer
+    property var eventForm: eventForm
     property var pdpSheet: discussView.pdpSheet
 
     property bool discussionMenuOpen: false
+    property bool storyMenuOpen: false
     property int pdpCount: 0
     property real safeAreaTop: 0
+    property real safeAreaBottom: 0
 
     // Colors
     property color headerBg: util.QML_HEADER_BG
@@ -147,17 +152,51 @@ Page {
             }
         }
 
-        // Static title for other tabs
+        // The Story title (tappable dropdown) - Learn tab
+        Rectangle {
+            anchors.centerIn: parent
+            width: storyTitleRow.width + 16
+            height: 36
+            radius: 8
+            color: storyMenuOpen ? util.QML_ITEM_ALTERNATE_BG : "transparent"
+            visible: tabBar.currentIndex === 1
+
+            Row {
+                id: storyTitleRow
+                anchors.centerIn: parent
+                spacing: 6
+
+                Text {
+                    text: "The Story"
+                    font.pixelSize: 17
+                    font.bold: true
+                    color: textColor
+                }
+                Text {
+                    text: "▼"
+                    font.pixelSize: 10
+                    color: secondaryText
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: storyMenuOpen = !storyMenuOpen
+            }
+        }
+
+        // Static title for Plan tab
         Text {
             anchors.centerIn: parent
-            text: tabBar.currentIndex === 1 ? "Learn" : "Plan"
+            text: "Plan"
             font.pixelSize: 17
             font.bold: true
             color: textColor
-            visible: tabBar.currentIndex !== 0
+            visible: tabBar.currentIndex === 2
         }
 
-        // PDP Badge
+        // PDP Badge (Discuss tab only)
         Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 12
@@ -166,7 +205,7 @@ Page {
             height: 28
             radius: 14
             color: "#FF3B30"
-            visible: pdpCount > 0
+            visible: pdpCount > 0 && tabBar.currentIndex === 0
 
             Text {
                 anchors.centerIn: parent
@@ -178,6 +217,31 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: pdpSheet.open()
+            }
+        }
+
+        // Add Event button (Learn tab only)
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: accentColor
+            visible: tabBar.currentIndex === 1
+
+            Text {
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: -1
+                text: "+"
+                font.pixelSize: 20
+                font.weight: Font.Normal
+                color: "#ffffff"
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: learnView.addEventRequested()
             }
         }
     }
@@ -214,6 +278,7 @@ Page {
     // Tab Bar
     Rectangle {
         id: tabBar
+        objectName: "tabBar"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -239,18 +304,44 @@ Page {
                     width: root.width / 3
                     height: parent.height
                     color: "transparent"
+
                     Text {
+                        id: tabLabel
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: 15
                         font.weight: tabBar.currentIndex === index ? Font.DemiBold : Font.Normal
                         color: tabBar.currentIndex === index ? accentColor : secondaryText
                     }
+
+                    // iOS-style notification badge (Discuss tab only)
+                    Rectangle {
+                        visible: index === 0 && pdpCount > 0
+                        anchors.left: tabLabel.right
+                        anchors.leftMargin: 2
+                        anchors.bottom: tabLabel.top
+                        anchors.bottomMargin: -6
+                        width: Math.max(18, badgeText.width + 8)
+                        height: 18
+                        radius: 9
+                        color: "#FF3B30"
+
+                        Text {
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: pdpCount > 99 ? "99+" : pdpCount.toString()
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: "white"
+                        }
+                    }
+
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
                             tabBar.currentIndex = index
                             discussionMenuOpen = false
+                            storyMenuOpen = false
                         }
                     }
                 }
@@ -261,9 +352,12 @@ Page {
     // Invisible tap catcher for dropdown dismissal
     MouseArea {
         anchors.fill: parent
-        visible: discussionMenuOpen
+        visible: discussionMenuOpen || storyMenuOpen
         z: 55
-        onClicked: discussionMenuOpen = false
+        onClicked: {
+            discussionMenuOpen = false
+            storyMenuOpen = false
+        }
     }
 
     // Discussion dropdown
@@ -415,6 +509,206 @@ Page {
         }
     }
 
+    // The Story dropdown (Learn tab)
+    Rectangle {
+        id: storyDropdownRect
+        anchors.top: header.bottom
+        anchors.topMargin: 8
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 200
+        height: storyDropdown.height
+        radius: 12
+        color: itemBg
+        border.width: 1
+        border.color: borderColor
+        visible: opacity > 0
+        opacity: storyMenuOpen ? 1 : 0
+        scale: storyMenuOpen ? 1 : 0.9
+        transformOrigin: Item.Top
+        z: 60
+
+        Behavior on opacity {
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
+        Behavior on scale {
+            NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
+        }
+
+        // Shadow
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -1
+            radius: parent.radius + 1
+            color: "transparent"
+            border.width: 0
+            z: -1
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: 4
+                radius: parent.radius
+                color: util.IS_UI_DARK_MODE ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.15)"
+                z: -1
+            }
+        }
+
+        Column {
+            id: storyDropdown
+            width: parent.width
+            padding: 8
+
+            // Clear Data option
+            Rectangle {
+                width: parent.width - 16
+                height: 44
+                radius: 8
+                color: "transparent"
+                x: 8
+
+                Row {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    spacing: 6
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Clear Data..."
+                        color: "#FF3B30"
+                        font.pixelSize: 15
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        storyMenuOpen = false
+                        clearDataDialog.open()
+                    }
+                }
+            }
+        }
+    }
+
+    // Clear Data confirmation dialog
+    Popup {
+        id: clearDataDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(root.width - 40, 320)
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 0
+
+        background: Rectangle {
+            radius: 14
+            color: itemBg
+            border.width: 1
+            border.color: borderColor
+        }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1; duration: 150; easing.type: Easing.OutBack }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 }
+        }
+
+        contentItem: Column {
+            spacing: 0
+            padding: 20
+
+            Text {
+                text: "Clear Diagram Data"
+                font.pixelSize: 17
+                font.bold: true
+                color: textColor
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Item { width: 1; height: 12 }
+
+            Text {
+                text: "Your discussions will be preserved.\nChoose what to clear:"
+                font.pixelSize: 14
+                color: secondaryText
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Item { width: 1; height: 20 }
+
+            // Clear Events Only button
+            Rectangle {
+                width: clearDataDialog.width - 40
+                height: 44
+                radius: 10
+                color: util.QML_ITEM_ALTERNATE_BG
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Clear Events Only"
+                    font.pixelSize: 15
+                    color: textColor
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        clearDataDialog.close()
+                        personalApp.clearDiagramData(false)
+                    }
+                }
+            }
+
+            Item { width: 1; height: 10 }
+
+            // Clear Events and People button
+            Rectangle {
+                width: clearDataDialog.width - 40
+                height: 44
+                radius: 10
+                color: "#FF3B30"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Clear Events and People"
+                    font.pixelSize: 15
+                    font.weight: Font.Medium
+                    color: "white"
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        clearDataDialog.close()
+                        personalApp.clearDiagramData(true)
+                    }
+                }
+            }
+
+            Item { width: 1; height: 10 }
+
+            // Cancel button
+            Rectangle {
+                width: clearDataDialog.width - 40
+                height: 44
+                radius: 10
+                color: "transparent"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Cancel"
+                    font.pixelSize: 15
+                    color: accentColor
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: clearDataDialog.close()
+                }
+            }
+        }
+    }
+
     // Left Drawer
     Drawer {
         id: drawer
@@ -453,6 +747,52 @@ Page {
                     helpPopup.open()
                 }
             }
+        }
+    }
+
+    // Bottom sheet for EventForm (like PDPSheet)
+    Drawer {
+        id: eventFormDrawer
+        width: parent.width
+        height: parent.height
+        edge: Qt.BottomEdge
+        interactive: false  // Disable drag-to-close so Flickable can scroll
+
+        background: Rectangle { color: drawerBg }
+
+        Root.EventForm {
+            id: eventForm
+            anchors.fill: parent
+            safeAreaTop: root.safeAreaTop
+            safeAreaBottom: Qt.inputMethod.visible ? 0 : root.safeAreaBottom
+            showClearButton: false
+            onCancel: eventFormDrawer.close()
+            Component.onCompleted: personalApp.initEventForm(eventForm)
+        }
+    }
+
+    // Connect LearnView signals
+    Connections {
+        target: learnView
+        function onAddEventRequested() {
+            eventForm.clear()
+            eventForm.initWithNoSelection()
+            eventFormDrawer.open()
+        }
+        function onEditEventRequested(eventId) {
+            personalApp.editEvent(eventId)
+            eventFormDrawer.open()
+        }
+        function onDeleteEventRequested(eventId) {
+            personalApp.deleteEvent(eventId)
+        }
+    }
+
+    // Connect PersonalApp event form done signal
+    Connections {
+        target: personalApp
+        function onEventFormDoneEditing() {
+            eventFormDrawer.close()
         }
     }
 

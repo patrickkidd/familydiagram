@@ -224,7 +224,7 @@ class Person(PathItem):
             path.lineTo(rect.bottomLeft())
             path.lineTo(rect.bottomRight())
             path.lineTo(topMiddle)
-        elif kind == "unknown":
+        else:  # "unknown", None, "", or any unrecognized value
             path.addRoundedRect(rect, 40, 40, Qt.RelativeSize)
 
         return path
@@ -1112,7 +1112,7 @@ class Person(PathItem):
         if not self.scene():
             return
         # age text
-        if self.gender() == "unknown":
+        if self.gender() not in (util.PERSON_KIND_MALE, util.PERSON_KIND_FEMALE, "abortion", "miscarriage"):
             self.ageItem.setText("?")
         else:
             age = self.age()

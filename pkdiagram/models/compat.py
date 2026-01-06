@@ -1,6 +1,6 @@
 import logging
 
-from btcopilot.schema import EventKind, RelationshipKind
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram.pyqt import QPointF, QDateTime, QDate
 from pkdiagram import version, util, slugify
 from pkdiagram.scene import ItemDetails, Emotion
@@ -788,6 +788,27 @@ def update_data(data):
             marriages = data.pop("marriages")
             if not data.get("pair_bonds"):
                 data["pair_bonds"] = marriages
+
+    if UP_TO(data, "2.1.16"):
+        # Convert enum instances to string values for Event properties
+        # Previously these were stored as VariableShift/RelationshipKind enums
+        # Now they are stored as strings to avoid pickle deserialization issues
+        for event_chunk in data.get("events", []):
+            for attr in ("anxiety", "symptom", "functioning"):
+                if attr in event_chunk:
+                    value = event_chunk[attr]
+                    if isinstance(value, VariableShift):
+                        event_chunk[attr] = value.value
+                    elif value is not None and not isinstance(value, str):
+                        # Handle any other non-string type
+                        event_chunk[attr] = str(value)
+
+            if "relationship" in event_chunk:
+                value = event_chunk["relationship"]
+                if isinstance(value, RelationshipKind):
+                    event_chunk["relationship"] = value.value
+                elif value is not None and not isinstance(value, str):
+                    event_chunk["relationship"] = str(value)
 
     ## Add more version fixes here
     # if UP_TO(data, ....)

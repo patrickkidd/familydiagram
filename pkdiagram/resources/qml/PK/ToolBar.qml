@@ -5,14 +5,17 @@ QQC.ToolBar {
     id: root
     property bool bottomBorder: true
     property bool topBorder: false
+    property real safeAreaTop: 0
+    topPadding: safeAreaTop
     background: Rectangle {
-        implicitHeight: util.QML_HEADER_HEIGHT
+        implicitHeight: util.QML_HEADER_HEIGHT + root.safeAreaTop
         color: util.QML_HEADER_BG
         Rectangle {
             visible: root.topBorder
             width: parent.width
             height: 1
             anchors.top: parent.top
+            anchors.topMargin: root.safeAreaTop
             color: util.QML_ITEM_BORDER_COLOR
         }
         Rectangle {

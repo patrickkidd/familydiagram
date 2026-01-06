@@ -8,7 +8,12 @@ Page {
     id: root
     objectName: "learnView"
 
+    signal addEventRequested
+    signal editEventRequested(int eventId)
+    signal deleteEventRequested(int eventId)
+
     property int selectedEvent: -1
+    property int swipedEvent: -1
     property int highlightedEvent: -1
     property int pendingSelection: -1
 
@@ -28,7 +33,7 @@ Page {
 
     // Graph properties
     property real graphPadding: 20
-    property real miniGraphY: 90
+    property real miniGraphY: 20
     property real miniGraphH: 100
     property real gLeft: graphPadding + 30
     property real gRight: width - graphPadding
@@ -219,16 +224,10 @@ Page {
             height: miniGraphY + miniGraphH + 80
             color: cardColor
 
+            // Date range label
             Text {
-                x: 20; y: 20
-                text: "The Story"
-                font.pixelSize: 24
-                font.weight: Font.Bold
-                color: textPrimary
-            }
-
-            Text {
-                x: 20; y: 48
+                x: graphPadding + 8
+                y: 8
                 text: sarfGraphModel ? (sarfGraphModel.yearStart + " - " + sarfGraphModel.yearEnd) : ""
                 font.pixelSize: 12
                 color: textSecondary
@@ -394,170 +393,317 @@ Page {
 
             onCurrentIndexChanged: highlightedEvent = currentIndex
 
-            delegate: Rectangle {
+            delegate: Item {
                 id: delegateRoot
                 width: ListView.view.width
                 height: selectedEvent === index ? 140 : 100
-                color: selectedEvent === index ? highlightColor : "transparent"
+                clip: true
 
                 property var evt: modelData
                 property bool isShift: evt.kind === "shift"
                 property bool isDeathEvent: evt.kind === "death"
                 property bool isLife: isLifeEvent(evt.kind)
+                property real swipeX: 0
+                property real actionWidth: 75
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        if (selectedEvent === index) {
-                            selectedEvent = -1
-                        } else {
-                            selectedEvent = index
-                            highlightedEvent = index
-                            scrollAdjustTimer.restart()
-                        }
-                    }
-                }
-
-                // Timeline line
+                // Edit action (revealed on swipe right)
                 Rectangle {
-                    x: 35; y: 0
-                    width: 2
-                    height: parent.height
-                    color: dividerColor
-                }
-
-                // Node symbol based on event kind
-                Item {
-                    id: nodeContainer
-                    x: 8; y: 8
-                    width: 56; height: 56
-
-                    // Life events: foreground filled circle
-                    Rectangle {
-                        visible: delegateRoot.isLife
-                        anchors.centerIn: parent
-                        width: 26; height: 26; radius: 13
-                        color: textSecondary
-                    }
-
-                    // Death: grey box
-                    Rectangle {
-                        visible: delegateRoot.isDeathEvent
-                        anchors.centerIn: parent
-                        width: 26; height: 26; radius: 3
-                        color: functioningColor
-                    }
-
-                    // Shift events: vertically stacked SARF symbols
-                    Column {
-                        id: sarfStack
-                        visible: delegateRoot.isShift
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 15
-                        spacing: 1
-
-                        property real symSize: 18
-
-                        SymptomSymbol {
-                            visible: delegateRoot.evt.symptom !== null && delegateRoot.evt.symptom !== undefined
-                            size: sarfStack.symSize
-                            symbolColor: symptomColor
-                        }
-                        AnxietySymbol {
-                            visible: delegateRoot.evt.anxiety !== null && delegateRoot.evt.anxiety !== undefined
-                            size: sarfStack.symSize
-                            symbolColor: anxietyColor
-                        }
-                        RelationshipSymbol {
-                            visible: delegateRoot.evt.relationship !== null && delegateRoot.evt.relationship !== undefined
-                            size: sarfStack.symSize
-                            symbolColor: relationshipColor
-                        }
-                        FunctioningSymbol {
-                            visible: delegateRoot.evt.functioning !== null && delegateRoot.evt.functioning !== undefined
-                            size: sarfStack.symSize
-                            symbolColor: functioningColor
-                        }
-                    }
-                }
-
-                // Content
-                Column {
-                    x: 70; y: 12
-                    width: parent.width - 90
-                    spacing: 4
-
-                    // Date and Who on same row
-                    Item {
-                        width: parent.width
-                        height: 18
-                        Text {
-                            text: evt.date
-                            font.pixelSize: 12
-                            font.weight: Font.Bold
-                            color: primaryColorForEvent(evt)
-                        }
-                        Text {
-                            x: 95
-                            text: evt.who
-                            font.pixelSize: 12
-                            color: textSecondary
-                        }
-                    }
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: actionWidth
+                    color: util.QML_SELECTION_COLOR
 
                     Text {
-                        text: evt.description
+                        anchors.centerIn: parent
+                        text: "Edit"
                         font.pixelSize: 15
                         font.weight: Font.Medium
-                        color: textPrimary
+                        color: "#fff"
                     }
 
-                    // Expanded content
-                    Column {
-                        visible: selectedEvent === index
-                        opacity: selectedEvent === index ? 1 : 0
-                        spacing: 4
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            swipeX = 0
+                            swipedEvent = -1
+                            editEventRequested(evt.id)
+                        }
+                    }
+                }
 
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                // Delete action (revealed on swipe left)
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: actionWidth
+                    color: "#FF3B30"
 
-                        Text {
-                            text: evt.notes || ""
-                            font.pixelSize: 12
-                            color: textSecondary
-                            visible: evt.notes && evt.notes.length > 0
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Delete"
+                        font.pixelSize: 15
+                        font.weight: Font.Medium
+                        color: "#fff"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            swipeX = 0
+                            swipedEvent = -1
+                            deleteEventRequested(evt.id)
+                        }
+                    }
+                }
+
+                // Swipeable content
+                Rectangle {
+                    id: contentRow
+                    x: delegateRoot.swipeX
+                    width: parent.width
+                    height: parent.height
+                    color: selectedEvent === index ? highlightColor : bgColor
+
+                    Behavior on x {
+                        enabled: !swipeArea.pressed
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    }
+
+                    MouseArea {
+                        id: swipeArea
+                        anchors.fill: parent
+                        property real startX: 0
+                        property real startSwipeX: 0
+                        property bool isDragging: false
+
+                        onPressed: {
+                            startX = mouse.x
+                            startSwipeX = delegateRoot.swipeX
+                            isDragging = false
                         }
 
-                        // Relationship pill for Shift events with relationship set
-                        Rectangle {
-                            visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
-                            width: 100; height: 24; radius: 12
-                            color: relationshipColor
+                        onPositionChanged: {
+                            var delta = mouse.x - startX
+                            if (Math.abs(delta) > 10) {
+                                isDragging = true
+                            }
 
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 4
-                                RelationshipSymbol { size: 10; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
-                                Text {
-                                    text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
-                                    font.pixelSize: 9
-                                    color: "#fff"
+                            if (isDragging) {
+                                var newX = startSwipeX + delta
+
+                                // Close other swiped items
+                                if (swipedEvent !== index && swipedEvent !== -1) {
+                                    swipedEvent = -1
+                                }
+
+                                // Clamp swipe range
+                                delegateRoot.swipeX = Math.max(-actionWidth, Math.min(actionWidth, newX))
+                            }
+                        }
+
+                        onReleased: {
+                            var threshold = actionWidth * 0.4
+                            if (delegateRoot.swipeX > threshold) {
+                                delegateRoot.swipeX = actionWidth
+                                swipedEvent = index
+                            } else if (delegateRoot.swipeX < -threshold) {
+                                delegateRoot.swipeX = -actionWidth
+                                swipedEvent = index
+                            } else {
+                                delegateRoot.swipeX = 0
+                                if (swipedEvent === index) swipedEvent = -1
+                            }
+                            isDragging = false
+                        }
+
+                        onCanceled: {
+                            // Reset to nearest snap position on cancel
+                            var threshold = actionWidth * 0.4
+                            if (delegateRoot.swipeX > threshold) {
+                                delegateRoot.swipeX = actionWidth
+                                swipedEvent = index
+                            } else if (delegateRoot.swipeX < -threshold) {
+                                delegateRoot.swipeX = -actionWidth
+                                swipedEvent = index
+                            } else {
+                                delegateRoot.swipeX = 0
+                                if (swipedEvent === index) swipedEvent = -1
+                            }
+                            isDragging = false
+                        }
+
+                        onClicked: {
+                            if (!isDragging && Math.abs(delegateRoot.swipeX) < 5) {
+                                // Reset any swiped item
+                                if (swipedEvent !== -1) {
+                                    swipedEvent = -1
+                                    return
+                                }
+                                // Toggle expand
+                                if (selectedEvent === index) {
+                                    selectedEvent = -1
+                                } else {
+                                    selectedEvent = index
+                                    highlightedEvent = index
+                                    scrollAdjustTimer.restart()
                                 }
                             }
                         }
                     }
-                }
 
-                // Chevron
-                Text {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 20
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: selectedEvent === index ? "\u25BC" : "\u25B6"
-                    font.pixelSize: 12
-                    color: textSecondary
+                    // Reset swipe when another item is swiped
+                    Connections {
+                        target: root
+                        function onSwipedEventChanged() {
+                            if (swipedEvent !== index && delegateRoot.swipeX !== 0) {
+                                delegateRoot.swipeX = 0
+                            }
+                        }
+                    }
+
+                    // Timeline line
+                    Rectangle {
+                        x: 35; y: 0
+                        width: 2
+                        height: parent.height
+                        color: dividerColor
+                    }
+
+                    // Node symbol based on event kind
+                    Item {
+                        id: nodeContainer
+                        x: 8; y: 8
+                        width: 56; height: 56
+
+                        // Life events: foreground filled circle
+                        Rectangle {
+                            visible: delegateRoot.isLife
+                            anchors.centerIn: parent
+                            width: 26; height: 26; radius: 13
+                            color: textSecondary
+                        }
+
+                        // Death: grey box
+                        Rectangle {
+                            visible: delegateRoot.isDeathEvent
+                            anchors.centerIn: parent
+                            width: 26; height: 26; radius: 3
+                            color: functioningColor
+                        }
+
+                        // Shift events: vertically stacked SARF symbols
+                        Column {
+                            id: sarfStack
+                            visible: delegateRoot.isShift
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: 15
+                            spacing: 1
+
+                            property real symSize: 18
+
+                            SymptomSymbol {
+                                visible: delegateRoot.evt.symptom !== null && delegateRoot.evt.symptom !== undefined
+                                size: sarfStack.symSize
+                                symbolColor: symptomColor
+                            }
+                            AnxietySymbol {
+                                visible: delegateRoot.evt.anxiety !== null && delegateRoot.evt.anxiety !== undefined
+                                size: sarfStack.symSize
+                                symbolColor: anxietyColor
+                            }
+                            RelationshipSymbol {
+                                visible: delegateRoot.evt.relationship !== null && delegateRoot.evt.relationship !== undefined
+                                size: sarfStack.symSize
+                                symbolColor: relationshipColor
+                            }
+                            FunctioningSymbol {
+                                visible: delegateRoot.evt.functioning !== null && delegateRoot.evt.functioning !== undefined
+                                size: sarfStack.symSize
+                                symbolColor: functioningColor
+                            }
+                        }
+                    }
+
+                    // Content
+                    Column {
+                        x: 70; y: 12
+                        width: parent.width - 90
+                        spacing: 4
+
+                        // Date and Who on same row
+                        Item {
+                            width: parent.width
+                            height: 18
+                            Text {
+                                text: evt.date
+                                font.pixelSize: 12
+                                font.weight: Font.Bold
+                                color: primaryColorForEvent(evt)
+                            }
+                            Text {
+                                x: 95
+                                text: evt.who
+                                font.pixelSize: 12
+                                color: textSecondary
+                            }
+                        }
+
+                        Text {
+                            text: evt.description
+                            font.pixelSize: 15
+                            font.weight: Font.Medium
+                            color: textPrimary
+                        }
+
+                        // Expanded content
+                        Column {
+                            visible: selectedEvent === index
+                            opacity: selectedEvent === index ? 1 : 0
+                            spacing: 4
+
+                            Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                            Text {
+                                text: evt.notes || ""
+                                font.pixelSize: 12
+                                color: textSecondary
+                                visible: evt.notes && evt.notes.length > 0
+                            }
+
+                            // Relationship pill for Shift events with relationship set
+                            Rectangle {
+                                visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
+                                width: 100; height: 24; radius: 12
+                                color: relationshipColor
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    RelationshipSymbol { size: 10; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
+                                    Text {
+                                        text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
+                                        font.pixelSize: 9
+                                        color: "#fff"
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Chevron
+                    Text {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 20
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: selectedEvent === index ? "\u25BC" : "\u25B6"
+                        font.pixelSize: 12
+                        color: textSecondary
+                    }
                 }
             }
         }

@@ -44,94 +44,12 @@ Rectangle {
         util.EventKind.Adopted
     ].indexOf(eventData.kind) !== -1
 
-    function resolvePersonName(personId) {
-        if (!personId || !pdp || !pdp.people) {
-            return ""
-        }
-        // Check pending PDP people first (negative IDs)
-        if (pdp.people) {
-            for (var i = 0; i < pdp.people.length; i++) {
-                var p = pdp.people[i]
-                if (p.id === personId) {
-                    return p.name || ""
-                }
-            }
-        }
-        // Check committed people (positive IDs)
-        if (pdp.committedPeople) {
-            for (var i = 0; i < pdp.committedPeople.length; i++) {
-                var p = pdp.committedPeople[i]
-                if (p.id === personId) {
-                    return p.name || ""
-                }
-            }
-        }
-        return ""
-    }
-
-    function resolvePersonNames(personIds) {
-        if (!personIds || personIds.length === 0) {
-            return ""
-        }
-        var names = []
-        for (var i = 0; i < personIds.length; i++) {
-            var name = resolvePersonName(personIds[i])
-            if (name) {
-                names.push(name)
-            }
-        }
-        return names.join(", ")
-    }
-
-    function formatDateTime(dt) {
-        if (!dt) return ""
-        return dt
-    }
-
     function hasValue(val) {
         return val !== null && val !== undefined && val !== ""
     }
 
     function hasSarfValue(val) {
         return val !== null && val !== undefined && val !== "" && val !== 0
-    }
-
-    function variableLabel(val) {
-        if (val === util.VARIABLE_SHIFT_UP) return "Up"
-        if (val === util.VARIABLE_SHIFT_DOWN) return "Down"
-        if (val === util.VARIABLE_SHIFT_SAME) return "Same"
-        return ""
-    }
-
-    function relationshipLabel(val) {
-        var labels = {
-            'conflict': "Conflict",
-            'distance': "Distance",
-            'overfunctioning': "Overfunctioning",
-            'underfunctioning': "Underfunctioning",
-            'projection': "Projection",
-            'cutoff': "Cutoff",
-            'inside': "Triangle to inside",
-            'outside': "Triangle to outside",
-            'toward': "Toward",
-            'away': "Away",
-            'defined-self': "Defined Self"
-        }
-        return labels[val] || ""
-    }
-
-    function eventKindLabel(kind) {
-        if (!kind) return "Event"
-        if (kind === util.EventKind.Bonded) return "Bonded"
-        if (kind === util.EventKind.Married) return "Married"
-        if (kind === util.EventKind.Birth) return "Birth"
-        if (kind === util.EventKind.Adopted) return "Adopted"
-        if (kind === util.EventKind.Moved) return "Moved"
-        if (kind === util.EventKind.Separated) return "Separated"
-        if (kind === util.EventKind.Divorced) return "Divorced"
-        if (kind === util.EventKind.Shift) return "Shift"
-        if (kind === util.EventKind.Death) return "Death"
-        return "Event"
     }
 
     function eventKindColor(kind) {
@@ -146,6 +64,26 @@ Rectangle {
         if (kind === util.EventKind.Shift) return util.QML_HIGHLIGHT_COLOR
         if (kind === util.EventKind.Death) return "#808080"
         return util.QML_INACTIVE_TEXT_COLOR
+    }
+
+    function variableColor(val, isFunctioning) {
+        if (isFunctioning) {
+            if (val === util.VARIABLE_SHIFT_UP) return "#27ae60"
+            if (val === util.VARIABLE_SHIFT_DOWN) return "#e74c3c"
+        } else {
+            if (val === util.VARIABLE_SHIFT_UP) return "#e74c3c"
+            if (val === util.VARIABLE_SHIFT_DOWN) return "#27ae60"
+        }
+        if (val === util.VARIABLE_SHIFT_SAME) return "#95a5a6"
+        return util.QML_TEXT_COLOR
+    }
+
+    function formatDateWithCertainty(dt, certainty) {
+        if (!dt) return ""
+        if (certainty && certainty !== "certain") {
+            return dt + " (" + personalApp.dateCertaintyLabel(certainty) + ")"
+        }
+        return dt
     }
 
     ColumnLayout {
@@ -166,7 +104,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: eventKindLabel(eventData ? eventData.kind : null)
+                    text: personalApp ? personalApp.eventKindLabel(eventData ? eventData.kind : null) : ""
                     font.pixelSize: 11
                     font.bold: true
                     color: "white"
@@ -246,6 +184,69 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.person)
+
+                        Text {
+                            text: "Person"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personalApp.resolvePersonName(eventData ? eventData.person : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && personalApp.resolvePersonName(eventData.spouse) !== ""
+
+                        Text {
+                            text: "Spouse"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personalApp.resolvePersonName(eventData ? eventData.spouse : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && personalApp.resolvePersonName(eventData.child) !== ""
+
+                        Text {
+                            text: "Child"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personalApp.resolvePersonName(eventData ? eventData.child : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
                         visible: isShiftEvent && eventData !== null && eventData !== undefined && hasValue(eventData.description)
 
                         Text {
@@ -267,101 +268,17 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.person) && resolvePersonName(eventData.person) !== ""
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.notes)
 
                         Text {
-                            text: "Person"
+                            text: "Notes"
                             font.pixelSize: 10
                             font.bold: true
                             color: util.QML_TEXT_COLOR
                             opacity: 0.7
                         }
                         Text {
-                            text: resolvePersonName(eventData ? eventData.person : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && resolvePersonName(eventData.spouse) !== ""
-
-                        Text {
-                            text: "Spouse"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: resolvePersonName(eventData ? eventData.spouse : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && resolvePersonName(eventData.child) !== ""
-
-                        Text {
-                            text: "Child"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: resolvePersonName(eventData ? eventData.child : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.dateTime)
-
-                        Text {
-                            text: "Date"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: formatDateTime(eventData ? eventData.dateTime : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.endDateTime)
-
-                        Text {
-                            text: "End Date"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: formatDateTime(eventData ? eventData.endDateTime : null)
+                            text: eventData ? (eventData.notes || "") : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -382,9 +299,10 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: variableLabel(eventData ? eventData.symptom : null)
+                            text: personalApp.variableLabel(eventData ? eventData.symptom : null)
                             font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
+                            color: variableColor(eventData ? eventData.symptom : null, false)
+                            font.bold: true
                             Layout.fillWidth: true
                         }
                     }
@@ -402,29 +320,10 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: variableLabel(eventData ? eventData.anxiety : null)
+                            text: personalApp.variableLabel(eventData ? eventData.anxiety : null)
                             font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: isShiftEvent && eventData && hasSarfValue(eventData.functioning)
-
-                        Text {
-                            text: "Functioning"
-                            font.pixelSize: 10
+                            color: variableColor(eventData ? eventData.anxiety : null, false)
                             font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: variableLabel(eventData ? eventData.functioning : null)
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
                             Layout.fillWidth: true
                         }
                     }
@@ -442,7 +341,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: relationshipLabel(eventData ? eventData.relationship : null)
+                            text: personalApp ? personalApp.relationshipLabel(eventData ? eventData.relationship : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             Layout.fillWidth: true
@@ -452,7 +351,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && resolvePersonNames(eventData.relationshipTargets) !== ""
+                        visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && personalApp.resolvePersonNames(eventData.relationshipTargets) !== ""
 
                         Text {
                             text: "Targets"
@@ -462,7 +361,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: resolvePersonNames(eventData ? eventData.relationshipTargets : [])
+                            text: personalApp ? personalApp.resolvePersonNames(eventData ? eventData.relationshipTargets : []) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -473,7 +372,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && resolvePersonNames(eventData.relationshipTriangles) !== ""
+                        visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && personalApp.resolvePersonNames(eventData.relationshipTriangles) !== ""
 
                         Text {
                             text: "Triangles"
@@ -483,7 +382,70 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: resolvePersonNames(eventData ? eventData.relationshipTriangles : [])
+                            text: personalApp ? personalApp.resolvePersonNames(eventData ? eventData.relationshipTriangles : []) : ""
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: isShiftEvent && eventData && hasSarfValue(eventData.functioning)
+
+                        Text {
+                            text: "Functioning"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.functioning : null) : ""
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: variableColor(eventData ? eventData.functioning : null, true)
+                            font.bold: true
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.dateTime)
+
+                        Text {
+                            text: "Date"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: formatDateWithCertainty(eventData ? eventData.dateTime : null, eventData ? eventData.dateCertainty : null)
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        visible: eventData !== null && eventData !== undefined && hasValue(eventData.endDateTime)
+
+                        Text {
+                            text: "End Date"
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: util.QML_TEXT_COLOR
+                            opacity: 0.7
+                        }
+                        Text {
+                            text: eventData ? (eventData.endDateTime || "") : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap

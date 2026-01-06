@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from btcopilot.schema import EventKind, RelationshipKind, VariableShift
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram.pyqt import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import Item, Property
@@ -30,7 +30,8 @@ class Event(Item):
             {"attr": "kind", "default": EventKind.Shift.value},  # EventKind
             {"attr": "dateTime", "type": QDateTime},
             {"attr": "endDateTime", "type": QDateTime},
-            {"attr": "unsure", "default": True},
+            {"attr": "dateCertainty", "type": DateCertainty, "default": None},
+            {"attr": "unsure", "default": True},  # DEPRECATED: Use dateCertainty
             {"attr": "description"},
             {"attr": "nodal", "default": False},
             {
@@ -43,7 +44,7 @@ class Event(Item):
             {"attr": "person", "type": int, "default": None},
             {"attr": "spouse", "type": int, "default": None},
             {"attr": "child", "type": int, "default": None},
-            # Shift fields
+            # Shift fields - stored as strings, Property converts to/from enums
             {"attr": "anxiety", "type": VariableShift, "default": None},
             {"attr": "symptom", "type": VariableShift, "default": None},
             {"attr": "relationship", "type": RelationshipKind, "default": None},
@@ -81,6 +82,7 @@ class Event(Item):
             raise TypeError(
                 f"Event() requires person=Person, got {type(person).__name__}"
             )
+
         super().__init__(
             kind=kind.value, person=person.id if person else None, **kwargs
         )

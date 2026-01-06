@@ -68,7 +68,6 @@ skip = [
     "qtqa",
     "qtrepotools",
     "qtscxml",
-    "qtsensors",
     "qtsvg",
     "qttools",
     "qttranslations",
@@ -132,7 +131,7 @@ disabled_features = [
 ]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
-    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtSensors"
 ]
 
 [PyQt.win]

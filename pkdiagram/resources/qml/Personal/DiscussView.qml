@@ -26,8 +26,6 @@ Page {
     property var noChatLabel: noChatLabel
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet
-    property var eventDrawer: eventDrawer
-    property var eventForm: eventForm
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
@@ -92,47 +90,23 @@ Page {
                 pdpSheet.updateItems()
             }
         }
+        function onJournalImportStarted() {
+            importOverlay.visible = true
+        }
+        function onJournalImportCompleted(summary) {
+            importOverlay.visible = false
+            util.informationBox("Import Complete",
+                "Added " + summary.people + " people, " + summary.events + " events to pending items.")
+        }
+        function onJournalImportFailed(error) {
+            importOverlay.visible = false
+            util.criticalBox("Import Failed", error)
+        }
     }
 
     function clear() {
         chatModel.clear()
     }
-
-    function showEventForm() {
-        eventDrawer.open()
-    }
-
-    Popup {
-        id: eventDrawer
-        width: parent.width
-        height: parent.height
-        modal: true
-        closePolicy: Popup.CloseOnEscape
-        parent: Overlay.overlay
-        padding: 0
-
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
-            NumberAnimation { property: "y"; from: parent.height; to: 0; duration: 250; easing.type: Easing.OutQuad }
-        }
-
-        exit: Transition {
-            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
-            NumberAnimation { property: "y"; from: 0; to: parent.height; duration: 250; easing.type: Easing.InQuad }
-        }
-
-        Root.EventForm {
-            id: eventForm
-            anchors.fill: parent
-            onCancel: eventDrawer.close()
-        }
-
-        background: Rectangle {
-            color: util.QML_WINDOW_BG
-        }
-    }
-
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -372,6 +346,8 @@ Page {
                             }
                         }
 
+                        property int prevTextLength: 0
+
                         Keys.onReturnPressed: {
                             if (event.modifiers & Qt.ShiftModifier) {
                                 event.accepted = false
@@ -379,6 +355,25 @@ Page {
                                 inputField.submit()
                                 event.accepted = true
                             }
+                        }
+
+                        onTextChanged: {
+                            // Detect paste: large text delta in single change (works on iOS and desktop)
+                            var delta = text.length - prevTextLength
+                            if (delta > 20 && prevTextLength === 0) {
+                                var pastedText = text
+                                text = ""
+                                prevTextLength = 0
+                                if (util.questionBox("Import Journal Notes?",
+                                    "Import as bulk data instead of chat message?")) {
+                                    personalApp.importJournalNotes(pastedText)
+                                } else {
+                                    text = pastedText
+                                    prevTextLength = pastedText.length
+                                }
+                                return
+                            }
+                            prevTextLength = text.length
                         }
                     }
                 }
@@ -433,6 +428,72 @@ Page {
         }
         onFieldChanged: function(id, field, value) {
             personalApp.updatePDPItem(id, field, value)
+        }
+    }
+
+    Rectangle {
+        id: importOverlay
+        parent: Overlay.overlay
+        anchors.fill: parent
+        visible: false
+        color: util.QML_HEADER_BG
+        z: 1000
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {} // Block clicks
+        }
+
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -42
+            spacing: 20
+
+            BusyIndicator {
+                id: busyIndicator
+                anchors.horizontalCenter: parent.horizontalCenter
+                running: importOverlay.visible
+                width: 64
+                height: 64
+                contentItem: Item {
+                    implicitWidth: 64
+                    implicitHeight: 64
+                    Rectangle {
+                        id: spinner
+                        width: parent.width
+                        height: parent.height
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: 4
+                        border.color: util.QML_INACTIVE_TEXT_COLOR
+                        Rectangle {
+                            width: 8
+                            height: 8
+                            radius: 4
+                            color: util.QML_SELECTION_COLOR
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: 2
+                        }
+                        RotationAnimator {
+                            target: spinner
+                            from: 0
+                            to: 360
+                            duration: 1000
+                            loops: Animation.Infinite
+                            running: busyIndicator.running
+                        }
+                    }
+                }
+            }
+
+            PK.Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Importing journal notes..."
+                color: util.QML_TEXT_COLOR
+                font.pixelSize: 16
+            }
         }
     }
 }

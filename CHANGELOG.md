@@ -2,6 +2,13 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.16
+
+## 2.1.16b2
+
+## 2.1.16b1
+
+- Added date certainty field
 
 ## 2.1.15
 

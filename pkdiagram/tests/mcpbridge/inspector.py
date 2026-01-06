@@ -10,21 +10,27 @@ from enum import Enum
 from typing import Optional, Dict, Any, List, Union
 
 
-class AppLoginState(str, Enum):
-    """Login state as observed from the app UI."""
+class AppState(str, Enum):
+    Initializing = "initializing"
+    Running = "running"
+    Stopped = "stopped"
+    Error = "error"
 
-    Unknown = "unknown"
+
+class AppLoginState(str, Enum):
     AccountDialogVisible = "account_dialog_visible"
     NotLoggedIn = "not_logged_in"
     LoggedIn = "logged_in"
 
 
 class AppView(str, Enum):
-    """Current view shown in the app."""
-
-    Unknown = "unknown"
     FileManager = "file_manager"
     DocumentView = "document_view"
+    AccountView = "account_view"
+    WelcomeView = "welcome_view"
+    DiscussView = "discuss_view"
+    LearnView = "learn_view"
+    PlanView = "plan_view"
 
 
 from pkdiagram.pyqt import (
@@ -34,6 +40,7 @@ from pkdiagram.pyqt import (
     QApplication,
     QQuickItem,
     QQuickWidget,
+    QQuickWindow,
     QGraphicsView,
     QGraphicsItem,
     QPoint,
@@ -56,16 +63,6 @@ log = logging.getLogger(__name__)
 
 
 class QtInspector:
-    """
-    Inspects Qt objects and provides element finding/interaction.
-
-    This class enables:
-    - Finding widgets and QML items by objectName
-    - Listing all elements in the UI hierarchy
-    - Getting element properties and geometry
-    - Simulating input on elements
-    """
-
     def __init__(self, app: Optional[QApplication] = None):
         self._app = app or QApplication.instance()
 
@@ -75,154 +72,177 @@ class QtInspector:
 
     def getAppState(self) -> Dict[str, Any]:
         """
-        Get high-level semantic app state.
-
-        Returns dict with:
-        - loginState: "account_dialog_visible" | "not_logged_in" | "logged_in"
-        - currentView: "file_manager" | "document_view" | "unknown"
-        - fileManagerTab: "local" | "server" | None
-        - loadedFileName: str | None
-        - currentDrawer: str | None (e.g., "eventForm", "caseProps", "personProps", etc.)
-        - visibleDialogs: list of dialog info
+        Get high-level semantic app state for MCP testing.
+        Fails fast on unexpected states - this is a dev tool, not production code.
         """
-        state = {
-            "loginState": AppLoginState.Unknown.value,
-            "currentView": AppView.Unknown.value,
-            "fileManagerTab": None,
-            "loadedFileName": None,
-            "currentDrawer": None,
-            "visibleDialogs": [],
-            "visibleWindows": [],
+        # Try Pro app first (MainWindow widget)
+        mainWindow = None
+        for window in self._app.topLevelWidgets():
+            if type(window).__name__ == "MainWindow":
+                mainWindow = window
+                break
+
+        if mainWindow is not None:
+            return self._getProAppState(mainWindow)
+
+        # Try Personal app (QQuickWindow from QQmlApplicationEngine)
+        personalWindow = self._findPersonalAppWindow()
+        if personalWindow is not None:
+            return self._getPersonalAppState(personalWindow)
+
+        # Neither app type found - still initializing
+        return {
+            "success": True,
+            "state": {
+                "appState": AppState.Initializing.value,
+                "loginState": None,
+                "currentView": None,
+            },
         }
 
-        try:
-            # Find MainWindow
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+    def _findPersonalAppWindow(self) -> Optional[QQuickWindow]:
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow):
+                rootItem = window.contentItem()
+                if rootItem:
+                    for child in rootItem.childItems():
+                        if child.objectName() == "personalView" or "PersonalContainer" in type(child).__name__:
+                            return window
+                    # Check if window has personalApp context property
+                    if window.property("personalView") is not None:
+                        return window
+                return window
+        return None
 
-            # Check all top-level widgets for dialogs
-            for window in self._app.topLevelWidgets():
-                if not window.isVisible():
-                    continue
-
+    def _getProAppState(self, mainWindow) -> Dict[str, Any]:
+        visibleDialogs = []
+        for window in self._app.topLevelWidgets():
+            if window.isVisible():
                 className = type(window).__name__
-                windowInfo = {
-                    "objectName": window.objectName() or None,
-                    "className": className,
-                    "title": window.windowTitle() or None,
-                }
-
-                # Capture message text if this is a QMessageBox
-                if isinstance(window, QMessageBox):
-                    windowInfo["message"] = window.text() or None
-                    windowInfo["detailedText"] = window.detailedText() or None
-                    windowInfo["informativeText"] = window.informativeText() or None
-                # Capture label text if this is a QDialog
-                elif isinstance(window, QDialog):
-                    labels = window.findChildren(QWidget)
-                    texts = []
-                    for label in labels:
-                        text = self._getTextProperty(label)
-                        if text:
-                            texts.append(text)
-                    if texts:
-                        windowInfo["dialogText"] = " ".join(texts)
-
-                state["visibleWindows"].append(windowInfo)
-
-                # Check for AccountDialog
-                if className == "AccountDialog":
-                    state["loginState"] = AppLoginState.AccountDialogVisible.value
-                    state["visibleDialogs"].append(windowInfo)
-                    continue
-
-                # Check for other dialogs
                 if "Dialog" in className or "QMessageBox" in className:
-                    state["visibleDialogs"].append(windowInfo)
-                    continue
+                    visibleDialogs.append({
+                        "objectName": window.objectName() or None,
+                        "className": className,
+                        "title": window.windowTitle() or None,
+                    })
 
-            if mainWindow is None:
-                return {"success": True, "state": state}
+        session = mainWindow.session
+        if any(d["className"] == "AccountDialog" for d in visibleDialogs):
+            loginState = AppLoginState.AccountDialogVisible.value
+        elif session.isLoggedIn():
+            loginState = AppLoginState.LoggedIn.value
+        else:
+            loginState = AppLoginState.NotLoggedIn.value
 
-            # Check login state
-            if state["loginState"] == AppLoginState.Unknown.value:
-                if hasattr(mainWindow, "session") and mainWindow.session:
-                    if mainWindow.session.isLoggedIn():
-                        state["loginState"] = AppLoginState.LoggedIn.value
-                    else:
-                        state["loginState"] = AppLoginState.NotLoggedIn.value
+        currentView = None
+        loadedFileName = None
 
-            # Determine current view (FileManager vs DocumentView)
-            if hasattr(mainWindow, "fileManager") and hasattr(
-                mainWindow, "documentView"
-            ):
-                fileManager = mainWindow.fileManager
-                documentView = mainWindow.documentView
+        if any(d["className"] == "AccountDialog" for d in visibleDialogs):
+            currentView = AppView.AccountView.value
+        elif any(d["className"] == "WelcomeDialog" for d in visibleDialogs):
+            currentView = AppView.WelcomeView.value
+        else:
+            fileManager = mainWindow.fileManager
+            documentView = mainWindow.documentView
 
-                # Check z-order using QWidget.isVisibleTo() - more reliable than checking positions
-                if fileManager.isVisible() and documentView.isVisible():
-                    # Both visible - check which is on top by comparing positions
-                    # If fileManager is at origin and documentView is off-screen, fileManager is showing
-                    fmPos = fileManager.pos()
-                    dvPos = documentView.pos()
-                    if fmPos.x() == 0 and dvPos.x() > mainWindow.width() / 2:
-                        state["currentView"] = AppView.FileManager.value
-                    else:
-                        state["currentView"] = AppView.DocumentView.value
-                elif fileManager.isVisible():
-                    state["currentView"] = AppView.FileManager.value
-                elif documentView.isVisible():
-                    state["currentView"] = AppView.DocumentView.value
+            if fileManager.isVisible() and documentView.isVisible():
+                if fileManager.pos().x() == 0:
+                    currentView = AppView.FileManager.value
+                else:
+                    currentView = AppView.DocumentView.value
+            elif fileManager.isVisible():
+                currentView = AppView.FileManager.value
+            elif documentView.isVisible():
+                currentView = AppView.DocumentView.value
+            else:
+                raise RuntimeError("Neither fileManager nor documentView is visible")
 
-                # Get FileManager tab if showing
-                if state["currentView"] == AppView.FileManager.value:
-                    try:
-                        localFilesShown = fileManager.rootProp("localFilesShown")
-                        state["fileManagerTab"] = (
-                            "local" if localFilesShown else "server"
-                        )
-                    except:
-                        pass
+            if currentView == AppView.DocumentView.value:
+                doc = mainWindow.scene.document()
+                if doc:
+                    url = doc.url()
+                    if url and not url.isEmpty():
+                        loadedFileName = url.toLocalFile()
 
-                # Get DocumentView state if showing
-                if state["currentView"] == AppView.DocumentView.value:
-                    # Check if file is loaded
-                    if hasattr(mainWindow, "scene") and mainWindow.scene:
-                        if hasattr(mainWindow.scene, "documentUrl"):
-                            url = mainWindow.scene.documentUrl()
-                            if url and url != "":
-                                state["loadedFileName"] = url
-                        elif hasattr(mainWindow, "document") and mainWindow.document:
-                            state["loadedFileName"] = mainWindow.document.url()
+        return {
+            "success": True,
+            "state": {
+                "appState": AppState.Running.value,
+                "appType": "pro",
+                "loginState": loginState,
+                "currentView": currentView,
+                "loadedFileName": loadedFileName,
+                "visibleDialogs": visibleDialogs,
+            },
+        }
 
-                    # Check current drawer
-                    if (
-                        hasattr(documentView, "currentDrawer")
-                        and documentView.currentDrawer
-                    ):
-                        drawerMap = {
-                            "eventForm": "eventForm",
-                            "caseProps": "caseProps",
-                            "personProps": "personProps",
-                            "emotionProps": "emotionProps",
-                            "layerItemProps": "layerItemProps",
-                        }
-                        # Try to identify the drawer
-                        for attrName, drawerName in drawerMap.items():
-                            if hasattr(documentView, attrName):
-                                drawer = getattr(documentView, attrName)
-                                if drawer == documentView.currentDrawer:
-                                    state["currentDrawer"] = drawerName
-                                    break
+    def _getPersonalAppState(self, window: QQuickWindow) -> Dict[str, Any]:
+        rootItem = window.contentItem()
 
-        except Exception as e:
-            log.exception(f"Error in getAppState: {e}")
-            return {"success": False, "error": str(e)}
+        personalContainer = self._findQmlItemByType(rootItem, "PersonalContainer")
 
-        return {"success": True, "state": state}
+        session = None
+        personalApp = None
+
+        for child in rootItem.childItems():
+            if "ApplicationWindow" in type(child).__name__ or child.property("personalView") is not None:
+                engine = child.property("__engine")
+                if engine:
+                    ctx = engine.rootContext()
+                    session = ctx.contextProperty("session")
+                    personalApp = ctx.contextProperty("personalApp")
+                break
+
+        loginState = None
+        currentView = None
+
+        accountDialog = self._findQmlItemInChildren(rootItem, "AccountDialog")
+        if accountDialog and accountDialog.isVisible():
+            loginState = AppLoginState.AccountDialogVisible.value
+            currentView = AppView.AccountView.value
+        elif personalContainer:
+            tabBar = personalContainer.property("tabBar")
+
+            if tabBar is not None and tabBar.property("visible"):
+                loginState = AppLoginState.LoggedIn.value
+                tabIndex = tabBar.property("currentIndex")
+                if tabIndex == 0:
+                    currentView = AppView.DiscussView.value
+                elif tabIndex == 1:
+                    currentView = AppView.LearnView.value
+                elif tabIndex == 2:
+                    currentView = AppView.PlanView.value
+            else:
+                loginState = AppLoginState.NotLoggedIn.value
+        else:
+            loginState = AppLoginState.NotLoggedIn.value
+
+        return {
+            "success": True,
+            "state": {
+                "appState": AppState.Running.value,
+                "appType": "personal",
+                "loginState": loginState,
+                "currentView": currentView,
+                "loadedFileName": None,
+                "visibleDialogs": [],
+            },
+        }
+
+    def _findQmlItemByType(self, parent: QQuickItem, typeName: str) -> Optional[QQuickItem]:
+        if parent is None:
+            return None
+
+        className = type(parent).__name__
+        if typeName in className:
+            return parent
+
+        for child in parent.childItems():
+            result = self._findQmlItemByType(child, typeName)
+            if result is not None:
+                return result
+
+        return None
 
     # -------------------------------------------------------------------------
     # Element Finding
@@ -328,10 +348,23 @@ class QtInspector:
         return None
 
     def _getQmlRoots(self) -> List[QQuickItem]:
-        """Get all QML root items."""
+        """Get all QML root items from both widgets and windows."""
         roots = []
+
+        # Collect from QQuickWidgets embedded in widgets
         for window in self._app.topLevelWidgets():
             self._collectQmlRoots(window, roots)
+
+        # Collect from QQuickWindows (Personal app uses QQmlApplicationEngine)
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow):
+                contentItem = window.contentItem()
+                if contentItem is not None:
+                    # Add all direct children of contentItem as roots
+                    for child in contentItem.childItems():
+                        if child not in roots:
+                            roots.append(child)
+
         return roots
 
     def _collectQmlRoots(self, widget: QWidget, roots: List[QQuickItem]):
@@ -582,6 +615,24 @@ class QtInspector:
                     return qw
         return None
 
+    def _findWindowForQmlItem(self, item: QQuickItem) -> Optional[Union[QQuickWidget, QQuickWindow]]:
+        """Find the QQuickWidget or QQuickWindow containing a QQuickItem."""
+        window = item.window()
+        if window is None:
+            return None
+
+        # First try to find a QQuickWidget (Pro app embeds QML in widgets)
+        for topWidget in self._app.topLevelWidgets():
+            for qw in topWidget.findChildren(QQuickWidget):
+                if qw.quickWindow() == window:
+                    return qw
+
+        # Fall back to returning the QQuickWindow directly (Personal app)
+        if isinstance(window, QQuickWindow):
+            return window
+
+        return None
+
     # -------------------------------------------------------------------------
     # Element Properties
     # -------------------------------------------------------------------------
@@ -702,9 +753,9 @@ class QtInspector:
         self, item: QQuickItem, button: int, pos: Optional[tuple]
     ) -> Dict[str, Any]:
         """Click on a QML item."""
-        quickWidget = self._findQuickWidgetForItem(item)
-        if quickWidget is None:
-            return {"success": False, "error": "Could not find QQuickWidget"}
+        target = self._findWindowForQmlItem(item)
+        if target is None:
+            return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
 
         if pos is None:
             localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -712,9 +763,16 @@ class QtInspector:
             localPos = QPointF(pos[0], pos[1])
 
         scenePos = item.mapToScene(localPos)
-        widgetPos = scenePos.toPoint()
+        clickPos = scenePos.toPoint()
 
-        QTest.mouseClick(quickWidget, button, Qt.NoModifier, widgetPos)
+        # QQuickWindow needs QTest.mouseClick on the window directly
+        # QQuickWidget can be clicked as a QWidget
+        if isinstance(target, QQuickWidget):
+            QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
+        else:
+            # For QQuickWindow, use QTest with the window
+            QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
+
         self._app.processEvents()
         return {"success": True}
 
@@ -737,9 +795,9 @@ class QtInspector:
 
         item = self._findQmlItem(objectName)
         if item is not None:
-            quickWidget = self._findQuickWidgetForItem(item)
-            if quickWidget is None:
-                return {"success": False, "error": "Could not find QQuickWidget"}
+            target = self._findWindowForQmlItem(item)
+            if target is None:
+                return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
 
             if pos is None:
                 localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -747,7 +805,7 @@ class QtInspector:
                 localPos = QPointF(pos[0], pos[1])
 
             scenePos = item.mapToScene(localPos)
-            QTest.mouseDClick(quickWidget, button, Qt.NoModifier, scenePos.toPoint())
+            QTest.mouseDClick(target, button, Qt.NoModifier, scenePos.toPoint())
             self._app.processEvents()
             return {"success": True}
 
@@ -780,7 +838,7 @@ class QtInspector:
                 if item is not None:
                     item.setFocus(True)
                     item.forceActiveFocus()
-                    target = self._findQuickWidgetForItem(item)
+                    target = self._findWindowForQmlItem(item)
 
             if target is None:
                 return {"success": False, "error": f"Element not found: {objectName}"}
@@ -857,7 +915,7 @@ class QtInspector:
                 item = self._findQmlItem(objectName)
                 if item is not None:
                     item.setFocus(True)
-                    target = self._findQuickWidgetForItem(item)
+                    target = self._findWindowForQmlItem(item)
 
             if target is None:
                 return {"success": False, "error": f"Element not found: {objectName}"}
@@ -974,8 +1032,10 @@ class QtInspector:
     # -------------------------------------------------------------------------
 
     def getWindows(self) -> Dict[str, Any]:
-        """Get all top-level windows."""
+        """Get all top-level windows (both widgets and QQuickWindows)."""
         windows = []
+
+        # Collect QWidget windows
         for window in self._app.topLevelWidgets():
             if window.isVisible():
                 windows.append(
@@ -989,8 +1049,28 @@ class QtInspector:
                             "width": window.width(),
                             "height": window.height(),
                         },
+                        "type": "widget",
                     }
                 )
+
+        # Collect QQuickWindow windows (Personal app)
+        for window in self._app.topLevelWindows():
+            if isinstance(window, QQuickWindow) and window.isVisible():
+                windows.append(
+                    {
+                        "objectName": window.objectName() or None,
+                        "className": type(window).__name__,
+                        "title": window.title(),
+                        "geometry": {
+                            "x": window.x(),
+                            "y": window.y(),
+                            "width": window.width(),
+                            "height": window.height(),
+                        },
+                        "type": "quick",
+                    }
+                )
+
         return {"success": True, "windows": windows}
 
     def openFile(self, filePath: str) -> Dict[str, Any]:
@@ -1068,7 +1148,7 @@ class QtInspector:
 
     def takeScreenshot(self, objectName: Optional[str] = None) -> Dict[str, Any]:
         """
-        Take a screenshot of a widget or the main window.
+        Take a screenshot of a widget, QQuickWindow, or the main window.
 
         Args:
             objectName: Optional widget to screenshot, defaults to main window
@@ -1078,33 +1158,60 @@ class QtInspector:
         """
         import base64
 
-        widget = None
+        target = None
+        isQuickWindow = False
+
         if objectName:
-            widget = self._findWidget(objectName)
-            if widget is None:
+            target = self._findWidget(objectName)
+            if target is None:
                 return {"success": False, "error": f"Widget not found: {objectName}"}
         else:
-            # Default to main window
+            # Default to main window - first try MainWindow widget (Pro app)
             for window in self._app.topLevelWidgets():
                 if window.isVisible() and window.objectName() == "MainWindow":
-                    widget = window
+                    target = window
                     break
 
-            if widget is None:
-                # Fallback to any visible top-level widget
-                for window in self._app.topLevelWidgets():
-                    if window.isVisible():
-                        widget = window
+            # If no MainWindow, try QQuickWindow (Personal app)
+            if target is None:
+                for window in self._app.topLevelWindows():
+                    if isinstance(window, QQuickWindow) and window.isVisible():
+                        target = window
+                        isQuickWindow = True
                         break
 
-        if widget is None:
-            return {"success": False, "error": "No visible widget found"}
+            # Fallback to any visible top-level widget
+            if target is None:
+                for window in self._app.topLevelWidgets():
+                    if window.isVisible():
+                        target = window
+                        break
 
-        # Ensure widget is fully rendered
+        if target is None:
+            return {"success": False, "error": "No visible window found"}
+
+        # Ensure fully rendered
         self._app.processEvents()
 
-        # Grab the widget
-        pixmap = widget.grab()
+        # Grab the screenshot
+        if isQuickWindow:
+            # QQuickWindow uses grabWindow() which returns a QImage
+            image = target.grabWindow()
+            if image.isNull():
+                # Fallback: try to render the content item
+                contentItem = target.contentItem()
+                if contentItem:
+                    from pkdiagram.pyqt import QQuickItemGrabResult
+                    # Use QQuickItem.grabToImage() for offscreen rendering
+                    # This is async, but we need sync - fall back to empty pixmap
+                    return {
+                        "success": False,
+                        "error": "QQuickWindow screenshot not available in offscreen mode",
+                    }
+            pixmap = QPixmap.fromImage(image)
+        else:
+            # QWidget uses grab() which returns a QPixmap
+            pixmap = target.grab()
 
         # Convert to PNG bytes
         byteArray = QByteArray()
@@ -1123,3 +1230,199 @@ class QtInspector:
             "format": "png",
             "data": imageData,
         }
+
+    # -------------------------------------------------------------------------
+    # Personal App State Introspection
+    # -------------------------------------------------------------------------
+
+    def getPersonalState(self, component: str = "all") -> Dict[str, Any]:
+        """
+        Get state from the Personal app.
+
+        Args:
+            component: Which component to inspect:
+                - "all": Overview of all components
+                - "learn": Learn tab (sarfGraphModel + QML state)
+                - "discuss": Discuss tab (chat state + QML state)
+                - "plan": Plan tab (diagram view state)
+                - "pdp": PDP import state
+
+        Returns:
+            Dict with model data and QML UI state for the component
+        """
+        # Find PersonalAppController
+        controller = self._findPersonalAppController()
+        if controller is None:
+            return {"success": False, "error": "PersonalAppController not found"}
+
+        # Find Personal app window for QML state
+        personalWindow = self._findPersonalAppWindow()
+        rootItem = personalWindow.contentItem() if personalWindow else None
+
+        if component == "all":
+            return self._getPersonalOverview(controller, rootItem)
+        elif component == "learn":
+            return self._getLearnState(controller, rootItem)
+        elif component == "discuss":
+            return self._getDiscussState(controller, rootItem)
+        elif component == "plan":
+            return self._getPlanState(controller, rootItem)
+        elif component == "pdp":
+            return self._getPdpState(controller, rootItem)
+        else:
+            return {"success": False, "error": f"Unknown component: {component}"}
+
+    def _findPersonalAppController(self):
+        """Find the PersonalAppController instance."""
+        # Try app.personalController attribute (set in main.py)
+        controller = getattr(self._app, "personalController", None)
+        if controller:
+            return controller
+
+        # Fallback: try QApplication children
+        from pkdiagram.personal import PersonalAppController
+
+        for child in self._app.children():
+            if isinstance(child, PersonalAppController):
+                return child
+
+        return None
+
+    def _getPersonalOverview(self, controller, rootItem) -> Dict[str, Any]:
+        """Get overview of all Personal app state."""
+        result = {"success": True, "component": "all"}
+
+        # Session info
+        session = controller.session
+        result["session"] = {
+            "isLoggedIn": session.isLoggedIn() if session else False,
+            "hasActiveChat": hasattr(session, "activeChat") and session.activeChat is not None,
+        }
+
+        # Scene info
+        scene = controller.scene
+        result["scene"] = {
+            "personCount": len(list(scene.people())) if scene else 0,
+            "eventCount": len(list(scene.events())) if scene else 0,
+        }
+
+        # Current tab from QML
+        if rootItem:
+            container = self._findQmlItemByType(rootItem, "PersonalContainer")
+            if container:
+                tabBar = container.property("tabBar")
+                if tabBar:
+                    result["currentTab"] = tabBar.property("currentIndex")
+
+        # Model summaries
+        result["sarfGraphModel"] = {
+            "hasData": controller.sarfGraphModel.hasData,
+            "eventCount": len(controller.sarfGraphModel.events),
+        }
+
+        return result
+
+    def _getLearnState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Learn tab state (sarfGraphModel + QML)."""
+        model = controller.sarfGraphModel
+
+        result = {
+            "success": True,
+            "component": "learn",
+            "model": {
+                "hasData": model.hasData,
+                "yearStart": model.yearStart,
+                "yearEnd": model.yearEnd,
+                "yearSpan": model.yearSpan,
+                "eventCount": len(model.events),
+                "events": model.events,
+                "cumulative": model.cumulative,
+            },
+        }
+
+        # QML UI state
+        if rootItem:
+            learnView = self._findQmlItemInChildren(rootItem, "learnView")
+            if learnView:
+                result["ui"] = {
+                    "visible": learnView.isVisible(),
+                    "selectedEvent": learnView.property("selectedEvent"),
+                    "highlightedEvent": learnView.property("highlightedEvent"),
+                }
+
+                # Get storyList state
+                storyList = self._findQmlItemInChildren(learnView, "storyList")
+                if storyList:
+                    result["ui"]["storyList"] = {
+                        "count": storyList.property("count"),
+                        "contentY": storyList.property("contentY"),
+                        "currentIndex": storyList.property("currentIndex"),
+                    }
+
+        return result
+
+    def _getDiscussState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Discuss tab state (chat + QML)."""
+        result = {
+            "success": True,
+            "component": "discuss",
+            "model": {},
+        }
+
+        # Chat state from session if available
+        session = controller.session
+        if session and hasattr(session, "messages"):
+            result["model"]["messageCount"] = len(session.messages) if session.messages else 0
+
+        # QML UI state
+        if rootItem:
+            discussView = self._findQmlItemInChildren(rootItem, "discussView")
+            if discussView:
+                result["ui"] = {
+                    "visible": discussView.isVisible(),
+                }
+
+        return result
+
+    def _getPlanState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get Plan tab state (diagram view)."""
+        result = {
+            "success": True,
+            "component": "plan",
+            "model": {},
+        }
+
+        # Scene data
+        scene = controller.scene
+        if scene:
+            result["model"]["personCount"] = len(list(scene.people()))
+            result["model"]["eventCount"] = len(list(scene.events()))
+
+        # QML UI state
+        if rootItem:
+            planView = self._findQmlItemInChildren(rootItem, "planView")
+            if planView:
+                result["ui"] = {
+                    "visible": planView.isVisible(),
+                }
+
+        return result
+
+    def _getPdpState(self, controller, rootItem) -> Dict[str, Any]:
+        """Get PDP import state."""
+        result = {
+            "success": True,
+            "component": "pdp",
+            "model": {},
+        }
+
+        # PDP data from session if available
+        session = controller.session
+        if session:
+            pdp = getattr(session, "pdp", None)
+            if pdp:
+                result["model"]["hasPdp"] = True
+            else:
+                result["model"]["hasPdp"] = False
+
+        return result

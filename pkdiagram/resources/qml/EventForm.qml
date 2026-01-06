@@ -23,12 +23,17 @@ Page {
     property bool canInspect: false
     property var selectedPeopleModel: ListModel {}
 
+    // Safe area support for iPhone notch/home indicator
+    property real safeAreaTop: 0
+    property real safeAreaBottom: 0
+
     // Controls
 
     property var addPage: addPage
     property var addButton: addButton
     property var clearButton: clearButton
     property var cancelButton: cancelButton
+    property bool showClearButton: true
 
     // Keys.onPressed: {
     //     // TODO: Not clear when focus makes this happen. Need to nail down field
@@ -51,6 +56,7 @@ Page {
     property var startDateUnsure: startDatePicker.unsure
     property var endDateTime: endDatePicker.dateTime
     property var endDateUnsure: endDatePicker.unsure
+    property var dateCertainty: dateCertaintyBox.currentValue()
     property var location: null
     property var symptom: symptomField.value
     property var anxiety: anxietyField.value
@@ -107,6 +113,8 @@ Page {
     property var isDateRangeBox: isDateRangeBox
     property var endDatePicker: endDatePicker
     property var endTimePicker: endTimePicker
+    property var dateCertaintyBox: dateCertaintyBox
+    property var dateCertaintyLabel: dateCertaintyLabel
 
     // Where
 
@@ -170,6 +178,7 @@ Page {
         endDatePicker.clear()
         isDateRangeBox.checked = false
         isDateRangeBox.dirty = false // Checkboxes need their own dirty attr
+        dateCertaintyBox.currentIndex = 1 // Default to "Approximate"
 
         // Where
 
@@ -241,6 +250,7 @@ Page {
     }
 
     header: PK.ToolBar {
+        safeAreaTop: root.safeAreaTop
         PK.ToolButton {
             id: cancelButton
             text: 'Cancel'
@@ -252,7 +262,7 @@ Page {
             id: clearButton
             text: "Clear"
             x: cancelButton.x + width + margin
-            visible: root.isEditing == false
+            visible: root.showClearButton && root.isEditing == false
             onClicked: root.clear()
         }
         PK.Label {
@@ -291,7 +301,8 @@ Page {
             clip: true
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: pageInner.height
+            contentHeight: pageInner.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
 
             function scrollToTop() { contentY = 0 }
 
@@ -299,11 +310,10 @@ Page {
 
                 id: pageInner
                 width: parent.width
+                height: implicitHeight
 
-                MouseArea {
-                    width: parent.width
-                    height: parent.height
-                    onClicked: parent.forceActiveFocus()
+                TapHandler {
+                    onTapped: parent.forceActiveFocus()
                 }
 
                 GridLayout {
@@ -377,7 +387,6 @@ Page {
                                 // print('setCurrentValue: ' + i + ' / ' + model.get(i).value + ' == ' + value)
                                 if (model.get(i).value === value) {
                                     currentIndex = i;
-                                    print
                                     return;
                                 }
                             }
@@ -957,7 +966,7 @@ Page {
                     PK.Text {
                         id: isDateRangeLabel
                         text: " "
-                        visible: root.kind != null
+                        visible: root.kind == util.EventKind.Shift && Global.isValidDateTime(root.startDateTime)
                     }
 
                     PK.CheckBox {
@@ -966,7 +975,7 @@ Page {
                         visible: isDateRangeLabel.visible
                         property var dirty: false
                         KeyNavigation.backtab: endDateButtons.lastTabItem
-                        KeyNavigation.tab: locationField
+                        KeyNavigation.tab: dateCertaintyBox
                         Layout.fillWidth: true
                         Layout.columnSpan: 1
                         onCheckedChanged: {
@@ -978,6 +987,46 @@ Page {
                         Connections {
                             target: root
                             function onIsDateRangeChanged() { isDateRangeBox.checked = root.isDateRange }
+                        }
+                    }
+
+                    PK.Text {
+                        id: dateCertaintyLabel
+                        text: "Certainty"
+                        visible: Global.isValidDateTime(root.startDateTime)
+                    }
+
+                    PK.ComboBox {
+                        id: dateCertaintyBox
+                        objectName: "dateCertaintyBox"
+                        visible: dateCertaintyLabel.visible
+                        model: ListModel {
+                            ListElement { label: "Unknown"; value: "unknown" }
+                            ListElement { label: "Approximate"; value: "approximate" }
+                            ListElement { label: "Certain"; value: "certain" }
+                        }
+                        currentIndex: 1 // Default to "Approximate"
+                        textRole: "label"
+                        Layout.maximumWidth: root.fieldWidth
+                        Layout.minimumWidth: root.fieldWidth
+                        KeyNavigation.backtab: isDateRangeBox
+                        KeyNavigation.tab: locationField
+                        function setCurrentValue(value) {
+                            for (var i = 0; i < model.count; i++) {
+                                if (model.get(i).value === value) {
+                                    currentIndex = i;
+                                    return;
+                                }
+                            }
+                            currentIndex = 1; // Default to "Approximate"
+                        }
+                        function clear() { currentIndex = 1 }
+                        function currentValue() {
+                            if (currentIndex == -1) {
+                                return "certain"
+                            } else {
+                                return model.get(currentIndex).value
+                            }
                         }
                     }
 
@@ -1147,6 +1196,13 @@ Page {
                         wrapMode: Text.Wrap
                         Layout.columnSpan: 2
                         visible: sceneModel && sceneModel.isInEditorMode
+                    }
+
+                    // Bottom safe area spacer for iPhone home indicator
+                    Item {
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.safeAreaBottom
                     }
 
                 }

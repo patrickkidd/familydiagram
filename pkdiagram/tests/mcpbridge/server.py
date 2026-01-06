@@ -11,7 +11,7 @@ import socket
 import threading
 from typing import Optional, Dict, Any, Callable
 
-from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QApplication
+from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QApplication, Qt
 
 from .inspector import QtInspector
 
@@ -51,8 +51,8 @@ class TestBridgeServer(QObject):
 
         self._inspector: Optional[QtInspector] = None
 
-        # Connect signal for main thread execution
-        self._executeOnMain.connect(self._onExecuteOnMain)
+        # Connect signal for main thread execution (explicit QueuedConnection for cross-thread)
+        self._executeOnMain.connect(self._onExecuteOnMain, Qt.QueuedConnection)
 
         # Command handlers
         self._handlers: Dict[str, Callable] = {}
@@ -85,6 +85,8 @@ class TestBridgeServer(QObject):
             "open_file": self._handleOpenFile,
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
+            # Personal app state
+            "get_personal_state": self._handleGetPersonalState,
             # Status
             "ping": self._handlePing,
         }
@@ -419,6 +421,11 @@ class TestBridgeServer(QObject):
         """Handle take_screenshot command."""
         objectName = command.get("objectName")
         return self._inspector.takeScreenshot(objectName)
+
+    def _handleGetPersonalState(self, command: Dict) -> Dict:
+        """Handle get_personal_state command."""
+        component = command.get("component", "all")
+        return self._inspector.getPersonalState(component)
 
 
 def startTestBridgeServer(port: int = DEFAULT_PORT) -> TestBridgeServer:

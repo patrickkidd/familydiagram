@@ -1,6 +1,6 @@
 import pytest
 
-from btcopilot.schema import EventKind, RelationshipKind, VariableShift
+from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram import util
 from pkdiagram.scene import Event, Person
 
@@ -202,19 +202,59 @@ def test_lt_eq(scene):
 
 
 @pytest.mark.parametrize(
+    "attr, setter, value",
+    [
+        ("symptom", "setSymptom", VariableShift.Up),
+        ("anxiety", "setAnxiety", VariableShift.Down),
+        ("relationship", "setRelationship", RelationshipKind.Conflict),
+        ("functioning", "setFunctioning", VariableShift.Same),
+        ("dateCertainty", "setDateCertainty", DateCertainty.Approximate),
+    ],
+)
+def test_enum_property_set_get(scene, attr, setter, value):
+    """Test that enum properties can be set and retrieved correctly."""
+    person = scene.addItem(Person())
+    event = scene.addItem(Event(EventKind.Shift, person))
+    getattr(event, setter)(value)
+    assert getattr(event, attr)() == value
+
+
+@pytest.mark.parametrize(
     "attr, value",
     [
         ("symptom", VariableShift.Up),
         ("anxiety", VariableShift.Down),
         ("relationship", RelationshipKind.Conflict),
         ("functioning", VariableShift.Same),
+        ("dateCertainty", DateCertainty.Approximate),
     ],
 )
-def test_variables(scene, attr, value):
+def test_enum_property_via_kwargs(scene, attr, value):
+    """Test that enum properties can be passed via constructor kwargs."""
+    person = scene.addItem(Person())
+    event = scene.addItem(Event(EventKind.Shift, person, **{attr: value}))
+    assert getattr(event, attr)() == value
+
+
+@pytest.mark.parametrize(
+    "attr, setter, value",
+    [
+        ("symptom", "setSymptom", VariableShift.Up),
+        ("anxiety", "setAnxiety", VariableShift.Down),
+        ("relationship", "setRelationship", RelationshipKind.Conflict),
+        ("functioning", "setFunctioning", VariableShift.Same),
+        ("dateCertainty", "setDateCertainty", DateCertainty.Approximate),
+    ],
+)
+def test_enum_property_undo(scene, attr, setter, value):
+    """Test that enum property changes can be undone."""
     person = scene.addItem(Person())
     event = scene.addItem(Event(EventKind.Shift, person))
-    getattr(event, f"set{attr.capitalize()}")(value)
+    assert getattr(event, attr)() is None
+    getattr(event, setter)(value, undo=True)
     assert getattr(event, attr)() == value
+    scene.undo()
+    assert getattr(event, attr)() is None
 
 
 @pytest.mark.parametrize(

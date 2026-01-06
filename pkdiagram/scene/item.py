@@ -132,7 +132,7 @@ class Item:
         chunk.update(self._readChunk)
         chunk["id"] = self.id
         for prop in self.props:
-            chunk[prop.attr] = prop.get(forLayers=[])
+            chunk[prop.attr] = prop.getRaw(forLayers=[])
 
     def read(self, chunk, byId):
         """virtual"""

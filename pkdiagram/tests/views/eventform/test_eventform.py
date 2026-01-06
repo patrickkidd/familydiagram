@@ -57,6 +57,8 @@ def test_init(qmlEngine, view, editorMode):
 
 @pytest.mark.parametrize("kind", [EventKind.Birth, EventKind.Adopted])
 def test_attrs(scene, view, kind: EventKind):
+    from mock import patch
+
     mother = scene.addItem(Person(name="Mother"))
     view.view.addEvent([])
     view.set_kind(kind)
@@ -65,10 +67,14 @@ def test_attrs(scene, view, kind: EventKind):
     view.set_location("Somewhere")
     view.set_notes("Some notes")
     view.set_color("#ff0000")
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question",
+        return_value=16384,  # QMessageBox.Yes
+    ):
+        view.clickSaveButton()
 
     child = mother.marriages[0].children[0]
-    assert child.name() == None
+    assert child.name() == "Mother's Child"  # Now has auto-generated name
     event = scene.eventsFor(child)[0]
     assert event.kind() == kind
     assert event.description() == kind.name

@@ -1414,7 +1414,7 @@ class Emotion(PathItem):
         for layerId in self.layers():
             layer = byId(layerId)
             if not layer:
-                _log.warning("Emotion.read: layer not found: %s" % layerId)
+                log.warning("Emotion.read: layer not found: %s" % layerId)
                 continue
             self._layers.append(layer)
         self.prop("layers").set([x.id for x in self._layers])

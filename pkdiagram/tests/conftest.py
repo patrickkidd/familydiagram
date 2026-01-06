@@ -46,7 +46,6 @@ from pkdiagram.app import Application, AppController, Session as fe_Session, Qml
 from btcopilot.pro.models import User
 from btcopilot.tests.conftest import *
 from btcopilot.tests.pro.conftest import *
-import flask_bcrypt
 
 from pkdiagram import appdirs
 
@@ -490,35 +489,16 @@ def qApp():
 
 @pytest.fixture(autouse=True)
 def prefs(request, tmp_path):
-    """
-    More than just "prefs" now
-    """
-
-    dont_mock_bcrypt = request.node.get_closest_marker("dont_mock_bcrypt")
-
     prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch("pkdiagram.app.Application.prefs", return_value=prefs)
         )
-        # bcrypt was using 45s
         stack.enter_context(
             mock.patch.object(
                 CUtil, "documentsFolderPath", return_value=str(tmp_path / "documents")
             )
         )
-        use_bcrypt = request.node.get_closest_marker("use_bcrypt")
-        if use_bcrypt is None:
-            stack.enter_context(
-                mock.patch.object(
-                    flask_bcrypt, "generate_password_hash", return_value=b"1234"
-                )
-            )
-            stack.enter_context(
-                mock.patch.object(
-                    flask_bcrypt, "check_password_hash", return_value=True
-                )
-            )
         yield prefs
 
 

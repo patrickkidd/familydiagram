@@ -163,6 +163,7 @@ def _main_impl():
             sys.argv, Application.Type.Personal, prefsName=options.prefsName
         )
         controller = PersonalAppController()
+        app.personalController = controller  # For MCP test bridge access
 
         import sys
         from PyQt5.QtQml import QQmlApplicationEngine
@@ -176,6 +177,15 @@ def _main_impl():
             _log.critical("Failed to load QML - application cannot start")
             sys.exit(1)
         extensions.setActiveSession(session=controller.session)
+
+        # Dev menu for desktop testing (not on iOS/bundled builds)
+        devMenu = None
+        if util.IS_DEV and not util.IS_BUNDLE:
+            from pkdiagram.personal.devmenu import PersonalDevMenu
+
+            devMenu = PersonalDevMenu(controller)
+            devMenu.menuBar.setNativeMenuBar(True)
+            devMenu.menuBar.show()
 
         # Start test bridge server if requested
         testBridgeServer = None
@@ -249,8 +259,7 @@ def main():
         _main_impl()
     except Exception as e:
 
-        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
-        error_log_path = os.path.join(desktop_dir, "startup_errors.txt")
+        error_log_path = os.path.join(os.path.expanduser("~"), "startup_errors.txt")
 
         from . import version
 
