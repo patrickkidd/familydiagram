@@ -2,6 +2,13 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.17
+
+## 2.1.17b1
+
+- Fixed person picker in add form not showing renamed people in auto-complete.
+
+
 ## 2.1.16
 
 ## 2.1.16b2

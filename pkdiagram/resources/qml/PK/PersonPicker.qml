@@ -156,6 +156,31 @@ Rectangle {
         return false
     }
 
+    function visibleItems() {
+        var items = []
+        for(var i = 0; i < popupListView.contentItem.children.length; i++) {
+            var child = popupListView.contentItem.children[i]
+            if(child.isListItem && child.visible) {
+                items.push(child)
+            }
+        }
+        return items
+    }
+
+    function selectHighlightedPerson() {
+        var items = visibleItems()
+        if(popupListView.highlightIndex >= 0 && popupListView.highlightIndex < items.length) {
+            var item = items[popupListView.highlightIndex]
+            if(item.person) {
+                pickerTextEdit.selectingAutoCompleteItem = true
+                root.setExistingPerson(item.person)
+                pickerTextEdit.selectingAutoCompleteItem = false
+                return true
+            }
+        }
+        return false
+    }
+
     RowLayout {
 
         id: rowLayout
@@ -182,6 +207,7 @@ Rectangle {
             Layout.minimumWidth: 40
             onTextChanged: {
                 // print('[' + root.objectName + '].onTextChanged: >>' + text + '<< color: ' + color)
+                popupListView.highlightIndex = -1
                 if(text && !isSubmitted) {
                     var numMatches = 0
                     var debug_matches = [];
@@ -212,7 +238,28 @@ Rectangle {
                 Global.focusNextItemInFocusChain(KeyNavigation.tab, true)
                 event.accepted = true
             }
+            Keys.onDownPressed: {
+                if(autoCompletePopup.visible) {
+                    var items = root.visibleItems()
+                    if(items.length > 0) {
+                        popupListView.highlightIndex = Math.min(popupListView.highlightIndex + 1, items.length - 1)
+                    }
+                    event.accepted = true
+                }
+            }
+            Keys.onUpPressed: {
+                if(autoCompletePopup.visible) {
+                    popupListView.highlightIndex = Math.max(popupListView.highlightIndex - 1, 0)
+                    event.accepted = true
+                }
+            }
             onAccepted: {
+                if(autoCompletePopup.visible && popupListView.highlightIndex >= 0) {
+                    if(root.selectHighlightedPerson()) {
+                        focus = false
+                        return
+                    }
+                }
                 if(text && !selectingAutoCompleteItem && !root.existingOnly) {
                     root.setNewPerson(text)
                     focus = false
@@ -309,9 +356,11 @@ Rectangle {
         width: root.width + 20
         height: popupListView.height
         padding: 0
+        onClosed: popupListView.highlightIndex = -1
         contentItem: ListView {
             id: popupListView
             model: scenePeopleModel
+            property int highlightIndex: -1
             layer.enabled: true
             layer.effect: DropShadow {
                 color: "black"
@@ -339,13 +388,21 @@ Rectangle {
                 property var person: scenePeopleModel.personForRow(index)
                 property var matchesTypedPersonName: person && person.matchesName(pickerTextEdit.text)
                 property var alreadySelected: if(person) root.alreadySelected(person)
+                property int visibleIndex: {
+                    var items = root.visibleItems()
+                    for(var i = 0; i < items.length; i++) {
+                        if(items[i] === dRoot) return i
+                    }
+                    return -1
+                }
+                property bool isHighlighted: visibleIndex >= 0 && visibleIndex === popupListView.highlightIndex
                 text: fullNameOrAlias // modelData
                 width: autoCompletePopup.width
                 height: visible ? util.QML_ITEM_HEIGHT : 0
                 visible: matchesTypedPersonName && ! alreadySelected
                 palette.text: util.QML_TEXT_COLOR
                 background: Rectangle {
-                    color: util.QML_ITEM_BG
+                    color: dRoot.isHighlighted ? util.QML_HIGHLIGHT_COLOR : util.QML_ITEM_BG
                 }
                 onClicked: {
                     // print('selectingAutoCompleteItem = true')
