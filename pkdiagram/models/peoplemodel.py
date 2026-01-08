@@ -100,7 +100,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                 oldRow == -1 and not prop.get()
             ):  # non-null name still set to null (e.g. when called recursively)
                 pass
-            elif self._sortedNames[oldRow] != person.fullNameOrAlias():  # Re-ordered
+            elif self._sortedNames[oldRow] != person.fullNameOrAlias():  # Name changed
                 self._sort()
                 newRow = self.rowForId(person.id)
                 if newRow != oldRow:
@@ -112,8 +112,8 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                         QModelIndex(), oldRow, oldRow, QModelIndex(), newRow
                     )
                     self.endMoveRows()
-                    index = self.index(newRow, 0)
-                    self.dataChanged.emit(index, index)
+                index = self.index(self.rowForId(person.id), 0)
+                self.dataChanged.emit(index, index)
 
     def onPersonRemoved(self, person):
         if self._scene.isBatchAddingRemovingItems():
