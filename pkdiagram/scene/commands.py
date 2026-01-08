@@ -299,15 +299,17 @@ class RemoveItems(QUndoCommand):
                 entry["emotion"].setParentItem(entry["emotion"].sourceEvent().person())
         #
         for entry in self._unmapped["layers"]:  # before layer items
+            # First add the layer back
+            self.scene.addItem(entry["layer"])
             # Restore layer to all items that had it
             for sceneItem in entry["itemsWithLayer"]:
-                layers = sceneItem.layers()
-                readd = sceneItem.isLayerItem and not layers
-                layers.append(entry["layer"].id)
-                sceneItem.setLayers(layers)
-                if readd:
+                # Re-add LayerItem if it was cascade-deleted (not in scene anymore)
+                if sceneItem.isLayerItem and sceneItem not in self.scene.layerItems():
                     self.scene.addItem(sceneItem)
-            self.scene.addItem(entry["layer"])
+                layers = list(sceneItem.layers())  # copy to avoid mutating in place
+                if entry["layer"].id not in layers:
+                    layers.append(entry["layer"].id)
+                sceneItem.setLayers(layers)
         #
         for entry in self._unmapped["layerItems"]:
             self.scene.addItem(entry["item"])

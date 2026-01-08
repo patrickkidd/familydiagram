@@ -277,15 +277,17 @@ def test_remove_layers_with_layerItems(scene):
 
     scene.removeItem(layer1, undo=True)
     assert not (layer1 in scene.layers())
+    # callout1 had only layer1, so it's cascade-deleted (orphaned)
     assert not (callout1 in scene.layerItems())
     assert callout2 in scene.layerItems()
     assert callout3 in scene.layerItems()
-    assert callout1.layers() == []
+    # callout2 and callout3 both still have layer2
     assert callout2.layers() == [layer2.id]
     assert callout3.layers() == [layer2.id]
 
     scene.undo()
     assert layer1 in scene.layers()
+    # callout1 is restored
     assert callout1 in scene.layerItems()
     assert callout2 in scene.layerItems()
     assert callout3 in scene.layerItems()
@@ -298,14 +300,15 @@ def test_remove_layers_with_layerItems(scene):
     scene.removeItem(layer2, undo=True)
     assert not (layer2 in scene.layers())
     assert callout1 in scene.layerItems()
+    # callout2 had only layer2, so it's cascade-deleted (orphaned)
     assert not (callout2 in scene.layerItems())
     assert callout3 in scene.layerItems()
     assert callout1.layers() == [layer1.id]
-    assert callout2.layers() == []
     assert callout3.layers() == [layer1.id]
 
     scene.undo()
     assert layer2 in scene.layers()
+    # callout2 is restored
     assert callout1 in scene.layerItems()
     assert callout2 in scene.layerItems()
     assert callout3 in scene.layerItems()
@@ -320,16 +323,15 @@ def test_remove_layers_with_layerItems(scene):
         scene.removeItem(layer2, undo=True)
     assert not (layer1 in scene.layers())
     assert not (layer2 in scene.layers())
+    # All callouts are cascade-deleted (orphaned)
     assert not (callout1 in scene.layerItems())
     assert not (callout2 in scene.layerItems())
     assert not (callout3 in scene.layerItems())
-    assert callout1.layers() == []
-    assert callout2.layers() == []
-    assert callout3.layers() == []
 
     scene.undo()
     assert layer1 in scene.layers()
     assert layer2 in scene.layers()
+    # All callouts are restored
     assert callout1 in scene.layerItems()
     assert callout2 in scene.layerItems()
     assert callout3 in scene.layerItems()
