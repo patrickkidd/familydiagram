@@ -6,8 +6,9 @@ All notable changes to Family Diagram are documented in this file.
 
 ## 2.1.17b1
 
+- Fixed broked "Add birth" and "Edit birth" buttons in person properties
 - Fixed person picker in add form not showing renamed people in auto-complete.
-
+- Can now use down/up arrows + enter/return to pick a person via autocomplete in add event form.
 
 ## 2.1.16
 

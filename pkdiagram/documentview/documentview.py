@@ -688,6 +688,8 @@ class DocumentView(QWidget):
 
     def onShowEventForm(self, on: bool = True):
         if on:
+            if self._settingCurrentDrawer:
+                return
             self.setCurrentDrawer(self.eventFormDrawer)
             self.eventFormDrawer.eventForm.addEvent(self.scene.selectedItems())
         else:
