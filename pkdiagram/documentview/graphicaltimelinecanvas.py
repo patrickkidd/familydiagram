@@ -622,6 +622,12 @@ class GraphicalTimelineCanvas(QWidget):
                         s = ""
                     else:
                         s = util.dateString(timelineRow.dateTime())
+                    if self.scene.hideNames():
+                        personName = "<hidden>"
+                    else:
+                        personName = timelineRow.event.parentName(nickname=False)
+                    if personName:
+                        s += " " + personName
                     description = timelineRow.event.description()
                     if not description:
                         description = timelineRow.event.kind().name
