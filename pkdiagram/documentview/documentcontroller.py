@@ -179,6 +179,7 @@ class DocumentController(QObject):
         self.ui.actionFind.triggered.connect(self.dv.showSearch)
         self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
         self.ui.actionShow_Copilot.toggled[bool].connect(self.dv.showCopilot)
+        self.ui.actionShow_Triangles.toggled[bool].connect(self.dv.showTriangles)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
         self.ui.actionZoom_Out.triggered.connect(self.view.zoomOut)

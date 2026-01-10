@@ -387,6 +387,9 @@ class Ui_MainWindow(object):
         self.actionShow_Copilot = QtWidgets.QAction(MainWindow)
         self.actionShow_Copilot.setCheckable(True)
         self.actionShow_Copilot.setObjectName("actionShow_Copilot")
+        self.actionShow_Triangles = QtWidgets.QAction(MainWindow)
+        self.actionShow_Triangles.setCheckable(True)
+        self.actionShow_Triangles.setObjectName("actionShow_Triangles")
         self.actionArrange_Selection = QtWidgets.QAction(MainWindow)
         self.actionArrange_Selection.setObjectName("actionArrange_Selection")
         self.actionHide_SARF_Graphics = QtWidgets.QAction(MainWindow)
@@ -491,6 +494,7 @@ class Ui_MainWindow(object):
         self.menuView.addAction(self.actionShow_Timeline)
         self.menuView.addAction(self.actionShow_Settings)
         self.menuView.addAction(self.actionShow_Copilot)
+        self.menuView.addAction(self.actionShow_Triangles)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_Items_with_Notes)
         self.menuView.addAction(self.actionShow_Aliases)
@@ -777,6 +781,18 @@ class Ui_MainWindow(object):
         self.actionDiscussion_Forum.setText(_translate("MainWindow", "Discussion Forum"))
         self.actionShow_Copilot.setText(_translate("MainWindow", "Show Copilot"))
         self.actionShow_Copilot.setShortcut(_translate("MainWindow", "Ctrl+4"))
+        self.actionShow_Triangles.setText(_translate("MainWindow", "Show Triangles"))
+        self.actionShow_Triangles.setShortcut(_translate("MainWindow", "Ctrl+5"))
         self.actionArrange_Selection.setText(_translate("MainWindow", "Arrange Selection (AI)"))
         self.actionArrange_Selection.setShortcut(_translate("MainWindow", "Ctrl+Shift+E"))
         self.actionHide_SARF_Graphics.setText(_translate("MainWindow", "Hide SARF Graphics"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())

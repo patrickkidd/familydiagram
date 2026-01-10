@@ -458,6 +458,25 @@ Page {
                         Layout.columnSpan: 2
                     }
 
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
+                    PK.Text { text: "Triangles" }
+
+                    PK.TriangleView {
+                        id: triangleView
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 180
+                    }
+
+                    PK.HelpText {
+                        text: "Triangles are Inside/Outside shift events that visualize 3-position dynamics. Click a row to activate the triangle's view."
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
                     PK.Text {
                         text: "Custom Views"
                         visible: sceneModel.isInEditorMode

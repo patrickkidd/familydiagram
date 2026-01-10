@@ -4,6 +4,7 @@ from .itemgarbage import ItemGarbage
 from .variablesdatabase import VariablesDatabase
 from .itemanimationhelper import ItemAnimationHelper
 from .emotionalunit import EmotionalUnit
+from .triangle import Triangle
 from .item import Item
 from .event import Event
 from .pathitem import PathItem

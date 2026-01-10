@@ -717,6 +717,12 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None)
 
+    def showTriangles(self, on=True):
+        if on:
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Triangles.value)
+        else:
+            self.setCurrentDrawer(None)
+
     def showSearch(self):
         if not self.searchDialog.isShown():
             self.searchDialog.show()

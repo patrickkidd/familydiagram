@@ -14,6 +14,7 @@ from .marriagepropertiesmodel import MarriagePropertiesModel
 from .layeritempropertiesmodel import LayerItemPropertiesModel, LayerItemLayersModel
 from .accessrightsmodel import AccessRightsModel
 from .emotionalunitsmodel import EmotionalUnitsModel
+from .trianglemodel import TriangleModel
 from .searchmodel import SearchModel
 from .tagsmodel import TagsModel
 from .scenemodel import SceneModel

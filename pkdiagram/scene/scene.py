@@ -45,6 +45,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram.scene import (
     EmotionalUnit,
+    Triangle,
     Property,
     Event,
     Item,
@@ -456,6 +457,22 @@ class Scene(QGraphicsScene, Item):
                     peopleToUpdate.add(target)
                 for person in peopleToUpdate:
                     person.updateEmotions()
+
+            # Create Triangle Layer for Inside/Outside events
+            if (
+                firstTimeAdding
+                and item.relationship()
+                in (RelationshipKind.Inside, RelationshipKind.Outside)
+                and item.relationshipTriangles()
+            ):
+                triangle = Triangle(item)
+                layer = Layer(internal=True, storeGeometry=True)
+                self.addItem(layer)
+                triangle.setLayer(layer)
+                item.setTriangle(triangle)
+                if not self.isBatchAddingRemovingItems():
+                    triangle.update()
+                    triangle.applyPositionsToLayer()
 
             # Replace singular events
             if item.kind() in (EventKind.Birth, EventKind.Death):
@@ -2118,6 +2135,8 @@ class Scene(QGraphicsScene, Item):
         if prop.name() == "scaleFactor":
             self.updateMouseCursorItem()
         elif prop.name() == "currentDateTime":
+            # Deactivate any active triangle when date changes
+            self.deactivateTriangle()
             # TODO: Figure out why this is calling being and end update frame.
             # Is this just a synonym for updateAll()?
             updateGraph = self.getUpdateGraph()
@@ -2158,6 +2177,12 @@ class Scene(QGraphicsScene, Item):
             if prop.name() == "active":
                 if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
                     self.setItemMode(None)
+                # Stop Phase 2 animation if a triangle layer is being deactivated
+                if not prop.get():
+                    for event in self._events:
+                        if event.triangle() and event.triangle().layer() == prop.item:
+                            event.triangle().stopPhase2Animation()
+                            break
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():
@@ -2271,6 +2296,24 @@ class Scene(QGraphicsScene, Item):
         while self.layerAnimationGroup.animationCount():
             animation = self.layerAnimationGroup.animationAt(0)
             self.layerAnimationGroup.removeAnimation(animation)
+        # Start Phase 2 animation for any active triangle layers
+        triangle = self.activeTriangle()
+        if triangle:
+            triangle.startPhase2Animation()
+
+    def activeTriangle(self) -> "Triangle":
+        for layer in self.activeLayers(onlyInternal=True):
+            for event in self._events:
+                if event.triangle() and event.triangle().layer() == layer:
+                    return event.triangle()
+        return None
+
+    def deactivateTriangle(self):
+        triangle = self.activeTriangle()
+        if triangle:
+            triangle.stopPhase2Animation()
+            if triangle.layer():
+                triangle.layer().setActive(False)
 
     def activeLayers(self, includeInternal=True, onlyInternal=False):
         layers = list(self._activeLayers)

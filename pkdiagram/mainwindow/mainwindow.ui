@@ -179,6 +179,7 @@
     <addaction name="actionShow_Timeline"/>
     <addaction name="actionShow_Settings"/>
     <addaction name="actionShow_Copilot"/>
+    <addaction name="actionShow_Triangles"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
     <addaction name="actionShow_Aliases"/>
@@ -1344,6 +1345,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionShow_Triangles">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Triangles</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+5</string>
    </property>
   </action>
   <action name="actionArrange_Selection">

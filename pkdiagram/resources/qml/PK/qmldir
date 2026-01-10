@@ -37,5 +37,6 @@ TimePicker 1.0 TimePicker.qml
 ToolBar 1.0 ToolBar.qml
 ToolButton 1.0 ToolButton.qml
 TimelineView 1.0 TimelineView.qml
+TriangleView 1.0 TriangleView.qml
 Tumbler 1.0 Tumbler.qml
 VariableField 1.0 VariableField.qml

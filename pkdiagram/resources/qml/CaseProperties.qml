@@ -49,6 +49,8 @@ PK.Drawer {
             index = 1
         else if(tab == 'copilot')
             index = 2
+        else if(tab == 'triangles')
+            index = 3
         tabBar.setCurrentIndex(index)
     }
 
@@ -56,7 +58,8 @@ PK.Drawer {
         return {
             0: 'timeline',
             1: 'settings',
-            2: 'copilot'
+            2: 'copilot',
+            3: 'triangles'
         }[tabBar.currentIndex]
     }
     
@@ -96,6 +99,8 @@ PK.Drawer {
                     return "Settings"
                 } else if(tabBar.currentIndex == 2) {
                     return "BT Copilot"
+                } else if(tabBar.currentIndex == 3) {
+                    return "Triangles"
                 }
             }
             elide: Text.ElideRight
@@ -122,6 +127,7 @@ PK.Drawer {
         PK.TabButton { text: "Timeline" }
         PK.TabButton { text: "Settings" }
         PK.TabButton { text: "Copilot" }
+        PK.TabButton { text: "Triangles" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
         /* } */
@@ -732,6 +738,14 @@ PK.Drawer {
 
         CopilotView {
             id: copilotView
+        }
+
+        PK.TriangleView {
+            id: triangleView
+            model: TriangleModel {
+                id: triangleModel
+                scene: sceneModel.scene
+            }
         }
     }
 }

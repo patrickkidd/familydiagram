@@ -898,6 +898,11 @@ class RightToolBar(ToolBar):
                 pixmap="callout.png",
                 action=self.ui.actionShow_Copilot,
             ),
+            PushButton(
+                objectName="trianglesButton",
+                pixmap="inside.png",
+                action=self.ui.actionShow_Triangles,
+            ),
             Separator(objectName="sep3"),
             PushButton(
                 objectName="detailsButton",
