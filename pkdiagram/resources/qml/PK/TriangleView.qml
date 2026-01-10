@@ -9,6 +9,8 @@ Rectangle {
 
     id: root
 
+    signal inspectEvent(int eventId)
+
     color: 'transparent'
     border {
         width: 1
@@ -108,6 +110,18 @@ Rectangle {
                         text: name == undefined ? '' : name
                         Layout.fillWidth: true
                         elide: Text.ElideRight
+                    }
+
+                    PK.Button {
+                        id: inspectButton
+                        text: "→"
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: util.QML_ITEM_HEIGHT - 4
+                        onClicked: {
+                            root.inspectEvent(eventId)
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.text: "Inspect Event"
                     }
 
                     Rectangle {

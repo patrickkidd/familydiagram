@@ -39,6 +39,45 @@ from pkdiagram.scene import (
 _log = logging.getLogger(__name__)
 
 
+class TriangleBadgeItem(QGraphicsPathItem):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._person = parent
+        self._normalPen = None
+        self.setAcceptedMouseButtons(Qt.LeftButton)
+        self.setZValue(100)
+        self.setFlag(QGraphicsItem.ItemIsSelectable, False)
+        self.setFlag(QGraphicsItem.ItemIsFocusable, False)
+        self.setAcceptHoverEvents(False)
+
+    def setNormalStyle(self, pen):
+        self._normalPen = pen
+        self.setPen(pen)
+
+    def paint(self, painter, option, widget):
+        if self._normalPen:
+            painter.setPen(self.pen())
+            painter.setBrush(Qt.NoBrush)
+            painter.drawPath(self.path())
+
+    def mousePressEvent(self, e):
+        if self._normalPen:
+            pressedPen = QPen(self._normalPen)
+            pressedPen.setColor(self._normalPen.color().darker(150))
+            pressedPen.setWidth(3)
+            self.setPen(pressedPen)
+            self.update()
+        e.accept()
+
+    def mouseReleaseEvent(self, e):
+        if self._normalPen:
+            self.setPen(self._normalPen)
+            self.update()
+        self._person.activateTriangleLayer()
+        e.accept()
+
+
 ANXIETY_COLORS = {
     VariableShift.Up: "red",
     VariableShift.Same: QColor(0, 0, 255, 127),
@@ -249,9 +288,7 @@ class Person(PathItem):
         self.ageItem.setFont(font)
         self.ageItem.setAcceptedMouseButtons(Qt.NoButton)
         self.functioningItem = QGraphicsPathItem(self)
-        self.triangleBadgeItem = QGraphicsPathItem(self)
-        self.triangleBadgeItem.setAcceptedMouseButtons(Qt.LeftButton)
-        self.triangleBadgeItem.setZValue(100)
+        self.triangleBadgeItem = TriangleBadgeItem(self)
         self.towardAwayBadgeItem = QGraphicsPathItem(self)
         self.towardAwayBadgeItem.setZValue(100)
         self._activeTriangleEvent = None
@@ -902,7 +939,10 @@ class Person(PathItem):
     def updateTriangleBadge(self):
         from btcopilot.schema import RelationshipKind
 
+        _log.debug(f"updateTriangleBadge called for {self.name()}")
+
         if not self.scene():
+            _log.debug(f"  -> no scene, clearing badge")
             self.triangleBadgeItem.setPath(QPainterPath())
             self.towardAwayBadgeItem.setPath(QPainterPath())
             self._activeTriangleEvent = None
@@ -910,6 +950,7 @@ class Person(PathItem):
 
         currentDateTime = self.scene().currentDateTime()
         if not currentDateTime.isValid():
+            _log.debug(f"  -> currentDateTime invalid, clearing badge")
             self.triangleBadgeItem.setPath(QPainterPath())
             self.towardAwayBadgeItem.setPath(QPainterPath())
             self._activeTriangleEvent = None
@@ -917,12 +958,19 @@ class Person(PathItem):
 
         activeEvent = None
         triangleEvents = self.triangleEventsForMover()
+        _log.debug(
+            f"  -> currentDateTime={currentDateTime}, triangleEvents={len(triangleEvents)}"
+        )
 
         for event in triangleEvents:
             startDt = event.dateTime()
             endDt = event.endDateTime()
+            _log.debug(f"  -> checking event: startDt={startDt}, endDt={endDt}")
             if startDt and startDt.isValid():
                 if not endDt or not endDt.isValid():
+                    _log.debug(
+                        f"     startDt.date()={startDt.date()}, currentDateTime.date()={currentDateTime.date()}, match={startDt.date() == currentDateTime.date()}"
+                    )
                     if startDt.date() == currentDateTime.date():
                         activeEvent = event
                         break
@@ -939,10 +987,11 @@ class Person(PathItem):
                     activeEvent = event
                     break
 
+        _log.debug(f"  -> activeEvent={activeEvent}")
         self._activeTriangleEvent = activeEvent
 
         if activeEvent:
-            size = 20
+            size = 60
             path = QPainterPath()
             path.moveTo(0, -size / 2)
             path.lineTo(size / 2, size / 2)
@@ -950,31 +999,38 @@ class Person(PathItem):
             path.closeSubpath()
 
             rect = self.boundingRect()
-            self.triangleBadgeItem.setPos(rect.right() + size / 2, rect.top())
+            self.triangleBadgeItem.setPos(
+                rect.right() - size / 2 - 5, rect.bottom() - size / 2 - 5
+            )
             self.triangleBadgeItem.setPath(path)
 
-            color = (
-                QColor(activeEvent.color()) if activeEvent.color() else QColor("orange")
-            )
-            self.triangleBadgeItem.setBrush(QBrush(color))
-            self.triangleBadgeItem.setPen(QPen(color.darker(120), 1))
+            if not self.scene() or self.scene().hideEmotionColors():
+                color = util.PEN.color()
+            else:
+                eventColor = activeEvent.color()
+                if eventColor in (None, "transparent", "#ffffff", "#000000"):
+                    if util.IS_UI_DARK_MODE:
+                        color = QColor("#ffffff")
+                    else:
+                        color = QColor("#000000")
+                else:
+                    color = QColor(eventColor)
+            pen = QPen(color, 2)
+            self.triangleBadgeItem.setNormalStyle(pen)
 
-            # Check for corresponding Toward/Away events on the same date
             towardAway = self._findTowardAwayEventOnDate(currentDateTime.date())
             if towardAway:
                 arrowPath = QPainterPath()
                 arrowSize = 12
-                # Position below the triangle badge
-                arrowX = rect.right() + size / 2
-                arrowY = rect.top() + size + 5
+                badgePos = self.triangleBadgeItem.pos()
+                arrowX = badgePos.x()
+                arrowY = badgePos.y() - size / 2 - arrowSize / 2 - 2
 
                 if towardAway == RelationshipKind.Toward:
-                    # Arrow pointing inward (toward): -->
                     arrowPath.moveTo(-arrowSize, -arrowSize / 3)
                     arrowPath.lineTo(0, 0)
                     arrowPath.lineTo(-arrowSize, arrowSize / 3)
                 else:
-                    # Arrow pointing outward (away): <--
                     arrowPath.moveTo(0, -arrowSize / 3)
                     arrowPath.lineTo(-arrowSize, 0)
                     arrowPath.lineTo(0, arrowSize / 3)
@@ -1449,21 +1505,6 @@ class Person(PathItem):
         if self.view().dragMode() == QGraphicsView.ScrollHandDrag:
             e.ignore()
             return
-        # Check for badge click (no drag)
-        if (
-            self.mouseDownPos
-            and self._activeTriangleEvent
-            and (e.scenePos() - self.mouseDownPos).manhattanLength() < 5
-        ):
-            localPos = self.mapFromScene(e.scenePos())
-            badgeBounds = self.triangleBadgeItem.boundingRect().translated(
-                self.triangleBadgeItem.pos()
-            )
-            if badgeBounds.contains(localPos):
-                self.activateTriangleLayer()
-                e.accept()
-                self.mouseDownPos = None
-                return
         super().mouseReleaseEvent(
             e
         )  # must come first to deselect before updating draggingWithMe

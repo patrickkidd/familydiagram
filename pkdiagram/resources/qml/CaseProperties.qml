@@ -746,6 +746,12 @@ PK.Drawer {
                 id: triangleModel
                 scene: sceneModel.scene
             }
+            onInspectEvent: function(eventId) {
+                var event = sceneModel.scene.find(eventId)
+                if (event) {
+                    root.inspectEvents([event])
+                }
+            }
         }
     }
 }

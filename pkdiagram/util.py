@@ -249,7 +249,9 @@ def init_logging():
     sessionTrackingHandler.setFormatter(logging.Formatter("%(message)s"))
     handlers.append(sessionTrackingHandler)
 
-    logging.basicConfig(level=logging.INFO, handlers=handlers)
+    logging.basicConfig(
+        level=getattr(logging, FD_LOG_LEVEL, logging.INFO), handlers=handlers
+    )
 
 
 ##
@@ -561,9 +563,7 @@ S_NO_EMOTIONAL_UNITS_SHOWN_NO_PAIRBONDS_WITH_NAMES = (
     "Emotional units will show here when you add pair-bonds between people with names."
 )
 
-S_NO_TRIANGLES_TEXT = (
-    "Triangles will show here when you add Inside/Outside shift events with relationshipTriangles."
-)
+S_NO_TRIANGLES_TEXT = "Triangles will show here when you add Inside/Outside shift events with relationshipTriangles."
 
 S_SERVER_IS_DOWN = "The server is down. Please try again later."
 S_SERVER_ERROR = "The server responded but ran into a problem. Please try again later."

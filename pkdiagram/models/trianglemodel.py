@@ -32,6 +32,7 @@ class TriangleModel(QAbstractListModel, ModelHelper):
     FlagsRole = ActiveRole + 1
     DateRole = FlagsRole + 1
     DescriptionRole = DateRole + 1
+    EventIdRole = DescriptionRole + 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -125,6 +126,7 @@ class TriangleModel(QAbstractListModel, ModelHelper):
             self.FlagsRole: b"flags",
             self.DateRole: b"date",
             self.DescriptionRole: b"description",
+            self.EventIdRole: b"eventId",
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -155,6 +157,8 @@ class TriangleModel(QAbstractListModel, ModelHelper):
                 ret = ""
         elif role == self.DescriptionRole:
             ret = event.description() if event else ""
+        elif role == self.EventIdRole:
+            ret = event.id if event else None
         return ret
 
     def setData(self, index, value, role=Qt.EditRole):

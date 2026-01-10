@@ -2,7 +2,7 @@ import pytest
 
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram import util
-from pkdiagram.scene import Event, Person
+from pkdiagram.scene import Event, Person, Scene
 
 
 def test_init(scene):
@@ -262,12 +262,59 @@ def test_enum_property_undo(scene, attr, setter, value):
 )
 def test_triangle(scene, relationship: RelationshipKind):
     """Test setting and getting triangle members."""
+    from pkdiagram.pyqt import QDateTime
+
     person = scene.addItem(Person(name="Person"))
     spouse = scene.addItem(Person(name="Spouse"))
     third = scene.addItem(Person(name="Third"))
     event = scene.addItem(Event(EventKind.Shift, person))
+    event.setDateTime(QDateTime.currentDateTime())
     event.setRelationship(relationship)
     event.setRelationshipTargets(spouse)
     event.setRelationshipTriangles(third)
     assert event.relationshipTargets() == [spouse]
     assert event.relationshipTriangles() == [third]
+    # Triangle object should be created
+    assert event.triangle() is not None
+    assert event.triangle().mover() == person
+    assert event.triangle().targets() == [spouse]
+    assert event.triangle().triangles() == [third]
+    assert event.triangle().layer() is not None
+    assert event.triangle().layer().internal() is True
+
+    # Verify badge shows when currentDateTime matches event date
+    scene.setCurrentDateTime(event.dateTime())
+    triangleEvents = person.triangleEventsForMover()
+    assert len(triangleEvents) == 1
+    assert triangleEvents[0] == event
+    # Badge should have a path (not empty) when date matches - updateTriangleBadge() should be called by setCurrentDateTime
+    assert not person.triangleBadgeItem.path().isEmpty(), (
+        f"Badge empty. _activeTriangleEvent={person._activeTriangleEvent}, "
+        f"event.dateTime()={event.dateTime()}, scene.currentDateTime()={scene.currentDateTime()}, "
+        f"event.dateTime().date()={event.dateTime().date()}, currentDateTime.date()={scene.currentDateTime().date()}"
+    )
+
+    # Badge should be empty when date doesn't match
+    scene.setCurrentDateTime(QDateTime())
+    person.updateTriangleBadge()
+    assert person.triangleBadgeItem.path().isEmpty()
+
+    # Verify Triangle survives save/load round-trip
+    data = {}
+    scene.write(data)
+    scene2 = Scene()
+    scene2.read(data)
+    event2 = [e for e in scene2.events() if e.relationship() == relationship][0]
+    assert event2.triangle() is not None
+    assert event2.triangle().mover().name() == "Person"
+    assert [t.name() for t in event2.triangle().targets()] == ["Spouse"]
+    assert [t.name() for t in event2.triangle().triangles()] == ["Third"]
+    assert event2.triangle().layer() is not None
+    assert event2.triangle().layer().internal() is True
+
+    # Verify badge shows after file load
+    scene2.setCurrentDateTime(event2.dateTime())
+    person2 = event2.triangle().mover()
+    triangleEvents2 = person2.triangleEventsForMover()
+    assert len(triangleEvents2) == 1
+    assert not person2.triangleBadgeItem.path().isEmpty()

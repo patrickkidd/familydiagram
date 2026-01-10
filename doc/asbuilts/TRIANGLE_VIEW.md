@@ -43,9 +43,15 @@ Events store reference to their Triangle:
 
 ### Scene Integration (scene/scene.py)
 
-When adding Inside/Outside shift events with `relationshipTriangles`:
-1. Creates `Triangle(event)`
-2. Creates `Layer(internal=True, storeGeometry=True)`
+Triangle creation happens in three places:
+
+1. **During `addItem`** (for new events with `relationshipTriangles` already set)
+2. **In `onItemProperty`** (when `relationshipTriangles` property is set on existing event)
+3. **During file load** (post-batch creation for events loaded with `relationshipTriangles`)
+
+Each path creates:
+1. `Triangle(event)`
+2. `Layer(internal=True, storeGeometry=True)`
 3. Links triangle to layer and event
 
 ### Person Badge (scene/person.py)

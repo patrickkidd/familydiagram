@@ -1160,6 +1160,25 @@ class Scene(QGraphicsScene, Item):
                 for layer in self.layers(includeInternal=False):
                     if not layer.storeGeometry():
                         layer.prop("storeGeometry").set(True, notify=False)
+
+                # Create Triangle objects for Inside/Outside events loaded from file
+                for event in self._events:
+                    if (
+                        event.relationship()
+                        in (RelationshipKind.Inside, RelationshipKind.Outside)
+                        and event.relationshipTriangles()
+                        and not event.triangle()
+                    ):
+                        triangle = Triangle(event)
+                        layer = Layer(internal=True, storeGeometry=True)
+                        self.addItem(layer)
+                        triangle.setLayer(layer)
+                        event.setTriangle(triangle)
+                        triangle.update()
+                        triangle.applyPositionsToLayer()
+                        if triangle.mover():
+                            triangle.mover().updateTriangleBadge()
+
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
 
@@ -2202,6 +2221,23 @@ class Scene(QGraphicsScene, Item):
                     self.setCurrentDateTime(QDateTime())
                 elif datedEvents and not self.currentDateTime():
                     self.setCurrentDateTime(datedEvents[-1].dateTime())
+            # Create Triangle when relationshipTriangles is set
+            if prop.name() == "relationshipTriangles" and not self.isBatchAddingRemovingItems():
+                if (
+                    item.relationship()
+                    in (RelationshipKind.Inside, RelationshipKind.Outside)
+                    and item.relationshipTriangles()
+                    and not item.triangle()
+                ):
+                    triangle = Triangle(item)
+                    layer = Layer(internal=True, storeGeometry=True)
+                    self.addItem(layer)
+                    triangle.setLayer(layer)
+                    item.setTriangle(triangle)
+                    triangle.update()
+                    triangle.applyPositionsToLayer()
+                    if triangle.mover():
+                        triangle.mover().updateTriangleBadge()
             self.eventChanged.emit(prop)
             # # Vulnerable to aggregate QUndoCommand's, but not sure how to
             # # condense them when signals originate in C++ from QUndoStack.

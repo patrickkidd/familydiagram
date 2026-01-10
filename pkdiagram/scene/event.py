@@ -537,7 +537,7 @@ class Event(Item):
     def setRelationshipTriangles(self, triangles: list, notify=True, undo=False):
         if not isinstance(triangles, list):
             triangles = [triangles]
+        self._relationshipTriangles = triangles
         self.prop("relationshipTriangles").set(
             [x.id for x in triangles], notify=notify, undo=undo
         )
-        self._relationshipTriangles = triangles
