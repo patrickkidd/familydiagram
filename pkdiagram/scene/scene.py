@@ -2186,6 +2186,10 @@ class Scene(QGraphicsScene, Item):
         elif prop.name() in ("hideEmotionalProcess", "hideEmotionColors"):
             for item in self.emotions():
                 item.updateAll()
+            # Also update triangle badges when hideEmotionColors changes
+            if prop.name() == "hideEmotionColors":
+                for person in self.people():
+                    person.updateTriangleBadge()
         elif prop.name() == "hideVariablesOnDiagram":
             for person in self.people():
                 person.onHideVariablesOnDiagram()
