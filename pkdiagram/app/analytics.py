@@ -282,7 +282,7 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
-        if util.IS_TEST:
+        if util.IS_TEST or util.IS_DEV:
             return
         if not self._enabled:
             return

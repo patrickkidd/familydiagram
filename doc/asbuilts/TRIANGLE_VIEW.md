@@ -61,7 +61,7 @@ Triangle badge on mover Person:
 - `towardAwayBadgeItem` - QGraphicsPathItem child for Toward/Away arrow indicator
 - `triangleEventsForMover()` - Finds triangle events where this person is mover
 - `updateTriangleBadge()` - Shows/hides badge and Toward/Away indicators based on currentDateTime match
-- `activateTriangleLayer()` - Activates triangle's Layer on badge click
+- `toggleTriangleLayer()` - Toggles triangle's Layer on/off on badge click
 - `_findTowardAwayEventOnDate()` - Finds Toward/Away events on same date for compound display
 
 Badge appears as small triangle shape using Event.color when currentDateTime matches event's date. If a Toward or Away event exists on the same date for the same person, an arrow indicator appears below the badge.
@@ -92,7 +92,7 @@ Triangle View added as 4th tab in CaseProperties (Timeline, Settings, Copilot, *
 
 ## Entry Points
 
-1. **Badge on Mover Person** - Small triangle badge appears when currentDateTime matches event date. Click activates Layer. Toward/Away indicator shown if corresponding event exists on same date.
+1. **Badge on Mover Person** - Small triangle badge appears when currentDateTime matches event date. Click toggles Layer on/off. Toward/Away indicator shown if corresponding event exists on same date.
 
 2. **SearchDialog TriangleView** - Lists all triangles. Click checkbox to activate layer.
 
@@ -127,7 +127,14 @@ Triangle View added as 4th tab in CaseProperties (Timeline, Settings, Copilot, *
 
 ## Tests
 
-- `familydiagram/pkdiagram/tests/scene/test_event.py::test_triangle` - Tests Inside and Outside triangle creation
+- `test_event.py::test_triangle` - Tests Inside and Outside triangle creation
+- `test_event.py::test_triangle_layer_activation_deactivation` - Activation/deactivation without errors
+- `test_event.py::test_triangle_layer_reset_all` - resetAll properly deactivates triangle layer
+- `test_event.py::test_triangle_layer_toggle_via_badge` - Badge click toggles layer on/off
+- `test_event.py::test_triangle_layer_no_emotional_unit` - Triangle layers don't have emotional units
+- `test_event.py::test_triangle_with_emotional_unit_layers` - Coexistence with EU layers
+- `test_event.py::test_triangle_deactivate_via_scene_method` - scene.deactivateTriangle() works
+- `test_event.py::test_triangle_next_layer_deactivates_triangle` - Next/Prev Layer deactivates triangle
 - Updated `test_scene_layers.py` item count (24 → 28 for new badge items per Person)
 
 ## Position Calculation
@@ -167,6 +174,9 @@ Triangle visualization deactivates via:
 1. **Escape key** - `view.py` calls `scene.deactivateTriangle()`
 2. **Date change** - `scene.onProperty()` calls `deactivateTriangle()` when `currentDateTime` changes
 3. **Layer deactivation** - `scene.onItemProperty()` stops Phase 2 animation when triangle layer is deactivated
+4. **Next/Prev Layer** - `scene.setExclusiveCustomLayerActive()` deactivates triangle layer before activating custom layer
+5. **Badge toggle** - Clicking the triangle badge again calls `toggleTriangleLayer()` to deactivate
+6. **Close button** - `triangleCloseButton` in `view.py` next to hidden items label calls `scene.deactivateTriangle()`
 
 `Scene.deactivateTriangle()`:
 ```python

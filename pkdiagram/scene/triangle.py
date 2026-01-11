@@ -350,16 +350,18 @@ class Triangle:
             )
             item = QGraphicsPathItem(path)
             item.setPen(pen)
+            item.setZValue(1000)
             scene.addItem(item)
             self._symbolItems.append(item)
 
         if "mover" in centroids and "triangles" in centroids:
-            isInside = relationship != RelationshipKind.Inside
+            isOutside = relationship != RelationshipKind.Inside
             path = self._arrowPath(
-                centroids["mover"], centroids["triangles"], inward=isInside
+                centroids["mover"], centroids["triangles"], inward=not isOutside
             )
             item = QGraphicsPathItem(path)
             item.setPen(pen)
+            item.setZValue(1000)
             scene.addItem(item)
             self._symbolItems.append(item)
 
@@ -369,6 +371,7 @@ class Triangle:
             dashPen = QPen(color.darker(130), 1)
             dashPen.setDashPattern([5, 5])
             item.setPen(dashPen)
+            item.setZValue(1000)
             scene.addItem(item)
             self._symbolItems.append(item)
 
@@ -399,13 +402,15 @@ class Triangle:
         # Position as header above all three clusters
         allPositions = list(positions.values())
         centerX = sum(p.x() for p in allPositions) / len(allPositions)
-        topY = min(p.y() for p in allPositions) - 150
+        topY = min(p.y() for p in allPositions) - 350
 
         color = self._event.color() if self._event.color() else "orange"
-        callout = Callout(text=description, color=color)
+        callout = Callout(text=description, color=color, scale=2.0)
         scene.addItem(callout)
         callout.setLayers([self._layer.id])
-        callout.setItemPos(QPointF(centerX, topY))
+        callout.setItemPosNow(
+            QPointF(centerX - (callout.sceneBoundingRect().width() / 2), topY)
+        )
         self._calloutItem = callout
 
     def removeCallout(self):
@@ -417,13 +422,14 @@ class Triangle:
     def hideRelationshipItems(self):
         from .marriage import Marriage
         from .childof import ChildOf
+        from .emotion import Emotion
 
         scene = self._event.scene()
         if not scene:
             return
 
         self._hiddenItems = []
-        for item in scene.find(types=[Marriage, ChildOf]):
+        for item in scene.find(types=[Marriage, ChildOf, Emotion]):
             if item.opacity() > 0:
                 self._hiddenItems.append(item)
                 item.setPathItemVisible(False)

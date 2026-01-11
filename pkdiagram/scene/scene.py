@@ -2196,14 +2196,12 @@ class Scene(QGraphicsScene, Item):
             if prop.name() == "active":
                 if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
                     self.setItemMode(None)
-                # Handle triangle layer activation/deactivation
-                for event in self._events:
-                    if event.triangle() and event.triangle().layer() == prop.item:
-                        if prop.get():
+                # Handle triangle layer activation
+                if prop.get():
+                    for event in self._events:
+                        if event.triangle() and event.triangle().layer() == prop.item:
                             event.triangle().hideRelationshipItems()
-                        else:
-                            event.triangle().stopPhase2Animation()
-                        break
+                            break
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():
@@ -2215,6 +2213,13 @@ class Scene(QGraphicsScene, Item):
                 #         if internalLayer.active():
                 #             internalLayer.setActive(False, notify=False)
                 self.updateActiveLayers()
+                # Handle triangle layer deactivation after updateActiveLayers
+                # so activeTriangle() returns None and Marriage/ChildOf show correctly
+                if not prop.get():
+                    for event in self._events:
+                        if event.triangle() and event.triangle().layer() == prop.item:
+                            event.triangle().stopPhase2Animation()
+                            break
             self.layerChanged.emit(prop)
         elif item.isEvent:
             if prop.name() == "dateTime" and not self.isBatchAddingRemovingItems():
@@ -2335,8 +2340,9 @@ class Scene(QGraphicsScene, Item):
             animation = self.layerAnimationGroup.animationAt(0)
             self.layerAnimationGroup.removeAnimation(animation)
         # Start Phase 2 animation for any active triangle layers
+        # Check layer.active() directly since _activeLayers may not be updated yet
         triangle = self.activeTriangle()
-        if triangle:
+        if triangle and triangle.layer() and triangle.layer().active():
             triangle.startPhase2Animation()
 
     def activeTriangle(self) -> "Triangle":
@@ -2416,6 +2422,12 @@ class Scene(QGraphicsScene, Item):
 
     def setExclusiveCustomLayerActive(self, layer: Layer):
         """Put in batch job so zoomFit can run after all items are shown|hidden."""
+        # Deactivate any active triangle layer first
+        triangle = self.activeTriangle()
+        if triangle:
+            triangle.stopPhase2Animation()
+            if triangle.layer():
+                triangle.layer().setActive(False, notify=False)
         activeLayers = []
         changedLayers = []
         with self.macro("Set active layer"):

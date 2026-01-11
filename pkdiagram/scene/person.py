@@ -74,7 +74,7 @@ class TriangleBadgeItem(QGraphicsPathItem):
         if self._normalPen:
             self.setPen(self._normalPen)
             self.update()
-        self._person.activateTriangleLayer()
+        self._person.toggleTriangleLayer()
         e.accept()
 
 
@@ -1060,11 +1060,14 @@ class Person(PathItem):
                 return relationship
         return None
 
-    def activateTriangleLayer(self):
+    def toggleTriangleLayer(self):
         if self._activeTriangleEvent and self._activeTriangleEvent.triangle():
             layer = self._activeTriangleEvent.triangle().layer()
             if layer:
-                layer.setActive(True)
+                if layer.active():
+                    self.scene().deactivateTriangle()
+                else:
+                    layer.setActive(True)
 
     # Showing / Hiding
 

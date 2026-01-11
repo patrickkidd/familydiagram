@@ -318,3 +318,146 @@ def test_triangle(scene, relationship: RelationshipKind):
     triangleEvents2 = person2.triangleEventsForMover()
     assert len(triangleEvents2) == 1
     assert not person2.triangleBadgeItem.path().isEmpty()
+
+
+def _create_triangle_scene(scene):
+    """Helper to create a scene with a triangle event."""
+    from pkdiagram.pyqt import QDateTime
+
+    person = scene.addItem(Person(name="Person"))
+    spouse = scene.addItem(Person(name="Spouse"))
+    third = scene.addItem(Person(name="Third"))
+    event = scene.addItem(Event(EventKind.Shift, person))
+    event.setDateTime(QDateTime.currentDateTime())
+    event.setRelationship(RelationshipKind.Inside)
+    event.setRelationshipTargets(spouse)
+    event.setRelationshipTriangles(third)
+    return event
+
+
+def test_triangle_layer_activation_deactivation(scene):
+    """Test triangle layer can be activated and deactivated without errors."""
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+
+    assert layer.active() is False
+    assert scene.activeTriangle() is None
+
+    layer.setActive(True)
+    assert layer.active() is True
+    assert scene.activeTriangle() == triangle
+
+    layer.setActive(False)
+    assert layer.active() is False
+    assert scene.activeTriangle() is None
+
+
+def test_triangle_layer_reset_all(scene):
+    """Test resetAll properly deactivates triangle layer without errors."""
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+
+    layer.setActive(True)
+    assert layer.active() is True
+    assert scene.activeTriangle() == triangle
+
+    # This was causing errors when onLayerAnimationFinished tried to start Phase 2
+    # during deactivation
+    scene.resetAll()
+    assert layer.active() is False
+    assert scene.activeTriangle() is None
+
+
+def test_triangle_layer_toggle_via_badge(scene):
+    """Test badge click toggles triangle layer on and off."""
+    from pkdiagram.pyqt import QDateTime
+
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+    person = triangle.mover()
+
+    scene.setCurrentDateTime(event.dateTime())
+    person.updateTriangleBadge()
+
+    assert layer.active() is False
+    person.toggleTriangleLayer()
+    assert layer.active() is True
+
+    person.toggleTriangleLayer()
+    assert layer.active() is False
+
+
+def test_triangle_layer_no_emotional_unit(scene):
+    """Test triangle layer does not have an emotional unit (unlike EU layers)."""
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+
+    # Triangle layers are internal but don't have an emotional unit
+    assert layer.internal() is True
+    assert layer.emotionalUnit() is None
+
+
+def test_triangle_with_emotional_unit_layers(scene):
+    """Test triangle layer coexists with emotional unit layers."""
+    from pkdiagram.scene import Marriage
+
+    # Create an emotional unit (marriage creates one)
+    personA = scene.addItem(Person(name="A"))
+    personB = scene.addItem(Person(name="B"))
+    marriage = scene.addItem(Marriage(personA=personA, personB=personB))
+    eu_layer = marriage.emotionalUnit().layer()
+
+    # Create a triangle
+    event = _create_triangle_scene(scene)
+    triangle_layer = event.triangle().layer()
+
+    # Both should be internal layers
+    internal_layers = scene.layers(onlyInternal=True)
+    assert eu_layer in internal_layers
+    assert triangle_layer in internal_layers
+
+    # EU layer has emotionalUnit, triangle layer doesn't
+    assert eu_layer.emotionalUnit() is not None
+    assert triangle_layer.emotionalUnit() is None
+
+
+def test_triangle_deactivate_via_scene_method(scene):
+    """Test scene.deactivateTriangle() works correctly."""
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+
+    layer.setActive(True)
+    assert scene.activeTriangle() == triangle
+
+    scene.deactivateTriangle()
+    assert layer.active() is False
+    assert scene.activeTriangle() is None
+
+
+def test_triangle_next_layer_deactivates_triangle(scene):
+    """Test switching to custom layer deactivates triangle layer."""
+    from pkdiagram.scene import Layer
+
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    triangle_layer = triangle.layer()
+
+    # Create a custom layer
+    custom_layer = scene.addItem(Layer(name="Custom"))
+
+    # Activate triangle
+    triangle_layer.setActive(True)
+    assert scene.activeTriangle() == triangle
+
+    # Switch to custom layer via setExclusiveCustomLayerActive
+    scene.setExclusiveCustomLayerActive(custom_layer)
+
+    # Triangle should be deactivated
+    assert triangle_layer.active() is False
+    assert scene.activeTriangle() is None
+    assert custom_layer.active() is True
