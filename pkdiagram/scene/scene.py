@@ -956,25 +956,34 @@ class Scene(QGraphicsScene, Item):
                 data["events"].remove(chunk)
                 pruned.append(chunk)
         for chunk in list(data.get("emotions", [])):
+            skip = False
             if (chunk.get("person") and chunk.get("person") not in by_ids) and (
                 chunk.get("event") and chunk.get("event") not in by_ids
             ):
                 log.warning(
                     f"Emotion has no person or event, skipping loading: {chunk}"
                 )
-                data["emotions"].remove(chunk)
-                pruned.append(chunk)
+                skip = True
             elif (
                 chunk.get("kind") != RelationshipKind.Cutoff.value
                 and chunk.get("target") not in by_ids
             ):
                 log.warning(f"Emotion has no target, skipping loading: {chunk}")
-                data["emotions"].remove(chunk)
-                pruned.append(chunk)
+                skip = True
             elif chunk.get("kind") not in list(x.value for x in RelationshipKind):
                 log.warning(f"Emotion has unknown kind, skipping loading: {chunk}")
+                skip = True
+            # Skip emotions that reference non-existent layers (orphaned triangle symbols)
+            emotionLayers = chunk.get("layers", [])
+            if emotionLayers and all(lid not in by_ids for lid in emotionLayers):
+                log.warning(
+                    f"Emotion references non-existent layers, skipping loading: {chunk}"
+                )
+                skip = True
+            if skip:
                 data["emotions"].remove(chunk)
                 pruned.append(chunk)
+                continue
             stale_target = chunk.get("event") and chunk.get("event") not in by_ids
 
         for chunk in list(data.get("multipleBirths", [])):
@@ -1237,6 +1246,9 @@ class Scene(QGraphicsScene, Item):
                 item.write(chunk)
                 data["pair_bonds"].append(chunk)
             elif item.isEmotion:
+                # Skip triangle symbol emotions - they are transient
+                if self._isTriangleSymbol(item):
+                    continue
                 chunk["kind"] = item.kind()
                 item.write(chunk)
                 data["emotions"].append(chunk)
@@ -2353,6 +2365,14 @@ class Scene(QGraphicsScene, Item):
                 if event.triangle() and event.triangle().layer() == layer:
                     return event.triangle()
         return None
+
+    def _isTriangleSymbol(self, item) -> bool:
+        """Check if an emotion item is a transient triangle symbol."""
+        for event in self._events:
+            triangle = event.triangle()
+            if triangle and item in triangle._symbolItems:
+                return True
+        return False
 
     def deactivateTriangle(self):
         triangle = self.activeTriangle()

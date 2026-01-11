@@ -747,7 +747,7 @@ PK.Drawer {
                 scene: sceneModel.scene
             }
             onInspectEvent: function(eventId) {
-                var event = sceneModel.scene.find(eventId)
+                var event = sceneModel.item(eventId)
                 if (event) {
                     root.inspectEvents([event])
                 }

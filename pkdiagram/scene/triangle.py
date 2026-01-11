@@ -208,7 +208,7 @@ class Triangle:
         self.removeSymbols()
 
         scene = self._event.scene()
-        if not scene:
+        if not scene or not self._layer:
             return
 
         mover = self.mover()
@@ -239,6 +239,7 @@ class Triangle:
         )
         emotion1 = Emotion(kind=moverTargetKind, person=mover, target=targets[0])
         emotion1.setColor(eventColor)
+        emotion1.setLayers([self._layer.id])
         self._symbolItems.append(emotion1)
         scene.addItem(emotion1)
         emotion1.setZValue(1000)
@@ -248,6 +249,7 @@ class Triangle:
             kind=RelationshipKind.Outside, person=mover, target=triangles[0]
         )
         emotion2.setColor(eventColor)
+        emotion2.setLayers([self._layer.id])
         self._symbolItems.append(emotion2)
         scene.addItem(emotion2)
         emotion2.setZValue(1000)
@@ -260,6 +262,7 @@ class Triangle:
             kind=targetTriangleKind, person=targets[0], target=triangles[0]
         )
         emotion3.setColor(eventColor)
+        emotion3.setLayers([self._layer.id])
         self._symbolItems.append(emotion3)
         scene.addItem(emotion3)
         emotion3.setZValue(1000)
