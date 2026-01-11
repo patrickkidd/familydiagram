@@ -142,10 +142,24 @@ Triangle View added as 4th tab in CaseProperties (Timeline, Settings, Copilot, *
 Triangle positions are calculated relative to the **base (non-layered) positions** of people, not their visual/animated positions. This ensures stable behavior when layers activate/deactivate:
 
 - `_calculateCentroid()` uses `person.itemPos(forLayers=[])` to get base positions
-- `calculatePositions()` computes equilateral triangle layout around this centroid
+- `calculatePositions()` computes triangle layout around this centroid with proximity adjustments
 - Positions are stored in `layer.itemProperties` via `applyPositionsToLayer()`
 
 This design ensures Reset Diagram works correctly - when the triangle layer is deactivated, people return to their base positions as expected.
+
+### Inside/Outside Positioning
+
+A triangle always has two positions "inside" (closer to center) and one position "outside" (farther from center). The inside pair is at 1/3 base radius from centroid, the outside position is at 2/3 base radius (2:1 distance ratio).
+
+**Inside Event** (Mover shifts toward Targets):
+- Inside pair: Mover + Targets (1/3 radius)
+- Outside: Triangles (2/3 radius)
+
+**Outside Event** (Mover shifts away from both):
+- Inside pair: Targets + Triangles (1/3 radius)
+- Outside: Mover (2/3 radius)
+
+Position angles are fixed: Mover at top (90°), Targets at bottom-left (210°), Triangles at bottom-right (330°). Only the radial distance changes based on inside/outside status.
 
 ## Animation
 
@@ -174,7 +188,7 @@ Triangle visualization deactivates via:
 1. **Escape key** - `view.py` calls `scene.deactivateTriangle()`
 2. **Date change** - `scene.onProperty()` calls `deactivateTriangle()` when `currentDateTime` changes
 3. **Layer deactivation** - `scene.onItemProperty()` stops Phase 2 animation when triangle layer is deactivated
-4. **Next/Prev Layer** - `scene.setExclusiveCustomLayerActive()` deactivates triangle layer before activating custom layer
+4. **Next/Prev Layer** - `scene.setExclusiveLayerActive()` deactivates triangle layer before activating custom layer
 5. **Badge toggle** - Clicking the triangle badge again calls `toggleTriangleLayer()` to deactivate
 6. **Close button** - `triangleCloseButton` in `view.py` next to hidden items label calls `scene.deactivateTriangle()`
 
@@ -219,6 +233,83 @@ Text callout showing `Event.description` positioned above the mover:
 - `createCallout()` - Creates QGraphicsTextItem with background rect
 - `removeCallout()` - Cleans up on layer deactivation
 - Only displayed if event has description text
+
+## File Persistence
+
+### Triangle Layers are NOT Saved
+Triangle layers are internal (`Layer(internal=True)`) and are not written to files. They are recreated on file load when events with `relationshipTriangles` are present.
+
+### Triangle Symbol Emotions are Transient
+The `Emotion` items created by `Triangle.createSymbols()` are stored in `triangle._symbolItems` and are:
+- Created during `startPhase2Animation()`
+- Removed during `stopPhase2Animation()`
+- **Never saved to files** - `Scene.write()` skips them via `_isTriangleSymbol()` check
+- **Skipped on load** - `Scene.read()` skips loading emotions that reference non-existent layers (orphaned triangle symbols from old files)
+
+```python
+# scene.py - Skip writing triangle symbols
+if item.isEmotion:
+    if self._isTriangleSymbol(item):
+        continue  # Don't persist transient triangle symbols
+
+# scene.py - Skip loading orphaned emotions
+emotionLayers = chunk.get("layers", [])
+if emotionLayers and all(lid not in by_ids for lid in emotionLayers):
+    log.warning(f"Emotion references non-existent layers, skipping: {chunk}")
+    skip = True
+```
+
+## Badge Color Logic
+
+The triangle badge (`TriangleBadgeItem`) respects scene settings:
+
+```python
+# person.py - updateTriangleBadge()
+if not self.scene() or self.scene().hideEmotionColors():
+    color = util.PEN.color()  # Default pen color when colors hidden
+else:
+    eventColor = activeEvent.color()
+    if eventColor in (None, "transparent", "#ffffff", "#000000"):
+        # Use black/white based on dark mode
+        color = QColor("#ffffff") if util.IS_UI_DARK_MODE else QColor("#000000")
+    else:
+        color = QColor(eventColor)
+```
+
+Badge updates are triggered by:
+1. `currentDateTime` change → `updateTriangleBadge()` called for all people
+2. Event color change → `Scene.onItemProperty()` calls `updateTriangleBadge()` on mover
+3. `hideEmotionColors` setting change → `Scene.onProperty()` calls `updateTriangleBadge()` for all people
+
+## QML Model Ownership
+
+The `TriangleView.qml` component requires an explicit model to be passed:
+```qml
+property var model: null  // No default - must be provided by parent
+```
+
+Both `CaseProperties.qml` and `SearchDialog.qml` create their own `TriangleModel`:
+```qml
+PK.TriangleView {
+    model: TriangleModel { scene: sceneModel.scene }
+}
+```
+
+This prevents duplicate model instances that could cause checkbox synchronization issues.
+
+### SceneModel.item() for QML Event Lookup
+QML uses `sceneModel.item(eventId)` to get Event objects for the inspect button:
+```python
+# scenemodel.py
+@pyqtSlot(int, result=QObject)
+def item(self, id):
+    ret = self.scene.findById(id)
+    if isinstance(ret, QObject):  # Event is not a QObject
+        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
+    return ret
+```
+
+Note: `Event` inherits from `Item` (not `QObject`), so the ownership call is skipped.
 
 ## Future Work
 

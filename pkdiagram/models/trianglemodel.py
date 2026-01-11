@@ -172,7 +172,10 @@ class TriangleModel(QAbstractListModel, ModelHelper):
             else:
                 value = False
             if triangle.layer():
-                triangle.layer().setActive(value)
+                if value:
+                    self._scene.setExclusiveLayerActive(triangle.layer())
+                else:
+                    triangle.layer().setActive(False)
                 if value and triangle.layer() not in self._activeLayers:
                     self._activeLayers.append(triangle.layer())
                 elif not value and triangle.layer() in self._activeLayers:

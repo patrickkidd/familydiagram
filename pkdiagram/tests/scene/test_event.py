@@ -454,8 +454,8 @@ def test_triangle_next_layer_deactivates_triangle(scene):
     triangle_layer.setActive(True)
     assert scene.activeTriangle() == triangle
 
-    # Switch to custom layer via setExclusiveCustomLayerActive
-    scene.setExclusiveCustomLayerActive(custom_layer)
+    # Switch to custom layer via setExclusiveLayerActive
+    scene.setExclusiveLayerActive(custom_layer)
 
     # Triangle should be deactivated
     assert triangle_layer.active() is False

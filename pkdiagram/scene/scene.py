@@ -2448,25 +2448,22 @@ class Scene(QGraphicsScene, Item):
         if iLayer < 0 or iLayer >= len(customLayers):
             return
         layer = customLayers[iLayer]
-        self.setExclusiveCustomLayerActive(layer)
+        self.setExclusiveLayerActive(layer)
 
-    def setExclusiveCustomLayerActive(self, layer: Layer):
-        """Put in batch job so zoomFit can run after all items are shown|hidden."""
-        # Deactivate any active triangle layer first
+    def setExclusiveLayerActive(self, layer: Layer):
+        """Activate layer exclusively, deactivating all other layers (including triangles)."""
         triangle = self.activeTriangle()
-        if triangle:
+        if triangle and triangle.layer() != layer:
             triangle.stopPhase2Animation()
             if triangle.layer():
                 triangle.layer().setActive(False, notify=False)
-        activeLayers = []
         changedLayers = []
         with self.macro("Set active layer"):
-            for _layer in self.layers(includeInternal=False):
+            for _layer in self.layers(includeInternal=True):
                 if _layer == layer:
                     if _layer.active() is not True:
                         changedLayers.append(_layer)
                     _layer.setActive(True, undo=True, notify=False)
-                    activeLayers.append(_layer)
                 else:
                     if _layer.active() is not False:
                         changedLayers.append(_layer)

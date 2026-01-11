@@ -412,7 +412,7 @@ class DocumentController(QObject):
         for layer in self.scene.layers():
             if layer.id == id:
                 if on:
-                    self.scene.setExclusiveCustomLayerActive(layer)
+                    self.scene.setExclusiveLayerActive(layer)
                 else:
                     layer.setActive(False, undo=True)
                 return

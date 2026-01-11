@@ -90,62 +90,58 @@ class Triangle:
         if not centroid:
             return {}
 
-        # Base triangle size - use viewport or default
-        baseRadius = 300  # Distance from center to vertices
+        # Base triangle size
+        baseRadius = 800
+        # Inside pair at 1/3 radius, outside at 2/3 radius (2:1 distance ratio)
+        insideRadius = baseRadius / 4
+        outsideRadius = baseRadius * 2 / 3
 
-        neutralPositions = []
-        for i in range(3):
-            angle = math.radians(90 + i * 120)  # Start from top (90 degrees)
-            x = centroid.x() + baseRadius * math.cos(angle)
-            y = centroid.y() - baseRadius * math.sin(angle)  # Flip y for screen coords
-            neutralPositions.append(QPointF(x, y))
-
-        # Adjust for emotional proximity based on relationship kind
         relationship = self._event.relationship()
-        proximityOffset = baseRadius * 0.3  # How much to shift for inside/outside
+        isInside = relationship == RelationshipKind.Inside
+
+        # Position angles: Mover at top (90°), Targets at bottom-left (210°),
+        # Triangles at bottom-right (330°)
+        moverAngle = math.radians(90)
+        targetsAngle = math.radians(210)
+        trianglesAngle = math.radians(330)
 
         result = {}
 
+        # Inside event: Mover + Targets are inside (1/3 radius), Triangles outside (2/3)
+        # Outside event: Targets + Triangles are inside (1/3 radius), Mover outside (2/3)
+        if isInside:
+            moverRadius = insideRadius
+            targetsRadius = insideRadius
+            trianglesRadius = outsideRadius
+        else:
+            moverRadius = outsideRadius
+            targetsRadius = insideRadius
+            trianglesRadius = insideRadius
+
         mover = self.mover()
         if mover:
-            moverPos = neutralPositions[0]
-            if relationship == RelationshipKind.Inside:
-                moverPos = QPointF(
-                    moverPos.x() - proximityOffset * 0.5,
-                    moverPos.y() + proximityOffset,
-                )
-            elif relationship == RelationshipKind.Outside:
-                moverPos = QPointF(moverPos.x(), moverPos.y() - proximityOffset)
-            result[mover.id] = moverPos
+            x = centroid.x() + moverRadius * math.cos(moverAngle)
+            y = centroid.y() - moverRadius * math.sin(moverAngle)
+            result[mover.id] = QPointF(x, y)
 
         targets = self.targets()
         if targets:
-            targetBase = neutralPositions[1]
+            baseX = centroid.x() + targetsRadius * math.cos(targetsAngle)
+            baseY = centroid.y() - targetsRadius * math.sin(targetsAngle)
             for i, target in enumerate(targets):
                 clusterOffset = self._clusterOffset(i, len(targets))
                 result[target.id] = QPointF(
-                    targetBase.x() + clusterOffset.x(),
-                    targetBase.y() + clusterOffset.y(),
+                    baseX + clusterOffset.x(), baseY + clusterOffset.y()
                 )
 
         triangles = self.triangles()
         if triangles:
-            triangleBase = neutralPositions[2]
-            if relationship == RelationshipKind.Inside:
-                triangleBase = QPointF(
-                    triangleBase.x() + proximityOffset * 0.5,
-                    triangleBase.y(),
-                )
-            elif relationship == RelationshipKind.Outside:
-                triangleBase = QPointF(
-                    triangleBase.x() - proximityOffset * 0.3,
-                    triangleBase.y(),
-                )
+            baseX = centroid.x() + trianglesRadius * math.cos(trianglesAngle)
+            baseY = centroid.y() - trianglesRadius * math.sin(trianglesAngle)
             for i, triangle in enumerate(triangles):
                 clusterOffset = self._clusterOffset(i, len(triangles))
                 result[triangle.id] = QPointF(
-                    triangleBase.x() + clusterOffset.x(),
-                    triangleBase.y() + clusterOffset.y(),
+                    baseX + clusterOffset.x(), baseY + clusterOffset.y()
                 )
 
         return result
