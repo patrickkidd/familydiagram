@@ -2201,6 +2201,8 @@ class Scene(QGraphicsScene, Item):
                     for event in self._events:
                         if event.triangle() and event.triangle().layer() == prop.item:
                             event.triangle().hideRelationshipItems()
+                            event.triangle().createSymbols()
+                            event.triangle().createCallout()
                             break
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.

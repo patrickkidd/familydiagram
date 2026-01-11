@@ -190,18 +190,29 @@ def deactivateTriangle(self):
 
 ## Visual Elements in Triangle Layer
 
-### Symbols Between Clusters
-When Phase 2 animation starts, symbols are created between cluster centroids:
+### Hidden Relationship Items
+When a triangle layer is active, relationship items (Marriage, ChildOf, Emotion) are hidden to reduce visual clutter:
+- `Marriage.shouldShowFor()`, `ChildOf.shouldShowFor()`, `Emotion.shouldShowFor()` return `False` when `scene.activeTriangle()` is truthy
+- `Triangle.hideRelationshipItems()` explicitly hides these items on layer activation
+- `Triangle.showRelationshipItems()` restores visibility on layer deactivation
 
-1. **Mover ↔ Targets** - Inside/Outside arrow symbols showing primary relationship direction
-2. **Mover ↔ Triangles** - Opposite direction arrows (Inside with targets = Outside from triangles)
-3. **Targets ↔ Triangles** - Dashed neutral connection line
+### Symbols Between Clusters
+Reuses existing `Emotion` class (from `emotions.py`) to show Inside/Outside symbols between clusters. Symbol placement depends on the event's relationship type:
+
+**Inside Event:**
+- Inside symbol: Mover → Targets
+- Outside symbol: Mover → Triangles
+- Outside symbol: Targets → Triangles
+
+**Outside Event:**
+- Outside symbol: Mover → Targets
+- Outside symbol: Mover → Triangles
+- Inside symbol: Targets → Triangles
 
 Implementation in `Triangle`:
-- `_arrowPath(fromPt, toPt, inward)` - Creates arrow path pointing inward (-->) or outward (<--)
-- `_linePath(fromPt, toPt)` - Creates simple line for neutral connections
-- `createSymbols()` - Creates all symbol QGraphicsPathItems based on relationship type
-- `removeSymbols()` - Cleans up symbols on layer deactivation
+- `createSymbols()` - Creates `Emotion` items between cluster centroids based on relationship type
+- `removeSymbols()` - Removes created Emotion items on layer deactivation
+- Reuses `RelationshipKind.Inside` and `RelationshipKind.Outside` for symbol rendering
 
 ### Description Callout
 Text callout showing `Event.description` positioned above the mover:

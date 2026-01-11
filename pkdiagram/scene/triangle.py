@@ -1,18 +1,7 @@
 import math
 from typing import TYPE_CHECKING
 
-from pkdiagram.pyqt import (
-    QPointF,
-    QLineF,
-    QRectF,
-    QPropertyAnimation,
-    QSequentialAnimationGroup,
-    QTimer,
-    QGraphicsPathItem,
-    QPainterPath,
-    QPen,
-    QColor,
-)
+from pkdiagram.pyqt import QPointF
 from pkdiagram import util
 
 if TYPE_CHECKING:
@@ -26,9 +15,6 @@ class Triangle:
     def __init__(self, event: "Event"):
         self._event = event
         self._layer = None
-        self._phase2AnimGroup = None
-        self._phase2RepeatCount = 0
-        self._phase2MaxRepeats = 3
         self._symbolItems = []
         self._calloutItem = None
         self._hiddenItems = []
@@ -176,22 +162,6 @@ class Triangle:
             radius = 25
             return QPointF(radius * math.cos(angle), radius * math.sin(angle))
 
-    def neutralMoverPosition(self) -> QPointF:
-        people = self.allPeople()
-        if len(people) < 3:
-            return QPointF(0, 0)
-
-        centroid = self._calculateCentroid()
-        if not centroid:
-            return QPointF(0, 0)
-
-        # Top of equilateral triangle (90 degrees)
-        baseRadius = 300
-        angle = math.radians(90)
-        x = centroid.x() + baseRadius * math.cos(angle)
-        y = centroid.y() - baseRadius * math.sin(angle)
-        return QPointF(x, y)
-
     def applyPositionsToLayer(self):
         if not self._layer:
             return
@@ -231,103 +201,9 @@ class Triangle:
 
         return result
 
-    def _arrowPath(self, fromPt: QPointF, toPt: QPointF, inward: bool) -> QPainterPath:
-        path = QPainterPath()
-        line = QLineF(fromPt, toPt)
-        length = line.length()
-        if length < 1:
-            return path
-
-        gap = 30
-        arrowSize = 12
-        midGap = 15
-
-        startPt = line.pointAt(gap / length)
-        endPt = line.pointAt(1 - gap / length)
-
-        if inward:
-            leftArrowTip = line.pointAt((0.5 * length - midGap) / length)
-            leftArrowBase = line.pointAt(
-                (0.5 * length - midGap - arrowSize * 2) / length
-            )
-            path.moveTo(startPt)
-            path.lineTo(leftArrowBase)
-            # Arrowhead
-            normal = QLineF(leftArrowBase, leftArrowTip).normalVector()
-            normal.setLength(arrowSize * 0.5)
-            p1 = normal.p2()
-            normal.setLength(-arrowSize * 0.5)
-            p2 = normal.p2()
-            path.moveTo(leftArrowTip)
-            path.lineTo(p1)
-            path.moveTo(leftArrowTip)
-            path.lineTo(p2)
-
-            rightArrowTip = line.pointAt((0.5 * length + midGap) / length)
-            rightArrowBase = line.pointAt(
-                (0.5 * length + midGap + arrowSize * 2) / length
-            )
-            path.moveTo(endPt)
-            path.lineTo(rightArrowBase)
-            # Arrowhead
-            normal = QLineF(rightArrowBase, rightArrowTip).normalVector()
-            normal.setLength(arrowSize * 0.5)
-            p1 = normal.p2()
-            normal.setLength(-arrowSize * 0.5)
-            p2 = normal.p2()
-            path.moveTo(rightArrowTip)
-            path.lineTo(p1)
-            path.moveTo(rightArrowTip)
-            path.lineTo(p2)
-        else:
-            leftArrowTip = line.pointAt((gap + arrowSize) / length)
-            leftArrowBase = line.pointAt((0.5 * length - midGap) / length)
-            path.moveTo(leftArrowBase)
-            path.lineTo(leftArrowTip)
-            # Arrowhead
-            normal = QLineF(leftArrowBase, leftArrowTip).normalVector()
-            normal.setLength(arrowSize * 0.5)
-            p1 = normal.p2()
-            normal.setLength(-arrowSize * 0.5)
-            p2 = normal.p2()
-            path.moveTo(leftArrowTip)
-            path.lineTo(p1)
-            path.moveTo(leftArrowTip)
-            path.lineTo(p2)
-
-            rightArrowTip = line.pointAt(1 - (gap + arrowSize) / length)
-            rightArrowBase = line.pointAt((0.5 * length + midGap) / length)
-            path.moveTo(rightArrowBase)
-            path.lineTo(rightArrowTip)
-            # Arrowhead
-            normal = QLineF(rightArrowBase, rightArrowTip).normalVector()
-            normal.setLength(arrowSize * 0.5)
-            p1 = normal.p2()
-            normal.setLength(-arrowSize * 0.5)
-            p2 = normal.p2()
-            path.moveTo(rightArrowTip)
-            path.lineTo(p1)
-            path.moveTo(rightArrowTip)
-            path.lineTo(p2)
-
-        return path
-
-    def _linePath(self, fromPt: QPointF, toPt: QPointF) -> QPainterPath:
-        path = QPainterPath()
-        line = QLineF(fromPt, toPt)
-        length = line.length()
-        if length < 1:
-            return path
-
-        gap = 30
-        startPt = line.pointAt(gap / length)
-        endPt = line.pointAt(1 - gap / length)
-        path.moveTo(startPt)
-        path.lineTo(endPt)
-        return path
-
     def createSymbols(self):
         from btcopilot.schema import RelationshipKind
+        from .emotions import Emotion
 
         self.removeSymbols()
 
@@ -335,45 +211,58 @@ class Triangle:
         if not scene:
             return
 
-        centroids = self.clusterCentroids()
-        if len(centroids) < 3:
+        mover = self.mover()
+        targets = self.targets()
+        triangles = self.triangles()
+        if not mover or not targets or not triangles:
             return
 
         relationship = self._event.relationship()
-        color = QColor(self._event.color()) if self._event.color() else QColor("orange")
-        pen = QPen(color, 2)
+        isInside = relationship == RelationshipKind.Inside
+        eventColor = self._event.color()
+        # Use default white/black when event has no meaningful color
+        if eventColor in (None, "transparent", "#ffffff", "#000000"):
+            eventColor = "#ffffff" if util.IS_UI_DARK_MODE else "#000000"
 
-        if "mover" in centroids and "targets" in centroids:
-            isInside = relationship == RelationshipKind.Inside
-            path = self._arrowPath(
-                centroids["mover"], centroids["targets"], inward=isInside
-            )
-            item = QGraphicsPathItem(path)
-            item.setPen(pen)
-            item.setZValue(1000)
-            scene.addItem(item)
-            self._symbolItems.append(item)
+        # Inside Event:
+        #   Inside: Mover → Targets
+        #   Outside: Mover → Triangles
+        #   Outside: Targets → Triangles
+        # Outside Event:
+        #   Outside: Mover → Targets
+        #   Outside: Mover → Triangles
+        #   Inside: Targets → Triangles
 
-        if "mover" in centroids and "triangles" in centroids:
-            isOutside = relationship != RelationshipKind.Inside
-            path = self._arrowPath(
-                centroids["mover"], centroids["triangles"], inward=not isOutside
-            )
-            item = QGraphicsPathItem(path)
-            item.setPen(pen)
-            item.setZValue(1000)
-            scene.addItem(item)
-            self._symbolItems.append(item)
+        # Mover → Targets (first target)
+        moverTargetKind = (
+            RelationshipKind.Inside if isInside else RelationshipKind.Outside
+        )
+        emotion1 = Emotion(kind=moverTargetKind, person=mover, target=targets[0])
+        emotion1.setColor(eventColor)
+        self._symbolItems.append(emotion1)
+        scene.addItem(emotion1)
+        emotion1.setZValue(1000)
 
-        if "targets" in centroids and "triangles" in centroids:
-            path = self._linePath(centroids["targets"], centroids["triangles"])
-            item = QGraphicsPathItem(path)
-            dashPen = QPen(color.darker(130), 1)
-            dashPen.setDashPattern([5, 5])
-            item.setPen(dashPen)
-            item.setZValue(1000)
-            scene.addItem(item)
-            self._symbolItems.append(item)
+        # Mover → Triangles (first triangle person)
+        emotion2 = Emotion(
+            kind=RelationshipKind.Outside, person=mover, target=triangles[0]
+        )
+        emotion2.setColor(eventColor)
+        self._symbolItems.append(emotion2)
+        scene.addItem(emotion2)
+        emotion2.setZValue(1000)
+
+        # Targets → Triangles
+        targetTriangleKind = (
+            RelationshipKind.Outside if isInside else RelationshipKind.Inside
+        )
+        emotion3 = Emotion(
+            kind=targetTriangleKind, person=targets[0], target=triangles[0]
+        )
+        emotion3.setColor(eventColor)
+        self._symbolItems.append(emotion3)
+        scene.addItem(emotion3)
+        emotion3.setZValue(1000)
 
     def removeSymbols(self):
         scene = self._event.scene()
@@ -406,8 +295,8 @@ class Triangle:
 
         color = self._event.color() if self._event.color() else "orange"
         callout = Callout(text=description, color=color, scale=2.0)
-        scene.addItem(callout)
         callout.setLayers([self._layer.id])
+        scene.addItem(callout)
         callout.setItemPosNow(
             QPointF(centerX - (callout.sceneBoundingRect().width() / 2), topY)
         )
@@ -422,7 +311,7 @@ class Triangle:
     def hideRelationshipItems(self):
         from .marriage import Marriage
         from .childof import ChildOf
-        from .emotion import Emotion
+        from .emotions import Emotion
 
         scene = self._event.scene()
         if not scene:
@@ -449,45 +338,7 @@ class Triangle:
         # Create callout with event description
         self.createCallout()
 
-        self._phase2RepeatCount = 0
-        self._runPhase2Cycle()
-
-    def _runPhase2Cycle(self):
-        mover = self.mover()
-        if not mover:
-            return
-
-        if self._phase2RepeatCount >= self._phase2MaxRepeats:
-            self.stopPhase2Animation()
-            return
-
-        neutralPos = self.neutralMoverPosition()
-        finalPositions = self.calculatePositions()
-        finalPos = finalPositions.get(mover.id)
-        if not finalPos:
-            return
-
-        mover.setPos(neutralPos)
-
-        self._phase2AnimGroup = QSequentialAnimationGroup()
-        anim = QPropertyAnimation(mover, b"pos")
-        anim.setDuration(util.ANIM_DURATION_MS * 3)
-        anim.setStartValue(neutralPos)
-        anim.setEndValue(finalPos)
-        self._phase2AnimGroup.addAnimation(anim)
-        self._phase2AnimGroup.finished.connect(self._onPhase2CycleFinished)
-        self._phase2AnimGroup.start()
-
-    def _onPhase2CycleFinished(self):
-        self._phase2RepeatCount += 1
-        if self._phase2RepeatCount < self._phase2MaxRepeats:
-            QTimer.singleShot(200, self._runPhase2Cycle)
-
     def stopPhase2Animation(self):
-        if self._phase2AnimGroup:
-            self._phase2AnimGroup.stop()
-            self._phase2AnimGroup = None
-        self._phase2RepeatCount = 0
         self.removeSymbols()
         self.removeCallout()
         self.showRelationshipItems()

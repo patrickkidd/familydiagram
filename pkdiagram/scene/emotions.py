@@ -1451,7 +1451,14 @@ class Emotion(PathItem):
             self.isSelected()
         ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
             return True
-        if self.scene().hideEmotionalProcess() is True:
+        # Triangle symbols always show when triangle is active (skip all other checks)
+        triangle = self.scene().activeTriangle() if self.scene() else None
+        if triangle:
+            if self in triangle._symbolItems:
+                return True
+            else:
+                return False
+        if self.scene() and self.scene().hideEmotionalProcess() is True:
             return False
         # Check layer membership for non-event emotions on
         if (
