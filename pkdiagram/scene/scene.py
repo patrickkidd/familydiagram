@@ -2259,6 +2259,10 @@ class Scene(QGraphicsScene, Item):
                     triangle.applyPositionsToLayer()
                     if triangle.mover():
                         triangle.mover().updateTriangleBadge()
+            # Update triangle badge when event color changes
+            if prop.name() == "color" and item.triangle():
+                if item.triangle().mover():
+                    item.triangle().mover().updateTriangleBadge()
             self.eventChanged.emit(prop)
             # # Vulnerable to aggregate QUndoCommand's, but not sure how to
             # # condense them when signals originate in C++ from QUndoStack.
