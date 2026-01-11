@@ -134,6 +134,7 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     anchors.leftMargin: checkBox.y + checkBox.width
+                    anchors.rightMargin: inspectButton.width + 10
                     onClicked: {
                         onRowClicked(mouse, index)
                     }

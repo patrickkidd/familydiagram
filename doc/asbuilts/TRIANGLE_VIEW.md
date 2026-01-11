@@ -130,10 +130,20 @@ Triangle View added as 4th tab in CaseProperties (Timeline, Settings, Copilot, *
 - `familydiagram/pkdiagram/tests/scene/test_event.py::test_triangle` - Tests Inside and Outside triangle creation
 - Updated `test_scene_layers.py` item count (24 → 28 for new badge items per Person)
 
+## Position Calculation
+
+Triangle positions are calculated relative to the **base (non-layered) positions** of people, not their visual/animated positions. This ensures stable behavior when layers activate/deactivate:
+
+- `_calculateCentroid()` uses `person.itemPos(forLayers=[])` to get base positions
+- `calculatePositions()` computes equilateral triangle layout around this centroid
+- Positions are stored in `layer.itemProperties` via `applyPositionsToLayer()`
+
+This design ensures Reset Diagram works correctly - when the triangle layer is deactivated, people return to their base positions as expected.
+
 ## Animation
 
 ### Phase 1 - Gather
-Existing Layer machinery handles this - people animate from default diagram positions to final triangle Layer positions.
+Existing Layer machinery handles this - people animate from base diagram positions to final triangle Layer positions.
 
 ### Phase 2 - Jump-Animate Emphasis
 Implemented in `Triangle`:

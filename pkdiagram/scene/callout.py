@@ -117,6 +117,8 @@ class Callout(LayerItem):
         self.updateBubbleRect()
         self.updateGeometry()
         self.updatePen()
+        for prop in kwargs:
+            self.onProperty(self.prop(prop))
         #
         self._anchorPressHandle = None
         self._anchorPressRect = None

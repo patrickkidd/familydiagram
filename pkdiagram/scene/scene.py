@@ -2196,12 +2196,14 @@ class Scene(QGraphicsScene, Item):
             if prop.name() == "active":
                 if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
                     self.setItemMode(None)
-                # Stop Phase 2 animation if a triangle layer is being deactivated
-                if not prop.get():
-                    for event in self._events:
-                        if event.triangle() and event.triangle().layer() == prop.item:
+                # Handle triangle layer activation/deactivation
+                for event in self._events:
+                    if event.triangle() and event.triangle().layer() == prop.item:
+                        if prop.get():
+                            event.triangle().hideRelationshipItems()
+                        else:
                             event.triangle().stopPhase2Animation()
-                            break
+                        break
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():

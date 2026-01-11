@@ -121,6 +121,8 @@ class ChildOf(PathItem):
         """
         Just link to whether the parents are shown.
         """
+        if self.scene() and self.scene().activeTriangle():
+            return False
         if not self.person.shouldShowFor(dateTime, tags=tags, layers=layers):
             return False
         if self._parents and not self._parents.shouldShowFor(

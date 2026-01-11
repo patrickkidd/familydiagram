@@ -9,13 +9,9 @@ from pkdiagram.pyqt import (
     QSequentialAnimationGroup,
     QTimer,
     QGraphicsPathItem,
-    QGraphicsTextItem,
-    QGraphicsRectItem,
     QPainterPath,
     QPen,
-    QBrush,
     QColor,
-    QFont,
 )
 from pkdiagram import util
 
@@ -35,6 +31,7 @@ class Triangle:
         self._phase2MaxRepeats = 3
         self._symbolItems = []
         self._calloutItem = None
+        self._hiddenItems = []
 
     def event(self) -> "Event":
         return self._event
@@ -86,7 +83,10 @@ class Triangle:
 
     def _calculateCentroid(self) -> QPointF | None:
         people = self.allPeople()
-        positions = [p.pos() for p in people if p.pos()]
+        # Use base positions (forLayers=[]) to get stable stored positions,
+        # not visual positions which may change during animations or layer changes
+        positions = [p.itemPos(forLayers=[]) for p in people]
+        positions = [p for p in positions if p]
         if not positions:
             return None
         centroidX = sum(p.x() for p in positions) / len(positions)
@@ -105,7 +105,7 @@ class Triangle:
             return {}
 
         # Base triangle size - use viewport or default
-        baseRadius = 200  # Distance from center to vertices
+        baseRadius = 300  # Distance from center to vertices
 
         neutralPositions = []
         for i in range(3):
@@ -186,7 +186,7 @@ class Triangle:
             return QPointF(0, 0)
 
         # Top of equilateral triangle (90 degrees)
-        baseRadius = 200
+        baseRadius = 300
         angle = math.radians(90)
         x = centroid.x() + baseRadius * math.cos(angle)
         y = centroid.y() - baseRadius * math.sin(angle)
@@ -380,58 +380,58 @@ class Triangle:
         self._symbolItems.clear()
 
     def createCallout(self):
+        from .callout import Callout
+
         self.removeCallout()
 
         scene = self._event.scene()
-        if not scene:
+        if not scene or not self._layer:
             return
 
         description = self._event.description()
         if not description:
             return
 
-        centroids = self.clusterCentroids()
-        if "mover" not in centroids:
+        positions = self.calculatePositions()
+        if not positions:
             return
 
-        moverPos = centroids["mover"]
-        color = QColor(self._event.color()) if self._event.color() else QColor("orange")
+        # Position as header above all three clusters
+        allPositions = list(positions.values())
+        centerX = sum(p.x() for p in allPositions) / len(allPositions)
+        topY = min(p.y() for p in allPositions) - 150
 
-        textItem = QGraphicsTextItem()
-        font = QFont(util.DETAILS_FONT)
-        font.setPointSize(10)
-        textItem.setFont(font)
-        textItem.setDefaultTextColor(color.darker(150))
-        textItem.setPlainText(description)
-        textItem.setTextWidth(200)
-
-        textRect = textItem.boundingRect()
-        textItem.setPos(
-            moverPos.x() - textRect.width() / 2, moverPos.y() - textRect.height() - 40
-        )
-
-        padding = 8
-        bgRect = QGraphicsRectItem(
-            textItem.x() - padding,
-            textItem.y() - padding,
-            textRect.width() + padding * 2,
-            textRect.height() + padding * 2,
-        )
-        bgRect.setBrush(QBrush(QColor(255, 255, 255, 200)))
-        bgRect.setPen(QPen(color, 1))
-
-        scene.addItem(bgRect)
-        scene.addItem(textItem)
-
-        self._calloutItem = (bgRect, textItem)
+        color = self._event.color() if self._event.color() else "orange"
+        callout = Callout(text=description, color=color)
+        scene.addItem(callout)
+        callout.setLayers([self._layer.id])
+        callout.setItemPos(QPointF(centerX, topY))
+        self._calloutItem = callout
 
     def removeCallout(self):
         scene = self._event.scene()
         if self._calloutItem and scene:
-            bgRect, textItem = self._calloutItem
-            scene.removeItem(textItem)
-            scene.removeItem(bgRect)
+            scene.removeItem(self._calloutItem)
         self._calloutItem = None
+
+    def hideRelationshipItems(self):
+        from .marriage import Marriage
+        from .childof import ChildOf
+
+        scene = self._event.scene()
+        if not scene:
+            return
+
+        self._hiddenItems = []
+        for item in scene.find(types=[Marriage, ChildOf]):
+            if item.opacity() > 0:
+                self._hiddenItems.append(item)
+                item.setPathItemVisible(False)
+
+    def showRelationshipItems(self):
+        for item in self._hiddenItems:
+            item.setPathItemVisible(True)
+        self._hiddenItems = []
 
     def startPhase2Animation(self):
         mover = self.mover()
@@ -465,7 +465,7 @@ class Triangle:
 
         self._phase2AnimGroup = QSequentialAnimationGroup()
         anim = QPropertyAnimation(mover, b"pos")
-        anim.setDuration(util.ANIM_DURATION_MS)
+        anim.setDuration(util.ANIM_DURATION_MS * 3)
         anim.setStartValue(neutralPos)
         anim.setEndValue(finalPos)
         self._phase2AnimGroup.addAnimation(anim)
@@ -484,3 +484,4 @@ class Triangle:
         self._phase2RepeatCount = 0
         self.removeSymbols()
         self.removeCallout()
+        self.showRelationshipItems()

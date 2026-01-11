@@ -58,7 +58,7 @@ class TriangleBadgeItem(QGraphicsPathItem):
     def paint(self, painter, option, widget):
         if self._normalPen:
             painter.setPen(self.pen())
-            painter.setBrush(Qt.NoBrush)
+            painter.setBrush(QBrush(util.WINDOW_BG))
             painter.drawPath(self.path())
 
     def mousePressEvent(self, e):
@@ -991,7 +991,7 @@ class Person(PathItem):
         self._activeTriangleEvent = activeEvent
 
         if activeEvent:
-            size = 60
+            size = 40
             path = QPainterPath()
             path.moveTo(0, -size / 2)
             path.lineTo(size / 2, size / 2)
@@ -999,8 +999,9 @@ class Person(PathItem):
             path.closeSubpath()
 
             rect = self.boundingRect()
+            baseOffset = size / 2 + 5
             self.triangleBadgeItem.setPos(
-                rect.right() - size / 2 - 5, rect.bottom() - size / 2 - 5
+                rect.right() - baseOffset / 2, rect.bottom() - baseOffset
             )
             self.triangleBadgeItem.setPath(path)
 
