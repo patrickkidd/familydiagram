@@ -18,6 +18,7 @@ PK.Drawer {
     signal flashTimelineSelection(var selectionModel)
     signal eventPropertiesTemplateIndexChanged(int index)
     signal inspectEvents(var eventList)
+    signal inspectEventById(int eventId)
     signal inspectNotes(int row)
 
     property int margin: util.QML_MARGINS
@@ -747,10 +748,7 @@ PK.Drawer {
                 scene: sceneModel.scene
             }
             onInspectEvent: function(eventId) {
-                var event = sceneModel.item(eventId)
-                if (event) {
-                    root.inspectEvents([event])
-                }
+                root.inspectEventById(eventId)
             }
         }
     }

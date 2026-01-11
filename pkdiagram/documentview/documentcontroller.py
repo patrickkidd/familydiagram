@@ -209,6 +209,9 @@ class DocumentController(QObject):
         self.dv.caseProps.qml.rootObject().inspectEvents.connect(
             self.onInspectEventsFromCaseProps
         )
+        self.dv.caseProps.qml.rootObject().inspectEventById[int].connect(
+            self.onInspectEventById
+        )
         self.dv.timelineSelectionModel.selectionChanged[
             QItemSelection, QItemSelection
         ].connect(self.onTimelineSelectionChanged)
@@ -1020,6 +1023,12 @@ class DocumentController(QObject):
         if isinstance(events, QJSValue):
             events = events.toVariant()
         self.inspectEvents(events, fromTimeline=True)
+
+    def onInspectEventById(self, eventId: int):
+        """Called from TriangleView inspect button"""
+        event = self.scene.findById(eventId)
+        if event:
+            self.inspectEvents([event], fromTimeline=True)
 
     def onInspectEmotionsFromEventForm(self, event):
         emotions = self.scene.emotionsFor(event)
