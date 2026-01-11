@@ -136,7 +136,8 @@ class SceneModel(QObject, ModelHelper):
     @pyqtSlot(int, result=QObject)
     def item(self, id):
         ret = self.scene.findById(id)
-        QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
+        if isinstance(ret, QObject):
+            QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
 
 
