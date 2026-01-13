@@ -323,8 +323,17 @@ class Triangle:
 
         centroids = self.clusterCentroids()
 
+        mover = self.mover()
+        if mover and "mover" in centroids:
+            name = mover.name() or mover.alias() or "?"
+            label = LayerLabel(text=name, layers=[self._layer.id])
+            label.setFlag(QGraphicsItem.ItemIsMovable, False)
+            scene.addItem(label)
+            label.setPos(centroids["mover"] + self.CLUSTER_LABEL_OFFSET)
+            self._clusterLabels.append(label)
+
         targets = self.targets()
-        if len(targets) > 1 and "targets" in centroids:
+        if targets and "targets" in centroids:
             names = ", ".join(p.name() or p.alias() or "?" for p in targets)
             label = LayerLabel(text=names, layers=[self._layer.id])
             label.setFlag(QGraphicsItem.ItemIsMovable, False)
@@ -333,7 +342,7 @@ class Triangle:
             self._clusterLabels.append(label)
 
         triangles = self.triangles()
-        if len(triangles) > 1 and "triangles" in centroids:
+        if triangles and "triangles" in centroids:
             names = ", ".join(p.name() or p.alias() or "?" for p in triangles)
             label = LayerLabel(text=names, layers=[self._layer.id])
             label.setFlag(QGraphicsItem.ItemIsMovable, False)

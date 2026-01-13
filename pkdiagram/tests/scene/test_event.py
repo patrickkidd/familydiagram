@@ -321,12 +321,14 @@ def test_triangle(scene, relationship: RelationshipKind):
 
 
 def _create_triangle_scene(scene):
-    """Helper to create a scene with a triangle event."""
-    from pkdiagram.pyqt import QDateTime
+    from pkdiagram.pyqt import QDateTime, QPointF
 
     person = scene.addItem(Person(name="Person"))
     spouse = scene.addItem(Person(name="Spouse"))
     third = scene.addItem(Person(name="Third"))
+    person.setItemPosNow(QPointF(0, 0))
+    spouse.setItemPosNow(QPointF(100, 100))
+    third.setItemPosNow(QPointF(200, 200))
     event = scene.addItem(Event(EventKind.Shift, person))
     event.setDateTime(QDateTime.currentDateTime())
     event.setRelationship(RelationshipKind.Inside)
@@ -484,7 +486,7 @@ def _create_multi_person_triangle_scene(scene):
     return event
 
 
-def test_triangle_cluster_labels_created_for_multi_person_clusters(scene):
+def test_triangle_cluster_labels_created_for_all_positions(scene):
     from pkdiagram.scene import LayerLabel
 
     event = _create_multi_person_triangle_scene(scene)
@@ -493,11 +495,12 @@ def test_triangle_cluster_labels_created_for_multi_person_clusters(scene):
     layer.setActive(True)
     triangle.startPhase2Animation()
     labels = triangle._clusterLabels
-    assert len(labels) == 2
+    assert len(labels) == 3
     assert all(isinstance(lbl, LayerLabel) for lbl in labels)
-    target_names = {labels[0].text(), labels[1].text()}
-    assert "Target1, Target2" in target_names
-    assert "Triangle1, Triangle2" in target_names
+    label_texts = {lbl.text() for lbl in labels}
+    assert "Mover" in label_texts
+    assert "Target1, Target2" in label_texts
+    assert "Triangle1, Triangle2" in label_texts
 
 
 def test_triangle_cluster_labels_visible_when_layer_active(scene):
@@ -516,15 +519,19 @@ def test_triangle_cluster_labels_removed_on_phase2_stop(scene):
     layer = triangle.layer()
     layer.setActive(True)
     triangle.startPhase2Animation()
-    assert len(triangle._clusterLabels) == 2
+    assert len(triangle._clusterLabels) == 3
     triangle.stopPhase2Animation()
     assert len(triangle._clusterLabels) == 0
 
 
-def test_triangle_cluster_labels_not_created_for_single_person(scene):
+def test_triangle_cluster_labels_for_single_person_positions(scene):
     event = _create_triangle_scene(scene)
     triangle = event.triangle()
     layer = triangle.layer()
     layer.setActive(True)
     triangle.startPhase2Animation()
-    assert len(triangle._clusterLabels) == 0
+    assert len(triangle._clusterLabels) == 3
+    label_texts = {lbl.text() for lbl in triangle._clusterLabels}
+    assert "Person" in label_texts
+    assert "Spouse" in label_texts
+    assert "Third" in label_texts
