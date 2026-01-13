@@ -1,7 +1,7 @@
 import math
 from typing import TYPE_CHECKING
 
-from pkdiagram.pyqt import QPointF
+from pkdiagram.pyqt import QPointF, QGraphicsItem
 from pkdiagram import util
 
 if TYPE_CHECKING:
@@ -12,11 +12,16 @@ if TYPE_CHECKING:
 
 class Triangle:
 
+    CLUSTER_LABEL_OFFSET = util.PERSON_RECT.topRight() + QPointF(
+        util.PERSON_RECT.width() * 0.5, 0
+    )
+
     def __init__(self, event: "Event"):
         self._event = event
         self._layer = None
         self._symbolItems = []
         self._calloutItem = None
+        self._clusterLabels = []
         self._hiddenItems = []
 
     def event(self) -> "Event":
@@ -307,6 +312,42 @@ class Triangle:
             scene.removeItem(self._calloutItem)
         self._calloutItem = None
 
+    def createClusterLabels(self):
+        from .layerlabel import LayerLabel
+
+        self.removeClusterLabels()
+
+        scene = self._event.scene()
+        if not scene or not self._layer:
+            return
+
+        centroids = self.clusterCentroids()
+
+        targets = self.targets()
+        if len(targets) > 1 and "targets" in centroids:
+            names = ", ".join(p.name() or p.alias() or "?" for p in targets)
+            label = LayerLabel(text=names, layers=[self._layer.id])
+            label.setFlag(QGraphicsItem.ItemIsMovable, False)
+            scene.addItem(label)
+            label.setPos(centroids["targets"] + self.CLUSTER_LABEL_OFFSET)
+            self._clusterLabels.append(label)
+
+        triangles = self.triangles()
+        if len(triangles) > 1 and "triangles" in centroids:
+            names = ", ".join(p.name() or p.alias() or "?" for p in triangles)
+            label = LayerLabel(text=names, layers=[self._layer.id])
+            label.setFlag(QGraphicsItem.ItemIsMovable, False)
+            scene.addItem(label)
+            label.setPos(centroids["triangles"] + self.CLUSTER_LABEL_OFFSET)
+            self._clusterLabels.append(label)
+
+    def removeClusterLabels(self):
+        scene = self._event.scene()
+        for label in self._clusterLabels:
+            if scene:
+                scene.removeItem(label)
+        self._clusterLabels.clear()
+
     def hideRelationshipItems(self):
         from .marriage import Marriage
         from .childof import ChildOf
@@ -336,8 +377,24 @@ class Triangle:
         self.createSymbols()
         # Create callout with event description
         self.createCallout()
+        # Create cluster labels for multi-person clusters
+        self.createClusterLabels()
+        # Hide individual person labels and disable dragging
+        self._setPersonDetailsVisible(False)
+        self._setPersonsDraggable(False)
 
     def stopPhase2Animation(self):
         self.removeSymbols()
         self.removeCallout()
+        self.removeClusterLabels()
         self.showRelationshipItems()
+        self._setPersonDetailsVisible(True)
+        self._setPersonsDraggable(True)
+
+    def _setPersonDetailsVisible(self, visible: bool):
+        for person in self.allPeople():
+            person.detailsText.setPathItemVisible(visible)
+
+    def _setPersonsDraggable(self, draggable: bool):
+        for person in self.allPeople():
+            person.setFlag(QGraphicsItem.ItemIsMovable, draggable)

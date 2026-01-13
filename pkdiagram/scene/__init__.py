@@ -10,6 +10,7 @@ from .event import Event
 from .pathitem import PathItem
 from .itemdetails import ItemDetails
 from .layeritem import LayerItem
+from .layerlabel import LayerLabel
 from .layer import Layer
 from .childof import ChildOf
 from .multiplebirth import MultipleBirth

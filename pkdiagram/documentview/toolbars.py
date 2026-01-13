@@ -888,10 +888,9 @@ class RightToolBar(ToolBar):
                 helpPixmap="family-timeline.png",
             ),
             PushButton(
-                objectName="settingsButton",
-                pixmap="settings-button.png",
-                action=self.ui.actionShow_Settings,
-                helpPixmap="diagram-settings.png",
+                objectName="trianglesButton",
+                pixmap="triangle.png",
+                action=self.ui.actionShow_Triangles,
             ),
             PushButton(
                 objectName="copilotButton",
@@ -899,9 +898,10 @@ class RightToolBar(ToolBar):
                 action=self.ui.actionShow_Copilot,
             ),
             PushButton(
-                objectName="trianglesButton",
-                pixmap="inside.png",
-                action=self.ui.actionShow_Triangles,
+                objectName="settingsButton",
+                pixmap="settings-button.png",
+                action=self.ui.actionShow_Settings,
+                helpPixmap="diagram-settings.png",
             ),
             Separator(objectName="sep3"),
             PushButton(

@@ -1,7 +1,8 @@
 import pytest
 
 from pkdiagram.pyqt import QPointF, QRectF
-from pkdiagram.scene import Scene, Layer, Callout
+from pkdiagram import util
+from pkdiagram.scene import Scene, Layer, Callout, LayerLabel
 
 pytestmark = [pytest.mark.component("LayerItem")]
 
@@ -88,3 +89,42 @@ def test_Callout_no_default_itemPos():
 
     layer.setActive(False)
     assert callout.pos() == QPointF(100, 100)
+
+
+def test_layerlabel_uses_big_font():
+    label = LayerLabel(text="Test")
+    assert label._textItem.font() == util.DETAILS_BIG_FONT
+
+
+def test_layerlabel_text():
+    label = LayerLabel(text="Hello")
+    assert label.text() == "Hello"
+    label.setText("World")
+    assert label.text() == "World"
+
+
+def test_layerlabel_visibility_follows_layer():
+    scene = Scene()
+    layer = Layer(name="View 1", active=True)
+    scene.addItem(layer)
+    label = LayerLabel(text="Test")
+    scene.addItem(label)
+    label.setLayers([layer.id])
+    assert label.isVisible() is True
+
+    layer.setActive(False)
+    assert label.isVisible() is False
+
+    layer.setActive(True)
+    assert label.isVisible() is True
+
+
+def test_layerlabel_no_zoom_hiding():
+    scene = Scene()
+    layer = Layer(name="View 1", active=True)
+    scene.addItem(layer)
+    label = LayerLabel(text="Test")
+    scene.addItem(label)
+    label.setLayers([layer.id])
+    assert label.isVisible() is True
+    assert not hasattr(label, "onVisibleSizeChanged")

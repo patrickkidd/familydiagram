@@ -461,3 +461,70 @@ def test_triangle_next_layer_deactivates_triangle(scene):
     assert triangle_layer.active() is False
     assert scene.activeTriangle() is None
     assert custom_layer.active() is True
+
+
+def _create_multi_person_triangle_scene(scene):
+    from pkdiagram.pyqt import QDateTime, QPointF
+
+    mover = scene.addItem(Person(name="Mover"))
+    target1 = scene.addItem(Person(name="Target1"))
+    target2 = scene.addItem(Person(name="Target2"))
+    triangle1 = scene.addItem(Person(name="Triangle1"))
+    triangle2 = scene.addItem(Person(name="Triangle2"))
+    mover.setItemPosNow(QPointF(0, 0))
+    target1.setItemPosNow(QPointF(100, 100))
+    target2.setItemPosNow(QPointF(150, 100))
+    triangle1.setItemPosNow(QPointF(200, 200))
+    triangle2.setItemPosNow(QPointF(250, 200))
+    event = scene.addItem(Event(EventKind.Shift, mover))
+    event.setDateTime(QDateTime.currentDateTime())
+    event.setRelationship(RelationshipKind.Inside)
+    event.setRelationshipTargets([target1, target2])
+    event.setRelationshipTriangles([triangle1, triangle2])
+    return event
+
+
+def test_triangle_cluster_labels_created_for_multi_person_clusters(scene):
+    from pkdiagram.scene import LayerLabel
+
+    event = _create_multi_person_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+    layer.setActive(True)
+    triangle.startPhase2Animation()
+    labels = triangle._clusterLabels
+    assert len(labels) == 2
+    assert all(isinstance(lbl, LayerLabel) for lbl in labels)
+    target_names = {labels[0].text(), labels[1].text()}
+    assert "Target1, Target2" in target_names
+    assert "Triangle1, Triangle2" in target_names
+
+
+def test_triangle_cluster_labels_visible_when_layer_active(scene):
+    event = _create_multi_person_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+    layer.setActive(True)
+    triangle.startPhase2Animation()
+    for label in triangle._clusterLabels:
+        assert label.isVisible() is True
+
+
+def test_triangle_cluster_labels_removed_on_phase2_stop(scene):
+    event = _create_multi_person_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+    layer.setActive(True)
+    triangle.startPhase2Animation()
+    assert len(triangle._clusterLabels) == 2
+    triangle.stopPhase2Animation()
+    assert len(triangle._clusterLabels) == 0
+
+
+def test_triangle_cluster_labels_not_created_for_single_person(scene):
+    event = _create_triangle_scene(scene)
+    triangle = event.triangle()
+    layer = triangle.layer()
+    layer.setActive(True)
+    triangle.startPhase2Animation()
+    assert len(triangle._clusterLabels) == 0

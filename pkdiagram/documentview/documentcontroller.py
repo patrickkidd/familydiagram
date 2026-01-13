@@ -1123,11 +1123,14 @@ class DocumentController(QObject):
                 if self.view.ui.actionShow_Timeline.isChecked():
                     self.view.ui.actionShow_Timeline.setChecked(False)
                     return True
-                elif self.view.rightToolBar.settingsButton.isChecked():
-                    self.view.rightToolBar.settingsButton.setChecked(False)
+                elif self.view.rightToolBar.trianglesButton.isChecked():
+                    self.view.rightToolBar.trianglesButton.setChecked(False)
                     return True
                 elif self.view.rightToolBar.copilotButton.isChecked():
                     self.view.rightToolBar.copilotButton.setChecked(False)
+                    return True
+                elif self.view.rightToolBar.settingsButton.isChecked():
+                    self.view.rightToolBar.settingsButton.setChecked(False)
                     return True
             else:
                 # No button to update
