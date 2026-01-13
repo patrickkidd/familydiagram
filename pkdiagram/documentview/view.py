@@ -596,18 +596,19 @@ class View(QGraphicsView):
         if isinstance(e, QInputEvent) and e.modifiers() & Qt.AltModifier:
             if e.type() == QEvent.Wheel:
                 e.accept()
-                if self.panZoomer.begun():
-                    self.panZoomer.cancel()
-                if not self.wheelZoomer.begun():
-                    self.wheelZoomer.begin(e)
-                self.wheelZoomer.update(e)
+                if not self.scene().activeTriangle():
+                    if self.panZoomer.begun():
+                        self.panZoomer.cancel()
+                    if not self.wheelZoomer.begun():
+                        self.wheelZoomer.begin(e)
+                    self.wheelZoomer.update(e)
                 return True
             elif e.type() == QEvent.MouseButtonPress:
                 pos = self.mapToScene(e.pos())
                 callouts = [
                     i for i in self.scene().items(pos) if isinstance(i, Callout)
                 ]
-                if not callouts:
+                if not callouts and not self.scene().activeTriangle():
                     self.dragPanner.begin(e)
                 else:
                     return super().viewportEvent(e)

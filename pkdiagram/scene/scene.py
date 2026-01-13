@@ -345,6 +345,8 @@ class Scene(QGraphicsScene, Item):
             return False
 
     def setScaleFactor(self, *args, **kwargs):
+        if self.activeTriangle():
+            return
         self.prop("scaleFactor").set(*args, **kwargs)
 
     def addItem(
