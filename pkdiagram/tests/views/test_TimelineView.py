@@ -89,3 +89,27 @@ def test_some_events_filtered_out(tv, qmlEngine):
     util.waitALittle()
     assert tv.itemProp("noEventsLabel", "visible") == True
     assert tv.itemProp("noEventsLabel", "text") == util.S_NO_EVENTS_TEXT
+
+
+def test_click_row_sets_current_date_time(tv, qmlEngine):
+    scene = qmlEngine.sceneModel.scene
+    person = scene.addItem(Person(name="Test", lastName="Person"))
+    date1 = util.Date(2000, 1, 15)
+    date2 = util.Date(2010, 6, 20)
+    event1 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=date1, description="Event 1")
+    )
+    event2 = scene.addItem(
+        Event(EventKind.Shift, person, dateTime=date2, description="Event 2")
+    )
+    util.waitALittle()
+
+    timelineModel = qmlEngine.timelineModel
+    sceneModel = qmlEngine.sceneModel
+    assert timelineModel.rowCount() == 2
+
+    sceneModel.setCurrentDateTime(date1)
+    assert scene.currentDateTime() == date1
+
+    sceneModel.setCurrentDateTime(date2)
+    assert scene.currentDateTime() == date2

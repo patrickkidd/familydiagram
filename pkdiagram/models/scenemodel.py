@@ -1,6 +1,7 @@
 import logging
 
 from pkdiagram.pyqt import (
+    QDateTime,
     QObject,
     QVariant,
     pyqtSlot,
@@ -138,6 +139,11 @@ class SceneModel(QObject, ModelHelper):
         ret = self.scene.findById(id)
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
+
+    @pyqtSlot(QDateTime)
+    def setCurrentDateTime(self, dateTime: QDateTime):
+        if self._scene:
+            self._scene.setCurrentDateTime(dateTime, undo=True)
 
 
 def __test__(scene, parent):
