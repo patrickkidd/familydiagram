@@ -2,11 +2,18 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.18
+
+## 2.1.18b1
+
+- Added Triangle view, click the triangle badge on a mover to show positions
+
+
 ## 2.1.17
 
 ## 2.1.17b1
 
-- Added Triangle view, click the triangle badge on a mover to show positions
+- Click row in timeline sets the diagram to that date.
 - Fixed broked "Add birth" and "Edit birth" buttons in person properties
 - Fixed person picker in add form not showing renamed people in auto-complete.
 - Can now use down/up arrows + enter/return to pick a person via autocomplete in add event form.

@@ -185,7 +185,8 @@ def test_endDateTime_pickers(view):
 
     DATE_TIME = util.Date(2023, 2, 1)
 
-    view.set_kind(EventKind.Bonded)
+    view.set_kind(EventKind.Shift)
+    view.set_startDateTime(DATE_TIME)
     view.set_endDateTime(DATE_TIME)
 
     # util.dumpWidget(view)
@@ -238,13 +239,14 @@ def test_dateCertainty_hidden_when_no_kind(view):
 
 def test_dateCertainty_visible_when_kind_set(view):
     view.set_kind(EventKind.Birth)
+    view.set_startDateTime(util.Date(2023, 1, 1))
     assert view.dateCertaintyBox.property("visible") == True
     assert view.dateCertaintyLabel.property("visible") == True
 
 
 def test_dateCertainty_default_value(view):
     view.set_kind(EventKind.Birth)
-    assert view.item.property("dateCertainty") == "certain"
+    assert view.item.property("dateCertainty") == DateCertainty.Approximate.value
 
 
 @pytest.mark.parametrize(

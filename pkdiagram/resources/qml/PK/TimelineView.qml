@@ -845,6 +845,7 @@ ColumnLayout {
                     } else {
                         selectionModel.select(root.model.index(thisRow, 0), ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Rows)
                         root.currentRow = thisRow
+                        sceneModel.setCurrentDateTime(root.model.dateTimeForRow(thisRow))
                     }
                     table.forceActiveFocus()
                     table.lastClickedRow = thisRow

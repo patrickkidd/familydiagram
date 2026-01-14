@@ -153,7 +153,12 @@ class Property:
                 y = None
             elif self._isEnum:
                 # Store enum as its string value for pickle compatibility
-                y = x.value if isinstance(x, Enum) else str(x)
+                if isinstance(x, Enum):
+                    y = x.value
+                else:
+                    # Validate string is a valid enum member
+                    self.type(x)  # raises ValueError if invalid
+                    y = str(x)
             else:
                 y = self.type(x)
         if self.strip and y is not None:
