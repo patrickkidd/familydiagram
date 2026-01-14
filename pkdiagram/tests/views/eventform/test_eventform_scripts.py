@@ -2,11 +2,12 @@ import os
 import os.path
 import logging
 
+from mock import patch
 import pytest
 import mock
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop
+from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Person
 
@@ -26,7 +27,10 @@ def test_add_pairbond_and_children(scene, view):
     view.personPicker.set_new_person("John Doe")
     view.childPicker.set_new_person("Janet Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     assert len(scene.people()) == 3
 
     person = scene.query1(name="John")

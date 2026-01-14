@@ -1,8 +1,9 @@
+from mock import patch
+
 import pytest
-import datetime
 
 from btcopilot.schema import EventKind, RelationshipKind
-from pkdiagram.pyqt import QPointF
+from pkdiagram.pyqt import QPointF, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Person
 
@@ -28,7 +29,10 @@ def test_Birth_default_parents_parents_to_existing_child(scene, view):
     )
     view.childPicker.set_existing_person(person)
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     father = scene.query1(name="Father")
     mother = scene.query1(name="Mother")
     assert person.scenePos() == QPointF(0, 0)  # hasn't changed
@@ -41,7 +45,10 @@ def test_Birth_add_via_birth_one_default_parent(scene, view):
     view.personPicker.set_new_person("Father Doe")
     view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     son = scene.query1(name="Son")
     father = scene.query1(name="Father")
     mother = scene.query1(gender=util.PERSON_KIND_FEMALE)
@@ -62,7 +69,10 @@ def test_Birth_add_new_existing_parents(scene, view):
     view.spousePicker.set_existing_person(father)
     view.childPicker.set_new_person("Son Doe")
     view.set_startDateTime(START_DATETIME)
-    view.clickSaveButton()
+    with patch(
+        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+    ):
+        view.clickSaveButton()
     child = scene.query1(name="Son")
     assert mother.scenePos() == QPointF(-SPACING, 0)
     assert father.scenePos() == QPointF(SPACING, 0)

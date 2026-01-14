@@ -11,6 +11,7 @@ from pkdiagram.pyqt import (
     QVariant,
     QQuickItem,
     QDateTime,
+    QMessageBox,
 )
 from pkdiagram.scene import Person, Marriage
 from pkdiagram.views import EventFormDrawer
@@ -368,7 +369,10 @@ class TestEventForm:
         self.set_kind(EventKind.Birth)
         self.personPicker.set_new_person(personName)
         self.set_startDateTime(startDateTime)
-        self.clickSaveButton()
+        with patch(
+            "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+        ):
+            self.clickSaveButton()
         person = self.view.scene.query1(methods={"fullNameOrAlias": personName})
         return person
 
