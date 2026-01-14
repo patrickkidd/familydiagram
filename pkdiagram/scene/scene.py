@@ -729,16 +729,25 @@ class Scene(QGraphicsScene, Item):
             _removeFromGraphicsScene(item)
         elif item.isLayer:
             # Remove layer from all items that reference it
+            # Collect LayerItems that will become orphaned (only had this layer)
+            orphanedLayerItems = []
             for sceneItem in self.itemRegistry.values():
                 if hasattr(sceneItem, "layers") and callable(sceneItem.layers):
                     layersList = sceneItem.layers()
                     if item.id in layersList:
-                        layersList.remove(item.id)
-                        sceneItem.setLayers(layersList)
-            # Check if any LayerItems are now orphaned
-            for layerItem in self.layerItems():
-                if not layerItem.layers():
-                    self.removeItem(layerItem)
+                        # Create new list - don't modify in place or setLayers won't trigger onProperty
+                        newLayersList = [lid for lid in layersList if lid != item.id]
+                        if newLayersList:
+                            sceneItem.setLayers(newLayersList)
+                        elif sceneItem.isLayerItem:
+                            # LayerItem will be orphaned - track for deletion
+                            orphanedLayerItems.append(sceneItem)
+                        else:
+                            # Non-LayerItem can have empty layers
+                            sceneItem.setLayers(newLayersList)
+            # Remove orphaned LayerItems
+            for layerItem in orphanedLayerItems:
+                self.removeItem(layerItem)
             self._layers.remove(item)
             if not item.internal():
                 self.tidyLayerOrder()

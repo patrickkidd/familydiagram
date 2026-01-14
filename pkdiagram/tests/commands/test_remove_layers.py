@@ -1,9 +1,11 @@
 import pytest
+from btcopilot.schema import RelationshipKind
 from pkdiagram.scene import (
     Scene,
     Person,
     Layer,
     LayerItem,
+    Emotion,
 )
 from pkdiagram.scene.commands import RemoveItems
 
@@ -95,6 +97,7 @@ class TestRemoveLayerItem:
         assert layerItem in scene.find(types=LayerItem)
 
     def test_remove_layer_removes_layer_items(self, scene):
+        """LayerItems only belonging to the removed layer are auto-deleted."""
         layer = scene.addItem(Layer(name="Layer 1", active=True))
         layerItem1 = scene.addItem(LayerItem())
         layerItem2 = scene.addItem(LayerItem())
@@ -107,12 +110,13 @@ class TestRemoveLayerItem:
         scene.removeItem(layer, undo=True)
 
         assert len(scene.layers()) == 0
-        assert layer.id not in layerItem1.layers()
-        assert layer.id not in layerItem2.layers()
+        # LayerItems should be deleted (orphaned) when their only layer is removed
+        assert len(scene.find(types=LayerItem)) == 0
 
         scene.undo()
 
         assert len(scene.layers()) == 1
+        assert len(scene.find(types=LayerItem)) == 2
         assert layer.id in layerItem1.layers()
         assert layer.id in layerItem2.layers()
 
@@ -328,3 +332,78 @@ class TestComplexLayerScenarios:
         assert len(scene.people()) == initial_people
         assert layer.getItemProperty(person1.id, "bigFont") == (True, True)
         assert layer.getItemProperty(person2.id, "bigFont") == (False, True)
+
+
+class TestRemoveLayerWithEmotions:
+
+    def test_remove_layer_cleans_emotion_reference(self, scene):
+        layer = scene.addItem(Layer(name="Layer 1"))
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        emotion = scene.addItem(
+            Emotion(RelationshipKind.Conflict, person2, person=person1)
+        )
+        emotion.setLayers([layer.id])
+
+        assert layer.id in emotion.layers()
+
+        scene.removeItem(layer, undo=True)
+
+        assert len(scene.layers()) == 0
+        assert layer.id not in emotion.layers()
+
+        scene.undo()
+
+        assert len(scene.layers()) == 1
+        assert layer.id in emotion.layers()
+
+    def test_remove_layer_cleans_multiple_emotion_references(self, scene):
+        layer = scene.addItem(Layer(name="Layer 1"))
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        emotion1 = scene.addItem(
+            Emotion(RelationshipKind.Conflict, person2, person=person1)
+        )
+        emotion2 = scene.addItem(
+            Emotion(RelationshipKind.Fusion, person2, person=person1)
+        )
+        emotion1.setLayers([layer.id])
+        emotion2.setLayers([layer.id])
+
+        assert layer.id in emotion1.layers()
+        assert layer.id in emotion2.layers()
+
+        scene.removeItem(layer, undo=True)
+
+        assert len(scene.layers()) == 0
+        assert layer.id not in emotion1.layers()
+        assert layer.id not in emotion2.layers()
+
+        scene.undo()
+
+        assert len(scene.layers()) == 1
+        assert layer.id in emotion1.layers()
+        assert layer.id in emotion2.layers()
+
+    def test_remove_layer_save_load_no_warning(self, scene, caplog):
+        """Verify that after removing a layer and saving, reload has no warnings."""
+        import logging
+
+        layer = scene.addItem(Layer(name="Layer 1"))
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        emotion = scene.addItem(
+            Emotion(RelationshipKind.Conflict, person2, person=person1)
+        )
+        person1.setLayers([layer.id])
+        person2.setLayers([layer.id])
+        emotion.setLayers([layer.id])
+
+        scene.removeItem(layer, undo=False)
+
+        chunk = {}
+        scene.write(chunk)
+
+        scene2 = Scene()
+        with caplog.at_level(logging.WARNING):
+            caplog.clear()
+            scene2.read(chunk)
+
+        assert "layer not found" not in caplog.text
