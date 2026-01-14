@@ -301,7 +301,7 @@ Page {
             clip: true
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: pageInner.implicitHeight
+            contentHeight: pageInner.childrenRect.height + util.QML_MARGINS * 2
             boundsBehavior: Flickable.StopAtBounds
 
             function scrollToTop() { contentY = 0 }
@@ -309,8 +309,8 @@ Page {
             ColumnLayout { // necessary to expand anything vertically
 
                 id: pageInner
-                width: parent.width
-                height: implicitHeight
+                anchors.left: parent.left
+                anchors.right: parent.right
 
                 TapHandler {
                     onTapped: parent.forceActiveFocus()
