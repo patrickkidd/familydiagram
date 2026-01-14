@@ -202,6 +202,19 @@ def test_sort(scene, model):
     assert model.idForRow(2) == -1
 
 
+def test_dataChanged_emitted_on_rename_same_position(scene, model):
+    """dataChanged must emit when name changes even if sort order unchanged."""
+    personA, personB = scene.addItems(Person(name="Aaa"), Person(name="Ccc"))
+    assert model.data(model.index(0, 0)) == "Aaa"
+    assert model.data(model.index(1, 0)) == "Ccc"
+
+    dataChanged = util.Condition(model.dataChanged)
+    personA.setName("Bbb")
+    assert dataChanged.callCount == 1
+    assert model.data(model.index(0, 0)) == "Bbb"
+    assert model.data(model.index(1, 0)) == "Ccc"
+
+
 def test_data(scene, model):
 
     personA, personB, personC = scene.addItems(

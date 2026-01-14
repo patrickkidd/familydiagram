@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from pkdiagram import util
-from pkdiagram.pyqt import QQuickItem
+from pkdiagram.pyqt import Qt, QQuickItem
 from pkdiagram.scene import Person
 from pkdiagram.models import SceneModel
 
@@ -165,3 +165,77 @@ def test_add_focuses_textedit(qtbot, picker):
     delegate = itemAddDone.callArgs[-1][0]
     textEdit = delegate.property("textEdit")
     qtbot.waitUntil(lambda: textEdit.property("activeFocus") == True, timeout=1000)
+
+
+def test_keyboard_navigation_down(qtbot, scene, picker):
+    scene.addItem(Person(name="Alice", lastName="Smith"))
+    scene.addItem(Person(name="Bob", lastName="Smith"))
+    scene.addItem(Person(name="Charlie", lastName="Smith"))
+
+    itemDelegate = picker.add_and_keyClicks("Smith", returnToFinish=False)
+    popupListView = itemDelegate.property("popupListView")
+    assert popupListView.property("visible") == True
+    assert popupListView.property("highlightIndex") == -1
+
+    textEdit = itemDelegate.property("textEdit")
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 0
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 1
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 2
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 2
+
+
+def test_keyboard_navigation_up(qtbot, scene, picker):
+    scene.addItem(Person(name="Alice", lastName="Smith"))
+    scene.addItem(Person(name="Bob", lastName="Smith"))
+
+    itemDelegate = picker.add_and_keyClicks("Smith", returnToFinish=False)
+    popupListView = itemDelegate.property("popupListView")
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 1
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Up)
+    assert popupListView.property("highlightIndex") == 0
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Up)
+    assert popupListView.property("highlightIndex") == 0
+
+
+def test_keyboard_select_with_enter(qtbot, scene, picker):
+    personA = scene.addItem(Person(name="Alice", lastName="Smith"))
+    scene.addItem(Person(name="Bob", lastName="Smith"))
+
+    itemDelegate = picker.add_and_keyClicks("Smith", returnToFinish=False)
+    popupListView = itemDelegate.property("popupListView")
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 0
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Return)
+
+    peopleEntries = picker.item.peopleEntries().toVariant()
+    assert len(peopleEntries) == 1
+    assert peopleEntries[0]["person"] == personA
+    assert peopleEntries[0]["isNewPerson"] == False
+
+
+def test_highlight_resets_on_text_change(qtbot, scene, picker):
+    scene.addItem(Person(name="Alice", lastName="Smith"))
+    scene.addItem(Person(name="Bob", lastName="Smith"))
+
+    itemDelegate = picker.add_and_keyClicks("Smith", returnToFinish=False)
+    popupListView = itemDelegate.property("popupListView")
+
+    qtbot.keyClick(picker.view.qml, Qt.Key_Down)
+    assert popupListView.property("highlightIndex") == 0
+
+    qtbot.keyClicks(picker.view.qml, "x")
+    assert popupListView.property("highlightIndex") == -1

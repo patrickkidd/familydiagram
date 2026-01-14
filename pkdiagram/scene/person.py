@@ -405,14 +405,14 @@ class Person(PathItem):
         if self.childOf:
             return self.childOf.parents()
 
-    def firstNameOrAlias(self):
+    def firstNameOrAlias(self, nickname=False):
         if self.scene() and self.scene().hideNames():
             return ""
         elif self.scene() and self.scene().shouldShowAliases():
             return "[%s]" % (self.alias() or "")
         else:
             ret = self.name() or ""
-            if self.nickName() and self.showNickName():
+            if nickname and self.nickName() and self.showNickName():
                 ret += " (%s)" % self.nickName()
             return ret
 
@@ -1112,7 +1112,12 @@ class Person(PathItem):
         if not self.scene():
             return
         # age text
-        if self.gender() not in (util.PERSON_KIND_MALE, util.PERSON_KIND_FEMALE, "abortion", "miscarriage"):
+        if self.gender() not in (
+            util.PERSON_KIND_MALE,
+            util.PERSON_KIND_FEMALE,
+            "abortion",
+            "miscarriage",
+        ):
             self.ageItem.setText("?")
         else:
             age = self.age()

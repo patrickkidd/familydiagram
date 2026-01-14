@@ -96,7 +96,7 @@ def test_commit_pdp_items_and_scene_read(qApp):
     """
 
     # create DiagramData and populate PDP with two people and a married event
-    diagramData = DiagramData.create_with_defaults()
+    diagramData = DiagramData()
 
     # PDP people/events use negative IDs
     p1 = Person(id=-1, name="Alice")

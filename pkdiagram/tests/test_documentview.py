@@ -1282,3 +1282,53 @@ def test_personprops_death_event_button(qtbot, scene, dv: DocumentView, hasDeath
             assert addDeathEvent.call_count == 1
             assert editEvents.call_count == 0
             assert addDeathEvent.call_args[0][0] == person
+
+
+@pytest.mark.parametrize("hasBirthEvent", [True, False])
+def test_personprops_birth_event_form_state(
+    qtbot, scene, dv: DocumentView, hasBirthEvent: bool
+):
+    """
+    Verify that clicking Add Birth/Edit Birth from PersonProperties correctly
+    populates the EventForm with the right person in the right field.
+    For Add Birth: childPicker should have the selected person (the one being born)
+    For Edit Birth: personPicker and spousePicker should have the two parents, childPicker should have the child
+    """
+    child = scene.addItem(Person(name="TestChild"))
+    if hasBirthEvent:
+        mother, father = scene.addItems(Person(name="Mother"), Person(name="Father"))
+        marriage = Marriage(mother, father)
+        scene.addItem(marriage)
+        scene.addItem(
+            Event(
+                EventKind.Birth,
+                mother,
+                spouse=father,
+                child=child,
+                dateTime=util.Date(2000, 1, 1),
+            )
+        )
+
+    child.setSelected(True)
+    dv.controller.onInspect()
+    assert dv.currentDrawer == dv.personProps
+
+    dv.personProps.qml.rootObject().editBirthEvent.emit()
+    assert dv.currentDrawer == dv.eventFormDrawer
+
+    eventForm = dv.eventFormDrawer.eventForm.item
+    assert eventForm.property("kind") == EventKind.Birth.value
+
+    childPicker = eventForm.property("childPicker")
+    personPicker = eventForm.property("personPicker")
+    spousePicker = eventForm.property("spousePicker")
+
+    if hasBirthEvent:
+        assert personPicker.property("person") == mother
+        assert spousePicker.property("person") == father
+        assert childPicker.property("person") == child
+    else:
+        assert childPicker.property("person") == child
+        assert childPicker.property("isSubmitted") == True
+        assert personPicker.property("isNewPerson") == True
+        assert spousePicker.property("isNewPerson") == True
