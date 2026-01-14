@@ -810,6 +810,77 @@ def update_data(data):
                 elif value is not None and not isinstance(value, str):
                     event_chunk["relationship"] = str(value)
 
+    if UP_TO(data, "2.1.18b1"):
+        # Create triangle emotions for Inside/Outside events
+        # Previously only target emotions were created, not triangle emotions
+        # Inside: mover→targets=Inside, mover→triangles=Outside, targets→triangles=Outside
+        # Outside: mover→targets=Outside, mover→triangles=Outside, targets→triangles=Inside
+        next_id = data.get("lastItemId", 0) + 1
+        new_emotions = []
+        for event_chunk in data.get("events", []):
+            relationship = event_chunk.get("relationship")
+            if relationship not in (
+                RelationshipKind.Inside.value,
+                RelationshipKind.Outside.value,
+            ):
+                continue
+            targets = event_chunk.get("relationshipTargets", [])
+            triangles = event_chunk.get("relationshipTriangles", [])
+            if not triangles:
+                continue
+
+            # mover→triangles (always Outside)
+            for triangle_id in triangles:
+                exists = any(
+                    e.get("event") == event_chunk["id"]
+                    and e.get("target") == triangle_id
+                    and e.get("person") is None
+                    for e in data.get("emotions", [])
+                )
+                if not exists:
+                    new_emotions.append(
+                        {
+                            "id": next_id,
+                            "kind": RelationshipKind.Outside.value,
+                            "target": triangle_id,
+                            "event": event_chunk["id"],
+                            "tags": event_chunk.get("tags", []),
+                        }
+                    )
+                    next_id += 1
+
+            # targets→triangles (opposite of event relationship)
+            targetsTrianglesKind = (
+                RelationshipKind.Outside.value
+                if relationship == RelationshipKind.Inside.value
+                else RelationshipKind.Inside.value
+            )
+            for target_id in targets:
+                for triangle_id in triangles:
+                    exists = any(
+                        e.get("event") == event_chunk["id"]
+                        and e.get("person") == target_id
+                        and e.get("target") == triangle_id
+                        for e in data.get("emotions", [])
+                    )
+                    if not exists:
+                        new_emotions.append(
+                            {
+                                "id": next_id,
+                                "kind": targetsTrianglesKind,
+                                "person": target_id,
+                                "target": triangle_id,
+                                "event": event_chunk["id"],
+                                "tags": event_chunk.get("tags", []),
+                            }
+                        )
+                        next_id += 1
+
+        if new_emotions:
+            data["emotions"].extend(new_emotions)
+            data["lastItemId"] = next_id - 1
+            _log.info(f"Created {len(new_emotions)} triangle emotions")
+
     ## Add more version fixes here
     # if UP_TO(data, ....)
 

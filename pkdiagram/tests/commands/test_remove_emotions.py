@@ -343,7 +343,8 @@ class TestComplexEmotionScenarios:
 
         assert len(scene.people()) == 3
         assert len(scene.events()) == 1
-        assert len(scene.emotions()) == 1
+        # 3 emotions: mover→target, mover→triangle, target→triangle
+        assert len(scene.emotions()) == 3
 
         scene.removeItem(person1, undo=True)
 
@@ -355,7 +356,7 @@ class TestComplexEmotionScenarios:
 
         assert len(scene.people()) == 3
         assert len(scene.events()) == 1
-        assert len(scene.emotions()) == 1
+        assert len(scene.emotions()) == 3
 
     def test_sequential_emotion_operations(self, scene):
         person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))

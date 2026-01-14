@@ -718,7 +718,7 @@ Page {
                             } else if(root.relationship == util.RelationshipKind.Inside) {
                                 "Inside(s)"
                             } else if(root.relationship == util.RelationshipKind.Outside) {
-                                "Outside(s)"
+                                "Inside(s) 1"
                             } else if(root.relationship == util.RelationshipKind.Toward) {
                                 "To"
                             } else if(root.relationship == util.RelationshipKind.Away) {
@@ -772,7 +772,7 @@ Page {
                             if(root.relationship == util.RelationshipKind.Inside) {
                                 "Outside(s)"
                             } else if(root.relationship == util.RelationshipKind.Outside) {
-                                "Inside(s)"
+                                "Inside(s) 2"
                             } else {
                                 ""
                             }

@@ -17,6 +17,26 @@ A triangle has 3 **positions** (clusters of people):
 **Inside move**: Mover moves closer to Targets, further from Triangles
 **Outside move**: Mover moves away from both; Targets and Triangles appear closer to each other
 
+## Emotion Symbols
+
+### Main Diagram (dated emotions, tied to Event)
+
+| Event Type | mover→targets | mover→triangles | targets→triangles |
+|------------|---------------|-----------------|-------------------|
+| Inside | Inside | Outside | Outside |
+| Outside | Outside | Outside | Inside |
+
+These emotions are created in `Scene._do_addItem()` when the event is added, saved to the file, and show/hide based on `Scene.currentDateTime`. One emotion is created for **each unique pair** - so an event with 2 targets and 2 triangles creates 8 emotions (2 mover→target + 2 mover→triangle + 4 target→triangle).
+
+### Triangle View (layer-specific symbols)
+
+| Event Type | mover↔targets | mover↔triangles | targets↔triangles |
+|------------|---------------|-----------------|-------------------|
+| Inside | Inside | Outside | Outside |
+| Outside | Outside | Outside | Inside |
+
+Triangle View always shows exactly **3 symbols** - one between each position cluster centroid, regardless of how many people are in each position. Created by `Triangle.createSymbols()` when the layer is activated.
+
 ## User Interface
 
 ### Entry Points
