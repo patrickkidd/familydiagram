@@ -2,12 +2,17 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.19
+
+## 2.1.19b1
+
+- Added Triangle view, click the triangle badge on a mover to show positions
+
 ## 2.1.18
 
 ## 2.1.18b1
 
-- Added Triangle view, click the triangle badge on a mover to show positions
-
+- Very large diagrams load in seconds instead of minutes.
 
 ## 2.1.17
 
