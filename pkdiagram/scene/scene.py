@@ -413,9 +413,19 @@ class Scene(QGraphicsScene, Item):
                 item.setLayers([x.id for x in self.activeLayers(includeInternal=False)])
                 self.personAdded[Person].emit(item)
         elif item.isMarriage:
-            if self.marriageFor(item.personA(), item.personB()):
+            existing = self.marriageFor(item.personA(), item.personB())
+            if existing:
+
+                def marriageInfo(m):
+                    eventCount = len(m._events) if m._events else 0
+                    hasNotes = bool(m.notes())
+                    hasDiagramNotes = bool(m.diagramNotes())
+                    return f"id={m.id}, events={eventCount}, notes={hasNotes}, diagramNotes={hasDiagramNotes}"
+
                 raise ValueError(
-                    f"There is already a Marriage item added for {item.personA()} and {item.personB()}"
+                    f"Duplicate Marriages for {item.personA()} and {item.personB()}.\n"
+                    f"Existing {existing.id}: [{marriageInfo(existing)}]\n"
+                    f"New: {item.id}: [{marriageInfo(item)}]"
                 )
             item.updateEvents()
             if not item in item.personA().marriages:
@@ -1899,11 +1909,12 @@ class Scene(QGraphicsScene, Item):
         if isinstance(item, Person):
             events = [x for x in self._events if item in x.people()]
         elif isinstance(item, Marriage):
+            personA, personB = item.personA(), item.personB()
             events = [
                 x
-                for x in self.events()
-                if {x.person(), x.spouse()} == {item.personA(), item.personB()}
-                and x.kind().isPairBond()
+                for x in self._events
+                if x.kind().isPairBond()
+                and {x.person(), x.spouse()} == {personA, personB}
             ]
         else:
             raise TypeError(f"item must be Person or Marriage, not {item}")

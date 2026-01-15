@@ -167,13 +167,23 @@ Rectangle {
         return items
     }
 
+    function visibleModelIndices() {
+        var indices = []
+        for(var i = 0; i < popupListView.contentItem.children.length; i++) {
+            var child = popupListView.contentItem.children[i]
+            if(child.isListItem && child.visible) {
+                indices.push(child.modelIndex)
+            }
+        }
+        return indices
+    }
+
     function selectHighlightedPerson() {
-        var items = visibleItems()
-        if(popupListView.highlightIndex >= 0 && popupListView.highlightIndex < items.length) {
-            var item = items[popupListView.highlightIndex]
-            if(item.person) {
+        if(popupListView.highlightedModelIndex >= 0) {
+            var person = scenePeopleModel.personForRow(popupListView.highlightedModelIndex)
+            if(person) {
                 pickerTextEdit.selectingAutoCompleteItem = true
-                root.setExistingPerson(item.person)
+                root.setExistingPerson(person)
                 pickerTextEdit.selectingAutoCompleteItem = false
                 return true
             }
@@ -207,7 +217,7 @@ Rectangle {
             Layout.minimumWidth: 40
             onTextChanged: {
                 // print('[' + root.objectName + '].onTextChanged: >>' + text + '<< color: ' + color)
-                popupListView.highlightIndex = -1
+                popupListView.highlightedModelIndex = -1
                 if(text && !isSubmitted) {
                     var numMatches = 0
                     var debug_matches = [];
@@ -222,8 +232,7 @@ Rectangle {
                     }
                     // print('onTextChanged - filtering: "' + text + '" ' + debug_matches)
                     if(numMatches > 0) {
-                        popupListView.height = numMatches * util.QML_ITEM_HEIGHT
-                        // print('Showing ' + numMatches + ' matches for ' + text + ' , setting height: ' + popupListView.height)
+                        popupListView.height = Math.min(numMatches, 8) * util.QML_ITEM_HEIGHT
                         autoCompletePopup.open()
                     } else if(autoCompletePopup.visible) {
                         // print('Hiding autoCompletePopup for no text match.')
@@ -240,21 +249,36 @@ Rectangle {
             }
             Keys.onDownPressed: {
                 if(autoCompletePopup.visible) {
-                    var items = root.visibleItems()
-                    if(items.length > 0) {
-                        popupListView.highlightIndex = Math.min(popupListView.highlightIndex + 1, items.length - 1)
+                    var visibleIndices = root.visibleModelIndices()
+                    if(visibleIndices.length > 0) {
+                        var currentPos = visibleIndices.indexOf(popupListView.highlightedModelIndex)
+                        if(currentPos < 0) {
+                            popupListView.highlightedModelIndex = visibleIndices[0]
+                        } else if(currentPos < visibleIndices.length - 1) {
+                            popupListView.highlightedModelIndex = visibleIndices[currentPos + 1]
+                        }
+                        popupListView.positionViewAtIndex(popupListView.highlightedModelIndex, ListView.Contain)
                     }
                     event.accepted = true
                 }
             }
             Keys.onUpPressed: {
                 if(autoCompletePopup.visible) {
-                    popupListView.highlightIndex = Math.max(popupListView.highlightIndex - 1, 0)
+                    var visibleIndices = root.visibleModelIndices()
+                    if(visibleIndices.length > 0) {
+                        var currentPos = visibleIndices.indexOf(popupListView.highlightedModelIndex)
+                        if(currentPos > 0) {
+                            popupListView.highlightedModelIndex = visibleIndices[currentPos - 1]
+                        } else if(currentPos < 0) {
+                            popupListView.highlightedModelIndex = visibleIndices[visibleIndices.length - 1]
+                        }
+                        popupListView.positionViewAtIndex(popupListView.highlightedModelIndex, ListView.Contain)
+                    }
                     event.accepted = true
                 }
             }
             onAccepted: {
-                if(autoCompletePopup.visible && popupListView.highlightIndex >= 0) {
+                if(autoCompletePopup.visible && popupListView.highlightedModelIndex >= 0) {
                     if(root.selectHighlightedPerson()) {
                         focus = false
                         return
@@ -356,11 +380,13 @@ Rectangle {
         width: root.width + 20
         height: popupListView.height
         padding: 0
-        onClosed: popupListView.highlightIndex = -1
+        onClosed: {
+            popupListView.highlightedModelIndex = -1
+        }
         contentItem: ListView {
             id: popupListView
             model: scenePeopleModel
-            property int highlightIndex: -1
+            property int highlightedModelIndex: -1
             layer.enabled: true
             layer.effect: DropShadow {
                 color: "black"
@@ -368,6 +394,7 @@ Rectangle {
                 samples: 16
                 source: popupListView
             }
+
             property var numVisibleItems: {
                 var ret = 0
                 // print("numVisibleItems: pickerTextEdit.text == '" + pickerTextEdit.text + "'")
@@ -384,18 +411,13 @@ Rectangle {
             }
             delegate: ItemDelegate {
                 id: dRoot
+
                 property var isListItem: true
-                property var person: scenePeopleModel.personForRow(index)
-                property var matchesTypedPersonName: person && person.matchesName(pickerTextEdit.text)
-                property var alreadySelected: if(person) root.alreadySelected(person)
-                property int visibleIndex: {
-                    var items = root.visibleItems()
-                    for(var i = 0; i < items.length; i++) {
-                        if(items[i] === dRoot) return i
-                    }
-                    return -1
-                }
-                property bool isHighlighted: visibleIndex >= 0 && visibleIndex === popupListView.highlightIndex
+                property int modelIndex: index
+                property var person: autoCompletePopup.visible ? scenePeopleModel.personForRow(index) : null
+                property var matchesTypedPersonName: autoCompletePopup.visible && person && person.matchesName(pickerTextEdit.text)
+                property var alreadySelected: autoCompletePopup.visible && person ? root.alreadySelected(person) : false
+                property bool isHighlighted: dRoot.visible && index === popupListView.highlightedModelIndex
                 text: fullNameOrAlias // modelData
                 width: autoCompletePopup.width
                 height: visible ? util.QML_ITEM_HEIGHT : 0
