@@ -471,7 +471,7 @@ Page {
                     }
 
                     PK.HelpText {
-                        text: "Triangles are Inside/Outside shift events that visualize 3-position dynamics. Click a row to activate the triangle's view."
+                        text: "Triangles are emotional/automatic alignments between two people that leaves on the outside. They are hard to see at first, and take practice. Click the checkbox on a row to view that triangle."
                         Layout.columnSpan: 2
                     }
 

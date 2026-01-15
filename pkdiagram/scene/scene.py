@@ -2605,9 +2605,11 @@ class Scene(QGraphicsScene, Item):
         iPeople = 0
         iFiles = 0
         iEvents = 0
+        eventLinkedEmotions = []
+        parentEvents = set()
+
         for item in self.selectedItems():
             if item.isPerson and item.documentsPath():
-                docsPath = item.documentsPath()
                 personDocPath = item.documentsPath().replace(
                     self.document().url().toLocalFile() + os.sep, ""
                 )
@@ -2617,6 +2619,23 @@ class Scene(QGraphicsScene, Item):
                 iPeople = iPeople + 1
             if item.isPerson or item.isMarriage:
                 iEvents += len(self.eventsFor(item))
+            if item.isEmotion and item.sourceEvent():
+                eventLinkedEmotions.append(item)
+                parentEvents.add(item.sourceEvent())
+
+        # Replace event-linked emotions with their parent events
+        if parentEvents:
+            itemsToDelete = [
+                item
+                for item in self.selectedItems()
+                if item not in eventLinkedEmotions
+            ]
+            itemsToDelete.extend(parentEvents)
+        else:
+            itemsToDelete = self.selectedItems()
+
+        iParentEvents = len(parentEvents)
+
         if iFiles > 0:
             btn = QMessageBox.question(
                 QApplication.activeWindow(),
@@ -2630,6 +2649,13 @@ class Scene(QGraphicsScene, Item):
                 "Are you sure?",
                 "Are you sure you want to delete %i people and their %i events?"
                 % (iPeople, iEvents),
+            )
+        elif iParentEvents > 0:
+            eventWord = "event" if iParentEvents == 1 else "events"
+            btn = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                f"Are you sure you want to delete {iParentEvents} {eventWord}? (Emotion symbols are tied to their events)",
             )
         elif iPeople > 0:
             btn = QMessageBox.question(
@@ -2645,7 +2671,7 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            self.push(RemoveItems(self, self.selectedItems()))
+            self.push(RemoveItems(self, itemsToDelete))
 
     def copy(self):
         self.clipboard = clipboard.Clipboard(self.selectedItems())

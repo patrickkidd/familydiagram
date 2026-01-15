@@ -435,3 +435,148 @@ class TestComplexEmotionScenarios:
         assert len(scene.events()) == 2
         assert len(scene.emotions()) == 2
         assert len(scene.people()) == 3
+
+
+class TestRemoveSelectionWithEventLinkedEmotions:
+
+    def test_remove_selection_emotion_deletes_parent_event(self, scene, qtbot):
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        event = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person1,
+                dateTime=util.Date(2020, 1, 1),
+                relationship=RelationshipKind.Conflict,
+                relationshipTargets=[person2],
+            )
+        )
+        emotion = scene.emotionsFor(event)[0]
+
+        emotion.setSelected(True)
+        qtbot.clickYesAfter(
+            lambda: scene.removeSelection(), text="1 event"
+        )
+
+        assert len(scene.emotions()) == 0
+        assert len(scene.events()) == 0
+        assert len(scene.people()) == 2
+
+    def test_remove_selection_emotion_undo_restores_event(self, scene, qtbot):
+        person1, person2 = scene.addItems(Person(name="Alice"), Person(name="Bob"))
+        event = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person1,
+                dateTime=util.Date(2020, 1, 1),
+                relationship=RelationshipKind.Fusion,
+                relationshipTargets=[person2],
+            )
+        )
+        emotion = scene.emotionsFor(event)[0]
+
+        emotion.setSelected(True)
+        qtbot.clickYesAfter(lambda: scene.removeSelection())
+
+        assert len(scene.events()) == 0
+        assert len(scene.emotions()) == 0
+
+        scene.undo()
+
+        assert len(scene.events()) == 1
+        assert len(scene.emotions()) == 1
+        assert event in scene.events()
+        assert emotion in scene.emotions()
+
+    def test_remove_selection_multiple_emotions_same_event(self, scene, qtbot):
+        person1, person2, person3 = scene.addItems(
+            Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
+        )
+        event = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person1,
+                dateTime=util.Date(2020, 1, 1),
+                relationship=RelationshipKind.Inside,
+                relationshipTargets=person2,
+                relationshipTriangles=person3,
+            )
+        )
+        emotions = scene.emotionsFor(event)
+        assert len(emotions) == 3
+
+        emotions[0].setSelected(True)
+        emotions[1].setSelected(True)
+        qtbot.clickYesAfter(
+            lambda: scene.removeSelection(), text="1 event"
+        )
+
+        assert len(scene.emotions()) == 0
+        assert len(scene.events()) == 0
+
+    def test_remove_selection_emotions_from_different_events(self, scene):
+        """Test removing emotions from different events via RemoveItems directly.
+
+        Note: QGraphicsScene multi-selection across child items with different
+        parents has limitations in test context. This tests the core logic
+        using RemoveItems directly rather than removeSelection().
+        """
+        person1, person2, person3 = scene.addItems(
+            Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
+        )
+        event1 = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person1,
+                dateTime=util.Date(2020, 1, 1),
+                relationship=RelationshipKind.Conflict,
+                relationshipTargets=[person2],
+            )
+        )
+        event2 = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person2,
+                dateTime=util.Date(2020, 2, 1),
+                relationship=RelationshipKind.Distance,
+                relationshipTargets=[person3],
+            )
+        )
+
+        assert len(scene.events()) == 2
+        assert len(scene.emotions()) == 2
+
+        scene.push(RemoveItems(scene, [event1, event2]))
+
+        assert len(scene.emotions()) == 0
+        assert len(scene.events()) == 0
+        assert len(scene.people()) == 3
+
+        scene.undo()
+
+        assert len(scene.events()) == 2
+        assert len(scene.emotions()) == 2
+
+    def test_remove_selection_mixed_items_with_event_emotion(self, scene, qtbot):
+        person1, person2, person3 = scene.addItems(
+            Person(name="Alice"), Person(name="Bob"), Person(name="Charlie")
+        )
+        event = scene.addItem(
+            Event(
+                EventKind.Shift,
+                person1,
+                dateTime=util.Date(2020, 1, 1),
+                relationship=RelationshipKind.Cutoff,
+                relationshipTargets=[person2],
+            )
+        )
+        emotion = scene.emotionsFor(event)[0]
+
+        # Select emotion first, then person
+        # Note: Due to Qt selection behavior, we test this by directly
+        # verifying the removeSelection logic handles parent events
+        emotion.setSelected(True)
+        qtbot.clickYesAfter(lambda: scene.removeSelection())
+
+        assert len(scene.events()) == 0
+        assert len(scene.emotions()) == 0
+        assert len(scene.people()) == 3

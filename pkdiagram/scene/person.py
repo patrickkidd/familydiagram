@@ -939,7 +939,7 @@ class Person(PathItem):
     def updateTriangleBadge(self):
         from btcopilot.schema import RelationshipKind
 
-        _log.debug(f"updateTriangleBadge called for {self.name()}")
+        # _log.debug(f"updateTriangleBadge called for {self.name()}")
 
         if not self.scene():
             _log.debug(f"  -> no scene, clearing badge")
@@ -950,7 +950,7 @@ class Person(PathItem):
 
         currentDateTime = self.scene().currentDateTime()
         if not currentDateTime.isValid():
-            _log.debug(f"  -> currentDateTime invalid, clearing badge")
+            # _log.debug(f"  -> currentDateTime invalid, clearing badge")
             self.triangleBadgeItem.setPath(QPainterPath())
             self.towardAwayBadgeItem.setPath(QPainterPath())
             self._activeTriangleEvent = None
@@ -958,19 +958,19 @@ class Person(PathItem):
 
         activeEvent = None
         triangleEvents = self.triangleEventsForMover()
-        _log.debug(
-            f"  -> currentDateTime={currentDateTime}, triangleEvents={len(triangleEvents)}"
-        )
+        # _log.debug(
+        #     f"  -> currentDateTime={currentDateTime}, triangleEvents={len(triangleEvents)}"
+        # )
 
         for event in triangleEvents:
             startDt = event.dateTime()
             endDt = event.endDateTime()
-            _log.debug(f"  -> checking event: startDt={startDt}, endDt={endDt}")
+            # _log.debug(f"  -> checking event: startDt={startDt}, endDt={endDt}")
             if startDt and startDt.isValid():
                 if not endDt or not endDt.isValid():
-                    _log.debug(
-                        f"     startDt.date()={startDt.date()}, currentDateTime.date()={currentDateTime.date()}, match={startDt.date() == currentDateTime.date()}"
-                    )
+                    # _log.debug(
+                    #     f"     startDt.date()={startDt.date()}, currentDateTime.date()={currentDateTime.date()}, match={startDt.date() == currentDateTime.date()}"
+                    # )
                     if startDt.date() == currentDateTime.date():
                         activeEvent = event
                         break
@@ -987,7 +987,7 @@ class Person(PathItem):
                     activeEvent = event
                     break
 
-        _log.debug(f"  -> activeEvent={activeEvent}")
+        # _log.debug(f"  -> activeEvent={activeEvent}")
         self._activeTriangleEvent = activeEvent
 
         if activeEvent:
