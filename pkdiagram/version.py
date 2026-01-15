@@ -26,6 +26,9 @@ def verint(a, b, c, beta=None):
     return (a << 24) | (b << 16) | c
 
 
+x
+
+
 def split(text):
     text = text.strip()
     major, minor, micro = [i for i in text.split(".")]
