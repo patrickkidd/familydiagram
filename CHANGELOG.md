@@ -2,6 +2,12 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.18
+
+## 2.1.18b1
+
+- Very large diagrams load in seconds instead of minutes.
+
 ## 2.1.17
 
 ## 2.1.17b1
