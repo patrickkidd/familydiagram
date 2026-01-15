@@ -1871,8 +1871,8 @@ class MainWindow(QMainWindow):
 
         import cProfile
 
-        _profile = cProfile.Profile()
-        _profile.enable()
+        self._profile = cProfile.Profile()
+        self._profile.enable()
         atexit.register(self._profile_atexit)
 
     def onStopProfile(self):

@@ -175,20 +175,20 @@ def test_keyboard_navigation_down(qtbot, scene, picker):
     itemDelegate = picker.add_and_keyClicks("Smith", returnToFinish=False)
     popupListView = itemDelegate.property("popupListView")
     assert popupListView.property("visible") == True
-    assert popupListView.property("highlightIndex") == -1
+    assert popupListView.property("highlightedModelIndex") == -1
 
     textEdit = itemDelegate.property("textEdit")
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 0
+    assert popupListView.property("highlightedModelIndex") == 0
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 1
+    assert popupListView.property("highlightedModelIndex") == 1
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 2
+    assert popupListView.property("highlightedModelIndex") == 2
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 2
+    assert popupListView.property("highlightedModelIndex") == 2
 
 
 def test_keyboard_navigation_up(qtbot, scene, picker):
@@ -200,13 +200,13 @@ def test_keyboard_navigation_up(qtbot, scene, picker):
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 1
+    assert popupListView.property("highlightedModelIndex") == 1
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Up)
-    assert popupListView.property("highlightIndex") == 0
+    assert popupListView.property("highlightedModelIndex") == 0
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Up)
-    assert popupListView.property("highlightIndex") == 0
+    assert popupListView.property("highlightedModelIndex") == 0
 
 
 def test_keyboard_select_with_enter(qtbot, scene, picker):
@@ -217,7 +217,7 @@ def test_keyboard_select_with_enter(qtbot, scene, picker):
     popupListView = itemDelegate.property("popupListView")
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 0
+    assert popupListView.property("highlightedModelIndex") == 0
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Return)
 
@@ -235,7 +235,7 @@ def test_highlight_resets_on_text_change(qtbot, scene, picker):
     popupListView = itemDelegate.property("popupListView")
 
     qtbot.keyClick(picker.view.qml, Qt.Key_Down)
-    assert popupListView.property("highlightIndex") == 0
+    assert popupListView.property("highlightedModelIndex") == 0
 
     qtbot.keyClicks(picker.view.qml, "x")
-    assert popupListView.property("highlightIndex") == -1
+    assert popupListView.property("highlightedModelIndex") == -1

@@ -1111,9 +1111,12 @@ class EventFormDrawer(QmlDrawer):
     def __init__(self, qmlEngine, parent=None):
         super().__init__(qmlEngine, "qml/EventForm.qml", parent=parent, resizable=False)
         self.checkInitQml()
-        self.eventForm: EventForm = EventForm(self.qml.rootObject(), parent=self)
-        self.item = self.eventForm.item
+        self.eventForm = EventForm(self.qml.rootObject(), parent=self)
         self.item.cancel.connect(self.onCancel)
+
+    @property
+    def item(self):
+        return self.eventForm.item
 
     def onDone(self):
         # Only hide the drawer when editing events, not when adding new ones.
