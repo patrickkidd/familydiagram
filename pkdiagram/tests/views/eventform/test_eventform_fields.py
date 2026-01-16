@@ -131,7 +131,7 @@ def test_onKindChanged_clears_pairbond_fields(scene, view):
         (RelationshipKind.Away, "From"),
         (RelationshipKind.DefinedSelf, "In relation to"),
         (RelationshipKind.Inside, "Inside(s)"),
-        (RelationshipKind.Outside, "Outside(s)"),
+        (RelationshipKind.Outside, "Inside(s) 1"),
     ],
     ids=[
         "Conflict",
