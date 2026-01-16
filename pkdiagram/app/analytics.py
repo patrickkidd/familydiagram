@@ -88,7 +88,11 @@ class Analytics(QObject):
         if datadog_api_key in (None, "None"):
             raise ValueError("datadog_api_key is required")
         self._datadog_api_key = datadog_api_key
-        self._enabled = True
+        self._enabled = os.getenv("FD_DISABLE_ANALYTICS", "0") not in (
+            "1",
+            "true",
+            "True",
+        )
         # Queue up events with timestamps stored and in order they are sent
         self._logQueue = []
         self._numLogsSent = 0
@@ -282,7 +286,7 @@ class Analytics(QObject):
             self._postNextLogs()
 
     def send(self, item: DatadogLog, defer=False):
-        if util.IS_TEST or util.IS_DEV:
+        if util.IS_TEST:
             return
         if not self._enabled:
             return
