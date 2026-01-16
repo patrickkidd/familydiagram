@@ -179,6 +179,7 @@ class DocumentController(QObject):
         self.ui.actionFind.triggered.connect(self.dv.showSearch)
         self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
         self.ui.actionShow_Copilot.toggled[bool].connect(self.dv.showCopilot)
+        self.ui.actionShow_Triangles.toggled[bool].connect(self.dv.showTriangles)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
         self.ui.actionZoom_Out.triggered.connect(self.view.zoomOut)
@@ -207,6 +208,9 @@ class DocumentController(QObject):
     def onCasePropsInit(self):
         self.dv.caseProps.qml.rootObject().inspectEvents.connect(
             self.onInspectEventsFromCaseProps
+        )
+        self.dv.caseProps.qml.rootObject().inspectEventById[int].connect(
+            self.onInspectEventById
         )
         self.dv.timelineSelectionModel.selectionChanged[
             QItemSelection, QItemSelection
@@ -411,7 +415,7 @@ class DocumentController(QObject):
         for layer in self.scene.layers():
             if layer.id == id:
                 if on:
-                    self.scene.setExclusiveCustomLayerActive(layer)
+                    self.scene.setExclusiveLayerActive(layer)
                 else:
                     layer.setActive(False, undo=True)
                 return
@@ -1020,6 +1024,12 @@ class DocumentController(QObject):
             events = events.toVariant()
         self.inspectEvents(events, fromTimeline=True)
 
+    def onInspectEventById(self, eventId: int):
+        """Called from TriangleView inspect button"""
+        event = self.scene.findById(eventId)
+        if event:
+            self.inspectEvents([event], fromTimeline=True)
+
     def onInspectEmotionsFromEventForm(self, event):
         emotions = self.scene.emotionsFor(event)
         self.inspectEmotions(emotions)
@@ -1113,11 +1123,14 @@ class DocumentController(QObject):
                 if self.view.ui.actionShow_Timeline.isChecked():
                     self.view.ui.actionShow_Timeline.setChecked(False)
                     return True
-                elif self.view.rightToolBar.settingsButton.isChecked():
-                    self.view.rightToolBar.settingsButton.setChecked(False)
+                elif self.view.rightToolBar.trianglesButton.isChecked():
+                    self.view.rightToolBar.trianglesButton.setChecked(False)
                     return True
                 elif self.view.rightToolBar.copilotButton.isChecked():
                     self.view.rightToolBar.copilotButton.setChecked(False)
+                    return True
+                elif self.view.rightToolBar.settingsButton.isChecked():
+                    self.view.rightToolBar.settingsButton.setChecked(False)
                     return True
             else:
                 # No button to update

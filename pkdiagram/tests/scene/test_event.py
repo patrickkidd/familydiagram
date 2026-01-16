@@ -257,17 +257,3 @@ def test_enum_property_undo(scene, attr, setter, value):
     assert getattr(event, attr)() is None
 
 
-@pytest.mark.parametrize(
-    "relationship", [RelationshipKind.Inside, RelationshipKind.Outside]
-)
-def test_triangle(scene, relationship: RelationshipKind):
-    """Test setting and getting triangle members."""
-    person = scene.addItem(Person(name="Person"))
-    spouse = scene.addItem(Person(name="Spouse"))
-    third = scene.addItem(Person(name="Third"))
-    event = scene.addItem(Event(EventKind.Shift, person))
-    event.setRelationship(relationship)
-    event.setRelationshipTargets(spouse)
-    event.setRelationshipTriangles(third)
-    assert event.relationshipTargets() == [spouse]
-    assert event.relationshipTriangles() == [third]

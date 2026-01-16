@@ -103,6 +103,7 @@ class Event(Item):
         self._relationshipTargets = []
         self._relationshipTriangles = []
         self._marriage = None
+        self._triangle = None  # Triangle view for Inside/Outside events
         if spouse is not None:
             self._spouse = spouse
             self.prop("spouse").set(spouse.id, notify=False)
@@ -489,6 +490,12 @@ class Event(Item):
     def marriage(self) -> "Marriage | None":
         return self._marriage
 
+    def triangle(self):
+        return self._triangle
+
+    def setTriangle(self, triangle):
+        self._triangle = triangle
+
     def relationshipTriangles(self) -> list:
         return self._relationshipTriangles
 
@@ -530,7 +537,7 @@ class Event(Item):
     def setRelationshipTriangles(self, triangles: list, notify=True, undo=False):
         if not isinstance(triangles, list):
             triangles = [triangles]
+        self._relationshipTriangles = triangles
         self.prop("relationshipTriangles").set(
             [x.id for x in triangles], notify=notify, undo=undo
         )
-        self._relationshipTriangles = triangles

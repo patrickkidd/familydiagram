@@ -610,6 +610,9 @@ class Marriage(PathItem):
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
         if not self.scene():
             return False
+        # Hide when triangle layer is active
+        if self.scene().activeTriangle():
+            return False
         # 1
         if (
             self.isSelected()
