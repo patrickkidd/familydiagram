@@ -2300,7 +2300,10 @@ class Scene(QGraphicsScene, Item):
                 elif datedEvents and not self.currentDateTime():
                     self.setCurrentDateTime(datedEvents[-1].dateTime())
             # Create Triangle when relationshipTriangles is set
-            if prop.name() == "relationshipTriangles" and not self.isBatchAddingRemovingItems():
+            if (
+                prop.name() == "relationshipTriangles"
+                and not self.isBatchAddingRemovingItems()
+            ):
                 if (
                     item.relationship()
                     in (RelationshipKind.Inside, RelationshipKind.Outside)
@@ -2388,7 +2391,9 @@ class Scene(QGraphicsScene, Item):
             return
         self._areActiveLayersChanging = True
         if self.layerAnimationGroup.state() == QAbstractAnimation.Running:
-            self.onLayerAnimationFinished()
+            # Abort running animations without applying their end values.
+            # The correct positions will be set by _updateAllItemsForLayersAndTags().
+            self._abortLayerAnimations()
         self._activeLayers = list(_activeLayers)
         if not self.isUpdatingAll():
             self._updateAllItemsForLayersAndTags()
@@ -2403,6 +2408,27 @@ class Scene(QGraphicsScene, Item):
 
     def isLayerAnimationRunning(self):
         return self.layerAnimationGroup.state() == QAbstractAnimation.Running
+
+    def _abortLayerAnimations(self):
+        """Stop and remove all layer animations without applying their end values.
+
+        Use this when interrupting animations due to a layer state change.
+        The correct positions will be determined by the new layer state.
+        """
+        self.layerAnimationGroup.stop()
+        # Reset targets to their current property values to undo any mid-animation state
+        while self.layerAnimationGroup.animationCount():
+            animation = self.layerAnimationGroup.animationAt(0)
+            # If this is a QPropertyAnimation, reset the target to its stored property value
+            if hasattr(animation, "targetObject") and hasattr(
+                animation, "propertyName"
+            ):
+                target = animation.targetObject()
+                propName = bytes(animation.propertyName()).decode()
+                if target and propName == "pos" and hasattr(target, "itemPos"):
+                    # Reset visual position to the stored itemPos value
+                    target.setPos(target.itemPos())
+            self.layerAnimationGroup.removeAnimation(animation)
 
     def onLayerAnimationFinished(self):
         if (
@@ -2626,9 +2652,7 @@ class Scene(QGraphicsScene, Item):
         # Replace event-linked emotions with their parent events
         if parentEvents:
             itemsToDelete = [
-                item
-                for item in self.selectedItems()
-                if item not in eventLinkedEmotions
+                item for item in self.selectedItems() if item not in eventLinkedEmotions
             ]
             itemsToDelete.extend(parentEvents)
         else:

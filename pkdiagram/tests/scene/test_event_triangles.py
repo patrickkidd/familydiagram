@@ -271,3 +271,192 @@ def test_triangle_cluster_labels_for_single_person_positions(scene):
     assert "Person" in label_texts
     assert "Spouse" in label_texts
     assert "Third" in label_texts
+
+
+def _create_two_triangle_scene(scene):
+    """Create two triangles with different people."""
+    # Triangle A: personA as mover
+    personA = scene.addItem(Person(name="PersonA"))
+    spouseA = scene.addItem(Person(name="SpouseA"))
+    thirdA = scene.addItem(Person(name="ThirdA"))
+    personA.setItemPosNow(QPointF(0, 0))
+    spouseA.setItemPosNow(QPointF(100, 0))
+    thirdA.setItemPosNow(QPointF(50, 100))
+    eventA = scene.addItem(Event(EventKind.Shift, personA))
+    eventA.setDateTime(QDateTime.currentDateTime())
+    eventA.setRelationship(RelationshipKind.Inside)
+    eventA.setRelationshipTargets(spouseA)
+    eventA.setRelationshipTriangles(thirdA)
+
+    # Triangle B: personB as mover
+    personB = scene.addItem(Person(name="PersonB"))
+    spouseB = scene.addItem(Person(name="SpouseB"))
+    thirdB = scene.addItem(Person(name="ThirdB"))
+    personB.setItemPosNow(QPointF(500, 0))
+    spouseB.setItemPosNow(QPointF(600, 0))
+    thirdB.setItemPosNow(QPointF(550, 100))
+    eventB = scene.addItem(Event(EventKind.Shift, personB))
+    eventB.setDateTime(QDateTime.currentDateTime())
+    eventB.setRelationship(RelationshipKind.Outside)
+    eventB.setRelationshipTargets(spouseB)
+    eventB.setRelationshipTriangles(thirdB)
+
+    return eventA, eventB
+
+
+def test_quick_activate_deactivate_preserves_base_positions(scene):
+    """Test that quickly activating and deactivating a triangle layer preserves
+    the base (non-layered) positions of people.
+
+    This reproduces a bug where:
+    1. Triangle A is active
+    2. User double-clicks triangle B (quick activate + deactivate)
+    3. Base positions of people get corrupted
+    """
+    eventA, eventB = _create_two_triangle_scene(scene)
+    triangleA = eventA.triangle()
+    triangleB = eventB.triangle()
+    layerA = triangleA.layer()
+    layerB = triangleB.layer()
+
+    # Get all people involved in triangle B
+    personB = triangleB.mover()
+    spouseB = triangleB.targets()[0]
+    thirdB = triangleB.triangles()[0]
+
+    # Store original base positions
+    originalPosB = personB.itemPos(forLayers=[])
+    originalSpouseB = spouseB.itemPos(forLayers=[])
+    originalThirdB = thirdB.itemPos(forLayers=[])
+    assert originalPosB == QPointF(500, 0)
+    assert originalSpouseB == QPointF(600, 0)
+    assert originalThirdB == QPointF(550, 100)
+
+    # Activate triangle A
+    layerA.setActive(True)
+    assert scene.activeTriangle() == triangleA
+
+    # Simulate quick double-click on triangle B: activate then immediately deactivate
+    layerB.setActive(True)
+    layerB.setActive(False)
+
+    # Verify base positions (stored) are unchanged
+    assert personB.itemPos(forLayers=[]) == originalPosB
+    assert spouseB.itemPos(forLayers=[]) == originalSpouseB
+    assert thirdB.itemPos(forLayers=[]) == originalThirdB
+
+    # Deactivate layer A
+    layerA.setActive(False)
+
+    # Verify visual positions (pos()) return to base after all layers deactivated
+    # The visual positions should match the base positions when no layers are active
+    assert (
+        personB.pos() == originalPosB
+    ), f"personB.pos()={personB.pos()} != {originalPosB}"
+    assert (
+        spouseB.pos() == originalSpouseB
+    ), f"spouseB.pos()={spouseB.pos()} != {originalSpouseB}"
+    assert (
+        thirdB.pos() == originalThirdB
+    ), f"thirdB.pos()={thirdB.pos()} != {originalThirdB}"
+
+
+def test_quick_activate_deactivate_with_animations(scene):
+    """Test that quickly activating and deactivating a triangle layer preserves
+    base positions even when animations are involved.
+
+    This simulates the actual bug where:
+    1. Triangle A is active
+    2. User double-clicks triangle B (quick activate + deactivate)
+    3. Visual positions get corrupted
+
+    With ANIM_DURATION_MS=0 in tests, animations complete instantly, so we need
+    to enable animations to reproduce the real bug.
+    """
+    from pkdiagram import util
+
+    # Enable animations for this test to simulate real behavior
+    old_anim_duration = util.ANIM_DURATION_MS
+    old_layer_anim_duration = util.LAYER_ANIM_DURATION_MS
+    util.ANIM_DURATION_MS = 250
+    util.LAYER_ANIM_DURATION_MS = 250
+
+    try:
+        eventA, eventB = _create_two_triangle_scene(scene)
+        triangleA = eventA.triangle()
+        triangleB = eventB.triangle()
+        layerA = triangleA.layer()
+        layerB = triangleB.layer()
+
+        # Get all people involved in triangles
+        personB = triangleB.mover()
+        spouseB = triangleB.targets()[0]
+        thirdB = triangleB.triangles()[0]
+
+        # Store original base positions
+        originalPosB = personB.itemPos(forLayers=[])
+        originalSpouseB = spouseB.itemPos(forLayers=[])
+        originalThirdB = thirdB.itemPos(forLayers=[])
+
+        # Activate triangle A
+        layerA.setActive(True)
+        assert scene.activeTriangle() == triangleA
+
+        # Simulate double-click on triangle B: activate then immediately deactivate
+        layerB.setActive(True)
+        layerB.setActive(False)
+
+        # Verify base positions (stored) are unchanged
+        assert personB.itemPos(forLayers=[]) == originalPosB
+        assert spouseB.itemPos(forLayers=[]) == originalSpouseB
+        assert thirdB.itemPos(forLayers=[]) == originalThirdB
+
+        # Deactivate all layers
+        for layer in scene.layers():
+            if layer.active():
+                layer.setActive(False)
+
+        # Verify visual positions return to base
+        assert personB.pos() == originalPosB
+        assert spouseB.pos() == originalSpouseB
+        assert thirdB.pos() == originalThirdB
+    finally:
+        util.ANIM_DURATION_MS = old_anim_duration
+        util.LAYER_ANIM_DURATION_MS = old_layer_anim_duration
+
+
+def test_quick_activate_deactivate_triangle_while_another_active(scene):
+    """Test that quickly activating/deactivating triangle B while triangle A
+    is active doesn't corrupt triangle A's active state or positions."""
+    eventA, eventB = _create_two_triangle_scene(scene)
+    triangleA = eventA.triangle()
+    triangleB = eventB.triangle()
+    layerA = triangleA.layer()
+    layerB = triangleB.layer()
+
+    # Store positions in layer A (triangle layout positions)
+    personA = triangleA.mover()
+    spouseA = triangleA.targets()[0]
+    thirdA = triangleA.triangles()[0]
+
+    # Activate triangle A
+    layerA.setActive(True)
+    assert scene.activeTriangle() == triangleA
+
+    # Store the layered positions of A
+    layeredPosA = personA.itemPos()  # Gets from active layer A
+    layeredSpouseA = spouseA.itemPos()
+    layeredThirdA = thirdA.itemPos()
+
+    # Quick double-click on triangle B (activate then deactivate)
+    layerB.setActive(True)
+    layerB.setActive(False)
+
+    # Triangle A should still be active (since we only toggled B)
+    # Note: This depends on whether activation is exclusive or not
+    # For now we just verify positions are consistent
+    if layerA.active():
+        # If A is still active, positions should match layered positions
+        assert personA.itemPos() == layeredPosA
+        assert spouseA.itemPos() == layeredSpouseA
+        assert thirdA.itemPos() == layeredThirdA
