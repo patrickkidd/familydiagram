@@ -369,6 +369,11 @@ name = "timelinemodel.py"
 included = true
 is_directory = false
 
+[[Application.Package.Content.Content]]
+name = "trianglemodel.py"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content]]
 name = "pepper.py"
@@ -971,7 +976,7 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "PKDiagram-Personal.png"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
@@ -1348,6 +1353,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "TriangleView.qml"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "Tumbler.qml"
 included = true
 is_directory = false
@@ -1426,6 +1436,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "toward.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "triangle.png"
 included = true
 is_directory = false
 
@@ -1550,6 +1565,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "layerlabel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "marriage.py"
 included = true
 is_directory = false
@@ -1586,6 +1606,11 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "scene.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "triangle.py"
 included = true
 is_directory = false
 
@@ -2050,6 +2075,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "test_event.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_event_triangles.py"
 included = false
 is_directory = false
 
