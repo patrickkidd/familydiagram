@@ -16,6 +16,8 @@ Page {
     property int swipedEvent: -1
     property int highlightedEvent: -1
     property int pendingSelection: -1
+    property var collapsedVignettes: ({})  // vignetteId -> true if collapsed
+    property int focusedVignetteIndex: -1  // Index of vignette being focused in graph
 
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
@@ -32,12 +34,27 @@ Page {
     readonly property color highlightColor: util.IS_UI_DARK_MODE ? "#2a2a40" : "#f0f0ff"
 
     // Graph properties
-    property real graphPadding: 20
+    property real graphPadding: 8
     property real miniGraphY: 20
-    property real miniGraphH: 100
-    property real gLeft: graphPadding + 30
+    property real miniGraphH: 120
+    property real gLeft: graphPadding + 24
     property real gRight: width - graphPadding
     property real gWidth: gRight - gLeft
+
+    // Focused vignette state for graph zooming
+    property var focusedVignette: focusedVignetteIndex >= 0 && vignetteModel && vignetteModel.vignettes.length > focusedVignetteIndex ? vignetteModel.vignettes[focusedVignetteIndex] : null
+    property int focusedYearStart: {
+        if (!focusedVignette) return sarfGraphModel ? sarfGraphModel.yearStart : 1960
+        var year = dateToYear(focusedVignette.startDate)
+        return year !== null ? year - 1 : (sarfGraphModel ? sarfGraphModel.yearStart : 1960)
+    }
+    property int focusedYearEnd: {
+        if (!focusedVignette) return sarfGraphModel ? sarfGraphModel.yearEnd : 2024
+        var year = dateToYear(focusedVignette.endDate)
+        return year !== null ? year + 1 : (sarfGraphModel ? sarfGraphModel.yearEnd : 2024)
+    }
+    property int focusedYearSpan: focusedYearEnd - focusedYearStart
+    property bool isFocused: focusedVignetteIndex >= 0
 
     background: Rectangle {
         color: bgColor
@@ -45,10 +62,52 @@ Page {
 
     function xPos(year) {
         if (!sarfGraphModel) return gLeft
-        var yearStart = sarfGraphModel.yearStart
-        var yearSpan = sarfGraphModel.yearSpan
+        var yearStart = isFocused ? focusedYearStart : sarfGraphModel.yearStart
+        var yearSpan = isFocused ? focusedYearSpan : sarfGraphModel.yearSpan
         if (yearSpan === 0) yearSpan = 60
         return gLeft + ((year - yearStart) / yearSpan) * gWidth
+    }
+
+    function focusVignette(idx) {
+        if (!vignetteModel || !vignetteModel.vignettes || idx < 0 || idx >= vignetteModel.vignettes.length) {
+            focusedVignetteIndex = -1
+            return
+        }
+        focusedVignetteIndex = idx
+        var vignette = vignetteModel.vignettes[idx]
+        if (vignette && vignette.id) {
+            vignetteModel.selectVignette(vignette.id)
+            // Scroll to first event in this vignette
+            if (vignette.eventIds && vignette.eventIds.length > 0 && sarfGraphModel) {
+                var events = sarfGraphModel.events
+                for (var i = 0; i < events.length; i++) {
+                    if (events[i].id === vignette.eventIds[0]) {
+                        highlightedEvent = i
+                        storyList.positionViewAtIndex(i, ListView.Beginning)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    function focusNextVignette() {
+        if (!vignetteModel || !vignetteModel.vignettes || vignetteModel.vignettes.length === 0) return
+        var nextIdx = focusedVignetteIndex + 1
+        if (nextIdx >= vignetteModel.vignettes.length) nextIdx = 0
+        focusVignette(nextIdx)
+    }
+
+    function focusPrevVignette() {
+        if (!vignetteModel || !vignetteModel.vignettes || vignetteModel.vignettes.length === 0) return
+        var prevIdx = focusedVignetteIndex - 1
+        if (prevIdx < 0) prevIdx = vignetteModel.vignettes.length - 1
+        focusVignette(prevIdx)
+    }
+
+    function clearFocus() {
+        focusedVignetteIndex = -1
+        if (vignetteModel) vignetteModel.selectVignette("")
     }
 
     function yPosMini(val) {
@@ -68,19 +127,88 @@ Page {
         return sarfGraphModel.isLifeEvent(kind)
     }
 
-    function ensureItemVisible(idx) {
-        var itemTop = idx * 100
-        var itemBottom = itemTop + 200
-        var viewTop = storyList.contentY
-        var viewBottom = viewTop + storyList.height
-        if (itemBottom > viewBottom) {
-            var newY = itemBottom - storyList.height
-            scrollAdjustAnimation.to = Math.max(0, newY)
-            scrollAdjustAnimation.start()
-        } else if (itemTop < viewTop) {
-            scrollAdjustAnimation.to = Math.max(0, itemTop)
-            scrollAdjustAnimation.start()
+    function vignetteForEventIndex(idx) {
+        if (!vignetteModel || !vignetteModel.hasVignettes) return null
+        if (!sarfGraphModel) return null
+        var events = sarfGraphModel.events
+        if (idx < 0 || idx >= events.length) return null
+        var eventId = events[idx].id
+        var vignetteId = vignetteModel.vignetteForEvent(eventId)
+        if (!vignetteId) return null
+        return vignetteModel.vignetteById(vignetteId)
+    }
+
+    function isFirstEventInVignette(idx) {
+        var vignette = vignetteForEventIndex(idx)
+        if (!vignette || !vignette.eventIds || vignette.eventIds.length === 0) return false
+        var events = sarfGraphModel.events
+        if (idx < 0 || idx >= events.length) return false
+        return vignette.eventIds[0] === events[idx].id
+    }
+
+    function isEventVignetteCollapsed(idx) {
+        var vignette = vignetteForEventIndex(idx)
+        if (!vignette) return false
+        return collapsedVignettes[vignette.id] === true
+    }
+
+    function toggleVignetteCollapsed(vignetteId) {
+        var newCollapsed = {}
+        for (var key in collapsedVignettes) {
+            newCollapsed[key] = collapsedVignettes[key]
         }
+        newCollapsed[vignetteId] = !newCollapsed[vignetteId]
+        collapsedVignettes = newCollapsed
+    }
+
+    function patternLabel(pattern) {
+        if (!pattern) return ""
+        switch (pattern) {
+            case "anxiety_cascade": return "Anxiety Cascade"
+            case "triangle_activation": return "Triangle Activation"
+            case "conflict_resolution": return "Conflict Resolution"
+            case "reciprocal_disturbance": return "Reciprocal Disturbance"
+            case "functioning_gain": return "Functioning Gain"
+            case "work_family_spillover": return "Work-Family Spillover"
+            default: return pattern
+        }
+    }
+
+    function patternColor(pattern) {
+        if (!pattern) return textSecondary
+        switch (pattern) {
+            case "anxiety_cascade": return "#e74c3c"
+            case "triangle_activation": return "#9b59b6"
+            case "conflict_resolution": return "#27ae60"
+            case "reciprocal_disturbance": return "#e67e22"
+            case "functioning_gain": return "#3498db"
+            case "work_family_spillover": return "#f39c12"
+            default: return textSecondary
+        }
+    }
+
+    function dominantVariableColor(variable) {
+        switch (variable) {
+            case "S": return symptomColor
+            case "A": return anxietyColor
+            case "R": return relationshipColor
+            case "F": return functioningColor
+            default: return textSecondary
+        }
+    }
+
+    function dateToYear(dateStr) {
+        if (!dateStr) return null
+        var parts = dateStr.split("-")
+        if (parts.length >= 1) {
+            var year = parseInt(parts[0])
+            if (!isNaN(year)) return year
+        }
+        return null
+    }
+
+    function ensureItemVisible(idx) {
+        storyList.positionViewAtIndex(idx, ListView.Contain)
     }
 
     function scrollToEventThenExpand(idx) {
@@ -90,9 +218,7 @@ Page {
         selectedEvent = -1
         highlightedEvent = idx
         pendingSelection = idx
-        var targetY = Math.min(idx * 100, Math.max(0, events.length * 100 - storyList.height))
-        scrollAnimation.to = targetY
-        scrollAnimation.start()
+        storyList.positionViewAtIndex(idx, ListView.Beginning)
         expandTimer.restart()
     }
 
@@ -221,7 +347,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 80
+            height: miniGraphY + miniGraphH + 45
             color: cardColor
 
             // Date range label
@@ -241,6 +367,68 @@ Page {
                 height: miniGraphH + 35
                 radius: 10
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
+            }
+
+            // Vignette region shading (only shown in non-focused mode, or for the focused vignette)
+            Repeater {
+                model: vignetteModel ? vignetteModel.vignettes : []
+
+                Rectangle {
+                    property var startYear: dateToYear(modelData.startDate)
+                    property var endYear: dateToYear(modelData.endDate)
+                    property bool isSelected: vignetteModel && vignetteModel.selectedVignetteId === modelData.id
+                    property bool isCollapsed: collapsedVignettes[modelData.id] === true
+                    property bool isFocusedVignette: focusedVignetteIndex === index
+
+                    visible: (startYear !== null && endYear !== null) && (!isFocused || isFocusedVignette)
+                    x: startYear !== null ? xPos(startYear) - 4 : 0
+                    y: miniGraphY - 6
+                    width: (startYear !== null && endYear !== null) ? Math.max(12, xPos(endYear) - xPos(startYear) + 8) : 12
+                    height: miniGraphH + 12
+                    radius: 6
+                    color: patternColor(modelData.pattern)
+                    opacity: isFocusedVignette ? 0.35 : (isSelected ? 0.25 : (isCollapsed ? 0.08 : 0.12))
+                    border.color: patternColor(modelData.pattern)
+                    border.width: (isSelected || isFocusedVignette) ? 2 : 0
+
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (isFocused && isFocusedVignette) {
+                                // Already focused, unfocus
+                                clearFocus()
+                            } else {
+                                focusVignette(index)
+                            }
+                        }
+                    }
+
+                    // Vignette label on hover/selection (shown below the region)
+                    Rectangle {
+                        visible: parent.isSelected || parent.isFocusedVignette
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: parent.height + 4
+                        width: vignetteLabel.width + 8
+                        height: 16
+                        radius: 8
+                        color: patternColor(modelData.pattern)
+                        z: 200
+
+                        Text {
+                            id: vignetteLabel
+                            anchors.centerIn: parent
+                            text: modelData.title
+                            font.pixelSize: 9
+                            font.bold: true
+                            color: "white"
+                        }
+                    }
+                }
             }
 
             // Baseline
@@ -301,15 +489,33 @@ Page {
                 function onChanged() { graphCanvas.requestPaint() }
             }
 
-            // Event dot markers on graph
+            Connections {
+                target: vignetteModel
+                function onChanged() { graphCanvas.requestPaint() }
+            }
+
+            Connections {
+                target: root
+                function onFocusedVignetteIndexChanged() { graphCanvas.requestPaint() }
+            }
+
+            // Event dot markers on graph (only shown if not focused, or event is in focused vignette)
             Repeater {
                 model: sarfGraphModel ? sarfGraphModel.events : []
                 Item {
+                    property bool isInFocusedVignette: {
+                        if (!isFocused || !focusedVignette || !focusedVignette.eventIds) return true
+                        return focusedVignette.eventIds.indexOf(modelData.id) >= 0
+                    }
+
+                    visible: isInFocusedVignette
                     x: xPos(modelData.year) - 20
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
                     z: 100
+
+                    Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -330,36 +536,227 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: scrollToEventThenExpand(index)
+                        onClicked: {
+                            // Find and focus the vignette containing this event
+                            if (vignetteModel && vignetteModel.hasVignettes) {
+                                var vignetteId = vignetteModel.vignetteForEvent(modelData.id)
+                                if (vignetteId) {
+                                    for (var i = 0; i < vignetteModel.vignettes.length; i++) {
+                                        if (vignetteModel.vignettes[i].id === vignetteId) {
+                                            focusVignette(i)
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                            scrollToEventThenExpand(index)
+                        }
                     }
                 }
             }
 
-            // Legend with symbols
+            // Navigation arrows for cycling vignettes (shown when focused)
             Row {
+                visible: isFocused
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH + 30
+                y: miniGraphY + miniGraphH + 8
                 spacing: 16
+                z: 100
+
+                // Prev button
+                Rectangle {
+                    width: 28; height: 28; radius: 14
+                    color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\u25C0"
+                        font.pixelSize: 12
+                        color: textPrimary
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: focusPrevVignette()
+                    }
+                }
+
+                // Current vignette indicator
+                Text {
+                    text: (focusedVignetteIndex + 1) + " / " + (vignetteModel ? vignetteModel.count : 0)
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: textPrimary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Next button
+                Rectangle {
+                    width: 28; height: 28; radius: 14
+                    color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\u25B6"
+                        font.pixelSize: 12
+                        color: textPrimary
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: focusNextVignette()
+                    }
+                }
+
+                // Exit focus button
+                Rectangle {
+                    width: exitText.width + 16; height: 28; radius: 14
+                    color: util.IS_UI_DARK_MODE ? "#444450" : "#d0d0d8"
+
+                    Text {
+                        id: exitText
+                        anchors.centerIn: parent
+                        text: "Show All"
+                        font.pixelSize: 10
+                        color: textPrimary
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: clearFocus()
+                    }
+                }
+            }
+
+            // Legend inside graph (bottom)
+            Row {
+                x: gLeft
+                y: miniGraphY + miniGraphH - 18
+                spacing: 12
+                z: 50
 
                 Row {
-                    spacing: 4
-                    SymptomSymbol { size: 14; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Symptom"; font.pixelSize: 10; color: textSecondary }
+                    spacing: 3
+                    SymptomSymbol { size: 12; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: "S"; font.pixelSize: 9; font.bold: true; color: symptomColor }
                 }
                 Row {
-                    spacing: 4
-                    AnxietySymbol { size: 14; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Anxiety"; font.pixelSize: 10; color: textSecondary }
+                    spacing: 3
+                    AnxietySymbol { size: 12; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: "A"; font.pixelSize: 9; font.bold: true; color: anxietyColor }
                 }
                 Row {
-                    spacing: 4
-                    RelationshipSymbol { size: 14; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Relation"; font.pixelSize: 10; color: textSecondary }
+                    spacing: 3
+                    RelationshipSymbol { size: 12; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: "R"; font.pixelSize: 9; font.bold: true; color: relationshipColor }
                 }
                 Row {
-                    spacing: 4
-                    FunctioningSymbol { size: 14; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Function"; font.pixelSize: 10; color: textSecondary }
+                    spacing: 3
+                    FunctioningSymbol { size: 12; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
+                    Text { text: "F"; font.pixelSize: 9; font.bold: true; color: functioningColor }
+                }
+            }
+
+            // Action buttons row (hidden when focused on a vignette)
+            Row {
+                visible: !isFocused
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                y: miniGraphY + miniGraphH + 8
+                spacing: 8
+
+                // Collapse/Expand all button (only shown when vignettes exist)
+                Rectangle {
+                    visible: vignetteModel && vignetteModel.hasVignettes
+                    width: collapseText.width + 12
+                    height: 24
+                    radius: 12
+                    color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
+
+                    Text {
+                        id: collapseText
+                        anchors.centerIn: parent
+                        text: {
+                            var allCollapsed = true
+                            if (vignetteModel && vignetteModel.vignettes) {
+                                for (var i = 0; i < vignetteModel.vignettes.length; i++) {
+                                    if (!collapsedVignettes[vignetteModel.vignettes[i].id]) {
+                                        allCollapsed = false
+                                        break
+                                    }
+                                }
+                            }
+                            return allCollapsed ? "Expand All" : "Collapse All"
+                        }
+                        font.pixelSize: 10
+                        color: textSecondary
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (!vignetteModel || !vignetteModel.vignettes) return
+                            var allCollapsed = true
+                            for (var i = 0; i < vignetteModel.vignettes.length; i++) {
+                                if (!collapsedVignettes[vignetteModel.vignettes[i].id]) {
+                                    allCollapsed = false
+                                    break
+                                }
+                            }
+                            var newCollapsed = {}
+                            for (var j = 0; j < vignetteModel.vignettes.length; j++) {
+                                newCollapsed[vignetteModel.vignettes[j].id] = !allCollapsed
+                            }
+                            collapsedVignettes = newCollapsed
+                        }
+                    }
+                }
+
+                // Vignette count
+                Text {
+                    visible: vignetteModel && vignetteModel.hasVignettes
+                    text: vignetteModel ? vignetteModel.count + " episodes" : ""
+                    font.pixelSize: 10
+                    color: textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Detect Episodes button
+                Rectangle {
+                    width: detectRow.width + 12
+                    height: 24
+                    radius: 12
+                    color: vignetteModel && vignetteModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
+                    opacity: vignetteModel && vignetteModel.detecting ? 0.6 : 0.9
+
+                    Row {
+                        id: detectRow
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        Text {
+                            text: vignetteModel && vignetteModel.detecting ? "..." : (vignetteModel && vignetteModel.hasVignettes ? "Re-detect" : "Find Episodes")
+                            font.pixelSize: 10
+                            font.bold: true
+                            color: "white"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: vignetteModel && !vignetteModel.detecting
+                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            if (vignetteModel) {
+                                vignetteModel.detect()
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -396,8 +793,9 @@ Page {
             delegate: Item {
                 id: delegateRoot
                 width: ListView.view.width
-                height: selectedEvent === index ? 140 : 100
+                height: hideCompletely ? 0 : (vignetteHeaderHeight + (showEventContent ? eventHeight : 0))
                 clip: true
+                visible: !hideCompletely
 
                 property var evt: modelData
                 property bool isShift: evt.kind === "shift"
@@ -406,13 +804,138 @@ Page {
                 property real swipeX: 0
                 property real actionWidth: 75
 
+                // Vignette grouping properties
+                property var vignette: vignetteForEventIndex(index)
+                property bool isFirstInVignette: isFirstEventInVignette(index)
+                property bool isVignetteCollapsed: vignette && isEventVignetteCollapsed(index)
+                property bool hideCompletely: isVignetteCollapsed && !isFirstInVignette
+                property bool showEventContent: !isVignetteCollapsed || !vignette
+                property real vignetteHeaderHeight: isFirstInVignette ? 72 : 0
+                property real eventHeight: selectedEvent === index ? 140 : 100
+
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+
+                // Vignette section header (shown when this is first event in a vignette)
+                Rectangle {
+                    id: vignetteHeader
+                    visible: delegateRoot.isFirstInVignette
+                    width: parent.width - 24
+                    height: 64
+                    x: 12
+                    y: 4
+                    radius: 12
+                    color: util.IS_UI_DARK_MODE ? "#252535" : "#f0f0f8"
+                    border.color: vignette ? patternColor(vignette.pattern) : dividerColor
+                    border.width: 1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (delegateRoot.vignette) {
+                                toggleVignetteCollapsed(delegateRoot.vignette.id)
+                            }
+                        }
+                    }
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 10
+
+                        // Expand/collapse indicator
+                        Text {
+                            text: delegateRoot.vignette && collapsedVignettes[delegateRoot.vignette.id] ? "\u25B6" : "\u25BC"
+                            font.pixelSize: 10
+                            color: textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Column {
+                            spacing: 4
+
+                            Row {
+                                spacing: 8
+
+                                Text {
+                                    text: delegateRoot.vignette ? delegateRoot.vignette.title : ""
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: textPrimary
+                                }
+
+                                // Dominant variable badge
+                                Rectangle {
+                                    visible: delegateRoot.vignette && delegateRoot.vignette.dominantVariable !== undefined && delegateRoot.vignette.dominantVariable !== null && delegateRoot.vignette.dominantVariable !== ""
+                                    width: 20
+                                    height: 20
+                                    radius: 10
+                                    color: delegateRoot.vignette ? dominantVariableColor(delegateRoot.vignette.dominantVariable) : textSecondary
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: delegateRoot.vignette ? delegateRoot.vignette.dominantVariable : ""
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        color: "white"
+                                    }
+                                }
+                            }
+
+                            Row {
+                                spacing: 8
+
+                                // Date range
+                                Text {
+                                    text: {
+                                        if (!delegateRoot.vignette) return ""
+                                        var start = delegateRoot.vignette.startDate || ""
+                                        var end = delegateRoot.vignette.endDate || ""
+                                        if (start === end) return start
+                                        return start + " - " + end
+                                    }
+                                    font.pixelSize: 10
+                                    color: textSecondary
+                                }
+
+                                // Pattern badge
+                                Rectangle {
+                                    visible: delegateRoot.vignette && delegateRoot.vignette.pattern !== undefined && delegateRoot.vignette.pattern !== null && delegateRoot.vignette.pattern !== ""
+                                    width: patternLabelText.width + 10
+                                    height: 16
+                                    radius: 8
+                                    color: delegateRoot.vignette ? patternColor(delegateRoot.vignette.pattern) : textSecondary
+                                    opacity: 0.85
+
+                                    Text {
+                                        id: patternLabelText
+                                        anchors.centerIn: parent
+                                        text: delegateRoot.vignette ? patternLabel(delegateRoot.vignette.pattern) : ""
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                        color: "white"
+                                    }
+                                }
+
+                                // Event count
+                                Text {
+                                    text: delegateRoot.vignette && delegateRoot.vignette.eventIds ? delegateRoot.vignette.eventIds.length + " events" : ""
+                                    font.pixelSize: 10
+                                    color: textSecondary
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Edit action (revealed on swipe right)
                 Rectangle {
+                    visible: delegateRoot.showEventContent
                     anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
+                    y: delegateRoot.vignetteHeaderHeight
+                    height: delegateRoot.eventHeight
                     width: actionWidth
                     color: util.QML_SELECTION_COLOR
 
@@ -436,9 +959,10 @@ Page {
 
                 // Delete action (revealed on swipe left)
                 Rectangle {
+                    visible: delegateRoot.showEventContent
                     anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
+                    y: delegateRoot.vignetteHeaderHeight
+                    height: delegateRoot.eventHeight
                     width: actionWidth
                     color: "#FF3B30"
 
@@ -463,9 +987,11 @@ Page {
                 // Swipeable content
                 Rectangle {
                     id: contentRow
+                    visible: delegateRoot.showEventContent
                     x: delegateRoot.swipeX
+                    y: delegateRoot.vignetteHeaderHeight
                     width: parent.width
-                    height: parent.height
+                    height: delegateRoot.eventHeight
                     color: selectedEvent === index ? highlightColor : bgColor
 
                     Behavior on x {
