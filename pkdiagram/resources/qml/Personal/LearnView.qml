@@ -36,25 +36,49 @@ Page {
     // Graph properties
     property real graphPadding: 8
     property real miniGraphY: 20
-    property real miniGraphH: 120
+    property real miniGraphH: 130
     property real gLeft: graphPadding + 24
     property real gRight: width - graphPadding
     property real gWidth: gRight - gLeft
 
     // Focused vignette state for graph zooming
     property var focusedVignette: focusedVignetteIndex >= 0 && vignetteModel && vignetteModel.vignettes.length > focusedVignetteIndex ? vignetteModel.vignettes[focusedVignetteIndex] : null
-    property int focusedYearStart: {
-        if (!focusedVignette) return sarfGraphModel ? sarfGraphModel.yearStart : 1960
-        var year = dateToYear(focusedVignette.startDate)
-        return year !== null ? year - 1 : (sarfGraphModel ? sarfGraphModel.yearStart : 1960)
-    }
-    property int focusedYearEnd: {
-        if (!focusedVignette) return sarfGraphModel ? sarfGraphModel.yearEnd : 2024
-        var year = dateToYear(focusedVignette.endDate)
-        return year !== null ? year + 1 : (sarfGraphModel ? sarfGraphModel.yearEnd : 2024)
-    }
-    property int focusedYearSpan: focusedYearEnd - focusedYearStart
     property bool isFocused: focusedVignetteIndex >= 0
+    // Compute actual min/max yearFrac from events in focused vignette
+    property var focusedEventYearFracs: {
+        if (!isFocused || !focusedVignette || !focusedVignette.eventIds || !sarfGraphModel) return []
+        var events = sarfGraphModel.events
+        var fracs = []
+        for (var i = 0; i < focusedVignette.eventIds.length; i++) {
+            var eventId = focusedVignette.eventIds[i]
+            for (var j = 0; j < events.length; j++) {
+                if (events[j].id === eventId) {
+                    fracs.push(events[j].yearFrac)
+                    break
+                }
+            }
+        }
+        return fracs
+    }
+    property real focusedMinYearFrac: {
+        var fracs = focusedEventYearFracs
+        if (!fracs || fracs.length === 0) return 2025
+        var minVal = fracs[0]
+        for (var i = 1; i < fracs.length; i++) {
+            if (fracs[i] < minVal) minVal = fracs[i]
+        }
+        return minVal
+    }
+    property real focusedMaxYearFrac: {
+        var fracs = focusedEventYearFracs
+        if (!fracs || fracs.length === 0) return 2025
+        var maxVal = fracs[0]
+        for (var i = 1; i < fracs.length; i++) {
+            if (fracs[i] > maxVal) maxVal = fracs[i]
+        }
+        return maxVal
+    }
+    property real focusedYearSpan: Math.max(0.001, focusedMaxYearFrac - focusedMinYearFrac)
 
     background: Rectangle {
         color: bgColor
@@ -62,7 +86,7 @@ Page {
 
     function xPos(year) {
         if (!sarfGraphModel) return gLeft
-        var yearStart = isFocused ? focusedYearStart : sarfGraphModel.yearStart
+        var yearStart = isFocused ? focusedMinYearFrac : sarfGraphModel.yearStart
         var yearSpan = isFocused ? focusedYearSpan : sarfGraphModel.yearSpan
         if (yearSpan === 0) yearSpan = 60
         return gLeft + ((year - yearStart) / yearSpan) * gWidth
@@ -205,6 +229,20 @@ Page {
             if (!isNaN(year)) return year
         }
         return null
+    }
+
+    function dateToYearFrac(dateStr) {
+        if (!dateStr) return null
+        var parts = dateStr.split("-")
+        if (parts.length < 3) return dateToYear(dateStr)
+        var year = parseInt(parts[0])
+        var month = parseInt(parts[1])
+        var day = parseInt(parts[2])
+        if (isNaN(year) || isNaN(month) || isNaN(day)) return dateToYear(dateStr)
+        // Approximate fractional year: (month-1)*30 + day gives rough day of year
+        var dayOfYear = (month - 1) * 30.4 + day
+        var daysInYear = 365
+        return year + (dayOfYear / daysInYear)
     }
 
     function ensureItemVisible(idx) {
@@ -408,9 +446,9 @@ Page {
                         }
                     }
 
-                    // Vignette label on hover/selection (shown below the region)
+                    // Vignette label on selection (hidden when focused - nav shows vignette info)
                     Rectangle {
-                        visible: parent.isSelected || parent.isFocusedVignette
+                        visible: parent.isSelected && !isFocused
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: parent.height + 4
                         width: vignetteLabel.width + 8
@@ -451,35 +489,99 @@ Page {
                     var cumulative = sarfGraphModel.cumulative
                     if (cumulative.length === 0) return
 
-                    var yearStart = sarfGraphModel.yearStart
+                    // Use focused range when in focused mode
+                    var drawYearStart = isFocused ? focusedMinYearFrac : sarfGraphModel.yearStart
+                    var drawYearEnd = isFocused ? focusedMaxYearFrac : sarfGraphModel.yearEnd
 
-                    // Draw Symptom line (red)
-                    ctx.strokeStyle = symptomColor
+                    // Filter cumulative data to focused range and find boundary values
+                    var filteredData = []
+                    var prevSymptom = 0
+                    var prevAnxiety = 0
+                    var prevFunctioning = 0
+                    for (var k = 0; k < cumulative.length; k++) {
+                        var yf = cumulative[k].yearFrac !== undefined ? cumulative[k].yearFrac : cumulative[k].year
+                        if (yf < drawYearStart) {
+                            prevSymptom = cumulative[k].symptom
+                            prevAnxiety = cumulative[k].anxiety
+                            prevFunctioning = cumulative[k].functioning
+                        } else if (yf <= drawYearEnd) {
+                            filteredData.push(cumulative[k])
+                        }
+                    }
+
+                    // Helper to get yearFrac from data point
+                    function getYearFrac(d) {
+                        return d.yearFrac !== undefined ? d.yearFrac : d.year
+                    }
+
+                    // Draw Relationship vertical lines (blue) - draw first so they're behind other lines
+                    ctx.strokeStyle = relationshipColor
+                    ctx.lineWidth = 2
+                    ctx.globalAlpha = 0.5
+                    for (var r = 0; r < filteredData.length; r++) {
+                        if (filteredData[r].relationship) {
+                            var rx = xPos(getYearFrac(filteredData[r]))
+                            ctx.beginPath()
+                            ctx.moveTo(rx, miniGraphY)
+                            ctx.lineTo(rx, miniGraphY + miniGraphH)
+                            ctx.stroke()
+                        }
+                    }
+                    ctx.globalAlpha = 1.0
+
+                    // Draw Functioning line (grey)
+                    ctx.strokeStyle = functioningColor
                     ctx.lineWidth = 2
                     ctx.lineCap = "round"
                     ctx.lineJoin = "round"
                     ctx.beginPath()
-                    ctx.moveTo(xPos(yearStart), yPosMini(0))
-                    ctx.lineTo(xPos(cumulative[0].year), yPosMini(0))
-                    ctx.lineTo(xPos(cumulative[0].year), yPosMini(cumulative[0].symptom))
-                    for (var i = 1; i < cumulative.length; i++) {
-                        ctx.lineTo(xPos(cumulative[i].year), yPosMini(cumulative[i-1].symptom))
-                        ctx.lineTo(xPos(cumulative[i].year), yPosMini(cumulative[i].symptom))
+                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevFunctioning))
+                    if (filteredData.length > 0) {
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevFunctioning))
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].functioning))
+                        for (var f = 1; f < filteredData.length; f++) {
+                            ctx.lineTo(xPos(getYearFrac(filteredData[f])), yPosMini(filteredData[f-1].functioning))
+                            ctx.lineTo(xPos(getYearFrac(filteredData[f])), yPosMini(filteredData[f].functioning))
+                        }
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].functioning))
+                    } else {
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevFunctioning))
                     }
-                    ctx.lineTo(xPos(sarfGraphModel.yearEnd), yPosMini(cumulative[cumulative.length-1].symptom))
+                    ctx.stroke()
+
+                    // Draw Symptom line (red)
+                    ctx.strokeStyle = symptomColor
+                    ctx.lineWidth = 2
+                    ctx.beginPath()
+                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevSymptom))
+                    if (filteredData.length > 0) {
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevSymptom))
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].symptom))
+                        for (var i = 1; i < filteredData.length; i++) {
+                            ctx.lineTo(xPos(getYearFrac(filteredData[i])), yPosMini(filteredData[i-1].symptom))
+                            ctx.lineTo(xPos(getYearFrac(filteredData[i])), yPosMini(filteredData[i].symptom))
+                        }
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].symptom))
+                    } else {
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevSymptom))
+                    }
                     ctx.stroke()
 
                     // Draw Anxiety line (green)
                     ctx.strokeStyle = anxietyColor
                     ctx.beginPath()
-                    ctx.moveTo(xPos(yearStart), yPosMini(0))
-                    ctx.lineTo(xPos(cumulative[0].year), yPosMini(0))
-                    ctx.lineTo(xPos(cumulative[0].year), yPosMini(cumulative[0].anxiety))
-                    for (var j = 1; j < cumulative.length; j++) {
-                        ctx.lineTo(xPos(cumulative[j].year), yPosMini(cumulative[j-1].anxiety))
-                        ctx.lineTo(xPos(cumulative[j].year), yPosMini(cumulative[j].anxiety))
+                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevAnxiety))
+                    if (filteredData.length > 0) {
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevAnxiety))
+                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].anxiety))
+                        for (var j = 1; j < filteredData.length; j++) {
+                            ctx.lineTo(xPos(getYearFrac(filteredData[j])), yPosMini(filteredData[j-1].anxiety))
+                            ctx.lineTo(xPos(getYearFrac(filteredData[j])), yPosMini(filteredData[j].anxiety))
+                        }
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].anxiety))
+                    } else {
+                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevAnxiety))
                     }
-                    ctx.lineTo(xPos(sarfGraphModel.yearEnd), yPosMini(cumulative[cumulative.length-1].anxiety))
                     ctx.stroke()
                 }
             }
@@ -507,13 +609,28 @@ Page {
                         if (!isFocused || !focusedVignette || !focusedVignette.eventIds) return true
                         return focusedVignette.eventIds.indexOf(modelData.id) >= 0
                     }
+                    // In focused mode, spread events evenly by index
+                    property int indexInVignette: {
+                        if (!isFocused || !focusedVignette || !focusedVignette.eventIds) return -1
+                        return focusedVignette.eventIds.indexOf(modelData.id)
+                    }
+                    property int vignetteEventCount: focusedVignette && focusedVignette.eventIds ? focusedVignette.eventIds.length : 1
+                    property real focusedX: {
+                        if (!isFocused || indexInVignette < 0) return xPos(modelData.year)
+                        // Spread evenly: first event at left, last at right
+                        var edgePad = 25
+                        var usableWidth = gWidth - edgePad * 2
+                        if (vignetteEventCount <= 1) return gLeft + gWidth / 2
+                        var pos = indexInVignette / (vignetteEventCount - 1)
+                        return gLeft + edgePad + pos * usableWidth
+                    }
 
                     visible: isInFocusedVignette
-                    x: xPos(modelData.year) - 20
+                    x: isFocused ? focusedX - 20 : xPos(modelData.year) - 20
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
-                    z: 100
+                    z: 100 + indexInVignette  // Stack order by index
 
                     Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
@@ -529,9 +646,11 @@ Page {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 28
-                        text: modelData.year.toString()
-                        font.pixelSize: 8
+                        text: isFocused ? modelData.date : modelData.year.toString()
+                        font.pixelSize: isFocused ? 7 : 8
                         color: textSecondary
+                        rotation: isFocused ? -45 : 0
+                        transformOrigin: Item.Top
                     }
 
                     MouseArea {
@@ -560,18 +679,19 @@ Page {
                 visible: isFocused
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: miniGraphY + miniGraphH + 8
-                spacing: 16
+                spacing: 8
                 z: 100
 
                 // Prev button
                 Rectangle {
-                    width: 28; height: 28; radius: 14
+                    width: 24; height: 24; radius: 12
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         anchors.centerIn: parent
                         text: "\u25C0"
-                        font.pixelSize: 12
+                        font.pixelSize: 10
                         color: textPrimary
                     }
 
@@ -582,24 +702,39 @@ Page {
                     }
                 }
 
-                // Current vignette indicator
-                Text {
-                    text: (focusedVignetteIndex + 1) + " / " + (vignetteModel ? vignetteModel.count : 0)
-                    font.pixelSize: 11
-                    font.bold: true
-                    color: textPrimary
+                // Current vignette title and count
+                Column {
                     anchors.verticalCenter: parent.verticalCenter
+                    spacing: 0
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: focusedVignette ? focusedVignette.title : ""
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: focusedVignette ? patternColor(focusedVignette.pattern) : textPrimary
+                        elide: Text.ElideRight
+                        width: Math.min(implicitWidth, 180)
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: (focusedVignetteIndex + 1) + " / " + (vignetteModel ? vignetteModel.count : 0)
+                        font.pixelSize: 9
+                        color: textSecondary
+                    }
                 }
 
                 // Next button
                 Rectangle {
-                    width: 28; height: 28; radius: 14
+                    width: 24; height: 24; radius: 12
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         anchors.centerIn: parent
                         text: "\u25B6"
-                        font.pixelSize: 12
+                        font.pixelSize: 10
                         color: textPrimary
                     }
 
@@ -612,14 +747,15 @@ Page {
 
                 // Exit focus button
                 Rectangle {
-                    width: exitText.width + 16; height: 28; radius: 14
+                    width: exitText.width + 12; height: 24; radius: 12
                     color: util.IS_UI_DARK_MODE ? "#444450" : "#d0d0d8"
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         id: exitText
                         anchors.centerIn: parent
-                        text: "Show All"
-                        font.pixelSize: 10
+                        text: "All"
+                        font.pixelSize: 9
                         color: textPrimary
                     }
 
@@ -631,32 +767,32 @@ Page {
                 }
             }
 
-            // Legend inside graph (bottom)
+            // Legend inside graph (bottom) - centered
             Row {
-                x: gLeft
+                anchors.horizontalCenter: parent.horizontalCenter
                 y: miniGraphY + miniGraphH - 18
-                spacing: 12
+                spacing: 10
                 z: 50
 
                 Row {
                     spacing: 3
                     SymptomSymbol { size: 12; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "S"; font.pixelSize: 9; font.bold: true; color: symptomColor }
+                    Text { text: "Symptom"; font.pixelSize: 9; font.bold: true; color: symptomColor }
                 }
                 Row {
                     spacing: 3
                     AnxietySymbol { size: 12; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "A"; font.pixelSize: 9; font.bold: true; color: anxietyColor }
+                    Text { text: "Anxiety"; font.pixelSize: 9; font.bold: true; color: anxietyColor }
                 }
                 Row {
                     spacing: 3
                     RelationshipSymbol { size: 12; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "R"; font.pixelSize: 9; font.bold: true; color: relationshipColor }
+                    Text { text: "Relationship"; font.pixelSize: 9; font.bold: true; color: relationshipColor }
                 }
                 Row {
                     spacing: 3
                     FunctioningSymbol { size: 12; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "F"; font.pixelSize: 9; font.bold: true; color: functioningColor }
+                    Text { text: "Functioning"; font.pixelSize: 9; font.bold: true; color: functioningColor }
                 }
             }
 
@@ -834,6 +970,15 @@ Page {
                         onClicked: {
                             if (delegateRoot.vignette) {
                                 toggleVignetteCollapsed(delegateRoot.vignette.id)
+                                // Also focus/select this vignette in the graph
+                                if (vignetteModel && vignetteModel.vignettes) {
+                                    for (var i = 0; i < vignetteModel.vignettes.length; i++) {
+                                        if (vignetteModel.vignettes[i].id === delegateRoot.vignette.id) {
+                                            focusVignette(i)
+                                            break
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

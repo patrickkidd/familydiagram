@@ -77,10 +77,16 @@ class SARFGraphModel(QObject):
             person = event.person()
             who = person.name() if person else ""
 
+            # Calculate fractional year for precise positioning (e.g., June 15 = ~0.45)
+            dayOfYear = dt.date().dayOfYear()
+            daysInYear = 366 if dt.date().year() % 4 == 0 else 365
+            yearFrac = year + (dayOfYear / daysInYear)
+
             self._events.append(
                 {
                     "id": event.id,
                     "year": year,
+                    "yearFrac": yearFrac,
                     "date": dateStr,
                     "kind": kind.value,
                     "symptom": symptom,
@@ -134,6 +140,7 @@ class SARFGraphModel(QObject):
             self._cumulative.append(
                 {
                     "year": event["year"],
+                    "yearFrac": event["yearFrac"],
                     "symptom": cs,
                     "anxiety": ca,
                     "functioning": cf,
