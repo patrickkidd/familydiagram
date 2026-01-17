@@ -387,6 +387,8 @@ class View(QGraphicsView):
         self.rightToolBar.setScene(scene)
         self.rightToolBar.timelineButton.setChecked(False)
         self.rightToolBar.settingsButton.setChecked(False)
+        self.rightToolBar.trianglesButton.setChecked(False)
+        self.rightToolBar.copilotButton.setChecked(False)
         if scene:
             if self.legend:
                 self.legend.setScene(scene)

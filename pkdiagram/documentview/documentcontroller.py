@@ -595,6 +595,8 @@ class DocumentController(QObject):
         self.ui.actionShow_Items_with_Notes.setEnabled(on)
         self.ui.actionFind.setEnabled(on)
         self.ui.actionShow_Settings.setEnabled(on)
+        self.ui.actionShow_Copilot.setEnabled(on)
+        self.ui.actionShow_Triangles.setEnabled(on)
         self.ui.actionJump_to_Now.setEnabled(on)
         self.ui.actionShow_Current_Date.setEnabled(on)
         self.ui.actionShow_Legend.setEnabled(on)

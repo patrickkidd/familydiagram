@@ -456,6 +456,15 @@ class DocumentView(QWidget):
         elif self.view.rightToolBar.copilotButton.isChecked():
             self.view.rightToolBar.copilotButton.setChecked(False)
 
+        if (
+            drawer is self.caseProps
+            and kwargs.get("tab") == RightDrawerView.Triangles.value
+        ):
+            if not self.view.rightToolBar.trianglesButton.isChecked():
+                self.view.rightToolBar.trianglesButton.setChecked(True)
+        elif self.view.rightToolBar.trianglesButton.isChecked():
+            self.view.rightToolBar.trianglesButton.setChecked(False)
+
         was = self.currentDrawer
         self.currentDrawer = drawer
         if was is drawer and was is not None:  # same drawer, new data
