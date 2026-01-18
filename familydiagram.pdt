@@ -1354,7 +1354,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "TriangleView.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
