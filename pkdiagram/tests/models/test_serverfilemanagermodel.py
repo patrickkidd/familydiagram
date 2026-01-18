@@ -207,18 +207,17 @@ def test_searchText(test_user_diagrams, test_user, create_model):
     assert model.rowCount() == len(test_user_diagrams) + 1
 
 
-def test_clear_on_logout(test_user_diagrams, test_user, create_model):
+def test_no_clear_on_logout(test_user_diagrams, test_user, create_model):
+    """Cache should NOT clear on logout - user may have diagram open."""
     model = create_model()
     db.session.add_all(test_user_diagrams)
-    assert (
-        model.rowCount()
-        == len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
-    )
+    expected_count = len(
+        [x for x in test_user_diagrams if x.check_read_access(test_user)]
+    ) + 1
+    assert model.rowCount() == expected_count
 
-    cleared = util.Condition(model.cleared)
     model.session.logout()
-    assert cleared.wait() == True
-    assert model.rowCount() == 0
+    assert model.rowCount() == expected_count
 
 
 def test_dont_clear_cache_on_restart(
@@ -255,12 +254,12 @@ def test_save_free_diagram_persists(test_session):
     assert util.wait(model.updateFinished)
     assert model.rowCount() == 1
 
-    # Write free diagram + logout
+    # Write free diagram + logout (cache persists)
     scene = Scene(items=Person(name="Me"))
     bdata = pickle.dumps(scene.data())
     model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
     session.logout()
-    assert model.rowCount() == 0
+    assert model.rowCount() == 1
 
     # Login + Read free diagram
     session.setData(test_session.account_editor_dict())

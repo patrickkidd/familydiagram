@@ -193,7 +193,6 @@ class ServerFileManagerModel(FileManagerModel):
         """Sync local from server retaining whatever hasn't changed."""
 
         if not self.session.isLoggedIn():
-            self.clear()
             return
 
         def checkIndexRequestsComplete(reply):
