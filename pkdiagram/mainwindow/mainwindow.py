@@ -706,7 +706,12 @@ class MainWindow(QMainWindow):
         # Write to server
         if self.scene.serverDiagram():
             self._savingServerFile = True
-            row = self.serverFileModel.rowForDiagramId(self.scene.serverDiagram().id)
+            diagram_id = self.scene.serverDiagram().id
+            row = self.serverFileModel.rowForDiagramId(diagram_id)
+            if row is None:
+                raise RuntimeError(
+                    f"Cannot save: diagram {diagram_id} not found in serverFileModel"
+                )
             index = self.serverFileModel.index(row, 0)
             try:
                 self.serverFileModel.setData(
