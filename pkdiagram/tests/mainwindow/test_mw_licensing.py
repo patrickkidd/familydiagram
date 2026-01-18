@@ -1,6 +1,9 @@
-import pytest, mock
+import mock
+
+import pytest
 
 import btcopilot
+
 from pkdiagram import util, version
 from pkdiagram.app import AppController
 
@@ -104,6 +107,16 @@ def test_version_deactivated_while_logged_in(test_license, qtbot, create_ac_mw):
         ac, mw = create_ac_mw(init=False)
         qtbot.clickOkAfter(
             lambda: ac._pre_event_loop(mw), contains=AppController.S_VERSION_DEACTIVATED
+        )
+        assert mw.session.activeFeatures() == []
+
+
+def test_beta_license_required_message(qtbot, create_ac_mw):
+    with mock.patch.object(version, "IS_BETA", True):
+        ac, mw = create_ac_mw(init=False)
+        qtbot.clickOkAfter(
+            lambda: ac._pre_event_loop(mw),
+            contains=AppController.S_BETA_LICENSE_REQUIRED,
         )
         assert mw.session.activeFeatures() == []
 
