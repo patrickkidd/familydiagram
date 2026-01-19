@@ -2,6 +2,10 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.19
+
+- Don't clear cache when logged out to prevent model index errors later
+
 ## 2.1.18
 
 ## 2.1.18b1
