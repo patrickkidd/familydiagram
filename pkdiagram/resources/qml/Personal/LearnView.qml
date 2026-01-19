@@ -35,12 +35,30 @@ Page {
     readonly property color highlightColor: util.IS_UI_DARK_MODE ? "#2a2a40" : "#f0f0ff"
 
     // Graph properties
-    property real graphPadding: 8
+    property real graphPadding: 0
     property real miniGraphY: 20
-    property real miniGraphH: 130
-    property real gLeft: graphPadding + 24
-    property real gRight: width - graphPadding
+    property real miniGraphH: 145
+    property real gLeft: 0
+    property real gRight: width
     property real gWidth: gRight - gLeft
+
+    // Timeline zoom/pan properties (overview mode)
+    property real timelineZoom: 1.0
+    property real timelineScrollX: 0
+    property real minZoom: 1.0
+    property real maxZoom: 5.0
+
+    // Focused view zoom/pan properties
+    property real focusedZoom: 1.0
+    property real focusedScrollX: 0
+    property int hoveredEventGroup: -1
+
+    // B8-style animation properties
+    property real animProgress: 0
+    property real heroStartX: 0
+    property real heroStartY: 0
+    property real heroStartW: 0
+    property real heroStartH: 0
 
     // Focused cluster state for graph zooming
     property var focusedCluster: focusedClusterIndex >= 0 && clusterModel && clusterModel.clusters.length > focusedClusterIndex ? clusterModel.clusters[focusedClusterIndex] : null
@@ -108,7 +126,7 @@ Page {
         for (var i = 1; i < fracs.length; i++) {
             if (fracs[i] < minVal) minVal = fracs[i]
         }
-        return minVal - 0.5  // Add padding
+        return minVal
     }
     property real clusterMaxYearFrac: {
         var fracs = clusterEventYearFracs
@@ -117,12 +135,30 @@ Page {
         for (var i = 1; i < fracs.length; i++) {
             if (fracs[i] > maxVal) maxVal = fracs[i]
         }
-        return maxVal + 0.5  // Add padding
+        return maxVal
     }
     property real clusterYearSpan: Math.max(1, clusterMaxYearFrac - clusterMinYearFrac)
 
     background: Rectangle {
         color: bgColor
+    }
+
+    Component.onCompleted: collapseAllClusters()
+
+    // B8-style focus animations
+    NumberAnimation {
+        id: focusAnim
+        target: root
+        property: "animProgress"
+        to: 1
+        duration: 400
+        easing.type: Easing.OutQuad
+    }
+
+    SequentialAnimation {
+        id: unfocusAnim
+        NumberAnimation { target: root; property: "animProgress"; to: 0; duration: 350; easing.type: Easing.OutQuad }
+        ScriptAction { script: { focusedClusterIndex = -1; focusedZoom = 1.0; focusedScrollX = 0; hoveredEventGroup = -1; if (clusterModel) clusterModel.selectCluster("") } }
     }
 
     function xPos(year) {
@@ -142,25 +178,128 @@ Page {
         return gLeft + ((year - yearStart) / yearSpan) * gWidth
     }
 
-    function focusCluster(idx) {
+    function xPosZoomed(year) {
+        if (!showClusters || isFocused) return xPos(year)
+        var yearStart = clusterMinYearFrac
+        var yearSpan = clusterYearSpan
+        if (yearSpan === 0) yearSpan = 1
+        var baseX = ((year - yearStart) / yearSpan) * gWidth
+        return gLeft + baseX * timelineZoom - timelineScrollX
+    }
+
+    function groupEventsByDay(eventIds) {
+        if (!eventIds || !sarfGraphModel) return []
+        var events = sarfGraphModel.events
+        var groups = []
+        var currentGroup = null
+
+        for (var i = 0; i < eventIds.length; i++) {
+            var eventId = eventIds[i]
+            var evt = null
+            for (var j = 0; j < events.length; j++) {
+                if (events[j].id === eventId) {
+                    evt = events[j]
+                    break
+                }
+            }
+            if (!evt) continue
+
+            var yearFrac = evt.yearFrac
+            if (currentGroup && Math.abs(yearFrac - currentGroup.yearFrac) < 0.003) {
+                currentGroup.events.push(evt)
+            } else {
+                if (currentGroup) groups.push(currentGroup)
+                currentGroup = { yearFrac: yearFrac, events: [evt] }
+            }
+        }
+        if (currentGroup) groups.push(currentGroup)
+        return groups
+    }
+
+    function focusCluster(idx, barX, barY, barW, barH) {
         if (!clusterModel || !clusterModel.clusters || idx < 0 || idx >= clusterModel.clusters.length) {
             focusedClusterIndex = -1
             return
         }
+        // Capture hero start position from the clicked bar
+        heroStartX = barX !== undefined ? barX : 0
+        heroStartY = barY !== undefined ? barY : 0
+        heroStartW = barW !== undefined ? barW : gWidth
+        heroStartH = barH !== undefined ? barH : 28
+        // Reset zoom
+        timelineZoom = 1.0
+        timelineScrollX = 0
+        focusedZoom = 1.0
+        focusedScrollX = 0
+        hoveredEventGroup = -1
+        // Capture previous cluster before changing focus
+        var prevIdx = focusedClusterIndex
         focusedClusterIndex = idx
         var cluster = clusterModel.clusters[idx]
         if (cluster && cluster.id) {
             clusterModel.selectCluster(cluster.id)
-            // Scroll to first event in this cluster
+            // Collapse previously focused cluster
+            var prevCluster = prevIdx >= 0 && prevIdx !== idx && clusterModel.clusters[prevIdx]
+                ? clusterModel.clusters[prevIdx] : null
+            if (prevCluster && prevCluster.id) {
+                var newCollapsed = {}
+                for (var key in collapsedClusters) {
+                    newCollapsed[key] = collapsedClusters[key]
+                }
+                newCollapsed[prevCluster.id] = true
+                collapsedClusters = newCollapsed
+            }
+            // Find first event index, scroll to it, then expand after
             if (cluster.eventIds && cluster.eventIds.length > 0 && sarfGraphModel) {
                 var events = sarfGraphModel.events
                 for (var i = 0; i < events.length; i++) {
                     if (events[i].id === cluster.eventIds[0]) {
-                        highlightedEvent = i
-                        storyList.positionViewAtIndex(i, ListView.Beginning)
+                        pendingClusterScroll = i
+                        pendingClusterExpand = cluster.id
+                        clusterScrollTimer.restart()
                         break
                     }
                 }
+            }
+        }
+        // Start animation
+        focusAnim.start()
+    }
+
+    property int pendingClusterScroll: -1
+    property string pendingClusterExpand: ""
+
+    Timer {
+        id: clusterScrollTimer
+        interval: 50
+        onTriggered: {
+            if (pendingClusterScroll >= 0) {
+                storyList.positionViewAtIndex(pendingClusterScroll, ListView.Beginning)
+                pendingClusterScroll = -1
+                // Expand after scroll completes
+                if (pendingClusterExpand !== "") {
+                    clusterExpandTimer.restart()
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: clusterExpandTimer
+        interval: 300
+        onTriggered: {
+            if (pendingClusterExpand !== "") {
+                // Remove from collapsed to expand
+                if (collapsedClusters[pendingClusterExpand]) {
+                    var newCollapsed = {}
+                    for (var key in collapsedClusters) {
+                        if (key !== pendingClusterExpand) {
+                            newCollapsed[key] = collapsedClusters[key]
+                        }
+                    }
+                    collapsedClusters = newCollapsed
+                }
+                pendingClusterExpand = ""
             }
         }
     }
@@ -169,19 +308,28 @@ Page {
         if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) return
         var nextIdx = focusedClusterIndex + 1
         if (nextIdx >= clusterModel.clusters.length) nextIdx = 0
-        focusCluster(nextIdx)
+        // For next/prev, animate from current hero position
+        focusCluster(nextIdx, 0, 0, gWidth, miniGraphH)
     }
 
     function focusPrevCluster() {
         if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) return
         var prevIdx = focusedClusterIndex - 1
         if (prevIdx < 0) prevIdx = clusterModel.clusters.length - 1
-        focusCluster(prevIdx)
+        focusCluster(prevIdx, 0, 0, gWidth, miniGraphH)
     }
 
     function clearFocus() {
-        focusedClusterIndex = -1
-        if (clusterModel) clusterModel.selectCluster("")
+        hoveredEventGroup = -1
+        // Collapse all clusters without changing scroll position
+        if (clusterModel && clusterModel.clusters) {
+            var newCollapsed = {}
+            for (var i = 0; i < clusterModel.clusters.length; i++) {
+                newCollapsed[clusterModel.clusters[i].id] = true
+            }
+            collapsedClusters = newCollapsed
+        }
+        unfocusAnim.start()
     }
 
     function yPosMini(val) {
@@ -237,6 +385,17 @@ Page {
         }
         newCollapsed[clusterId] = !newCollapsed[clusterId]
         collapsedClusters = newCollapsed
+    }
+
+    function collapseAllClusters() {
+        focusedClusterIndex = -1
+        if (clusterModel && clusterModel.clusters) {
+            var newCollapsed = {}
+            for (var i = 0; i < clusterModel.clusters.length; i++) {
+                newCollapsed[clusterModel.clusters[i].id] = true
+            }
+            collapsedClusters = newCollapsed
+        }
     }
 
     function patternLabel(pattern) {
@@ -461,75 +620,12 @@ Page {
 
             // Graph background
             Rectangle {
-                x: graphPadding
+                x: 0
                 y: miniGraphY - 10
-                width: parent.width - graphPadding * 2
-                height: miniGraphH + 35
-                radius: 10
+                width: parent.width
+                height: miniGraphH + 45
+                radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
-            }
-
-            // Cluster region shading (only shown when focused on a specific cluster)
-            Repeater {
-                model: showClusters && clusterModel ? clusterModel.clusters : []
-
-                Rectangle {
-                    property var startYear: dateToYear(modelData.startDate)
-                    property var endYear: dateToYear(modelData.endDate)
-                    property bool isSelected: clusterModel && clusterModel.selectedClusterId === modelData.id
-                    property bool isCollapsed: collapsedClusters[modelData.id] === true
-                    property bool isFocusedCluster: focusedClusterIndex === index
-
-                    // Only show shading when focused on this specific cluster (not in overview mode)
-                    visible: isFocused && isFocusedCluster && (startYear !== null && endYear !== null)
-                    x: startYear !== null ? xPos(startYear) - 4 : 0
-                    y: miniGraphY - 6
-                    width: (startYear !== null && endYear !== null) ? Math.max(12, xPos(endYear) - xPos(startYear) + 8) : 12
-                    height: miniGraphH + 12
-                    radius: 6
-                    color: patternColor(modelData.pattern)
-                    opacity: isFocusedCluster ? 0.35 : (isSelected ? 0.25 : (isCollapsed ? 0.08 : 0.12))
-                    border.color: patternColor(modelData.pattern)
-                    border.width: (isSelected || isFocusedCluster) ? 2 : 0
-
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
-                    Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (isFocused && isFocusedCluster) {
-                                // Already focused, unfocus
-                                clearFocus()
-                            } else {
-                                focusCluster(index)
-                            }
-                        }
-                    }
-
-                    // Cluster label on selection (hidden when focused - nav shows cluster info)
-                    Rectangle {
-                        visible: parent.isSelected && !isFocused
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: parent.height + 4
-                        width: clusterLabel.width + 8
-                        height: 16
-                        radius: 8
-                        color: patternColor(modelData.pattern)
-                        z: 200
-
-                        Text {
-                            id: clusterLabel
-                            anchors.centerIn: parent
-                            text: modelData.title
-                            font.pixelSize: 9
-                            font.bold: true
-                            color: "white"
-                        }
-                    }
-                }
             }
 
             // Baseline
@@ -548,123 +644,8 @@ Page {
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.clearRect(0, 0, width, height)
-
-                    var cumulative = sarfGraphModel.cumulative
-                    var events = sarfGraphModel.events
-                    if (cumulative.length === 0) return
-    
-                    // In focused mode, use index-based positioning matching event dots
-                    if (isFocused && focusedCluster && focusedCluster.eventIds) {
-                        var eventIds = focusedCluster.eventIds
-                        var eventCount = eventIds.length
-                        if (eventCount === 0) return
-
-                        // Build event data with cumulative values and index-based x positions
-                        var edgePad = 25
-                        var usableWidth = gWidth - edgePad * 2
-                        var focusedEvents = []
-                        var prevS = 0, prevA = 0, prevF = 0
-
-                        // Find cumulative values before the cluster starts
-                        for (var p = 0; p < events.length; p++) {
-                            var foundInCluster = false
-                            for (var v = 0; v < eventIds.length; v++) {
-                                if (events[p].id === eventIds[v]) {
-                                    foundInCluster = true
-                                    break
-                                }
-                            }
-                            if (foundInCluster) break
-                            prevS = cumulative[p].symptom
-                            prevA = cumulative[p].anxiety
-                            prevF = cumulative[p].functioning
-                        }
-
-                        // Build focused event data with x positions
-                        for (var vi = 0; vi < eventIds.length; vi++) {
-                            var eventId = eventIds[vi]
-                            for (var ei = 0; ei < events.length; ei++) {
-                                if (events[ei].id === eventId) {
-                                    var xFrac = eventCount <= 1 ? 0.5 : vi / (eventCount - 1)
-                                    var xVal = gLeft + edgePad + xFrac * usableWidth
-                                    focusedEvents.push({
-                                        x: xVal,
-                                        symptom: cumulative[ei].symptom,
-                                        anxiety: cumulative[ei].anxiety,
-                                        functioning: cumulative[ei].functioning,
-                                        relationship: cumulative[ei].relationship
-                                    })
-                                    break
-                                }
-                            }
-                        }
-
-                        if (focusedEvents.length === 0) return
-
-                        var xStart = gLeft + edgePad
-                        var xEnd = gLeft + edgePad + usableWidth
-
-                        // Draw Relationship vertical lines (blue)
-                        ctx.strokeStyle = relationshipColor
-                        ctx.lineWidth = 2
-                        ctx.globalAlpha = 0.5
-                        for (var r = 0; r < focusedEvents.length; r++) {
-                            if (focusedEvents[r].relationship) {
-                                ctx.beginPath()
-                                ctx.moveTo(focusedEvents[r].x, miniGraphY)
-                                ctx.lineTo(focusedEvents[r].x, miniGraphY + miniGraphH)
-                                ctx.stroke()
-                            }
-                        }
-                        ctx.globalAlpha = 1.0
-
-                        // Draw Functioning line (grey)
-                        ctx.strokeStyle = functioningColor
-                        ctx.lineWidth = 2
-                        ctx.lineCap = "round"
-                        ctx.lineJoin = "round"
-                        ctx.beginPath()
-                        ctx.moveTo(xStart, yPosMini(prevF))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevF))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].functioning))
-                        for (var f = 1; f < focusedEvents.length; f++) {
-                            ctx.lineTo(focusedEvents[f].x, yPosMini(focusedEvents[f-1].functioning))
-                            ctx.lineTo(focusedEvents[f].x, yPosMini(focusedEvents[f].functioning))
-                        }
-                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].functioning))
-                        ctx.stroke()
-
-                        // Draw Symptom line (red)
-                        ctx.strokeStyle = symptomColor
-                        ctx.beginPath()
-                        ctx.moveTo(xStart, yPosMini(prevS))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevS))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].symptom))
-                        for (var i = 1; i < focusedEvents.length; i++) {
-                            ctx.lineTo(focusedEvents[i].x, yPosMini(focusedEvents[i-1].symptom))
-                            ctx.lineTo(focusedEvents[i].x, yPosMini(focusedEvents[i].symptom))
-                        }
-                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].symptom))
-                        ctx.stroke()
-
-                        // Draw Anxiety line (green)
-                        ctx.strokeStyle = anxietyColor
-                        ctx.beginPath()
-                        ctx.moveTo(xStart, yPosMini(prevA))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevA))
-                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].anxiety))
-                        for (var j = 1; j < focusedEvents.length; j++) {
-                            ctx.lineTo(focusedEvents[j].x, yPosMini(focusedEvents[j-1].anxiety))
-                            ctx.lineTo(focusedEvents[j].x, yPosMini(focusedEvents[j].anxiety))
-                        }
-                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].anxiety))
-                        ctx.stroke()
-
-                        return  // Done with focused mode
-                    }
-
-                    // Non-focused mode: just show cluster spans, no SARF lines
-                    // (SARF lines removed for mobile - cluster rectangles handle this)
+                    // Focused mode is handled by focusedViewContainer - nothing to draw here
+                    // Non-focused mode: cluster bars handle visualization
                 }
             }
 
@@ -675,7 +656,11 @@ Page {
 
             Connections {
                 target: clusterModel
-                function onChanged() { graphCanvas.requestPaint() }
+                function onChanged() {
+                    graphCanvas.requestPaint()
+                    // Reset to unfocused mode with all clusters collapsed
+                    collapseAllClusters()
+                }
             }
 
             Connections {
@@ -683,70 +668,173 @@ Page {
                 function onFocusedClusterIndexChanged() { graphCanvas.requestPaint() }
             }
 
-            // Event dot markers on graph (filtered by cluster membership when showClusters is ON)
-            Repeater {
-                model: sarfGraphModel ? sarfGraphModel.events : []
-                Item {
-                    property bool isInAnyCluster: {
-                        if (!clusterModel || !clusterModel.hasClusters) return true
-                        return clusterModel.clusterForEvent(modelData.id) !== ""
+            // Cluster bars in zoomed-out mode (show clusters on timeline by date range)
+            // Clipped container for zoom/pan
+            Item {
+                id: clusterBarsContainer
+                x: gLeft
+                y: miniGraphY
+                width: gWidth
+                height: miniGraphH
+                clip: true
+                visible: showClusters && !isFocused
+                z: 150
+
+                // Wheel scroll for panning
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    onWheel: {
+                        var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
+                        var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                        timelineScrollX = Math.max(0, Math.min(timelineScrollX - deltaX * 0.5, maxScroll))
+                        wheel.accepted = true
                     }
-                    property bool isInFocusedCluster: {
-                        if (!isFocused || !focusedCluster || !focusedCluster.eventIds) return true
-                        return focusedCluster.eventIds.indexOf(modelData.id) >= 0
-                    }
-                    // In focused mode, spread events evenly by index
-                    property int indexInCluster: {
-                        if (!isFocused || !focusedCluster || !focusedCluster.eventIds) return -1
-                        return focusedCluster.eventIds.indexOf(modelData.id)
-                    }
-                    property int clusterEventCount: focusedCluster && focusedCluster.eventIds ? focusedCluster.eventIds.length : 1
-                    // Index among all visible cluster events (for even spacing in non-focused cluster mode)
-                    property int globalClusterIndex: {
-                        if (!showClusters || !clusterModel || !clusterModel.hasClusters || !isInAnyCluster) return -1
-                        var count = 0
-                        var events = sarfGraphModel.events
-                        for (var i = 0; i < events.length && i < index; i++) {
-                            if (clusterModel.clusterForEvent(events[i].id) !== "") count++
+                }
+
+                // Drag to pan
+                MouseArea {
+                    anchors.fill: parent
+                    z: -1
+                    property real dragStartX: 0
+                    property real dragStartScrollX: 0
+                    property bool isDragging: false
+
+                    onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
+                    onPositionChanged: {
+                        if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
+                            isDragging = true
+                            var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                            timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
                         }
-                        return count
                     }
-                    property int totalClusterEvents: {
-                        if (!showClusters || !clusterModel || !clusterModel.hasClusters) return 1
-                        var count = 0
-                        var events = sarfGraphModel.events
-                        for (var i = 0; i < events.length; i++) {
-                            if (clusterModel.clusterForEvent(events[i].id) !== "") count++
-                        }
-                        return Math.max(1, count)
-                    }
-                    property real focusedX: {
-                        if (!isFocused || indexInCluster < 0) return xPos(modelData.year)
-                        // Spread evenly: first event at left, last at right
-                        var edgePad = 25
-                        var usableWidth = gWidth - edgePad * 2
-                        if (clusterEventCount <= 1) return gLeft + gWidth / 2
-                        var pos = indexInCluster / (clusterEventCount - 1)
-                        return gLeft + edgePad + pos * usableWidth
-                    }
-                    // Even spacing for non-focused cluster mode
-                    property real clusterModeX: {
-                        if (!showClusters || globalClusterIndex < 0) return xPos(modelData.yearFrac)
-                        var edgePad = 25
-                        var usableWidth = gWidth - edgePad * 2
-                        if (totalClusterEvents <= 1) return gLeft + gWidth / 2
-                        var pos = globalClusterIndex / (totalClusterEvents - 1)
-                        return gLeft + edgePad + pos * usableWidth
+                    onReleased: isDragging = false
+                }
+
+                // Pinch to zoom
+                PinchArea {
+                    id: clusterPinchArea
+                    anchors.fill: parent
+
+                    property real startZoom: 1.0
+                    property real startScrollX: 0
+                    property point startCenter: Qt.point(0, 0)
+
+                    onPinchStarted: {
+                        startZoom = timelineZoom
+                        startScrollX = timelineScrollX
+                        startCenter = pinch.center
                     }
 
-                    visible: (showClusters ? isInAnyCluster : true) && isInFocusedCluster
-                    x: isFocused ? focusedX - 20 : (showClusters && clusterModel && clusterModel.hasClusters ? clusterModeX - 20 : xPos(modelData.yearFrac) - 20)
+                    onPinchUpdated: {
+                        var newZoom = Math.max(minZoom, Math.min(maxZoom, startZoom * pinch.scale))
+                        var baseWidth = gWidth
+                        var newContentWidth = baseWidth * newZoom
+                        var pinchXRatio = (startCenter.x + startScrollX) / (baseWidth * startZoom)
+                        var newScrollX = pinchXRatio * newContentWidth - startCenter.x
+                        var maxScroll = Math.max(0, newContentWidth - baseWidth)
+                        timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
+                        timelineZoom = newZoom
+                    }
+                }
+
+                Repeater {
+                    model: clusterModel ? clusterModel.clusters : []
+
+                    Rectangle {
+                        id: clusterBarDelegate
+                        objectName: "clusterBar_" + index
+                        property real startYearFrac: dateToYearFrac(modelData.startDate) || clusterMinYearFrac
+                        property real endYearFrac: dateToYearFrac(modelData.endDate) || clusterMaxYearFrac
+                        property int row: index % 3
+                        property bool isSelected: clusterModel && clusterModel.selectedClusterId === modelData.id
+                        property bool isHero: focusedClusterIndex === index
+                        property real barX: xPosZoomed(startYearFrac) - gLeft
+                        property real barWidth: Math.max(20, xPosZoomed(endYearFrac) - xPosZoomed(startYearFrac))
+
+                        x: barX
+                        y: 8 + row * 34
+                        width: barWidth
+                        height: 28
+                        radius: 4
+                        color: patternColor(modelData.pattern)
+                        opacity: isHero ? 0 : (1 - animProgress) * (isSelected ? 1.0 : 0.7)
+                        visible: opacity > 0 && barX + barWidth > 0 && barX < gWidth
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData.title
+                            font.pixelSize: 9
+                            font.bold: true
+                            color: "white"
+                            elide: Text.ElideRight
+                            width: Math.max(0, parent.width - 6)
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (!isFocused) focusCluster(index, clusterBarDelegate.x, clusterBarDelegate.y, clusterBarDelegate.width, clusterBarDelegate.height)
+                        }
+                    }
+                }
+            }
+
+            // Scroll indicator (shown when zoomed)
+            Rectangle {
+                visible: showClusters && !isFocused && timelineZoom > 1.05
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: miniGraphY + miniGraphH + 25
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: gWidth * 0.6; height: 3; radius: 1.5
+                color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
+                z: 160
+
+                Rectangle {
+                    x: {
+                        var maxScroll = Math.max(1, gWidth * timelineZoom - gWidth)
+                        return parent.width * (timelineScrollX / maxScroll) * (1 - 1/timelineZoom)
+                    }
+                    width: Math.max(16, parent.width / timelineZoom)
+                    height: parent.height; radius: parent.radius
+                    color: util.IS_UI_DARK_MODE ? "#505060" : "#808090"
+                }
+            }
+
+            // Reset zoom button
+            Rectangle {
+                visible: showClusters && !isFocused && timelineZoom > 1.05
+                anchors.right: parent.right
+                anchors.rightMargin: graphPadding + 8
+                y: miniGraphY
+                width: 40; height: 18; radius: 9
+                color: util.IS_UI_DARK_MODE ? "#3a3a4a" : "#d0d0d8"
+                z: 160
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Reset"
+                    font.pixelSize: 9
+                    color: util.IS_UI_DARK_MODE ? "#ffffff" : "#404050"
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { timelineZoom = 1.0; timelineScrollX = 0 }
+                }
+            }
+
+            // Event dot markers on graph (only shown in raw data mode - not cluster mode)
+            Repeater {
+                model: sarfGraphModel && !showClusters ? sarfGraphModel.events : []
+                Item {
+                    x: xPos(modelData.yearFrac) - 20
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
-                    z: 100 + (isFocused ? indexInCluster : globalClusterIndex)
-
-                    Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    z: 100 + index
 
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -757,9 +845,8 @@ Page {
                         Behavior on scale { NumberAnimation { duration: 150 } }
                     }
 
-                    // Only show date labels in focused mode or when highlighted
                     Text {
-                        visible: isFocused || highlightedEvent === index
+                        visible: highlightedEvent === index
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 28
                         text: modelData.date
@@ -771,22 +858,313 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: {
-                            // Find and focus the cluster containing this event
-                            if (clusterModel && clusterModel.hasClusters) {
-                                var clusterId = clusterModel.clusterForEvent(modelData.id)
-                                if (clusterId) {
-                                    for (var i = 0; i < clusterModel.clusters.length; i++) {
-                                        if (clusterModel.clusters[i].id === clusterId) {
-                                            focusCluster(i)
+                        onClicked: scrollToEventThenExpand(index)
+                    }
+                }
+            }
+
+            // B8-style HERO - focused cluster view with animated transition
+            Rectangle {
+                id: heroRect
+                visible: focusedClusterIndex >= 0
+                z: 200
+
+                // Animate from bar position to fill the graph area
+                x: gLeft + heroStartX + (0 - heroStartX) * animProgress
+                y: miniGraphY + heroStartY + (0 - heroStartY) * animProgress
+                width: heroStartW + (gWidth - heroStartW) * animProgress
+                height: heroStartH + (miniGraphH - heroStartH) * animProgress
+                radius: 4 + 4 * animProgress
+                color: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
+                border.color: focusedCluster ? patternColor(focusedCluster.pattern) : "transparent"
+                border.width: 2
+                clip: true
+
+                property var eventGroups: focusedCluster ? groupEventsByDay(focusedCluster.eventIds) : []
+
+                // Title bar
+                Rectangle {
+                    id: heroTitleBar
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 22
+                    color: focusedCluster ? patternColor(focusedCluster.pattern) : textSecondary
+                    radius: parent.radius
+                    opacity: animProgress
+
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: parent.radius
+                        color: parent.color
+                    }
+
+                    Text {
+                        x: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: focusedCluster ? focusedCluster.title : ""
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "white"
+                        elide: Text.ElideRight
+                        width: parent.width - 80
+                    }
+
+                    Text {
+                        anchors.right: heroCloseButton.left
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: focusedCluster && focusedCluster.eventIds ? focusedCluster.eventIds.length + " events" : ""
+                        font.pixelSize: 8
+                        color: "#ffffffaa"
+                    }
+
+                    // Close button
+                    Rectangle {
+                        id: heroCloseButton
+                        anchors.right: parent.right
+                        anchors.rightMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 16; height: 16; radius: 8
+                        color: "#00000025"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\u2715"
+                            font.pixelSize: 9
+                            color: "#ffffffcc"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: clearFocus()
+                        }
+                    }
+                }
+
+                // Content area below title bar
+                Item {
+                    id: heroContentArea
+                    anchors.fill: parent
+                    anchors.topMargin: heroTitleBar.height * animProgress
+                    anchors.margins: 6
+                    clip: true
+                    opacity: animProgress > 0.3 ? 1 : 0
+
+                    // Zoomable/pannable content
+                    Item {
+                        id: zoomableContent
+                        x: -focusedScrollX
+                        y: 0
+                        width: heroContentArea.width * focusedZoom
+                        height: heroContentArea.height
+
+                        function xForYearFrac(yearFrac) {
+                            if (!focusedCluster) return 0
+                            var span = focusedYearSpan
+                            if (span < 0.001) span = 0.001
+                            return ((yearFrac - focusedMinYearFrac) / span) * width
+                        }
+
+                        function yForValue(val) {
+                            return heroContentArea.height * (1 - (val + 2) / 6) - 4
+                        }
+
+                        // Event bands in background
+                        Repeater {
+                            model: heroRect.eventGroups
+
+                            Rectangle {
+                                property var group: modelData
+                                property int groupIndex: index
+                                property bool isHovered: hoveredEventGroup === groupIndex
+                                property real bandX: zoomableContent.xForYearFrac(group.yearFrac)
+
+                                x: bandX - (8 + group.events.length * 4)
+                                y: 0
+                                width: 16 + group.events.length * 8
+                                height: zoomableContent.height
+                                color: focusedCluster ? patternColor(focusedCluster.pattern) : textSecondary
+                                opacity: isHovered ? 0.25 : 0.08
+                                radius: 4
+
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: hoveredEventGroup = groupIndex
+                                    onExited: hoveredEventGroup = -1
+                                    onClicked: {
+                                        hoveredEventGroup = (hoveredEventGroup === groupIndex) ? -1 : groupIndex
+                                        if (group.events.length > 0 && sarfGraphModel) {
+                                            var events = sarfGraphModel.events
+                                            for (var i = 0; i < events.length; i++) {
+                                                if (events[i].id === group.events[0].id) {
+                                                    scrollToEventThenExpand(i)
+                                                    break
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+
+                        // SARF lines canvas - inside zoomable content so it scales with zoom
+                        Canvas {
+                            id: heroSarfCanvas
+                            anchors.fill: parent
+
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+
+                                if (!focusedCluster || !focusedCluster.eventIds || !sarfGraphModel) return
+
+                                var events = sarfGraphModel.events
+                                var cumulative = sarfGraphModel.cumulative
+                                var eventIds = focusedCluster.eventIds
+
+                                var dataPoints = []
+                                for (var i = 0; i < eventIds.length; i++) {
+                                    var eventId = eventIds[i]
+                                    for (var j = 0; j < events.length; j++) {
+                                        if (events[j].id === eventId) {
+                                            dataPoints.push({
+                                                yearFrac: events[j].yearFrac,
+                                                symptom: cumulative[j].symptom,
+                                                anxiety: cumulative[j].anxiety,
+                                                functioning: cumulative[j].functioning
+                                            })
                                             break
                                         }
                                     }
                                 }
+
+                                if (dataPoints.length === 0) return
+
+                                var colors = [symptomColor.toString(), anxietyColor.toString(), functioningColor.toString()]
+                                var keys = ['symptom', 'anxiety', 'functioning']
+
+                                for (var k = 0; k < 3; k++) {
+                                    ctx.strokeStyle = colors[k]
+                                    ctx.lineWidth = 2.5
+                                    ctx.lineCap = "round"
+                                    ctx.lineJoin = "round"
+                                    ctx.beginPath()
+
+                                    for (var p = 0; p < dataPoints.length; p++) {
+                                        var x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
+                                        var y = zoomableContent.yForValue(dataPoints[p][keys[k]])
+
+                                        if (p === 0) {
+                                            ctx.moveTo(x, y)
+                                        } else {
+                                            ctx.lineTo(x, y)
+                                        }
+                                    }
+                                    ctx.stroke()
+
+                                    ctx.fillStyle = colors[k]
+                                    for (p = 0; p < dataPoints.length; p++) {
+                                        x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
+                                        y = zoomableContent.yForValue(dataPoints[p][keys[k]])
+                                        ctx.beginPath()
+                                        ctx.arc(x, y, 3, 0, Math.PI * 2)
+                                        ctx.fill()
+                                    }
+                                }
                             }
-                            scrollToEventThenExpand(index)
                         }
                     }
+
+                    // Pinch/pan handling overlay
+                    PinchArea {
+                        id: heroPinchArea
+                        anchors.fill: parent
+                        enabled: animProgress > 0.9
+
+                        property real startZoom: 1.0
+                        property real startScrollX: 0
+                        property point startCenter: Qt.point(0, 0)
+
+                        onPinchStarted: {
+                            startZoom = focusedZoom
+                            startScrollX = focusedScrollX
+                            startCenter = pinch.center
+                        }
+
+                        onPinchUpdated: {
+                            var newZoom = Math.max(minZoom, Math.min(maxZoom, startZoom * pinch.scale))
+                            var baseW = heroContentArea.width
+                            var pinchXRatio = (startCenter.x + startScrollX) / (baseW * startZoom)
+                            var newScrollX = pinchXRatio * baseW * newZoom - startCenter.x
+                            var maxScroll = Math.max(0, baseW * newZoom - baseW)
+                            focusedScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
+                            focusedZoom = newZoom
+                            heroSarfCanvas.requestPaint()
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.NoButton
+                            onWheel: {
+                                if (animProgress < 0.9) return
+                                var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
+                                var baseW = heroContentArea.width
+                                var maxScroll = Math.max(0, baseW * focusedZoom - baseW)
+                                focusedScrollX = Math.max(0, Math.min(focusedScrollX - deltaX * 0.5, maxScroll))
+                                heroSarfCanvas.requestPaint()
+                                wheel.accepted = true
+                            }
+                        }
+                    }
+
+                    Connections {
+                        target: root
+                        function onFocusedZoomChanged() { heroSarfCanvas.requestPaint() }
+                        function onFocusedScrollXChanged() { heroSarfCanvas.requestPaint() }
+                        function onFocusedClusterIndexChanged() { heroSarfCanvas.requestPaint() }
+                        function onAnimProgressChanged() { if (animProgress > 0.25) heroSarfCanvas.requestPaint() }
+                    }
+                }
+
+                // Scroll indicator
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width * 0.5; height: 3; radius: 1.5
+                    color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
+                    visible: animProgress > 0.9 && focusedZoom > 1.05
+
+                    Rectangle {
+                        x: {
+                            var maxScroll = Math.max(1, heroContentArea.width * focusedZoom - heroContentArea.width)
+                            return parent.width * (focusedScrollX / maxScroll) * (1 - 1/focusedZoom)
+                        }
+                        width: Math.max(12, parent.width / focusedZoom)
+                        height: parent.height; radius: parent.radius
+                        color: util.IS_UI_DARK_MODE ? "#505060" : "#808090"
+                    }
+                }
+
+                // Tap bands hint
+                Text {
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 4
+                    text: "tap bands for details"
+                    font.pixelSize: 7
+                    font.italic: true
+                    color: textSecondary
+                    opacity: animProgress * 0.6
+                    visible: focusedZoom < 1.1
                 }
             }
 
@@ -818,8 +1196,9 @@ Page {
                     }
                 }
 
-                // Current cluster title and count
+                // Current cluster title and count (fixed width to prevent button movement)
                 Column {
+                    width: 140
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 0
 
@@ -830,7 +1209,8 @@ Page {
                         font.bold: true
                         color: focusedCluster ? patternColor(focusedCluster.pattern) : textPrimary
                         elide: Text.ElideRight
-                        width: Math.min(implicitWidth, 180)
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
                     }
 
                     Text {
@@ -858,27 +1238,6 @@ Page {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusNextCluster()
-                    }
-                }
-
-                // Exit focus button
-                Rectangle {
-                    width: exitText.width + 12; height: 24; radius: 12
-                    color: util.IS_UI_DARK_MODE ? "#444450" : "#d0d0d8"
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        id: exitText
-                        anchors.centerIn: parent
-                        text: "All"
-                        font.pixelSize: 9
-                        color: textPrimary
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: clearFocus()
                     }
                 }
             }
@@ -912,101 +1271,54 @@ Page {
                 }
             }
 
-            // Action buttons row (hidden when focused on a cluster)
+            // Clusters toggle (left side, hidden when focused)
             Row {
-                visible: !isFocused
-                anchors.right: parent.right
-                anchors.rightMargin: 8
-                y: miniGraphY + miniGraphH + 8
-                spacing: 8
+                visible: !isFocused && clusterModel && clusterModel.hasClusters
+                x: 8
+                y: miniGraphY + miniGraphH + 10
+                spacing: 4
 
-                // Show Clusters toggle
-                Row {
-                    visible: clusterModel && clusterModel.hasClusters
-                    spacing: 4
+                Rectangle {
+                    width: 32; height: 18; radius: 9
+                    color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#444450" : "#c0c0c8")
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
-                        width: 32; height: 18; radius: 9
-                        color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#444450" : "#c0c0c8")
+                        width: 14; height: 14; radius: 7
+                        color: "white"
+                        x: showClusters ? parent.width - width - 2 : 2
                         anchors.verticalCenter: parent.verticalCenter
 
-                        Rectangle {
-                            width: 14; height: 14; radius: 7
-                            color: "white"
-                            x: showClusters ? parent.width - width - 2 : 2
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Behavior on x { NumberAnimation { duration: 150 } }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                showClusters = !showClusters
-                                if (!showClusters) {
-                                    focusedClusterIndex = -1
-                                }
-                            }
-                        }
-                    }
-
-                    Text {
-                        text: "Clusters"
-                        font.pixelSize: 10
-                        color: textSecondary
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                // Collapse/Expand all button (only shown when clusters exist and enabled)
-                Rectangle {
-                    visible: showClusters && clusterModel && clusterModel.hasClusters
-                    width: collapseText.width + 12
-                    height: 24
-                    radius: 12
-                    color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
-
-                    Text {
-                        id: collapseText
-                        anchors.centerIn: parent
-                        text: {
-                            var allCollapsed = true
-                            if (clusterModel && clusterModel.clusters) {
-                                for (var i = 0; i < clusterModel.clusters.length; i++) {
-                                    if (!collapsedClusters[clusterModel.clusters[i].id]) {
-                                        allCollapsed = false
-                                        break
-                                    }
-                                }
-                            }
-                            return allCollapsed ? "Expand All" : "Collapse All"
-                        }
-                        font.pixelSize: 10
-                        color: textSecondary
+                        Behavior on x { NumberAnimation { duration: 150 } }
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (!clusterModel || !clusterModel.clusters) return
-                            var allCollapsed = true
-                            for (var i = 0; i < clusterModel.clusters.length; i++) {
-                                if (!collapsedClusters[clusterModel.clusters[i].id]) {
-                                    allCollapsed = false
-                                    break
-                                }
+                            showClusters = !showClusters
+                            if (!showClusters) {
+                                focusedClusterIndex = -1
                             }
-                            var newCollapsed = {}
-                            for (var j = 0; j < clusterModel.clusters.length; j++) {
-                                newCollapsed[clusterModel.clusters[j].id] = !allCollapsed
-                            }
-                            collapsedClusters = newCollapsed
                         }
                     }
                 }
+
+                Text {
+                    text: "Clusters"
+                    font.pixelSize: 10
+                    color: textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // Action buttons row (right side, hidden when focused)
+            Row {
+                visible: !isFocused
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                y: miniGraphY + miniGraphH + 10
+                spacing: 8
 
                 // Cluster count
                 Text {
@@ -1126,15 +1438,22 @@ Page {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (delegateRoot.cluster) {
-                                toggleClusterCollapsed(delegateRoot.cluster.id)
-                                // Also focus/select this cluster in the graph
+                                // Check if this cluster is currently focused
+                                var clusterIdx = -1
                                 if (clusterModel && clusterModel.clusters) {
                                     for (var i = 0; i < clusterModel.clusters.length; i++) {
                                         if (clusterModel.clusters[i].id === delegateRoot.cluster.id) {
-                                            focusCluster(i)
+                                            clusterIdx = i
                                             break
                                         }
                                     }
+                                }
+                                if (clusterIdx === focusedClusterIndex) {
+                                    // Already focused - collapse and return to overview
+                                    clearFocus()
+                                } else {
+                                    // Focus this cluster
+                                    focusCluster(clusterIdx)
                                 }
                             }
                         }
