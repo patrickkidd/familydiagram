@@ -41,7 +41,7 @@ from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
 from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
 from pkdiagram.personal.shakedetector import ShakeDetector
-from pkdiagram.personal.vignettemodel import VignetteModel
+from pkdiagram.personal.clustermodel import ClusterModel
 
 _log = logging.getLogger(__name__)
 
@@ -88,10 +88,10 @@ class PersonalAppController(QObject):
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
         self.sarfGraphModel = SARFGraphModel(self)
-        self.vignetteModel = VignetteModel(self.session, self)
+        self.clusterModel = ClusterModel(self.session, self)
         self.pdpChanged.connect(self.sarfGraphModel.refresh)
         self.diagramChanged.connect(self._onDiagramChanged)
-        self.vignetteModel.vignettesDetected.connect(self._onVignettesDetected)
+        self.clusterModel.clustersDetected.connect(self._onClustersDetected)
         self.eventForm = None  # EventForm (from PersonalContainer drawer)
         self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
@@ -105,7 +105,7 @@ class PersonalAppController(QObject):
         engine.rootContext().setContextProperty("sceneModel", self.sceneModel)
         engine.rootContext().setContextProperty("peopleModel", self.peopleModel)
         engine.rootContext().setContextProperty("sarfGraphModel", self.sarfGraphModel)
-        engine.rootContext().setContextProperty("vignetteModel", self.vignetteModel)
+        engine.rootContext().setContextProperty("clusterModel", self.clusterModel)
         engine.objectCreated[QObject, QUrl].connect(self.onQmlObjectCreated)
         self._engine = engine
         self.analytics.init()
@@ -121,9 +121,9 @@ class PersonalAppController(QObject):
         self.shakeDetector.stop()
         self.pdpChanged.disconnect(self.sarfGraphModel.refresh)
         self.diagramChanged.disconnect(self._onDiagramChanged)
-        self.vignetteModel.vignettesDetected.disconnect(self._onVignettesDetected)
+        self.clusterModel.clustersDetected.disconnect(self._onClustersDetected)
         self.sarfGraphModel.deinit()
-        self.vignetteModel.deinit()
+        self.clusterModel.deinit()
         self.analytics.init()
         self.session.deinit()
         if self.eventForm:
@@ -190,9 +190,9 @@ class PersonalAppController(QObject):
             diagramData.version = sceneDiagramData.version
             diagramData.versionCompat = sceneDiagramData.versionCompat
             diagramData.name = sceneDiagramData.name
-            # Persist vignettes
-            diagramData.vignettes = self.vignetteModel.vignettes
-            diagramData.vignetteCacheKey = self.vignetteModel.cacheKey
+            # Persist clusters
+            diagramData.clusters = self.clusterModel.clusters
+            diagramData.clusterCacheKey = self.clusterModel.cacheKey
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
@@ -207,13 +207,13 @@ class PersonalAppController(QObject):
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
         self.sarfGraphModel.scene = scene
-        self.vignetteModel.scene = scene
-        # Load persisted vignettes AFTER scene is set (scene setter clears vignettes)
+        self.clusterModel.scene = scene
+        # Load persisted clusters AFTER scene is set (scene setter clears clusters)
         if self._diagram:
             diagramData = self._diagram.getDiagramData()
-            if diagramData.vignettes:
-                self.vignetteModel.setVignettesData(
-                    diagramData.vignettes, diagramData.vignetteCacheKey
+            if diagramData.clusters:
+                self.clusterModel.setClustersData(
+                    diagramData.clusters, diagramData.clusterCacheKey
                 )
         if self.eventForm:
             self.eventForm.setScene(scene)
@@ -231,11 +231,11 @@ class PersonalAppController(QObject):
 
     def _onDiagramChanged(self):
         if self._diagram:
-            self.vignetteModel.diagramId = self._diagram.id
+            self.clusterModel.diagramId = self._diagram.id
         else:
-            self.vignetteModel.diagramId = None
+            self.clusterModel.diagramId = None
 
-    def _onVignettesDetected(self):
+    def _onClustersDetected(self):
         self.saveDiagram()
 
     def onSessionChanged(self, oldFeatures, newFeatures):

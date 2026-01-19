@@ -16,8 +16,9 @@ Page {
     property int swipedEvent: -1
     property int highlightedEvent: -1
     property int pendingSelection: -1
-    property var collapsedVignettes: ({})  // vignetteId -> true if collapsed
-    property int focusedVignetteIndex: -1  // Index of vignette being focused in graph
+    property var collapsedClusters: ({})  // clusterId -> true if collapsed
+    property int focusedClusterIndex: -1  // Index of cluster being focused in graph
+    property bool showClusters: true  // Toggle between cluster view and raw data view
 
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
@@ -41,16 +42,16 @@ Page {
     property real gRight: width - graphPadding
     property real gWidth: gRight - gLeft
 
-    // Focused vignette state for graph zooming
-    property var focusedVignette: focusedVignetteIndex >= 0 && vignetteModel && vignetteModel.vignettes.length > focusedVignetteIndex ? vignetteModel.vignettes[focusedVignetteIndex] : null
-    property bool isFocused: focusedVignetteIndex >= 0
-    // Compute actual min/max yearFrac from events in focused vignette
+    // Focused cluster state for graph zooming
+    property var focusedCluster: focusedClusterIndex >= 0 && clusterModel && clusterModel.clusters.length > focusedClusterIndex ? clusterModel.clusters[focusedClusterIndex] : null
+    property bool isFocused: focusedClusterIndex >= 0
+    // Compute actual min/max yearFrac from events in focused cluster
     property var focusedEventYearFracs: {
-        if (!isFocused || !focusedVignette || !focusedVignette.eventIds || !sarfGraphModel) return []
+        if (!isFocused || !focusedCluster || !focusedCluster.eventIds || !sarfGraphModel) return []
         var events = sarfGraphModel.events
         var fracs = []
-        for (var i = 0; i < focusedVignette.eventIds.length; i++) {
-            var eventId = focusedVignette.eventIds[i]
+        for (var i = 0; i < focusedCluster.eventIds.length; i++) {
+            var eventId = focusedCluster.eventIds[i]
             for (var j = 0; j < events.length; j++) {
                 if (events[j].id === eventId) {
                     fracs.push(events[j].yearFrac)
@@ -80,32 +81,81 @@ Page {
     }
     property real focusedYearSpan: Math.max(0.001, focusedMaxYearFrac - focusedMinYearFrac)
 
+    // Year range for all cluster events (excludes birth events and other outliers)
+    property var clusterEventYearFracs: {
+        if (!showClusters || !clusterModel || !clusterModel.hasClusters || !sarfGraphModel) return []
+        var events = sarfGraphModel.events
+        var fracs = []
+        for (var i = 0; i < clusterModel.clusters.length; i++) {
+            var cluster = clusterModel.clusters[i]
+            if (!cluster.eventIds) continue
+            for (var j = 0; j < cluster.eventIds.length; j++) {
+                var eventId = cluster.eventIds[j]
+                for (var k = 0; k < events.length; k++) {
+                    if (events[k].id === eventId) {
+                        fracs.push(events[k].yearFrac)
+                        break
+                    }
+                }
+            }
+        }
+        return fracs
+    }
+    property real clusterMinYearFrac: {
+        var fracs = clusterEventYearFracs
+        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearStart : 2020
+        var minVal = fracs[0]
+        for (var i = 1; i < fracs.length; i++) {
+            if (fracs[i] < minVal) minVal = fracs[i]
+        }
+        return minVal - 0.5  // Add padding
+    }
+    property real clusterMaxYearFrac: {
+        var fracs = clusterEventYearFracs
+        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearEnd : 2025
+        var maxVal = fracs[0]
+        for (var i = 1; i < fracs.length; i++) {
+            if (fracs[i] > maxVal) maxVal = fracs[i]
+        }
+        return maxVal + 0.5  // Add padding
+    }
+    property real clusterYearSpan: Math.max(1, clusterMaxYearFrac - clusterMinYearFrac)
+
     background: Rectangle {
         color: bgColor
     }
 
     function xPos(year) {
         if (!sarfGraphModel) return gLeft
-        var yearStart = isFocused ? focusedMinYearFrac : sarfGraphModel.yearStart
-        var yearSpan = isFocused ? focusedYearSpan : sarfGraphModel.yearSpan
+        var yearStart, yearSpan
+        if (isFocused) {
+            yearStart = focusedMinYearFrac
+            yearSpan = focusedYearSpan
+        } else if (showClusters && clusterModel && clusterModel.hasClusters) {
+            yearStart = clusterMinYearFrac
+            yearSpan = clusterYearSpan
+        } else {
+            yearStart = sarfGraphModel.yearStart
+            yearSpan = sarfGraphModel.yearSpan
+        }
         if (yearSpan === 0) yearSpan = 60
         return gLeft + ((year - yearStart) / yearSpan) * gWidth
     }
 
-    function focusVignette(idx) {
-        if (!vignetteModel || !vignetteModel.vignettes || idx < 0 || idx >= vignetteModel.vignettes.length) {
-            focusedVignetteIndex = -1
+    function focusCluster(idx) {
+        if (!clusterModel || !clusterModel.clusters || idx < 0 || idx >= clusterModel.clusters.length) {
+            focusedClusterIndex = -1
             return
         }
-        focusedVignetteIndex = idx
-        var vignette = vignetteModel.vignettes[idx]
-        if (vignette && vignette.id) {
-            vignetteModel.selectVignette(vignette.id)
-            // Scroll to first event in this vignette
-            if (vignette.eventIds && vignette.eventIds.length > 0 && sarfGraphModel) {
+        focusedClusterIndex = idx
+        var cluster = clusterModel.clusters[idx]
+        if (cluster && cluster.id) {
+            clusterModel.selectCluster(cluster.id)
+            // Scroll to first event in this cluster
+            if (cluster.eventIds && cluster.eventIds.length > 0 && sarfGraphModel) {
                 var events = sarfGraphModel.events
                 for (var i = 0; i < events.length; i++) {
-                    if (events[i].id === vignette.eventIds[0]) {
+                    if (events[i].id === cluster.eventIds[0]) {
                         highlightedEvent = i
                         storyList.positionViewAtIndex(i, ListView.Beginning)
                         break
@@ -115,23 +165,23 @@ Page {
         }
     }
 
-    function focusNextVignette() {
-        if (!vignetteModel || !vignetteModel.vignettes || vignetteModel.vignettes.length === 0) return
-        var nextIdx = focusedVignetteIndex + 1
-        if (nextIdx >= vignetteModel.vignettes.length) nextIdx = 0
-        focusVignette(nextIdx)
+    function focusNextCluster() {
+        if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) return
+        var nextIdx = focusedClusterIndex + 1
+        if (nextIdx >= clusterModel.clusters.length) nextIdx = 0
+        focusCluster(nextIdx)
     }
 
-    function focusPrevVignette() {
-        if (!vignetteModel || !vignetteModel.vignettes || vignetteModel.vignettes.length === 0) return
-        var prevIdx = focusedVignetteIndex - 1
-        if (prevIdx < 0) prevIdx = vignetteModel.vignettes.length - 1
-        focusVignette(prevIdx)
+    function focusPrevCluster() {
+        if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) return
+        var prevIdx = focusedClusterIndex - 1
+        if (prevIdx < 0) prevIdx = clusterModel.clusters.length - 1
+        focusCluster(prevIdx)
     }
 
     function clearFocus() {
-        focusedVignetteIndex = -1
-        if (vignetteModel) vignetteModel.selectVignette("")
+        focusedClusterIndex = -1
+        if (clusterModel) clusterModel.selectCluster("")
     }
 
     function yPosMini(val) {
@@ -151,38 +201,42 @@ Page {
         return sarfGraphModel.isLifeEvent(kind)
     }
 
-    function vignetteForEventIndex(idx) {
-        if (!vignetteModel || !vignetteModel.hasVignettes) return null
+    function clusterForEventIndex(idx) {
+        if (!clusterModel || !clusterModel.hasClusters) return null
         if (!sarfGraphModel) return null
         var events = sarfGraphModel.events
         if (idx < 0 || idx >= events.length) return null
         var eventId = events[idx].id
-        var vignetteId = vignetteModel.vignetteForEvent(eventId)
-        if (!vignetteId) return null
-        return vignetteModel.vignetteById(vignetteId)
+        var clusterId = clusterModel.clusterForEvent(eventId)
+        if (!clusterId) return null
+        return clusterModel.clusterById(clusterId)
     }
 
-    function isFirstEventInVignette(idx) {
-        var vignette = vignetteForEventIndex(idx)
-        if (!vignette || !vignette.eventIds || vignette.eventIds.length === 0) return false
+    function isEventInAnyCluster(idx) {
+        return clusterForEventIndex(idx) !== null
+    }
+
+    function isFirstEventInCluster(idx) {
+        var cluster = clusterForEventIndex(idx)
+        if (!cluster || !cluster.eventIds || cluster.eventIds.length === 0) return false
         var events = sarfGraphModel.events
         if (idx < 0 || idx >= events.length) return false
-        return vignette.eventIds[0] === events[idx].id
+        return cluster.eventIds[0] === events[idx].id
     }
 
-    function isEventVignetteCollapsed(idx) {
-        var vignette = vignetteForEventIndex(idx)
-        if (!vignette) return false
-        return collapsedVignettes[vignette.id] === true
+    function isEventClusterCollapsed(idx) {
+        var cluster = clusterForEventIndex(idx)
+        if (!cluster) return false
+        return collapsedClusters[cluster.id] === true
     }
 
-    function toggleVignetteCollapsed(vignetteId) {
+    function toggleClusterCollapsed(clusterId) {
         var newCollapsed = {}
-        for (var key in collapsedVignettes) {
-            newCollapsed[key] = collapsedVignettes[key]
+        for (var key in collapsedClusters) {
+            newCollapsed[key] = collapsedClusters[key]
         }
-        newCollapsed[vignetteId] = !newCollapsed[vignetteId]
-        collapsedVignettes = newCollapsed
+        newCollapsed[clusterId] = !newCollapsed[clusterId]
+        collapsedClusters = newCollapsed
     }
 
     function patternLabel(pattern) {
@@ -392,7 +446,15 @@ Page {
             Text {
                 x: graphPadding + 8
                 y: 8
-                text: sarfGraphModel ? (sarfGraphModel.yearStart + " - " + sarfGraphModel.yearEnd) : ""
+                text: {
+                    if (!sarfGraphModel) return ""
+                    if (isFocused) {
+                        return Math.floor(focusedMinYearFrac) + " - " + Math.ceil(focusedMaxYearFrac)
+                    } else if (showClusters && clusterModel && clusterModel.hasClusters) {
+                        return Math.floor(clusterMinYearFrac) + " - " + Math.ceil(clusterMaxYearFrac)
+                    }
+                    return sarfGraphModel.yearStart + " - " + sarfGraphModel.yearEnd
+                }
                 font.pixelSize: 12
                 color: textSecondary
             }
@@ -407,27 +469,28 @@ Page {
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
 
-            // Vignette region shading (only shown in non-focused mode, or for the focused vignette)
+            // Cluster region shading (only shown when focused on a specific cluster)
             Repeater {
-                model: vignetteModel ? vignetteModel.vignettes : []
+                model: showClusters && clusterModel ? clusterModel.clusters : []
 
                 Rectangle {
                     property var startYear: dateToYear(modelData.startDate)
                     property var endYear: dateToYear(modelData.endDate)
-                    property bool isSelected: vignetteModel && vignetteModel.selectedVignetteId === modelData.id
-                    property bool isCollapsed: collapsedVignettes[modelData.id] === true
-                    property bool isFocusedVignette: focusedVignetteIndex === index
+                    property bool isSelected: clusterModel && clusterModel.selectedClusterId === modelData.id
+                    property bool isCollapsed: collapsedClusters[modelData.id] === true
+                    property bool isFocusedCluster: focusedClusterIndex === index
 
-                    visible: (startYear !== null && endYear !== null) && (!isFocused || isFocusedVignette)
+                    // Only show shading when focused on this specific cluster (not in overview mode)
+                    visible: isFocused && isFocusedCluster && (startYear !== null && endYear !== null)
                     x: startYear !== null ? xPos(startYear) - 4 : 0
                     y: miniGraphY - 6
                     width: (startYear !== null && endYear !== null) ? Math.max(12, xPos(endYear) - xPos(startYear) + 8) : 12
                     height: miniGraphH + 12
                     radius: 6
                     color: patternColor(modelData.pattern)
-                    opacity: isFocusedVignette ? 0.35 : (isSelected ? 0.25 : (isCollapsed ? 0.08 : 0.12))
+                    opacity: isFocusedCluster ? 0.35 : (isSelected ? 0.25 : (isCollapsed ? 0.08 : 0.12))
                     border.color: patternColor(modelData.pattern)
-                    border.width: (isSelected || isFocusedVignette) ? 2 : 0
+                    border.width: (isSelected || isFocusedCluster) ? 2 : 0
 
                     Behavior on opacity { NumberAnimation { duration: 200 } }
                     Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
@@ -437,28 +500,28 @@ Page {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (isFocused && isFocusedVignette) {
+                            if (isFocused && isFocusedCluster) {
                                 // Already focused, unfocus
                                 clearFocus()
                             } else {
-                                focusVignette(index)
+                                focusCluster(index)
                             }
                         }
                     }
 
-                    // Vignette label on selection (hidden when focused - nav shows vignette info)
+                    // Cluster label on selection (hidden when focused - nav shows cluster info)
                     Rectangle {
                         visible: parent.isSelected && !isFocused
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: parent.height + 4
-                        width: vignetteLabel.width + 8
+                        width: clusterLabel.width + 8
                         height: 16
                         radius: 8
                         color: patternColor(modelData.pattern)
                         z: 200
 
                         Text {
-                            id: vignetteLabel
+                            id: clusterLabel
                             anchors.centerIn: parent
                             text: modelData.title
                             font.pixelSize: 9
@@ -487,102 +550,121 @@ Page {
                     ctx.clearRect(0, 0, width, height)
 
                     var cumulative = sarfGraphModel.cumulative
+                    var events = sarfGraphModel.events
                     if (cumulative.length === 0) return
+    
+                    // In focused mode, use index-based positioning matching event dots
+                    if (isFocused && focusedCluster && focusedCluster.eventIds) {
+                        var eventIds = focusedCluster.eventIds
+                        var eventCount = eventIds.length
+                        if (eventCount === 0) return
 
-                    // Use focused range when in focused mode
-                    var drawYearStart = isFocused ? focusedMinYearFrac : sarfGraphModel.yearStart
-                    var drawYearEnd = isFocused ? focusedMaxYearFrac : sarfGraphModel.yearEnd
+                        // Build event data with cumulative values and index-based x positions
+                        var edgePad = 25
+                        var usableWidth = gWidth - edgePad * 2
+                        var focusedEvents = []
+                        var prevS = 0, prevA = 0, prevF = 0
 
-                    // Filter cumulative data to focused range and find boundary values
-                    var filteredData = []
-                    var prevSymptom = 0
-                    var prevAnxiety = 0
-                    var prevFunctioning = 0
-                    for (var k = 0; k < cumulative.length; k++) {
-                        var yf = cumulative[k].yearFrac !== undefined ? cumulative[k].yearFrac : cumulative[k].year
-                        if (yf < drawYearStart) {
-                            prevSymptom = cumulative[k].symptom
-                            prevAnxiety = cumulative[k].anxiety
-                            prevFunctioning = cumulative[k].functioning
-                        } else if (yf <= drawYearEnd) {
-                            filteredData.push(cumulative[k])
+                        // Find cumulative values before the cluster starts
+                        for (var p = 0; p < events.length; p++) {
+                            var foundInCluster = false
+                            for (var v = 0; v < eventIds.length; v++) {
+                                if (events[p].id === eventIds[v]) {
+                                    foundInCluster = true
+                                    break
+                                }
+                            }
+                            if (foundInCluster) break
+                            prevS = cumulative[p].symptom
+                            prevA = cumulative[p].anxiety
+                            prevF = cumulative[p].functioning
                         }
-                    }
 
-                    // Helper to get yearFrac from data point
-                    function getYearFrac(d) {
-                        return d.yearFrac !== undefined ? d.yearFrac : d.year
-                    }
-
-                    // Draw Relationship vertical lines (blue) - draw first so they're behind other lines
-                    ctx.strokeStyle = relationshipColor
-                    ctx.lineWidth = 2
-                    ctx.globalAlpha = 0.5
-                    for (var r = 0; r < filteredData.length; r++) {
-                        if (filteredData[r].relationship) {
-                            var rx = xPos(getYearFrac(filteredData[r]))
-                            ctx.beginPath()
-                            ctx.moveTo(rx, miniGraphY)
-                            ctx.lineTo(rx, miniGraphY + miniGraphH)
-                            ctx.stroke()
+                        // Build focused event data with x positions
+                        for (var vi = 0; vi < eventIds.length; vi++) {
+                            var eventId = eventIds[vi]
+                            for (var ei = 0; ei < events.length; ei++) {
+                                if (events[ei].id === eventId) {
+                                    var xFrac = eventCount <= 1 ? 0.5 : vi / (eventCount - 1)
+                                    var xVal = gLeft + edgePad + xFrac * usableWidth
+                                    focusedEvents.push({
+                                        x: xVal,
+                                        symptom: cumulative[ei].symptom,
+                                        anxiety: cumulative[ei].anxiety,
+                                        functioning: cumulative[ei].functioning,
+                                        relationship: cumulative[ei].relationship
+                                    })
+                                    break
+                                }
+                            }
                         }
-                    }
-                    ctx.globalAlpha = 1.0
 
-                    // Draw Functioning line (grey)
-                    ctx.strokeStyle = functioningColor
-                    ctx.lineWidth = 2
-                    ctx.lineCap = "round"
-                    ctx.lineJoin = "round"
-                    ctx.beginPath()
-                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevFunctioning))
-                    if (filteredData.length > 0) {
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevFunctioning))
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].functioning))
-                        for (var f = 1; f < filteredData.length; f++) {
-                            ctx.lineTo(xPos(getYearFrac(filteredData[f])), yPosMini(filteredData[f-1].functioning))
-                            ctx.lineTo(xPos(getYearFrac(filteredData[f])), yPosMini(filteredData[f].functioning))
-                        }
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].functioning))
-                    } else {
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevFunctioning))
-                    }
-                    ctx.stroke()
+                        if (focusedEvents.length === 0) return
 
-                    // Draw Symptom line (red)
-                    ctx.strokeStyle = symptomColor
-                    ctx.lineWidth = 2
-                    ctx.beginPath()
-                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevSymptom))
-                    if (filteredData.length > 0) {
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevSymptom))
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].symptom))
-                        for (var i = 1; i < filteredData.length; i++) {
-                            ctx.lineTo(xPos(getYearFrac(filteredData[i])), yPosMini(filteredData[i-1].symptom))
-                            ctx.lineTo(xPos(getYearFrac(filteredData[i])), yPosMini(filteredData[i].symptom))
-                        }
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].symptom))
-                    } else {
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevSymptom))
-                    }
-                    ctx.stroke()
+                        var xStart = gLeft + edgePad
+                        var xEnd = gLeft + edgePad + usableWidth
 
-                    // Draw Anxiety line (green)
-                    ctx.strokeStyle = anxietyColor
-                    ctx.beginPath()
-                    ctx.moveTo(xPos(drawYearStart), yPosMini(prevAnxiety))
-                    if (filteredData.length > 0) {
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(prevAnxiety))
-                        ctx.lineTo(xPos(getYearFrac(filteredData[0])), yPosMini(filteredData[0].anxiety))
-                        for (var j = 1; j < filteredData.length; j++) {
-                            ctx.lineTo(xPos(getYearFrac(filteredData[j])), yPosMini(filteredData[j-1].anxiety))
-                            ctx.lineTo(xPos(getYearFrac(filteredData[j])), yPosMini(filteredData[j].anxiety))
+                        // Draw Relationship vertical lines (blue)
+                        ctx.strokeStyle = relationshipColor
+                        ctx.lineWidth = 2
+                        ctx.globalAlpha = 0.5
+                        for (var r = 0; r < focusedEvents.length; r++) {
+                            if (focusedEvents[r].relationship) {
+                                ctx.beginPath()
+                                ctx.moveTo(focusedEvents[r].x, miniGraphY)
+                                ctx.lineTo(focusedEvents[r].x, miniGraphY + miniGraphH)
+                                ctx.stroke()
+                            }
                         }
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(filteredData[filteredData.length-1].anxiety))
-                    } else {
-                        ctx.lineTo(xPos(drawYearEnd), yPosMini(prevAnxiety))
+                        ctx.globalAlpha = 1.0
+
+                        // Draw Functioning line (grey)
+                        ctx.strokeStyle = functioningColor
+                        ctx.lineWidth = 2
+                        ctx.lineCap = "round"
+                        ctx.lineJoin = "round"
+                        ctx.beginPath()
+                        ctx.moveTo(xStart, yPosMini(prevF))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevF))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].functioning))
+                        for (var f = 1; f < focusedEvents.length; f++) {
+                            ctx.lineTo(focusedEvents[f].x, yPosMini(focusedEvents[f-1].functioning))
+                            ctx.lineTo(focusedEvents[f].x, yPosMini(focusedEvents[f].functioning))
+                        }
+                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].functioning))
+                        ctx.stroke()
+
+                        // Draw Symptom line (red)
+                        ctx.strokeStyle = symptomColor
+                        ctx.beginPath()
+                        ctx.moveTo(xStart, yPosMini(prevS))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevS))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].symptom))
+                        for (var i = 1; i < focusedEvents.length; i++) {
+                            ctx.lineTo(focusedEvents[i].x, yPosMini(focusedEvents[i-1].symptom))
+                            ctx.lineTo(focusedEvents[i].x, yPosMini(focusedEvents[i].symptom))
+                        }
+                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].symptom))
+                        ctx.stroke()
+
+                        // Draw Anxiety line (green)
+                        ctx.strokeStyle = anxietyColor
+                        ctx.beginPath()
+                        ctx.moveTo(xStart, yPosMini(prevA))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(prevA))
+                        ctx.lineTo(focusedEvents[0].x, yPosMini(focusedEvents[0].anxiety))
+                        for (var j = 1; j < focusedEvents.length; j++) {
+                            ctx.lineTo(focusedEvents[j].x, yPosMini(focusedEvents[j-1].anxiety))
+                            ctx.lineTo(focusedEvents[j].x, yPosMini(focusedEvents[j].anxiety))
+                        }
+                        ctx.lineTo(xEnd, yPosMini(focusedEvents[focusedEvents.length-1].anxiety))
+                        ctx.stroke()
+
+                        return  // Done with focused mode
                     }
-                    ctx.stroke()
+
+                    // Non-focused mode: just show cluster spans, no SARF lines
+                    // (SARF lines removed for mobile - cluster rectangles handle this)
                 }
             }
 
@@ -592,45 +674,77 @@ Page {
             }
 
             Connections {
-                target: vignetteModel
+                target: clusterModel
                 function onChanged() { graphCanvas.requestPaint() }
             }
 
             Connections {
                 target: root
-                function onFocusedVignetteIndexChanged() { graphCanvas.requestPaint() }
+                function onFocusedClusterIndexChanged() { graphCanvas.requestPaint() }
             }
 
-            // Event dot markers on graph (only shown if not focused, or event is in focused vignette)
+            // Event dot markers on graph (filtered by cluster membership when showClusters is ON)
             Repeater {
                 model: sarfGraphModel ? sarfGraphModel.events : []
                 Item {
-                    property bool isInFocusedVignette: {
-                        if (!isFocused || !focusedVignette || !focusedVignette.eventIds) return true
-                        return focusedVignette.eventIds.indexOf(modelData.id) >= 0
+                    property bool isInAnyCluster: {
+                        if (!clusterModel || !clusterModel.hasClusters) return true
+                        return clusterModel.clusterForEvent(modelData.id) !== ""
+                    }
+                    property bool isInFocusedCluster: {
+                        if (!isFocused || !focusedCluster || !focusedCluster.eventIds) return true
+                        return focusedCluster.eventIds.indexOf(modelData.id) >= 0
                     }
                     // In focused mode, spread events evenly by index
-                    property int indexInVignette: {
-                        if (!isFocused || !focusedVignette || !focusedVignette.eventIds) return -1
-                        return focusedVignette.eventIds.indexOf(modelData.id)
+                    property int indexInCluster: {
+                        if (!isFocused || !focusedCluster || !focusedCluster.eventIds) return -1
+                        return focusedCluster.eventIds.indexOf(modelData.id)
                     }
-                    property int vignetteEventCount: focusedVignette && focusedVignette.eventIds ? focusedVignette.eventIds.length : 1
+                    property int clusterEventCount: focusedCluster && focusedCluster.eventIds ? focusedCluster.eventIds.length : 1
+                    // Index among all visible cluster events (for even spacing in non-focused cluster mode)
+                    property int globalClusterIndex: {
+                        if (!showClusters || !clusterModel || !clusterModel.hasClusters || !isInAnyCluster) return -1
+                        var count = 0
+                        var events = sarfGraphModel.events
+                        for (var i = 0; i < events.length && i < index; i++) {
+                            if (clusterModel.clusterForEvent(events[i].id) !== "") count++
+                        }
+                        return count
+                    }
+                    property int totalClusterEvents: {
+                        if (!showClusters || !clusterModel || !clusterModel.hasClusters) return 1
+                        var count = 0
+                        var events = sarfGraphModel.events
+                        for (var i = 0; i < events.length; i++) {
+                            if (clusterModel.clusterForEvent(events[i].id) !== "") count++
+                        }
+                        return Math.max(1, count)
+                    }
                     property real focusedX: {
-                        if (!isFocused || indexInVignette < 0) return xPos(modelData.year)
+                        if (!isFocused || indexInCluster < 0) return xPos(modelData.year)
                         // Spread evenly: first event at left, last at right
                         var edgePad = 25
                         var usableWidth = gWidth - edgePad * 2
-                        if (vignetteEventCount <= 1) return gLeft + gWidth / 2
-                        var pos = indexInVignette / (vignetteEventCount - 1)
+                        if (clusterEventCount <= 1) return gLeft + gWidth / 2
+                        var pos = indexInCluster / (clusterEventCount - 1)
+                        return gLeft + edgePad + pos * usableWidth
+                    }
+                    // Even spacing for non-focused cluster mode
+                    property real clusterModeX: {
+                        if (!showClusters || globalClusterIndex < 0) return xPos(modelData.yearFrac)
+                        var edgePad = 25
+                        var usableWidth = gWidth - edgePad * 2
+                        if (totalClusterEvents <= 1) return gLeft + gWidth / 2
+                        var pos = globalClusterIndex / (totalClusterEvents - 1)
                         return gLeft + edgePad + pos * usableWidth
                     }
 
-                    visible: isInFocusedVignette
-                    x: isFocused ? focusedX - 20 : xPos(modelData.year) - 20
+                    visible: (showClusters ? isInAnyCluster : true) && isInFocusedCluster
+                    x: isFocused ? focusedX - 20 : (showClusters && clusterModel && clusterModel.hasClusters ? clusterModeX - 20 : xPos(modelData.yearFrac) - 20)
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
-                    z: 100 + indexInVignette  // Stack order by index
+                    z: 100 + (isFocused ? indexInCluster : globalClusterIndex)
 
                     Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
@@ -643,26 +757,28 @@ Page {
                         Behavior on scale { NumberAnimation { duration: 150 } }
                     }
 
+                    // Only show date labels in focused mode or when highlighted
                     Text {
+                        visible: isFocused || highlightedEvent === index
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 28
-                        text: isFocused ? modelData.date : modelData.year.toString()
-                        font.pixelSize: isFocused ? 7 : 8
+                        text: modelData.date
+                        font.pixelSize: 7
                         color: textSecondary
-                        rotation: isFocused ? -45 : 0
+                        rotation: -45
                         transformOrigin: Item.Top
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            // Find and focus the vignette containing this event
-                            if (vignetteModel && vignetteModel.hasVignettes) {
-                                var vignetteId = vignetteModel.vignetteForEvent(modelData.id)
-                                if (vignetteId) {
-                                    for (var i = 0; i < vignetteModel.vignettes.length; i++) {
-                                        if (vignetteModel.vignettes[i].id === vignetteId) {
-                                            focusVignette(i)
+                            // Find and focus the cluster containing this event
+                            if (clusterModel && clusterModel.hasClusters) {
+                                var clusterId = clusterModel.clusterForEvent(modelData.id)
+                                if (clusterId) {
+                                    for (var i = 0; i < clusterModel.clusters.length; i++) {
+                                        if (clusterModel.clusters[i].id === clusterId) {
+                                            focusCluster(i)
                                             break
                                         }
                                     }
@@ -674,7 +790,7 @@ Page {
                 }
             }
 
-            // Navigation arrows for cycling vignettes (shown when focused)
+            // Navigation arrows for cycling clusters (shown when focused)
             Row {
                 visible: isFocused
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -698,28 +814,28 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: focusPrevVignette()
+                        onClicked: focusPrevCluster()
                     }
                 }
 
-                // Current vignette title and count
+                // Current cluster title and count
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 0
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: focusedVignette ? focusedVignette.title : ""
+                        text: focusedCluster ? focusedCluster.title : ""
                         font.pixelSize: 10
                         font.bold: true
-                        color: focusedVignette ? patternColor(focusedVignette.pattern) : textPrimary
+                        color: focusedCluster ? patternColor(focusedCluster.pattern) : textPrimary
                         elide: Text.ElideRight
                         width: Math.min(implicitWidth, 180)
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: (focusedVignetteIndex + 1) + " / " + (vignetteModel ? vignetteModel.count : 0)
+                        text: (focusedClusterIndex + 1) + " / " + (clusterModel ? clusterModel.count : 0)
                         font.pixelSize: 9
                         color: textSecondary
                     }
@@ -741,7 +857,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: focusNextVignette()
+                        onClicked: focusNextCluster()
                     }
                 }
 
@@ -796,7 +912,7 @@ Page {
                 }
             }
 
-            // Action buttons row (hidden when focused on a vignette)
+            // Action buttons row (hidden when focused on a cluster)
             Row {
                 visible: !isFocused
                 anchors.right: parent.right
@@ -804,9 +920,49 @@ Page {
                 y: miniGraphY + miniGraphH + 8
                 spacing: 8
 
-                // Collapse/Expand all button (only shown when vignettes exist)
+                // Show Clusters toggle
+                Row {
+                    visible: clusterModel && clusterModel.hasClusters
+                    spacing: 4
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Rectangle {
+                        width: 32; height: 18; radius: 9
+                        color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#444450" : "#c0c0c8")
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Rectangle {
+                            width: 14; height: 14; radius: 7
+                            color: "white"
+                            x: showClusters ? parent.width - width - 2 : 2
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Behavior on x { NumberAnimation { duration: 150 } }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                showClusters = !showClusters
+                                if (!showClusters) {
+                                    focusedClusterIndex = -1
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "Clusters"
+                        font.pixelSize: 10
+                        color: textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                // Collapse/Expand all button (only shown when clusters exist and enabled)
                 Rectangle {
-                    visible: vignetteModel && vignetteModel.hasVignettes
+                    visible: showClusters && clusterModel && clusterModel.hasClusters
                     width: collapseText.width + 12
                     height: 24
                     radius: 12
@@ -817,9 +973,9 @@ Page {
                         anchors.centerIn: parent
                         text: {
                             var allCollapsed = true
-                            if (vignetteModel && vignetteModel.vignettes) {
-                                for (var i = 0; i < vignetteModel.vignettes.length; i++) {
-                                    if (!collapsedVignettes[vignetteModel.vignettes[i].id]) {
+                            if (clusterModel && clusterModel.clusters) {
+                                for (var i = 0; i < clusterModel.clusters.length; i++) {
+                                    if (!collapsedClusters[clusterModel.clusters[i].id]) {
                                         allCollapsed = false
                                         break
                                     }
@@ -835,39 +991,39 @@ Page {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (!vignetteModel || !vignetteModel.vignettes) return
+                            if (!clusterModel || !clusterModel.clusters) return
                             var allCollapsed = true
-                            for (var i = 0; i < vignetteModel.vignettes.length; i++) {
-                                if (!collapsedVignettes[vignetteModel.vignettes[i].id]) {
+                            for (var i = 0; i < clusterModel.clusters.length; i++) {
+                                if (!collapsedClusters[clusterModel.clusters[i].id]) {
                                     allCollapsed = false
                                     break
                                 }
                             }
                             var newCollapsed = {}
-                            for (var j = 0; j < vignetteModel.vignettes.length; j++) {
-                                newCollapsed[vignetteModel.vignettes[j].id] = !allCollapsed
+                            for (var j = 0; j < clusterModel.clusters.length; j++) {
+                                newCollapsed[clusterModel.clusters[j].id] = !allCollapsed
                             }
-                            collapsedVignettes = newCollapsed
+                            collapsedClusters = newCollapsed
                         }
                     }
                 }
 
-                // Vignette count
+                // Cluster count
                 Text {
-                    visible: vignetteModel && vignetteModel.hasVignettes
-                    text: vignetteModel ? vignetteModel.count + " episodes" : ""
+                    visible: showClusters && clusterModel && clusterModel.hasClusters
+                    text: clusterModel ? clusterModel.count + " clusters" : ""
                     font.pixelSize: 10
                     color: textSecondary
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
-                // Detect Episodes button
+                // Detect Clusters button
                 Rectangle {
                     width: detectRow.width + 12
                     height: 24
                     radius: 12
-                    color: vignetteModel && vignetteModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
-                    opacity: vignetteModel && vignetteModel.detecting ? 0.6 : 0.9
+                    color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
+                    opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
 
                     Row {
                         id: detectRow
@@ -875,7 +1031,7 @@ Page {
                         spacing: 4
 
                         Text {
-                            text: vignetteModel && vignetteModel.detecting ? "..." : (vignetteModel && vignetteModel.hasVignettes ? "Re-detect" : "Find Episodes")
+                            text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
                             font.pixelSize: 10
                             font.bold: true
                             color: "white"
@@ -885,11 +1041,11 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: vignetteModel && !vignetteModel.detecting
+                        enabled: clusterModel && !clusterModel.detecting
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: {
-                            if (vignetteModel) {
-                                vignetteModel.detect()
+                            if (clusterModel) {
+                                clusterModel.detect()
                             }
                         }
                     }
@@ -929,7 +1085,7 @@ Page {
             delegate: Item {
                 id: delegateRoot
                 width: ListView.view.width
-                height: hideCompletely ? 0 : (vignetteHeaderHeight + (showEventContent ? eventHeight : 0))
+                height: hideCompletely ? 0 : (clusterHeaderHeight + (showEventContent ? eventHeight : 0))
                 clip: true
                 visible: !hideCompletely
 
@@ -940,41 +1096,42 @@ Page {
                 property real swipeX: 0
                 property real actionWidth: 75
 
-                // Vignette grouping properties
-                property var vignette: vignetteForEventIndex(index)
-                property bool isFirstInVignette: isFirstEventInVignette(index)
-                property bool isVignetteCollapsed: vignette && isEventVignetteCollapsed(index)
-                property bool hideCompletely: isVignetteCollapsed && !isFirstInVignette
-                property bool showEventContent: !isVignetteCollapsed || !vignette
-                property real vignetteHeaderHeight: isFirstInVignette ? 72 : 0
+                // Cluster grouping properties (only apply when showClusters is true)
+                property var cluster: showClusters ? clusterForEventIndex(index) : null
+                property bool isFirstInCluster: showClusters && isFirstEventInCluster(index)
+                property bool isClusterCollapsed: showClusters && cluster && isEventClusterCollapsed(index)
+                // Hide if: (1) showClusters is ON and event not in any cluster, or (2) cluster collapsed and not first
+                property bool hideCompletely: (showClusters && clusterModel && clusterModel.hasClusters && cluster === null) || (isClusterCollapsed && !isFirstInCluster)
+                property bool showEventContent: !isClusterCollapsed || !cluster
+                property real clusterHeaderHeight: isFirstInCluster ? 72 : 0
                 property real eventHeight: selectedEvent === index ? 140 : 100
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-                // Vignette section header (shown when this is first event in a vignette)
+                // Cluster section header (shown when this is first event in a cluster)
                 Rectangle {
-                    id: vignetteHeader
-                    visible: delegateRoot.isFirstInVignette
+                    id: clusterHeader
+                    visible: delegateRoot.isFirstInCluster
                     width: parent.width - 24
                     height: 64
                     x: 12
                     y: 4
                     radius: 12
                     color: util.IS_UI_DARK_MODE ? "#252535" : "#f0f0f8"
-                    border.color: vignette ? patternColor(vignette.pattern) : dividerColor
+                    border.color: cluster ? patternColor(cluster.pattern) : dividerColor
                     border.width: 1
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (delegateRoot.vignette) {
-                                toggleVignetteCollapsed(delegateRoot.vignette.id)
-                                // Also focus/select this vignette in the graph
-                                if (vignetteModel && vignetteModel.vignettes) {
-                                    for (var i = 0; i < vignetteModel.vignettes.length; i++) {
-                                        if (vignetteModel.vignettes[i].id === delegateRoot.vignette.id) {
-                                            focusVignette(i)
+                            if (delegateRoot.cluster) {
+                                toggleClusterCollapsed(delegateRoot.cluster.id)
+                                // Also focus/select this cluster in the graph
+                                if (clusterModel && clusterModel.clusters) {
+                                    for (var i = 0; i < clusterModel.clusters.length; i++) {
+                                        if (clusterModel.clusters[i].id === delegateRoot.cluster.id) {
+                                            focusCluster(i)
                                             break
                                         }
                                     }
@@ -991,7 +1148,7 @@ Page {
 
                         // Expand/collapse indicator
                         Text {
-                            text: delegateRoot.vignette && collapsedVignettes[delegateRoot.vignette.id] ? "\u25B6" : "\u25BC"
+                            text: delegateRoot.cluster && collapsedClusters[delegateRoot.cluster.id] ? "\u25B6" : "\u25BC"
                             font.pixelSize: 10
                             color: textSecondary
                             anchors.verticalCenter: parent.verticalCenter
@@ -1004,7 +1161,7 @@ Page {
                                 spacing: 8
 
                                 Text {
-                                    text: delegateRoot.vignette ? delegateRoot.vignette.title : ""
+                                    text: delegateRoot.cluster ? delegateRoot.cluster.title : ""
                                     font.pixelSize: 13
                                     font.bold: true
                                     color: textPrimary
@@ -1012,16 +1169,16 @@ Page {
 
                                 // Dominant variable badge
                                 Rectangle {
-                                    visible: delegateRoot.vignette && delegateRoot.vignette.dominantVariable !== undefined && delegateRoot.vignette.dominantVariable !== null && delegateRoot.vignette.dominantVariable !== ""
+                                    visible: delegateRoot.cluster && delegateRoot.cluster.dominantVariable !== undefined && delegateRoot.cluster.dominantVariable !== null && delegateRoot.cluster.dominantVariable !== ""
                                     width: 20
                                     height: 20
                                     radius: 10
-                                    color: delegateRoot.vignette ? dominantVariableColor(delegateRoot.vignette.dominantVariable) : textSecondary
+                                    color: delegateRoot.cluster ? dominantVariableColor(delegateRoot.cluster.dominantVariable) : textSecondary
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: delegateRoot.vignette ? delegateRoot.vignette.dominantVariable : ""
+                                        text: delegateRoot.cluster ? delegateRoot.cluster.dominantVariable : ""
                                         font.pixelSize: 10
                                         font.bold: true
                                         color: "white"
@@ -1035,9 +1192,9 @@ Page {
                                 // Date range
                                 Text {
                                     text: {
-                                        if (!delegateRoot.vignette) return ""
-                                        var start = delegateRoot.vignette.startDate || ""
-                                        var end = delegateRoot.vignette.endDate || ""
+                                        if (!delegateRoot.cluster) return ""
+                                        var start = delegateRoot.cluster.startDate || ""
+                                        var end = delegateRoot.cluster.endDate || ""
                                         if (start === end) return start
                                         return start + " - " + end
                                     }
@@ -1047,17 +1204,17 @@ Page {
 
                                 // Pattern badge
                                 Rectangle {
-                                    visible: delegateRoot.vignette && delegateRoot.vignette.pattern !== undefined && delegateRoot.vignette.pattern !== null && delegateRoot.vignette.pattern !== ""
+                                    visible: delegateRoot.cluster && delegateRoot.cluster.pattern !== undefined && delegateRoot.cluster.pattern !== null && delegateRoot.cluster.pattern !== ""
                                     width: patternLabelText.width + 10
                                     height: 16
                                     radius: 8
-                                    color: delegateRoot.vignette ? patternColor(delegateRoot.vignette.pattern) : textSecondary
+                                    color: delegateRoot.cluster ? patternColor(delegateRoot.cluster.pattern) : textSecondary
                                     opacity: 0.85
 
                                     Text {
                                         id: patternLabelText
                                         anchors.centerIn: parent
-                                        text: delegateRoot.vignette ? patternLabel(delegateRoot.vignette.pattern) : ""
+                                        text: delegateRoot.cluster ? patternLabel(delegateRoot.cluster.pattern) : ""
                                         font.pixelSize: 9
                                         font.bold: true
                                         color: "white"
@@ -1066,7 +1223,7 @@ Page {
 
                                 // Event count
                                 Text {
-                                    text: delegateRoot.vignette && delegateRoot.vignette.eventIds ? delegateRoot.vignette.eventIds.length + " events" : ""
+                                    text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? delegateRoot.cluster.eventIds.length + " events" : ""
                                     font.pixelSize: 10
                                     color: textSecondary
                                 }
@@ -1079,7 +1236,7 @@ Page {
                 Rectangle {
                     visible: delegateRoot.showEventContent
                     anchors.left: parent.left
-                    y: delegateRoot.vignetteHeaderHeight
+                    y: delegateRoot.clusterHeaderHeight
                     height: delegateRoot.eventHeight
                     width: actionWidth
                     color: util.QML_SELECTION_COLOR
@@ -1106,7 +1263,7 @@ Page {
                 Rectangle {
                     visible: delegateRoot.showEventContent
                     anchors.right: parent.right
-                    y: delegateRoot.vignetteHeaderHeight
+                    y: delegateRoot.clusterHeaderHeight
                     height: delegateRoot.eventHeight
                     width: actionWidth
                     color: "#FF3B30"
@@ -1134,7 +1291,7 @@ Page {
                     id: contentRow
                     visible: delegateRoot.showEventContent
                     x: delegateRoot.swipeX
-                    y: delegateRoot.vignetteHeaderHeight
+                    y: delegateRoot.clusterHeaderHeight
                     width: parent.width
                     height: delegateRoot.eventHeight
                     color: selectedEvent === index ? highlightColor : bgColor

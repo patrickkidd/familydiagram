@@ -4,8 +4,8 @@ from pathlib import Path
 
 from btcopilot.schema import (
     Event as SchemaEvent,
-    Vignette,
-    VignettePattern,
+    Cluster,
+    ClusterPattern,
     asdict,
     from_dict,
 )
@@ -26,10 +26,10 @@ def _enumValue(val):
     return val.value if hasattr(val, "value") else val
 
 
-class VignetteModel(QObject):
+class ClusterModel(QObject):
     changed = pyqtSignal()
     detectingChanged = pyqtSignal()
-    vignettesDetected = (
+    clustersDetected = (
         pyqtSignal()
     )  # Emitted after successful detection (for persistence)
     errorOccurred = pyqtSignal(str, arguments=["error"])
@@ -39,9 +39,9 @@ class VignetteModel(QObject):
         self._session = session
         self._scene: Scene | None = None
         self._diagramId: int | None = None
-        self._vignettes: list[dict] = []
-        self._eventToVignette: dict[int, str] = {}
-        self._selectedVignetteId: str | None = None
+        self._clusters: list[dict] = []
+        self._eventToCluster: dict[int, str] = {}
+        self._selectedClusterId: str | None = None
         self._cacheKey: str | None = None
         self._detecting = False
         self._cacheDir: Path | None = None
@@ -63,8 +63,8 @@ class VignetteModel(QObject):
             self._scene.eventAdded.connect(self._onSceneChanged)
             self._scene.eventRemoved.connect(self._onSceneChanged)
             self._scene.eventChanged.connect(self._onSceneChanged)
-        self._vignettes = []
-        self._eventToVignette = {}
+        self._clusters = []
+        self._eventToCluster = {}
         self._cacheKey = None
         self.changed.emit()
 
@@ -88,7 +88,7 @@ class VignetteModel(QObject):
     def _cacheFilePath(self) -> Path | None:
         if not self._cacheDir or not self._diagramId:
             return None
-        return self._cacheDir / f"vignettes_{self._diagramId}.json"
+        return self._cacheDir / f"clusters_{self._diagramId}.json"
 
     def _loadCache(self):
         path = self._cacheFilePath()
@@ -97,13 +97,13 @@ class VignetteModel(QObject):
         try:
             with open(path, "r") as f:
                 data = json.load(f)
-            self._vignettes = data.get("vignettes", [])
+            self._clusters = data.get("clusters", [])
             self._cacheKey = data.get("cacheKey")
             self._buildEventMapping()
             self.changed.emit()
-            _log.info(f"Loaded {len(self._vignettes)} vignettes from cache")
+            _log.info(f"Loaded {len(self._clusters)} clusters from cache")
         except Exception as e:
-            _log.warning(f"Failed to load vignette cache: {e}")
+            _log.warning(f"Failed to load cluster cache: {e}")
 
     def _saveCache(self):
         path = self._cacheFilePath()
@@ -113,19 +113,19 @@ class VignetteModel(QObject):
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w") as f:
                 json.dump(
-                    {"vignettes": self._vignettes, "cacheKey": self._cacheKey},
+                    {"clusters": self._clusters, "cacheKey": self._cacheKey},
                     f,
                     indent=2,
                 )
-            _log.info(f"Saved {len(self._vignettes)} vignettes to cache")
+            _log.info(f"Saved {len(self._clusters)} clusters to cache")
         except Exception as e:
-            _log.warning(f"Failed to save vignette cache: {e}")
+            _log.warning(f"Failed to save cluster cache: {e}")
 
     def _buildEventMapping(self):
-        self._eventToVignette = {}
-        for v in self._vignettes:
-            for eventId in v.get("eventIds", []):
-                self._eventToVignette[eventId] = v.get("id")
+        self._eventToCluster = {}
+        for c in self._clusters:
+            for eventId in c.get("eventIds", []):
+                self._eventToCluster[eventId] = c.get("id")
 
     def setCacheDir(self, path: Path):
         self._cacheDir = path
@@ -135,18 +135,18 @@ class VignetteModel(QObject):
     def detect(self):
         if not self._scene or not self._diagramId or not self._session:
             _log.warning(
-                "Cannot detect vignettes: missing scene, diagramId, or session"
+                "Cannot detect clusters: missing scene, diagramId, or session"
             )
             return
 
         if self._detecting:
-            _log.warning("Vignette detection already in progress")
+            _log.warning("Cluster detection already in progress")
             return
 
         events = self._scene.events(onlyDated=True)
         if not events:
-            self._vignettes = []
-            self._eventToVignette = {}
+            self._clusters = []
+            self._eventToCluster = {}
             self._cacheKey = None
             self.changed.emit()
             return
@@ -184,29 +184,29 @@ class VignetteModel(QObject):
         self._detecting = True
         self.detectingChanged.emit()
 
-        _log.info(f"Requesting vignette detection for {len(events_data)} events")
+        _log.info(f"Requesting cluster detection for {len(events_data)} events")
 
         def onSuccess(data):
             self._detecting = False
             self.detectingChanged.emit()
-            self._vignettes = data.get("vignettes", [])
+            self._clusters = data.get("clusters", [])
             self._cacheKey = data.get("cacheKey")
             self._buildEventMapping()
             self._saveCache()
             self.changed.emit()
-            self.vignettesDetected.emit()
-            _log.info(f"Received {len(self._vignettes)} vignettes")
+            self.clustersDetected.emit()
+            _log.info(f"Received {len(self._clusters)} clusters")
 
         def onError(reply: QNetworkReply):
             self._detecting = False
             self.detectingChanged.emit()
             error = reply.errorString() if reply else "Unknown error"
-            _log.error(f"Vignette detection failed: {error}")
+            _log.error(f"Cluster detection failed: {error}")
             self.errorOccurred.emit(error)
 
         reply = self._session.server().nonBlockingRequest(
             "POST",
-            f"/personal/diagrams/{self._diagramId}/vignettes",
+            f"/personal/diagrams/{self._diagramId}/clusters",
             data={"events": events_data},
             error=lambda: onError(reply),
             success=onSuccess,
@@ -218,67 +218,67 @@ class VignetteModel(QObject):
         )
 
     @pyqtProperty("QVariantList", notify=changed)
-    def vignettes(self) -> list[dict]:
-        return self._vignettes
+    def clusters(self) -> list[dict]:
+        return self._clusters
 
     @pyqtProperty(int, notify=changed)
     def count(self) -> int:
-        return len(self._vignettes)
+        return len(self._clusters)
 
     @pyqtProperty(bool, notify=changed)
-    def hasVignettes(self) -> bool:
-        return len(self._vignettes) > 0
+    def hasClusters(self) -> bool:
+        return len(self._clusters) > 0
 
     @pyqtProperty(bool, notify=detectingChanged)
     def detecting(self) -> bool:
         return self._detecting
 
     @pyqtProperty(str, notify=changed)
-    def selectedVignetteId(self) -> str:
-        return self._selectedVignetteId or ""
+    def selectedClusterId(self) -> str:
+        return self._selectedClusterId or ""
 
-    @selectedVignetteId.setter
-    def selectedVignetteId(self, value: str):
-        if self._selectedVignetteId == value:
+    @selectedClusterId.setter
+    def selectedClusterId(self, value: str):
+        if self._selectedClusterId == value:
             return
-        self._selectedVignetteId = value if value else None
+        self._selectedClusterId = value if value else None
         self.changed.emit()
 
     @pyqtSlot(str)
-    def selectVignette(self, vignetteId: str):
-        self.selectedVignetteId = vignetteId
+    def selectCluster(self, clusterId: str):
+        self.selectedClusterId = clusterId
 
     @pyqtSlot(int, result=str)
-    def vignetteForEvent(self, eventId: int) -> str:
-        return self._eventToVignette.get(eventId, "")
+    def clusterForEvent(self, eventId: int) -> str:
+        return self._eventToCluster.get(eventId, "")
 
     @pyqtSlot(str, result="QVariantMap")
-    def vignetteById(self, vignetteId: str) -> dict:
-        for v in self._vignettes:
-            if v.get("id") == vignetteId:
-                return v
+    def clusterById(self, clusterId: str) -> dict:
+        for c in self._clusters:
+            if c.get("id") == clusterId:
+                return c
         return {}
 
     @pyqtSlot(int, result="QVariantMap")
-    def vignetteAt(self, index: int) -> dict:
-        if 0 <= index < len(self._vignettes):
-            return self._vignettes[index]
+    def clusterAt(self, index: int) -> dict:
+        if 0 <= index < len(self._clusters):
+            return self._clusters[index]
         return {}
 
     @pyqtSlot(str, result="QVariantList")
-    def eventsInVignette(self, vignetteId: str) -> list[int]:
-        for v in self._vignettes:
-            if v.get("id") == vignetteId:
-                return v.get("eventIds", [])
+    def eventsInCluster(self, clusterId: str) -> list[int]:
+        for c in self._clusters:
+            if c.get("id") == clusterId:
+                return c.get("eventIds", [])
         return []
 
     @property
     def cacheKey(self) -> str | None:
         return self._cacheKey
 
-    def setVignettesData(self, vignettes: list[dict], cacheKey: str | None):
-        self._vignettes = vignettes
+    def setClustersData(self, clusters: list[dict], cacheKey: str | None):
+        self._clusters = clusters
         self._cacheKey = cacheKey
         self._buildEventMapping()
         self.changed.emit()
-        _log.info(f"Loaded {len(self._vignettes)} vignettes from diagram data")
+        _log.info(f"Loaded {len(self._clusters)} clusters from diagram data")
