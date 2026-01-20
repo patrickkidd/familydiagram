@@ -1323,8 +1323,9 @@ class QtInspector:
         return result
 
     def _getLearnState(self, controller, rootItem) -> Dict[str, Any]:
-        """Get Learn tab state (sarfGraphModel + QML)."""
+        """Get Learn tab state (sarfGraphModel + clusterModel + QML)."""
         model = controller.sarfGraphModel
+        clusterModel = controller.clusterModel
 
         result = {
             "success": True,
@@ -1337,6 +1338,12 @@ class QtInspector:
                 "eventCount": len(model.events),
                 "events": model.events,
                 "cumulative": model.cumulative,
+            },
+            "clusters": {
+                "count": clusterModel.count,
+                "hasClusters": clusterModel.hasClusters,
+                "detecting": clusterModel.detecting,
+                "clusters": clusterModel.clusters,
             },
         }
 

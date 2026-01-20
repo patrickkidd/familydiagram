@@ -27,7 +27,8 @@ def _enumValue(val):
 
 
 class ClusterModel(QObject):
-    changed = pyqtSignal()
+    changed = pyqtSignal()  # Emitted when cluster data changes
+    selectionChanged = pyqtSignal()  # Emitted when selected cluster changes
     detectingChanged = pyqtSignal()
     clustersDetected = (
         pyqtSignal()
@@ -79,11 +80,11 @@ class ClusterModel(QObject):
         self._diagramId = value
         self._loadCache()
 
-    def _onSceneChanged(self, *args):
-        pass
-
     def deinit(self):
         self.scene = None
+
+    def _onSceneChanged(self, *args):
+        pass
 
     def _cacheFilePath(self) -> Path | None:
         if not self._cacheDir or not self._diagramId:
@@ -134,9 +135,7 @@ class ClusterModel(QObject):
     @pyqtSlot()
     def detect(self):
         if not self._scene or not self._diagramId or not self._session:
-            _log.warning(
-                "Cannot detect clusters: missing scene, diagramId, or session"
-            )
+            _log.warning("Cannot detect clusters: missing scene, diagramId, or session")
             return
 
         if self._detecting:
@@ -233,7 +232,7 @@ class ClusterModel(QObject):
     def detecting(self) -> bool:
         return self._detecting
 
-    @pyqtProperty(str, notify=changed)
+    @pyqtProperty(str, notify=selectionChanged)
     def selectedClusterId(self) -> str:
         return self._selectedClusterId or ""
 
@@ -242,7 +241,7 @@ class ClusterModel(QObject):
         if self._selectedClusterId == value:
             return
         self._selectedClusterId = value if value else None
-        self.changed.emit()
+        self.selectionChanged.emit()
 
     @pyqtSlot(str)
     def selectCluster(self, clusterId: str):
@@ -277,8 +276,40 @@ class ClusterModel(QObject):
         return self._cacheKey
 
     def setClustersData(self, clusters: list[dict], cacheKey: str | None):
+        if not self._validateClusters(clusters):
+            _log.warning(
+                "Cluster data is stale (event IDs don't match scene), clearing"
+            )
+            self._clusters = []
+            self._cacheKey = None
+            self._eventToCluster = {}
+            self.changed.emit()
+            return
         self._clusters = clusters
         self._cacheKey = cacheKey
         self._buildEventMapping()
         self.changed.emit()
         _log.info(f"Loaded {len(self._clusters)} clusters from diagram data")
+
+    def _validateClusters(self, clusters: list[dict]) -> bool:
+        if not clusters or not self._scene:
+            return True  # No clusters or no scene to validate against
+        sceneEventIds = {e.id for e in self._scene.events(onlyDated=True)}
+        if not sceneEventIds:
+            return True  # No events in scene
+        clusterEventIds = set()
+        for c in clusters:
+            clusterEventIds.update(c.get("eventIds", []))
+        if not clusterEventIds:
+            return True  # No event IDs in clusters
+        matching = sceneEventIds & clusterEventIds
+        if not matching:
+            _log.warning(
+                f"Stale clusters: scene has {len(sceneEventIds)} events "
+                f"({min(sceneEventIds)}-{max(sceneEventIds)}), "
+                f"clusters reference {len(clusterEventIds)} events "
+                f"({min(clusterEventIds)}-{max(clusterEventIds)}), "
+                f"0 matching"
+            )
+            return False
+        return True

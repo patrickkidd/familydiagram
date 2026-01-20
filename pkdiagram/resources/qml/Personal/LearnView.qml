@@ -966,7 +966,9 @@ Page {
                             if (!focusedCluster) return 0
                             var span = focusedYearSpan
                             if (span < 0.001) span = 0.001
-                            return ((yearFrac - focusedMinYearFrac) / span) * width
+                            var padding = 30
+                            var usableWidth = width - (padding * 2)
+                            return padding + ((yearFrac - focusedMinYearFrac) / span) * usableWidth
                         }
 
                         function yForValue(val) {
