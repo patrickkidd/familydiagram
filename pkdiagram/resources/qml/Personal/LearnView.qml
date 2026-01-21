@@ -232,23 +232,17 @@ Page {
         focusedZoom = 1.0
         focusedScrollX = 0
         hoveredEventGroup = -1
-        // Capture previous cluster before changing focus
-        var prevIdx = focusedClusterIndex
+        // Collapse ALL clusters first (ensures consistent heights for scroll calculation)
+        var newCollapsed = {}
+        for (var c = 0; c < clusterModel.clusters.length; c++) {
+            newCollapsed[clusterModel.clusters[c].id] = true
+        }
+        collapsedClusters = newCollapsed
+
         focusedClusterIndex = idx
         var cluster = clusterModel.clusters[idx]
         if (cluster && cluster.id) {
             clusterModel.selectCluster(cluster.id)
-            // Collapse previously focused cluster
-            var prevCluster = prevIdx >= 0 && prevIdx !== idx && clusterModel.clusters[prevIdx]
-                ? clusterModel.clusters[prevIdx] : null
-            if (prevCluster && prevCluster.id) {
-                var newCollapsed = {}
-                for (var key in collapsedClusters) {
-                    newCollapsed[key] = collapsedClusters[key]
-                }
-                newCollapsed[prevCluster.id] = true
-                collapsedClusters = newCollapsed
-            }
             // Find first event index, scroll to it, then expand after
             if (cluster.eventIds && cluster.eventIds.length > 0 && sarfGraphModel) {
                 var events = sarfGraphModel.events
@@ -270,25 +264,52 @@ Page {
     property string pendingClusterExpand: ""
 
     function scrollToClusterIndex(eventIndex) {
-        // Save current scroll position
-        var originalY = storyList.contentY
-        // Use positionViewAtIndex to calculate target position
-        storyList.positionViewAtIndex(eventIndex, ListView.Beginning)
-        var targetY = storyList.contentY - 20
-        // Restore original position immediately (no visible jump)
-        storyList.contentY = originalY
-        // Clamp target to scroll bounds
+        // Find which cluster index this event belongs to
+        var targetClusterIdx = -1
+        for (var i = 0; i < clusterModel.clusters.length; i++) {
+            var cluster = clusterModel.clusters[i]
+            if (cluster.eventIds) {
+                for (var j = 0; j < cluster.eventIds.length; j++) {
+                    if (sarfGraphModel.events[eventIndex].id === cluster.eventIds[j]) {
+                        targetClusterIdx = i
+                        break
+                    }
+                }
+            }
+            if (targetClusterIdx >= 0) break
+        }
+
+        console.log("scrollToClusterIndex: eventIndex=" + eventIndex + ", targetClusterIdx=" + targetClusterIdx)
+
+        if (targetClusterIdx < 0) return storyList.contentY
+
+        // When all clusters are collapsed, each shows only its header (92px)
+        var collapsedHeaderHeight = 92
+        var targetY = targetClusterIdx * collapsedHeaderHeight - 20
+
+        // Use actual contentHeight (more reliable after layout settles)
         var minY = 0
         var maxY = Math.max(0, storyList.contentHeight - storyList.height)
-        return Math.max(minY, Math.min(targetY, maxY))
+        var clampedY = Math.max(minY, Math.min(targetY, maxY))
+
+        console.log("  targetClusterIdx=" + targetClusterIdx + ", collapsedHeaderHeight=" + collapsedHeaderHeight)
+        console.log("  targetY=" + targetY + " (clusterIdx * 92 - 20)")
+        console.log("  storyList.contentHeight=" + storyList.contentHeight + ", storyList.height=" + storyList.height)
+        console.log("  maxY=" + maxY + ", clampedY=" + clampedY)
+        console.log("  storyList.contentY (before)=" + storyList.contentY)
+
+        return clampedY
     }
 
     Timer {
         id: clusterScrollTimer
-        interval: 50
+        interval: 150  // Allow layout to settle after collapsing clusters
         onTriggered: {
             if (pendingClusterScroll >= 0) {
+                storyList.forceLayout()
+                console.log("clusterScrollTimer triggered, pendingClusterScroll=" + pendingClusterScroll)
                 var targetY = scrollToClusterIndex(pendingClusterScroll)
+                console.log("  scrollAnimation.to = " + targetY + ", starting animation...")
                 scrollAnimation.to = targetY
                 scrollAnimation.start()
                 pendingClusterScroll = -1
@@ -296,11 +317,30 @@ Page {
         }
     }
 
+    property int pendingScrollAdjustIndex: -1
+
     Connections {
         target: scrollAnimation
         function onStopped() {
+            console.log("scrollAnimation stopped, contentY=" + storyList.contentY + ", pendingClusterExpand=" + pendingClusterExpand)
             // Expand cluster after scroll animation completes
             if (pendingClusterExpand !== "") {
+                // Find the event index for this cluster to use in scroll adjustment
+                for (var i = 0; i < clusterModel.clusters.length; i++) {
+                    if (clusterModel.clusters[i].id === pendingClusterExpand) {
+                        var cluster = clusterModel.clusters[i]
+                        if (cluster.eventIds && cluster.eventIds.length > 0) {
+                            for (var j = 0; j < sarfGraphModel.events.length; j++) {
+                                if (sarfGraphModel.events[j].id === cluster.eventIds[0]) {
+                                    pendingScrollAdjustIndex = j
+                                    break
+                                }
+                            }
+                        }
+                        break
+                    }
+                }
+
                 if (collapsedClusters[pendingClusterExpand]) {
                     var newCollapsed = {}
                     for (var key in collapsedClusters) {
@@ -310,9 +350,38 @@ Page {
                     }
                     collapsedClusters = newCollapsed
                 }
+                console.log("  Expanded cluster: " + pendingClusterExpand)
                 pendingClusterExpand = ""
+                // Trigger scroll adjustment after expansion
+                clusterScrollAdjustTimer.restart()
             }
         }
+    }
+
+    Timer {
+        id: clusterScrollAdjustTimer
+        interval: 100
+        onTriggered: {
+            if (pendingScrollAdjustIndex >= 0) {
+                storyList.forceLayout()
+                // Now that cluster is expanded, recalculate and scroll to correct position
+                var targetY = pendingScrollAdjustIndex > 0 ? scrollToClusterIndex(pendingScrollAdjustIndex) : 0
+                console.log("clusterScrollAdjustTimer: adjusting to targetY=" + targetY + ", current contentY=" + storyList.contentY)
+                if (Math.abs(targetY - storyList.contentY) > 10) {
+                    clusterScrollAdjustAnimation.to = targetY
+                    clusterScrollAdjustAnimation.start()
+                }
+                pendingScrollAdjustIndex = -1
+            }
+        }
+    }
+
+    NumberAnimation {
+        id: clusterScrollAdjustAnimation
+        target: storyList
+        property: "contentY"
+        duration: 300
+        easing.type: Easing.OutQuad
     }
 
     function focusNextCluster() {
