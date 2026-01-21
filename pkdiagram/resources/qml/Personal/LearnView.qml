@@ -309,6 +309,8 @@ Page {
                 storyList.forceLayout()
                 console.log("clusterScrollTimer triggered, pendingClusterScroll=" + pendingClusterScroll)
                 var targetY = scrollToClusterIndex(pendingClusterScroll)
+                var maxY = Math.max(0, storyList.contentHeight - storyList.height)
+                targetY = Math.max(0, Math.min(targetY, maxY))
                 console.log("  scrollAnimation.to = " + targetY + ", starting animation...")
                 scrollAnimation.to = targetY
                 scrollAnimation.start()
@@ -366,6 +368,8 @@ Page {
                 storyList.forceLayout()
                 // Now that cluster is expanded, recalculate and scroll to correct position
                 var targetY = pendingScrollAdjustIndex > 0 ? scrollToClusterIndex(pendingScrollAdjustIndex) : 0
+                var maxY = Math.max(0, storyList.contentHeight - storyList.height)
+                targetY = Math.max(0, Math.min(targetY, maxY))
                 console.log("clusterScrollAdjustTimer: adjusting to targetY=" + targetY + ", current contentY=" + storyList.contentY)
                 if (Math.abs(targetY - storyList.contentY) > 10) {
                     clusterScrollAdjustAnimation.to = targetY
@@ -1468,6 +1472,7 @@ Page {
             height: parent.height - headerCard.height - 5
             clip: true
             spacing: 0
+            boundsBehavior: Flickable.StopAtBounds
             model: sarfGraphModel ? sarfGraphModel.events : []
 
             NumberAnimation {
