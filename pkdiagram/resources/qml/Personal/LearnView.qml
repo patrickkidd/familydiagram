@@ -269,27 +269,38 @@ Page {
     property int pendingClusterScroll: -1
     property string pendingClusterExpand: ""
 
+    function scrollToClusterIndex(eventIndex) {
+        // Save current scroll position
+        var originalY = storyList.contentY
+        // Use positionViewAtIndex to calculate target position
+        storyList.positionViewAtIndex(eventIndex, ListView.Beginning)
+        var targetY = storyList.contentY - 20
+        // Restore original position immediately (no visible jump)
+        storyList.contentY = originalY
+        // Clamp target to scroll bounds
+        var minY = 0
+        var maxY = Math.max(0, storyList.contentHeight - storyList.height)
+        return Math.max(minY, Math.min(targetY, maxY))
+    }
+
     Timer {
         id: clusterScrollTimer
         interval: 50
         onTriggered: {
             if (pendingClusterScroll >= 0) {
-                storyList.positionViewAtIndex(pendingClusterScroll, ListView.Beginning)
+                var targetY = scrollToClusterIndex(pendingClusterScroll)
+                scrollAnimation.to = targetY
+                scrollAnimation.start()
                 pendingClusterScroll = -1
-                // Expand after scroll completes
-                if (pendingClusterExpand !== "") {
-                    clusterExpandTimer.restart()
-                }
             }
         }
     }
 
-    Timer {
-        id: clusterExpandTimer
-        interval: 300
-        onTriggered: {
+    Connections {
+        target: scrollAnimation
+        function onStopped() {
+            // Expand cluster after scroll animation completes
             if (pendingClusterExpand !== "") {
-                // Remove from collapsed to expand
                 if (collapsedClusters[pendingClusterExpand]) {
                     var newCollapsed = {}
                     for (var key in collapsedClusters) {
@@ -598,7 +609,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 45
+            height: miniGraphY + miniGraphH + 58
             color: cardColor
 
             // Date range label
@@ -623,7 +634,7 @@ Page {
                 x: 0
                 y: miniGraphY - 10
                 width: parent.width
-                height: miniGraphH + 45
+                height: miniGraphH + 68
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
@@ -869,11 +880,14 @@ Page {
                 visible: focusedClusterIndex >= 0
                 z: 200
 
-                // Animate from bar position to fill the graph area
-                x: gLeft + heroStartX + (0 - heroStartX) * animProgress
-                y: miniGraphY + heroStartY + (0 - heroStartY) * animProgress
-                width: heroStartW + (gWidth - heroStartW) * animProgress
-                height: heroStartH + (miniGraphH - heroStartH) * animProgress
+                property int heroMargin: 8
+                property real graphBgY: miniGraphY - 10
+
+                // Animate from bar position to fill the graph area with even margins (left, right, top)
+                x: gLeft + heroStartX + (heroMargin - heroStartX) * animProgress
+                y: graphBgY + heroStartY + (heroMargin - heroStartY) * animProgress
+                width: heroStartW + (gWidth - heroMargin * 2 - heroStartW) * animProgress
+                height: heroStartH + (miniGraphH + 10 - heroMargin - heroStartH) * animProgress
                 radius: 4 + 4 * animProgress
                 color: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
                 border.color: focusedCluster ? patternColor(focusedCluster.pattern) : "transparent"
@@ -888,7 +902,7 @@ Page {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    height: 22
+                    height: 36
                     color: focusedCluster ? patternColor(focusedCluster.pattern) : textSecondary
                     radius: parent.radius
                     opacity: animProgress
@@ -902,39 +916,40 @@ Page {
                     }
 
                     Text {
-                        x: 6
+                        x: 14
                         anchors.verticalCenter: parent.verticalCenter
                         text: focusedCluster ? focusedCluster.title : ""
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.bold: true
                         color: "white"
                         elide: Text.ElideRight
-                        width: parent.width - 80
+                        width: parent.width - 110
                     }
 
                     Text {
                         anchors.right: heroCloseButton.left
-                        anchors.rightMargin: 6
+                        anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         text: focusedCluster && focusedCluster.eventIds ? focusedCluster.eventIds.length + " events" : ""
-                        font.pixelSize: 8
-                        color: "#ffffffaa"
+                        font.pixelSize: 12
+                        color: "#ffffffdd"
                     }
 
-                    // Close button
+                    // Close button - 44px full iOS tap target
                     Rectangle {
                         id: heroCloseButton
                         anchors.right: parent.right
-                        anchors.rightMargin: 4
+                        anchors.rightMargin: -4
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 16; height: 16; radius: 8
-                        color: "#00000025"
+                        width: 44; height: 44; radius: 22
+                        color: "#00000050"
 
                         Text {
                             anchors.centerIn: parent
                             text: "\u2715"
-                            font.pixelSize: 9
-                            color: "#ffffffcc"
+                            font.pixelSize: 20
+                            font.bold: true
+                            color: "#ffffff"
                         }
 
                         MouseArea {
@@ -950,7 +965,7 @@ Page {
                     id: heroContentArea
                     anchors.fill: parent
                     anchors.topMargin: heroTitleBar.height * animProgress
-                    anchors.margins: 6
+                    anchors.margins: 8
                     clip: true
                     opacity: animProgress > 0.3 ? 1 : 0
 
@@ -1160,12 +1175,12 @@ Page {
                 Text {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    anchors.margins: 4
+                    anchors.margins: 6
                     text: "tap bands for details"
-                    font.pixelSize: 7
+                    font.pixelSize: 10
                     font.italic: true
                     color: textSecondary
-                    opacity: animProgress * 0.6
+                    opacity: animProgress * 0.7
                     visible: focusedZoom < 1.1
                 }
             }
@@ -1174,25 +1189,27 @@ Page {
             Row {
                 visible: isFocused
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH + 8
-                spacing: 8
+                y: miniGraphY + miniGraphH + 6
+                spacing: 16
                 z: 100
+                height: 52
 
                 // Prev button
                 Rectangle {
-                    width: 24; height: 24; radius: 12
+                    width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
                     anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         anchors.centerIn: parent
                         text: "\u25C0"
-                        font.pixelSize: 10
+                        font.pixelSize: 15
                         color: textPrimary
                     }
 
                     MouseArea {
                         anchors.fill: parent
+                        anchors.margins: -2  // Extend tap area to 44pt
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusPrevCluster()
                     }
@@ -1200,14 +1217,14 @@ Page {
 
                 // Current cluster title and count (fixed width to prevent button movement)
                 Column {
-                    width: 140
+                    width: 160
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 0
+                    spacing: 3
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: focusedCluster ? focusedCluster.title : ""
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.bold: true
                         color: focusedCluster ? patternColor(focusedCluster.pattern) : textPrimary
                         elide: Text.ElideRight
@@ -1218,26 +1235,27 @@ Page {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: (focusedClusterIndex + 1) + " / " + (clusterModel ? clusterModel.count : 0)
-                        font.pixelSize: 9
+                        font.pixelSize: 13
                         color: textSecondary
                     }
                 }
 
                 // Next button
                 Rectangle {
-                    width: 24; height: 24; radius: 12
+                    width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
                     anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         anchors.centerIn: parent
                         text: "\u25B6"
-                        font.pixelSize: 10
+                        font.pixelSize: 15
                         color: textPrimary
                     }
 
                     MouseArea {
                         anchors.fill: parent
+                        anchors.margins: -2  // Extend tap area to 44pt
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusNextCluster()
                     }
@@ -1247,46 +1265,47 @@ Page {
             // Legend inside graph (bottom) - centered
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH - 18
-                spacing: 10
+                y: miniGraphY + miniGraphH - 22
+                spacing: 12
                 z: 50
 
                 Row {
-                    spacing: 3
+                    spacing: 4
                     SymptomSymbol { size: 12; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Symptom"; font.pixelSize: 9; font.bold: true; color: symptomColor }
+                    Text { text: "Symptom"; font.pixelSize: 12; font.bold: true; color: symptomColor }
                 }
                 Row {
-                    spacing: 3
+                    spacing: 4
                     AnxietySymbol { size: 12; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Anxiety"; font.pixelSize: 9; font.bold: true; color: anxietyColor }
+                    Text { text: "Anxiety"; font.pixelSize: 12; font.bold: true; color: anxietyColor }
                 }
                 Row {
-                    spacing: 3
+                    spacing: 4
                     RelationshipSymbol { size: 12; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Relationship"; font.pixelSize: 9; font.bold: true; color: relationshipColor }
+                    Text { text: "Relationship"; font.pixelSize: 12; font.bold: true; color: relationshipColor }
                 }
                 Row {
-                    spacing: 3
+                    spacing: 4
                     FunctioningSymbol { size: 12; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Functioning"; font.pixelSize: 9; font.bold: true; color: functioningColor }
+                    Text { text: "Functioning"; font.pixelSize: 12; font.bold: true; color: functioningColor }
                 }
             }
 
             // Clusters toggle (left side, hidden when focused)
             Row {
                 visible: !isFocused && clusterModel && clusterModel.hasClusters
-                x: 8
-                y: miniGraphY + miniGraphH + 10
-                spacing: 4
+                x: 12
+                y: miniGraphY + miniGraphH + 8
+                spacing: 8
+                height: 44
 
                 Rectangle {
-                    width: 32; height: 18; radius: 9
+                    width: 40; height: 24; radius: 12
                     color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#444450" : "#c0c0c8")
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
-                        width: 14; height: 14; radius: 7
+                        width: 20; height: 20; radius: 10
                         color: "white"
                         x: showClusters ? parent.width - width - 2 : 2
                         anchors.verticalCenter: parent.verticalCenter
@@ -1296,6 +1315,7 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
+                        anchors.margins: -10  // Extend tap area to 44pt
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             showClusters = !showClusters
@@ -1308,7 +1328,7 @@ Page {
 
                 Text {
                     text: "Clusters"
-                    font.pixelSize: 10
+                    font.pixelSize: 14
                     color: textSecondary
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -1318,35 +1338,37 @@ Page {
             Row {
                 visible: !isFocused
                 anchors.right: parent.right
-                anchors.rightMargin: 8
-                y: miniGraphY + miniGraphH + 10
-                spacing: 8
+                anchors.rightMargin: 12
+                y: miniGraphY + miniGraphH + 8
+                spacing: 12
+                height: 44
 
                 // Cluster count
                 Text {
                     visible: showClusters && clusterModel && clusterModel.hasClusters
                     text: clusterModel ? clusterModel.count + " clusters" : ""
-                    font.pixelSize: 10
+                    font.pixelSize: 14
                     color: textSecondary
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 // Detect Clusters button
                 Rectangle {
-                    width: detectRow.width + 12
-                    height: 24
-                    radius: 12
+                    width: Math.max(detectRow.width + 24, 90)
+                    height: 32
+                    radius: 16
                     color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
                     opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Row {
                         id: detectRow
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: 6
 
                         Text {
                             text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
-                            font.pixelSize: 10
+                            font.pixelSize: 13
                             font.bold: true
                             color: "white"
                             anchors.verticalCenter: parent.verticalCenter
@@ -1355,6 +1377,7 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
+                        anchors.margins: -6  // Extend tap area to 44pt
                         enabled: clusterModel && !clusterModel.detecting
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: {
@@ -1417,8 +1440,8 @@ Page {
                 // Hide if: (1) showClusters is ON and event not in any cluster, or (2) cluster collapsed and not first
                 property bool hideCompletely: (showClusters && clusterModel && clusterModel.hasClusters && cluster === null) || (isClusterCollapsed && !isFirstInCluster)
                 property bool showEventContent: !isClusterCollapsed || !cluster
-                property real clusterHeaderHeight: isFirstInCluster ? 72 : 0
-                property real eventHeight: selectedEvent === index ? 140 : 100
+                property real clusterHeaderHeight: isFirstInCluster ? 92 : 0
+                property real eventHeight: selectedEvent === index ? 150 : 110
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
@@ -1426,14 +1449,14 @@ Page {
                 Rectangle {
                     id: clusterHeader
                     visible: delegateRoot.isFirstInCluster
-                    width: parent.width - 24
-                    height: 64
-                    x: 12
-                    y: 4
-                    radius: 12
+                    width: parent.width - 32
+                    height: 76
+                    x: 16
+                    y: 8
+                    radius: 14
                     color: util.IS_UI_DARK_MODE ? "#252535" : "#f0f0f8"
                     border.color: cluster ? patternColor(cluster.pattern) : dividerColor
-                    border.width: 1
+                    border.width: 1.5
 
                     MouseArea {
                         anchors.fill: parent
@@ -1463,44 +1486,47 @@ Page {
 
                     Row {
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 10
+                        spacing: 12
 
                         // Expand/collapse indicator
                         Text {
                             text: delegateRoot.cluster && collapsedClusters[delegateRoot.cluster.id] ? "\u25B6" : "\u25BC"
-                            font.pixelSize: 10
+                            font.pixelSize: 14
                             color: textSecondary
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
                         Column {
-                            spacing: 4
+                            spacing: 6
 
                             Row {
-                                spacing: 8
+                                spacing: 10
+                                width: parent.parent.width - 60
 
                                 Text {
                                     text: delegateRoot.cluster ? delegateRoot.cluster.title : ""
-                                    font.pixelSize: 13
+                                    font.pixelSize: 16
                                     font.bold: true
                                     color: textPrimary
+                                    elide: Text.ElideRight
+                                    width: Math.min(implicitWidth, parent.width - 40)
                                 }
 
                                 // Dominant variable badge
                                 Rectangle {
                                     visible: delegateRoot.cluster && delegateRoot.cluster.dominantVariable !== undefined && delegateRoot.cluster.dominantVariable !== null && delegateRoot.cluster.dominantVariable !== ""
-                                    width: 20
-                                    height: 20
-                                    radius: 10
+                                    width: 24
+                                    height: 24
+                                    radius: 12
                                     color: delegateRoot.cluster ? dominantVariableColor(delegateRoot.cluster.dominantVariable) : textSecondary
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: delegateRoot.cluster ? delegateRoot.cluster.dominantVariable : ""
-                                        font.pixelSize: 10
+                                        font.pixelSize: 12
                                         font.bold: true
                                         color: "white"
                                     }
@@ -1508,7 +1534,7 @@ Page {
                             }
 
                             Row {
-                                spacing: 8
+                                spacing: 10
 
                                 // Date range
                                 Text {
@@ -1519,24 +1545,24 @@ Page {
                                         if (start === end) return start
                                         return start + " - " + end
                                     }
-                                    font.pixelSize: 10
+                                    font.pixelSize: 13
                                     color: textSecondary
                                 }
 
                                 // Pattern badge
                                 Rectangle {
                                     visible: delegateRoot.cluster && delegateRoot.cluster.pattern !== undefined && delegateRoot.cluster.pattern !== null && delegateRoot.cluster.pattern !== ""
-                                    width: patternLabelText.width + 10
-                                    height: 16
-                                    radius: 8
+                                    width: patternLabelText.width + 14
+                                    height: 22
+                                    radius: 11
                                     color: delegateRoot.cluster ? patternColor(delegateRoot.cluster.pattern) : textSecondary
-                                    opacity: 0.85
+                                    opacity: 0.9
 
                                     Text {
                                         id: patternLabelText
                                         anchors.centerIn: parent
                                         text: delegateRoot.cluster ? patternLabel(delegateRoot.cluster.pattern) : ""
-                                        font.pixelSize: 9
+                                        font.pixelSize: 12
                                         font.bold: true
                                         color: "white"
                                     }
@@ -1545,7 +1571,7 @@ Page {
                                 // Event count
                                 Text {
                                     text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? delegateRoot.cluster.eventIds.length + " events" : ""
-                                    font.pixelSize: 10
+                                    font.pixelSize: 13
                                     color: textSecondary
                                 }
                             }
@@ -1565,7 +1591,7 @@ Page {
                     Text {
                         anchors.centerIn: parent
                         text: "Edit"
-                        font.pixelSize: 15
+                        font.pixelSize: 17
                         font.weight: Font.Medium
                         color: "#fff"
                     }
@@ -1592,7 +1618,7 @@ Page {
                     Text {
                         anchors.centerIn: parent
                         text: "Delete"
-                        font.pixelSize: 15
+                        font.pixelSize: 17
                         font.weight: Font.Medium
                         color: "#fff"
                     }
@@ -1780,46 +1806,48 @@ Page {
 
                     // Content
                     Column {
-                        x: 70; y: 12
-                        width: parent.width - 90
-                        spacing: 4
+                        x: 70; y: 14
+                        width: parent.width - 100
+                        spacing: 6
 
                         // Date and Who on same row
                         Item {
                             width: parent.width
-                            height: 18
+                            height: 22
                             Text {
                                 text: evt.date
-                                font.pixelSize: 12
+                                font.pixelSize: 14
                                 font.weight: Font.Bold
                                 color: primaryColorForEvent(evt)
                             }
                             Text {
-                                x: 95
+                                x: 105
                                 text: evt.who
-                                font.pixelSize: 12
+                                font.pixelSize: 14
                                 color: textSecondary
                             }
                         }
 
                         Text {
                             text: evt.description
-                            font.pixelSize: 15
+                            font.pixelSize: 17
                             font.weight: Font.Medium
                             color: textPrimary
+                            width: parent.width
+                            wrapMode: Text.WordWrap
                         }
 
                         // Expanded content
                         Column {
                             visible: selectedEvent === index
                             opacity: selectedEvent === index ? 1 : 0
-                            spacing: 4
+                            spacing: 6
 
                             Behavior on opacity { NumberAnimation { duration: 200 } }
 
                             Text {
                                 text: evt.notes || ""
-                                font.pixelSize: 12
+                                font.pixelSize: 14
                                 color: textSecondary
                                 visible: evt.notes && evt.notes.length > 0
                             }
@@ -1827,16 +1855,16 @@ Page {
                             // Relationship pill for Shift events with relationship set
                             Rectangle {
                                 visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
-                                width: 100; height: 24; radius: 12
+                                width: 110; height: 28; radius: 14
                                 color: relationshipColor
 
                                 Row {
                                     anchors.centerIn: parent
-                                    spacing: 4
-                                    RelationshipSymbol { size: 10; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
+                                    spacing: 6
+                                    RelationshipSymbol { size: 12; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
                                     Text {
                                         text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
-                                        font.pixelSize: 9
+                                        font.pixelSize: 12
                                         color: "#fff"
                                     }
                                 }
@@ -1850,7 +1878,7 @@ Page {
                         anchors.rightMargin: 20
                         anchors.verticalCenter: parent.verticalCenter
                         text: selectedEvent === index ? "\u25BC" : "\u25B6"
-                        font.pixelSize: 12
+                        font.pixelSize: 14
                         color: textSecondary
                     }
                 }
