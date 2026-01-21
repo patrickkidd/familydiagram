@@ -482,40 +482,27 @@ Page {
         }
     }
 
-    function patternLabel(pattern) {
-        if (!pattern) return ""
-        switch (pattern) {
-            case "anxiety_cascade": return "Anxiety Cascade"
-            case "triangle_activation": return "Triangle Activation"
-            case "conflict_resolution": return "Conflict Resolution"
-            case "reciprocal_disturbance": return "Reciprocal Disturbance"
-            case "functioning_gain": return "Functioning Gain"
-            case "work_family_spillover": return "Work-Family Spillover"
-            default: return pattern
-        }
-    }
+    readonly property var clusterPalette: [
+        "#e74c3c",  // Red
+        "#9b59b6",  // Purple
+        "#3498db",  // Blue
+        "#27ae60",  // Green
+        "#e67e22",  // Orange
+        "#f39c12",  // Gold
+        "#1abc9c",  // Teal
+        "#e91e63",  // Pink
+        "#00bcd4",  // Cyan
+        "#8bc34a"   // Lime
+    ]
 
-    function patternColor(pattern) {
-        if (!pattern) return textSecondary
-        switch (pattern) {
-            case "anxiety_cascade": return "#e74c3c"
-            case "triangle_activation": return "#9b59b6"
-            case "conflict_resolution": return "#27ae60"
-            case "reciprocal_disturbance": return "#e67e22"
-            case "functioning_gain": return "#3498db"
-            case "work_family_spillover": return "#f39c12"
-            default: return textSecondary
+    function clusterColor(clusterId) {
+        if (!clusterId) return textSecondary
+        var hash = 0
+        for (var i = 0; i < clusterId.length; i++) {
+            hash = ((hash << 5) - hash) + clusterId.charCodeAt(i)
+            hash = hash & hash
         }
-    }
-
-    function dominantVariableColor(variable) {
-        switch (variable) {
-            case "S": return symptomColor
-            case "A": return anxietyColor
-            case "R": return relationshipColor
-            case "F": return functioningColor
-            default: return textSecondary
-        }
+        return clusterPalette[Math.abs(hash) % clusterPalette.length]
     }
 
     function dateToYear(dateStr) {
@@ -841,7 +828,7 @@ Page {
                         width: barWidth
                         height: 28
                         radius: 4
-                        color: patternColor(modelData.pattern)
+                        color: clusterColor(modelData.id)
                         opacity: isHero ? 0 : (1 - animProgress) * (isSelected ? 1.0 : 0.7)
                         visible: opacity > 0 && barX + barWidth > 0 && barX < gWidth
 
@@ -960,10 +947,10 @@ Page {
                 x: gLeft + heroStartX + (heroMargin - heroStartX) * animProgress
                 y: graphBgY + heroStartY + (heroMargin - heroStartY) * animProgress
                 width: heroStartW + (gWidth - heroMargin * 2 - heroStartW) * animProgress
-                height: heroStartH + (miniGraphH + 10 - heroMargin - heroStartH) * animProgress
+                height: heroStartH + (miniGraphH + 50 - heroMargin - heroStartH) * animProgress
                 radius: 4 + 4 * animProgress
                 color: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
-                border.color: focusedCluster ? patternColor(focusedCluster.pattern) : "transparent"
+                border.color: focusedCluster ? clusterColor(focusedCluster.id) : "transparent"
                 border.width: 2
                 clip: true
 
@@ -976,7 +963,7 @@ Page {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 36
-                    color: focusedCluster ? patternColor(focusedCluster.pattern) : textSecondary
+                    color: focusedCluster ? clusterColor(focusedCluster.id) : textSecondary
                     radius: parent.radius
                     opacity: animProgress
 
@@ -1039,6 +1026,7 @@ Page {
                     anchors.fill: parent
                     anchors.topMargin: heroTitleBar.height * animProgress
                     anchors.margins: 8
+                    anchors.bottomMargin: 38
                     clip: true
                     opacity: animProgress > 0.3 ? 1 : 0
 
@@ -1077,7 +1065,7 @@ Page {
                                 y: 0
                                 width: 16 + group.events.length * 8
                                 height: zoomableContent.height
-                                color: focusedCluster ? patternColor(focusedCluster.pattern) : textSecondary
+                                color: focusedCluster ? clusterColor(focusedCluster.id) : textSecondary
                                 opacity: isHovered ? 0.25 : 0.08
                                 radius: 4
 
@@ -1121,6 +1109,7 @@ Page {
                                 var eventIds = focusedCluster.eventIds
 
                                 var dataPoints = []
+                                var relationshipXs = []
                                 for (var i = 0; i < eventIds.length; i++) {
                                     var eventId = eventIds[i]
                                     for (var j = 0; j < events.length; j++) {
@@ -1131,12 +1120,28 @@ Page {
                                                 anxiety: cumulative[j].anxiety,
                                                 functioning: cumulative[j].functioning
                                             })
+                                            if (events[j].relationship) {
+                                                relationshipXs.push(events[j].yearFrac)
+                                            }
                                             break
                                         }
                                     }
                                 }
 
                                 if (dataPoints.length === 0) return
+
+                                // Draw relationship vertical lines first (behind other lines)
+                                if (relationshipXs.length > 0) {
+                                    ctx.strokeStyle = relationshipColor.toString()
+                                    ctx.lineWidth = 1.5
+                                    for (var r = 0; r < relationshipXs.length; r++) {
+                                        var rx = zoomableContent.xForYearFrac(relationshipXs[r])
+                                        ctx.beginPath()
+                                        ctx.moveTo(rx, 0)
+                                        ctx.lineTo(rx, height)
+                                        ctx.stroke()
+                                    }
+                                }
 
                                 var colors = [symptomColor.toString(), anxietyColor.toString(), functioningColor.toString()]
                                 var keys = ['symptom', 'anxiety', 'functioning']
@@ -1244,17 +1249,35 @@ Page {
                     }
                 }
 
-                // Tap bands hint
-                Text {
-                    anchors.right: parent.right
+                // SARF Legend
+                Row {
+                    id: heroLegend
+                    anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
-                    anchors.margins: 6
-                    text: "tap bands for details"
-                    font.pixelSize: 10
-                    font.italic: true
-                    color: textSecondary
-                    opacity: animProgress * 0.7
-                    visible: focusedZoom < 1.1
+                    anchors.bottomMargin: 8
+                    spacing: 12
+                    opacity: animProgress
+
+                    Row {
+                        spacing: 4
+                        SymptomSymbol { size: 12; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Symptom"; font.pixelSize: 11; font.bold: true; color: symptomColor }
+                    }
+                    Row {
+                        spacing: 4
+                        AnxietySymbol { size: 12; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Anxiety"; font.pixelSize: 11; font.bold: true; color: anxietyColor }
+                    }
+                    Row {
+                        spacing: 4
+                        RelationshipSymbol { size: 12; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Relationship"; font.pixelSize: 11; font.bold: true; color: relationshipColor }
+                    }
+                    Row {
+                        spacing: 4
+                        FunctioningSymbol { size: 12; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Functioning"; font.pixelSize: 11; font.bold: true; color: functioningColor }
+                    }
                 }
             }
 
@@ -1262,7 +1285,7 @@ Page {
             Row {
                 visible: isFocused
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH + 6
+                y: miniGraphY + miniGraphH + 46
                 spacing: 16
                 z: 100
                 height: 52
@@ -1299,7 +1322,7 @@ Page {
                         text: focusedCluster ? focusedCluster.title : ""
                         font.pixelSize: 14
                         font.bold: true
-                        color: focusedCluster ? patternColor(focusedCluster.pattern) : textPrimary
+                        color: focusedCluster ? clusterColor(focusedCluster.id) : textPrimary
                         elide: Text.ElideRight
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
@@ -1332,35 +1355,6 @@ Page {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusNextCluster()
                     }
-                }
-            }
-
-            // Legend inside graph (bottom) - centered
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH - 22
-                spacing: 12
-                z: 50
-
-                Row {
-                    spacing: 4
-                    SymptomSymbol { size: 12; symbolColor: symptomColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Symptom"; font.pixelSize: 12; font.bold: true; color: symptomColor }
-                }
-                Row {
-                    spacing: 4
-                    AnxietySymbol { size: 12; symbolColor: anxietyColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Anxiety"; font.pixelSize: 12; font.bold: true; color: anxietyColor }
-                }
-                Row {
-                    spacing: 4
-                    RelationshipSymbol { size: 12; symbolColor: relationshipColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Relationship"; font.pixelSize: 12; font.bold: true; color: relationshipColor }
-                }
-                Row {
-                    spacing: 4
-                    FunctioningSymbol { size: 12; symbolColor: functioningColor; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Functioning"; font.pixelSize: 12; font.bold: true; color: functioningColor }
                 }
             }
 
@@ -1529,7 +1523,7 @@ Page {
                     y: 8
                     radius: 14
                     color: util.IS_UI_DARK_MODE ? "#252535" : "#f0f0f8"
-                    border.color: cluster ? patternColor(cluster.pattern) : dividerColor
+                    border.color: cluster ? clusterColor(cluster.id) : dividerColor
                     border.width: 1.5
 
                     MouseArea {
@@ -1575,36 +1569,13 @@ Page {
                         Column {
                             spacing: 6
 
-                            Row {
-                                spacing: 10
+                            Text {
+                                text: delegateRoot.cluster ? delegateRoot.cluster.title : ""
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: textPrimary
+                                elide: Text.ElideRight
                                 width: parent.parent.width - 60
-
-                                Text {
-                                    text: delegateRoot.cluster ? delegateRoot.cluster.title : ""
-                                    font.pixelSize: 16
-                                    font.bold: true
-                                    color: textPrimary
-                                    elide: Text.ElideRight
-                                    width: Math.min(implicitWidth, parent.width - 40)
-                                }
-
-                                // Dominant variable badge
-                                Rectangle {
-                                    visible: delegateRoot.cluster && delegateRoot.cluster.dominantVariable !== undefined && delegateRoot.cluster.dominantVariable !== null && delegateRoot.cluster.dominantVariable !== ""
-                                    width: 24
-                                    height: 24
-                                    radius: 12
-                                    color: delegateRoot.cluster ? dominantVariableColor(delegateRoot.cluster.dominantVariable) : textSecondary
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: delegateRoot.cluster ? delegateRoot.cluster.dominantVariable : ""
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: "white"
-                                    }
-                                }
                             }
 
                             Row {
@@ -1621,25 +1592,6 @@ Page {
                                     }
                                     font.pixelSize: 13
                                     color: textSecondary
-                                }
-
-                                // Pattern badge
-                                Rectangle {
-                                    visible: delegateRoot.cluster && delegateRoot.cluster.pattern !== undefined && delegateRoot.cluster.pattern !== null && delegateRoot.cluster.pattern !== ""
-                                    width: patternLabelText.width + 14
-                                    height: 22
-                                    radius: 11
-                                    color: delegateRoot.cluster ? patternColor(delegateRoot.cluster.pattern) : textSecondary
-                                    opacity: 0.9
-
-                                    Text {
-                                        id: patternLabelText
-                                        anchors.centerIn: parent
-                                        text: delegateRoot.cluster ? patternLabel(delegateRoot.cluster.pattern) : ""
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: "white"
-                                    }
                                 }
 
                                 // Event count
