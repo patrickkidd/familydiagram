@@ -283,8 +283,8 @@ Page {
 
         if (targetClusterIdx < 0) return storyList.contentY
 
-        // When all clusters are collapsed, each shows only its header (92px)
-        var collapsedHeaderHeight = 92
+        // When all clusters are collapsed, each shows only its header (84px)
+        var collapsedHeaderHeight = 84
         var targetY = targetClusterIdx * collapsedHeaderHeight - 20
 
         // Use actual contentHeight (more reliable after layout settles)
@@ -293,7 +293,7 @@ Page {
         var clampedY = Math.max(minY, Math.min(targetY, maxY))
 
         console.log("  targetClusterIdx=" + targetClusterIdx + ", collapsedHeaderHeight=" + collapsedHeaderHeight)
-        console.log("  targetY=" + targetY + " (clusterIdx * 92 - 20)")
+        console.log("  targetY=" + targetY + " (clusterIdx * 84 - 20)")
         console.log("  storyList.contentHeight=" + storyList.contentHeight + ", storyList.height=" + storyList.height)
         console.log("  maxY=" + maxY + ", clampedY=" + clampedY)
         console.log("  storyList.contentY (before)=" + storyList.contentY)
@@ -669,7 +669,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 58
+            height: miniGraphY + miniGraphH + 56
             color: cardColor
 
             // Date range label
@@ -694,17 +694,17 @@ Page {
                 x: 0
                 y: miniGraphY - 10
                 width: parent.width
-                height: miniGraphH + 68
+                height: miniGraphH + 70
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
 
-            // Baseline
-            Rectangle {
-                x: gLeft; y: yPosMini(0)
-                width: gWidth; height: 1
-                color: dividerColor
-            }
+            // // Baseline
+            // Rectangle {
+            //     x: gLeft; y: yPosMini(0)
+            //     width: gWidth; height: 1
+            //     color: dividerColor
+            // }
 
             // Graph lines
             Canvas {
@@ -1360,7 +1360,7 @@ Page {
 
             // Clusters toggle (left side, hidden when focused)
             Row {
-                visible: !isFocused && clusterModel && clusterModel.hasClusters
+                visible: false // !isFocused && clusterModel && clusterModel.hasClusters
                 x: 12
                 y: miniGraphY + miniGraphH + 8
                 spacing: 8
@@ -1457,17 +1457,29 @@ Page {
             }
         }
 
+        // Divider between header and list
+        Rectangle {
+            x: 0
+            y: isFocused ? (miniGraphY + miniGraphH + 102) : (headerCard.height + 4)
+            width: parent.width
+            height: 1
+            color: util.IS_UI_DARK_MODE ? "#404050" : "#c0c0c8"
+        }
+
         // Story List
         ListView {
             id: storyList
             objectName: "storyList"
-            x: 0; y: headerCard.height + 5
+            property real unfocusedY: headerCard.height + 5
+            property real focusedY: miniGraphY + miniGraphH + 103
+            x: 0; y: isFocused ? focusedY : unfocusedY
             width: parent.width
-            height: parent.height - headerCard.height - 5
+            height: parent.height - y
             clip: true
             spacing: 0
             boundsBehavior: Flickable.StopAtBounds
             model: sarfGraphModel ? sarfGraphModel.events : []
+            header: Item { height: 12 }  // Top margin for first cluster card
 
             NumberAnimation {
                 id: scrollAnimation
@@ -1508,7 +1520,7 @@ Page {
                 // Hide if: (1) showClusters is ON and event not in any cluster, or (2) cluster collapsed and not first
                 property bool hideCompletely: (showClusters && clusterModel && clusterModel.hasClusters && cluster === null) || (isClusterCollapsed && !isFirstInCluster)
                 property bool showEventContent: !isClusterCollapsed || !cluster
-                property real clusterHeaderHeight: isFirstInCluster ? 92 : 0
+                property real clusterHeaderHeight: isFirstInCluster ? 84 : 0
                 property real eventHeight: selectedEvent === index ? 150 : 110
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
@@ -1520,7 +1532,7 @@ Page {
                     width: parent.width - 32
                     height: 76
                     x: 16
-                    y: 8
+                    y: 4
                     radius: 14
                     color: util.IS_UI_DARK_MODE ? "#252535" : "#f0f0f8"
                     border.color: cluster ? clusterColor(cluster.id) : dividerColor
