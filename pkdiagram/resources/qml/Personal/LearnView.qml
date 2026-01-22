@@ -263,7 +263,18 @@ Page {
             focusedClusterIndex = -1
             return
         }
-        // Capture hero start position from the clicked bar
+        var cluster = clusterModel.clusters[idx]
+        // Calculate bar position from cluster data if not provided
+        if (barX === undefined && cluster) {
+            var startFrac = dateToYearFrac(cluster.startDate) || clusterMinYearFrac
+            var endFrac = dateToYearFrac(cluster.endDate) || clusterMaxYearFrac
+            var row = idx % 3
+            barX = xPosZoomed(startFrac) - gLeft
+            barY = 18 + row * 38 + 4  // +4 for barRect offset within delegate
+            barW = Math.max(minBarWidth, xPosZoomed(endFrac) - xPosZoomed(startFrac))
+            barH = 28
+        }
+        // Capture hero start position from the bar
         heroStartX = barX !== undefined ? barX : 0
         heroStartY = barY !== undefined ? barY : 0
         heroStartW = barW !== undefined ? barW : gWidth
