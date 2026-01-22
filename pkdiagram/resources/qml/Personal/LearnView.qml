@@ -36,17 +36,17 @@ Page {
 
     // Graph properties
     property real graphPadding: 0
-    property real miniGraphY: 10
-    property real miniGraphH: 125
+    property real miniGraphY: 20
+    property real miniGraphH: 145
     property real gLeft: 0
     property real gRight: width
     property real gWidth: gRight - gLeft
 
     // Timeline zoom/pan properties (overview mode)
-    property real timelineZoom: 1.0
+    property real timelineZoom: 2.0 // default
     property real timelineScrollX: 0
     property real minZoom: 1.0
-    property real maxZoom: 5.0
+    property real maxZoom: 20.0
     property int lastClusterCount: 0  // Track to detect re-detection
 
     // Focused view zoom/pan properties
@@ -223,9 +223,9 @@ Page {
         return Math.max(minZoom, Math.min(optimalZoom, maxZoom))
     }
 
+    // defaults
     function applyOptimalZoom() {
-        var newZoom = calculateOptimalZoom()
-        timelineZoom = newZoom
+        timelineZoom = 2.0
         timelineScrollX = 0
     }
 
@@ -721,7 +721,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 46
+            height: miniGraphY + miniGraphH + 98
             color: cardColor
 
             // Date range label
@@ -746,7 +746,7 @@ Page {
                 x: 0
                 y: miniGraphY - 10
                 width: parent.width
-                height: miniGraphH + 60
+                height: miniGraphH + 112
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
@@ -865,6 +865,125 @@ Page {
                         var maxScroll = Math.max(0, newContentWidth - baseWidth)
                         timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
                         timelineZoom = newZoom
+                    }
+                }
+
+                // Time markers on x-axis (adaptive granularity)
+                Repeater {
+                    id: timeMarkers
+
+                    // Calculate visible range and appropriate interval
+                    property real visibleSpan: clusterYearSpan / timelineZoom
+                    property real interval: {
+                        // Choose interval so we get 4-8 markers visible
+                        if (visibleSpan > 10) return 5        // 5 years
+                        if (visibleSpan > 4) return 1         // 1 year
+                        if (visibleSpan > 1.5) return 0.5     // 6 months
+                        if (visibleSpan > 0.6) return 0.25    // 3 months
+                        return 1/12                            // 1 month
+                    }
+
+                    model: {
+                        var markers = []
+                        var start = Math.floor(clusterMinYearFrac / interval) * interval
+                        var end = clusterMaxYearFrac + interval
+                        for (var t = start; t <= end; t += interval) {
+                            markers.push(t)
+                        }
+                        return markers
+                    }
+
+                    Item {
+                        property real markerX: xPosZoomed(modelData) - gLeft
+                        property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
+                        x: markerX
+                        y: 0
+                        width: 1
+                        height: parent.height
+                        visible: markerX > -20 && markerX < gWidth + 20
+
+                        // Vertical line - stops above text
+                        Rectangle {
+                            x: 0
+                            y: 0
+                            width: 1
+                            height: parent.height - 18
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#404050" : "#282838")
+                                : (isYear ? "#c0c0c8" : "#e0e0e8")
+                        }
+
+                        // Label at bottom
+                        Text {
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 4
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: {
+                                if (isYear) return Math.round(modelData)
+                                // Show month for sub-year markers
+                                var year = Math.floor(modelData)
+                                var monthFrac = modelData - year
+                                var month = Math.round(monthFrac * 12) + 1
+                                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+                                return monthNames[month - 1] || ""
+                            }
+                            font.pixelSize: isYear ? 10 : 8
+                            font.bold: isYear
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#606070" : "#404050")
+                                : (isYear ? "#808088" : "#a0a0a8")
+                        }
+                    }
+                }
+
+                // Cluster boundary markers (dashed lines)
+                Repeater {
+                    model: clusterModel ? clusterModel.clusters : []
+
+                    Item {
+                        property real startFrac: dateToYearFrac(modelData.startDate) || clusterMinYearFrac
+                        property real endFrac: dateToYearFrac(modelData.endDate) || clusterMaxYearFrac
+                        property bool isSingleDay: Math.abs(endFrac - startFrac) < 0.003
+                        property real startX: xPosZoomed(startFrac) - gLeft
+                        property real endX: xPosZoomed(endFrac) - gLeft
+
+                        // Start line
+                        Column {
+                            x: startX
+                            y: 0
+                            width: 1
+                            height: parent.height - 18
+                            visible: startX > -20 && startX < gWidth + 20
+                            spacing: 3
+
+                            Repeater {
+                                model: Math.floor((parent.height) / 6)
+                                Rectangle {
+                                    width: 1
+                                    height: 3
+                                    color: util.IS_UI_DARK_MODE ? "#606070" : "#a0a0a8"
+                                }
+                            }
+                        }
+
+                        // End line (only if different from start)
+                        Column {
+                            x: endX
+                            y: 0
+                            width: 1
+                            height: parent.height - 18
+                            visible: !isSingleDay && endX > -20 && endX < gWidth + 20
+                            spacing: 3
+
+                            Repeater {
+                                model: Math.floor((parent.height) / 6)
+                                Rectangle {
+                                    width: 1
+                                    height: 3
+                                    color: util.IS_UI_DARK_MODE ? "#606070" : "#a0a0a8"
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1501,7 +1620,7 @@ Page {
                 visible: !isFocused
                 anchors.right: parent.right
                 anchors.rightMargin: 12
-                y: miniGraphY + miniGraphH + 2
+                y: miniGraphY + miniGraphH + 8
                 spacing: 12
                 height: 36
 
@@ -1555,7 +1674,7 @@ Page {
         // Divider between header and list
         Rectangle {
             x: 0
-            y: miniGraphY + miniGraphH + 50
+            y: miniGraphY + miniGraphH + 102
             width: parent.width
             height: 1
             color: util.IS_UI_DARK_MODE ? "#404050" : "#c0c0c8"
@@ -1565,7 +1684,7 @@ Page {
         ListView {
             id: storyList
             objectName: "storyList"
-            x: 0; y: miniGraphY + miniGraphH + 51
+            x: 0; y: miniGraphY + miniGraphH + 103
             width: parent.width
             height: parent.height - y
             clip: true
