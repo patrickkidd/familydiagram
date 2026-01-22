@@ -36,8 +36,8 @@ Page {
 
     // Graph properties
     property real graphPadding: 0
-    property real miniGraphY: 20
-    property real miniGraphH: 145
+    property real miniGraphY: 10
+    property real miniGraphH: 125
     property real gLeft: 0
     property real gRight: width
     property real gWidth: gRight - gLeft
@@ -47,6 +47,7 @@ Page {
     property real timelineScrollX: 0
     property real minZoom: 1.0
     property real maxZoom: 5.0
+    property int lastClusterCount: 0  // Track to detect re-detection
 
     // Focused view zoom/pan properties
     property real focusedZoom: 1.0
@@ -179,12 +180,53 @@ Page {
     }
 
     function xPosZoomed(year) {
-        if (!showClusters || isFocused) return xPos(year)
+        if (!showClusters) return xPos(year)
+        // Always use cluster year range for cluster bars, regardless of focus state
         var yearStart = clusterMinYearFrac
         var yearSpan = clusterYearSpan
         if (yearSpan === 0) yearSpan = 1
         var baseX = ((year - yearStart) / yearSpan) * gWidth
         return gLeft + baseX * timelineZoom - timelineScrollX
+    }
+
+    // Minimum bar width for tappable clusters
+    readonly property real minBarWidth: 30
+
+    // Calculate optimal zoom so clusters are readable
+    function calculateOptimalZoom() {
+        if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) {
+            return 1.0
+        }
+        var clusters = clusterModel.clusters
+        var yearSpan = clusterYearSpan
+        if (yearSpan < 0.001) yearSpan = 1
+
+        // Find the narrowest cluster's time span
+        var minClusterSpan = yearSpan
+        for (var i = 0; i < clusters.length; i++) {
+            var c = clusters[i]
+            var startFrac = dateToYearFrac(c.startDate) || clusterMinYearFrac
+            var endFrac = dateToYearFrac(c.endDate) || clusterMaxYearFrac
+            var span = Math.max(0.01, endFrac - startFrac)  // At least ~4 days
+            if (span < minClusterSpan) minClusterSpan = span
+        }
+
+        // Calculate zoom needed for narrowest cluster to be minBarWidth pixels
+        // barWidth = (clusterSpan / yearSpan) * gWidth * zoom
+        // minBarWidth = (minClusterSpan / yearSpan) * gWidth * zoom
+        // zoom = minBarWidth / ((minClusterSpan / yearSpan) * gWidth)
+        var baseWidth = (minClusterSpan / yearSpan) * gWidth
+        if (baseWidth < 1) baseWidth = 1
+        var optimalZoom = minBarWidth / baseWidth
+
+        // Clamp to reasonable range
+        return Math.max(minZoom, Math.min(optimalZoom, maxZoom))
+    }
+
+    function applyOptimalZoom() {
+        var newZoom = calculateOptimalZoom()
+        timelineZoom = newZoom
+        timelineScrollX = 0
     }
 
     function groupEventsByDay(eventIds) {
@@ -226,9 +268,7 @@ Page {
         heroStartY = barY !== undefined ? barY : 0
         heroStartW = barW !== undefined ? barW : gWidth
         heroStartH = barH !== undefined ? barH : 28
-        // Reset zoom
-        timelineZoom = 1.0
-        timelineScrollX = 0
+        // Reset focused view zoom (not timeline zoom)
         focusedZoom = 1.0
         focusedScrollX = 0
         hoveredEventGroup = -1
@@ -256,7 +296,8 @@ Page {
                 }
             }
         }
-        // Start animation
+        // Start animation from 0
+        animProgress = 0
         focusAnim.start()
     }
 
@@ -669,7 +710,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 98
+            height: miniGraphY + miniGraphH + 46
             color: cardColor
 
             // Date range label
@@ -694,7 +735,7 @@ Page {
                 x: 0
                 y: miniGraphY - 10
                 width: parent.width
-                height: miniGraphH + 112
+                height: miniGraphH + 60
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
@@ -729,8 +770,15 @@ Page {
                 target: clusterModel
                 function onChanged() {
                     graphCanvas.requestPaint()
-                    // Reset to unfocused mode with all clusters collapsed
-                    collapseAllClusters()
+                    // Check if clusters were re-detected (count changed)
+                    var currentCount = clusterModel && clusterModel.clusters ? clusterModel.clusters.length : 0
+                    if (currentCount !== lastClusterCount) {
+                        lastClusterCount = currentCount
+                        // Reset to unfocused mode with all clusters collapsed
+                        collapseAllClusters()
+                        // Auto-zoom only when clusters are re-detected
+                        applyOptimalZoom()
+                    }
                 }
             }
 
@@ -748,7 +796,7 @@ Page {
                 width: gWidth
                 height: miniGraphH
                 clip: true
-                visible: showClusters && !isFocused
+                visible: showClusters
                 z: 150
 
                 // Wheel scroll for panning
@@ -812,7 +860,7 @@ Page {
                 Repeater {
                     model: clusterModel ? clusterModel.clusters : []
 
-                    Rectangle {
+                    Item {
                         id: clusterBarDelegate
                         objectName: "clusterBar_" + index
                         property real startYearFrac: dateToYearFrac(modelData.startDate) || clusterMinYearFrac
@@ -821,32 +869,60 @@ Page {
                         property bool isSelected: clusterModel && clusterModel.selectedClusterId === modelData.id
                         property bool isHero: focusedClusterIndex === index
                         property real barX: xPosZoomed(startYearFrac) - gLeft
-                        property real barWidth: Math.max(20, xPosZoomed(endYearFrac) - xPosZoomed(startYearFrac))
+                        property real naturalWidth: xPosZoomed(endYearFrac) - xPosZoomed(startYearFrac)
+                        property real barWidth: Math.max(minBarWidth, naturalWidth)
+                        property bool isNarrow: naturalWidth < minBarWidth
+                        property real delegateOpacity: isSelected ? 1.0 : 0.7
 
                         x: barX
-                        y: 8 + row * 34
+                        y: 18 + row * 38
                         width: barWidth
-                        height: 28
-                        radius: 4
-                        color: clusterColor(modelData.id)
-                        opacity: isHero ? 0 : (1 - animProgress) * (isSelected ? 1.0 : 0.7)
-                        visible: opacity > 0 && barX + barWidth > 0 && barX < gWidth
+                        height: 32
+                        visible: delegateOpacity > 0 && barX + barWidth > 0 && barX < gWidth
 
+                        // Label above bar for narrow clusters
                         Text {
-                            anchors.centerIn: parent
+                            visible: clusterBarDelegate.isNarrow
+                            anchors.horizontalCenter: barRect.horizontalCenter
+                            anchors.bottom: barRect.top
+                            anchors.bottomMargin: 2
                             text: modelData.title
-                            font.pixelSize: 9
+                            font.pixelSize: 10
                             font.bold: true
-                            color: "white"
+                            color: clusterColor(modelData.id)
                             elide: Text.ElideRight
-                            width: Math.max(0, parent.width - 6)
+                            width: Math.min(150, gWidth - clusterBarDelegate.x)
                             horizontalAlignment: Text.AlignHCenter
+                            opacity: clusterBarDelegate.delegateOpacity
+                        }
+
+                        Rectangle {
+                            id: barRect
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 28
+                            radius: 4
+                            color: clusterColor(modelData.id)
+                            opacity: clusterBarDelegate.delegateOpacity
+
+                            // Label inside bar for wide clusters
+                            Text {
+                                visible: !clusterBarDelegate.isNarrow
+                                anchors.centerIn: parent
+                                text: modelData.title
+                                font.pixelSize: 11
+                                font.bold: true
+                                color: "white"
+                                elide: Text.ElideRight
+                                width: Math.max(0, parent.width - 10)
+                                horizontalAlignment: Text.AlignHCenter
+                            }
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: if (!isFocused) focusCluster(index, clusterBarDelegate.x, clusterBarDelegate.y, clusterBarDelegate.width, clusterBarDelegate.height)
+                            onClicked: if (!isFocused) focusCluster(index, clusterBarDelegate.x, clusterBarDelegate.y + 4, clusterBarDelegate.width, barRect.height)
                         }
                     }
                 }
@@ -855,10 +931,8 @@ Page {
             // Scroll indicator (shown when zoomed)
             Rectangle {
                 visible: showClusters && !isFocused && timelineZoom > 1.05
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: miniGraphY + miniGraphH + 25
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: gWidth * 0.6; height: 3; radius: 1.5
+                x: 0; y: miniGraphY - 10
+                width: parent.width; height: 3; radius: 0
                 color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
                 z: 160
 
@@ -942,15 +1016,25 @@ Page {
 
                 property int heroMargin: 8
                 property real graphBgY: miniGraphY - 10
+                property real barsBaseY: miniGraphY  // Where cluster bars container starts
+                property color clusterCol: focusedCluster ? clusterColor(focusedCluster.id) : "transparent"
+                property color bgCol: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
 
                 // Animate from bar position to fill the graph area with even margins (left, right, top)
                 x: gLeft + heroStartX + (heroMargin - heroStartX) * animProgress
-                y: graphBgY + heroStartY + (heroMargin - heroStartY) * animProgress
+                // Start at bar position (barsBaseY + heroStartY), animate to graphBgY + heroMargin
+                y: barsBaseY + heroStartY + (graphBgY + heroMargin - barsBaseY - heroStartY) * animProgress
                 width: heroStartW + (gWidth - heroMargin * 2 - heroStartW) * animProgress
                 height: heroStartH + (miniGraphH + 50 - heroMargin - heroStartH) * animProgress
                 radius: 4 + 4 * animProgress
-                color: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
-                border.color: focusedCluster ? clusterColor(focusedCluster.id) : "transparent"
+                // Start with cluster color, transition to background color
+                color: Qt.rgba(
+                    clusterCol.r + (bgCol.r - clusterCol.r) * animProgress,
+                    clusterCol.g + (bgCol.g - clusterCol.g) * animProgress,
+                    clusterCol.b + (bgCol.b - clusterCol.b) * animProgress,
+                    1
+                )
+                border.color: clusterCol
                 border.width: 2
                 clip: true
 
@@ -1406,9 +1490,9 @@ Page {
                 visible: !isFocused
                 anchors.right: parent.right
                 anchors.rightMargin: 12
-                y: miniGraphY + miniGraphH + 8
+                y: miniGraphY + miniGraphH + 2
                 spacing: 12
-                height: 44
+                height: 36
 
                 // Cluster count
                 Text {
@@ -1460,7 +1544,7 @@ Page {
         // Divider between header and list
         Rectangle {
             x: 0
-            y: miniGraphY + miniGraphH + 102
+            y: miniGraphY + miniGraphH + 50
             width: parent.width
             height: 1
             color: util.IS_UI_DARK_MODE ? "#404050" : "#c0c0c8"
@@ -1470,7 +1554,7 @@ Page {
         ListView {
             id: storyList
             objectName: "storyList"
-            x: 0; y: miniGraphY + miniGraphH + 103
+            x: 0; y: miniGraphY + miniGraphH + 51
             width: parent.width
             height: parent.height - y
             clip: true
