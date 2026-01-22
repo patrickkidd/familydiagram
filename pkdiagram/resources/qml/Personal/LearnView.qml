@@ -669,7 +669,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 56
+            height: miniGraphY + miniGraphH + 98
             color: cardColor
 
             // Date range label
@@ -694,7 +694,7 @@ Page {
                 x: 0
                 y: miniGraphY - 10
                 width: parent.width
-                height: miniGraphH + 70
+                height: miniGraphH + 112
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
@@ -1460,7 +1460,7 @@ Page {
         // Divider between header and list
         Rectangle {
             x: 0
-            y: isFocused ? (miniGraphY + miniGraphH + 102) : (headerCard.height + 4)
+            y: miniGraphY + miniGraphH + 102
             width: parent.width
             height: 1
             color: util.IS_UI_DARK_MODE ? "#404050" : "#c0c0c8"
@@ -1470,9 +1470,7 @@ Page {
         ListView {
             id: storyList
             objectName: "storyList"
-            property real unfocusedY: headerCard.height + 5
-            property real focusedY: miniGraphY + miniGraphH + 103
-            x: 0; y: isFocused ? focusedY : unfocusedY
+            x: 0; y: miniGraphY + miniGraphH + 103
             width: parent.width
             height: parent.height - y
             clip: true
