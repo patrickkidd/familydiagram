@@ -833,6 +833,34 @@ def click(name: str, double: bool = False, button: str = "left") -> Dict[str, An
 
 
 @mcp.tool()
+def drag(
+    name: str,
+    startX: int,
+    startY: int,
+    endX: int,
+    endY: int,
+    button: str = "left",
+    steps: int = 10,
+) -> Dict[str, Any]:
+    """Drag within element from (startX, startY) to (endX, endY). Coordinates relative to element."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command(
+        {
+            "command": "drag",
+            "objectName": name,
+            "startPos": [startX, startY],
+            "endPos": [endX, endY],
+            "button": button,
+            "steps": steps,
+        }
+    )
+
+
+@mcp.tool()
 def input(
     text: str = None, key: str = None, name: str = None, modifiers: List[str] = None
 ) -> Dict[str, Any]:

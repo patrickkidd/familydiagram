@@ -811,6 +811,96 @@ class QtInspector:
 
         return {"success": False, "error": f"Element not found: {objectName}"}
 
+    def drag(
+        self,
+        objectName: str,
+        startPos: tuple,
+        endPos: tuple,
+        button: int = Qt.LeftButton,
+        steps: int = 10,
+    ) -> Dict[str, Any]:
+        """
+        Drag from startPos to endPos within an element.
+
+        Args:
+            objectName: Element objectName
+            startPos: (x, y) start position relative to element
+            endPos: (x, y) end position relative to element
+            button: Mouse button
+            steps: Number of intermediate move steps
+
+        Returns:
+            Dict with success status
+        """
+        widget = self._findWidget(objectName)
+        if widget is not None:
+            return self._dragWidget(widget, startPos, endPos, button, steps)
+
+        item = self._findQmlItem(objectName)
+        if item is not None:
+            return self._dragQmlItem(item, startPos, endPos, button, steps)
+
+        return {"success": False, "error": f"Element not found: {objectName}"}
+
+    def _dragWidget(
+        self,
+        widget: QWidget,
+        startPos: tuple,
+        endPos: tuple,
+        button: int,
+        steps: int,
+    ) -> Dict[str, Any]:
+        """Drag within a widget."""
+        startPoint = QPoint(startPos[0], startPos[1])
+        endPoint = QPoint(endPos[0], endPos[1])
+
+        QTest.mousePress(widget, button, Qt.NoModifier, startPoint)
+        self._app.processEvents()
+
+        for i in range(1, steps + 1):
+            t = i / steps
+            x = int(startPoint.x() + (endPoint.x() - startPoint.x()) * t)
+            y = int(startPoint.y() + (endPoint.y() - startPoint.y()) * t)
+            QTest.mouseMove(widget, QPoint(x, y))
+            self._app.processEvents()
+
+        QTest.mouseRelease(widget, button, Qt.NoModifier, endPoint)
+        self._app.processEvents()
+        return {"success": True}
+
+    def _dragQmlItem(
+        self,
+        item: QQuickItem,
+        startPos: tuple,
+        endPos: tuple,
+        button: int,
+        steps: int,
+    ) -> Dict[str, Any]:
+        """Drag within a QML item."""
+        target = self._findWindowForQmlItem(item)
+        if target is None:
+            return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
+
+        # Map positions to scene coordinates
+        startLocal = QPointF(startPos[0], startPos[1])
+        endLocal = QPointF(endPos[0], endPos[1])
+        startScene = item.mapToScene(startLocal).toPoint()
+        endScene = item.mapToScene(endLocal).toPoint()
+
+        QTest.mousePress(target, button, Qt.NoModifier, startScene)
+        self._app.processEvents()
+
+        for i in range(1, steps + 1):
+            t = i / steps
+            x = int(startScene.x() + (endScene.x() - startScene.x()) * t)
+            y = int(startScene.y() + (endScene.y() - startScene.y()) * t)
+            QTest.mouseMove(target, QPoint(x, y))
+            self._app.processEvents()
+
+        QTest.mouseRelease(target, button, Qt.NoModifier, endScene)
+        self._app.processEvents()
+        return {"success": True}
+
     def typeText(
         self,
         text: str,

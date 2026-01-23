@@ -116,6 +116,16 @@ class TestInputSimulator:
             # Just ensure it doesn't crash
             assert isinstance(result, bool)
 
+    def test_drag(self, setup):
+        """Test drag operation."""
+        controller, simulator = setup
+
+        mw = controller.mainWindow
+        if mw:
+            # Drag operation on main window - just ensure it doesn't crash
+            result = simulator.drag(mw, (10, 10), (100, 100))
+            assert isinstance(result, bool)
+
 
 class TestSnapshotManager:
     """Tests for the SnapshotManager component."""

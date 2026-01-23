@@ -807,6 +807,7 @@ Page {
             // Clipped container for zoom/pan
             Item {
                 id: clusterBarsContainer
+                objectName: "clusterBarsContainer"
                 x: gLeft
                 y: miniGraphY
                 width: gWidth
@@ -827,26 +828,7 @@ Page {
                     }
                 }
 
-                // Drag to pan
-                MouseArea {
-                    anchors.fill: parent
-                    z: -1
-                    property real dragStartX: 0
-                    property real dragStartScrollX: 0
-                    property bool isDragging: false
-
-                    onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
-                    onPositionChanged: {
-                        if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
-                            isDragging = true
-                            var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
-                            timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
-                        }
-                    }
-                    onReleased: isDragging = false
-                }
-
-                // Pinch to zoom
+                // Pinch to zoom (with drag-to-pan MouseArea as child)
                 PinchArea {
                     id: clusterPinchArea
                     anchors.fill: parent
@@ -854,11 +836,15 @@ Page {
                     property real startZoom: 1.0
                     property real startScrollX: 0
                     property point startCenter: Qt.point(0, 0)
+                    property point lastCenter: Qt.point(0, 0)
+                    property real accumulatedPan: 0
 
                     onPinchStarted: {
                         startZoom = timelineZoom
                         startScrollX = timelineScrollX
                         startCenter = pinch.center
+                        lastCenter = pinch.center
+                        accumulatedPan = 0
                     }
 
                     onPinchUpdated: {
@@ -866,10 +852,36 @@ Page {
                         var baseWidth = gWidth
                         var newContentWidth = baseWidth * newZoom
                         var pinchXRatio = (startCenter.x + startScrollX) / (baseWidth * startZoom)
-                        var newScrollX = pinchXRatio * newContentWidth - startCenter.x
+                        var newScrollForZoom = pinchXRatio * newContentWidth - startCenter.x
+
+                        // Pan during pinch (both fingers moving together)
+                        var panDelta = lastCenter.x - pinch.center.x
+                        lastCenter = pinch.center
+                        accumulatedPan += panDelta
+
+                        var newScrollX = newScrollForZoom + accumulatedPan
                         var maxScroll = Math.max(0, newContentWidth - baseWidth)
                         timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
                         timelineZoom = newZoom
+                    }
+
+                    // Drag to pan (must be child of PinchArea to receive single-touch events)
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        property real dragStartX: 0
+                        property real dragStartScrollX: 0
+                        property bool isDragging: false
+
+                        onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
+                        onPositionChanged: {
+                            if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
+                                isDragging = true
+                                var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                                timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
+                            }
+                        }
+                        onReleased: isDragging = false
                     }
                 }
 
