@@ -41,6 +41,7 @@ from pkdiagram.models import SceneModel, PeopleModel
 from pkdiagram.views import EventForm
 from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
 from pkdiagram.personal.shakedetector import ShakeDetector
+from pkdiagram.personal.clustermodel import ClusterModel
 
 _log = logging.getLogger(__name__)
 
@@ -87,7 +88,10 @@ class PersonalAppController(QObject):
         self.sceneModel.session = self.session
         self.peopleModel = PeopleModel(self)
         self.sarfGraphModel = SARFGraphModel(self)
+        self.clusterModel = ClusterModel(self.session, self)
         self.pdpChanged.connect(self.sarfGraphModel.refresh)
+        self.diagramChanged.connect(self._onDiagramChanged)
+        self.clusterModel.clustersDetected.connect(self._onClustersDetected)
         self.eventForm = None  # EventForm (from PersonalContainer drawer)
         self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
@@ -101,6 +105,7 @@ class PersonalAppController(QObject):
         engine.rootContext().setContextProperty("sceneModel", self.sceneModel)
         engine.rootContext().setContextProperty("peopleModel", self.peopleModel)
         engine.rootContext().setContextProperty("sarfGraphModel", self.sarfGraphModel)
+        engine.rootContext().setContextProperty("clusterModel", self.clusterModel)
         engine.objectCreated[QObject, QUrl].connect(self.onQmlObjectCreated)
         self._engine = engine
         self.analytics.init()
@@ -115,7 +120,10 @@ class PersonalAppController(QObject):
     def deinit(self):
         self.shakeDetector.stop()
         self.pdpChanged.disconnect(self.sarfGraphModel.refresh)
+        self.diagramChanged.disconnect(self._onDiagramChanged)
+        self.clusterModel.clustersDetected.disconnect(self._onClustersDetected)
         self.sarfGraphModel.deinit()
+        self.clusterModel.deinit()
         self.analytics.init()
         self.session.deinit()
         if self.eventForm:
@@ -182,6 +190,9 @@ class PersonalAppController(QObject):
             diagramData.version = sceneDiagramData.version
             diagramData.versionCompat = sceneDiagramData.versionCompat
             diagramData.name = sceneDiagramData.name
+            # Persist clusters
+            diagramData.clusters = self.clusterModel.clusters
+            diagramData.clusterCacheKey = self.clusterModel.cacheKey
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
@@ -196,6 +207,14 @@ class PersonalAppController(QObject):
         self.peopleModel.scene = scene
         self.sceneModel.scene = scene
         self.sarfGraphModel.scene = scene
+        self.clusterModel.scene = scene
+        # Load persisted clusters AFTER scene is set (scene setter clears clusters)
+        if self._diagram:
+            diagramData = self._diagram.getDiagramData()
+            if diagramData.clusters:
+                self.clusterModel.setClustersData(
+                    diagramData.clusters, diagramData.clusterCacheKey
+                )
         if self.eventForm:
             self.eventForm.setScene(scene)
         # Re-emit pdpChanged so committedPeople gets populated from the scene
@@ -210,9 +229,16 @@ class PersonalAppController(QObject):
         else:
             self.serverError.emit(reply.errorString())
 
-    def onSessionChanged(self, oldFeatures, newFeatures):
-        """Called on login, logout, invalidated token."""
+    def _onDiagramChanged(self):
+        if self._diagram:
+            self.clusterModel.diagramId = self._diagram.id
+        else:
+            self.clusterModel.diagramId = None
 
+    def _onClustersDetected(self):
+        self.saveDiagram()
+
+    def onSessionChanged(self, oldFeatures, newFeatures):
         if self.session.isLoggedIn():
             self.appConfig.set("lastSessionData", self.session.data(), pickled=True)
             self.shakeDetector.start()
@@ -559,7 +585,11 @@ class PersonalAppController(QObject):
         return success
 
     def _addCommittedItemsToScene(self, committedItems: dict):
-        if not committedItems["people"] and not committedItems["events"] and not committedItems["pair_bonds"]:
+        if (
+            not committedItems["people"]
+            and not committedItems["events"]
+            and not committedItems["pair_bonds"]
+        ):
             return
 
         # Phase 1: Create items and build local map (two-phase approach like Scene.read())
@@ -874,7 +904,6 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(bool)
     def clearDiagramData(self, clearPeople: bool):
-        """Clear diagram data, preserving discussions and default people (ID 1, 2)."""
         if not self._diagram or not self.scene:
             return
 

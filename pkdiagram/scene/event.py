@@ -368,7 +368,7 @@ class Event(Item):
         elif self.kind().isPairBond():
             return f"{self.person().firstNameOrAlias(nickname=nickname)} & {self.spouse().firstNameOrAlias(nickname=nickname)}"
         else:
-            return self.person.firstNameOrAlias(nickname=nickname)
+            return self.person().firstNameOrAlias(nickname=nickname)
 
     def description(self):
         if self.shouldShowAliases():
