@@ -11,10 +11,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - For UI constants (colors, spacing, typography, animation), reference
   `doc/UI_STYLE_SPEC.md`. Values come from `pkdiagram/util.py` and are exposed
   to QML via `QmlUtil.CONSTANTS` in `pkdiagram/app/qmlutil.py`.
-- When modifying QML files, UI components, or any visual elements in the Pro or
-  Personal apps, read and follow the design system in `doc/agents/ui-planner.md`
-  before making changes. This includes the Liquid Glass style guide and existing
-  app patterns.
+- **MANDATORY**: When creating new QML components or interactive UI elements
+  requiring design decisions, follow the prototyping process in
+  `doc/agents/ui-planner.md` before writing production code. Skip for bug fixes
+  and single-property tweaks.
 - For undoable app verbs, keep with the pattern of a verb method with
   `undo=False` and then a `def _do_<VERB>` method that does the actual work.
 
@@ -40,6 +40,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Configurations**: pyrightconfig.json configures Pyright/Pylance
 - **Always run linting**: Check for type errors and imports before committing code
 - **Always run black formatter**: `uv run black <filename>`
+
+## MCP Testing with familydiagram-testing Server
+
+### Critical Rules
+
+1. **Close previous app instances first**: Before launching a new app, ALWAYS call `close_app(force=True)` first. Multiple app instances cause port conflicts (bridge server on 9876) and the MCP bridge will connect to the wrong app.
+
+2. **Pro vs Personal app detection**: The `get_app_state()` checks for Pro app MainWindow first. If a Pro app is running, it will always be detected even if you launched Personal. Kill all instances before switching app types.
+
+3. **Wait for full startup**: After launching the Personal app, wait at least 5-6 seconds. The QML UI takes longer to initialize than the Pro app's native widgets.
+
+4. **Verify app type after launch**: Always check `get_app_state()` returns the expected `appType` ("pro" or "personal") before proceeding with tests. Don't assume the launch worked correctly.
+
+5. **One app at a time**: Never attempt to run Pro and Personal apps simultaneously during MCP testing. The bridge server port conflict will cause failures.
+
+### Common Mistakes to Avoid
+
+- **Launching without closing**: Starting a new app while another is running causes bridge connection to wrong process
+- **Wrong app type detection**: Seeing `appType: "pro"` when you expected "personal" means there's a stale Pro app running
+- **Ignoring port errors**: "Address already in use" on port 9876 means close all app instances before retrying
+- **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
 
 ## Architecture Overview
 
@@ -69,7 +90,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - QML is basically just used for the right-side drawer in DocumentView. This right-side drawer becomes the mobile app since QML is mobile-compatible.
   - Every QML view is loaded in a QmlWidgetHelper.
   - The test framework used QQuickItem.objectName() to access items within a view, whcih is now deprecated. We now correctly create root-level properties in each view and access them from QmlWidgetHelper, e.g. DocumentView.caseProps.qml.rootProp('editButton')
-  
+
 
 ### Native C++ Integration
 - **_pkdiagram Module**: C++ extension built with SIP providing platform utilities (CUtil, AppFilter, etc.)
@@ -123,26 +144,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Model Updates**: Use `refreshAllProperties()` to sync model changes to QML bindings
 - Use camelCasing for all method and variable names. Capitalize class names like MyNewClass.
 
-## MCP Testing with familydiagram-testing Server
+## As-Built Documentation
 
-### Critical Rules
+**MANDATORY**: Before modifying any feature, check `doc/asbuilts/` for existing documentation. After completing code changes, update the relevant as-built doc (or create one for new features).
 
-1. **Close previous app instances first**: Before launching a new app, ALWAYS call `close_app(force=True)` first. Multiple app instances cause port conflicts (bridge server on 9876) and the MCP bridge will connect to the wrong app.
+| Feature | Doc | Key Files |
+|---------|-----|-----------|
+| Triangle View | [TRIANGLE_VIEW.md](doc/asbuilts/TRIANGLE_VIEW.md) | `scene/triangle.py`, `models/trianglemodel.py`, `TriangleView.qml` |
 
-2. **Pro vs Personal app detection**: The `get_app_state()` checks for Pro app MainWindow first. If a Pro app is running, it will always be detected even if you launched Personal. Kill all instances before switching app types.
+As-built docs contain:
+- Component relationships and data flow
+- Entry points and exit handlers
+- File change lists
+- Test coverage
+- Implementation details that aren't obvious from code alone
 
-3. **Wait for full startup**: After launching the Personal app, wait at least 5-6 seconds. The QML UI takes longer to initialize than the Pro app's native widgets.
-
-4. **Verify app type after launch**: Always check `get_app_state()` returns the expected `appType` ("pro" or "personal") before proceeding with tests. Don't assume the launch worked correctly.
-
-5. **One app at a time**: Never attempt to run Pro and Personal apps simultaneously during MCP testing. The bridge server port conflict will cause failures.
-
-### Common Mistakes to Avoid
-
-- **Launching without closing**: Starting a new app while another is running causes bridge connection to wrong process
-- **Wrong app type detection**: Seeing `appType: "pro"` when you expected "personal" means there's a stale Pro app running
-- **Ignoring port errors**: "Address already in use" on port 9876 means close all app instances before retrying
-- **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
+**When to update**: Any code change to files listed in an as-built doc requires updating that doc to keep it accurate.
 
 ## Release and Beta Process
 

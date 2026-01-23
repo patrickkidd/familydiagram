@@ -179,6 +179,7 @@
     <addaction name="actionShow_Timeline"/>
     <addaction name="actionShow_Settings"/>
     <addaction name="actionShow_Copilot"/>
+    <addaction name="actionShow_Triangles"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
     <addaction name="actionShow_Aliases"/>
@@ -1071,7 +1072,7 @@
     <string>Show Graphical Timeline</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+5</string>
+    <string>Ctrl+6</string>
    </property>
   </action>
   <action name="actionDeselect_All_Reverse_Tags">
@@ -1087,7 +1088,7 @@
     <string>Show Settings</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+3</string>
+    <string>Ctrl+5</string>
    </property>
   </action>
   <action name="actionShow_View_Scene_Rect">
@@ -1138,7 +1139,7 @@
     <string>Expand Graphical Timeline</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+6</string>
+    <string>Ctrl+7</string>
    </property>
   </action>
   <action name="actionHide_Emotion_Colors">
@@ -1344,6 +1345,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionShow_Triangles">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Triangles</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+3</string>
    </property>
   </action>
   <action name="actionArrange_Selection">

@@ -115,6 +115,8 @@ class ItemDetails(PathItem):
 
     def shouldShowFor(self, dateTime, tags=[], layers=[]):
         """virtual"""
+        if self.scene() and self.scene().activeTriangle():
+            return False
         return True  # let parent show|hide
         # if self.parentItem():
         #     return self.parentItem().shouldShowFor(date, layers=layers)

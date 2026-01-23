@@ -257,17 +257,93 @@ def test_enum_property_undo(scene, attr, setter, value):
     assert getattr(event, attr)() is None
 
 
-@pytest.mark.parametrize(
-    "relationship", [RelationshipKind.Inside, RelationshipKind.Outside]
-)
-def test_triangle(scene, relationship: RelationshipKind):
-    """Test setting and getting triangle members."""
-    person = scene.addItem(Person(name="Person"))
-    spouse = scene.addItem(Person(name="Spouse"))
-    third = scene.addItem(Person(name="Third"))
-    event = scene.addItem(Event(EventKind.Shift, person))
-    event.setRelationship(relationship)
-    event.setRelationshipTargets(spouse)
-    event.setRelationshipTriangles(third)
-    assert event.relationshipTargets() == [spouse]
-    assert event.relationshipTriangles() == [third]
+def test_read_filters_invalid_relationshipTargets(scene, caplog):
+    """Test that invalid person IDs in relationshipTargets are filtered and logged."""
+    from pkdiagram.scene import Scene
+
+    person = scene.addItem(Person())
+    target = scene.addItem(Person())
+
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),  # Need dateTime to avoid pruning
+            relationship=RelationshipKind.Distance,
+            relationshipTargets=[target],
+        )
+    )
+    assert event.relationshipTargets() == [target]
+
+    # Save the scene
+    data = scene.data()
+
+    # Corrupt the data by adding a non-existent person ID to relationshipTargets
+    for eventChunk in data["events"]:
+        if eventChunk["id"] == event.id:
+            eventChunk["relationshipTargets"].append(99999)  # Non-existent ID
+            break
+
+    # Load into a new scene - should not crash
+    newScene = Scene()
+    newScene.read(data)
+
+    # Verify error was logged
+    assert "invalid relationshipTarget IDs" in caplog.text
+    assert "99999" in caplog.text
+
+    # Verify the invalid ID was filtered out
+    loadedEvent = newScene.find(id=event.id)
+    assert len(loadedEvent.relationshipTargets()) == 1
+    loadedTarget = loadedEvent.relationshipTargets()[0]
+    assert loadedTarget.id == target.id
+
+    newScene.deinit()
+
+
+def test_read_filters_invalid_relationshipTriangles(scene, caplog):
+    """Test that invalid person IDs in relationshipTriangles are filtered and logged."""
+    from pkdiagram.scene import Scene
+
+    person = scene.addItem(Person())
+    target = scene.addItem(Person())
+    triangle = scene.addItem(Person())
+
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),  # Need dateTime to avoid pruning
+            relationship=RelationshipKind.Inside,
+            relationshipTargets=[target],
+            relationshipTriangles=[triangle],
+        )
+    )
+    assert event.relationshipTriangles() == [triangle]
+
+    # Save the scene
+    data = scene.data()
+
+    # Corrupt the data by adding a non-existent person ID to relationshipTriangles
+    for eventChunk in data["events"]:
+        if eventChunk["id"] == event.id:
+            eventChunk["relationshipTriangles"].append(88888)  # Non-existent ID
+            break
+
+    # Load into a new scene - should not crash
+    newScene = Scene()
+    newScene.read(data)
+
+    # Verify error was logged
+    assert "invalid relationshipTriangle IDs" in caplog.text
+    assert "88888" in caplog.text
+
+    # Verify the invalid ID was filtered out
+    loadedEvent = newScene.find(id=event.id)
+    assert len(loadedEvent.relationshipTriangles()) == 1
+    loadedTriangle = loadedEvent.relationshipTriangles()[0]
+    assert loadedTriangle.id == triangle.id
+
+    newScene.deinit()
+
+

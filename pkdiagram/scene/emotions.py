@@ -1224,15 +1224,18 @@ class Emotion(PathItem):
     ):
         """
         Event could be none when drawing on the diagram.
+        For targets→triangles emotions, both person and event are passed.
         """
         super().__init__(kind=kind.value, **kwargs)
         if event:
             assert (
                 event.kind() == EventKind.Shift
             ), f"Event kind must be Shift, got {event.kind()}"
-            assert person is None, "Either person or event can be passed, but not both"
-        elif person:
-            assert event is None, "Either person or event can be passed, but not both"
+            # Allow both person and event for targets→triangles emotions
+            if person is not None:
+                assert person in event.relationshipTargets(), (
+                    "When both person and event are passed, person must be a target"
+                )
         assert (
             "layers" not in kwargs
         ), 'Use "Person.setLayers" instead of the "layers=" kwarg in Person.__init__()'
@@ -1244,10 +1247,10 @@ class Emotion(PathItem):
         self.isCreating = (
             False  # don't hide if not initially part of selected scenetags
         )
-        self._event: Event | None = event  # Dated mode
-        self.setEvent(event)
         self._target: "Person | None" = target
         self._person: "Person | None" = person  # Drawing mode
+        self._event: Event | None = event  # Dated mode
+        self.setEvent(event)
         self._layers = []  # cache for &.prop('layers')
         # self.hoverTimer = QTimer(self)
         # self.hoverTimer.setInterval(500)
@@ -1301,15 +1304,34 @@ class Emotion(PathItem):
         return self._event
 
     def setEvent(self, event: Event | None):
+        isTargetsTrianglesEmotion = False
         if event:
             assert (
                 event.kind() == EventKind.Shift
             ), f"Event kind must be Shift, got {event.kind()}"
+            # Triangle event emotions:
+            # - mover→targets: matches event relationship
+            # - mover→triangles: always Outside
+            # - targets→triangles: opposite of event relationship
+            isMoverTriangleEmotion = (
+                event.relationship() in (RelationshipKind.Inside, RelationshipKind.Outside)
+                and self.kind() == RelationshipKind.Outside
+                and self._target in event.relationshipTriangles()
+            )
+            isTargetsTrianglesEmotion = (
+                event.relationship() in (RelationshipKind.Inside, RelationshipKind.Outside)
+                and self._person in event.relationshipTargets()
+                and self._target in event.relationshipTriangles()
+                and self.kind() != event.relationship()
+            )
             assert (
                 event.relationship() == self.kind()
+                or isMoverTriangleEmotion
+                or isTargetsTrianglesEmotion
             ), f"Event relationship {event.relationship()} must match emotion kind {self.kind()}"
         self._event = event
-        if event:
+        # Only clear _person for mover emotions; targets→triangles emotions keep _person
+        if event and not isTargetsTrianglesEmotion:
             self._person = None
 
     def intensity(self) -> int:
@@ -1451,7 +1473,14 @@ class Emotion(PathItem):
             self.isSelected()
         ):  # sort of an override to prevent prop sheets disappearing, updated in ItemSelectedChange
             return True
-        if self.scene().hideEmotionalProcess() is True:
+        # Triangle symbols always show when triangle is active (skip all other checks)
+        triangle = self.scene().activeTriangle() if self.scene() else None
+        if triangle:
+            if self in triangle._symbolItems:
+                return True
+            else:
+                return False
+        if self.scene() and self.scene().hideEmotionalProcess() is True:
             return False
         # Check layer membership for non-event emotions on
         if (

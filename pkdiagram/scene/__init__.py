@@ -4,11 +4,13 @@ from .itemgarbage import ItemGarbage
 from .variablesdatabase import VariablesDatabase
 from .itemanimationhelper import ItemAnimationHelper
 from .emotionalunit import EmotionalUnit
+from .triangle import Triangle
 from .item import Item
 from .event import Event
 from .pathitem import PathItem
 from .itemdetails import ItemDetails
 from .layeritem import LayerItem
+from .layerlabel import LayerLabel
 from .layer import Layer
 from .childof import ChildOf
 from .multiplebirth import MultipleBirth

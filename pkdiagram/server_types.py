@@ -301,6 +301,8 @@ class Diagram:
             pair_bonds=data.get("pair_bonds", []),
             pdp=from_dict(PDP, pdp_dict) if pdp_dict else PDP(),
             lastItemId=data.get("lastItemId", 0),
+            clusters=data.get("clusters", []),
+            clusterCacheKey=data.get("clusterCacheKey"),
         )
 
     def setDiagramData(self, diagramData: DiagramData):
@@ -314,6 +316,8 @@ class Diagram:
             data["events"] = diagramData.events
         if diagramData.pair_bonds:
             data["pair_bonds"] = diagramData.pair_bonds
+        data["clusters"] = diagramData.clusters
+        data["clusterCacheKey"] = diagramData.clusterCacheKey
 
         self.data = pickle.dumps(data)
 

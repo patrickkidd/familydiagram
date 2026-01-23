@@ -44,6 +44,7 @@ Defaults.properties
 **/*.fd/*
 *.egg-info
 screenshots
+hooks.log
 
 ## Generated Sources
 

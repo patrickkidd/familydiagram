@@ -39,6 +39,45 @@ from pkdiagram.scene import (
 _log = logging.getLogger(__name__)
 
 
+class TriangleBadgeItem(QGraphicsPathItem):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._person = parent
+        self._normalPen = None
+        self.setAcceptedMouseButtons(Qt.LeftButton)
+        self.setZValue(100)
+        self.setFlag(QGraphicsItem.ItemIsSelectable, False)
+        self.setFlag(QGraphicsItem.ItemIsFocusable, False)
+        self.setAcceptHoverEvents(False)
+
+    def setNormalStyle(self, pen):
+        self._normalPen = pen
+        self.setPen(pen)
+
+    def paint(self, painter, option, widget):
+        if self._normalPen:
+            painter.setPen(self.pen())
+            painter.setBrush(QBrush(util.WINDOW_BG))
+            painter.drawPath(self.path())
+
+    def mousePressEvent(self, e):
+        if self._normalPen:
+            pressedPen = QPen(self._normalPen)
+            pressedPen.setColor(self._normalPen.color().darker(150))
+            pressedPen.setWidth(3)
+            self.setPen(pressedPen)
+            self.update()
+        e.accept()
+
+    def mouseReleaseEvent(self, e):
+        if self._normalPen:
+            self.setPen(self._normalPen)
+            self.update()
+        self._person.toggleTriangleLayer()
+        e.accept()
+
+
 ANXIETY_COLORS = {
     VariableShift.Up: "red",
     VariableShift.Same: QColor(0, 0, 255, 127),
@@ -249,6 +288,10 @@ class Person(PathItem):
         self.ageItem.setFont(font)
         self.ageItem.setAcceptedMouseButtons(Qt.NoButton)
         self.functioningItem = QGraphicsPathItem(self)
+        self.triangleBadgeItem = TriangleBadgeItem(self)
+        self.towardAwayBadgeItem = QGraphicsPathItem(self)
+        self.towardAwayBadgeItem.setZValue(100)
+        self._activeTriangleEvent = None
         self._delegate = PersonDelegate(self)
         self.setPathItemDelegate(self._delegate)
         #
@@ -884,6 +927,148 @@ class Person(PathItem):
             return self._deathEvent.dateTime()
         return QDateTime()
 
+    # Triangle Badge
+
+    def triangleEventsForMover(self) -> list[Event]:
+        if not self.scene():
+            return []
+        return [
+            e for e in self.events() if e.triangle() is not None and e.person() == self
+        ]
+
+    def updateTriangleBadge(self):
+        from btcopilot.schema import RelationshipKind
+
+        # _log.debug(f"updateTriangleBadge called for {self.name()}")
+
+        if not self.scene():
+            _log.debug(f"  -> no scene, clearing badge")
+            self.triangleBadgeItem.setPath(QPainterPath())
+            self.towardAwayBadgeItem.setPath(QPainterPath())
+            self._activeTriangleEvent = None
+            return
+
+        currentDateTime = self.scene().currentDateTime()
+        if not currentDateTime.isValid():
+            # _log.debug(f"  -> currentDateTime invalid, clearing badge")
+            self.triangleBadgeItem.setPath(QPainterPath())
+            self.towardAwayBadgeItem.setPath(QPainterPath())
+            self._activeTriangleEvent = None
+            return
+
+        activeEvent = None
+        triangleEvents = self.triangleEventsForMover()
+        # _log.debug(
+        #     f"  -> currentDateTime={currentDateTime}, triangleEvents={len(triangleEvents)}"
+        # )
+
+        for event in triangleEvents:
+            startDt = event.dateTime()
+            endDt = event.endDateTime()
+            # _log.debug(f"  -> checking event: startDt={startDt}, endDt={endDt}")
+            if startDt and startDt.isValid():
+                if not endDt or not endDt.isValid():
+                    # _log.debug(
+                    #     f"     startDt.date()={startDt.date()}, currentDateTime.date()={currentDateTime.date()}, match={startDt.date() == currentDateTime.date()}"
+                    # )
+                    if startDt.date() == currentDateTime.date():
+                        activeEvent = event
+                        break
+                elif startDt.date() == endDt.date():
+                    if currentDateTime.date() == startDt.date():
+                        activeEvent = event
+                        break
+                else:
+                    if startDt <= currentDateTime and endDt > currentDateTime:
+                        activeEvent = event
+                        break
+            elif endDt and endDt.isValid():
+                if endDt > currentDateTime:
+                    activeEvent = event
+                    break
+
+        # _log.debug(f"  -> activeEvent={activeEvent}")
+        self._activeTriangleEvent = activeEvent
+
+        if activeEvent:
+            size = 40
+            path = QPainterPath()
+            path.moveTo(0, -size / 2)
+            path.lineTo(size / 2, size / 2)
+            path.lineTo(-size / 2, size / 2)
+            path.closeSubpath()
+
+            rect = self.boundingRect()
+            baseOffset = size / 2 + 5
+            self.triangleBadgeItem.setPos(
+                rect.right() - baseOffset / 2, rect.bottom() - baseOffset
+            )
+            self.triangleBadgeItem.setPath(path)
+
+            if not self.scene() or self.scene().hideEmotionColors():
+                color = util.PEN.color()
+            else:
+                eventColor = activeEvent.color()
+                if eventColor in (None, "transparent", "#ffffff", "#000000"):
+                    if util.IS_UI_DARK_MODE:
+                        color = QColor("#ffffff")
+                    else:
+                        color = QColor("#000000")
+                else:
+                    color = QColor(eventColor)
+            pen = QPen(color, 2)
+            self.triangleBadgeItem.setNormalStyle(pen)
+
+            towardAway = self._findTowardAwayEventOnDate(currentDateTime.date())
+            if towardAway:
+                arrowPath = QPainterPath()
+                arrowSize = 12
+                badgePos = self.triangleBadgeItem.pos()
+                arrowX = badgePos.x()
+                arrowY = badgePos.y() - size / 2 - arrowSize / 2 - 2
+
+                if towardAway == RelationshipKind.Toward:
+                    arrowPath.moveTo(-arrowSize, -arrowSize / 3)
+                    arrowPath.lineTo(0, 0)
+                    arrowPath.lineTo(-arrowSize, arrowSize / 3)
+                else:
+                    arrowPath.moveTo(0, -arrowSize / 3)
+                    arrowPath.lineTo(-arrowSize, 0)
+                    arrowPath.lineTo(0, arrowSize / 3)
+
+                self.towardAwayBadgeItem.setPos(arrowX, arrowY)
+                self.towardAwayBadgeItem.setPath(arrowPath)
+                self.towardAwayBadgeItem.setPen(QPen(color.darker(120), 2))
+            else:
+                self.towardAwayBadgeItem.setPath(QPainterPath())
+        else:
+            self.triangleBadgeItem.setPath(QPainterPath())
+            self.towardAwayBadgeItem.setPath(QPainterPath())
+
+    def _findTowardAwayEventOnDate(self, date):
+        """Find a Toward or Away event for this person on the given date."""
+        from btcopilot.schema import RelationshipKind
+
+        for event in self.events():
+            relationship = event.relationship()
+            if relationship not in (RelationshipKind.Toward, RelationshipKind.Away):
+                continue
+            if event.person() != self:
+                continue
+            startDt = event.dateTime()
+            if startDt and startDt.isValid() and startDt.date() == date:
+                return relationship
+        return None
+
+    def toggleTriangleLayer(self):
+        if self._activeTriangleEvent and self._activeTriangleEvent.triangle():
+            layer = self._activeTriangleEvent.triangle().layer()
+            if layer:
+                if layer.active():
+                    self.scene().deactivateTriangle()
+                else:
+                    layer.setActive(True)
+
     # Showing / Hiding
 
     @util.fblocked  # needed to avoid recursion in multiple births
@@ -1107,6 +1292,7 @@ class Person(PathItem):
 
         self.updatePen()
         self.updateDetails()
+        self.updateTriangleBadge()
 
     def updateAgeText(self):
         if not self.scene():

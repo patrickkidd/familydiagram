@@ -297,7 +297,8 @@ class TestCircularDependencies:
         scene.undo()
 
         assert len(scene.events()) == 2
-        assert len(scene.emotions()) == 2
+        # 6 emotions: 2 events × (1 mover→target + 1 mover→triangle + 1 target→triangle)
+        assert len(scene.emotions()) == 6
 
     def test_blended_family_circular_refs(self, scene):
         """Blended family with children from multiple marriages."""

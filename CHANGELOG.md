@@ -2,9 +2,18 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.20
+
+## 2.1.20b1
+
+- Fixed bugs related to showing triangle graph.
+
 ## 2.1.19
 
-- Don't clear cache when logged out to prevent model index errors later
+## 2.1.19b1
+
+- Added Triangle view, click the triangle badge on a mover to show positions
+- Fix saving free diagram (Don't clear server cache when automatically logged out)
 
 ## 2.1.18
 

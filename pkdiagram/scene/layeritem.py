@@ -67,7 +67,7 @@ class LayerItem(PathItem):
         elif prop.name() == "itemPos":
             # Ignore itemPos when no layers set.
             # Prevents animating to QPointF(0, 0) when disabling active layers.
-            if not self.scene().activeLayers() and not self.isUpdatingAll():
+            if self.scene() and not self.scene().activeLayers() and not self.isUpdatingAll():
                 return
         elif prop.name() == "color":
             # old

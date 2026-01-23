@@ -45,6 +45,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram.scene import (
     EmotionalUnit,
+    Triangle,
     Property,
     Event,
     Item,
@@ -344,6 +345,8 @@ class Scene(QGraphicsScene, Item):
             return False
 
     def setScaleFactor(self, *args, **kwargs):
+        if self.activeTriangle():
+            return
         self.prop("scaleFactor").set(*args, **kwargs)
 
     def addItem(
@@ -464,8 +467,64 @@ class Scene(QGraphicsScene, Item):
                     self._do_addItem(emotion)
                     peopleToUpdate.add(item.person())
                     peopleToUpdate.add(target)
+                # Create emotions for triangle members (Inside/Outside events only)
+                # Inside: mover→targets=Inside, mover→triangles=Outside, targets→triangles=Outside
+                # Outside: mover→targets=Outside, mover→triangles=Outside, targets→triangles=Inside
+                if item.relationship() in (
+                    RelationshipKind.Inside,
+                    RelationshipKind.Outside,
+                ):
+                    # mover→triangles (always Outside)
+                    for triangle in item.relationshipTriangles():
+                        emotion = self.addItem(
+                            Emotion(
+                                kind=RelationshipKind.Outside,
+                                target=triangle,
+                                event=item,
+                                tags=item.tags(),
+                            )
+                        )
+                        self._do_addItem(emotion)
+                        peopleToUpdate.add(item.person())
+                        peopleToUpdate.add(triangle)
+                    # targets→triangles (opposite of event relationship)
+                    targetsTrianglesKind = (
+                        RelationshipKind.Outside
+                        if item.relationship() == RelationshipKind.Inside
+                        else RelationshipKind.Inside
+                    )
+                    for target in item.relationshipTargets():
+                        for triangle in item.relationshipTriangles():
+                            emotion = self.addItem(
+                                Emotion(
+                                    kind=targetsTrianglesKind,
+                                    person=target,
+                                    target=triangle,
+                                    event=item,
+                                    tags=item.tags(),
+                                )
+                            )
+                            self._do_addItem(emotion)
+                            peopleToUpdate.add(target)
+                            peopleToUpdate.add(triangle)
                 for person in peopleToUpdate:
                     person.updateEmotions()
+
+            # Create Triangle Layer for Inside/Outside events
+            if (
+                firstTimeAdding
+                and item.relationship()
+                in (RelationshipKind.Inside, RelationshipKind.Outside)
+                and item.relationshipTriangles()
+            ):
+                triangle = Triangle(item)
+                layer = Layer(internal=True, storeGeometry=True)
+                self.addItem(layer)
+                triangle.setLayer(layer)
+                item.setTriangle(triangle)
+                if not self.isBatchAddingRemovingItems():
+                    triangle.update()
+                    triangle.applyPositionsToLayer()
 
             # Replace singular events
             if item.kind() in (EventKind.Birth, EventKind.Death):
@@ -949,25 +1008,34 @@ class Scene(QGraphicsScene, Item):
                 data["events"].remove(chunk)
                 pruned.append(chunk)
         for chunk in list(data.get("emotions", [])):
+            skip = False
             if (chunk.get("person") and chunk.get("person") not in by_ids) and (
                 chunk.get("event") and chunk.get("event") not in by_ids
             ):
                 log.warning(
                     f"Emotion has no person or event, skipping loading: {chunk}"
                 )
-                data["emotions"].remove(chunk)
-                pruned.append(chunk)
+                skip = True
             elif (
                 chunk.get("kind") != RelationshipKind.Cutoff.value
                 and chunk.get("target") not in by_ids
             ):
                 log.warning(f"Emotion has no target, skipping loading: {chunk}")
-                data["emotions"].remove(chunk)
-                pruned.append(chunk)
+                skip = True
             elif chunk.get("kind") not in list(x.value for x in RelationshipKind):
                 log.warning(f"Emotion has unknown kind, skipping loading: {chunk}")
+                skip = True
+            # Skip emotions that reference non-existent layers (orphaned triangle symbols)
+            emotionLayers = chunk.get("layers", [])
+            if emotionLayers and all(lid not in by_ids for lid in emotionLayers):
+                log.warning(
+                    f"Emotion references non-existent layers, skipping loading: {chunk}"
+                )
+                skip = True
+            if skip:
                 data["emotions"].remove(chunk)
                 pruned.append(chunk)
+                continue
             stale_target = chunk.get("event") and chunk.get("event") not in by_ids
 
         for chunk in list(data.get("multipleBirths", [])):
@@ -1153,6 +1221,25 @@ class Scene(QGraphicsScene, Item):
                 for layer in self.layers(includeInternal=False):
                     if not layer.storeGeometry():
                         layer.prop("storeGeometry").set(True, notify=False)
+
+                # Create Triangle objects for Inside/Outside events loaded from file
+                for event in self._events:
+                    if (
+                        event.relationship()
+                        in (RelationshipKind.Inside, RelationshipKind.Outside)
+                        and event.relationshipTriangles()
+                        and not event.triangle()
+                    ):
+                        triangle = Triangle(event)
+                        layer = Layer(internal=True, storeGeometry=True)
+                        self.addItem(layer)
+                        triangle.setLayer(layer)
+                        event.setTriangle(triangle)
+                        triangle.update()
+                        triangle.applyPositionsToLayer()
+                        if triangle.mover():
+                            triangle.mover().updateTriangleBadge()
+
             if not [x for x in self._events if x.dateTime()]:
                 self.setCurrentDateTime(QDateTime())
 
@@ -1211,6 +1298,9 @@ class Scene(QGraphicsScene, Item):
                 item.write(chunk)
                 data["pair_bonds"].append(chunk)
             elif item.isEmotion:
+                # Skip triangle symbol emotions - they are transient
+                if self._isTriangleSymbol(item):
+                    continue
                 chunk["kind"] = item.kind()
                 item.write(chunk)
                 data["emotions"].append(chunk)
@@ -2129,6 +2219,8 @@ class Scene(QGraphicsScene, Item):
         if prop.name() == "scaleFactor":
             self.updateMouseCursorItem()
         elif prop.name() == "currentDateTime":
+            # Deactivate any active triangle when date changes
+            self.deactivateTriangle()
             # TODO: Figure out why this is calling being and end update frame.
             # Is this just a synonym for updateAll()?
             updateGraph = self.getUpdateGraph()
@@ -2147,6 +2239,10 @@ class Scene(QGraphicsScene, Item):
         elif prop.name() in ("hideEmotionalProcess", "hideEmotionColors"):
             for item in self.emotions():
                 item.updateAll()
+            # Also update triangle badges when hideEmotionColors changes
+            if prop.name() == "hideEmotionColors":
+                for person in self.people():
+                    person.updateTriangleBadge()
         elif prop.name() == "hideVariablesOnDiagram":
             for person in self.people():
                 person.onHideVariablesOnDiagram()
@@ -2169,6 +2265,14 @@ class Scene(QGraphicsScene, Item):
             if prop.name() == "active":
                 if self.itemMode() in [ItemMode.Callout, ItemMode.Pencil]:
                     self.setItemMode(None)
+                # Handle triangle layer activation
+                if prop.get():
+                    for event in self._events:
+                        if event.triangle() and event.triangle().layer() == prop.item:
+                            event.triangle().hideRelationshipItems()
+                            event.triangle().createSymbols()
+                            event.triangle().createCallout()
+                            break
                 # TODO: Notify=False is needed but then the layer models to reflect the changes
                 # # Internal and custom layers should be mutually exclusive.
                 # if prop.item.internal():
@@ -2180,6 +2284,13 @@ class Scene(QGraphicsScene, Item):
                 #         if internalLayer.active():
                 #             internalLayer.setActive(False, notify=False)
                 self.updateActiveLayers()
+                # Handle triangle layer deactivation after updateActiveLayers
+                # so activeTriangle() returns None and Marriage/ChildOf show correctly
+                if not prop.get():
+                    for event in self._events:
+                        if event.triangle() and event.triangle().layer() == prop.item:
+                            event.triangle().stopPhase2Animation()
+                            break
             self.layerChanged.emit(prop)
         elif item.isEvent:
             if prop.name() == "dateTime" and not self.isBatchAddingRemovingItems():
@@ -2188,6 +2299,30 @@ class Scene(QGraphicsScene, Item):
                     self.setCurrentDateTime(QDateTime())
                 elif datedEvents and not self.currentDateTime():
                     self.setCurrentDateTime(datedEvents[-1].dateTime())
+            # Create Triangle when relationshipTriangles is set
+            if (
+                prop.name() == "relationshipTriangles"
+                and not self.isBatchAddingRemovingItems()
+            ):
+                if (
+                    item.relationship()
+                    in (RelationshipKind.Inside, RelationshipKind.Outside)
+                    and item.relationshipTriangles()
+                    and not item.triangle()
+                ):
+                    triangle = Triangle(item)
+                    layer = Layer(internal=True, storeGeometry=True)
+                    self.addItem(layer)
+                    triangle.setLayer(layer)
+                    item.setTriangle(triangle)
+                    triangle.update()
+                    triangle.applyPositionsToLayer()
+                    if triangle.mover():
+                        triangle.mover().updateTriangleBadge()
+            # Update triangle badge when event color changes
+            if prop.name() == "color" and item.triangle():
+                if item.triangle().mover():
+                    item.triangle().mover().updateTriangleBadge()
             self.eventChanged.emit(prop)
             # # Vulnerable to aggregate QUndoCommand's, but not sure how to
             # # condense them when signals originate in C++ from QUndoStack.
@@ -2256,7 +2391,9 @@ class Scene(QGraphicsScene, Item):
             return
         self._areActiveLayersChanging = True
         if self.layerAnimationGroup.state() == QAbstractAnimation.Running:
-            self.onLayerAnimationFinished()
+            # Abort running animations without applying their end values.
+            # The correct positions will be set by _updateAllItemsForLayersAndTags().
+            self._abortLayerAnimations()
         self._activeLayers = list(_activeLayers)
         if not self.isUpdatingAll():
             self._updateAllItemsForLayersAndTags()
@@ -2272,6 +2409,27 @@ class Scene(QGraphicsScene, Item):
     def isLayerAnimationRunning(self):
         return self.layerAnimationGroup.state() == QAbstractAnimation.Running
 
+    def _abortLayerAnimations(self):
+        """Stop and remove all layer animations without applying their end values.
+
+        Use this when interrupting animations due to a layer state change.
+        The correct positions will be determined by the new layer state.
+        """
+        self.layerAnimationGroup.stop()
+        # Reset targets to their current property values to undo any mid-animation state
+        while self.layerAnimationGroup.animationCount():
+            animation = self.layerAnimationGroup.animationAt(0)
+            # If this is a QPropertyAnimation, reset the target to its stored property value
+            if hasattr(animation, "targetObject") and hasattr(
+                animation, "propertyName"
+            ):
+                target = animation.targetObject()
+                propName = bytes(animation.propertyName()).decode()
+                if target and propName == "pos" and hasattr(target, "itemPos"):
+                    # Reset visual position to the stored itemPos value
+                    target.setPos(target.itemPos())
+            self.layerAnimationGroup.removeAnimation(animation)
+
     def onLayerAnimationFinished(self):
         if (
             util.ANIM_DURATION_MS == 0
@@ -2282,6 +2440,33 @@ class Scene(QGraphicsScene, Item):
         while self.layerAnimationGroup.animationCount():
             animation = self.layerAnimationGroup.animationAt(0)
             self.layerAnimationGroup.removeAnimation(animation)
+        # Start Phase 2 animation for any active triangle layers
+        # Check layer.active() directly since _activeLayers may not be updated yet
+        triangle = self.activeTriangle()
+        if triangle and triangle.layer() and triangle.layer().active():
+            triangle.startPhase2Animation()
+
+    def activeTriangle(self) -> "Triangle":
+        for layer in self.activeLayers(onlyInternal=True):
+            for event in self._events:
+                if event.triangle() and event.triangle().layer() == layer:
+                    return event.triangle()
+        return None
+
+    def _isTriangleSymbol(self, item) -> bool:
+        """Check if an emotion item is a transient triangle symbol."""
+        for event in self._events:
+            triangle = event.triangle()
+            if triangle and item in triangle._symbolItems:
+                return True
+        return False
+
+    def deactivateTriangle(self):
+        triangle = self.activeTriangle()
+        if triangle:
+            triangle.stopPhase2Animation()
+            if triangle.layer():
+                triangle.layer().setActive(False)
 
     def activeLayers(self, includeInternal=True, onlyInternal=False):
         layers = list(self._activeLayers)
@@ -2342,19 +2527,22 @@ class Scene(QGraphicsScene, Item):
         if iLayer < 0 or iLayer >= len(customLayers):
             return
         layer = customLayers[iLayer]
-        self.setExclusiveCustomLayerActive(layer)
+        self.setExclusiveLayerActive(layer)
 
-    def setExclusiveCustomLayerActive(self, layer: Layer):
-        """Put in batch job so zoomFit can run after all items are shown|hidden."""
-        activeLayers = []
+    def setExclusiveLayerActive(self, layer: Layer):
+        """Activate layer exclusively, deactivating all other layers (including triangles)."""
+        triangle = self.activeTriangle()
+        if triangle and triangle.layer() != layer:
+            triangle.stopPhase2Animation()
+            if triangle.layer():
+                triangle.layer().setActive(False, notify=False)
         changedLayers = []
         with self.macro("Set active layer"):
-            for _layer in self.layers(includeInternal=False):
+            for _layer in self.layers(includeInternal=True):
                 if _layer == layer:
                     if _layer.active() is not True:
                         changedLayers.append(_layer)
                     _layer.setActive(True, undo=True, notify=False)
-                    activeLayers.append(_layer)
                 else:
                     if _layer.active() is not False:
                         changedLayers.append(_layer)
@@ -2443,9 +2631,11 @@ class Scene(QGraphicsScene, Item):
         iPeople = 0
         iFiles = 0
         iEvents = 0
+        eventLinkedEmotions = []
+        parentEvents = set()
+
         for item in self.selectedItems():
             if item.isPerson and item.documentsPath():
-                docsPath = item.documentsPath()
                 personDocPath = item.documentsPath().replace(
                     self.document().url().toLocalFile() + os.sep, ""
                 )
@@ -2455,6 +2645,21 @@ class Scene(QGraphicsScene, Item):
                 iPeople = iPeople + 1
             if item.isPerson or item.isMarriage:
                 iEvents += len(self.eventsFor(item))
+            if item.isEmotion and item.sourceEvent():
+                eventLinkedEmotions.append(item)
+                parentEvents.add(item.sourceEvent())
+
+        # Replace event-linked emotions with their parent events
+        if parentEvents:
+            itemsToDelete = [
+                item for item in self.selectedItems() if item not in eventLinkedEmotions
+            ]
+            itemsToDelete.extend(parentEvents)
+        else:
+            itemsToDelete = self.selectedItems()
+
+        iParentEvents = len(parentEvents)
+
         if iFiles > 0:
             btn = QMessageBox.question(
                 QApplication.activeWindow(),
@@ -2468,6 +2673,13 @@ class Scene(QGraphicsScene, Item):
                 "Are you sure?",
                 "Are you sure you want to delete %i people and their %i events?"
                 % (iPeople, iEvents),
+            )
+        elif iParentEvents > 0:
+            eventWord = "event" if iParentEvents == 1 else "events"
+            btn = QMessageBox.question(
+                QApplication.activeWindow(),
+                "Are you sure?",
+                f"Are you sure you want to delete {iParentEvents} {eventWord}? (Emotion symbols are tied to their events)",
             )
         elif iPeople > 0:
             btn = QMessageBox.question(
@@ -2483,7 +2695,7 @@ class Scene(QGraphicsScene, Item):
             )
 
         if btn == QMessageBox.Yes:
-            self.push(RemoveItems(self, self.selectedItems()))
+            self.push(RemoveItems(self, itemsToDelete))
 
     def copy(self):
         self.clipboard = clipboard.Clipboard(self.selectedItems())

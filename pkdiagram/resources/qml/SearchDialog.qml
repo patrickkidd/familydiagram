@@ -458,6 +458,25 @@ Page {
                         Layout.columnSpan: 2
                     }
 
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
+                    PK.Text { text: "Triangles" }
+
+                    PK.TriangleView {
+                        id: triangleView
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: 1
+                        Layout.minimumHeight: 180
+                    }
+
+                    PK.HelpText {
+                        text: "Triangles are emotional/automatic alignments between two people that leaves on the outside. They are hard to see at first, and take practice. Click the checkbox on a row to view that triangle."
+                        Layout.columnSpan: 2
+                    }
+
+                    PK.FormDivider { Layout.columnSpan: 2 }
+
                     PK.Text {
                         text: "Custom Views"
                         visible: sceneModel.isInEditorMode

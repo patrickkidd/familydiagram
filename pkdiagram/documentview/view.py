@@ -206,6 +206,13 @@ class View(QGraphicsView):
             % util.FONT_FAMILY
         )
 
+        self.triangleCloseButton = PixmapPushButton(
+            self, uncheckedPixmapPath=util.QRC + "clear-button.png"
+        )
+        self.triangleCloseButton.setFixedSize(util.BUTTON_SIZE, util.BUTTON_SIZE)
+        self.triangleCloseButton.clicked.connect(self.onTriangleCloseClicked)
+        self.triangleCloseButton.hide()
+
         self.noItemsCTALabel = QLabel(self)
         self.noItemsCTALabel.setText(util.S_NO_ITEMS_LABEL)
         font = QFont(util.NO_ITEMS_FONT_FAMILY, util.NO_ITEMS_FONT_PIXEL_SIZE * 2)
@@ -483,9 +490,12 @@ class View(QGraphicsView):
             self.rect().center() - QPoint(self.noItemsCTALabel.rect().center())
         )
         #
+        # hiddenItemsLabel stays at top right
         self.hiddenItemsLabel.move(
             self.width() - (self.hiddenItemsLabel.width() + 3), 0
         )
+        # Close button at upper right of triangle bounding rect
+        self._updateTriangleCloseButtonPosition()
         # hotspots
         x = (self.width() / 2) - (self.undoLabel.width() / 2)
         y = (self.height() / 2) - (self.undoLabel.height() / 2)
@@ -586,18 +596,19 @@ class View(QGraphicsView):
         if isinstance(e, QInputEvent) and e.modifiers() & Qt.AltModifier:
             if e.type() == QEvent.Wheel:
                 e.accept()
-                if self.panZoomer.begun():
-                    self.panZoomer.cancel()
-                if not self.wheelZoomer.begun():
-                    self.wheelZoomer.begin(e)
-                self.wheelZoomer.update(e)
+                if not self.scene().activeTriangle():
+                    if self.panZoomer.begun():
+                        self.panZoomer.cancel()
+                    if not self.wheelZoomer.begun():
+                        self.wheelZoomer.begin(e)
+                    self.wheelZoomer.update(e)
                 return True
             elif e.type() == QEvent.MouseButtonPress:
                 pos = self.mapToScene(e.pos())
                 callouts = [
                     i for i in self.scene().items(pos) if isinstance(i, Callout)
                 ]
-                if not callouts:
+                if not callouts and not self.scene().activeTriangle():
                     self.dragPanner.begin(e)
                 else:
                     return super().viewportEvent(e)
@@ -708,14 +719,10 @@ class View(QGraphicsView):
     def keyPressEvent(self, e):
         if QApplication.focusWidget() != self:  # how would this be possible
             return
-        # if e.key() == Qt.Key.Key_Escape:
-        #     _log.info(f"View.keyPressEvent: Key_Escape")
-        #     # self.escape.emit()
-        #     # if self.scene():
-        #     #     self.scene().clearSelection()
-        #     #     self.scene().setItemMode(None)
-        #     super().keyPressEvent(e)
-        if e.key() in (
+        if e.key() == Qt.Key_Escape:
+            e.accept()
+            self.onTriangleCloseClicked()
+        elif e.key() in (
             Qt.Key_Up,
             Qt.Key_Down,
             Qt.Key_Left,
@@ -824,12 +831,15 @@ class View(QGraphicsView):
         customLayers = self.scene().activeLayers(includeInternal=False)
         internalLayers = self.scene().activeLayers(onlyInternal=True)
         s = ""
-        if len(internalLayers) == 1:
-            s = f"Emotional Unit: {internalLayers[0].emotionalUnit().name()}"
-        elif len(internalLayers) > 1:
-            names = ", ".join(
-                [layer.emotionalUnit().name() for layer in internalLayers]
-            )
+        # Separate emotional unit layers from triangle layers
+        euLayers = [l for l in internalLayers if l.emotionalUnit()]
+        triangle = self.scene().activeTriangle()
+        if triangle:
+            s = triangle.name()
+        elif len(euLayers) == 1:
+            s = f"Emotional Unit: {euLayers[0].emotionalUnit().name()}"
+        elif len(euLayers) > 1:
+            names = ", ".join([layer.emotionalUnit().name() for layer in euLayers])
             s = f"Emotional Units: {names}"
         elif len(customLayers) == 1:
             s = f"View: {customLayers[0].name()}"
@@ -843,9 +853,43 @@ class View(QGraphicsView):
             self.hiddenItemsLabel.setText(s)
             self.hiddenItemsLabel.adjustSize()
             self.hiddenItemsLabel.show()
+            if triangle:
+                self.triangleCloseButton.show()
+            else:
+                self.triangleCloseButton.hide()
             self.adjust()
         else:
             self.hiddenItemsLabel.hide()
+            self.triangleCloseButton.hide()
+
+    def onTriangleCloseClicked(self):
+        if self.scene():
+            self.scene().deactivateTriangle()
+
+    def _updateTriangleCloseButtonPosition(self):
+        if not self.triangleCloseButton.isVisible() or not self.scene():
+            return
+        triangle = self.scene().activeTriangle()
+        if not triangle:
+            return
+        positions = triangle.calculatePositions()
+        if not positions:
+            return
+        # Find bounding rect of all triangle positions in scene coords
+        allPositions = list(positions.values())
+        minX = min(p.x() for p in allPositions)
+        maxX = max(p.x() for p in allPositions)
+        minY = min(p.y() for p in allPositions)
+        # Map scene coords to view coords
+        topRight = self.mapFromScene(QPointF(maxX, minY))
+        # Position button at upper right with margin
+        margin = util.MARGIN_X
+        x = topRight.x() + margin
+        y = topRight.y() - self.triangleCloseButton.height() - margin
+        # Clamp to stay within view bounds
+        x = min(x, self.width() - self.triangleCloseButton.width() - margin)
+        y = max(y, self.sceneToolBar.height() + margin)
+        self.triangleCloseButton.move(round(x), round(y))
 
     def onPendingZoomFitTimer(self):
         nAnimating = self.numAnimatingItems()
