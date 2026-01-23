@@ -3,7 +3,7 @@
     "familydiagram-testing": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "..", "python", "familydiagram/mcp-server/mcp_server.py"],
+      "args": ["run", "--directory", "..", "python", "familydiagram/mcpserver/mcp_server.py"],
       "env": {}
     }
   }

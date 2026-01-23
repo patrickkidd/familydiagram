@@ -4,6 +4,7 @@
     "python.experiments.enabled": false,
     "python.testing.pytestArgs": [
         "tests",
+        "mcpserver/tests",
         "-svv",
         "--log-cli-level=INFO"
     ],

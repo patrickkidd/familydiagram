@@ -14,7 +14,7 @@ Usage:
     python mcp_server.py
 
     # Or via uv
-    uv run python mcp-server/mcp_server.py
+    uv run python familydiagram/mcpserver/mcp_server.py
 
 Configuration:
     Add to .mcp.json in project root to use with Claude Code.
