@@ -2,6 +2,12 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.20
+
+## 2.1.20b1
+
+- Fixed bugs related to showing triangle graph.
+
 ## 2.1.19
 
 ## 2.1.19b1
