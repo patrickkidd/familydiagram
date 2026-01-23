@@ -82,6 +82,10 @@ class SARFGraphModel(QObject):
             daysInYear = 366 if dt.date().year() % 4 == 0 else 365
             yearFrac = year + (dayOfYear / daysInYear)
 
+            # Relationship targets and triangles as person names
+            targets = event.relationshipTargets()
+            triangles = event.relationshipTriangles()
+
             self._events.append(
                 {
                     "id": event.id,
@@ -93,6 +97,12 @@ class SARFGraphModel(QObject):
                     "anxiety": anxiety,
                     "functioning": functioning,
                     "relationship": relationship,
+                    "relationshipTargets": (
+                        [p.name() for p in targets] if targets else []
+                    ),
+                    "relationshipTriangles": (
+                        [p.name() for p in triangles] if triangles else []
+                    ),
                     "description": event.description() or "",
                     "who": who,
                     "notes": event.notes() or "",

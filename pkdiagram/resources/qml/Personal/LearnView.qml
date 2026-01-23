@@ -36,11 +36,16 @@ Page {
 
     // Graph properties
     property real graphPadding: 0
-    property real miniGraphY: 20
-    property real miniGraphH: 145
+    property real miniGraphY: 0
+    property real miniGraphH: 260
     property real gLeft: 0
     property real gRight: width
     property real gWidth: gRight - gLeft
+
+    // Controls area (shared between unfocused and focused modes)
+    property real controlsY: miniGraphY + miniGraphH  // Controls start at bottom of graph
+    property real controlsHeight: 52  // Fixed height for both control sets
+    property real graphAreaBottom: controlsY  // Hero must stay above this
 
     // Timeline zoom/pan properties (overview mode)
     property real timelineZoom: 2.0 // default
@@ -721,7 +726,7 @@ Page {
         Rectangle {
             id: headerCard
             width: parent.width
-            height: miniGraphY + miniGraphH + 98
+            height: controlsY + controlsHeight + 6
             color: cardColor
 
             // Date range label
@@ -744,9 +749,9 @@ Page {
             // Graph background
             Rectangle {
                 x: 0
-                y: miniGraphY - 10
+                y: 0
                 width: parent.width
-                height: miniGraphH + 112
+                height: controlsY + controlsHeight + 6
                 radius: 0
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
@@ -886,7 +891,7 @@ Page {
                     model: {
                         var markers = []
                         var start = Math.floor(clusterMinYearFrac / interval) * interval
-                        var end = clusterMaxYearFrac + interval
+                        var end = clusterMaxYearFrac + interval * 0.1  // Minimal padding
                         for (var t = start; t <= end; t += interval) {
                             markers.push(t)
                         }
@@ -995,7 +1000,7 @@ Page {
                         objectName: "clusterBar_" + index
                         property real startYearFrac: dateToYearFrac(modelData.startDate) || clusterMinYearFrac
                         property real endYearFrac: dateToYearFrac(modelData.endDate) || clusterMaxYearFrac
-                        property int row: index % 3
+                        property int row: index % 4
                         property bool isSelected: clusterModel && clusterModel.selectedClusterId === modelData.id
                         property bool isHero: focusedClusterIndex === index
                         property real barX: xPosZoomed(startYearFrac) - gLeft
@@ -1005,7 +1010,7 @@ Page {
                         property real delegateOpacity: isSelected ? 1.0 : 0.7
 
                         x: barX
-                        y: 18 + row * 38
+                        y: 20 + row * 55
                         width: barWidth
                         height: 32
                         visible: delegateOpacity > 0 && barX + barWidth > 0 && barX < gWidth
@@ -1021,7 +1026,7 @@ Page {
                             font.bold: true
                             color: clusterColor(modelData.id)
                             elide: Text.ElideRight
-                            width: Math.min(150, gWidth - clusterBarDelegate.x)
+                            width: 240
                             horizontalAlignment: Text.AlignHCenter
                             opacity: clusterBarDelegate.delegateOpacity
                         }
@@ -1050,7 +1055,9 @@ Page {
                         }
 
                         MouseArea {
+                            id: barMouseArea
                             anchors.fill: parent
+                            hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: if (!isFocused) focusCluster(index, clusterBarDelegate.x, clusterBarDelegate.y + 4, clusterBarDelegate.width, barRect.height)
                         }
@@ -1061,7 +1068,7 @@ Page {
             // Scroll indicator (shown when zoomed)
             Rectangle {
                 visible: showClusters && !isFocused && timelineZoom > 1.05
-                x: 0; y: miniGraphY - 10
+                x: 0; y: 0
                 width: parent.width; height: 3; radius: 0
                 color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
                 z: 160
@@ -1145,7 +1152,7 @@ Page {
                 z: 200
 
                 property int heroMargin: 8
-                property real graphBgY: miniGraphY - 10
+                property real graphBgY: 0
                 property real barsBaseY: miniGraphY  // Where cluster bars container starts
                 property color clusterCol: focusedCluster ? clusterColor(focusedCluster.id) : "transparent"
                 property color bgCol: util.IS_UI_DARK_MODE ? "#0a0a12" : "#f8f8fc"
@@ -1155,7 +1162,7 @@ Page {
                 // Start at bar position (barsBaseY + heroStartY), animate to graphBgY + heroMargin
                 y: barsBaseY + heroStartY + (graphBgY + heroMargin - barsBaseY - heroStartY) * animProgress
                 width: heroStartW + (gWidth - heroMargin * 2 - heroStartW) * animProgress
-                height: heroStartH + (miniGraphH + 50 - heroMargin - heroStartH) * animProgress
+                height: heroStartH + (graphAreaBottom - heroMargin - heroStartH) * animProgress
                 radius: 4 + 4 * animProgress
                 // Start with cluster color, transition to background color
                 color: Qt.rgba(
@@ -1324,15 +1331,31 @@ Page {
 
                                 var dataPoints = []
                                 var relationshipXs = []
+                                var baseline = {symptom: 0, anxiety: 0, functioning: 0}
+                                var foundBaseline = false
+
                                 for (var i = 0; i < eventIds.length; i++) {
                                     var eventId = eventIds[i]
                                     for (var j = 0; j < events.length; j++) {
                                         if (events[j].id === eventId) {
+                                            // For baseline: use cumulative value BEFORE first cluster event
+                                            if (!foundBaseline) {
+                                                if (j > 0) {
+                                                    baseline = {
+                                                        symptom: cumulative[j-1].symptom,
+                                                        anxiety: cumulative[j-1].anxiety,
+                                                        functioning: cumulative[j-1].functioning
+                                                    }
+                                                }
+                                                foundBaseline = true
+                                            }
+
+                                            // Store relative values (cumulative minus baseline)
                                             dataPoints.push({
                                                 yearFrac: events[j].yearFrac,
-                                                symptom: cumulative[j].symptom,
-                                                anxiety: cumulative[j].anxiety,
-                                                functioning: cumulative[j].functioning
+                                                symptom: cumulative[j].symptom - baseline.symptom,
+                                                anxiety: cumulative[j].anxiety - baseline.anxiety,
+                                                functioning: cumulative[j].functioning - baseline.functioning
                                             })
                                             if (events[j].relationship) {
                                                 relationshipXs.push(events[j].yearFrac)
@@ -1360,14 +1383,30 @@ Page {
                                 var colors = [symptomColor.toString(), anxietyColor.toString(), functioningColor.toString()]
                                 var keys = ['symptom', 'anxiety', 'functioning']
 
+                                // Check if each variable has any changes within the cluster
+                                var hasChanges = [false, false, false]
                                 for (var k = 0; k < 3; k++) {
+                                    if (dataPoints.length > 1) {
+                                        var firstVal = dataPoints[0][keys[k]]
+                                        for (var p = 1; p < dataPoints.length; p++) {
+                                            if (dataPoints[p][keys[k]] !== firstVal) {
+                                                hasChanges[k] = true
+                                                break
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Draw lines (thinner/transparent for variables without changes)
+                                for (k = 0; k < 3; k++) {
                                     ctx.strokeStyle = colors[k]
-                                    ctx.lineWidth = 2.5
+                                    ctx.lineWidth = hasChanges[k] ? 2.5 : 1.0
+                                    ctx.globalAlpha = hasChanges[k] ? 1.0 : 0.3
                                     ctx.lineCap = "round"
                                     ctx.lineJoin = "round"
                                     ctx.beginPath()
 
-                                    for (var p = 0; p < dataPoints.length; p++) {
+                                    for (p = 0; p < dataPoints.length; p++) {
                                         var x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
                                         var y = zoomableContent.yForValue(dataPoints[p][keys[k]])
 
@@ -1378,13 +1417,18 @@ Page {
                                         }
                                     }
                                     ctx.stroke()
+                                    ctx.globalAlpha = 1.0
+                                }
 
+                                // Draw dots at each event position
+                                for (k = 0; k < 3; k++) {
+                                    if (!hasChanges[k]) continue
                                     ctx.fillStyle = colors[k]
                                     for (p = 0; p < dataPoints.length; p++) {
                                         x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
                                         y = zoomableContent.yForValue(dataPoints[p][keys[k]])
                                         ctx.beginPath()
-                                        ctx.arc(x, y, 3, 0, Math.PI * 2)
+                                        ctx.arc(x, y, 4, 0, Math.PI * 2)
                                         ctx.fill()
                                     }
                                 }
@@ -1495,14 +1539,21 @@ Page {
                 }
             }
 
-            // Navigation arrows for cycling clusters (shown when focused)
-            Row {
-                visible: isFocused
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: miniGraphY + miniGraphH + 46
-                spacing: 16
+            // Graph controls container (fixed position, switches content based on focus)
+            Item {
+                id: graphControlsContainer
+                x: 0
+                y: controlsY
+                width: parent.width
+                height: controlsHeight
                 z: 100
-                height: 52
+
+                // Navigation arrows for cycling clusters (shown when focused)
+                Row {
+                    visible: isFocused
+                    anchors.centerIn: parent
+                    spacing: 16
+                    height: parent.height
 
                 // Prev button
                 Rectangle {
@@ -1570,100 +1621,58 @@ Page {
                         onClicked: focusNextCluster()
                     }
                 }
-            }
+                }
 
-            // Clusters toggle (left side, hidden when focused)
-            Row {
-                visible: false // !isFocused && clusterModel && clusterModel.hasClusters
-                x: 12
-                y: miniGraphY + miniGraphH + 8
-                spacing: 8
-                height: 44
-
-                Rectangle {
-                    width: 40; height: 24; radius: 12
-                    color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#444450" : "#c0c0c8")
+                // Action buttons row (shown when unfocused)
+                Row {
+                    visible: !isFocused
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
+                    spacing: 12
+                    height: 36
 
+                    // Cluster count
+                    Text {
+                        visible: showClusters && clusterModel && clusterModel.hasClusters
+                        text: clusterModel ? clusterModel.count + " clusters" : ""
+                        font.pixelSize: 14
+                        color: textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    // Detect Clusters button
                     Rectangle {
-                        width: 20; height: 20; radius: 10
-                        color: "white"
-                        x: showClusters ? parent.width - width - 2 : 2
+                        width: Math.max(detectRow.width + 24, 90)
+                        height: 32
+                        radius: 16
+                        color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
+                        opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
                         anchors.verticalCenter: parent.verticalCenter
 
-                        Behavior on x { NumberAnimation { duration: 150 } }
-                    }
+                        Row {
+                            id: detectRow
+                            anchors.centerIn: parent
+                            spacing: 6
 
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -10  // Extend tap area to 44pt
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            showClusters = !showClusters
-                            if (!showClusters) {
-                                focusedClusterIndex = -1
+                            Text {
+                                text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "white"
+                                anchors.verticalCenter: parent.verticalCenter
                             }
                         }
-                    }
-                }
 
-                Text {
-                    text: "Clusters"
-                    font.pixelSize: 14
-                    color: textSecondary
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-
-            // Action buttons row (right side, hidden when focused)
-            Row {
-                visible: !isFocused
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                y: miniGraphY + miniGraphH + 8
-                spacing: 12
-                height: 36
-
-                // Cluster count
-                Text {
-                    visible: showClusters && clusterModel && clusterModel.hasClusters
-                    text: clusterModel ? clusterModel.count + " clusters" : ""
-                    font.pixelSize: 14
-                    color: textSecondary
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                // Detect Clusters button
-                Rectangle {
-                    width: Math.max(detectRow.width + 24, 90)
-                    height: 32
-                    radius: 16
-                    color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
-                    opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Row {
-                        id: detectRow
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        Text {
-                            text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
-                            font.pixelSize: 13
-                            font.bold: true
-                            color: "white"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -6  // Extend tap area to 44pt
-                        enabled: clusterModel && !clusterModel.detecting
-                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: {
-                            if (clusterModel) {
-                                clusterModel.detect()
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -6  // Extend tap area to 44pt
+                            enabled: clusterModel && !clusterModel.detecting
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                if (clusterModel) {
+                                    clusterModel.detect()
+                                }
                             }
                         }
                     }
@@ -1674,7 +1683,7 @@ Page {
         // Divider between header and list
         Rectangle {
             x: 0
-            y: miniGraphY + miniGraphH + 102
+            y: controlsY + controlsHeight + 6
             width: parent.width
             height: 1
             color: util.IS_UI_DARK_MODE ? "#404050" : "#c0c0c8"
@@ -1684,7 +1693,7 @@ Page {
         ListView {
             id: storyList
             objectName: "storyList"
-            x: 0; y: miniGraphY + miniGraphH + 103
+            x: 0; y: controlsY + controlsHeight + 7
             width: parent.width
             height: parent.height - y
             clip: true
@@ -1733,7 +1742,7 @@ Page {
                 property bool hideCompletely: (showClusters && clusterModel && clusterModel.hasClusters && cluster === null) || (isClusterCollapsed && !isFirstInCluster)
                 property bool showEventContent: !isClusterCollapsed || !cluster
                 property real clusterHeaderHeight: isFirstInCluster ? 84 : 0
-                property real eventHeight: selectedEvent === index ? 150 : 110
+                property real eventHeight: selectedEvent === index ? 200 : 110
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
@@ -1778,12 +1787,15 @@ Page {
 
                     Row {
                         anchors.left: parent.left
+                        anchors.right: parent.right
                         anchors.leftMargin: 16
+                        anchors.rightMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 12
 
                         // Expand/collapse indicator
                         Text {
+                            id: expandIndicator
                             text: delegateRoot.cluster && collapsedClusters[delegateRoot.cluster.id] ? "\u25B6" : "\u25BC"
                             font.pixelSize: 14
                             color: textSecondary
@@ -1791,6 +1803,7 @@ Page {
                         }
 
                         Column {
+                            width: parent.width - expandIndicator.width - parent.spacing
                             spacing: 6
 
                             Text {
@@ -1799,7 +1812,7 @@ Page {
                                 font.bold: true
                                 color: textPrimary
                                 elide: Text.ElideRight
-                                width: parent.parent.width - 60
+                                width: parent.width
                             }
 
                             Row {
@@ -1892,6 +1905,7 @@ Page {
                     width: parent.width
                     height: delegateRoot.eventHeight
                     color: selectedEvent === index ? highlightColor : bgColor
+                    clip: true
 
                     Behavior on x {
                         enabled: !swipeArea.pressed
@@ -2087,35 +2101,78 @@ Page {
                             wrapMode: Text.WordWrap
                         }
 
-                        // Expanded content
-                        Column {
-                            visible: selectedEvent === index
-                            opacity: selectedEvent === index ? 1 : 0
-                            spacing: 6
+                        // Expanded content - only shown when selected
+                        Item {
+                            width: parent.width
+                            height: selectedEvent === index ? expandedCol.implicitHeight : 0
+                            visible: height > 0
+                            clip: true
 
-                            Behavior on opacity { NumberAnimation { duration: 200 } }
+                            Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
-                            Text {
-                                text: evt.notes || ""
-                                font.pixelSize: 14
-                                color: textSecondary
-                                visible: evt.notes && evt.notes.length > 0
-                            }
+                            Column {
+                                id: expandedCol
+                                width: parent.width
+                                spacing: 6
 
-                            // Relationship pill for Shift events with relationship set
-                            Rectangle {
-                                visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
-                                width: 110; height: 28; radius: 14
-                                color: relationshipColor
-
+                                // Relationship info row
                                 Row {
-                                    anchors.centerIn: parent
-                                    spacing: 6
-                                    RelationshipSymbol { size: 12; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
+                                    visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
+                                    spacing: 8
+                                    height: 24
+
+                                    // Relationship kind pill
+                                    Rectangle {
+                                        width: relPillContent.width + 16; height: 24; radius: 12
+                                        color: relationshipColor
+
+                                        Row {
+                                            id: relPillContent
+                                            anchors.centerIn: parent
+                                            spacing: 4
+                                            RelationshipSymbol { size: 10; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
+                                            Text {
+                                                text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
+                                                font.pixelSize: 11
+                                                color: "#fff"
+                                            }
+                                        }
+                                    }
+
                                     Text {
-                                        text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
-                                        font.pixelSize: 12
-                                        color: "#fff"
+                                        visible: evt.relationshipTargets && evt.relationshipTargets.length > 0
+                                        text: evt.relationship === "inside" ? "Inside: " + evt.relationshipTargets.join(", ") : "with " + evt.relationshipTargets.join(", ")
+                                        font.pixelSize: 13
+                                        color: textSecondary
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                Text {
+                                    visible: evt.relationshipTriangles && evt.relationshipTriangles.length > 0
+                                    text: evt.relationship === "inside" ? "Outside: " + evt.relationshipTriangles.join(", ") : "△ " + evt.relationshipTriangles.join(", ")
+                                    font.pixelSize: 13
+                                    color: textSecondary
+                                }
+
+                                // Notes with wrapping and scroll
+                                Flickable {
+                                    visible: evt.notes && evt.notes.length > 0
+                                    width: parent.width
+                                    height: visible ? Math.min(notesContent.implicitHeight, 60) : 0
+                                    contentWidth: width
+                                    contentHeight: notesContent.implicitHeight
+                                    clip: true
+                                    flickableDirection: Flickable.VerticalFlick
+                                    boundsBehavior: Flickable.StopAtBounds
+
+                                    Text {
+                                        id: notesContent
+                                        text: evt.notes || ""
+                                        font.pixelSize: 14
+                                        color: textSecondary
+                                        width: parent.width
+                                        wrapMode: Text.WordWrap
                                     }
                                 }
                             }

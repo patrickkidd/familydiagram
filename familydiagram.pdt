@@ -390,6 +390,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "clustermodel.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "commands.py"
 included = true
 is_directory = false
@@ -1142,6 +1147,11 @@ name = "Style.qml"
 included = true
 is_directory = false
 
+[[Application.Package.Content.Content.Content.Content]]
+name = "VignetteCard.qml"
+included = true
+is_directory = false
+
 
 [[Application.Package.Content.Content.Content]]
 name = "PersonalApplication.qml"
@@ -1354,7 +1364,7 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "TriangleView.qml"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
@@ -1940,6 +1950,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "conftest.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_clustermodel.py"
 included = false
 is_directory = false
 
