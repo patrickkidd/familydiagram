@@ -1,7 +1,11 @@
-import signal, os.path, logging
+import logging
+import os.path
+import pickle
+import signal
 
 import btcopilot
 from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
+
 from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
 
@@ -35,6 +39,8 @@ class AppController(QObject):
     S_APPCONFIG_UPGRADED_LOGIN_REQUIRED = (
         "The app configuration has been upgraded. Please log in again."
     )
+
+    S_BETA_LICENSE_REQUIRED = "This is a beta version of Family Diagram which requires a beta license. Your current license does not include beta access.\n\nPlease either:\n• Add a beta license through Show Account, or\n• Download the release version from familydiagram.com"
 
     def __init__(self, app, prefsName=None):
         super().__init__(app)
@@ -261,14 +267,12 @@ class AppController(QObject):
         self._pendingOpenUrl = None
         QApplication.instance().onUrlOpened(None)
         try:
-            import pickle
-
             response = self.session.server().blockingRequest(
                 "GET", "/sessions/web-auth-token"
             )
             data = pickle.loads(response.body)
             authUrl = data["url"]
-        except Exception as e:
+        except (KeyError, EOFError, ValueError, TypeError) as e:
             log.error(f"Failed to get auth URL: {e}", exc_info=True)
             QMessageBox.critical(
                 None,
@@ -302,6 +306,10 @@ class AppController(QObject):
                 if self.session.isVersionDeactivated():
                     QMessageBox.information(
                         None, "Version Deactivated", self.S_VERSION_DEACTIVATED
+                    )
+                elif version.IS_BETA:
+                    QMessageBox.information(
+                        None, "Beta License Required", self.S_BETA_LICENSE_REQUIRED
                     )
             elif self.session.hasFeature(btcopilot.LICENSE_FREE):
                 if not oldFeatures or btcopilot.any_license_match(
