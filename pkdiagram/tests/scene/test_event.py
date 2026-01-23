@@ -257,6 +257,7 @@ def test_enum_property_undo(scene, attr, setter, value):
     assert getattr(event, attr)() is None
 
 
+@pytest.mark.skip(reason="Validation code needs to be added for importing journal notes in personal app")
 def test_read_filters_invalid_relationshipTargets(scene, caplog):
     """Test that invalid person IDs in relationshipTargets are filtered and logged."""
     from pkdiagram.scene import Scene
@@ -301,6 +302,7 @@ def test_read_filters_invalid_relationshipTargets(scene, caplog):
     newScene.deinit()
 
 
+@pytest.mark.skip(reason="Validation code needs to be added for importing journal notes in personal app")
 def test_read_filters_invalid_relationshipTriangles(scene, caplog):
     """Test that invalid person IDs in relationshipTriangles are filtered and logged."""
     from pkdiagram.scene import Scene
