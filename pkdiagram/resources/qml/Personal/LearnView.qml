@@ -299,150 +299,100 @@ Page {
         var cluster = clusterModel.clusters[idx]
         if (cluster && cluster.id) {
             clusterModel.selectCluster(cluster.id)
-            // Find first event index, scroll to it, then expand after
-            if (cluster.eventIds && cluster.eventIds.length > 0 && sarfGraphModel) {
-                var events = sarfGraphModel.events
-                for (var i = 0; i < events.length; i++) {
-                    if (events[i].id === cluster.eventIds[0]) {
-                        pendingClusterScroll = i
-                        pendingClusterExpand = cluster.id
-                        clusterScrollTimer.restart()
-                        break
-                    }
-                }
-            }
+            // Set up scroll-then-expand: clusterScrollTimer will scroll, then expand
+            pendingClusterExpand = cluster.id
+            clusterScrollTimer.restart()
         }
         // Start animation from 0
         animProgress = 0
         focusAnim.start()
     }
 
-    property int pendingClusterScroll: -1
     property string pendingClusterExpand: ""
 
-    function scrollToClusterIndex(eventIndex) {
-        // Find which cluster index this event belongs to
-        var targetClusterIdx = -1
-        for (var i = 0; i < clusterModel.clusters.length; i++) {
-            var cluster = clusterModel.clusters[i]
-            if (cluster.eventIds) {
-                for (var j = 0; j < cluster.eventIds.length; j++) {
-                    if (sarfGraphModel.events[eventIndex].id === cluster.eventIds[j]) {
-                        targetClusterIdx = i
-                        break
-                    }
-                }
+    function findFirstVisibleEventIndexForCluster(clusterId) {
+        // Find the first event that will be visible (first event in this cluster)
+        if (!sarfGraphModel || !clusterModel) return -1
+        var events = sarfGraphModel.events
+        for (var i = 0; i < events.length; i++) {
+            var eventClusterId = clusterModel.clusterForEvent(events[i].id)
+            if (eventClusterId === clusterId) {
+                return i
             }
-            if (targetClusterIdx >= 0) break
         }
+        return -1
+    }
 
-        console.log("scrollToClusterIndex: eventIndex=" + eventIndex + ", targetClusterIdx=" + targetClusterIdx)
+    function scrollToFirstEventInCluster(clusterId) {
+        var eventIndex = findFirstVisibleEventIndexForCluster(clusterId)
+        if (eventIndex < 0) return
 
-        if (targetClusterIdx < 0) return storyList.contentY
+        // Force layout to update before positioning
+        storyList.forceLayout()
 
-        // When all clusters are collapsed, each shows only its header (84px)
-        var collapsedHeaderHeight = 84
-        var targetY = targetClusterIdx * collapsedHeaderHeight - 20
-
-        // Use actual contentHeight (more reliable after layout settles)
-        var minY = 0
-        var maxY = Math.max(0, storyList.contentHeight - storyList.height)
-        var clampedY = Math.max(minY, Math.min(targetY, maxY))
-
-        console.log("  targetClusterIdx=" + targetClusterIdx + ", collapsedHeaderHeight=" + collapsedHeaderHeight)
-        console.log("  targetY=" + targetY + " (clusterIdx * 84 - 20)")
-        console.log("  storyList.contentHeight=" + storyList.contentHeight + ", storyList.height=" + storyList.height)
-        console.log("  maxY=" + maxY + ", clampedY=" + clampedY)
-        console.log("  storyList.contentY (before)=" + storyList.contentY)
-
-        return clampedY
+        // Use positionViewAtIndex with Beginning mode to scroll the cluster to top
+        // This uses the actual delegate positions rather than estimated heights
+        storyList.positionViewAtIndex(eventIndex, ListView.Beginning)
     }
 
     Timer {
         id: clusterScrollTimer
         interval: 150  // Allow layout to settle after collapsing clusters
         onTriggered: {
-            if (pendingClusterScroll >= 0) {
-                storyList.forceLayout()
-                console.log("clusterScrollTimer triggered, pendingClusterScroll=" + pendingClusterScroll)
-                var targetY = scrollToClusterIndex(pendingClusterScroll)
-                var maxY = Math.max(0, storyList.contentHeight - storyList.height)
-                targetY = Math.max(0, Math.min(targetY, maxY))
-                console.log("  scrollAnimation.to = " + targetY + ", starting animation...")
-                scrollAnimation.to = targetY
-                scrollAnimation.start()
-                pendingClusterScroll = -1
-            }
-        }
-    }
-
-    property int pendingScrollAdjustIndex: -1
-
-    Connections {
-        target: scrollAnimation
-        function onStopped() {
-            console.log("scrollAnimation stopped, contentY=" + storyList.contentY + ", pendingClusterExpand=" + pendingClusterExpand)
-            // Expand cluster after scroll animation completes
             if (pendingClusterExpand !== "") {
-                // Find the event index for this cluster to use in scroll adjustment
-                for (var i = 0; i < clusterModel.clusters.length; i++) {
-                    if (clusterModel.clusters[i].id === pendingClusterExpand) {
-                        var cluster = clusterModel.clusters[i]
-                        if (cluster.eventIds && cluster.eventIds.length > 0) {
-                            for (var j = 0; j < sarfGraphModel.events.length; j++) {
-                                if (sarfGraphModel.events[j].id === cluster.eventIds[0]) {
-                                    pendingScrollAdjustIndex = j
-                                    break
-                                }
-                            }
-                        }
-                        break
-                    }
-                }
+                storyList.forceLayout()
 
-                if (collapsedClusters[pendingClusterExpand]) {
-                    var newCollapsed = {}
-                    for (var key in collapsedClusters) {
-                        if (key !== pendingClusterExpand) {
-                            newCollapsed[key] = collapsedClusters[key]
-                        }
-                    }
-                    collapsedClusters = newCollapsed
-                }
-                console.log("  Expanded cluster: " + pendingClusterExpand)
-                pendingClusterExpand = ""
-                // Trigger scroll adjustment after expansion
-                clusterScrollAdjustTimer.restart()
+                // Scroll to the first event in this cluster using actual positions
+                scrollToFirstEventInCluster(pendingClusterExpand)
+
+                // Now expand the cluster after scrolling
+                clusterExpandTimer.restart()
             }
         }
     }
 
     Timer {
-        id: clusterScrollAdjustTimer
-        interval: 100
+        id: clusterExpandTimer
+        interval: 50  // Short delay to let scroll complete
         onTriggered: {
-            if (pendingScrollAdjustIndex >= 0) {
-                storyList.forceLayout()
-                // Now that cluster is expanded, recalculate and scroll to correct position
-                var targetY = pendingScrollAdjustIndex > 0 ? scrollToClusterIndex(pendingScrollAdjustIndex) : 0
-                var maxY = Math.max(0, storyList.contentHeight - storyList.height)
-                targetY = Math.max(0, Math.min(targetY, maxY))
-                console.log("clusterScrollAdjustTimer: adjusting to targetY=" + targetY + ", current contentY=" + storyList.contentY)
-                if (Math.abs(targetY - storyList.contentY) > 10) {
-                    clusterScrollAdjustAnimation.to = targetY
-                    clusterScrollAdjustAnimation.start()
+            if (pendingClusterExpand !== "") {
+                var clusterId = pendingClusterExpand
+
+                // Expand the cluster
+                if (collapsedClusters[clusterId]) {
+                    var newCollapsed = {}
+                    for (var key in collapsedClusters) {
+                        if (key !== clusterId) {
+                            newCollapsed[key] = collapsedClusters[key]
+                        }
+                    }
+                    collapsedClusters = newCollapsed
                 }
-                pendingScrollAdjustIndex = -1
+
+                pendingClusterExpand = ""
+
+                // After expansion, ensure visibility with a short delay for layout
+                clusterEnsureVisibleTimer.pendingClusterId = clusterId
+                clusterEnsureVisibleTimer.restart()
             }
         }
     }
 
-    NumberAnimation {
-        id: clusterScrollAdjustAnimation
-        target: storyList
-        property: "contentY"
-        duration: 300
-        easing.type: Easing.OutQuad
+    Timer {
+        id: clusterEnsureVisibleTimer
+        interval: 100  // Let expand animation settle
+        property string pendingClusterId: ""
+        onTriggered: {
+            if (pendingClusterId !== "") {
+                storyList.forceLayout()
+                // Ensure the cluster header is visible using actual positions
+                var eventIndex = findFirstVisibleEventIndexForCluster(pendingClusterId)
+                if (eventIndex >= 0) {
+                    storyList.positionViewAtIndex(eventIndex, ListView.Beginning)
+                }
+                pendingClusterId = ""
+            }
+        }
     }
 
     function focusNextCluster() {
@@ -1701,22 +1651,6 @@ Page {
             boundsBehavior: Flickable.StopAtBounds
             model: sarfGraphModel ? sarfGraphModel.events : []
             header: Item { height: 12 }  // Top margin for first cluster card
-
-            NumberAnimation {
-                id: scrollAnimation
-                target: storyList
-                property: "contentY"
-                duration: 500
-                easing.type: Easing.InOutQuad
-            }
-
-            NumberAnimation {
-                id: scrollAdjustAnimation
-                target: storyList
-                property: "contentY"
-                duration: 200
-                easing.type: Easing.OutQuad
-            }
 
             onCurrentIndexChanged: highlightedEvent = currentIndex
 
