@@ -100,6 +100,7 @@ class ClusterModel(QObject):
                 data = json.load(f)
             self._clusters = data.get("clusters", [])
             self._cacheKey = data.get("cacheKey")
+            self._sortClustersByDate()
             self._buildEventMapping()
             self.changed.emit()
             _log.info(f"Loaded {len(self._clusters)} clusters from cache")
@@ -127,6 +128,9 @@ class ClusterModel(QObject):
         for c in self._clusters:
             for eventId in c.get("eventIds", []):
                 self._eventToCluster[eventId] = c.get("id")
+
+    def _sortClustersByDate(self):
+        self._clusters.sort(key=lambda c: c.get("startDate", ""))
 
     def setCacheDir(self, path: Path):
         self._cacheDir = path
@@ -190,6 +194,7 @@ class ClusterModel(QObject):
             self.detectingChanged.emit()
             self._clusters = data.get("clusters", [])
             self._cacheKey = data.get("cacheKey")
+            self._sortClustersByDate()
             self._buildEventMapping()
             self._saveCache()
             self.changed.emit()
@@ -287,6 +292,7 @@ class ClusterModel(QObject):
             return
         self._clusters = clusters
         self._cacheKey = cacheKey
+        self._sortClustersByDate()
         self._buildEventMapping()
         self.changed.emit()
         _log.info(f"Loaded {len(self._clusters)} clusters from diagram data")

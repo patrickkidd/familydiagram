@@ -692,6 +692,10 @@ class QtInspector:
             return None
         if isinstance(value, (int, float, str, bool)):
             return value
+        if isinstance(value, list):
+            return [self._convertValue(v) for v in value]
+        if isinstance(value, dict):
+            return {k: self._convertValue(v) for k, v in value.items()}
         if hasattr(value, "toString"):
             return value.toString()
         if isinstance(value, (QPoint, QPointF)):
@@ -703,6 +707,9 @@ class QtInspector:
                 "width": value.width(),
                 "height": value.height(),
             }
+        # Handle QJSValue (QML JavaScript objects)
+        if hasattr(value, "toVariant"):
+            return self._convertValue(value.toVariant())
         return str(value)
 
     # -------------------------------------------------------------------------
@@ -765,6 +772,8 @@ class QtInspector:
         scenePos = item.mapToScene(localPos)
         clickPos = scenePos.toPoint()
 
+        log.info(f"_clickQmlItem: {item.objectName()} at local={localPos.x()},{localPos.y()} scene={clickPos.x()},{clickPos.y()} visible={item.isVisible()} enabled={item.isEnabled()}")
+
         # QQuickWindow needs QTest.mouseClick on the window directly
         # QQuickWidget can be clicked as a QWidget
         if isinstance(target, QQuickWidget):
@@ -774,7 +783,7 @@ class QtInspector:
             QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
 
         self._app.processEvents()
-        return {"success": True}
+        return {"success": True, "clickPos": {"x": clickPos.x(), "y": clickPos.y()}}
 
     def doubleClick(
         self,

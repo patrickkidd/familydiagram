@@ -268,6 +268,16 @@ Page {
             focusedClusterIndex = -1
             return
         }
+        // Clean up any running scroll animations and timers to avoid race conditions
+        clusterScrollTimer.stop()
+        clusterScrollAdjustTimer.stop()
+        scrollAnimation.stop()
+        clusterScrollAdjustAnimation.stop()
+        pendingClusterScroll = -1
+        pendingClusterExpand = ""
+        pendingScrollAdjustIndex = -1
+        console.log("focusCluster: idx=" + idx + ", cleaned up previous animations")
+
         var cluster = clusterModel.clusters[idx]
         // Calculate bar position from cluster data if not provided
         if (barX === undefined && cluster) {
@@ -321,20 +331,8 @@ Page {
     property string pendingClusterExpand: ""
 
     function scrollToClusterIndex(eventIndex) {
-        // Find which cluster index this event belongs to
-        var targetClusterIdx = -1
-        for (var i = 0; i < clusterModel.clusters.length; i++) {
-            var cluster = clusterModel.clusters[i]
-            if (cluster.eventIds) {
-                for (var j = 0; j < cluster.eventIds.length; j++) {
-                    if (sarfGraphModel.events[eventIndex].id === cluster.eventIds[j]) {
-                        targetClusterIdx = i
-                        break
-                    }
-                }
-            }
-            if (targetClusterIdx >= 0) break
-        }
+        // Use focusedClusterIndex directly - we already know which cluster we're focusing on
+        var targetClusterIdx = focusedClusterIndex
 
         console.log("scrollToClusterIndex: eventIndex=" + eventIndex + ", targetClusterIdx=" + targetClusterIdx)
 
@@ -360,7 +358,7 @@ Page {
 
     Timer {
         id: clusterScrollTimer
-        interval: 150  // Allow layout to settle after collapsing clusters
+        interval: 300  // Must exceed delegate height animation (250ms) to avoid race condition
         onTriggered: {
             if (pendingClusterScroll >= 0) {
                 storyList.forceLayout()
@@ -419,7 +417,7 @@ Page {
 
     Timer {
         id: clusterScrollAdjustTimer
-        interval: 100
+        interval: 300  // Must exceed delegate height animation (250ms) to avoid race condition
         onTriggered: {
             if (pendingScrollAdjustIndex >= 0) {
                 storyList.forceLayout()
@@ -461,6 +459,16 @@ Page {
     }
 
     function clearFocus() {
+        // Clean up any running scroll animations and timers
+        clusterScrollTimer.stop()
+        clusterScrollAdjustTimer.stop()
+        scrollAnimation.stop()
+        clusterScrollAdjustAnimation.stop()
+        pendingClusterScroll = -1
+        pendingClusterExpand = ""
+        pendingScrollAdjustIndex = -1
+        console.log("clearFocus: cleaned up scroll animations")
+
         hoveredEventGroup = -1
         // Collapse all clusters without changing scroll position
         if (clusterModel && clusterModel.clusters) {
@@ -1231,6 +1239,7 @@ Page {
                     // Close button - 44px full iOS tap target
                     Rectangle {
                         id: heroCloseButton
+                        objectName: "heroCloseButton"
                         anchors.right: parent.right
                         anchors.rightMargin: -4
                         anchors.verticalCenter: parent.verticalCenter
