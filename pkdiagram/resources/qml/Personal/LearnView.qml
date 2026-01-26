@@ -1567,8 +1567,6 @@ Page {
                         function onFocusedScrollXChanged() { heroSarfCanvas.requestPaint() }
                         function onFocusedClusterIndexChanged() { heroSarfCanvas.requestPaint() }
                         function onAnimProgressChanged() { if (animProgress > 0.25) heroSarfCanvas.requestPaint() }
-                        function onSelectedEventChanged() { heroSarfCanvas.requestPaint() }
-                        function onHighlightedEventChanged() { heroSarfCanvas.requestPaint() }
                     }
                 }
 
