@@ -527,6 +527,27 @@ Page {
         return collapsedClusters[cluster.id] === true
     }
 
+    // Deductively calculate total story list height from model state
+    function calculateStoryListHeight() {
+        if (!sarfGraphModel) return 0
+        var events = sarfGraphModel.events
+        if (!events || events.length === 0) return 0
+        var total = 12  // ListView header height
+        var hasClusters = clusterModel && clusterModel.hasClusters
+        for (var i = 0; i < events.length; i++) {
+            var cluster = showClusters ? clusterForEventIndex(i) : null
+            var isFirst = showClusters && isFirstEventInCluster(i)
+            var isCollapsed = showClusters && cluster && collapsedClusters[cluster.id] === true
+            var hideCompletely = (showClusters && hasClusters && cluster === null) || (isCollapsed && !isFirst)
+            if (hideCompletely) continue
+            var headerH = isFirst ? 84 : 0
+            var showContent = !isCollapsed || !cluster
+            var eventH = showContent ? (selectedEvent === i ? 200 : 110) : 0
+            total += headerH + eventH
+        }
+        return total
+    }
+
     function toggleClusterCollapsed(clusterId) {
         var newCollapsed = {}
         for (var key in collapsedClusters) {
@@ -568,6 +589,36 @@ Page {
             hash = hash & hash
         }
         return clusterPalette[Math.abs(hash) % clusterPalette.length]
+    }
+
+    readonly property var monthNames: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    readonly property var monthDays: [31,28,31,30,31,30,31,31,30,31,30,31]
+
+    function dayOfYearToMonthDay(dayOfYear) {
+        var month = 0, dayInMonth = dayOfYear
+        for (var i = 0; i < 12; i++) {
+            if (dayInMonth < monthDays[i]) { month = i; break }
+            dayInMonth -= monthDays[i]
+        }
+        return { month: month, day: Math.round(dayInMonth) + 1 }
+    }
+
+    function formatDateRange(start, end) {
+        if (!start) return ""
+        var sp = start.split("-")
+        if (sp.length < 3) return start
+        var sYear = parseInt(sp[0]), sMonth = parseInt(sp[1]) - 1, sDay = parseInt(sp[2])
+        var shortYear = "'" + String(sYear).slice(-2)
+        if (!end || start === end) {
+            return monthNames[sMonth] + " " + sDay + ", " + shortYear
+        }
+        var ep = end.split("-")
+        if (ep.length < 3) return start + " - " + end
+        var eYear = parseInt(ep[0]), eMonth = parseInt(ep[1]) - 1, eDay = parseInt(ep[2])
+        if (sYear === eYear && sMonth === eMonth) {
+            return monthNames[sMonth] + " " + sDay + "-" + eDay + ", " + shortYear
+        }
+        return monthNames[sMonth] + " " + sDay + ", " + shortYear + " - " + monthNames[eMonth] + " " + eDay
     }
 
     function dateToYear(dateStr) {
@@ -899,13 +950,23 @@ Page {
 
                     // Calculate visible range and appropriate interval
                     property real visibleSpan: clusterYearSpan / timelineZoom
+                    property string intervalType: {
+                        if (visibleSpan > 10) return "year5"
+                        if (visibleSpan > 4) return "year1"
+                        if (visibleSpan > 1.5) return "month6"
+                        if (visibleSpan > 0.6) return "month3"
+                        if (visibleSpan > 0.25) return "month1"
+                        if (visibleSpan > 0.08) return "week1"
+                        return "day1"
+                    }
                     property real interval: {
-                        // Choose interval so we get 4-8 markers visible
-                        if (visibleSpan > 10) return 5        // 5 years
-                        if (visibleSpan > 4) return 1         // 1 year
-                        if (visibleSpan > 1.5) return 0.5     // 6 months
-                        if (visibleSpan > 0.6) return 0.25    // 3 months
-                        return 1/12                            // 1 month
+                        if (intervalType === "year5") return 5
+                        if (intervalType === "year1") return 1
+                        if (intervalType === "month6") return 0.5
+                        if (intervalType === "month3") return 0.25
+                        if (intervalType === "month1") return 1/12
+                        if (intervalType === "week1") return 1/52
+                        return 1/365
                     }
 
                     model: {
@@ -945,12 +1006,13 @@ Page {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: {
                                 if (isYear) return Math.round(modelData)
-                                // Show month for sub-year markers
                                 var year = Math.floor(modelData)
-                                var monthFrac = modelData - year
-                                var month = Math.round(monthFrac * 12) + 1
-                                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-                                return monthNames[month - 1] || ""
+                                var dayOfYear = (modelData - year) * 365
+                                var md = dayOfYearToMonthDay(dayOfYear)
+                                var iType = timeMarkers.intervalType
+                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
+                                if (iType === "week1") return monthNames[md.month] + " " + md.day
+                                return md.day
                             }
                             font.pixelSize: isYear ? 10 : 8
                             font.bold: isYear
@@ -1505,6 +1567,8 @@ Page {
                         function onFocusedScrollXChanged() { heroSarfCanvas.requestPaint() }
                         function onFocusedClusterIndexChanged() { heroSarfCanvas.requestPaint() }
                         function onAnimProgressChanged() { if (animProgress > 0.25) heroSarfCanvas.requestPaint() }
+                        function onSelectedEventChanged() { heroSarfCanvas.requestPaint() }
+                        function onHighlightedEventChanged() { heroSarfCanvas.requestPaint() }
                     }
                 }
 
@@ -1824,7 +1888,7 @@ Page {
                         }
 
                         Column {
-                            width: parent.width - expandIndicator.width - parent.spacing
+                            width: parent.width - expandIndicator.width - parent.spacing - eventCountText.width - 8
                             spacing: 6
 
                             Text {
@@ -1836,30 +1900,25 @@ Page {
                                 width: parent.width
                             }
 
-                            Row {
-                                spacing: 10
-
-                                // Date range
-                                Text {
-                                    text: {
-                                        if (!delegateRoot.cluster) return ""
-                                        var start = delegateRoot.cluster.startDate || ""
-                                        var end = delegateRoot.cluster.endDate || ""
-                                        if (start === end) return start
-                                        return start + " - " + end
-                                    }
-                                    font.pixelSize: 13
-                                    color: textSecondary
-                                }
-
-                                // Event count
-                                Text {
-                                    text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? delegateRoot.cluster.eventIds.length + " events" : ""
-                                    font.pixelSize: 13
-                                    color: textSecondary
-                                }
+                            // Date range
+                            Text {
+                                text: delegateRoot.cluster ? learnView.formatDateRange(delegateRoot.cluster.startDate, delegateRoot.cluster.endDate) : ""
+                                font.pixelSize: 13
+                                color: textSecondary
                             }
                         }
+                    }
+
+                    // Event count (right-aligned)
+                    Text {
+                        id: eventCountText
+                        anchors.right: parent.right
+                        anchors.rightMargin: 16
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 12
+                        text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? "(" + delegateRoot.cluster.eventIds.length + " events)" : ""
+                        font.pixelSize: 13
+                        color: textSecondary
                     }
                 }
 
@@ -2210,6 +2269,33 @@ Page {
                         color: textSecondary
                     }
                 }
+            }
+        }
+
+        // Vertical scroll indicator for story list (deductive calculation from model)
+        Rectangle {
+            id: storyListScrollbar
+            property real totalHeight: calculateStoryListHeight()
+            property real viewportHeight: storyList.height
+            property real maxScroll: Math.max(0, totalHeight - viewportHeight)
+            property real scrollRatio: maxScroll > 0 ? Math.max(0, Math.min(1, storyList.contentY / maxScroll)) : 0
+            property real thumbSize: Math.max(16, viewportHeight > 0 && totalHeight > 0 ? height * viewportHeight / totalHeight : height)
+
+            visible: totalHeight > viewportHeight
+            anchors.right: parent.right
+            y: storyList.y
+            width: 3
+            height: storyList.height
+            radius: 0
+            color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
+            z: 160
+
+            Rectangle {
+                y: storyListScrollbar.scrollRatio * (parent.height - height)
+                width: parent.width
+                height: storyListScrollbar.thumbSize
+                radius: parent.radius
+                color: util.IS_UI_DARK_MODE ? "#505060" : "#808090"
             }
         }
     }
