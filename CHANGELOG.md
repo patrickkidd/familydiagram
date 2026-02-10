@@ -2,6 +2,8 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.21
+
 ## 2.1.21b1
 
 - Attempt to fix person notes not clearing when closing a diagram.
