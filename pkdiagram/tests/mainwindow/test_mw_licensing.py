@@ -54,7 +54,7 @@ def test_last_stored_license_expired_when_not_logged_in(test_license, create_ac_
     [btcopilot.LICENSE_ALPHA, btcopilot.LICENSE_BETA, btcopilot.LICENSE_PROFESSIONAL],
 )
 def test_enabled_disabled_all_licenses(
-    test_session, test_machine, test_user, create_ac_mw, version_attr, license_type
+    test_session, test_machine, test_user, qtbot, create_ac_mw, version_attr, license_type
 ):
     """TODO: Add free license support."""
     test_user = User.query.get(test_user.id)
@@ -79,7 +79,20 @@ def test_enabled_disabled_all_licenses(
     db.session.commit()
 
     with mock.patch.object(version, version_attr, True):
-        ac, mw = create_ac_mw(session=test_session)
+        # Beta version with non-beta license shows a warning dialog
+        # (session.py removes all features except LICENSE_BETA when IS_BETA)
+        betaDialogExpected = (
+            version_attr == "IS_BETA" and license_type != btcopilot.LICENSE_BETA
+        )
+        ac, mw = create_ac_mw(session=test_session, init=False)
+        if betaDialogExpected:
+            qtbot.clickOkAfter(
+                lambda: ac._pre_event_loop(mw),
+                contains=AppController.S_BETA_LICENSE_REQUIRED,
+            )
+        else:
+            ac._pre_event_loop(mw)
+
         if version.IS_ALPHA and ac.session.hasFeature(btcopilot.LICENSE_ALPHA):
             assert mw.fileManager.isEnabled() == True
             assert mw.documentView.isEnabled() == True

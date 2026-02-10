@@ -429,6 +429,44 @@ def test_add_to_layer_via_model(view, scene):
     assert person.isSelected()  # should stay selected
 
 
+def test_setScene_clears_items_before_refresh(qtbot, qmlEngine):
+    """Verify setScene clears items before triggering refreshAllProperties.
+
+    Reproduces bug where switching diagrams while drawer has items causes
+    AttributeError in person.notes() because the old scene's items have
+    been deinitialized (prop("notes") returns None) but model._items still
+    references them.
+    """
+    scene1 = Scene()
+    person = scene1.addItem(Person(notes="some notes"))
+    qmlEngine.setScene(scene1)
+
+    drawer = QmlDrawer(
+        qmlEngine,
+        "qml/PersonProperties.qml",
+        propSheetModel="personModel",
+        resizable=True,
+    )
+    drawer.setScene(scene1)
+    drawer.checkInitQml()
+    drawer.show([person])
+    qtbot.addWidget(drawer)
+    model = drawer.rootModel()
+    assert model.items == [person]
+
+    # Deinitialize scene (simulates closing diagram) - clears person._propCache
+    scene1.deinit()
+    assert person.prop("notes") is None
+
+    # Switch to new scene - must not crash accessing stale items
+    scene2 = Scene()
+    drawer.setScene(scene2)
+    assert model.items == []
+
+    drawer.deinit()
+    scene2.deinit()
+
+
 def _test_add_to_layer(view, scene):
     layer = Layer(name="My Layer")
     scene.addItem(layer)

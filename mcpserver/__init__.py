@@ -1,20 +1,19 @@
 """
 Qt-based testing utilities for PyQt+QML applications.
 
-This module provides in-process testing utilities that use Qt internals
-for precise UI control. These are complementary to the MCP server
-(in mcp-server/) which provides external/remote testing via pyautogui.
+This module provides:
+1. In-process testing utilities using Qt internals for precise UI control
+2. MCP server for Claude Code integration (mcp_server.py)
 
 Use Cases:
     - In-process unit/integration tests with direct Qt access
     - Precise QML item manipulation via objectName
     - Qt property inspection and modification
     - QGraphicsView item interaction
-
-For external/MCP-based testing, see the mcp-server/ directory.
+    - Claude Code MCP-based testing via socket bridge
 
 Usage:
-    from pkdiagram.mcpserver import (
+    from mcpserver import (
         AppTestController,
         InputSimulator,
         SnapshotManager,

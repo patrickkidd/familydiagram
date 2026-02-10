@@ -151,6 +151,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Feature | Doc | Key Files |
 |---------|-----|-----------|
 | Triangle View | [TRIANGLE_VIEW.md](doc/asbuilts/TRIANGLE_VIEW.md) | `scene/triangle.py`, `models/trianglemodel.py`, `TriangleView.qml` |
+| Learn View | [LEARN_VIEW.md](doc/asbuilts/LEARN_VIEW.md) | `resources/qml/Personal/LearnView.qml`, `personal/sarfgraphmodel.py`, `personal/clustermodel.py` |
 
 As-built docs contain:
 - Component relationships and data flow
@@ -159,7 +160,7 @@ As-built docs contain:
 - Test coverage
 - Implementation details that aren't obvious from code alone
 
-**When to update**: Any code change to files listed in an as-built doc requires updating that doc to keep it accurate.
+**When to update**: Any code change to files listed in an as-built doc requires updating that doc to keep it accurate. This includes bug fixes, behavior changes, and new features. The as-built doc is the authoritative specification for the feature's behavior.
 
 ## Release and Beta Process
 

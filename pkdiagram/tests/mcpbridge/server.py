@@ -72,6 +72,7 @@ class TestBridgeServer(QObject):
             # Interaction
             "click": self._handleClick,
             "double_click": self._handleDoubleClick,
+            "drag": self._handleDrag,
             "type_text": self._handleTypeText,
             "press_key": self._handlePressKey,
             "focus": self._handleFocus,
@@ -349,6 +350,32 @@ class TestBridgeServer(QObject):
         from pkdiagram.pyqt import Qt
 
         return self._inspector.doubleClick(objectName, Qt.LeftButton, pos)
+
+    def _handleDrag(self, command: Dict) -> Dict:
+        """Handle drag command."""
+        objectName = command.get("objectName")
+        if not objectName:
+            return {"success": False, "error": "Missing 'objectName'"}
+
+        startPos = command.get("startPos")
+        endPos = command.get("endPos")
+        if not startPos or not endPos:
+            return {"success": False, "error": "Missing 'startPos' or 'endPos'"}
+
+        from pkdiagram.pyqt import Qt
+
+        button = command.get("button", "left")
+        buttonMap = {
+            "left": Qt.LeftButton,
+            "right": Qt.RightButton,
+            "middle": Qt.MiddleButton,
+        }
+        qtButton = buttonMap.get(button, Qt.LeftButton)
+        steps = command.get("steps", 10)
+
+        return self._inspector.drag(
+            objectName, tuple(startPos), tuple(endPos), qtButton, steps
+        )
 
     def _handleTypeText(self, command: Dict) -> Dict:
         """Handle type_text command."""

@@ -7,8 +7,8 @@ import sys
 import time
 from pathlib import Path
 
-# Add mcp-server to path (script is in familydiagram/bin/, mcp-server is in familydiagram/mcp-server/)
-sys.path.insert(0, str(Path(__file__).parent.parent / "mcp-server"))
+# Add mcpserver to path (script is in familydiagram/bin/, mcpserver is in familydiagram/mcpserver/)
+sys.path.insert(0, str(Path(__file__).parent.parent / "mcpserver"))
 
 from mcp_server import TestSession, LoginState
 

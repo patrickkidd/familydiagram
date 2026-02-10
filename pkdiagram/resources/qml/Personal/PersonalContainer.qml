@@ -301,6 +301,7 @@ Page {
             Repeater {
                 model: ["Discuss", "Learn", "Plan"]
                 Rectangle {
+                    objectName: modelData.toLowerCase() + "Tab"
                     width: root.width / 3
                     height: parent.height
                     color: "transparent"

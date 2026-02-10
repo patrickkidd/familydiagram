@@ -12,9 +12,9 @@ Page {
     signal editEventRequested(int eventId)
     signal deleteEventRequested(int eventId)
 
-    property int selectedEvent: -1
+    property int expandedEvent: -1
     property int swipedEvent: -1
-    property int highlightedEvent: -1
+    property int selectedEvent: -1
     property int pendingSelection: -1
     property var collapsedClusters: ({})  // clusterId -> true if collapsed
     property int focusedClusterIndex: -1  // Index of cluster being focused in graph
@@ -268,6 +268,15 @@ Page {
             focusedClusterIndex = -1
             return
         }
+        // Clean up any running scroll animations and timers to avoid race conditions
+        clusterScrollTimer.stop()
+        clusterScrollAdjustTimer.stop()
+        scrollAnimation.stop()
+        clusterScrollAdjustAnimation.stop()
+        pendingClusterScroll = -1
+        pendingClusterExpand = ""
+        pendingScrollAdjustIndex = -1
+
         var cluster = clusterModel.clusters[idx]
         // Calculate bar position from cluster data if not provided
         if (barX === undefined && cluster) {
@@ -306,6 +315,8 @@ Page {
                     if (events[i].id === cluster.eventIds[0]) {
                         pendingClusterScroll = i
                         pendingClusterExpand = cluster.id
+                        expandedEvent = -1  // Clear any previous selection from other cluster
+                        selectedEvent = i  // Set highlight to first cluster event
                         clusterScrollTimer.restart()
                         break
                     }
@@ -321,23 +332,8 @@ Page {
     property string pendingClusterExpand: ""
 
     function scrollToClusterIndex(eventIndex) {
-        // Find which cluster index this event belongs to
-        var targetClusterIdx = -1
-        for (var i = 0; i < clusterModel.clusters.length; i++) {
-            var cluster = clusterModel.clusters[i]
-            if (cluster.eventIds) {
-                for (var j = 0; j < cluster.eventIds.length; j++) {
-                    if (sarfGraphModel.events[eventIndex].id === cluster.eventIds[j]) {
-                        targetClusterIdx = i
-                        break
-                    }
-                }
-            }
-            if (targetClusterIdx >= 0) break
-        }
-
-        console.log("scrollToClusterIndex: eventIndex=" + eventIndex + ", targetClusterIdx=" + targetClusterIdx)
-
+        // Use focusedClusterIndex directly - we already know which cluster we're focusing on
+        var targetClusterIdx = focusedClusterIndex
         if (targetClusterIdx < 0) return storyList.contentY
 
         // When all clusters are collapsed, each shows only its header (84px)
@@ -348,27 +344,18 @@ Page {
         var minY = 0
         var maxY = Math.max(0, storyList.contentHeight - storyList.height)
         var clampedY = Math.max(minY, Math.min(targetY, maxY))
-
-        console.log("  targetClusterIdx=" + targetClusterIdx + ", collapsedHeaderHeight=" + collapsedHeaderHeight)
-        console.log("  targetY=" + targetY + " (clusterIdx * 84 - 20)")
-        console.log("  storyList.contentHeight=" + storyList.contentHeight + ", storyList.height=" + storyList.height)
-        console.log("  maxY=" + maxY + ", clampedY=" + clampedY)
-        console.log("  storyList.contentY (before)=" + storyList.contentY)
-
         return clampedY
     }
 
     Timer {
         id: clusterScrollTimer
-        interval: 150  // Allow layout to settle after collapsing clusters
+        interval: 300  // Must exceed delegate height animation (250ms) to avoid race condition
         onTriggered: {
             if (pendingClusterScroll >= 0) {
                 storyList.forceLayout()
-                console.log("clusterScrollTimer triggered, pendingClusterScroll=" + pendingClusterScroll)
                 var targetY = scrollToClusterIndex(pendingClusterScroll)
                 var maxY = Math.max(0, storyList.contentHeight - storyList.height)
                 targetY = Math.max(0, Math.min(targetY, maxY))
-                console.log("  scrollAnimation.to = " + targetY + ", starting animation...")
                 scrollAnimation.to = targetY
                 scrollAnimation.start()
                 pendingClusterScroll = -1
@@ -381,7 +368,6 @@ Page {
     Connections {
         target: scrollAnimation
         function onStopped() {
-            console.log("scrollAnimation stopped, contentY=" + storyList.contentY + ", pendingClusterExpand=" + pendingClusterExpand)
             // Expand cluster after scroll animation completes
             if (pendingClusterExpand !== "") {
                 // Find the event index for this cluster to use in scroll adjustment
@@ -409,7 +395,6 @@ Page {
                     }
                     collapsedClusters = newCollapsed
                 }
-                console.log("  Expanded cluster: " + pendingClusterExpand)
                 pendingClusterExpand = ""
                 // Trigger scroll adjustment after expansion
                 clusterScrollAdjustTimer.restart()
@@ -419,7 +404,7 @@ Page {
 
     Timer {
         id: clusterScrollAdjustTimer
-        interval: 100
+        interval: 300  // Must exceed delegate height animation (250ms) to avoid race condition
         onTriggered: {
             if (pendingScrollAdjustIndex >= 0) {
                 storyList.forceLayout()
@@ -427,7 +412,6 @@ Page {
                 var targetY = pendingScrollAdjustIndex > 0 ? scrollToClusterIndex(pendingScrollAdjustIndex) : 0
                 var maxY = Math.max(0, storyList.contentHeight - storyList.height)
                 targetY = Math.max(0, Math.min(targetY, maxY))
-                console.log("clusterScrollAdjustTimer: adjusting to targetY=" + targetY + ", current contentY=" + storyList.contentY)
                 if (Math.abs(targetY - storyList.contentY) > 10) {
                     clusterScrollAdjustAnimation.to = targetY
                     clusterScrollAdjustAnimation.start()
@@ -461,6 +445,15 @@ Page {
     }
 
     function clearFocus() {
+        // Clean up any running scroll animations and timers
+        clusterScrollTimer.stop()
+        clusterScrollAdjustTimer.stop()
+        scrollAnimation.stop()
+        clusterScrollAdjustAnimation.stop()
+        pendingClusterScroll = -1
+        pendingClusterExpand = ""
+        pendingScrollAdjustIndex = -1
+
         hoveredEventGroup = -1
         // Collapse all clusters without changing scroll position
         if (clusterModel && clusterModel.clusters) {
@@ -519,6 +512,56 @@ Page {
         return collapsedClusters[cluster.id] === true
     }
 
+    readonly property int collapsedEventHeight: 76
+    readonly property int expandedEventHeight: 200
+    readonly property int clusterHeaderHeight: 84
+
+    // Deductively calculate total story list height from model state
+    function calculateStoryListHeight() {
+        if (!sarfGraphModel) return 0
+        var events = sarfGraphModel.events
+        if (!events || events.length === 0) return 0
+        var total = 12  // ListView header height
+        var hasClusters = clusterModel && clusterModel.hasClusters
+        for (var i = 0; i < events.length; i++) {
+            var cluster = showClusters ? clusterForEventIndex(i) : null
+            var isFirst = showClusters && isFirstEventInCluster(i)
+            var isCollapsed = showClusters && cluster && collapsedClusters[cluster.id] === true
+            var hideCompletely = (showClusters && hasClusters && cluster === null) || (isCollapsed && !isFirst)
+            if (hideCompletely) continue
+            var headerH = isFirst ? clusterHeaderHeight : 0
+            var showContent = !isCollapsed || !cluster
+            var eventH = showContent ? (expandedEvent === i ? expandedEventHeight : collapsedEventHeight) : 0
+            total += headerH + eventH
+        }
+        return total
+    }
+
+    // Calculate Y position for a specific event in the story list
+    function calculateEventY(targetIdx) {
+        if (!sarfGraphModel) return 0
+        var events = sarfGraphModel.events
+        if (!events || targetIdx < 0 || targetIdx >= events.length) return 0
+        var y = 12  // ListView header height
+        var hasClusters = clusterModel && clusterModel.hasClusters
+        for (var i = 0; i < targetIdx; i++) {
+            var cluster = showClusters ? clusterForEventIndex(i) : null
+            var isFirst = showClusters && isFirstEventInCluster(i)
+            var isCollapsed = showClusters && cluster && collapsedClusters[cluster.id] === true
+            var hideCompletely = (showClusters && hasClusters && cluster === null) || (isCollapsed && !isFirst)
+            if (hideCompletely) continue
+            var headerH = isFirst ? clusterHeaderHeight : 0
+            var showContent = !isCollapsed || !cluster
+            var eventH = showContent ? (expandedEvent === i ? expandedEventHeight : collapsedEventHeight) : 0
+            y += headerH + eventH
+        }
+        // Add target event's cluster header if it's first in cluster
+        var targetCluster = showClusters ? clusterForEventIndex(targetIdx) : null
+        var targetIsFirst = showClusters && isFirstEventInCluster(targetIdx)
+        if (targetIsFirst) y += clusterHeaderHeight
+        return y
+    }
+
     function toggleClusterCollapsed(clusterId) {
         var newCollapsed = {}
         for (var key in collapsedClusters) {
@@ -562,6 +605,36 @@ Page {
         return clusterPalette[Math.abs(hash) % clusterPalette.length]
     }
 
+    readonly property var monthNames: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    readonly property var monthDays: [31,28,31,30,31,30,31,31,30,31,30,31]
+
+    function dayOfYearToMonthDay(dayOfYear) {
+        var month = 0, dayInMonth = dayOfYear
+        for (var i = 0; i < 12; i++) {
+            if (dayInMonth < monthDays[i]) { month = i; break }
+            dayInMonth -= monthDays[i]
+        }
+        return { month: month, day: Math.round(dayInMonth) + 1 }
+    }
+
+    function formatDateRange(start, end) {
+        if (!start) return ""
+        var sp = start.split("-")
+        if (sp.length < 3) return start
+        var sYear = parseInt(sp[0]), sMonth = parseInt(sp[1]) - 1, sDay = parseInt(sp[2])
+        var shortYear = "'" + String(sYear).slice(-2)
+        if (!end || start === end) {
+            return monthNames[sMonth] + " " + sDay + ", " + shortYear
+        }
+        var ep = end.split("-")
+        if (ep.length < 3) return start + " - " + end
+        var eYear = parseInt(ep[0]), eMonth = parseInt(ep[1]) - 1, eDay = parseInt(ep[2])
+        if (sYear === eYear && sMonth === eMonth) {
+            return monthNames[sMonth] + " " + sDay + "-" + eDay + ", " + shortYear
+        }
+        return monthNames[sMonth] + " " + sDay + ", " + shortYear + " - " + monthNames[eMonth] + " " + eDay
+    }
+
     function dateToYear(dateStr) {
         if (!dateStr) return null
         var parts = dateStr.split("-")
@@ -590,14 +663,28 @@ Page {
         storyList.positionViewAtIndex(idx, ListView.Contain)
     }
 
-    function scrollToEventThenExpand(idx) {
+    // Check if an event has expandable content (matches delegate hasExpandableContent logic)
+    function isEventExpandable(evt) {
+        var isShift = evt.kind === "shift"
+        var hasRelationship = isShift && evt.relationship
+        var hasTriangles = evt.relationshipTriangles && evt.relationshipTriangles.length > 0
+        var hasNotes = evt.notes && evt.notes.length > 0
+        return hasRelationship || hasTriangles || hasNotes
+    }
+
+    function scrollToEventThenSelect(idx) {
         if (!sarfGraphModel) return
         var events = sarfGraphModel.events
         if (idx < 0 || idx >= events.length) return
-        selectedEvent = -1
-        highlightedEvent = idx
+        expandedEvent = -1
+        selectedEvent = idx
         pendingSelection = idx
-        storyList.positionViewAtIndex(idx, ListView.Beginning)
+        // Animate scroll to the event with some top margin
+        var targetY = calculateEventY(idx) - 20
+        var maxY = Math.max(0, storyList.contentHeight - storyList.height)
+        targetY = Math.max(0, Math.min(targetY, maxY))
+        eventScrollAnimation.to = targetY
+        eventScrollAnimation.start()
         expandTimer.restart()
     }
 
@@ -606,9 +693,14 @@ Page {
         interval: 550
         onTriggered: {
             if (pendingSelection >= 0) {
-                selectedEvent = pendingSelection
+                var events = sarfGraphModel ? sarfGraphModel.events : []
+                var evt = pendingSelection < events.length ? events[pendingSelection] : null
+                // Only expand if the event has expandable content
+                if (evt && isEventExpandable(evt)) {
+                    expandedEvent = pendingSelection
+                    scrollAdjustTimer.restart()
+                }
                 pendingSelection = -1
-                scrollAdjustTimer.restart()
             }
         }
     }
@@ -617,8 +709,8 @@ Page {
         id: scrollAdjustTimer
         interval: 300
         onTriggered: {
-            if (selectedEvent >= 0) {
-                ensureItemVisible(selectedEvent)
+            if (expandedEvent >= 0) {
+                ensureItemVisible(expandedEvent)
             }
         }
     }
@@ -807,6 +899,7 @@ Page {
             // Clipped container for zoom/pan
             Item {
                 id: clusterBarsContainer
+                objectName: "clusterBarsContainer"
                 x: gLeft
                 y: miniGraphY
                 width: gWidth
@@ -827,26 +920,7 @@ Page {
                     }
                 }
 
-                // Drag to pan
-                MouseArea {
-                    anchors.fill: parent
-                    z: -1
-                    property real dragStartX: 0
-                    property real dragStartScrollX: 0
-                    property bool isDragging: false
-
-                    onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
-                    onPositionChanged: {
-                        if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
-                            isDragging = true
-                            var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
-                            timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
-                        }
-                    }
-                    onReleased: isDragging = false
-                }
-
-                // Pinch to zoom
+                // Pinch to zoom (with drag-to-pan MouseArea as child)
                 PinchArea {
                     id: clusterPinchArea
                     anchors.fill: parent
@@ -854,11 +928,15 @@ Page {
                     property real startZoom: 1.0
                     property real startScrollX: 0
                     property point startCenter: Qt.point(0, 0)
+                    property point lastCenter: Qt.point(0, 0)
+                    property real accumulatedPan: 0
 
                     onPinchStarted: {
                         startZoom = timelineZoom
                         startScrollX = timelineScrollX
                         startCenter = pinch.center
+                        lastCenter = pinch.center
+                        accumulatedPan = 0
                     }
 
                     onPinchUpdated: {
@@ -866,10 +944,36 @@ Page {
                         var baseWidth = gWidth
                         var newContentWidth = baseWidth * newZoom
                         var pinchXRatio = (startCenter.x + startScrollX) / (baseWidth * startZoom)
-                        var newScrollX = pinchXRatio * newContentWidth - startCenter.x
+                        var newScrollForZoom = pinchXRatio * newContentWidth - startCenter.x
+
+                        // Pan during pinch (both fingers moving together)
+                        var panDelta = lastCenter.x - pinch.center.x
+                        lastCenter = pinch.center
+                        accumulatedPan += panDelta
+
+                        var newScrollX = newScrollForZoom + accumulatedPan
                         var maxScroll = Math.max(0, newContentWidth - baseWidth)
                         timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
                         timelineZoom = newZoom
+                    }
+
+                    // Drag to pan (must be child of PinchArea to receive single-touch events)
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        property real dragStartX: 0
+                        property real dragStartScrollX: 0
+                        property bool isDragging: false
+
+                        onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
+                        onPositionChanged: {
+                            if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
+                                isDragging = true
+                                var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                                timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
+                            }
+                        }
+                        onReleased: isDragging = false
                     }
                 }
 
@@ -879,13 +983,23 @@ Page {
 
                     // Calculate visible range and appropriate interval
                     property real visibleSpan: clusterYearSpan / timelineZoom
+                    property string intervalType: {
+                        if (visibleSpan > 10) return "year5"
+                        if (visibleSpan > 4) return "year1"
+                        if (visibleSpan > 1.5) return "month6"
+                        if (visibleSpan > 0.6) return "month3"
+                        if (visibleSpan > 0.25) return "month1"
+                        if (visibleSpan > 0.08) return "week1"
+                        return "day1"
+                    }
                     property real interval: {
-                        // Choose interval so we get 4-8 markers visible
-                        if (visibleSpan > 10) return 5        // 5 years
-                        if (visibleSpan > 4) return 1         // 1 year
-                        if (visibleSpan > 1.5) return 0.5     // 6 months
-                        if (visibleSpan > 0.6) return 0.25    // 3 months
-                        return 1/12                            // 1 month
+                        if (intervalType === "year5") return 5
+                        if (intervalType === "year1") return 1
+                        if (intervalType === "month6") return 0.5
+                        if (intervalType === "month3") return 0.25
+                        if (intervalType === "month1") return 1/12
+                        if (intervalType === "week1") return 1/52
+                        return 1/365
                     }
 
                     model: {
@@ -925,12 +1039,13 @@ Page {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: {
                                 if (isYear) return Math.round(modelData)
-                                // Show month for sub-year markers
                                 var year = Math.floor(modelData)
-                                var monthFrac = modelData - year
-                                var month = Math.round(monthFrac * 12) + 1
-                                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-                                return monthNames[month - 1] || ""
+                                var dayOfYear = (modelData - year) * 365
+                                var md = dayOfYearToMonthDay(dayOfYear)
+                                var iType = timeMarkers.intervalType
+                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
+                                if (iType === "week1") return monthNames[md.month] + " " + md.day
+                                return md.day
                             }
                             font.pixelSize: isYear ? 10 : 8
                             font.bold: isYear
@@ -1122,13 +1237,13 @@ Page {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 16
                         width: 8; height: 8; radius: 4
-                        color: highlightedEvent === index ? textPrimary : primaryColorForEvent(modelData)
-                        scale: highlightedEvent === index ? 1.5 : 1
+                        color: selectedEvent === index ? textPrimary : primaryColorForEvent(modelData)
+                        scale: selectedEvent === index ? 1.5 : 1
                         Behavior on scale { NumberAnimation { duration: 150 } }
                     }
 
                     Text {
-                        visible: highlightedEvent === index
+                        visible: selectedEvent === index
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 28
                         text: modelData.date
@@ -1140,7 +1255,7 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: scrollToEventThenExpand(index)
+                        onClicked: scrollToEventThenSelect(index)
                     }
                 }
             }
@@ -1219,6 +1334,7 @@ Page {
                     // Close button - 44px full iOS tap target
                     Rectangle {
                         id: heroCloseButton
+                        objectName: "heroCloseButton"
                         anchors.right: parent.right
                         anchors.rightMargin: -4
                         anchors.verticalCenter: parent.verticalCenter
@@ -1303,7 +1419,7 @@ Page {
                                             var events = sarfGraphModel.events
                                             for (var i = 0; i < events.length; i++) {
                                                 if (events[i].id === group.events[0].id) {
-                                                    scrollToEventThenExpand(i)
+                                                    scrollToEventThenSelect(i)
                                                     break
                                                 }
                                             }
@@ -1330,7 +1446,7 @@ Page {
                                 var eventIds = focusedCluster.eventIds
 
                                 var dataPoints = []
-                                var relationshipXs = []
+                                var relationshipEvents = []  // {yearFrac, eventIndex} for click detection
                                 var baseline = {symptom: 0, anxiety: 0, functioning: 0}
                                 var foundBaseline = false
 
@@ -1355,10 +1471,12 @@ Page {
                                                 yearFrac: events[j].yearFrac,
                                                 symptom: cumulative[j].symptom - baseline.symptom,
                                                 anxiety: cumulative[j].anxiety - baseline.anxiety,
-                                                functioning: cumulative[j].functioning - baseline.functioning
+                                                functioning: cumulative[j].functioning - baseline.functioning,
+                                                eventIndex: j,
+                                                description: events[j].description
                                             })
                                             if (events[j].relationship) {
-                                                relationshipXs.push(events[j].yearFrac)
+                                                relationshipEvents.push({yearFrac: events[j].yearFrac, eventIndex: j})
                                             }
                                             break
                                         }
@@ -1368,11 +1486,11 @@ Page {
                                 if (dataPoints.length === 0) return
 
                                 // Draw relationship vertical lines first (behind other lines)
-                                if (relationshipXs.length > 0) {
+                                if (relationshipEvents.length > 0) {
                                     ctx.strokeStyle = relationshipColor.toString()
                                     ctx.lineWidth = 1.5
-                                    for (var r = 0; r < relationshipXs.length; r++) {
-                                        var rx = zoomableContent.xForYearFrac(relationshipXs[r])
+                                    for (var r = 0; r < relationshipEvents.length; r++) {
+                                        var rx = zoomableContent.xForYearFrac(relationshipEvents[r].yearFrac)
                                         ctx.beginPath()
                                         ctx.moveTo(rx, 0)
                                         ctx.lineTo(rx, height)
@@ -1420,16 +1538,66 @@ Page {
                                     ctx.globalAlpha = 1.0
                                 }
 
-                                // Draw dots at each event position
+                                // Draw dots only where the specific event CHANGED that variable
                                 for (k = 0; k < 3; k++) {
                                     if (!hasChanges[k]) continue
                                     ctx.fillStyle = colors[k]
                                     for (p = 0; p < dataPoints.length; p++) {
+                                        // Check if THIS event changed THIS variable
+                                        var evtIdx = dataPoints[p].eventIndex
+                                        var prevCum = (evtIdx > 0) ? cumulative[evtIdx - 1] : {symptom: 0, anxiety: 0, functioning: 0}
+                                        var currCum = cumulative[evtIdx]
+                                        var changed = false
+                                        if (k === 0) changed = (currCum.symptom !== prevCum.symptom)
+                                        else if (k === 1) changed = (currCum.anxiety !== prevCum.anxiety)
+                                        else if (k === 2) changed = (currCum.functioning !== prevCum.functioning)
+                                        if (!changed) continue  // Skip dot if this event didn't change this variable
                                         x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
                                         y = zoomableContent.yForValue(dataPoints[p][keys[k]])
                                         ctx.beginPath()
                                         ctx.arc(x, y, 4, 0, Math.PI * 2)
                                         ctx.fill()
+                                    }
+                                }
+
+                                // Draw highlight ring around selected event's dots
+                                // Only highlight SARF variables where the selected event actually caused a change
+                                var activeIdx = expandedEvent >= 0 ? expandedEvent : selectedEvent
+                                if (activeIdx >= 0 && activeIdx < events.length) {
+                                    for (p = 0; p < dataPoints.length; p++) {
+                                        if (dataPoints[p].eventIndex === activeIdx) {
+                                            var prevCumulative = (activeIdx > 0) ? cumulative[activeIdx - 1] : {symptom: 0, anxiety: 0, functioning: 0}
+                                            var currCumulative = cumulative[activeIdx]
+                                            var eventChanges = [
+                                                currCumulative.symptom !== prevCumulative.symptom,
+                                                currCumulative.anxiety !== prevCumulative.anxiety,
+                                                currCumulative.functioning !== prevCumulative.functioning
+                                            ]
+
+                                            ctx.strokeStyle = textPrimary.toString()
+                                            ctx.lineWidth = 2
+                                            var drewSarfRing = false
+                                            for (k = 0; k < 3; k++) {
+                                                if (!hasChanges[k] || !eventChanges[k]) continue
+                                                x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
+                                                y = zoomableContent.yForValue(dataPoints[p][keys[k]])
+                                                ctx.beginPath()
+                                                ctx.arc(x, y, 8, 0, Math.PI * 2)
+                                                ctx.stroke()
+                                                drewSarfRing = true
+                                            }
+                                            // If this is a relationship-only event (no SARF changes), highlight the vertical line
+                                            if (!drewSarfRing && currCumulative.relationship) {
+                                                x = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
+                                                ctx.strokeStyle = relationshipColor.toString()
+                                                ctx.lineWidth = 4
+                                                ctx.beginPath()
+                                                ctx.moveTo(x, 0)
+                                                ctx.lineTo(x, height)
+                                                ctx.stroke()
+                                            }
+                                            break
+                                        }
                                     }
                                 }
                             }
@@ -1464,8 +1632,9 @@ Page {
                         }
 
                         MouseArea {
+                            objectName: "heroClickArea"
                             anchors.fill: parent
-                            acceptedButtons: Qt.NoButton
+                            acceptedButtons: Qt.LeftButton
                             onWheel: {
                                 if (animProgress < 0.9) return
                                 var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
@@ -1474,6 +1643,115 @@ Page {
                                 focusedScrollX = Math.max(0, Math.min(focusedScrollX - deltaX * 0.5, maxScroll))
                                 heroSarfCanvas.requestPaint()
                                 wheel.accepted = true
+                            }
+                            onClicked: function(mouse) {
+                                if (animProgress < 0.9 || !focusedCluster || !sarfGraphModel) return
+                                var clickX = mouse.x + focusedScrollX
+                                var clickY = mouse.y
+                                var events = sarfGraphModel.events
+                                var cumulative = sarfGraphModel.cumulative
+                                var eventIds = focusedCluster.eventIds
+
+                                // Build dataPoints with cumulative values (same logic as canvas)
+                                var dataPoints = []
+                                var relationshipEvents = []
+                                var baseline = {symptom: 0, anxiety: 0, functioning: 0}
+                                var foundBaseline = false
+                                for (var i = 0; i < eventIds.length; i++) {
+                                    var eventId = eventIds[i]
+                                    for (var j = 0; j < events.length; j++) {
+                                        if (events[j].id === eventId) {
+                                            if (!foundBaseline) {
+                                                if (j > 0) {
+                                                    baseline = {
+                                                        symptom: cumulative[j-1].symptom,
+                                                        anxiety: cumulative[j-1].anxiety,
+                                                        functioning: cumulative[j-1].functioning
+                                                    }
+                                                }
+                                                foundBaseline = true
+                                            }
+                                            dataPoints.push({
+                                                yearFrac: events[j].yearFrac,
+                                                symptom: cumulative[j].symptom - baseline.symptom,
+                                                anxiety: cumulative[j].anxiety - baseline.anxiety,
+                                                functioning: cumulative[j].functioning - baseline.functioning,
+                                                eventIndex: j,
+                                                eventId: eventId,
+                                                description: events[j].description
+                                            })
+                                            if (events[j].relationship) {
+                                                relationshipEvents.push({yearFrac: events[j].yearFrac, eventIndex: j})
+                                            }
+                                            break
+                                        }
+                                    }
+                                }
+
+                                // Compute hasChanges for each SARF variable (must match canvas drawing)
+                                var hasChanges = [false, false, false]
+                                var keys = ['symptom', 'anxiety', 'functioning']
+                                for (var k = 0; k < 3; k++) {
+                                    if (dataPoints.length > 1) {
+                                        var firstVal = dataPoints[0][keys[k]]
+                                        for (var p = 1; p < dataPoints.length; p++) {
+                                            if (dataPoints[p][keys[k]] !== firstVal) {
+                                                hasChanges[k] = true
+                                                break
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Find nearest VISIBLE dot first (dots have priority - smaller click target)
+                                // Must match canvas drawing logic: only dots where the specific event changed that variable
+                                var bestDist = Infinity
+                                var bestEventIdx = -1
+                                var bestKey = ""
+                                for (p = 0; p < dataPoints.length; p++) {
+                                    var evtIdx = dataPoints[p].eventIndex
+                                    var prevCum = (evtIdx > 0) ? cumulative[evtIdx - 1] : {symptom: 0, anxiety: 0, functioning: 0}
+                                    var currCum = cumulative[evtIdx]
+                                    var evtX = zoomableContent.xForYearFrac(dataPoints[p].yearFrac)
+                                    for (k = 0; k < 3; k++) {
+                                        if (!hasChanges[k]) continue  // Skip invisible variable (no changes in cluster)
+                                        // Check if THIS event changed THIS variable (same check as canvas drawing)
+                                        var eventChanged = false
+                                        if (k === 0) eventChanged = (currCum.symptom !== prevCum.symptom)
+                                        else if (k === 1) eventChanged = (currCum.anxiety !== prevCum.anxiety)
+                                        else if (k === 2) eventChanged = (currCum.functioning !== prevCum.functioning)
+                                        if (!eventChanged) continue
+                                        var evtY = zoomableContent.yForValue(dataPoints[p][keys[k]])
+                                        var dx = clickX - evtX
+                                        var dy = clickY - evtY
+                                        var dist = Math.sqrt(dx * dx + dy * dy)
+                                        if (dist < bestDist) {
+                                            bestDist = dist
+                                            bestEventIdx = dataPoints[p].eventIndex
+                                            bestKey = keys[k]
+                                        }
+                                    }
+                                }
+                                if (bestEventIdx >= 0 && bestDist < 40) {
+                                    scrollToEventThenSelect(bestEventIdx)
+                                    return
+                                }
+
+                                // Fall back to relationship lines (vertical lines - can click anywhere along height)
+                                var relThreshold = 20  // px threshold for relationship line clicks
+                                var bestRelDist = Infinity
+                                var bestRelEventIdx = -1
+                                for (var r = 0; r < relationshipEvents.length; r++) {
+                                    var relX = zoomableContent.xForYearFrac(relationshipEvents[r].yearFrac)
+                                    var relDist = Math.abs(clickX - relX)
+                                    if (relDist < bestRelDist) {
+                                        bestRelDist = relDist
+                                        bestRelEventIdx = relationshipEvents[r].eventIndex
+                                    }
+                                }
+                                if (bestRelEventIdx >= 0 && bestRelDist < relThreshold) {
+                                    scrollToEventThenSelect(bestRelEventIdx)
+                                }
                             }
                         }
                     }
@@ -1484,6 +1762,8 @@ Page {
                         function onFocusedScrollXChanged() { heroSarfCanvas.requestPaint() }
                         function onFocusedClusterIndexChanged() { heroSarfCanvas.requestPaint() }
                         function onAnimProgressChanged() { if (animProgress > 0.25) heroSarfCanvas.requestPaint() }
+                        function onExpandedEventChanged() { heroSarfCanvas.requestPaint() }
+                        function onSelectedEventChanged() { heroSarfCanvas.requestPaint() }
                     }
                 }
 
@@ -1557,6 +1837,7 @@ Page {
 
                 // Prev button
                 Rectangle {
+                    objectName: "clusterPrevButton"
                     width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
                     anchors.verticalCenter: parent.verticalCenter
@@ -1603,6 +1884,7 @@ Page {
 
                 // Next button
                 Rectangle {
+                    objectName: "clusterNextButton"
                     width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
                     anchors.verticalCenter: parent.verticalCenter
@@ -1711,6 +1993,14 @@ Page {
             }
 
             NumberAnimation {
+                id: eventScrollAnimation
+                target: storyList
+                property: "contentY"
+                duration: 350
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
                 id: scrollAdjustAnimation
                 target: storyList
                 property: "contentY"
@@ -1718,12 +2008,13 @@ Page {
                 easing.type: Easing.OutQuad
             }
 
-            onCurrentIndexChanged: highlightedEvent = currentIndex
+            onCurrentIndexChanged: selectedEvent = currentIndex
 
             delegate: Item {
                 id: delegateRoot
+                objectName: "eventDelegate_" + index
                 width: ListView.view.width
-                height: hideCompletely ? 0 : (clusterHeaderHeight + (showEventContent ? eventHeight : 0))
+                height: hideCompletely ? 0 : (delegateClusterHeaderHeight + (showEventContent ? eventHeight : 0))
                 clip: true
                 visible: !hideCompletely
 
@@ -1741,8 +2032,9 @@ Page {
                 // Hide if: (1) showClusters is ON and event not in any cluster, or (2) cluster collapsed and not first
                 property bool hideCompletely: (showClusters && clusterModel && clusterModel.hasClusters && cluster === null) || (isClusterCollapsed && !isFirstInCluster)
                 property bool showEventContent: !isClusterCollapsed || !cluster
-                property real clusterHeaderHeight: isFirstInCluster ? 84 : 0
-                property real eventHeight: selectedEvent === index ? 200 : 110
+                property real delegateClusterHeaderHeight: isFirstInCluster ? root.clusterHeaderHeight : 0
+                property real eventHeight: expandedEvent === index ? root.expandedEventHeight : root.collapsedEventHeight
+                property bool hasExpandableContent: (isShift && evt.relationship) || (evt.relationshipTriangles && evt.relationshipTriangles.length > 0) || (evt.notes && evt.notes.length > 0)
 
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
@@ -1803,7 +2095,7 @@ Page {
                         }
 
                         Column {
-                            width: parent.width - expandIndicator.width - parent.spacing
+                            width: parent.width - expandIndicator.width - parent.spacing - eventCountText.width - 8
                             spacing: 6
 
                             Text {
@@ -1815,30 +2107,25 @@ Page {
                                 width: parent.width
                             }
 
-                            Row {
-                                spacing: 10
-
-                                // Date range
-                                Text {
-                                    text: {
-                                        if (!delegateRoot.cluster) return ""
-                                        var start = delegateRoot.cluster.startDate || ""
-                                        var end = delegateRoot.cluster.endDate || ""
-                                        if (start === end) return start
-                                        return start + " - " + end
-                                    }
-                                    font.pixelSize: 13
-                                    color: textSecondary
-                                }
-
-                                // Event count
-                                Text {
-                                    text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? delegateRoot.cluster.eventIds.length + " events" : ""
-                                    font.pixelSize: 13
-                                    color: textSecondary
-                                }
+                            // Date range
+                            Text {
+                                text: delegateRoot.cluster ? learnView.formatDateRange(delegateRoot.cluster.startDate, delegateRoot.cluster.endDate) : ""
+                                font.pixelSize: 13
+                                color: textSecondary
                             }
                         }
+                    }
+
+                    // Event count (right-aligned)
+                    Text {
+                        id: eventCountText
+                        anchors.right: parent.right
+                        anchors.rightMargin: 16
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 12
+                        text: delegateRoot.cluster && delegateRoot.cluster.eventIds ? "(" + delegateRoot.cluster.eventIds.length + " events)" : ""
+                        font.pixelSize: 13
+                        color: textSecondary
                     }
                 }
 
@@ -1846,7 +2133,7 @@ Page {
                 Rectangle {
                     visible: delegateRoot.showEventContent
                     anchors.left: parent.left
-                    y: delegateRoot.clusterHeaderHeight
+                    y: delegateRoot.delegateClusterHeaderHeight
                     height: delegateRoot.eventHeight
                     width: actionWidth
                     color: util.QML_SELECTION_COLOR
@@ -1873,7 +2160,7 @@ Page {
                 Rectangle {
                     visible: delegateRoot.showEventContent
                     anchors.right: parent.right
-                    y: delegateRoot.clusterHeaderHeight
+                    y: delegateRoot.delegateClusterHeaderHeight
                     height: delegateRoot.eventHeight
                     width: actionWidth
                     color: "#FF3B30"
@@ -1901,7 +2188,7 @@ Page {
                     id: contentRow
                     visible: delegateRoot.showEventContent
                     x: delegateRoot.swipeX
-                    y: delegateRoot.clusterHeaderHeight
+                    y: delegateRoot.delegateClusterHeaderHeight
                     width: parent.width
                     height: delegateRoot.eventHeight
                     color: selectedEvent === index ? highlightColor : bgColor
@@ -1977,18 +2264,22 @@ Page {
 
                         onClicked: {
                             if (!isDragging && Math.abs(delegateRoot.swipeX) < 5) {
-                                // Reset any swiped item
                                 if (swipedEvent !== -1) {
                                     swipedEvent = -1
                                     return
                                 }
-                                // Toggle expand
-                                if (selectedEvent === index) {
-                                    selectedEvent = -1
+                                selectedEvent = index
+                                if (delegateRoot.hasExpandableContent) {
+                                    if (expandedEvent === index) {
+                                        expandedEvent = -1
+                                    } else {
+                                        expandedEvent = index
+                                        scrollAdjustTimer.restart()
+                                    }
                                 } else {
-                                    selectedEvent = index
-                                    highlightedEvent = index
-                                    scrollAdjustTimer.restart()
+                                    if (expandedEvent !== -1) {
+                                        expandedEvent = -1
+                                    }
                                 }
                             }
                         }
@@ -2104,8 +2395,8 @@ Page {
                         // Expanded content - only shown when selected
                         Item {
                             width: parent.width
-                            height: selectedEvent === index ? expandedCol.implicitHeight : 0
-                            visible: height > 0
+                            height: expandedEvent === index ? expandedCol.height : 0
+                            visible: expandedEvent === index  // Must use direct comparison, not height > 0, to avoid circular dependency
                             clip: true
 
                             Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
@@ -2113,11 +2404,12 @@ Page {
                             Column {
                                 id: expandedCol
                                 width: parent.width
+                                height: childrenRect.height  // Explicit height tracking - Column's implicitHeight doesn't update when children change in hidden state
                                 spacing: 6
 
                                 // Relationship info row
                                 Row {
-                                    visible: delegateRoot.isShift && evt.relationship !== null && evt.relationship !== undefined
+                                    visible: delegateRoot.isShift && delegateRoot.evt.relationship !== null && delegateRoot.evt.relationship !== undefined
                                     spacing: 8
                                     height: 24
 
@@ -2132,7 +2424,7 @@ Page {
                                             spacing: 4
                                             RelationshipSymbol { size: 10; symbolColor: "#fff"; anchors.verticalCenter: parent.verticalCenter }
                                             Text {
-                                                text: evt.relationship ? evt.relationship.charAt(0).toUpperCase() + evt.relationship.slice(1) : ""
+                                                text: delegateRoot.evt.relationship ? delegateRoot.evt.relationship.charAt(0).toUpperCase() + delegateRoot.evt.relationship.slice(1) : ""
                                                 font.pixelSize: 11
                                                 color: "#fff"
                                             }
@@ -2140,8 +2432,8 @@ Page {
                                     }
 
                                     Text {
-                                        visible: evt.relationshipTargets && evt.relationshipTargets.length > 0
-                                        text: evt.relationship === "inside" ? "Inside: " + evt.relationshipTargets.join(", ") : "with " + evt.relationshipTargets.join(", ")
+                                        visible: delegateRoot.evt.relationshipTargets && delegateRoot.evt.relationshipTargets.length > 0
+                                        text: delegateRoot.evt.relationship === "inside" ? "Inside: " + delegateRoot.evt.relationshipTargets.join(", ") : "with " + delegateRoot.evt.relationshipTargets.join(", ")
                                         font.pixelSize: 13
                                         color: textSecondary
                                         anchors.verticalCenter: parent.verticalCenter
@@ -2149,15 +2441,16 @@ Page {
                                 }
 
                                 Text {
-                                    visible: evt.relationshipTriangles && evt.relationshipTriangles.length > 0
-                                    text: evt.relationship === "inside" ? "Outside: " + evt.relationshipTriangles.join(", ") : "△ " + evt.relationshipTriangles.join(", ")
+                                    visible: delegateRoot.evt.relationshipTriangles && delegateRoot.evt.relationshipTriangles.length > 0
+                                    text: delegateRoot.evt.relationship === "inside" ? "Outside: " + delegateRoot.evt.relationshipTriangles.join(", ") : "△ " + delegateRoot.evt.relationshipTriangles.join(", ")
                                     font.pixelSize: 13
                                     color: textSecondary
                                 }
 
                                 // Notes with wrapping and scroll
                                 Flickable {
-                                    visible: evt.notes && evt.notes.length > 0
+                                    id: notesFlickable
+                                    visible: delegateRoot.evt.notes && delegateRoot.evt.notes.length > 0
                                     width: parent.width
                                     height: visible ? Math.min(notesContent.implicitHeight, 60) : 0
                                     contentWidth: width
@@ -2168,7 +2461,7 @@ Page {
 
                                     Text {
                                         id: notesContent
-                                        text: evt.notes || ""
+                                        text: delegateRoot.evt.notes || ""
                                         font.pixelSize: 14
                                         color: textSecondary
                                         width: parent.width
@@ -2179,16 +2472,44 @@ Page {
                         }
                     }
 
-                    // Chevron
+                    // Chevron - only show when there's expandable content
                     Text {
+                        visible: delegateRoot.hasExpandableContent
                         anchors.right: parent.right
                         anchors.rightMargin: 20
                         anchors.verticalCenter: parent.verticalCenter
-                        text: selectedEvent === index ? "\u25BC" : "\u25B6"
+                        text: expandedEvent === index ? "\u25BC" : "\u25B6"
                         font.pixelSize: 14
                         color: textSecondary
                     }
                 }
+            }
+        }
+
+        // Vertical scroll indicator for story list (deductive calculation from model)
+        Rectangle {
+            id: storyListScrollbar
+            property real totalHeight: calculateStoryListHeight()
+            property real viewportHeight: storyList.height
+            property real maxScroll: Math.max(0, totalHeight - viewportHeight)
+            property real scrollRatio: maxScroll > 0 ? Math.max(0, Math.min(1, storyList.contentY / maxScroll)) : 0
+            property real thumbSize: Math.max(16, viewportHeight > 0 && totalHeight > 0 ? height * viewportHeight / totalHeight : height)
+
+            visible: totalHeight > viewportHeight
+            anchors.right: parent.right
+            y: storyList.y
+            width: 3
+            height: storyList.height
+            radius: 0
+            color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
+            z: 160
+
+            Rectangle {
+                y: storyListScrollbar.scrollRatio * (parent.height - height)
+                width: parent.width
+                height: storyListScrollbar.thumbSize
+                radius: parent.radius
+                color: util.IS_UI_DARK_MODE ? "#505060" : "#808090"
             }
         }
     }

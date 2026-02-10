@@ -7,10 +7,10 @@ These tests show how to use the in-process testing utilities for:
 3. Sending keyboard and mouse events
 4. Querying UI state
 
-For external/MCP-based testing with Claude Code, see mcp-server/.
+For external/MCP-based testing with Claude Code, see mcp_server.py in this package.
 
 To run these tests:
-    uv run pytest pkdiagram/tests/mcpserver/test_mcpserver_example.py -v
+    uv run pytest familydiagram/mcpserver/tests/test_mcpserver_example.py -v
 
 Note: These tests require a display or the QT_QPA_PLATFORM=offscreen environment variable.
 """
@@ -40,7 +40,7 @@ class TestAppTestController:
     @pytest.fixture
     def controller(self):
         """Create an AppTestController for testing."""
-        from pkdiagram.mcpserver import AppTestController
+        from mcpserver import AppTestController
 
         controller = AppTestController()
         yield controller
@@ -91,7 +91,7 @@ class TestInputSimulator:
     @pytest.fixture
     def setup(self):
         """Set up controller and input simulator."""
-        from pkdiagram.mcpserver import AppTestController, InputSimulator
+        from mcpserver import AppTestController, InputSimulator
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -116,6 +116,16 @@ class TestInputSimulator:
             # Just ensure it doesn't crash
             assert isinstance(result, bool)
 
+    def test_drag(self, setup):
+        """Test drag operation."""
+        controller, simulator = setup
+
+        mw = controller.mainWindow
+        if mw:
+            # Drag operation on main window - just ensure it doesn't crash
+            result = simulator.drag(mw, (10, 10), (100, 100))
+            assert isinstance(result, bool)
+
 
 class TestSnapshotManager:
     """Tests for the SnapshotManager component."""
@@ -123,7 +133,7 @@ class TestSnapshotManager:
     @pytest.fixture
     def setup(self):
         """Set up controller and snapshot manager."""
-        from pkdiagram.mcpserver import AppTestController, SnapshotManager
+        from mcpserver import AppTestController, SnapshotManager
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -197,7 +207,7 @@ class TestElementFinder:
     @pytest.fixture
     def setup(self):
         """Set up controller and element finder."""
-        from pkdiagram.mcpserver import AppTestController, ElementFinder
+        from mcpserver import AppTestController, ElementFinder
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -242,7 +252,7 @@ def example_in_process_testing():
     - Direct Qt object access
     - Precise QML item manipulation
     """
-    from pkdiagram.mcpserver import (
+    from mcpserver import (
         AppTestController,
         InputSimulator,
         SnapshotManager,
@@ -288,7 +298,7 @@ def example_mcp_testing():
     """
     Example: MCP-based testing with Claude Code.
 
-    For external/remote testing, use the MCP server in mcp-server/.
+    For external/remote testing, use the MCP server (mcp_server.py in mcpserver/).
 
     The MCP server provides these tools to Claude Code:
     - launch_app: Start the application
@@ -323,7 +333,7 @@ if __name__ == "__main__":
     # Run examples
     print("Testing Utilities Examples")
     print("=" * 50)
-    print("\nIn-process testing: Use pkdiagram.mcpserver module")
-    print("MCP testing: See mcp-server/ directory")
+    print("\nIn-process testing: Use mcpserver module")
+    print("MCP testing: Use mcpserver.mcp_server")
     print("\nTo run tests:")
-    print("  uv run pytest pkdiagram/tests/mcpserver/test_mcpserver_example.py -v")
+    print("  uv run pytest familydiagram/mcpserver/tests/test_mcpserver_example.py -v")

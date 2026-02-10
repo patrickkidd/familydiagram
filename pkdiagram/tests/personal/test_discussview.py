@@ -277,6 +277,115 @@ def test_ask(qtbot, view, personalApp, discussions):
     assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
 
 
+def test_paste_detection_triggers_import_dialog(
+    qtbot, view, personalApp: PersonalAppController
+):
+    """Pasting >20 chars into empty field should trigger import dialog."""
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    PASTED_TEXT = "A" * 30  # > 20 chars
+
+    with patch.object(QMessageBox, "question", return_value=QMessageBox.No) as mock_q:
+        # Simulate paste by setting text directly (prevTextLength starts at 0)
+        textEdit.setProperty("text", PASTED_TEXT)
+        util.waitALittle()
+
+        assert mock_q.call_count == 1
+        assert "Import Journal Notes" in mock_q.call_args[0][1]
+
+
+def test_paste_declined_restores_text(qtbot, view, personalApp: PersonalAppController):
+    """When user declines import, pasted text should be restored to input."""
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    PASTED_TEXT = "This is some pasted journal content that is long enough"
+
+    with patch.object(QMessageBox, "question", return_value=QMessageBox.No):
+        textEdit.setProperty("text", PASTED_TEXT)
+        util.waitALittle()
+
+    assert textEdit.property("text") == PASTED_TEXT
+
+
+def test_paste_accepted_clears_text_and_calls_import(
+    qtbot, view, personalApp: PersonalAppController
+):
+    """When user accepts import, text field should be cleared and importJournalNotes called."""
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    PASTED_TEXT = "Journal notes to import - must be over 20 characters"
+
+    # importJournalNotes will emit journalImportFailed since no diagram is loaded
+    # which triggers onJournalImportFailed -> criticalBox, so we must mock that too
+    importFailed = util.Condition(personalApp.journalImportFailed)
+
+    with (
+        patch.object(QMessageBox, "question", return_value=QMessageBox.Yes),
+        patch.object(QMessageBox, "critical"),  # Mock the error dialog
+    ):
+        textEdit.setProperty("text", PASTED_TEXT)
+        # Wait for journalImportFailed which proves importJournalNotes was called
+        assert importFailed.wait(maxMS=2000)
+
+    # Text should be cleared when import is accepted
+    assert textEdit.property("text") == ""
+
+
+def test_short_paste_no_dialog(qtbot, view, personalApp: PersonalAppController):
+    """Pasting <=20 chars should not trigger import dialog."""
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    SHORT_TEXT = "A" * 20  # exactly 20 chars, should not trigger
+
+    with patch.object(QMessageBox, "question") as mock_q:
+        textEdit.setProperty("text", SHORT_TEXT)
+        util.waitALittle()
+
+        assert mock_q.call_count == 0
+
+
+def test_typing_incrementally_no_dialog(
+    qtbot, view, personalApp: PersonalAppController
+):
+    """Typing text incrementally (not pasting) should never trigger import dialog."""
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    qml = QmlHelper(view)
+
+    with patch.object(QMessageBox, "question") as mock_q:
+        # Type characters one at a time (simulates normal typing)
+        qml.keyClicks(textEdit, "A" * 30, returnToFinish=False)
+        util.waitALittle()
+
+        # Dialog should never be triggered because prevTextLength increments with each char
+        assert mock_q.call_count == 0
+
+
+def test_multiple_rapid_paste_events_single_dialog(
+    qtbot, view, personalApp: PersonalAppController
+):
+    """
+    iOS fires multiple onTextChanged events for a single paste.
+    Guard flag should prevent multiple dialogs.
+    """
+    from pkdiagram.pyqt import QMessageBox
+
+    textEdit = view.rootObject().property("textEdit")
+    PASTED_TEXT = "Journal notes pasted on iOS - fires multiple events"
+
+    with patch.object(QMessageBox, "question", return_value=QMessageBox.No) as mock_q:
+        textEdit.setProperty("text", PASTED_TEXT)
+        util.waitALittle()
+
+        # Only one dialog should appear despite potential multiple onTextChanged events
+        assert mock_q.call_count == 1
+
+
 @pytest.mark.chat_flow
 def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
 

@@ -149,7 +149,10 @@ class AppTestController:
 
             # Create app controller and main window
             self._appController = AppController(self._app)
-            self._mainWindow = MainWindow(appController=self._appController)
+            self._mainWindow = MainWindow(
+                appConfig=self._appController.appConfig,
+                session=self._appController.session,
+            )
             self._mainWindow.init()
 
             if showWindow:
@@ -297,7 +300,7 @@ class AppTestController:
             return None
 
         # Search through all QML drawers and views
-        from pkdiagram.mcpserver.element_finder import ElementFinder
+        from mcpserver.element_finder import ElementFinder
 
         finder = ElementFinder(self)
         return finder.findQmlItem(objectName)

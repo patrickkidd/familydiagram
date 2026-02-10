@@ -80,7 +80,7 @@ Rectangle {
 
     function formatDateWithCertainty(dt, certainty) {
         if (!dt) return ""
-        if (certainty && certainty !== "certain") {
+        if (certainty && certainty !== "certain" && personalApp) {
             return dt + " (" + personalApp.dateCertaintyLabel(certainty) + ")"
         }
         return dt
@@ -194,7 +194,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.resolvePersonName(eventData ? eventData.person : null)
+                            text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.person : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -205,7 +205,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && personalApp.resolvePersonName(eventData.spouse) !== ""
+                        visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && personalApp && personalApp.resolvePersonName(eventData.spouse) !== ""
 
                         Text {
                             text: "Spouse"
@@ -215,7 +215,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.resolvePersonName(eventData ? eventData.spouse : null)
+                            text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.spouse : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -226,7 +226,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && personalApp.resolvePersonName(eventData.child) !== ""
+                        visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && personalApp && personalApp.resolvePersonName(eventData.child) !== ""
 
                         Text {
                             text: "Child"
@@ -236,7 +236,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.resolvePersonName(eventData ? eventData.child : null)
+                            text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.child : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
@@ -299,7 +299,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.variableLabel(eventData ? eventData.symptom : null)
+                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.symptom : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: variableColor(eventData ? eventData.symptom : null, false)
                             font.bold: true
@@ -320,7 +320,7 @@ Rectangle {
                             opacity: 0.7
                         }
                         Text {
-                            text: personalApp.variableLabel(eventData ? eventData.anxiety : null)
+                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.anxiety : null) : ""
                             font.pixelSize: util.TEXT_FONT_SIZE
                             color: variableColor(eventData ? eventData.anxiety : null, false)
                             font.bold: true
@@ -351,7 +351,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && personalApp.resolvePersonNames(eventData.relationshipTargets) !== ""
+                        visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && personalApp && personalApp.resolvePersonNames(eventData.relationshipTargets) !== ""
 
                         Text {
                             text: "Targets"
@@ -372,7 +372,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && personalApp.resolvePersonNames(eventData.relationshipTriangles) !== ""
+                        visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && personalApp && personalApp.resolvePersonNames(eventData.relationshipTriangles) !== ""
 
                         Text {
                             text: "Triangles"

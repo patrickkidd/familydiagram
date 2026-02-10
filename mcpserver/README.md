@@ -4,7 +4,7 @@ An MCP (Model Context Protocol) server that enables Claude Code to perform end-t
 
 ## Table of Contents
 
-- [TL;DR - Registering the MCP Server with Claude Code](#tldr---registering-the-mcp-server-with-claude-code)
+- [TL;DR - Registering the MCP Server with Claude Code](#tldr---registering-the-mcpserver-with-claude-code)
   - [Option A: Copy config to your workspace root](#option-a-copy-config-to-your-workspace-root)
   - [Option B: Start Claude Code from familydiagram/](#option-b-start-claude-code-from-familydiagram)
   - [Verify Registration](#verify-registration)
@@ -29,7 +29,7 @@ An MCP (Model Context Protocol) server that enables Claude Code to perform end-t
   - [Utilities](#utilities)
 - [Usage Examples](#usage-examples)
 - [Configuration](#configuration)
-- [Extending the MCP Server](#extending-the-mcp-server)
+- [Extending the MCP Server](#extending-the-mcpserver)
 - [Fixing Bugs](#fixing-bugs)
 - [Dependencies](#dependencies)
 - [File Structure](#file-structure)
@@ -59,7 +59,7 @@ Then update `.mcp.json` to use correct relative paths:
     "familydiagram-testing": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "familydiagram/mcp-server", "python", "mcp_server.py"],
+      "args": ["run", "--directory", "familydiagram/mcpserver", "python", "mcp_server.py"],
       "env": {
         "PYTHONPATH": "familydiagram"
       }
@@ -587,7 +587,7 @@ if not find_result["success"]:
     "familydiagram-testing": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "mcp-server", "python", "mcp_server.py"],
+      "args": ["run", "--directory", "mcpserver", "python", "mcp_server.py"],
       "env": {
         "PYTHONPATH": "."
       }
@@ -726,7 +726,7 @@ echo '{"command": "list", "data": {}}' | nc localhost 9876
 
 ```bash
 # Run MCP server standalone for testing
-cd mcp-server
+cd mcpserver
 uv run python mcp_server.py
 
 # In another terminal, launch app with bridge
@@ -747,7 +747,7 @@ print(s.recv(4096).decode())
 
 ## Dependencies
 
-### MCP Server (`mcp-server/pyproject.toml`)
+### MCP Server (`mcpserver/pyproject.toml`)
 - `mcp>=1.0.0` - Model Context Protocol SDK
 - `Pillow>=10.0.0` - Image processing
 
@@ -762,7 +762,7 @@ print(s.recv(4096).decode())
 ```
 familydiagram/
 ├── .mcp.json                      # Claude Code MCP configuration
-├── mcp-server/
+├── mcpserver/
 │   ├── mcp_server.py              # Main MCP server (FastMCP)
 │   ├── pyproject.toml             # MCP server dependencies
 │   └── README.md                  # This file

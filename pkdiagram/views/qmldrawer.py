@@ -54,6 +54,14 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
     def documentView(self):
         return self._documentView
 
+    def setScene(self, scene):
+        # Clear items before changing scene to prevent stale refs during refresh
+        if self.isQmlReady():
+            model = self.rootModel()
+            if model and model.items:
+                model.resetItems()
+        super().setScene(scene)
+
     def getPropSheetModel(self):
         return self.rootProp(self.propSheetModel)
 

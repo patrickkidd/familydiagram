@@ -14,7 +14,7 @@ Usage:
     python mcp_server.py
 
     # Or via uv
-    uv run python mcp-server/mcp_server.py
+    uv run python familydiagram/mcpserver/mcp_server.py
 
 Configuration:
     Add to .mcp.json in project root to use with Claude Code.
@@ -829,6 +829,34 @@ def click(name: str, double: bool = False, button: str = "left") -> Dict[str, An
     cmd = "double_click" if double else "click"
     return session.bridge.send_command(
         {"command": cmd, "objectName": name, "button": button}
+    )
+
+
+@mcp.tool()
+def drag(
+    name: str,
+    startX: int,
+    startY: int,
+    endX: int,
+    endY: int,
+    button: str = "left",
+    steps: int = 10,
+) -> Dict[str, Any]:
+    """Drag within element from (startX, startY) to (endX, endY). Coordinates relative to element."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command(
+        {
+            "command": "drag",
+            "objectName": name,
+            "startPos": [startX, startY],
+            "endPos": [endX, endY],
+            "button": button,
+            "steps": steps,
+        }
     )
 
 
