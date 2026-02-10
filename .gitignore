@@ -43,7 +43,7 @@ Defaults.properties
 .ai_log.txt
 **/*.fd/*
 *.egg-info
-screenshots
+/screenshots
 hooks.log
 
 ## Generated Sources
