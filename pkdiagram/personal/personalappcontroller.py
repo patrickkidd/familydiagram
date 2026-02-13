@@ -13,9 +13,11 @@ from btcopilot.schema import (
     RelationshipKind,
     DateCertainty,
 )
+from PyQt5.QtTextToSpeech import QTextToSpeech, QVoice
 from pkdiagram.personal.commands import HandlePDPItem, PDPAction
+from pkdiagram.personal.settings import Settings
 from _pkdiagram import CUtil
-from pkdiagram import pepper
+from pkdiagram import pepper, util
 from pkdiagram.app import AppConfig
 from pkdiagram.pyqt import (
     QObject,
@@ -33,6 +35,7 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
+from PyQt5.QtCore import QLocale
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
@@ -62,6 +65,9 @@ class PersonalAppController(QObject):
     journalImportStarted = pyqtSignal()
     journalImportCompleted = pyqtSignal(QVariant, arguments=["summary"])
     journalImportFailed = pyqtSignal(str, arguments=["error"])
+
+    ttsPlayingIndexChanged = pyqtSignal()
+    ttsVoiceChanged = pyqtSignal()
 
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
@@ -96,6 +102,62 @@ class PersonalAppController(QObject):
         self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
         self.shakeDetector.shakeDetected.connect(self.undo)
+        self._settings = Settings(self.app.prefs(), self)
+        self._tts = QTextToSpeech(self)
+        self._ttsPlayingIndex = -1
+        self._tts.stateChanged.connect(self._onTtsStateChanged)
+        self._initTtsVoice()
+
+    def _initTtsVoice(self):
+        saved = self._settings.value("ttsVoiceName")
+        if saved:
+            voice, locale = self._findVoice(saved)
+            if voice:
+                self._tts.setLocale(locale)
+                self._tts.setVoice(voice)
+                _log.debug(f"TTS voice restored: {voice.name()}")
+                return
+        for voice in self._tts.availableVoices():
+            if voice.gender() == QVoice.Female:
+                self._tts.setVoice(voice)
+                _log.debug(f"TTS voice: {voice.name()}")
+                return
+        _log.debug("No female voice found, using default")
+
+    def _findVoice(self, name):
+        for locale in self._tts.availableLocales():
+            if locale.language() != QLocale.English:
+                continue
+            self._tts.setLocale(locale)
+            for voice in self._tts.availableVoices():
+                if voice.name() == name:
+                    return voice, locale
+        return None, None
+
+    def _collectVoices(self):
+        origLocale = self._tts.locale()
+        origVoice = self._tts.voice()
+        voices = []
+        seen = set()
+        for locale in self._tts.availableLocales():
+            if locale.language() != QLocale.English:
+                continue
+            self._tts.setLocale(locale)
+            country = QLocale.countryToString(locale.country())
+            localeLabel = f"English ({country})"
+            for voice in self._tts.availableVoices():
+                if voice.name() not in seen:
+                    seen.add(voice.name())
+                    voices.append({"name": voice.name(), "locale": localeLabel})
+        self._tts.setLocale(origLocale)
+        if origVoice.name():
+            self._tts.setVoice(origVoice)
+        return voices
+
+    def _onTtsStateChanged(self, state):
+        if state in (QTextToSpeech.Ready, QTextToSpeech.BackendError):
+            self._ttsPlayingIndex = -1
+            self.ttsPlayingIndexChanged.emit()
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())
@@ -261,6 +323,64 @@ class PersonalAppController(QObject):
         self.pdpChanged.emit()
         self.diagramChanged.emit()
         self.diagramsChanged.emit()
+
+    @pyqtProperty(QObject, constant=True)
+    def settings(self):
+        return self._settings
+
+    # TTS
+
+    @pyqtProperty(int, notify=ttsPlayingIndexChanged)
+    def ttsPlayingIndex(self):
+        return self._ttsPlayingIndex
+
+    @pyqtSlot(str, int)
+    def sayAtIndex(self, text, index):
+        self._tts.stop()
+        self._ttsPlayingIndex = index
+        self.ttsPlayingIndexChanged.emit()
+        self._tts.say(text)
+
+    @pyqtSlot()
+    def stopSpeaking(self):
+        self._tts.stop()
+
+    @pyqtProperty("QVariantList", constant=True)
+    def ttsVoices(self):
+        return self._collectVoices()
+
+    @pyqtProperty(str, notify=ttsVoiceChanged)
+    def ttsVoiceName(self):
+        return self._tts.voice().name()
+
+    @pyqtSlot(str)
+    def setTtsVoice(self, name):
+        voice, locale = self._findVoice(name)
+        if voice:
+            self._tts.setLocale(locale)
+            self._tts.setVoice(voice)
+            self._settings.setValue("ttsVoiceName", name)
+            self.ttsVoiceChanged.emit()
+            _log.debug(f"TTS voice set to: {name}")
+
+    @pyqtSlot(str)
+    def previewVoice(self, name):
+        self.setTtsVoice(name)
+        self._tts.say("Hello, this is a preview of my voice.")
+
+    @pyqtSlot()
+    def openSystemVoiceSettings(self):
+        import subprocess
+
+        if util.IS_IOS:
+            CUtil.openNativeUrl("App-Prefs:root=ACCESSIBILITY&path=SPEECH")
+        else:
+            subprocess.Popen(
+                [
+                    "open",
+                    "x-apple.systempreferences:com.apple.preference.universalaccess?SpokenContent",
+                ]
+            )
 
     # Diagram
 
