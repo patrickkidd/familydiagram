@@ -251,53 +251,50 @@ Page {
                         anchors.fill: parent
                         anchors.margins: 12
                     }
-                }
 
-                // Play/Stop TTS button
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 19
-                    width: 28
-                    height: 28
-                    color: "transparent"
-
-                    // Play triangle
-                    Canvas {
-                        anchors.centerIn: parent
-                        width: 14
-                        height: 14
-                        visible: !dRoot.isPlaying
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.clearRect(0, 0, width, height)
-                            ctx.fillStyle = Personal.Style.placeholder
-                            ctx.beginPath()
-                            ctx.moveTo(1, 0)
-                            ctx.lineTo(14, 7)
-                            ctx.lineTo(1, 14)
-                            ctx.closePath()
-                            ctx.fill()
-                        }
-                    }
-
-                    // Stop square
                     Rectangle {
-                        anchors.centerIn: parent
-                        width: 10
-                        height: 10
-                        radius: 2
-                        color: util.QML_SELECTION_COLOR
-                        visible: dRoot.isPlaying
-                    }
+                        x: aiBubble.width + (statementsList.width - 15 - aiBubble.width) / 2 - width / 2
+                        y: (aiBubble.height - height) / 2
+                        width: 28
+                        height: 28
+                        color: "transparent"
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (dRoot.isPlaying) {
-                                personalApp.stopSpeaking()
-                            } else {
-                                personalApp.sayAtIndex(dText, dIndex)
+                        Canvas {
+                            anchors.centerIn: parent
+                            width: 14
+                            height: 14
+                            visible: !dRoot.isPlaying
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.fillStyle = Personal.Style.placeholder
+                                ctx.beginPath()
+                                ctx.moveTo(1, 0)
+                                ctx.lineTo(14, 7)
+                                ctx.lineTo(1, 14)
+                                ctx.closePath()
+                                ctx.fill()
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 10
+                            height: 10
+                            radius: 2
+                            color: util.QML_SELECTION_COLOR
+                            visible: dRoot.isPlaying
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (dRoot.isPlaying) {
+                                    personalApp.stopSpeaking()
+                                } else {
+                                    personalApp.sayAtIndex(dText, dIndex)
+                                }
                             }
                         }
                     }
