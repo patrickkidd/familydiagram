@@ -3,7 +3,6 @@
 #include <TargetConditionals.h>
 #if TARGET_OS_IOS
 #import <UIKit/UIKit.h>
-#import <AVFoundation/AVFoundation.h>
 #else
 #import <AppKit/AppKit.h>
 #endif
@@ -36,13 +35,6 @@ static NSURL *SparkleFeedURL = nil;
 // iOS requires CALayer modifications on main thread; force single-threaded render loop
 __attribute__((constructor)) static void setRenderLoopForIOS() {
     setenv("QSG_RENDER_LOOP", "basic", 0);
-}
-
-// AVSpeechSynthesizer requires an active audio session with playback category
-__attribute__((constructor)) static void setupAudioSessionForIOS() {
-    AVAudioSession *session = [AVAudioSession sharedInstance];
-    [session setCategory:AVAudioSessionCategoryPlayback error:nil];
-    [session setActive:YES error:nil];
 }
 #endif
 
@@ -2018,15 +2010,6 @@ bool CUtil::isiOSSimulator() {
 #endif
 }
 */
-
-void CUtil::openNativeUrl(const QString &url) {
-    NSURL *nsUrl = [NSURL URLWithString:url.toNSString()];
-#if TARGET_OS_IOS
-    [[UIApplication sharedApplication] openURL:nsUrl options:@{} completionHandler:nil];
-#else
-    [[NSWorkspace sharedWorkspace] openURL:nsUrl];
-#endif
-}
 
 CUtil::OperatingSystem CUtil::operatingSystem() {
     int ret = 0;
