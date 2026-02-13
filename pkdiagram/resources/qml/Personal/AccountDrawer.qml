@@ -73,7 +73,7 @@ Flickable {
                             }
                             return "?"
                         }
-                        color: util.QML_SELECTION_TEXT_COLOR
+                        color: "white"
                         font.pixelSize: 14
                         font.bold: true
                     }
@@ -245,7 +245,7 @@ Flickable {
                 width: parent.width
 
                 Repeater {
-                    model: ["Voice", "Privacy", "Help & Support"]
+                    model: ["Privacy", "Help & Support"]
 
                     Rectangle {
                         width: parent.width
@@ -265,7 +265,7 @@ Flickable {
                             anchors.right: parent.right
                             anchors.rightMargin: 12
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "\u203A"
+                            text: "›"
                             color: secondaryText
                             font.pixelSize: 20
                         }

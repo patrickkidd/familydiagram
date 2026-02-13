@@ -162,9 +162,8 @@ public:
     static bool dev_amIBeingDebugged();
     static void dev_showDebugConsole();
     static bool isDev();
-    static void openNativeUrl(const QString &url);
 
-
+    
 public Q_SLOTS: // qslots n windows
     
     virtual void updateLocalFileList() {}

@@ -95,7 +95,6 @@ public:
     static CUtil::OperatingSystem operatingSystem();
     static bool isReleaseBuild();
     static bool isDev();
-    static void openNativeUrl(const QString &url);
 
     void forceDocsPath(const QString &);
     QString documentsFolderPath() const;
