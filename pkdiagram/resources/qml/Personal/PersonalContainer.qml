@@ -744,7 +744,9 @@ Page {
                 personalApp.createDiagram()
             }
             onSettingsClicked: function(setting) {
-                if (setting === "Privacy") {
+                if (setting === "Voice") {
+                    voicePopup.open()
+                } else if (setting === "Privacy") {
                     privacyPopup.open()
                 } else if (setting === "Help & Support") {
                     helpPopup.open()
@@ -848,6 +850,31 @@ Page {
             anchors.fill: parent
             pageTitle: "Help & Support"
             onBackClicked: helpPopup.close()
+        }
+    }
+
+    // Voice settings popup
+    Popup {
+        id: voicePopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: "transparent" }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+        }
+
+        Personal.VoiceSettingsPage {
+            anchors.fill: parent
+            onBackClicked: voicePopup.close()
         }
     }
 

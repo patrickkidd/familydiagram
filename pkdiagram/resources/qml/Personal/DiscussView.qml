@@ -73,6 +73,9 @@ Page {
                 "speakerType": 'expert'
             })
             statementsList.delayedScrollToBottom()
+            if (personalApp.settings.value("autoReadAloud", false)) {
+                personalApp.sayAtIndex(text, chatModel.count - 1)
+            }
         }
         function onTtsFinished() {
             if (personalApp.settings.value("autoReadAloud", false)) {
@@ -150,6 +153,7 @@ Page {
                 width: statementsList.width
                 property var dText: model.text
                 property var dSpeakerType: model.speakerType
+                property int dIndex: model.index
                 sourceComponent: model.speakerType == 'subject' ? humanQuestion : aiResponse
             }
             footer: Item {
@@ -224,6 +228,7 @@ Page {
                 id: dRoot
 
                 property var responseText: responseText.text
+                property bool isPlaying: personalApp ? personalApp.ttsPlayingIndex === dIndex : false
 
                 Component.onCompleted: {
                     root.aiBubbleAdded(dRoot)
