@@ -51,7 +51,6 @@ skip = [
     "qtscript",
     "qtserialbus",
     "qtserialport",
-    "qtspeech",
     "qtwayland",
     "qtwebchannel",
     "qtwebengine",
@@ -118,7 +117,7 @@ installed_modules = [ ]
 [PyQt.macos]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
-    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets"
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtTextToSpeech"
 ]
 
 [PyQt.ios]
@@ -131,14 +130,15 @@ disabled_features = [
 ]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
-    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtSensors"
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtSensors",
+    "QtTextToSpeech"
 ]
 
 [PyQt.win]
 disabled_features = [ "PyQt_Desktop_OpenGL" ]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
-    "QtQml", "QtQuick", "QtQuickWidgets", "QtWinExtras"
+    "QtQml", "QtQuick", "QtQuickWidgets", "QtWinExtras", "QtTextToSpeech"
 ]
 
 

@@ -11,6 +11,7 @@ QtObject {
     readonly property color lightLabel: "#000000" // label
     readonly property color lightPlaceholder: "#8E8E93" // placeholderText
     readonly property color lightButton: "#007AFF" // systemBlue
+    readonly property color lightButtonText: "#FFFFFF" // white text on button
 
     // Dark mode colors
     readonly property color darkBackground: util.QML_WINDOW_BG // systemBackground
@@ -18,6 +19,7 @@ QtObject {
     readonly property color darkLabel: "#FFFFFF" // label
     readonly property color darkPlaceholder: "#636366" // placeholderText
     readonly property color darkButton: "#0A84FF" // systemBlue (adjusted for dark mode)
+    readonly property color darkButtonText: "#FFFFFF" // white text on button
 
     // Active colors based on theme
     property bool isDarkMode: util.IS_UI_DARK_MODE
@@ -26,6 +28,7 @@ QtObject {
     readonly property color label: isDarkMode ? darkLabel : lightLabel
     readonly property color placeholder: isDarkMode ? darkPlaceholder : lightPlaceholder
     readonly property color button: isDarkMode ? darkButton : lightButton
+    readonly property color buttonText: isDarkMode ? darkButtonText : lightButtonText
 
     // Spacing and sizing
     readonly property int spacingSmall: 8
