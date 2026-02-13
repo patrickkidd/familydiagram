@@ -1,4 +1,7 @@
 
+QT += texttospeech
+LIBS += -lQtTextToSpeech -framework AVFoundation
+
 DEFINES += NEEDS_PY_IDENTIFIER
 
 ## Bundle Resources

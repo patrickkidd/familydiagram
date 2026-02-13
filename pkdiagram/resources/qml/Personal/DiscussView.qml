@@ -65,6 +65,9 @@ Page {
                 "speakerType": 'expert'
             })
             statementsList.delayedScrollToBottom()
+            if (personalApp.settings.value("autoReadAloud", false)) {
+                personalApp.sayAtIndex(text, chatModel.count - 1)
+            }
         }
         function onServerDown() {
             chatModel.append({
@@ -137,6 +140,7 @@ Page {
                 width: statementsList.width
                 property var dText: model.text
                 property var dSpeakerType: model.speakerType
+                property int dIndex: model.index
                 sourceComponent: model.speakerType == 'subject' ? humanQuestion : aiResponse
             }
             footer: Item {
@@ -181,7 +185,7 @@ Page {
 
                 Rectangle {
                     id: bubble
-                    color: "#1190F9"
+                    color: Personal.Style.button
                     radius: 18
                     width: Math.min(questionText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: questionText.implicitHeight + 20
@@ -191,7 +195,7 @@ Page {
                     TextEdit {
                         id: questionText
                         text: dText
-                        color: "white"
+                        color: Personal.Style.buttonText
                         readOnly: true
                         selectByMouse: true
                         wrapMode: Text.WordWrap
@@ -211,6 +215,7 @@ Page {
                 id: dRoot
 
                 property var responseText: responseText.text
+                property bool isPlaying: personalApp ? personalApp.ttsPlayingIndex === dIndex : false
 
                 Component.onCompleted: {
                     root.aiBubbleAdded(dRoot)
@@ -228,7 +233,7 @@ Page {
 
                 Rectangle {
                     id: aiBubble
-                    color: util.IS_UI_DARK_MODE ? "#373534" : "#e5e5ea"
+                    color: Personal.Style.secondaryBackground
                     radius: 18
                     width: Math.min(responseText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: responseText.implicitHeight + 20
@@ -245,6 +250,56 @@ Page {
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+                    }
+                }
+
+                // Play/Stop TTS button
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 19
+                    width: 28
+                    height: 28
+                    color: "transparent"
+
+                    // Play triangle
+                    Canvas {
+                        anchors.centerIn: parent
+                        width: 14
+                        height: 14
+                        visible: !dRoot.isPlaying
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.fillStyle = Personal.Style.placeholder
+                            ctx.beginPath()
+                            ctx.moveTo(1, 0)
+                            ctx.lineTo(14, 7)
+                            ctx.lineTo(1, 14)
+                            ctx.closePath()
+                            ctx.fill()
+                        }
+                    }
+
+                    // Stop square
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 10
+                        height: 10
+                        radius: 2
+                        color: util.QML_SELECTION_COLOR
+                        visible: dRoot.isPlaying
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (dRoot.isPlaying) {
+                                personalApp.stopSpeaking()
+                            } else {
+                                personalApp.sayAtIndex(dText, dIndex)
+                            }
+                        }
                     }
                 }
             }
@@ -276,9 +331,9 @@ Page {
                 }
                 height: Math.min(inputFlickable.contentHeight + 8, 100)
                 radius: 18
-                color: util.IS_UI_DARK_MODE ? "#252526" : "#F7F7F7"
+                color: Personal.Style.secondaryBackground
                 border.width: textEdit.activeFocus ? 1 : 0
-                border.color: util.IS_UI_DARK_MODE ? "#636366" : "#c7c7cc"
+                border.color: Personal.Style.placeholder
 
                 MouseArea {
                     anchors.fill: parent
@@ -291,7 +346,7 @@ Page {
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Message"
-                    color: util.IS_UI_DARK_MODE ? "#636366" : "#8E8E93"
+                    color: Personal.Style.placeholder
                     font.pixelSize: 15
                     visible: textEdit.text.length === 0 && !textEdit.activeFocus
                 }
@@ -408,7 +463,7 @@ Page {
                     width: 28
                     height: 28
                     radius: 14
-                    color: "#007AFF"
+                    color: Personal.Style.button
 
                     Text {
                         anchors.centerIn: parent
