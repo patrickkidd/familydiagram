@@ -67,6 +67,7 @@ class PersonalAppController(QObject):
     journalImportFailed = pyqtSignal(str, arguments=["error"])
 
     ttsPlayingIndexChanged = pyqtSignal()
+    ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
 
     def __init__(self, undoStack=None, parent=None):
@@ -156,8 +157,11 @@ class PersonalAppController(QObject):
 
     def _onTtsStateChanged(self, state):
         if state in (QTextToSpeech.Ready, QTextToSpeech.BackendError):
+            wasPlaying = self._ttsPlayingIndex >= 0
             self._ttsPlayingIndex = -1
             self.ttsPlayingIndexChanged.emit()
+            if wasPlaying and state == QTextToSpeech.Ready:
+                self.ttsFinished.emit()
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())

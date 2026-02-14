@@ -31,9 +31,10 @@ Page {
 
     // iOS-style chat colors (defined locally to avoid same-module singleton timing issue)
     property bool isDarkMode: util.IS_UI_DARK_MODE
-    property color chatSecondaryBg: isDarkMode ? "#1C1C1E" : "#F2F2F7"
+    property color chatSecondaryBg: isDarkMode ? "#3B3B3D" : "#F2F2F7"
+    property color chatSecondaryText: isDarkMode ? "#E1E1E1" : util.QML_TEXT_COLOR
     property color chatPlaceholder: isDarkMode ? "#636366" : "#8E8E93"
-    property color chatButton: isDarkMode ? "#0A84FF" : "#007AFF"
+    property color chatButton: isDarkMode ? "#4495F7" : "#007AFF"
 
     background: Rectangle {
         color: util.QML_WINDOW_BG
@@ -74,6 +75,11 @@ Page {
             statementsList.delayedScrollToBottom()
             if (personalApp.settings.value("autoReadAloud", false)) {
                 personalApp.sayAtIndex(text, chatModel.count - 1)
+            }
+        }
+        function onTtsFinished() {
+            if (personalApp.settings.value("autoReadAloud", false)) {
+                textEdit.forceActiveFocus()
             }
         }
         function onServerDown() {
@@ -250,7 +256,7 @@ Page {
                     TextEdit {
                         id: responseText
                         text: dText
-                        color: util.QML_TEXT_COLOR
+                        color: root.chatSecondaryText
                         readOnly: true
                         selectByMouse: true
                         wrapMode: Text.WordWrap
