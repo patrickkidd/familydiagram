@@ -58,6 +58,7 @@ Page {
         }
         function onRequestSent(text) {
             chatModel.append({ "text": text, "speakerType": 'subject' })
+            statementsList.delayedScrollToBottom()
         }
         function onResponseReceived(text, added) {
             chatModel.append({
