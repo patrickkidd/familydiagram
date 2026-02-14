@@ -1,6 +1,5 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import "." 1.0 as Personal
 
 Page {
     id: root
@@ -11,6 +10,7 @@ Page {
     property color secondaryText: util.QML_INACTIVE_TEXT_COLOR
     property color borderColor: util.QML_ITEM_BORDER_COLOR
     property color accentColor: util.QML_SELECTION_COLOR
+    property color chatPlaceholder: util.IS_UI_DARK_MODE ? "#636366" : "#8E8E93"
 
     signal backClicked()
 
@@ -218,7 +218,7 @@ Page {
                                     onPaint: {
                                         var ctx = getContext("2d")
                                         ctx.clearRect(0, 0, width, height)
-                                        ctx.fillStyle = Personal.Style.placeholder
+                                        ctx.fillStyle = root.chatPlaceholder
                                         ctx.beginPath()
                                         ctx.moveTo(1, 0)
                                         ctx.lineTo(12, 6)

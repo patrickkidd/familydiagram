@@ -29,6 +29,12 @@ Page {
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
+    // iOS-style chat colors (defined locally to avoid same-module singleton timing issue)
+    property bool isDarkMode: util.IS_UI_DARK_MODE
+    property color chatSecondaryBg: isDarkMode ? "#1C1C1E" : "#F2F2F7"
+    property color chatPlaceholder: isDarkMode ? "#636366" : "#8E8E93"
+    property color chatButton: isDarkMode ? "#0A84FF" : "#007AFF"
+
     background: Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
@@ -186,7 +192,7 @@ Page {
 
                 Rectangle {
                     id: bubble
-                    color: Personal.Style.button
+                    color: root.chatButton
                     radius: 18
                     width: Math.min(questionText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: questionText.implicitHeight + 20
@@ -196,7 +202,7 @@ Page {
                     TextEdit {
                         id: questionText
                         text: dText
-                        color: Personal.Style.buttonText
+                        color: "white"
                         readOnly: true
                         selectByMouse: true
                         wrapMode: Text.WordWrap
@@ -234,7 +240,7 @@ Page {
 
                 Rectangle {
                     id: aiBubble
-                    color: Personal.Style.secondaryBackground
+                    color: root.chatSecondaryBg
                     radius: 18
                     width: Math.min(responseText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: responseText.implicitHeight + 20
@@ -268,7 +274,7 @@ Page {
                             onPaint: {
                                 var ctx = getContext("2d")
                                 ctx.clearRect(0, 0, width, height)
-                                ctx.fillStyle = Personal.Style.placeholder
+                                ctx.fillStyle = root.chatPlaceholder
                                 ctx.beginPath()
                                 ctx.moveTo(1, 0)
                                 ctx.lineTo(14, 7)
@@ -329,9 +335,9 @@ Page {
                 }
                 height: Math.min(inputFlickable.contentHeight + 8, 100)
                 radius: 18
-                color: Personal.Style.secondaryBackground
+                color: root.chatSecondaryBg
                 border.width: textEdit.activeFocus ? 1 : 0
-                border.color: Personal.Style.placeholder
+                border.color: root.chatPlaceholder
 
                 MouseArea {
                     anchors.fill: parent
@@ -344,7 +350,7 @@ Page {
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Message"
-                    color: Personal.Style.placeholder
+                    color: root.chatPlaceholder
                     font.pixelSize: 15
                     visible: textEdit.text.length === 0 && !textEdit.activeFocus
                 }
@@ -461,7 +467,7 @@ Page {
                     width: 28
                     height: 28
                     radius: 14
-                    color: Personal.Style.button
+                    color: root.chatButton
 
                     Text {
                         anchors.centerIn: parent
