@@ -1123,6 +1123,35 @@ def personal_state(component: str = "all") -> Dict[str, Any]:
     )
 
 
+@mcp.tool()
+def inject_pdp_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Inject test PDP data into the running Personal app.
+
+    data: dict with 'people', 'events', 'pair_bonds' lists.
+    People: {id, name, last_name, gender}
+    Events: {id, kind, person, description, notes, dateTime, symptom, anxiety, functioning, ...}
+    EventKind: 'shift', 'birth', 'married', 'separated', 'divorced', 'death', 'moved', 'bonded', 'adopted'
+    VariableShift: 'up', 'down', 'same'
+    """
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command({"command": "inject_pdp_data", "data": data})
+
+
+@mcp.tool()
+def open_pdp_sheet() -> Dict[str, Any]:
+    """Open the PDP sheet drawer in the Personal app."""
+    session = TestSession.get_instance()
+
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    return session.bridge.send_command({"command": "open_pdp_sheet"})
+
+
 # =============================================================================
 # Main Entry Point
 # =============================================================================

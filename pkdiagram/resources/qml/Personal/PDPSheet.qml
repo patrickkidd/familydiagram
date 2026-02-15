@@ -163,12 +163,14 @@ Drawer {
         editingItemType = "event"
         initEditFields()
         editOverlay.visible = true
+        editOverlay.forceActiveFocus()
     }
 
     function openPersonEditOverlay(personData) {
         editingItem = personData
         editingItemType = "person"
         editOverlay.visible = true
+        editOverlay.forceActiveFocus()
     }
 
     function closeEditOverlay() {
@@ -208,6 +210,39 @@ Drawer {
         onTriggered: {
             root.close()
         }
+    }
+
+    property real wheelAccumX: 0
+    property bool wheelCooldown: false
+    readonly property real wheelThreshold: 120
+
+    function handleHorizontalWheel(deltaX) {
+        if (wheelCooldown) return
+        wheelAccumX += deltaX
+        wheelResetTimer.restart()
+        if (wheelAccumX < -wheelThreshold) {
+            cardStack.currentIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+            wheelAccumX = 0
+            wheelCooldown = true
+            wheelCooldownTimer.start()
+        } else if (wheelAccumX > wheelThreshold) {
+            cardStack.currentIndex = Math.max(cardStack.currentIndex - 1, 0)
+            wheelAccumX = 0
+            wheelCooldown = true
+            wheelCooldownTimer.start()
+        }
+    }
+
+    Timer {
+        id: wheelResetTimer
+        interval: 300
+        onTriggered: root.wheelAccumX = 0
+    }
+
+    Timer {
+        id: wheelCooldownTimer
+        interval: 500
+        onTriggered: root.wheelCooldown = false
     }
 
     ListModel {
@@ -277,6 +312,7 @@ Drawer {
 
         SwipeView {
             id: cardStack
+            objectName: "pdpCardStack"
             width: root.width - util.QML_MARGINS * 2
             Layout.fillHeight: true
             Layout.margins: util.QML_MARGINS
@@ -420,28 +456,78 @@ Drawer {
 
     Rectangle {
         id: editOverlay
+        objectName: "pdpEditOverlay"
         anchors.fill: parent
         color: util.QML_WINDOW_BG
         visible: false
         z: 3000
+        focus: visible
+        activeFocusOnTab: false
+
+        property real dragY: 0
+        readonly property real doneButtonPadding: 16
+
+        Behavior on dragY {
+            enabled: !editOverlayDragArea.pressed
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
+
+        transform: Translate { y: editOverlay.dragY }
+
+        MouseArea {
+            id: editOverlayDragArea
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 80
+            z: 1
+            property real startY: 0
+
+            onPressed: startY = mouse.y
+            onPositionChanged: {
+                var delta = mouse.y - startY
+                editOverlay.dragY = Math.max(0, delta)
+            }
+            onReleased: {
+                if (editOverlay.dragY > 100) {
+                    root.closeEditOverlay()
+                }
+                editOverlay.dragY = 0
+            }
+            onClicked: {
+                if (mouse.x < doneText.contentWidth + editOverlay.doneButtonPadding + util.QML_MARGINS * 2) {
+                    root.closeEditOverlay()
+                }
+            }
+        }
 
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: util.QML_MARGINS
             spacing: 12
 
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 4
+                Layout.topMargin: 4
+                radius: 2
+                color: util.QML_ITEM_BORDER_COLOR
+            }
+
             RowLayout {
                 Layout.fillWidth: true
 
-                Text {
-                    text: "← Done"
-                    font.pixelSize: 16
-                    color: util.QML_TEXT_COLOR
+                Item {
+                    Layout.preferredWidth: doneText.contentWidth + editOverlay.doneButtonPadding
+                    Layout.preferredHeight: 44
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.closeEditOverlay()
+                    Text {
+                        id: doneText
+                        anchors.centerIn: parent
+                        text: "← Done"
+                        font.pixelSize: 16
+                        color: util.QML_TEXT_COLOR
                     }
                 }
 
@@ -879,6 +965,7 @@ Drawer {
             onEditRequested: function(personData) {
                 root.openPersonEditOverlay(personData)
             }
+            onHorizontalWheel: root.handleHorizontalWheel(deltaX)
         }
     }
 
@@ -891,6 +978,7 @@ Drawer {
             onEditRequested: function(eventData) {
                 root.openEventEditOverlay(eventData)
             }
+            onHorizontalWheel: root.handleHorizontalWheel(deltaX)
         }
     }
 

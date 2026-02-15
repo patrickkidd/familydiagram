@@ -496,6 +496,7 @@ Page {
 
     Personal.PDPSheet {
         id: pdpSheet
+        objectName: "pdpSheet"
         parent: Overlay.overlay
 
         onItemAccepted: function(id) {

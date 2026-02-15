@@ -106,7 +106,10 @@ class QtInspector:
                 rootItem = window.contentItem()
                 if rootItem:
                     for child in rootItem.childItems():
-                        if child.objectName() == "personalView" or "PersonalContainer" in type(child).__name__:
+                        if (
+                            child.objectName() == "personalView"
+                            or "PersonalContainer" in type(child).__name__
+                        ):
                             return window
                     # Check if window has personalApp context property
                     if window.property("personalView") is not None:
@@ -120,11 +123,13 @@ class QtInspector:
             if window.isVisible():
                 className = type(window).__name__
                 if "Dialog" in className or "QMessageBox" in className:
-                    visibleDialogs.append({
-                        "objectName": window.objectName() or None,
-                        "className": className,
-                        "title": window.windowTitle() or None,
-                    })
+                    visibleDialogs.append(
+                        {
+                            "objectName": window.objectName() or None,
+                            "className": className,
+                            "title": window.windowTitle() or None,
+                        }
+                    )
 
         session = mainWindow.session
         if any(d["className"] == "AccountDialog" for d in visibleDialogs):
@@ -185,7 +190,10 @@ class QtInspector:
         personalApp = None
 
         for child in rootItem.childItems():
-            if "ApplicationWindow" in type(child).__name__ or child.property("personalView") is not None:
+            if (
+                "ApplicationWindow" in type(child).__name__
+                or child.property("personalView") is not None
+            ):
                 engine = child.property("__engine")
                 if engine:
                     ctx = engine.rootContext()
@@ -229,7 +237,9 @@ class QtInspector:
             },
         }
 
-    def _findQmlItemByType(self, parent: QQuickItem, typeName: str) -> Optional[QQuickItem]:
+    def _findQmlItemByType(
+        self, parent: QQuickItem, typeName: str
+    ) -> Optional[QQuickItem]:
         if parent is None:
             return None
 
@@ -331,6 +341,21 @@ class QtInspector:
             item = self._findQmlItemInChildren(root, objectName)
             if item is not None:
                 return item
+
+        # Search overlay-parented items (e.g. pdpSheet is a Drawer/Popup)
+        for root in self._getQmlRoots():
+            pdpSheet = self._findPdpSheet(root)
+            if pdpSheet is not None:
+                if pdpSheet.objectName() == objectName:
+                    return pdpSheet
+                # Drawer is a Popup (QObject), not QQuickItem — access visual
+                # children via its contentItem property
+                contentItem = pdpSheet.property("contentItem")
+                if contentItem is not None and hasattr(contentItem, "childItems"):
+                    item = self._findQmlItemInChildren(contentItem, objectName)
+                    if item is not None:
+                        return item
+
         return None
 
     def _findQmlItemInChildren(
@@ -356,14 +381,12 @@ class QtInspector:
             self._collectQmlRoots(window, roots)
 
         # Collect from QQuickWindows (Personal app uses QQmlApplicationEngine)
+        # Include contentItem itself so overlay-parented items are searchable
         for window in self._app.topLevelWindows():
             if isinstance(window, QQuickWindow):
                 contentItem = window.contentItem()
-                if contentItem is not None:
-                    # Add all direct children of contentItem as roots
-                    for child in contentItem.childItems():
-                        if child not in roots:
-                            roots.append(child)
+                if contentItem is not None and contentItem not in roots:
+                    roots.append(contentItem)
 
         return roots
 
@@ -615,7 +638,9 @@ class QtInspector:
                     return qw
         return None
 
-    def _findWindowForQmlItem(self, item: QQuickItem) -> Optional[Union[QQuickWidget, QQuickWindow]]:
+    def _findWindowForQmlItem(
+        self, item: QQuickItem
+    ) -> Optional[Union[QQuickWidget, QQuickWindow]]:
         """Find the QQuickWidget or QQuickWindow containing a QQuickItem."""
         window = item.window()
         if window is None:
@@ -762,7 +787,10 @@ class QtInspector:
         """Click on a QML item."""
         target = self._findWindowForQmlItem(item)
         if target is None:
-            return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
+            return {
+                "success": False,
+                "error": "Could not find QQuickWidget or QQuickWindow",
+            }
 
         if pos is None:
             localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -772,7 +800,9 @@ class QtInspector:
         scenePos = item.mapToScene(localPos)
         clickPos = scenePos.toPoint()
 
-        log.info(f"_clickQmlItem: {item.objectName()} at local={localPos.x()},{localPos.y()} scene={clickPos.x()},{clickPos.y()} visible={item.isVisible()} enabled={item.isEnabled()}")
+        log.info(
+            f"_clickQmlItem: {item.objectName()} at local={localPos.x()},{localPos.y()} scene={clickPos.x()},{clickPos.y()} visible={item.isVisible()} enabled={item.isEnabled()}"
+        )
 
         # QQuickWindow needs QTest.mouseClick on the window directly
         # QQuickWidget can be clicked as a QWidget
@@ -806,7 +836,10 @@ class QtInspector:
         if item is not None:
             target = self._findWindowForQmlItem(item)
             if target is None:
-                return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
+                return {
+                    "success": False,
+                    "error": "Could not find QQuickWidget or QQuickWindow",
+                }
 
             if pos is None:
                 localPos = QPointF(item.width() / 2, item.height() / 2)
@@ -888,7 +921,10 @@ class QtInspector:
         """Drag within a QML item."""
         target = self._findWindowForQmlItem(item)
         if target is None:
-            return {"success": False, "error": "Could not find QQuickWidget or QQuickWindow"}
+            return {
+                "success": False,
+                "error": "Could not find QQuickWidget or QQuickWindow",
+            }
 
         # Map positions to scene coordinates
         startLocal = QPointF(startPos[0], startPos[1])
@@ -1301,6 +1337,7 @@ class QtInspector:
                 contentItem = target.contentItem()
                 if contentItem:
                     from pkdiagram.pyqt import QQuickItemGrabResult
+
                     # Use QQuickItem.grabToImage() for offscreen rendering
                     # This is async, but we need sync - fall back to empty pixmap
                     return {
@@ -1387,6 +1424,13 @@ class QtInspector:
 
         return None
 
+    def _findPdpSheet(self, rootItem: QQuickItem) -> Optional[QQuickItem]:
+        """Find pdpSheet via DiscussView (parented to Overlay.overlay, not in standard tree)."""
+        discussView = self._findQmlItemInChildren(rootItem, "discussView")
+        if discussView:
+            return discussView.property("pdpSheet")
+        return None
+
     def _getPersonalOverview(self, controller, rootItem) -> Dict[str, Any]:
         """Get overview of all Personal app state."""
         result = {"success": True, "component": "all"}
@@ -1395,7 +1439,8 @@ class QtInspector:
         session = controller.session
         result["session"] = {
             "isLoggedIn": session.isLoggedIn() if session else False,
-            "hasActiveChat": hasattr(session, "activeChat") and session.activeChat is not None,
+            "hasActiveChat": hasattr(session, "activeChat")
+            and session.activeChat is not None,
         }
 
         # Scene info
@@ -1478,7 +1523,9 @@ class QtInspector:
         # Chat state from session if available
         session = controller.session
         if session and hasattr(session, "messages"):
-            result["model"]["messageCount"] = len(session.messages) if session.messages else 0
+            result["model"]["messageCount"] = (
+                len(session.messages) if session.messages else 0
+            )
 
         # QML UI state
         if rootItem:
@@ -1522,13 +1569,78 @@ class QtInspector:
             "model": {},
         }
 
-        # PDP data from session if available
-        session = controller.session
-        if session:
-            pdp = getattr(session, "pdp", None)
-            if pdp:
-                result["model"]["hasPdp"] = True
-            else:
-                result["model"]["hasPdp"] = False
+        if controller._diagram:
+            diagramData = controller._diagram.getDiagramData()
+            pdp = diagramData.pdp
+            hasPdp = bool(pdp and (pdp.people or pdp.events or pdp.pair_bonds))
+            result["model"]["hasPdp"] = hasPdp
+            if hasPdp:
+                result["model"]["personCount"] = len(pdp.people)
+                result["model"]["eventCount"] = len(pdp.events)
+                result["model"]["pairBondCount"] = len(pdp.pair_bonds)
+        else:
+            result["model"]["hasPdp"] = False
+
+        # QML state (pdpSheet is a Drawer/Popup, not a QQuickItem)
+        if rootItem:
+            pdpSheet = self._findPdpSheet(rootItem)
+            if pdpSheet:
+                result["ui"] = {
+                    "visible": pdpSheet.property("visible"),
+                    "itemCount": pdpSheet.property("itemCount"),
+                    "editOverlayVisible": pdpSheet.property("editOverlayVisible"),
+                }
 
         return result
+
+    def injectPdpData(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        from btcopilot.schema import (
+            PDP,
+            Person,
+            Event,
+            PairBond,
+            from_dict,
+        )
+
+        controller = self._findPersonalAppController()
+        if controller is None:
+            return {"success": False, "error": "PersonalAppController not found"}
+
+        if not controller._diagram:
+            return {"success": False, "error": "No diagram loaded"}
+
+        people = [from_dict(Person, p) for p in data.get("people", [])]
+        events = [from_dict(Event, e) for e in data.get("events", [])]
+        pairBonds = [from_dict(PairBond, pb) for pb in data.get("pair_bonds", [])]
+
+        pdp = PDP(people=people, events=events, pair_bonds=pairBonds)
+
+        diagramData = controller._diagram.getDiagramData()
+        diagramData.pdp = pdp
+        controller._diagram.setDiagramData(diagramData)
+        controller.pdpChanged.emit()
+
+        self._app.processEvents()
+
+        return {
+            "success": True,
+            "injected": {
+                "personCount": len(people),
+                "eventCount": len(events),
+                "pairBondCount": len(pairBonds),
+            },
+        }
+
+    def openPdpSheet(self) -> Dict[str, Any]:
+        personalWindow = self._findPersonalAppWindow()
+        if not personalWindow:
+            return {"success": False, "error": "Personal app window not found"}
+
+        rootItem = personalWindow.contentItem()
+        pdpSheet = self._findPdpSheet(rootItem)
+        if not pdpSheet:
+            return {"success": False, "error": "pdpSheet not found"}
+
+        QMetaObject.invokeMethod(pdpSheet, "open")
+        self._app.processEvents()
+        return {"success": True}

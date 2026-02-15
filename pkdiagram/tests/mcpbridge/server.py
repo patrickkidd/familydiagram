@@ -88,6 +88,8 @@ class TestBridgeServer(QObject):
             "take_screenshot": self._handleTakeScreenshot,
             # Personal app state
             "get_personal_state": self._handleGetPersonalState,
+            "inject_pdp_data": self._handleInjectPdpData,
+            "open_pdp_sheet": self._handleOpenPdpSheet,
             # Status
             "ping": self._handlePing,
         }
@@ -453,6 +455,17 @@ class TestBridgeServer(QObject):
         """Handle get_personal_state command."""
         component = command.get("component", "all")
         return self._inspector.getPersonalState(component)
+
+    def _handleInjectPdpData(self, command: Dict) -> Dict:
+        """Handle inject_pdp_data command."""
+        data = command.get("data")
+        if not data:
+            return {"success": False, "error": "Missing 'data'"}
+        return self._inspector.injectPdpData(data)
+
+    def _handleOpenPdpSheet(self, command: Dict) -> Dict:
+        """Handle open_pdp_sheet command."""
+        return self._inspector.openPdpSheet()
 
 
 def startTestBridgeServer(port: int = DEFAULT_PORT) -> TestBridgeServer:
