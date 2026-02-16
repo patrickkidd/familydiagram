@@ -448,6 +448,19 @@ jobs:
           Write-Output "MSVC v142 environment setup successful for pyqtdeploy"
         shell: pwsh
 
+      - name: Add ATL paths to INCLUDE/LIB
+        run: |
+          $atlDir = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.29*\atlmfc" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($atlDir) {
+            Write-Output "Found ATL at: $($atlDir.FullName)"
+            echo "INCLUDE=$($atlDir.FullName)\include;$env:INCLUDE" >> $env:GITHUB_ENV
+            echo "LIB=$($atlDir.FullName)\lib\x64;$env:LIB" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "ATL directory not found after install"
+            exit 1
+          }
+        shell: pwsh
+
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
         uses: actions/cache@v4
