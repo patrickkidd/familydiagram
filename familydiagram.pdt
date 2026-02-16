@@ -1152,20 +1152,12 @@ name = "VoiceSettingsPage.qml"
 included = true
 is_directory = false
 
-[[Application.Package.Content.Content.Content.Content]]
-name = "Style.qml"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content.Content.Content]]
-name = "VoiceSettingsPage.qml"
-included = true
-is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
 name = "VignetteCard.qml"
 included = true
 is_directory = false
+
 
 [[Application.Package.Content.Content.Content]]
 name = "PersonalApplication.qml"
