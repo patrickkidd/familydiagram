@@ -2,6 +2,12 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.22
+
+## 2.1.22b1
+
+- Prune duplicate pairbonds
+
 ## 2.1.21
 
 ## 2.1.21b1
