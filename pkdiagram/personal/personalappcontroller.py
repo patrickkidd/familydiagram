@@ -63,6 +63,10 @@ class PersonalAppController(QObject):
     journalImportCompleted = pyqtSignal(QVariant, arguments=["summary"])
     journalImportFailed = pyqtSignal(str, arguments=["error"])
 
+    ttsPlayingIndexChanged = pyqtSignal()
+    ttsFinished = pyqtSignal()
+    ttsVoiceChanged = pyqtSignal()
+
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
 
@@ -96,6 +100,65 @@ class PersonalAppController(QObject):
         self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
         self.shakeDetector.shakeDetected.connect(self.undo)
+        self._settings = Settings(self.app.prefs(), self)
+        self._tts = QTextToSpeech(self)
+        self._ttsPlayingIndex = -1
+        self._tts.stateChanged.connect(self._onTtsStateChanged)
+        self._initTtsVoice()
+
+    def _initTtsVoice(self):
+        saved = self._settings.value("ttsVoiceName")
+        if saved:
+            voice, locale = self._findVoice(saved)
+            if voice:
+                self._tts.setLocale(locale)
+                self._tts.setVoice(voice)
+                _log.debug(f"TTS voice restored: {voice.name()}")
+                return
+        for voice in self._tts.availableVoices():
+            if voice.gender() == QVoice.Female:
+                self._tts.setVoice(voice)
+                _log.debug(f"TTS voice: {voice.name()}")
+                return
+        _log.debug("No female voice found, using default")
+
+    def _findVoice(self, name):
+        for locale in self._tts.availableLocales():
+            if locale.language() != QLocale.English:
+                continue
+            self._tts.setLocale(locale)
+            for voice in self._tts.availableVoices():
+                if voice.name() == name:
+                    return voice, locale
+        return None, None
+
+    def _collectVoices(self):
+        origLocale = self._tts.locale()
+        origVoice = self._tts.voice()
+        voices = []
+        seen = set()
+        for locale in self._tts.availableLocales():
+            if locale.language() != QLocale.English:
+                continue
+            self._tts.setLocale(locale)
+            country = QLocale.countryToString(locale.country())
+            localeLabel = f"English ({country})"
+            for voice in self._tts.availableVoices():
+                if voice.name() not in seen:
+                    seen.add(voice.name())
+                    voices.append({"name": voice.name(), "locale": localeLabel})
+        self._tts.setLocale(origLocale)
+        if origVoice.name():
+            self._tts.setVoice(origVoice)
+        return voices
+
+    def _onTtsStateChanged(self, state):
+        if state in (QTextToSpeech.Ready, QTextToSpeech.BackendError):
+            wasPlaying = self._ttsPlayingIndex >= 0
+            self._ttsPlayingIndex = -1
+            self.ttsPlayingIndexChanged.emit()
+            if wasPlaying and state == QTextToSpeech.Ready:
+                self.ttsFinished.emit()
 
     def init(self, engine: QQmlEngine):
         engine.rootContext().setContextProperty("CUtil", CUtil.instance())

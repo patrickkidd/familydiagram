@@ -418,17 +418,9 @@ class Scene(QGraphicsScene, Item):
         elif item.isMarriage:
             existing = self.marriageFor(item.personA(), item.personB())
             if existing:
-
-                def marriageInfo(m):
-                    eventCount = len(m._events) if m._events else 0
-                    hasNotes = bool(m.notes())
-                    hasDiagramNotes = bool(m.diagramNotes())
-                    return f"id={m.id}, events={eventCount}, notes={hasNotes}, diagramNotes={hasDiagramNotes}"
-
                 raise ValueError(
-                    f"Duplicate Marriages for {item.personA()} and {item.personB()}.\n"
-                    f"Existing {existing.id}: [{marriageInfo(existing)}]\n"
-                    f"New: {item.id}: [{marriageInfo(item)}]"
+                    f"Duplicate Marriages for {item.personA()} and {item.personB()}:"
+                    f" existing id={existing.id}, new id={item.id}"
                 )
             item.updateEvents()
             if not item in item.personA().marriages:
@@ -1098,8 +1090,17 @@ class Scene(QGraphicsScene, Item):
                 items.append(item)
                 itemChunks.append((item, chunk))
 
-            # Load marriages (pair_bonds)
+            # Load marriages (pair_bonds), skipping duplicates
+            seenPairBonds = set()
             for chunk in data.get("pair_bonds", []):
+                key = frozenset((chunk.get("person_a"), chunk.get("person_b")))
+                if key in seenPairBonds:
+                    log.warning(
+                        f"Skipping duplicate pair_bond id={chunk['id']} "
+                        f"for persons {chunk.get('person_a')} & {chunk.get('person_b')}"
+                    )
+                    continue
+                seenPairBonds.add(key)
                 item = Marriage()
                 item.id = chunk["id"]
                 items.append(item)
@@ -1149,6 +1150,14 @@ class Scene(QGraphicsScene, Item):
                 if kind == "Person":
                     item = Person()
                 elif kind == "Marriage":
+                    key = frozenset((chunk.get("person_a"), chunk.get("person_b")))
+                    if key in seenPairBonds:
+                        log.warning(
+                            f"Skipping duplicate Marriage id={chunk['id']} "
+                            f"for persons {chunk.get('person_a')} & {chunk.get('person_b')}"
+                        )
+                        continue
+                    seenPairBonds.add(key)
                     item = Marriage()
                 elif kind == "MultipleBirth":
                     item = MultipleBirth()

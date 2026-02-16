@@ -1,7 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtGraphicalEffects 1.15
 import "../PK" 1.0 as PK
 
 Rectangle {
@@ -15,21 +14,12 @@ Rectangle {
     signal accepted(int id)
     signal rejected(int id)
     signal editRequested(var eventData)
+    signal horizontalWheel(real deltaX)
 
     color: util.QML_ITEM_ALTERNATE_BG
     radius: 12
     border.color: isShiftEvent ? util.QML_HIGHLIGHT_COLOR : util.QML_ITEM_BORDER_COLOR
     border.width: isShiftEvent ? 2 : 1
-
-    layer.enabled: true
-    layer.effect: DropShadow {
-        transparentBorder: true
-        horizontalOffset: 0
-        verticalOffset: 4
-        radius: 12
-        samples: 25
-        color: "#40000000"
-    }
 
     readonly property bool isShiftEvent: eventData && eventData.kind === util.EventKind.Shift
     readonly property bool isPairBondEvent: eventData && [
@@ -113,16 +103,21 @@ Rectangle {
 
             Item { Layout.fillWidth: true }
 
-            Text {
-                visible: false
-                text: "Tap to edit"
-                font.pixelSize: 11
-                color: util.QML_HIGHLIGHT_COLOR
-                opacity: 0.8
+            Item {
+                id: editButton
+                objectName: "pdpEditButton"
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                opacity: editMouseArea.pressed ? 0.5 : 1.0
+
+                Image {
+                    anchors.fill: parent
+                    source: util.IS_UI_DARK_MODE ? '../../pencil-button-white.png' : '../../pencil-button.png'
+                }
 
                 MouseArea {
+                    id: editMouseArea
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (eventData) {
                             root.editRequested(eventData)
@@ -142,23 +137,22 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            // Intercept all wheel events so the Flickable doesn't swallow
+            // horizontal ones. Vertical: forward to Flickable. Horizontal:
+            // signal parent for SwipeView navigation.
             MouseArea {
                 anchors.fill: parent
                 z: 1
+                acceptedButtons: Qt.NoButton
                 onWheel: function(event) {
                     if (Math.abs(event.angleDelta.y) > Math.abs(event.angleDelta.x)) {
                         flickable.contentY = Math.max(0,
                             Math.min(flickable.contentHeight - flickable.height,
                                 flickable.contentY - event.angleDelta.y))
-                        event.accepted = true
                     } else {
-                        event.accepted = false
+                        root.horizontalWheel(event.angleDelta.x)
                     }
-                }
-                onClicked: {
-                    if (eventData) {
-                        root.editRequested(eventData)
-                    }
+                    event.accepted = true
                 }
             }
 
@@ -169,7 +163,6 @@ Rectangle {
                 clip: true
                 flickableDirection: Flickable.VerticalFlick
                 boundsBehavior: Flickable.StopAtBounds
-                interactive: false
 
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AlwaysOn

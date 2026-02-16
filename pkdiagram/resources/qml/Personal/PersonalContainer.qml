@@ -198,6 +198,7 @@ Page {
 
         // PDP Badge (Discuss tab only)
         Rectangle {
+            objectName: "pdpBadge"
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -258,6 +259,7 @@ Page {
 
         Personal.DiscussView {
             id: discussView
+            objectName: "discussView"
             Layout.fillHeight: true
             Layout.fillWidth: true
         }

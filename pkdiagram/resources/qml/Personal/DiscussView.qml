@@ -29,6 +29,13 @@ Page {
 
     property var chatMargin: util.QML_MARGINS * 1.5
 
+    // iOS-style chat colors (defined locally to avoid same-module singleton timing issue)
+    property bool isDarkMode: util.IS_UI_DARK_MODE
+    property color chatSecondaryBg: isDarkMode ? "#3B3B3D" : "#F2F2F7"
+    property color chatSecondaryText: isDarkMode ? "#E1E1E1" : util.QML_TEXT_COLOR
+    property color chatPlaceholder: isDarkMode ? "#636366" : "#8E8E93"
+    property color chatButton: isDarkMode ? "#4495F7" : "#007AFF"
+
     background: Rectangle {
         color: util.QML_WINDOW_BG
         anchors.fill: parent
@@ -58,6 +65,7 @@ Page {
         }
         function onRequestSent(text) {
             chatModel.append({ "text": text, "speakerType": 'subject' })
+            statementsList.delayedScrollToBottom()
         }
         function onResponseReceived(text, added) {
             chatModel.append({
@@ -65,6 +73,11 @@ Page {
                 "speakerType": 'expert'
             })
             statementsList.delayedScrollToBottom()
+        }
+        function onTtsFinished() {
+            if (personalApp.settings.value("autoReadAloud", false)) {
+                textEdit.forceActiveFocus()
+            }
         }
         function onServerDown() {
             chatModel.append({
@@ -181,7 +194,7 @@ Page {
 
                 Rectangle {
                     id: bubble
-                    color: "#1190F9"
+                    color: root.chatButton
                     radius: 18
                     width: Math.min(questionText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: questionText.implicitHeight + 20
@@ -228,7 +241,7 @@ Page {
 
                 Rectangle {
                     id: aiBubble
-                    color: util.IS_UI_DARK_MODE ? "#373534" : "#e5e5ea"
+                    color: root.chatSecondaryBg
                     radius: 18
                     width: Math.min(responseText.implicitWidth + 24, statementsList.width * 0.8)
                     implicitHeight: responseText.implicitHeight + 20
@@ -238,13 +251,60 @@ Page {
                     TextEdit {
                         id: responseText
                         text: dText
-                        color: util.QML_TEXT_COLOR
+                        color: root.chatSecondaryText
                         readOnly: true
                         selectByMouse: true
                         wrapMode: Text.WordWrap
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+                    }
+
+                    Rectangle {
+                        x: aiBubble.width + (statementsList.width - 15 - aiBubble.width) / 2 - width / 2
+                        y: (aiBubble.height - height) / 2
+                        width: 28
+                        height: 28
+                        color: "transparent"
+
+                        Canvas {
+                            anchors.centerIn: parent
+                            width: 14
+                            height: 14
+                            visible: !dRoot.isPlaying
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.fillStyle = root.chatPlaceholder
+                                ctx.beginPath()
+                                ctx.moveTo(1, 0)
+                                ctx.lineTo(14, 7)
+                                ctx.lineTo(1, 14)
+                                ctx.closePath()
+                                ctx.fill()
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 10
+                            height: 10
+                            radius: 2
+                            color: util.QML_SELECTION_COLOR
+                            visible: dRoot.isPlaying
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (dRoot.isPlaying) {
+                                    personalApp.stopSpeaking()
+                                } else {
+                                    personalApp.sayAtIndex(dText, dIndex)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -276,9 +336,9 @@ Page {
                 }
                 height: Math.min(inputFlickable.contentHeight + 8, 100)
                 radius: 18
-                color: util.IS_UI_DARK_MODE ? "#252526" : "#F7F7F7"
+                color: root.chatSecondaryBg
                 border.width: textEdit.activeFocus ? 1 : 0
-                border.color: util.IS_UI_DARK_MODE ? "#636366" : "#c7c7cc"
+                border.color: root.chatPlaceholder
 
                 MouseArea {
                     anchors.fill: parent
@@ -291,7 +351,7 @@ Page {
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Message"
-                    color: util.IS_UI_DARK_MODE ? "#636366" : "#8E8E93"
+                    color: root.chatPlaceholder
                     font.pixelSize: 15
                     visible: textEdit.text.length === 0 && !textEdit.activeFocus
                 }
@@ -408,7 +468,7 @@ Page {
                     width: 28
                     height: 28
                     radius: 14
-                    color: "#007AFF"
+                    color: root.chatButton
 
                     Text {
                         anchors.centerIn: parent
@@ -431,6 +491,7 @@ Page {
 
     Personal.PDPSheet {
         id: pdpSheet
+        objectName: "pdpSheet"
         parent: Overlay.overlay
 
         onItemAccepted: function(id) {

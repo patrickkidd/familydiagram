@@ -15,7 +15,7 @@ from btcopilot.schema import (
 )
 from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
 from pkdiagram import util
-from pkdiagram.scene import Scene, Person, Emotion, Event
+from pkdiagram.scene import Scene, Person, Marriage, Emotion, Event
 from pkdiagram.models import SceneLayerModel
 
 pytestmark = [
@@ -96,6 +96,32 @@ def test_no_duplicate_events_from_file(simpleScene):
     events = simpleScene.events()
     for event in events:
         assert events.count(event) == 1
+
+
+def test_read_duplicate_pair_bonds(scene):
+    """Corrupt files with duplicate marriages for the same two people should
+    load successfully by skipping the duplicate."""
+    p1 = scene.addItem(Person(name="A"))
+    p2 = scene.addItem(Person(name="B"))
+    m = scene.addItem(Marriage(p1, p2))
+    scene.addItem(
+        Event(EventKind.Married, p1, dateTime=util.Date(2000, 1, 1), spouse=p2)
+    )
+    data = {}
+    scene.write(data)
+    assert len(data["pair_bonds"]) == 1
+
+    # Inject a duplicate pair_bond with a different id
+    dupe = dict(data["pair_bonds"][0])
+    dupe["id"] = 9999
+    data["pair_bonds"].append(dupe)
+    assert len(data["pair_bonds"]) == 2
+
+    scene2 = Scene()
+    scene2.read(data)
+    assert len(scene2.marriages()) == 1
+    assert scene2.marriages()[0].anyMarriedEvents()
+    scene2.deinit()
 
 
 def test_save_load_delete_items(qtbot):
