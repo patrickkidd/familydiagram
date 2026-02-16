@@ -448,6 +448,8 @@ class Marriage(PathItem):
 
     def updatePen(self):
         super().updatePen()
+        if self._events is None:
+            return
         pen = QPen(util.PEN)
         penStyle = self.penStyleFor(self.scene().currentDateTime())
         pen.setStyle(penStyle)
@@ -532,7 +534,7 @@ class Marriage(PathItem):
 
     def updateDetails(self):
         """`pos` is passed from read()"""
-        if not self.isInit or self._Marriage_isUpdatingAll:
+        if not self.isInit or self._Marriage_isUpdatingAll or self._events is None:
             return
         super().updateDetails()
         currentDateTime = self.scene() and self.scene().currentDateTime() or QDateTime()
