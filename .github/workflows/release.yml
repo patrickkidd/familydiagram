@@ -448,17 +448,40 @@ jobs:
           Write-Output "MSVC v142 environment setup successful for pyqtdeploy"
         shell: pwsh
 
-      - name: Add ATL paths to INCLUDE/LIB
+      - name: Ensure ATL available and add to INCLUDE/LIB
         run: |
-          $atlDir = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.29*\atlmfc" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $vsBase = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"
+
+          # Search all toolset versions for ATL
+          $atlDir = Get-ChildItem "$vsBase\*\atlmfc" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($atlDir) {
-            Write-Output "Found ATL at: $($atlDir.FullName)"
-            echo "INCLUDE=$($atlDir.FullName)\include;$env:INCLUDE" >> $env:GITHUB_ENV
-            echo "LIB=$($atlDir.FullName)\lib\x64;$env:LIB" >> $env:GITHUB_ENV
+            Write-Output "ATL already present: $($atlDir.FullName)"
           } else {
-            Write-Error "ATL directory not found after install"
-            exit 1
+            Write-Output "No ATL found, installing Microsoft.VisualStudio.Component.VC.ATL..."
+            $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+            $proc = Start-Process -FilePath $installer -ArgumentList @(
+              "modify",
+              "--installPath", "C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
+              "--add", "Microsoft.VisualStudio.Component.VC.ATL",
+              "--quiet", "--norestart", "--wait"
+            ) -Wait -PassThru -NoNewWindow
+            Write-Output "vs_installer exit code: $($proc.ExitCode)"
+
+            $atlDir = Get-ChildItem "$vsBase\*\atlmfc" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (!$atlDir) {
+              Write-Output "Listing all toolset contents for debugging:"
+              Get-ChildItem $vsBase -Directory | ForEach-Object {
+                Write-Output "  $($_.Name)/: $(Get-ChildItem $_.FullName -Directory -Name)"
+              }
+              Write-Error "ATL still not found after install"
+              exit 1
+            }
+            Write-Output "ATL installed at: $($atlDir.FullName)"
           }
+
+          echo "INCLUDE=$($atlDir.FullName)\include;$env:INCLUDE" >> $env:GITHUB_ENV
+          echo "LIB=$($atlDir.FullName)\lib\x64;$env:LIB" >> $env:GITHUB_ENV
+          Write-Output "Added ATL to INCLUDE and LIB"
         shell: pwsh
 
       - name: Setup _pkdiagram caching
