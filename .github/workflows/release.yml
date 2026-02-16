@@ -407,7 +407,22 @@ jobs:
             --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" `
             --add Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 `
             --add Microsoft.VisualStudio.Component.VC.14.29.16.11.MFC `
+            --add Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL `
             --quiet --norestart --wait
+        shell: pwsh
+
+      - name: Install ATL for v142 (required by Qt SAPI TTS plugin)
+        run: |
+          $atlPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.29*\atlmfc\include\atlbase.h"
+          if (!(Test-Path $atlPath)) {
+            Write-Output "ATL for v142 not found, installing..."
+            & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify `
+              --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" `
+              --add Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL `
+              --quiet --norestart --wait
+          } else {
+            Write-Output "ATL for v142 already installed"
+          }
         shell: pwsh
 
       - name: Setup VS Developer Command Prompt with v142 Toolset (MSVC 19.2x)

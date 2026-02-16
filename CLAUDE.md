@@ -162,6 +162,15 @@ As-built docs contain:
 
 **When to update**: Any code change to files listed in an as-built doc requires updating that doc to keep it accurate. This includes bug fixes, behavior changes, and new features. The as-built doc is the authoritative specification for the feature's behavior.
 
+## Build Decision Logs
+
+Before modifying CI/CD workflows or sysroot config, check the relevant decision log for context on past choices.
+
+| Platform | Log | Key Files |
+|----------|-----|-----------|
+| Windows | [build-decisions-windows.md](doc/build-decisions-windows.md) | `.github/workflows/release.yml`, `sysroot/sysroot.toml` |
+| macOS | [build-decisions-macos.md](doc/build-decisions-macos.md) | `.github/workflows/release.yml`, `sysroot/sysroot.toml` |
+
 ## Release and Beta Process
 
 **IMPORTANT**: Read `doc/RELEASE_PROCESS.md` for the complete release workflow. Key points:
