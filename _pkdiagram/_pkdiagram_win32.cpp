@@ -676,6 +676,10 @@ bool CUtil::dev_amIBeingDebugged() {
 }
 
 
+void CUtil::openNativeUrl(const QString &url) {
+    ShellExecuteW(NULL, L"open", (LPCWSTR)url.utf16(), NULL, NULL, SW_SHOWNORMAL);
+}
+
 void CUtil::dev_showDebugConsole() {
     qDebug() << "dev_showDebugConsole 1";
 #ifdef Q_OS_WINDOWS

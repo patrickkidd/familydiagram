@@ -463,6 +463,50 @@ jobs:
           Write-Output "MSVC v142 environment setup successful for pyqtdeploy"
         shell: pwsh
 
+      - name: Ensure ATL available and add to INCLUDE/LIB
+        run: |
+          $vsBase = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"
+
+          # Search all toolset versions for ATL
+          $atlDir = Get-ChildItem "$vsBase\*\atlmfc" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($atlDir) {
+            Write-Output "ATL already present: $($atlDir.FullName)"
+          } else {
+            Write-Output "No ATL found, installing Microsoft.VisualStudio.Component.VC.ATL..."
+            $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+            $proc = Start-Process -FilePath $installer -ArgumentList @(
+              "modify",
+              "--installPath", "C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
+              "--add", "Microsoft.VisualStudio.Component.VC.ATL",
+              "--quiet", "--norestart", "--wait"
+            ) -Wait -PassThru -NoNewWindow
+            Write-Output "vs_installer exit code: $($proc.ExitCode)"
+
+            $atlDir = Get-ChildItem "$vsBase\*\atlmfc" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (!$atlDir) {
+              Write-Output "Listing all toolset contents for debugging:"
+              Get-ChildItem $vsBase -Directory | ForEach-Object {
+                Write-Output "  $($_.Name)/: $(Get-ChildItem $_.FullName -Directory -Name)"
+              }
+              Write-Error "ATL still not found after install"
+              exit 1
+            }
+            Write-Output "ATL installed at: $($atlDir.FullName)"
+          }
+
+          $atlInclude = "$($atlDir.FullName)\include"
+          $atlLib = "$($atlDir.FullName)\lib\x64"
+          # Convert to 8.3 short path for qmake (spaces in paths break QMAKE_LIBDIR)
+          $fso = New-Object -ComObject Scripting.FileSystemObject
+          $atlLibShort = $fso.GetFolder($atlLib).ShortPath
+          Write-Output "ATL lib path: $atlLib"
+          Write-Output "ATL lib short path: $atlLibShort"
+          echo "INCLUDE=$atlInclude;$env:INCLUDE" >> $env:GITHUB_ENV
+          echo "LIB=$atlLib;$env:LIB" >> $env:GITHUB_ENV
+          echo "ATL_LIB_DIR=$atlLibShort" >> $env:GITHUB_ENV
+          Write-Output "Added ATL to INCLUDE, LIB, and ATL_LIB_DIR"
+        shell: pwsh
+
       - name: Setup _pkdiagram caching
         id: cache-_pkdiagram
         uses: actions/cache@v4
@@ -561,9 +605,9 @@ jobs:
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
           if "${{ needs.setup.outputs.is_prerelease }}" == "true" (
-            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta" "QMAKE_LIBDIR+=%ATL_LIB_DIR%"
           ) else (
-            qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "QMAKE_LIBDIR+=%ATL_LIB_DIR%"
           )
         shell: cmd # has to be shell or qmake won't work
   
