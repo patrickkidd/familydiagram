@@ -481,9 +481,14 @@ jobs:
 
           $atlInclude = "$($atlDir.FullName)\include"
           $atlLib = "$($atlDir.FullName)\lib\x64"
+          # Convert to 8.3 short path for qmake (spaces in paths break QMAKE_LIBDIR)
+          $fso = New-Object -ComObject Scripting.FileSystemObject
+          $atlLibShort = $fso.GetFolder($atlLib).ShortPath
+          Write-Output "ATL lib path: $atlLib"
+          Write-Output "ATL lib short path: $atlLibShort"
           echo "INCLUDE=$atlInclude;$env:INCLUDE" >> $env:GITHUB_ENV
           echo "LIB=$atlLib;$env:LIB" >> $env:GITHUB_ENV
-          echo "ATL_LIB_DIR=$atlLib" >> $env:GITHUB_ENV
+          echo "ATL_LIB_DIR=$atlLibShort" >> $env:GITHUB_ENV
           Write-Output "Added ATL to INCLUDE, LIB, and ATL_LIB_DIR"
         shell: pwsh
 
