@@ -479,9 +479,12 @@ jobs:
             Write-Output "ATL installed at: $($atlDir.FullName)"
           }
 
-          echo "INCLUDE=$($atlDir.FullName)\include;$env:INCLUDE" >> $env:GITHUB_ENV
-          echo "LIB=$($atlDir.FullName)\lib\x64;$env:LIB" >> $env:GITHUB_ENV
-          Write-Output "Added ATL to INCLUDE and LIB"
+          $atlInclude = "$($atlDir.FullName)\include"
+          $atlLib = "$($atlDir.FullName)\lib\x64"
+          echo "INCLUDE=$atlInclude;$env:INCLUDE" >> $env:GITHUB_ENV
+          echo "LIB=$atlLib;$env:LIB" >> $env:GITHUB_ENV
+          echo "ATL_LIB_DIR=$atlLib" >> $env:GITHUB_ENV
+          Write-Output "Added ATL to INCLUDE, LIB, and ATL_LIB_DIR"
         shell: pwsh
 
       - name: Setup _pkdiagram caching
@@ -582,9 +585,9 @@ jobs:
           set PATH=%cd%\sysroot\sysroot-win-64\Qt\bin;%PATH%
           cd build\win32
           if "${{ needs.setup.outputs.is_prerelease }}" == "true" (
-            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta"
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "CONFIG+=beta" "QMAKE_LIBDIR+=%ATL_LIB_DIR%"
           ) else (
-            qmake -tp vc "CONFIG-=debug" "CONFIG+=release"
+            qmake -tp vc "CONFIG-=debug" "CONFIG+=release" "QMAKE_LIBDIR+=%ATL_LIB_DIR%"
           )
         shell: cmd # has to be shell or qmake won't work
   
