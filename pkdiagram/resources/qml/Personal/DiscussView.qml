@@ -205,16 +205,48 @@ Page {
                     anchors.right: parent.right
                     anchors.rightMargin: 15
 
-                    TextEdit {
+                    Text {
                         id: questionText
                         text: dText
                         color: "white"
-                        readOnly: true
-                        selectByMouse: true
                         wrapMode: Text.WordWrap
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressAndHold: {
+                            util.copyToClipboard(dText)
+                            copiedAnim.restart()
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: copiedLabel.implicitWidth + 16
+                        height: copiedLabel.implicitHeight + 8
+                        radius: 10
+                        color: "#80000000"
+                        opacity: 0
+                        z: 10
+
+                        Text {
+                            id: copiedLabel
+                            anchors.centerIn: parent
+                            text: "Copied"
+                            color: "white"
+                            font.pixelSize: 12
+                        }
+
+                        SequentialAnimation on opacity {
+                            id: copiedAnim
+                            running: false
+                            NumberAnimation { to: 1; duration: 100 }
+                            PauseAnimation { duration: 600 }
+                            NumberAnimation { to: 0; duration: 300 }
+                        }
                     }
                 }
             }
@@ -253,16 +285,48 @@ Page {
                     anchors.left: parent.left
                     anchors.leftMargin: 15
 
-                    TextEdit {
+                    Text {
                         id: responseText
                         text: dText
                         color: root.chatSecondaryText
-                        readOnly: true
-                        selectByMouse: true
                         wrapMode: Text.WordWrap
                         font.pixelSize: 15
                         anchors.fill: parent
                         anchors.margins: 12
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressAndHold: {
+                            util.copyToClipboard(dText)
+                            aiCopiedAnim.restart()
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: aiCopiedLabel.implicitWidth + 16
+                        height: aiCopiedLabel.implicitHeight + 8
+                        radius: 10
+                        color: "#80000000"
+                        opacity: 0
+                        z: 10
+
+                        Text {
+                            id: aiCopiedLabel
+                            anchors.centerIn: parent
+                            text: "Copied"
+                            color: "white"
+                            font.pixelSize: 12
+                        }
+
+                        SequentialAnimation on opacity {
+                            id: aiCopiedAnim
+                            running: false
+                            NumberAnimation { to: 1; duration: 100 }
+                            PauseAnimation { duration: 600 }
+                            NumberAnimation { to: 0; duration: 300 }
+                        }
                     }
 
                     Rectangle {

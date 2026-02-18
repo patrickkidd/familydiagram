@@ -413,6 +413,10 @@ class QmlUtil(QObject, QObjectHelper):
     def openUrl(self, urlString):
         QDesktopServices.openUrl(QUrl(urlString))
 
+    @pyqtSlot(str)
+    def copyToClipboard(self, text):
+        QApplication.clipboard().setText(text)
+
     jsServerHttpFinished = pyqtSignal(int, QJSValue, arguments=["id", "response"])
 
     @pyqtSlot(QVariant, int, str, str)
