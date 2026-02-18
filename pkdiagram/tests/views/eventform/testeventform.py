@@ -343,6 +343,18 @@ class TestEventForm:
     def set_functioning(self, x: VariableShift):
         self.view.item.setVariable("functioning", x.value)
 
+    def clear_symptom(self):
+        self.view.item.clearVariable("symptom")
+
+    def clear_anxiety(self):
+        self.view.item.clearVariable("anxiety")
+
+    def clear_relationship(self):
+        self.view.item.clearVariable("relationship")
+
+    def clear_functioning(self):
+        self.view.item.clearVariable("functioning")
+
     # Meta
 
     def set_color(self, color: str):

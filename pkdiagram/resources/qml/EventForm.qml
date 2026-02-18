@@ -227,6 +227,18 @@ Page {
         }
     }
 
+    function clearVariable(attr) {
+        if(attr == 'symptom') {
+            symptomField.clear()
+        } else if(attr == 'anxiety') {
+            anxietyField.clear()
+        } else if(attr == 'relationship') {
+            relationshipField.clear()
+        } else if(attr == 'functioning') {
+            functioningField.clear()
+        }
+    }
+
     // attr statuses
 
     function personEntry() {

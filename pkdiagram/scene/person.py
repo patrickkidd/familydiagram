@@ -879,9 +879,13 @@ class Person(PathItem):
         # if prop.item in changes["newEvents"] and not prop.item in changes["added"]:
         #     self.eventChanged.emit(prop)
         if prop.name in ("symptom", "anxiety", "functioning") or prop.isDynamic:
-            self.variablesDatabase.set(
-                f"varsdb-{prop.attr}", prop.item.dateTime(), prop.get()
-            )
+            if prop.isset():
+                self.variablesDatabase.set(
+                    f"varsdb-{prop.attr}", prop.item.dateTime(), prop.get()
+                )
+            else:
+                self.variablesDatabase.unset(f"varsdb-{prop.attr}", prop.item.dateTime())
+            self.updateDetails()
 
     # Event getters
 

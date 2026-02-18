@@ -707,8 +707,12 @@ class EventForm(QObject):
                     event.setDateCertainty(dateCertainty, undo=True)
                 if symptom is not None and symptom != event.symptom():
                     event.setSymptom(symptom, undo=True)
+                elif symptom is None and event.symptom() is not None:
+                    event.resetSymptom(undo=True)
                 if anxiety is not None and anxiety != event.anxiety():
                     event.setAnxiety(anxiety, undo=True)
+                elif anxiety is None and event.anxiety() is not None:
+                    event.resetAnxiety(undo=True)
                 if relationship is not None and relationship != event.relationship():
                     event.setRelationship(relationship, undo=True)
                     if targets is not None and targets != event.relationshipTargets():
@@ -718,8 +722,18 @@ class EventForm(QObject):
                         RelationshipKind.Outside,
                     ):
                         event.setRelationshipTriangles(triangles, undo=True)
+                elif relationship is None and event.relationship() is not None:
+                    for emotion in list(self.scene.emotionsFor(event)):
+                        self.scene.removeItem(emotion, undo=True)
+                    event.resetRelationship(undo=True)
+                    if event.relationshipTargets():
+                        event.setRelationshipTargets([], undo=True)
+                    if event.relationshipTriangles():
+                        event.setRelationshipTriangles([], undo=True)
                 if functioning is not None and functioning != event.functioning():
                     event.setFunctioning(functioning, undo=True)
+                elif functioning is None and event.functioning() is not None:
+                    event.resetFunctioning(undo=True)
                 if description and description != event.description():
                     event.setDescription(description, undo=True)
                 if location and location != event.location():
