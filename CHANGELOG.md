@@ -2,6 +2,12 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.23
+
+## 2.1.23b1
+
+- Fix clearing SARF variables in pro app
+
 ## 2.1.22
 
 ## 2.1.22b1
