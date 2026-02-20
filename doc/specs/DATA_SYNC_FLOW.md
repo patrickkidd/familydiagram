@@ -228,21 +228,6 @@ events without a Marriage).
 
 ## Outstanding Issues
 
-### Accept-All Scene Addition Failure (IDENTIFIED, FIX NOT YET COMMITTED)
-
-`_addCommittedItemsToScene` does not set `scene.isInitializing = True` during
-Phase 3. Birth events with parent references trigger `ValueError` in
-`Scene._do_addItem()` because the pair-bond Marriage validation fires before all
-items exist.
-
-The save to server succeeds BEFORE scene addition, so PDP is cleared on the
-server but items aren't in the scene. Any subsequent `saveDiagram()` overwrites
-server data with the scene state (which lacks the committed items), completing
-the data loss.
-
-Fix: set `scene.isInitializing = True` during Phase 3 of
-`_addCommittedItemsToScene`, reset in `finally` block. Matches `Scene.read()`.
-
 ### Chat Response Race Condition
 
 `_sendStatement()` is async. The server responds with updated PDP (from AI
@@ -310,3 +295,13 @@ referencing pair bonds. Fixed by calling `cleanup_pair_bonds()` at the end of
 **Blocking saves enabled reentrancy.** Personal app used blocking `save()` →
 `QEventLoop.exec_()` → pending Qt events fire → reentrant save. Fixed by
 splitting into `mutate()` + `pushToServer()`.
+
+**Accept-All scene addition failure.** `_addCommittedItemsToScene` did not set
+`scene.isInitializing = True` during Phase 3. `isPairBond()` events triggered
+`ValueError` in `_do_addItem()` because Marriage validation fired before all
+items existed. Fixed by setting `isInitializing = True` alongside batch mode.
+Additionally, `commit_pdp_items()` was missing pair bond inference for several
+`isPairBond()` event kinds (Separated, Divorced, Moved) and for Birth Case 2/3.
+Fixed by expanding `_create_inferred_pair_bond_items()` to cover all non-offspring
+`isPairBond()` kinds and ensuring `_create_inferred_birth_items()` always creates
+pair bonds and sets `child.parents`.

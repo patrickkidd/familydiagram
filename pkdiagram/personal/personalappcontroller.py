@@ -758,12 +758,16 @@ class PersonalAppController(QObject):
         for item, chunk in itemChunks:
             item.read(chunk, byId)
 
-        # Phase 3: Add all items to scene with batch mode to prevent repeated updates
+        # Phase 3: Add all items to scene.
+        # isInitializing: suppress cross-reference validation (FR-4)
+        # batch mode: defer signals and geometry updates
+        self.scene.isInitializing = True
         self.scene.setBatchAddingRemovingItems(True)
         try:
             for item, chunk in itemChunks:
                 self.scene.addItem(item)
         finally:
+            self.scene.isInitializing = False
             self.scene.setBatchAddingRemovingItems(False)
 
     def _doRejectPDPItem(self, id: int) -> bool:
@@ -773,37 +777,7 @@ class PersonalAppController(QObject):
             if not diagramData.pdp:
                 _log.warning("No PDP data available")
                 return diagramData
-
-            idsToRemove = {id}
-
-            for event in diagramData.pdp.events:
-                if (
-                    event.person == id
-                    or event.spouse == id
-                    or event.child == id
-                    or id in event.relationshipTargets
-                    or id in event.relationshipTriangles
-                ):
-                    idsToRemove.add(event.id)
-
-            for pair_bond in diagramData.pdp.pair_bonds:
-                if pair_bond.person_a == id or pair_bond.person_b == id:
-                    idsToRemove.add(pair_bond.id)
-
-            for person in diagramData.pdp.people:
-                if person.parents == id:
-                    idsToRemove.add(person.id)
-
-            diagramData.pdp.people = [
-                p for p in diagramData.pdp.people if p.id not in idsToRemove
-            ]
-            diagramData.pdp.events = [
-                e for e in diagramData.pdp.events if e.id not in idsToRemove
-            ]
-            diagramData.pdp.pair_bonds = [
-                pb for pb in diagramData.pdp.pair_bonds if pb.id not in idsToRemove
-            ]
-
+            diagramData.reject_pdp_item(id)
             return diagramData
 
         def stillValidAfterRefresh(diagramData: DiagramData):
