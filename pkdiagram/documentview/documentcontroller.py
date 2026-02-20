@@ -929,6 +929,11 @@ class DocumentController(QObject):
                 self.dv.session.server().checkHTTPReply(reply)
             except HTTPError as e:
                 log.error(f"Auto-Arrange request failed {e.status_code}")
+                QMessageBox.warning(
+                    None,
+                    "Auto-Arrange Failed",
+                    str(e),
+                )
 
         reply = self.dv.session.server().nonBlockingRequest(
             "POST",
