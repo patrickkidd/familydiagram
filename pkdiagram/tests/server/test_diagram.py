@@ -105,6 +105,51 @@ def test_setDiagramData_with_json():
     assert unpickled["pdp"]["people"][0]["name"] == "Bob"
 
 
+def test_getDiagramData_preserves_all_fields():
+    initial_data = DiagramData(
+        people=[{"id": 1, "name": "Alice"}],
+        emotions=[{"id": 10, "kind": "conflict"}],
+        layers=[{"id": 20, "name": "default"}],
+        hideNames=True,
+        scaleFactor=1.5,
+        pdp=PDP(people=[Person(id=-1, name="Bob")]),
+        lastItemId=50,
+    )
+    diagram = Diagram(
+        id=1,
+        user_id=1,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_data)),
+    )
+
+    result = diagram.getDiagramData()
+
+    assert result.people == [{"id": 1, "name": "Alice"}]
+    assert result.emotions == [{"id": 10, "kind": "conflict"}]
+    assert result.layers == [{"id": 20, "name": "default"}]
+    assert result.hideNames is True
+    assert result.scaleFactor == 1.5
+    assert result.lastItemId == 50
+    assert len(result.pdp.people) == 1
+
+
+def test_getDiagramData_ignores_unknown_fields():
+    blob = {"people": [], "lastItemId": 5, "unknownField": "junk"}
+    diagram = Diagram(
+        id=1,
+        user_id=1,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(blob),
+    )
+
+    result = diagram.getDiagramData()
+
+    assert result.lastItemId == 5
+    assert not hasattr(result, "unknownField")
+
+
 def test_getDiagramData_setDiagramData_roundtrip():
     initial_data = DiagramData(
         pdp=PDP(

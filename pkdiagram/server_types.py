@@ -15,7 +15,7 @@ from datetime import datetime
 import hashlib
 import urllib.parse
 import wsgiref.handlers
-from dataclasses import dataclass, InitVar, field
+from dataclasses import dataclass, InitVar, field, fields
 from typing import Union, Callable
 
 import btcopilot
@@ -293,17 +293,11 @@ class Diagram:
 
     def getDiagramData(self) -> DiagramData:
         data = pickle.loads(self.data) if self.data else {}
-
         pdp_dict = data.get("pdp", {})
-        return DiagramData(
-            people=data.get("people", []),
-            events=data.get("events", []),
-            pair_bonds=data.get("pair_bonds", []),
-            pdp=from_dict(PDP, pdp_dict) if pdp_dict else PDP(),
-            lastItemId=data.get("lastItemId", 0),
-            clusters=data.get("clusters", []),
-            clusterCacheKey=data.get("clusterCacheKey"),
-        )
+        known = {f.name for f in fields(DiagramData)} - {"pdp"}
+        kwargs = {k: data[k] for k in known if k in data}
+        kwargs["pdp"] = from_dict(PDP, pdp_dict) if pdp_dict else PDP()
+        return DiagramData(**kwargs)
 
     def setDiagramData(self, diagramData: DiagramData):
         data = pickle.loads(self.data) if self.data else {}
