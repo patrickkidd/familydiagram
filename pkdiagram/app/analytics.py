@@ -118,7 +118,8 @@ class Analytics(QObject):
         self.tick()
 
     def _writeToDisk(self):
-        log.debug(f"Writing {len(self._logQueue)} DatadogLog items")
+        if self._logQueue:
+            log.debug(f"Writing {len(self._logQueue)} DatadogLog items")
         with open(self.filePath(), "wb") as f:
             pickle.dump(self._logQueue, f)
 

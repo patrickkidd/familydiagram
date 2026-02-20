@@ -1,4 +1,9 @@
-# Personal App Data Synchronization Guide
+# Personal App Data Synchronization Guide (ARCHIVED)
+
+> **Archived 2026-02-20.** Superseded by `familydiagram/doc/specs/DATA_SYNC_FLOW.md`.
+> This doc described a deprecated architecture (server-side accept/reject
+> endpoints, no version tracking) and proposed solutions that were implemented
+> differently. Kept for historical reference only.
 
 This document provides comprehensive guidance for handling data synchronization between the frontend (PersonalAppController/Scene) and backend (DiagramData/PDP) in the personal app.
 

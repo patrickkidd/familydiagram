@@ -103,6 +103,8 @@ class PersonalAppController(QObject):
         self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
         self.shakeDetector.shakeDetected.connect(self.undo)
+        self._saving = False
+        self._saveQueue = []
         self._settings = Settings(self.app.prefs(), self)
         self._tts = QTextToSpeech(self)
         self._ttsPlayingIndex = -1
@@ -238,35 +240,46 @@ class PersonalAppController(QObject):
             self.scene.undo()
             self.saveDiagram()
 
+    def _withSaveGuard(self, fn):
+        if self._saving:
+            self._saveQueue.append(fn)
+            return None
+        self._saving = True
+        try:
+            return fn()
+        finally:
+            self._saving = False
+            if self._saveQueue:
+                self._withSaveGuard(self._saveQueue.pop(0))
+
     def saveDiagram(self):
         if not self._diagram or not self.scene:
-            return False
+            return
 
-        def applyChange(diagramData: DiagramData):
-            sceneDiagramData = self.scene.diagramData()
-            diagramData.people = sceneDiagramData.people
-            diagramData.events = sceneDiagramData.events
-            diagramData.pair_bonds = sceneDiagramData.pair_bonds
-            diagramData.emotions = sceneDiagramData.emotions
-            diagramData.multipleBirths = sceneDiagramData.multipleBirths
-            diagramData.layers = sceneDiagramData.layers
-            diagramData.layerItems = sceneDiagramData.layerItems
-            diagramData.items = sceneDiagramData.items
-            diagramData.pruned = sceneDiagramData.pruned
-            diagramData.version = sceneDiagramData.version
-            diagramData.versionCompat = sceneDiagramData.versionCompat
-            diagramData.name = sceneDiagramData.name
-            # Persist clusters
-            diagramData.clusters = self.clusterModel.clusters
-            diagramData.clusterCacheKey = self.clusterModel.cacheKey
-            return diagramData
+        def _do():
+            def applyChange(diagramData: DiagramData):
+                sceneDiagramData = self.scene.diagramData()
+                diagramData.people = sceneDiagramData.people
+                diagramData.events = sceneDiagramData.events
+                diagramData.pair_bonds = sceneDiagramData.pair_bonds
+                diagramData.emotions = sceneDiagramData.emotions
+                diagramData.multipleBirths = sceneDiagramData.multipleBirths
+                diagramData.layers = sceneDiagramData.layers
+                diagramData.layerItems = sceneDiagramData.layerItems
+                diagramData.items = sceneDiagramData.items
+                diagramData.pruned = sceneDiagramData.pruned
+                diagramData.version = sceneDiagramData.version
+                diagramData.versionCompat = sceneDiagramData.versionCompat
+                diagramData.name = sceneDiagramData.name
+                diagramData.clusters = self.clusterModel.clusters
+                diagramData.clusterCacheKey = self.clusterModel.cacheKey
+                return diagramData
 
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
+            self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
 
-        return self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
+        self._withSaveGuard(_do)
 
     def setScene(self, scene: Scene):
         self.scene = scene
@@ -638,33 +651,27 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
-        prev_data = self._diagram.getDiagramData() if undo else None
+        def _do():
+            prev_data = self._diagram.getDiagramData() if undo else None
+            success = self._doAcceptPDPItem(id)
+            if success and undo:
+                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
+                self._undoStack.push(cmd)
+            return success
 
-        success = self._doAcceptPDPItem(id)
-
-        if not success:
-            return False
-
-        if undo:
-            cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
-            self._undoStack.push(cmd)
-
-        return True
+        return self._withSaveGuard(_do)
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
-        prev_data = self._diagram.getDiagramData() if undo else None
+        def _do():
+            prev_data = self._diagram.getDiagramData() if undo else None
+            success = self._doRejectPDPItem(id)
+            if success and undo:
+                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
+                self._undoStack.push(cmd)
+            return success
 
-        success = self._doRejectPDPItem(id)
-
-        if not success:
-            return False
-
-        if undo:
-            cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
-            self._undoStack.push(cmd)
-
-        return True
+        return self._withSaveGuard(_do)
 
     def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
@@ -934,95 +941,102 @@ class PersonalAppController(QObject):
         if not self._diagram:
             return
 
-        diagramData = self._diagram.getDiagramData()
-        if not diagramData.pdp:
-            return
+        def _do():
+            diagramData = self._diagram.getDiagramData()
+            if not diagramData.pdp:
+                return
 
-        allIds = []
-        for person in diagramData.pdp.people:
-            if person.id is not None:
-                allIds.append(person.id)
-        for event in diagramData.pdp.events:
-            allIds.append(event.id)
-        for pair_bond in diagramData.pdp.pair_bonds:
-            if pair_bond.id is not None:
-                allIds.append(pair_bond.id)
+            allIds = []
+            for person in diagramData.pdp.people:
+                if person.id is not None:
+                    allIds.append(person.id)
+            for event in diagramData.pdp.events:
+                allIds.append(event.id)
+            for pair_bond in diagramData.pdp.pair_bonds:
+                if pair_bond.id is not None:
+                    allIds.append(pair_bond.id)
 
-        if not allIds:
-            return
+            if not allIds:
+                return
 
-        _log.info(f"Accepting all PDP items: {allIds}")
+            _log.info(f"Accepting all PDP items: {allIds}")
 
-        committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+            committedItems = {
+                "people": [],
+                "events": [],
+                "pair_bonds": [],
+                "emotions": [],
+            }
 
-        def applyChange(diagramData: DiagramData):
-            prevPeopleIds = {p["id"] for p in diagramData.people}
-            prevEventIds = {e["id"] for e in diagramData.events}
-            prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
+            def applyChange(diagramData: DiagramData):
+                prevPeopleIds = {p["id"] for p in diagramData.people}
+                prevEventIds = {e["id"] for e in diagramData.events}
+                prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
 
-            diagramData.commit_pdp_items(allIds)
+                diagramData.commit_pdp_items(allIds)
 
-            committedItems["people"] = [
-                p for p in diagramData.people if p["id"] not in prevPeopleIds
-            ]
-            committedItems["events"] = [
-                e for e in diagramData.events if e["id"] not in prevEventIds
-            ]
-            committedItems["pair_bonds"] = [
-                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
-            ]
+                committedItems["people"] = [
+                    p for p in diagramData.people if p["id"] not in prevPeopleIds
+                ]
+                committedItems["events"] = [
+                    e for e in diagramData.events if e["id"] not in prevEventIds
+                ]
+                committedItems["pair_bonds"] = [
+                    pb
+                    for pb in diagramData.pair_bonds
+                    if pb["id"] not in prevPairBondIds
+                ]
 
-            return diagramData
+                return diagramData
 
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
 
-        success = self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
+            if success:
+                self._addCommittedItemsToScene(committedItems)
+                self.pdpChanged.emit()
+            else:
+                _log.warning("Failed to accept all PDP items after retries")
 
-        if success:
-            self._addCommittedItemsToScene(committedItems)
-            self.pdpChanged.emit()
-        else:
-            _log.warning("Failed to accept all PDP items after retries")
+        self._withSaveGuard(_do)
 
     @pyqtSlot(int, str, "QVariant")
     def updatePDPItem(self, id: int, field: str, value):
         if not self._diagram:
             return
 
-        _log.info(f"Updating PDP item {id}: {field} = {value}")
+        def _do():
+            _log.info(f"Updating PDP item {id}: {field} = {value}")
 
-        def applyChange(diagramData: DiagramData):
-            if not diagramData.pdp:
+            def applyChange(diagramData: DiagramData):
+                if not diagramData.pdp:
+                    return diagramData
+
+                for event in diagramData.pdp.events:
+                    if event.id == id:
+                        if hasattr(event, field):
+                            setattr(event, field, value)
+                        break
+
+                for person in diagramData.pdp.people:
+                    if person.id == id:
+                        if hasattr(person, field):
+                            setattr(person, field, value)
+                        break
+
                 return diagramData
 
-            for event in diagramData.pdp.events:
-                if event.id == id:
-                    if hasattr(event, field):
-                        setattr(event, field, value)
-                    break
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
 
-            for person in diagramData.pdp.people:
-                if person.id == id:
-                    if hasattr(person, field):
-                        setattr(person, field, value)
-                    break
+            if success:
+                self.pdpChanged.emit()
+            else:
+                _log.warning(f"Failed to update PDP item {id} after retries")
 
-            return diagramData
-
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
-
-        success = self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
-
-        if success:
-            self.pdpChanged.emit()
-        else:
-            _log.warning(f"Failed to update PDP item {id} after retries")
+        self._withSaveGuard(_do)
 
     ## Clear Diagram Data
 
@@ -1031,45 +1045,43 @@ class PersonalAppController(QObject):
         if not self._diagram or not self.scene:
             return
 
-        _log.info(f"Clearing diagram data (clearPeople={clearPeople})")
+        def _do():
+            _log.info(f"Clearing diagram data (clearPeople={clearPeople})")
 
-        # Clear local scene - use scene's typed accessors
-        for event in list(self.scene.events()):
-            self.scene.removeItem(event)
+            for event in list(self.scene.events()):
+                self.scene.removeItem(event)
 
-        if clearPeople:
-            for emotion in list(self.scene.emotions()):
-                self.scene.removeItem(emotion)
-            for marriage in list(self.scene.marriages()):
-                self.scene.removeItem(marriage)
-            for person in list(self.scene.people()):
-                if person.id not in (1, 2):
-                    self.scene.removeItem(person)
-
-        # Clear server diagram data
-        def applyChange(diagramData: DiagramData):
-            diagramData.events = []
-            diagramData.pdp = None
             if clearPeople:
-                diagramData.people = [
-                    p for p in diagramData.people if p.get("id") in (1, 2)
-                ]
-                diagramData.pair_bonds = []
-                diagramData.emotions = []
-            return diagramData
+                for emotion in list(self.scene.emotions()):
+                    self.scene.removeItem(emotion)
+                for marriage in list(self.scene.marriages()):
+                    self.scene.removeItem(marriage)
+                for person in list(self.scene.people()):
+                    if person.id not in (1, 2):
+                        self.scene.removeItem(person)
 
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
+            def applyChange(diagramData: DiagramData):
+                diagramData.events = []
+                diagramData.pdp = None
+                if clearPeople:
+                    diagramData.people = [
+                        p for p in diagramData.people if p.get("id") in (1, 2)
+                    ]
+                    diagramData.pair_bonds = []
+                    diagramData.emotions = []
+                return diagramData
 
-        success = self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
 
-        if success:
-            self.pdpChanged.emit()
-            _log.info("Diagram data cleared successfully")
-        else:
-            _log.warning("Failed to clear diagram data")
+            if success:
+                self.pdpChanged.emit()
+                _log.info("Diagram data cleared successfully")
+            else:
+                _log.warning("Failed to clear diagram data")
+
+        self._withSaveGuard(_do)
 
     ## Journal Import
 

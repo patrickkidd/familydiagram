@@ -152,6 +152,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---------|-----|-----------|
 | Triangle View | [TRIANGLE_VIEW.md](doc/asbuilts/TRIANGLE_VIEW.md) | `scene/triangle.py`, `models/trianglemodel.py`, `TriangleView.qml` |
 | Learn View | [LEARN_VIEW.md](doc/asbuilts/LEARN_VIEW.md) | `resources/qml/Personal/LearnView.qml`, `personal/sarfgraphmodel.py`, `personal/clustermodel.py` |
+| Data Sync | [DATA_SYNC_FLOW.md](doc/specs/DATA_SYNC_FLOW.md) | `server_types.py` (`mutate`, `pushToServer`, `save`), `personal/personalappcontroller.py` (`saveDiagram`, `_doAcceptPDPItem`, `_addCommittedItemsToScene`) |
 
 As-built docs contain:
 - Component relationships and data flow
