@@ -304,12 +304,9 @@ class Diagram:
 
         data["pdp"] = asdict(diagramData.pdp)
         data["lastItemId"] = diagramData.lastItemId
-        if diagramData.people:
-            data["people"] = diagramData.people
-        if diagramData.events:
-            data["events"] = diagramData.events
-        if diagramData.pair_bonds:
-            data["pair_bonds"] = diagramData.pair_bonds
+        data["people"] = diagramData.people
+        data["events"] = diagramData.events
+        data["pair_bonds"] = diagramData.pair_bonds
         data["clusters"] = diagramData.clusters
         data["clusterCacheKey"] = diagramData.clusterCacheKey
 
