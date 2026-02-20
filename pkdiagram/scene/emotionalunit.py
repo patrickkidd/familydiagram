@@ -22,6 +22,8 @@ class EmotionalUnit:
         """
         Ensure all the people are added to the layer.
         """
+        if not self._layer:
+            return
         for person in self.people():
             if (
                 self._layer
