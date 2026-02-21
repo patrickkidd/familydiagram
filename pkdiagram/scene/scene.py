@@ -459,14 +459,13 @@ class Scene(QGraphicsScene, Item):
                     self._do_addItem(emotion)
                     peopleToUpdate.add(item.person())
                     peopleToUpdate.add(target)
-                # Create emotions for triangle members (Inside/Outside events only)
-                # Inside: mover→targets=Inside, mover→triangles=Outside, targets→triangles=Outside
-                # Outside: mover→targets=Outside, mover→triangles=Outside, targets→triangles=Inside
+                # Create emotions for triangle members
                 if item.relationship() in (
                     RelationshipKind.Inside,
                     RelationshipKind.Outside,
                 ):
-                    # mover→triangles (always Outside)
+                    # Inside/Outside have specific triangle semantics:
+                    # mover→triangles=Outside, targets→triangles=opposite of event
                     for triangle in item.relationshipTriangles():
                         emotion = self.addItem(
                             Emotion(
@@ -479,7 +478,6 @@ class Scene(QGraphicsScene, Item):
                         self._do_addItem(emotion)
                         peopleToUpdate.add(item.person())
                         peopleToUpdate.add(triangle)
-                    # targets→triangles (opposite of event relationship)
                     targetsTrianglesKind = (
                         RelationshipKind.Outside
                         if item.relationship() == RelationshipKind.Inside
