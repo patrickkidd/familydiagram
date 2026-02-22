@@ -228,9 +228,8 @@ Page {
         return Math.max(minZoom, Math.min(optimalZoom, maxZoom))
     }
 
-    // defaults
     function applyOptimalZoom() {
-        timelineZoom = 2.0
+        timelineZoom = calculateOptimalZoom()
         timelineScrollX = 0
     }
 
@@ -1133,7 +1132,7 @@ Page {
                         // Label above bar for narrow clusters
                         Text {
                             visible: clusterBarDelegate.isNarrow
-                            anchors.horizontalCenter: barRect.horizontalCenter
+                            x: 0
                             anchors.bottom: barRect.top
                             anchors.bottomMargin: 2
                             text: modelData.title
@@ -1141,8 +1140,7 @@ Page {
                             font.bold: true
                             color: clusterColor(modelData.id)
                             elide: Text.ElideRight
-                            width: 240
-                            horizontalAlignment: Text.AlignHCenter
+                            width: Math.max(clusterBarDelegate.barWidth, 80)
                             opacity: clusterBarDelegate.delegateOpacity
                         }
 
@@ -1154,6 +1152,8 @@ Page {
                             radius: 4
                             color: clusterColor(modelData.id)
                             opacity: clusterBarDelegate.delegateOpacity
+                            border.width: clusterBarDelegate.isSelected ? 2 : 0
+                            border.color: util.IS_UI_DARK_MODE ? "white" : "#222"
 
                             // Label inside bar for wide clusters
                             Text {
