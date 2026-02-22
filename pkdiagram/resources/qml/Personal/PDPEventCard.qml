@@ -279,66 +279,31 @@ Rectangle {
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                    Text {
                         visible: isShiftEvent && eventData && hasSarfValue(eventData.symptom)
-
-                        Text {
-                            text: "Symptom"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.symptom : null) : ""
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: variableColor(eventData ? eventData.symptom : null, false)
-                            font.bold: true
-                            Layout.fillWidth: true
-                        }
+                        text: "Symptom: " + (personalApp ? personalApp.variableLabel(eventData ? eventData.symptom : null) : "")
+                        font.pixelSize: util.TEXT_FONT_SIZE
+                        font.bold: true
+                        color: variableColor(eventData ? eventData.symptom : null, false)
+                        Layout.fillWidth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                    Text {
                         visible: isShiftEvent && eventData && hasSarfValue(eventData.anxiety)
-
-                        Text {
-                            text: "Anxiety"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.anxiety : null) : ""
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: variableColor(eventData ? eventData.anxiety : null, false)
-                            font.bold: true
-                            Layout.fillWidth: true
-                        }
+                        text: "Anxiety: " + (personalApp ? personalApp.variableLabel(eventData ? eventData.anxiety : null) : "")
+                        font.pixelSize: util.TEXT_FONT_SIZE
+                        font.bold: true
+                        color: variableColor(eventData ? eventData.anxiety : null, false)
+                        Layout.fillWidth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                    Text {
                         visible: isShiftEvent && eventData && hasValue(eventData.relationship)
-
-                        Text {
-                            text: "Relationship"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: personalApp ? personalApp.relationshipLabel(eventData ? eventData.relationship : null) : ""
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            Layout.fillWidth: true
-                        }
+                        text: "Relationship: " + (personalApp ? personalApp.relationshipLabel(eventData ? eventData.relationship : null) : "")
+                        font.pixelSize: util.TEXT_FONT_SIZE
+                        font.bold: true
+                        color: util.QML_TEXT_COLOR
+                        Layout.fillWidth: true
                     }
 
                     ColumnLayout {
@@ -383,25 +348,13 @@ Rectangle {
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
+                    Text {
                         visible: isShiftEvent && eventData && hasSarfValue(eventData.functioning)
-
-                        Text {
-                            text: "Functioning"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: personalApp ? personalApp.variableLabel(eventData ? eventData.functioning : null) : ""
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: variableColor(eventData ? eventData.functioning : null, true)
-                            font.bold: true
-                            Layout.fillWidth: true
-                        }
+                        text: "Functioning: " + (personalApp ? personalApp.variableLabel(eventData ? eventData.functioning : null) : "")
+                        font.pixelSize: util.TEXT_FONT_SIZE
+                        font.bold: true
+                        color: variableColor(eventData ? eventData.functioning : null, true)
+                        Layout.fillWidth: true
                     }
 
                     ColumnLayout {
