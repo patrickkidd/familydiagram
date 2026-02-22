@@ -53,6 +53,7 @@ ApplicationWindow {
 
         Personal.PersonalContainer {
             id: personalView
+            objectName: "PersonalContainer"
             anchors.fill: parent
             safeAreaTop: root.safeAreaTop
             safeAreaBottom: root.safeAreaBottom
