@@ -184,7 +184,7 @@ class QtInspector:
     def _getPersonalAppState(self, window: QQuickWindow) -> Dict[str, Any]:
         rootItem = window.contentItem()
 
-        personalContainer = self._findQmlItemByType(rootItem, "PersonalContainer")
+        personalContainer = self._findQmlItemInChildren(rootItem, "PersonalContainer")
 
         session = None
         personalApp = None
@@ -1452,7 +1452,7 @@ class QtInspector:
 
         # Current tab from QML
         if rootItem:
-            container = self._findQmlItemByType(rootItem, "PersonalContainer")
+            container = self._findQmlItemInChildren(rootItem, "PersonalContainer")
             if container:
                 tabBar = container.property("tabBar")
                 if tabBar:
@@ -1611,7 +1611,13 @@ class QtInspector:
 
         people = [from_dict(Person, p) for p in data.get("people", [])]
         events = [from_dict(Event, e) for e in data.get("events", [])]
-        pairBonds = [from_dict(PairBond, pb) for pb in data.get("pair_bonds", [])]
+        rawPairBonds = data.get("pair_bonds", [])
+        for pb in rawPairBonds:
+            if "people" in pb and "person_a" not in pb:
+                pb["person_a"] = pb["people"][0] if len(pb["people"]) > 0 else None
+                pb["person_b"] = pb["people"][1] if len(pb["people"]) > 1 else None
+                del pb["people"]
+        pairBonds = [from_dict(PairBond, pb) for pb in rawPairBonds]
 
         pdp = PDP(people=people, events=events, pair_bonds=pairBonds)
 
