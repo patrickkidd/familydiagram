@@ -58,21 +58,25 @@ Drawer {
             return
         }
 
-        // Events first - accepting them cascade-adds their associated people
+        // Only show negative-ID items (PDP proposals); positive IDs are committed item updates
         if (pdp.events) {
             for (var i = 0; i < pdp.events.length; i++) {
-                itemsModel.append({
-                    "itemType": "event",
-                    "itemId": pdp.events[i].id
-                })
+                if (pdp.events[i].id < 0) {
+                    itemsModel.append({
+                        "itemType": "event",
+                        "itemId": pdp.events[i].id
+                    })
+                }
             }
         }
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
-                itemsModel.append({
-                    "itemType": "person",
-                    "itemId": pdp.people[i].id
-                })
+                if (pdp.people[i].id < 0) {
+                    itemsModel.append({
+                        "itemType": "person",
+                        "itemId": pdp.people[i].id
+                    })
+                }
             }
         }
         itemCount = itemsModel.count
@@ -298,6 +302,7 @@ Drawer {
             }
 
             PK.Button {
+                objectName: "acceptAllButton"
                 text: "Accept All"
                 pill: true
                 onClicked: root.acceptAllClicked()

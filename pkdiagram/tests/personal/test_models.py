@@ -99,10 +99,11 @@ def _create_save_func(personalApp: PersonalAppController) -> Callable:
 
 
 @pytest.fixture
-def personalApp(qApp, session):
+def personalApp(scene, session):
     undoStack = QUndoStack()
     personalApp = PersonalAppController(undoStack=undoStack)
     personalApp.session = session
+    personalApp.scene = scene
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -203,7 +204,7 @@ def test_reject_event(personalApp):
     assert len(final_data.events) == 0
 
 
-def test_accept_with_pair_bond(qApp, session):
+def test_accept_with_pair_bond(scene, session):
     undoStack = QUndoStack()
 
     diagramData = DiagramData(
@@ -229,6 +230,7 @@ def test_accept_with_pair_bond(qApp, session):
     )
     personalApp = PersonalAppController(undoStack=undoStack)
     personalApp.session = session
+    personalApp.scene = scene
     personalApp._diagram = diagram
 
     with (
@@ -255,7 +257,7 @@ def test_accept_with_pair_bond(qApp, session):
     assert pair_bond["person_b"] > 0
 
 
-def test_accept_event_after_person_already_committed(qApp, session):
+def test_accept_event_after_person_already_committed(scene, session):
     """Accept person first, then accept event referencing that person.
 
     This tests the scenario where an event references a person via negative ID,
@@ -291,6 +293,7 @@ def test_accept_event_after_person_already_committed(qApp, session):
     )
     personalApp = PersonalAppController(undoStack=undoStack)
     personalApp.session = session
+    personalApp.scene = scene
     personalApp._diagram = diagram
 
     # First accept Bob (-2)
@@ -336,7 +339,7 @@ def test_accept_event_after_person_already_committed(qApp, session):
     assert event["spouse"] == bob_committed_id
 
 
-def test_accept_event_with_spouse_both_in_pdp(qApp, session):
+def test_accept_event_with_spouse_both_in_pdp(scene, session):
     """Accept event where both person and spouse are still in PDP."""
     undoStack = QUndoStack()
 
@@ -368,6 +371,7 @@ def test_accept_event_with_spouse_both_in_pdp(qApp, session):
     )
     personalApp = PersonalAppController(undoStack=undoStack)
     personalApp.session = session
+    personalApp.scene = scene
     personalApp._diagram = diagram
 
     # Accept wedding event - should transitively commit both Alice and Bob

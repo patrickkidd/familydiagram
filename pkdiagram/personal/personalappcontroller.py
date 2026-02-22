@@ -271,6 +271,7 @@ class PersonalAppController(QObject):
                 diagramData.version = sceneDiagramData.version
                 diagramData.versionCompat = sceneDiagramData.versionCompat
                 diagramData.name = sceneDiagramData.name
+                diagramData.lastItemId = sceneDiagramData.lastItemId
                 diagramData.clusters = self.clusterModel.clusters
                 diagramData.clusterCacheKey = self.clusterModel.cacheKey
                 return diagramData
@@ -651,6 +652,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
+        if id >= 0:
+            _log.error(f"acceptPDPItem called with non-PDP id {id}, ignoring")
+            return False
+
         def _do():
             prev_data = self._diagram.getDiagramData() if undo else None
             success = self._doAcceptPDPItem(id)
@@ -663,6 +668,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
+        if id >= 0:
+            _log.error(f"rejectPDPItem called with non-PDP id {id}, ignoring")
+            return False
+
         def _do():
             prev_data = self._diagram.getDiagramData() if undo else None
             success = self._doRejectPDPItem(id)
@@ -680,6 +689,8 @@ class PersonalAppController(QObject):
 
         def applyChange(diagramData: DiagramData):
             _log.info(f"Applying accept PDP item change for id: {id}")
+            # Scene's lastItemId includes internal layers; server's may not
+            diagramData.lastItemId = max(diagramData.lastItemId, self.scene.lastItemId())
             # Capture IDs before commit to identify what was added
             prevPeopleIds = {p["id"] for p in diagramData.people}
             prevEventIds = {e["id"] for e in diagramData.events}
@@ -922,12 +933,13 @@ class PersonalAppController(QObject):
 
             allIds = []
             for person in diagramData.pdp.people:
-                if person.id is not None:
+                if person.id is not None and person.id < 0:
                     allIds.append(person.id)
             for event in diagramData.pdp.events:
-                allIds.append(event.id)
+                if event.id < 0:
+                    allIds.append(event.id)
             for pair_bond in diagramData.pdp.pair_bonds:
-                if pair_bond.id is not None:
+                if pair_bond.id is not None and pair_bond.id < 0:
                     allIds.append(pair_bond.id)
 
             if not allIds:
@@ -943,6 +955,8 @@ class PersonalAppController(QObject):
             }
 
             def applyChange(diagramData: DiagramData):
+                # Scene's lastItemId includes internal layers; server's may not
+                diagramData.lastItemId = max(diagramData.lastItemId, self.scene.lastItemId())
                 prevPeopleIds = {p["id"] for p in diagramData.people}
                 prevEventIds = {e["id"] for e in diagramData.events}
                 prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
