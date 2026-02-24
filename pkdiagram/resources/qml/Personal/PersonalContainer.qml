@@ -53,9 +53,14 @@ Page {
             var pdp = personalApp.pdp
             if (pdp) {
                 var count = 0
-                if (pdp.people) count += pdp.people.length
-                if (pdp.events) count += pdp.events.length
-                if (pdp.pair_bonds) count += pdp.pair_bonds.length
+                function countNegativeIds(items) {
+                    var n = 0
+                    for (var i = 0; i < items.length; i++)
+                        if (items[i].id < 0) n++
+                    return n
+                }
+                if (pdp.events) count += countNegativeIds(pdp.events)
+                if (pdp.people) count += countNegativeIds(pdp.people)
                 root.pdpCount = count
             } else {
                 root.pdpCount = 0
