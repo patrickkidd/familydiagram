@@ -371,3 +371,170 @@ def test_save_reload_after_marriage_commit_preserves_marriages(
         assert len(person.marriages) == 1
 
     assert len(scene2.marriages()) == 1
+
+
+def test_accept_all_with_birth_and_separated_events(
+    test_user, personalApp: PersonalAppController
+):
+    """Accept-all with mixed event types (birth + separated) must not crash."""
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(
+            asdict(
+                DiagramData(
+                    pdp=PDP(
+                        people=[
+                            Person(id=-1, name="Dad"),
+                            Person(id=-2, name="Mom"),
+                            Person(id=-3, name="Child", parents=-10),
+                        ],
+                        pair_bonds=[
+                            PairBond(id=-10, person_a=-1, person_b=-2),
+                        ],
+                        events=[
+                            Event(
+                                id=-20,
+                                kind=EventKind.Married,
+                                person=-1,
+                                spouse=-2,
+                            ),
+                            Event(
+                                id=-21,
+                                kind=EventKind.Birth,
+                                person=-1,
+                                spouse=-2,
+                                child=-3,
+                            ),
+                            Event(
+                                id=-22,
+                                kind=EventKind.Separated,
+                                person=-1,
+                                spouse=-2,
+                            ),
+                        ],
+                    ),
+                    lastItemId=10,
+                )
+            )
+        ),
+    )
+
+    scene = personalApp.scene
+
+    server = MagicMock()
+    server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
+
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.acceptAllPDPItems()
+
+    assert len(scene.people()) == 3
+    assert len(scene.marriages()) == 1
+    assert len(scene.events()) == 3
+
+    child = next(p for p in scene.people() if p.name() == "Child")
+    assert child.parents() is not None
+
+
+def test_accept_all_birth_without_child_creates_inferred_child(
+    test_user, personalApp: PersonalAppController
+):
+    """Accept-all with birth event missing child field creates inferred child in scene."""
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(
+            asdict(
+                DiagramData(
+                    pdp=PDP(
+                        people=[
+                            Person(id=-1, name="Dad"),
+                            Person(id=-2, name="Mom"),
+                        ],
+                        pair_bonds=[
+                            PairBond(id=-10, person_a=-1, person_b=-2),
+                        ],
+                        events=[
+                            Event(
+                                id=-20,
+                                kind=EventKind.Birth,
+                                person=-1,
+                                spouse=-2,
+                                description="Child born",
+                            ),
+                        ],
+                    ),
+                    lastItemId=10,
+                )
+            )
+        ),
+    )
+
+    scene = personalApp.scene
+
+    server = MagicMock()
+    server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
+
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.acceptAllPDPItems()
+
+    assert len(scene.people()) == 3
+    assert len(scene.marriages()) == 1
+
+    inferred_child = next(
+        p for p in scene.people() if p.name() not in ("Dad", "Mom")
+    )
+    assert inferred_child.parents() is not None
+
+
+def test_accept_all_birth_with_person_only_no_crash(
+    test_user, personalApp: PersonalAppController
+):
+    """Birth event with only person set must not crash scene.addItem."""
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(
+            asdict(
+                DiagramData(
+                    pdp=PDP(
+                        people=[
+                            Person(id=-1, name="Dad"),
+                        ],
+                        events=[
+                            Event(
+                                id=-20,
+                                kind=EventKind.Birth,
+                                person=-1,
+                                description="Child born",
+                            ),
+                        ],
+                    ),
+                    lastItemId=10,
+                )
+            )
+        ),
+    )
+
+    scene = personalApp.scene
+
+    server = MagicMock()
+    server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
+
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.acceptAllPDPItems()
+
+    # Should have Dad, inferred spouse, inferred child
+    assert len(scene.people()) == 3
+    child = next(
+        p for p in scene.people() if "child" in (p.name() or "").lower()
+    )
+    assert child.parents() is not None
+
+
