@@ -310,12 +310,12 @@ class Event(Item):
         if self.kind() == EventKind.Moved:
             loc = self.location()
             newDescription = "Moved to %s" % loc if loc else "Moved"
-        elif self.kind() == EventKind.Shift:
-            # For Shift events, only auto-generate if description isn't already set
+        elif self.kind().isSelfDescribing():
+            newDescription = self.kind().menuLabel()
+        else:
+            # Shift: preserve user-written description
             if not wasDescription:
                 newDescription = self.kind().menuLabel()
-        else:
-            newDescription = self.kind().menuLabel()
 
         if wasDescription != newDescription and newDescription is not None:
             if newDescription:
