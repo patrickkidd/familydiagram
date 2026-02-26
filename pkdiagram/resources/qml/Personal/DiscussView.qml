@@ -67,7 +67,7 @@ Page {
             chatModel.append({ "text": text, "speakerType": 'subject' })
             statementsList.delayedScrollToBottom()
         }
-        function onResponseReceived(text, added) {
+        function onResponseReceived(text) {
             chatModel.append({
                 "text": text,
                 "speakerType": 'expert'
@@ -117,6 +117,17 @@ Page {
         function onJournalImportFailed(error) {
             importOverlay.visible = false
             util.criticalBox("Import Failed", error)
+        }
+        function onExtractStarted() {
+            extractOverlay.visible = true
+        }
+        function onExtractCompleted(summary) {
+            extractOverlay.visible = false
+            pdpSheet.open()
+        }
+        function onExtractFailed(error) {
+            extractOverlay.visible = false
+            util.criticalBox("Extraction Failed", error)
         }
     }
 
@@ -571,6 +582,9 @@ Page {
             personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
+        onRefreshClicked: {
+            personalApp.extractFull()
+        }
         onAcceptAllClicked: {
             personalApp.acceptAllPDPItems()
             pdpSheet.close()
@@ -580,69 +594,15 @@ Page {
         }
     }
 
-    Rectangle {
+    Personal.LoadingOverlay {
         id: importOverlay
-        parent: Overlay.overlay
-        anchors.fill: parent
-        visible: false
-        color: util.QML_HEADER_BG
-        z: 1000
+        objectName: "importOverlay"
+        text: "Importing journal notes..."
+    }
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {} // Block clicks
-        }
-
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -42
-            spacing: 20
-
-            BusyIndicator {
-                id: busyIndicator
-                anchors.horizontalCenter: parent.horizontalCenter
-                running: importOverlay.visible
-                width: 64
-                height: 64
-                contentItem: Item {
-                    implicitWidth: 64
-                    implicitHeight: 64
-                    Rectangle {
-                        id: spinner
-                        width: parent.width
-                        height: parent.height
-                        radius: width / 2
-                        color: "transparent"
-                        border.width: 4
-                        border.color: util.QML_INACTIVE_TEXT_COLOR
-                        Rectangle {
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: util.QML_SELECTION_COLOR
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: parent.top
-                            anchors.topMargin: 2
-                        }
-                        RotationAnimator {
-                            target: spinner
-                            from: 0
-                            to: 360
-                            duration: 1000
-                            loops: Animation.Infinite
-                            running: busyIndicator.running
-                        }
-                    }
-                }
-            }
-
-            PK.Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Importing journal notes..."
-                color: util.QML_TEXT_COLOR
-                font.pixelSize: 16
-            }
-        }
+    Personal.LoadingOverlay {
+        id: extractOverlay
+        objectName: "extractOverlay"
+        text: "Detecting data..."
     }
 }

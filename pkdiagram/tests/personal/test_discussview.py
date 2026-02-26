@@ -243,10 +243,9 @@ def test_show_discussion(view, personalApp: PersonalAppController, discussions):
 
 def test_ask(qtbot, view, personalApp, discussions):
     from btcopilot.personal.chat import Response
-    from btcopilot.schema import PDP
 
     MESSAGE = "hello there"
-    RESPONSE = Response(statement="some response", pdp=PDP())
+    RESPONSE = Response(statement="some response")
 
     textEdit = view.rootObject().property("textEdit")
     submitButton = view.rootObject().property("submitButton")
@@ -267,7 +266,7 @@ def test_ask(qtbot, view, personalApp, discussions):
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
-    personalApp.responseReceived.emit(RESPONSE.statement, {})
+    personalApp.responseReceived.emit(RESPONSE.statement)
     delegates = waitForListViewDelegates(statementsList, 2)
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True

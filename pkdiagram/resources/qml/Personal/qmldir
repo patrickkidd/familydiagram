@@ -10,3 +10,4 @@ PDPPersonCard 1.0 PDPPersonCard.qml
 PDPEventCard 1.0 PDPEventCard.qml
 SettingsPage 1.0 SettingsPage.qml
 VoiceSettingsPage 1.0 VoiceSettingsPage.qml
+LoadingOverlay 1.0 LoadingOverlay.qml

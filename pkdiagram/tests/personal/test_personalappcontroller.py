@@ -48,9 +48,8 @@ def test_sendStatement(
 ):
 
     from btcopilot.personal.chat import Response
-    from btcopilot.schema import PDP
 
-    RESPONSE = Response(statement="some response", pdp=PDP())
+    RESPONSE = Response(statement="some response")
 
     requestSent = util.Condition(personalApp.requestSent)
     responseReceived = util.Condition(personalApp.responseReceived)
