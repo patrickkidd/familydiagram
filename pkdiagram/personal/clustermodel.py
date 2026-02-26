@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -35,6 +36,8 @@ class ClusterModel(QObject):
     )  # Emitted after successful detection (for persistence)
     errorOccurred = pyqtSignal(str, arguments=["error"])
 
+    showClustersChanged = pyqtSignal()
+
     def __init__(self, session: Session, parent=None):
         super().__init__(parent)
         self._session = session
@@ -46,6 +49,7 @@ class ClusterModel(QObject):
         self._cacheKey: str | None = None
         self._detecting = False
         self._cacheDir: Path | None = None
+        self._showClusters: bool = True
 
     @property
     def scene(self) -> Scene | None:
@@ -100,6 +104,9 @@ class ClusterModel(QObject):
                 data = json.load(f)
             self._clusters = data.get("clusters", [])
             self._cacheKey = data.get("cacheKey")
+            if "showClusters" in data:
+                self._showClusters = data["showClusters"]
+                self.showClustersChanged.emit()
             self._sortClustersByDate()
             self._buildEventMapping()
             self.changed.emit()
@@ -115,7 +122,11 @@ class ClusterModel(QObject):
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w") as f:
                 json.dump(
-                    {"clusters": self._clusters, "cacheKey": self._cacheKey},
+                    {
+                        "clusters": self._clusters,
+                        "cacheKey": self._cacheKey,
+                        "showClusters": self._showClusters,
+                    },
                     f,
                     indent=2,
                 )
@@ -131,6 +142,22 @@ class ClusterModel(QObject):
 
     def _sortClustersByDate(self):
         self._clusters.sort(key=lambda c: c.get("startDate", ""))
+
+    @staticmethod
+    def _computeLocalCacheKey(events_data: list[dict]) -> str:
+        """Compute cache key matching backend's compute_cache_key logic."""
+        event_data = []
+        for e in events_data:
+            event_data.append({
+                "id": e.get("id"),
+                "dateTime": e.get("dateTime"),
+                "symptom": e.get("symptom"),
+                "anxiety": e.get("anxiety"),
+                "relationship": e.get("relationship"),
+                "functioning": e.get("functioning"),
+            })
+        content = json.dumps(event_data, sort_keys=True)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def setCacheDir(self, path: Path):
         self._cacheDir = path
@@ -183,6 +210,12 @@ class ClusterModel(QObject):
             if person:
                 event_dict["person"] = person.id
             events_data.append(event_dict)
+
+        # Skip re-detection if events haven't changed (idempotency)
+        local_cache_key = self._computeLocalCacheKey(events_data)
+        if local_cache_key == self._cacheKey and self._clusters:
+            _log.info(f"Skipping cluster detection: cache key unchanged ({local_cache_key})")
+            return
 
         self._detecting = True
         self.detectingChanged.emit()
@@ -279,6 +312,22 @@ class ClusterModel(QObject):
     @property
     def cacheKey(self) -> str | None:
         return self._cacheKey
+
+    @pyqtProperty(bool, notify=showClustersChanged)
+    def showClusters(self) -> bool:
+        return self._showClusters
+
+    @showClusters.setter
+    def showClusters(self, value: bool):
+        if self._showClusters == value:
+            return
+        self._showClusters = value
+        self.showClustersChanged.emit()
+        self._saveCache()
+
+    @pyqtSlot(bool)
+    def setShowClusters(self, value: bool):
+        self.showClusters = value
 
     def setClustersData(self, clusters: list[dict], cacheKey: str | None):
         if not self._validateClusters(clusters):

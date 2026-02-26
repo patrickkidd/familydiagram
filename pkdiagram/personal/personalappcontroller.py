@@ -721,6 +721,7 @@ class PersonalAppController(QObject):
         if success:
             self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
+            self.clusterModel.detect()
         else:
             _log.warning(f"Failed to accept PDP item after retries")
 
@@ -984,6 +985,7 @@ class PersonalAppController(QObject):
             if success:
                 self._addCommittedItemsToScene(committedItems)
                 self.pdpChanged.emit()
+                self.clusterModel.detect()
             else:
                 _log.warning("Failed to accept all PDP items after retries")
 
@@ -1088,6 +1090,7 @@ class PersonalAppController(QObject):
                 self._diagram.setDiagramData(diagramData)
             self.pdpChanged.emit()
             self.journalImportCompleted.emit(data.get("summary", {}))
+            self.clusterModel.detect()
 
         def onError():
             self.journalImportFailed.emit(reply.errorString())

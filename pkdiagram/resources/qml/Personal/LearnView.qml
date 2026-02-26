@@ -18,7 +18,7 @@ Page {
     property int pendingSelection: -1
     property var collapsedClusters: ({})  // clusterId -> true if collapsed
     property int focusedClusterIndex: -1  // Index of cluster being focused in graph
-    property bool showClusters: true  // Toggle between cluster view and raw data view
+    property bool showClusters: clusterModel ? clusterModel.showClusters : true
 
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
@@ -1914,47 +1914,69 @@ Page {
                     spacing: 12
                     height: 36
 
+                    // Detecting indicator
+                    Text {
+                        visible: clusterModel && clusterModel.detecting
+                        text: "Detecting..."
+                        font.pixelSize: 13
+                        font.italic: true
+                        color: textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
                     // Cluster count
                     Text {
-                        visible: showClusters && clusterModel && clusterModel.hasClusters
+                        visible: showClusters && clusterModel && clusterModel.hasClusters && !(clusterModel && clusterModel.detecting)
                         text: clusterModel ? clusterModel.count + " clusters" : ""
                         font.pixelSize: 14
                         color: textSecondary
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    // Detect Clusters button
-                    Rectangle {
-                        width: Math.max(detectRow.width + 24, 90)
-                        height: 32
-                        radius: 16
-                        color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
-                        opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
+                    // Show clusters checkbox
+                    Row {
+                        visible: clusterModel && clusterModel.hasClusters
                         anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
 
-                        Row {
-                            id: detectRow
-                            anchors.centerIn: parent
-                            spacing: 6
+                        Rectangle {
+                            id: showClustersCheckbox
+                            objectName: "showClustersCheckbox"
+                            width: 20
+                            height: 20
+                            radius: 4
+                            border.width: 1.5
+                            border.color: showClusters ? util.QML_HIGHLIGHT_COLOR : textSecondary
+                            color: showClusters ? util.QML_HIGHLIGHT_COLOR : "transparent"
+                            anchors.verticalCenter: parent.verticalCenter
 
                             Text {
-                                text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
-                                font.pixelSize: 13
+                                anchors.centerIn: parent
+                                text: "\u2713"
+                                font.pixelSize: 14
                                 font.bold: true
                                 color: "white"
-                                anchors.verticalCenter: parent.verticalCenter
+                                visible: showClusters
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -8
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: if (clusterModel) clusterModel.setShowClusters(!showClusters)
                             }
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -6  // Extend tap area to 44pt
-                            enabled: clusterModel && !clusterModel.detecting
-                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            onClicked: {
-                                if (clusterModel) {
-                                    clusterModel.detect()
-                                }
+                        Text {
+                            text: "Show clusters"
+                            font.pixelSize: 13
+                            color: textPrimary
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: if (clusterModel) clusterModel.setShowClusters(!showClusters)
                             }
                         }
                     }

@@ -349,3 +349,115 @@ def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppCont
             assert "people" in args
             assert "events" in args
             assert "pair_bonds" in args
+
+
+def test_acceptPDPItem_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after accepting a single PDP item (T7-12)."""
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_doAcceptPDPItem", return_value=True),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptPDPItem(-1)
+        assert detect_mock.call_count == 1
+
+
+def test_acceptPDPItem_failure_skips_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """No cluster detection when PDP accept fails (T7-12)."""
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_doAcceptPDPItem", return_value=False),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptPDPItem(-1)
+        assert detect_mock.call_count == 0
+
+
+def test_acceptAllPDPItems_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after accepting all PDP items (T7-12)."""
+    from btcopilot.schema import Event, EventKind
+
+    initial_diagram_data = DiagramData(
+        pdp=PDP(
+            people=[Person(id=-1, name="TestPerson")],
+            events=[Event(id=-2, kind=EventKind.Shift, person=-1, description="test")],
+        )
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptAllPDPItems()
+        assert detect_mock.call_count == 1
+
+
+def test_importJournalNotes_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after journal import completes (T7-12)."""
+    from btcopilot.schema import DiagramData, PDP, PDPDeltas, Event, EventKind
+    from unittest.mock import AsyncMock
+    from pkdiagram.pyqt import QMessageBox
+
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=test_user.free_diagram_id,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    mock_pdp = PDP(
+        people=[Person(id=-1, name="TestPerson")],
+        events=[Event(id=-2, kind=EventKind.Shift, description="called")],
+    )
+    mock_deltas = PDPDeltas(
+        people=[Person(id=-1, name="TestPerson")],
+        events=[Event(id=-2, kind=EventKind.Shift, description="called")],
+        pair_bonds=[],
+    )
+
+    with (
+        patch(
+            "btcopilot.pdp.import_text",
+            AsyncMock(return_value=(mock_pdp, mock_deltas)),
+        ),
+        patch.object(QMessageBox, "information"),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        completed = util.Condition(personalApp.journalImportCompleted)
+        personalApp.importJournalNotes("Some journal text")
+        assert completed.wait()
+        assert detect_mock.call_count == 1
