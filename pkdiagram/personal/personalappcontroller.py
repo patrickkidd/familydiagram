@@ -719,6 +719,7 @@ class PersonalAppController(QObject):
         if success:
             self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
+            self.clusterModel.detect()
         else:
             _log.warning(f"Failed to accept PDP item after retries")
 
@@ -982,6 +983,7 @@ class PersonalAppController(QObject):
             if success:
                 self._addCommittedItemsToScene(committedItems)
                 self.pdpChanged.emit()
+                self.clusterModel.detect()
             else:
                 _log.warning("Failed to accept all PDP items after retries")
 
@@ -1034,17 +1036,21 @@ class PersonalAppController(QObject):
         def _do():
             _log.info(f"Clearing diagram data (clearPeople={clearPeople})")
 
-            for event in list(self.scene.events()):
-                self.scene.removeItem(event)
+            self.scene.setBatchAddingRemovingItems(True)
+            try:
+                for event in list(self.scene.events()):
+                    self.scene.removeItem(event)
 
-            if clearPeople:
-                for emotion in list(self.scene.emotions()):
-                    self.scene.removeItem(emotion)
-                for marriage in list(self.scene.marriages()):
-                    self.scene.removeItem(marriage)
-                for person in list(self.scene.people()):
-                    if person.id not in (1, 2):
-                        self.scene.removeItem(person)
+                if clearPeople:
+                    for emotion in list(self.scene.emotions()):
+                        self.scene.removeItem(emotion)
+                    for marriage in list(self.scene.marriages()):
+                        self.scene.removeItem(marriage)
+                    for person in list(self.scene.people()):
+                        if person.id not in (1, 2):
+                            self.scene.removeItem(person)
+            finally:
+                self.scene.setBatchAddingRemovingItems(False)
 
             def applyChange(diagramData: DiagramData):
                 diagramData.events = []
@@ -1086,6 +1092,7 @@ class PersonalAppController(QObject):
                 self._diagram.setDiagramData(diagramData)
             self.pdpChanged.emit()
             self.journalImportCompleted.emit(data.get("summary", {}))
+            self.clusterModel.detect()
 
         def onError():
             self.journalImportFailed.emit(reply.errorString())
