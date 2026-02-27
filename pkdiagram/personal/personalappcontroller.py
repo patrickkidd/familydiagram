@@ -66,6 +66,10 @@ class PersonalAppController(QObject):
     journalImportCompleted = pyqtSignal(QVariant, arguments=["summary"])
     journalImportFailed = pyqtSignal(str, arguments=["error"])
 
+    extractStarted = pyqtSignal()
+    extractCompleted = pyqtSignal(QVariant, arguments=["summary"])
+    extractFailed = pyqtSignal(str, arguments=["error"])
+
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
@@ -1103,6 +1107,43 @@ class PersonalAppController(QObject):
             "POST",
             f"/personal/diagrams/{self._diagram.id}/import-text",
             data={"text": text},
+            error=onError,
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    ## Extract Full
+
+    @pyqtSlot()
+    def extractFull(self):
+        if not self._currentDiscussion:
+            self.extractFailed.emit("No discussion selected")
+            return
+        if not self._diagram:
+            self.extractFailed.emit("No diagram loaded")
+            return
+
+        self.extractStarted.emit()
+
+        def onSuccess(data):
+            diagramData = self._diagram.getDiagramData()
+            diagramData.pdp = from_dict(PDP, data["pdp"])
+            self._diagram.setDiagramData(diagramData)
+            self.pdpChanged.emit()
+            self.extractCompleted.emit({
+                "people": data.get("people_count", 0),
+                "events": data.get("events_count", 0),
+                "pairBonds": data.get("pair_bonds_count", 0),
+            })
+
+        def onError():
+            self.extractFailed.emit(reply.errorString())
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            f"/personal/discussions/{self._currentDiscussion.id}/extract",
+            data={},
             error=onError,
             success=onSuccess,
             headers={"Content-Type": "application/json", "Accept": "application/json"},

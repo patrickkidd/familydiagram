@@ -201,11 +201,11 @@ Page {
             visible: tabBar.currentIndex === 2
         }
 
-        // PDP Badge (Discuss tab only)
+        // PDP Badge (Discuss tab, left of extract button)
         Rectangle {
             objectName: "pdpBadge"
-            anchors.right: parent.right
-            anchors.rightMargin: 12
+            anchors.right: extractButton.left
+            anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             width: 28
             height: 28
@@ -223,6 +223,52 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: pdpSheet.open()
+            }
+        }
+
+        // Extract button (Discuss tab, always visible)
+        Rectangle {
+            id: extractButton
+            objectName: "extractButton"
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
+            visible: tabBar.currentIndex === 0
+
+            Canvas {
+                anchors.centerIn: parent
+                width: 14
+                height: 14
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    ctx.strokeStyle = "white"
+                    ctx.lineWidth = 1.5
+                    ctx.lineCap = "round"
+                    ctx.beginPath()
+                    ctx.moveTo(7, 1)
+                    ctx.lineTo(7, 9)
+                    ctx.stroke()
+                    ctx.beginPath()
+                    ctx.moveTo(3.5, 6)
+                    ctx.lineTo(7, 10)
+                    ctx.lineTo(10.5, 6)
+                    ctx.stroke()
+                    ctx.beginPath()
+                    ctx.moveTo(1, 10)
+                    ctx.lineTo(1, 13)
+                    ctx.lineTo(13, 13)
+                    ctx.lineTo(13, 10)
+                    ctx.stroke()
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: personalApp.extractFull()
             }
         }
 
