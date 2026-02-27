@@ -19,6 +19,7 @@ Page {
     property var collapsedClusters: ({})  // clusterId -> true if collapsed
     property int focusedClusterIndex: -1  // Index of cluster being focused in graph
     property bool showClusters: clusterModel ? clusterModel.showClusters : true
+    onShowClustersChanged: { timelineZoom = 1.0; timelineScrollX = 0 }
 
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
@@ -175,10 +176,14 @@ Page {
     }
 
     function xPosZoomed(year) {
-        if (!showClusters) return xPos(year)
-        // Always use cluster year range for cluster bars, regardless of focus state
-        var yearStart = clusterMinYearFrac
-        var yearSpan = clusterYearSpan
+        var yearStart, yearSpan
+        if (showClusters && clusterModel && clusterModel.hasClusters) {
+            yearStart = clusterMinYearFrac
+            yearSpan = clusterYearSpan
+        } else {
+            yearStart = sarfGraphModel ? sarfGraphModel.yearStart : 2020
+            yearSpan = sarfGraphModel ? sarfGraphModel.yearSpan : 5
+        }
         if (yearSpan === 0) yearSpan = 1
         var baseX = ((year - yearStart) / yearSpan) * gWidth
         return gLeft + baseX * timelineZoom - timelineScrollX
@@ -868,7 +873,7 @@ Page {
                 Repeater {
                     id: timeMarkers
 
-                    property real visibleSpan: showClusters ? clusterYearSpan / timelineZoom : timeMarkersContainer.markerYearSpan
+                    property real visibleSpan: timeMarkersContainer.markerYearSpan / timelineZoom
                     property string intervalType: {
                         if (visibleSpan > 10) return "year5"
                         if (visibleSpan > 4) return "year1"
@@ -899,7 +904,7 @@ Page {
                     }
 
                     Item {
-                        property real markerX: showClusters ? (xPosZoomed(modelData) - gLeft) : (xPos(modelData) - gLeft)
+                        property real markerX: xPosZoomed(modelData) - gLeft
                         property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
                         x: markerX
                         y: 0
@@ -937,6 +942,73 @@ Page {
                                 ? (isYear ? "#606070" : "#404050")
                                 : (isYear ? "#808088" : "#a0a0a8")
                         }
+                    }
+                }
+
+                // Wheel scroll for panning (active when cluster container isn't handling it)
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    enabled: !showClusters
+                    onWheel: {
+                        var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
+                        var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                        timelineScrollX = Math.max(0, Math.min(timelineScrollX - deltaX * 0.5, maxScroll))
+                        wheel.accepted = true
+                    }
+                }
+
+                // Pinch to zoom with drag-to-pan (active when cluster container isn't handling it)
+                PinchArea {
+                    anchors.fill: parent
+                    enabled: !showClusters
+
+                    property real startZoom: 1.0
+                    property real startScrollX: 0
+                    property point startCenter: Qt.point(0, 0)
+                    property point lastCenter: Qt.point(0, 0)
+                    property real accumulatedPan: 0
+
+                    onPinchStarted: {
+                        startZoom = timelineZoom
+                        startScrollX = timelineScrollX
+                        startCenter = pinch.center
+                        lastCenter = pinch.center
+                        accumulatedPan = 0
+                    }
+
+                    onPinchUpdated: {
+                        var newZoom = Math.max(minZoom, Math.min(maxZoom, startZoom * pinch.scale))
+                        var baseWidth = gWidth
+                        var newContentWidth = baseWidth * newZoom
+                        var pinchXRatio = (startCenter.x + startScrollX) / (baseWidth * startZoom)
+                        var newScrollForZoom = pinchXRatio * newContentWidth - startCenter.x
+                        var panDelta = lastCenter.x - pinch.center.x
+                        lastCenter = pinch.center
+                        accumulatedPan += panDelta
+                        var newScrollX = newScrollForZoom + accumulatedPan
+                        var maxScroll = Math.max(0, newContentWidth - baseWidth)
+                        timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
+                        timelineZoom = newZoom
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        enabled: !showClusters
+                        property real dragStartX: 0
+                        property real dragStartScrollX: 0
+                        property bool isDragging: false
+
+                        onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
+                        onPositionChanged: {
+                            if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
+                                isDragging = true
+                                var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                                timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
+                            }
+                        }
+                        onReleased: isDragging = false
                     }
                 }
             }
@@ -1150,7 +1222,7 @@ Page {
 
             // Scroll indicator (shown when zoomed)
             Rectangle {
-                visible: showClusters && !isFocused && timelineZoom > 1.05
+                visible: !isFocused && timelineZoom > 1.05
                 x: 0; y: 0
                 width: parent.width; height: 3; radius: 0
                 color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
@@ -1169,7 +1241,7 @@ Page {
 
             // Reset zoom button
             Rectangle {
-                visible: showClusters && !isFocused && timelineZoom > 1.05
+                visible: !isFocused && timelineZoom > 1.05
                 anchors.right: parent.right
                 anchors.rightMargin: graphPadding + 8
                 y: miniGraphY
@@ -1195,7 +1267,7 @@ Page {
             Repeater {
                 model: sarfGraphModel && !showClusters ? sarfGraphModel.events : []
                 Item {
-                    x: xPos(modelData.yearFrac) - 20
+                    x: xPosZoomed(modelData.yearFrac) - 20
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
