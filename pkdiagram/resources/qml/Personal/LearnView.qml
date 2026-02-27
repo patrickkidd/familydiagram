@@ -149,7 +149,16 @@ Page {
         color: bgColor
     }
 
+    property bool initialZoomApplied: false
+
     Component.onCompleted: collapseAllClusters()
+
+    onWidthChanged: {
+        if (width > 0 && !initialZoomApplied && clusterModel && clusterModel.hasClusters) {
+            initialZoomApplied = true
+            applyOptimalZoom()
+        }
+    }
 
     // B8-style focus animations
     NumberAnimation {
@@ -877,14 +886,14 @@ Page {
                 target: clusterModel
                 function onChanged() {
                     graphCanvas.requestPaint()
-                    // Check if clusters were re-detected (count changed)
                     var currentCount = clusterModel && clusterModel.clusters ? clusterModel.clusters.length : 0
                     if (currentCount !== lastClusterCount) {
                         lastClusterCount = currentCount
-                        // Reset to unfocused mode with all clusters collapsed
                         collapseAllClusters()
-                        // Auto-zoom only when clusters are re-detected
-                        applyOptimalZoom()
+                        if (gWidth > 0) {
+                            initialZoomApplied = true
+                            applyOptimalZoom()
+                        }
                     }
                 }
             }
@@ -892,6 +901,97 @@ Page {
             Connections {
                 target: root
                 function onFocusedClusterIndexChanged() { graphCanvas.requestPaint() }
+            }
+
+            // Time markers on x-axis (always visible, adaptive granularity)
+            Item {
+                id: timeMarkersContainer
+                x: gLeft
+                y: miniGraphY
+                width: gWidth
+                height: miniGraphH
+                clip: true
+                z: 100
+
+                // Year range adapts to cluster vs full SARF range
+                property real markerMinYear: showClusters && clusterModel && clusterModel.hasClusters ? clusterMinYearFrac : (sarfGraphModel ? sarfGraphModel.yearStart : 2020)
+                property real markerMaxYear: showClusters && clusterModel && clusterModel.hasClusters ? clusterMaxYearFrac : (sarfGraphModel ? sarfGraphModel.yearEnd : 2025)
+                property real markerYearSpan: Math.max(1, markerMaxYear - markerMinYear)
+
+                Repeater {
+                    id: timeMarkers
+
+                    property real visibleSpan: showClusters ? clusterYearSpan / timelineZoom : timeMarkersContainer.markerYearSpan
+                    property string intervalType: {
+                        if (visibleSpan > 10) return "year5"
+                        if (visibleSpan > 4) return "year1"
+                        if (visibleSpan > 1.5) return "month6"
+                        if (visibleSpan > 0.6) return "month3"
+                        if (visibleSpan > 0.25) return "month1"
+                        if (visibleSpan > 0.08) return "week1"
+                        return "day1"
+                    }
+                    property real interval: {
+                        if (intervalType === "year5") return 5
+                        if (intervalType === "year1") return 1
+                        if (intervalType === "month6") return 0.5
+                        if (intervalType === "month3") return 0.25
+                        if (intervalType === "month1") return 1/12
+                        if (intervalType === "week1") return 1/52
+                        return 1/365
+                    }
+
+                    model: {
+                        var markers = []
+                        var start = Math.floor(timeMarkersContainer.markerMinYear / interval) * interval
+                        var end = timeMarkersContainer.markerMaxYear + interval * 0.1
+                        for (var t = start; t <= end; t += interval) {
+                            markers.push(t)
+                        }
+                        return markers
+                    }
+
+                    Item {
+                        property real markerX: showClusters ? (xPosZoomed(modelData) - gLeft) : (xPos(modelData) - gLeft)
+                        property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
+                        x: markerX
+                        y: 0
+                        width: 1
+                        height: parent.height
+                        visible: markerX > -20 && markerX < gWidth + 20
+
+                        Rectangle {
+                            x: 0
+                            y: 0
+                            width: 1
+                            height: parent.height - 18
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#404050" : "#282838")
+                                : (isYear ? "#c0c0c8" : "#e0e0e8")
+                        }
+
+                        Text {
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 4
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: {
+                                if (isYear) return Math.round(modelData)
+                                var year = Math.floor(modelData)
+                                var dayOfYear = (modelData - year) * 365
+                                var md = dayOfYearToMonthDay(dayOfYear)
+                                var iType = timeMarkers.intervalType
+                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
+                                if (iType === "week1") return monthNames[md.month] + " " + md.day
+                                return md.day
+                            }
+                            font.pixelSize: isYear ? 10 : 8
+                            font.bold: isYear
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#606070" : "#404050")
+                                : (isYear ? "#808088" : "#a0a0a8")
+                        }
+                    }
+                }
             }
 
             // Cluster bars in zoomed-out mode (show clusters on timeline by date range)
@@ -973,85 +1073,6 @@ Page {
                             }
                         }
                         onReleased: isDragging = false
-                    }
-                }
-
-                // Time markers on x-axis (adaptive granularity)
-                Repeater {
-                    id: timeMarkers
-
-                    // Calculate visible range and appropriate interval
-                    property real visibleSpan: clusterYearSpan / timelineZoom
-                    property string intervalType: {
-                        if (visibleSpan > 10) return "year5"
-                        if (visibleSpan > 4) return "year1"
-                        if (visibleSpan > 1.5) return "month6"
-                        if (visibleSpan > 0.6) return "month3"
-                        if (visibleSpan > 0.25) return "month1"
-                        if (visibleSpan > 0.08) return "week1"
-                        return "day1"
-                    }
-                    property real interval: {
-                        if (intervalType === "year5") return 5
-                        if (intervalType === "year1") return 1
-                        if (intervalType === "month6") return 0.5
-                        if (intervalType === "month3") return 0.25
-                        if (intervalType === "month1") return 1/12
-                        if (intervalType === "week1") return 1/52
-                        return 1/365
-                    }
-
-                    model: {
-                        var markers = []
-                        var start = Math.floor(clusterMinYearFrac / interval) * interval
-                        var end = clusterMaxYearFrac + interval * 0.1  // Minimal padding
-                        for (var t = start; t <= end; t += interval) {
-                            markers.push(t)
-                        }
-                        return markers
-                    }
-
-                    Item {
-                        property real markerX: xPosZoomed(modelData) - gLeft
-                        property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
-                        x: markerX
-                        y: 0
-                        width: 1
-                        height: parent.height
-                        visible: markerX > -20 && markerX < gWidth + 20
-
-                        // Vertical line - stops above text
-                        Rectangle {
-                            x: 0
-                            y: 0
-                            width: 1
-                            height: parent.height - 18
-                            color: util.IS_UI_DARK_MODE
-                                ? (isYear ? "#404050" : "#282838")
-                                : (isYear ? "#c0c0c8" : "#e0e0e8")
-                        }
-
-                        // Label at bottom
-                        Text {
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 4
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: {
-                                if (isYear) return Math.round(modelData)
-                                var year = Math.floor(modelData)
-                                var dayOfYear = (modelData - year) * 365
-                                var md = dayOfYearToMonthDay(dayOfYear)
-                                var iType = timeMarkers.intervalType
-                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
-                                if (iType === "week1") return monthNames[md.month] + " " + md.day
-                                return md.day
-                            }
-                            font.pixelSize: isYear ? 10 : 8
-                            font.bold: isYear
-                            color: util.IS_UI_DARK_MODE
-                                ? (isYear ? "#606070" : "#404050")
-                                : (isYear ? "#808088" : "#a0a0a8")
-                        }
                     }
                 }
 
@@ -1924,51 +1945,45 @@ Page {
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    // Cluster count
-                    Text {
-                        visible: showClusters && clusterModel && clusterModel.hasClusters && !(clusterModel && clusterModel.detecting)
-                        text: clusterModel ? clusterModel.count + " clusters" : ""
-                        font.pixelSize: 14
-                        color: textSecondary
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    // Show clusters checkbox
+                    // Show clusters toggle (iOS style)
                     Row {
                         visible: clusterModel && clusterModel.hasClusters
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
+                        spacing: 8
 
                         Rectangle {
-                            id: showClustersCheckbox
+                            id: showClustersToggle
                             objectName: "showClustersCheckbox"
-                            width: 20
-                            height: 20
-                            radius: 4
-                            border.width: 1.5
-                            border.color: showClusters ? util.QML_HIGHLIGHT_COLOR : textSecondary
-                            color: showClusters ? util.QML_HIGHLIGHT_COLOR : "transparent"
+                            width: 44
+                            height: 26
+                            radius: 13
+                            color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#3a3a4a" : "#c8c8d0")
                             anchors.verticalCenter: parent.verticalCenter
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "\u2713"
-                                font.pixelSize: 14
-                                font.bold: true
+                            Behavior on color { ColorAnimation { duration: 200 } }
+
+                            Rectangle {
+                                id: toggleKnob
+                                width: 22
+                                height: 22
+                                radius: 11
                                 color: "white"
-                                visible: showClusters
+                                y: 2
+                                x: showClusters ? parent.width - width - 2 : 2
+
+                                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
                             }
 
                             MouseArea {
                                 anchors.fill: parent
-                                anchors.margins: -8
+                                anchors.margins: -6
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: if (clusterModel) clusterModel.setShowClusters(!showClusters)
                             }
                         }
 
                         Text {
-                            text: "Show clusters"
+                            text: clusterModel ? clusterModel.count + " Clusters" : "Clusters"
                             font.pixelSize: 13
                             color: textPrimary
                             anchors.verticalCenter: parent.verticalCenter
