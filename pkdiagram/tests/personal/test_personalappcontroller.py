@@ -422,6 +422,53 @@ def test_acceptAllPDPItems_triggers_cluster_detection(
         assert detect_mock.call_count == 1
 
 
+def test_clearDiagramData_batch_removal(
+    test_user, personalApp: PersonalAppController
+):
+    """clearDiagramData uses batch removal to avoid stale cross-references.
+
+    Without batch mode, removing events one-by-one triggers _do_removeItem's
+    signal emission path which calls scene.find(id=event.person) — this can
+    resolve to an ItemDetails instead of a Person when IDs collide in the
+    itemRegistry, causing AttributeError: 'ItemDetails' has no 'onEventRemoved'.
+    """
+    from pkdiagram.scene import Person as ScenePerson, Event as SceneEvent
+    from btcopilot.schema import EventKind
+
+    scene = personalApp.scene
+    p1, p2 = scene.addItems(ScenePerson(name="p1"), ScenePerson(name="p2"))
+    scene.addItem(SceneEvent(EventKind.Shift, p1, dateTime=util.Date(2020, 1, 1)))
+    scene.addItem(SceneEvent(EventKind.Shift, p2, dateTime=util.Date(2021, 1, 1)))
+    assert len(scene.events()) == 2
+
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    batchCalls = []
+    origSetBatch = scene.setBatchAddingRemovingItems
+
+    def trackBatch(on):
+        batchCalls.append(on)
+        origSetBatch(on)
+
+    with (
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(scene, "setBatchAddingRemovingItems", side_effect=trackBatch),
+    ):
+        personalApp.clearDiagramData(True)
+
+    assert len(scene.events()) == 0
+    assert batchCalls == [True, False], (
+        f"Expected batch mode on/off, got {batchCalls}"
+    )
+
+
 def test_importJournalNotes_triggers_cluster_detection(
     test_user, personalApp: PersonalAppController
 ):
