@@ -48,7 +48,7 @@ Page {
     property real graphAreaBottom: controlsY  // Hero must stay above this
 
     // Timeline zoom/pan properties (overview mode)
-    property real timelineZoom: 2.0 // default
+    property real timelineZoom: 1.0
     property real timelineScrollX: 0
     property real minZoom: 1.0
     property real maxZoom: 20.0
@@ -105,60 +105,41 @@ Page {
     }
     property real focusedYearSpan: Math.max(0.001, focusedMaxYearFrac - focusedMinYearFrac)
 
-    // Year range for all cluster events (excludes birth events and other outliers)
-    property var clusterEventYearFracs: {
-        if (!showClusters || !clusterModel || !clusterModel.hasClusters || !sarfGraphModel) return []
-        var events = sarfGraphModel.events
-        var fracs = []
-        for (var i = 0; i < clusterModel.clusters.length; i++) {
-            var cluster = clusterModel.clusters[i]
-            if (!cluster.eventIds) continue
-            for (var j = 0; j < cluster.eventIds.length; j++) {
-                var eventId = cluster.eventIds[j]
-                for (var k = 0; k < events.length; k++) {
-                    if (events[k].id === eventId) {
-                        fracs.push(events[k].yearFrac)
-                        break
-                    }
-                }
-            }
+    // Year range spanning all cluster boundaries with padding so edge clusters are visible
+    property real _clusterMinRaw: {
+        if (!clusterModel || !clusterModel.hasClusters) return sarfGraphModel ? sarfGraphModel.yearStart : 2020
+        var clusters = clusterModel.clusters
+        var minVal = Infinity
+        for (var i = 0; i < clusters.length; i++) {
+            var startFrac = dateToYearFrac(clusters[i].startDate)
+            var endFrac = dateToYearFrac(clusters[i].endDate)
+            if (startFrac !== null && startFrac < minVal) minVal = startFrac
+            if (endFrac !== null && endFrac < minVal) minVal = endFrac
         }
-        return fracs
+        return minVal === Infinity ? (sarfGraphModel ? sarfGraphModel.yearStart : 2020) : minVal
     }
-    property real clusterMinYearFrac: {
-        var fracs = clusterEventYearFracs
-        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearStart : 2020
-        var minVal = fracs[0]
-        for (var i = 1; i < fracs.length; i++) {
-            if (fracs[i] < minVal) minVal = fracs[i]
+    property real _clusterMaxRaw: {
+        if (!clusterModel || !clusterModel.hasClusters) return sarfGraphModel ? sarfGraphModel.yearEnd : 2025
+        var clusters = clusterModel.clusters
+        var maxVal = -Infinity
+        for (var i = 0; i < clusters.length; i++) {
+            var startFrac = dateToYearFrac(clusters[i].startDate)
+            var endFrac = dateToYearFrac(clusters[i].endDate)
+            if (startFrac !== null && startFrac > maxVal) maxVal = startFrac
+            if (endFrac !== null && endFrac > maxVal) maxVal = endFrac
         }
-        return minVal
+        return maxVal === -Infinity ? (sarfGraphModel ? sarfGraphModel.yearEnd : 2025) : maxVal
     }
-    property real clusterMaxYearFrac: {
-        var fracs = clusterEventYearFracs
-        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearEnd : 2025
-        var maxVal = fracs[0]
-        for (var i = 1; i < fracs.length; i++) {
-            if (fracs[i] > maxVal) maxVal = fracs[i]
-        }
-        return maxVal
-    }
+    property real _clusterPad: Math.max(0.25, (_clusterMaxRaw - _clusterMinRaw) * 0.05)
+    property real clusterMinYearFrac: _clusterMinRaw - _clusterPad
+    property real clusterMaxYearFrac: _clusterMaxRaw + _clusterPad
     property real clusterYearSpan: Math.max(1, clusterMaxYearFrac - clusterMinYearFrac)
 
     background: Rectangle {
         color: bgColor
     }
 
-    property bool initialZoomApplied: false
-
     Component.onCompleted: collapseAllClusters()
-
-    onWidthChanged: {
-        if (width > 0 && !initialZoomApplied && clusterModel && clusterModel.hasClusters) {
-            initialZoomApplied = true
-            applyOptimalZoom()
-        }
-    }
 
     // B8-style focus animations
     NumberAnimation {
@@ -206,39 +187,8 @@ Page {
     // Minimum bar width for tappable clusters
     readonly property real minBarWidth: 30
 
-    // Calculate optimal zoom so clusters are readable
-    function calculateOptimalZoom() {
-        if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) {
-            return 1.0
-        }
-        var clusters = clusterModel.clusters
-        var yearSpan = clusterYearSpan
-        if (yearSpan < 0.001) yearSpan = 1
-
-        // Find the narrowest cluster's time span
-        var minClusterSpan = yearSpan
-        for (var i = 0; i < clusters.length; i++) {
-            var c = clusters[i]
-            var startFrac = dateToYearFrac(c.startDate) || clusterMinYearFrac
-            var endFrac = dateToYearFrac(c.endDate) || clusterMaxYearFrac
-            var span = Math.max(0.01, endFrac - startFrac)  // At least ~4 days
-            if (span < minClusterSpan) minClusterSpan = span
-        }
-
-        // Calculate zoom needed for narrowest cluster to be minBarWidth pixels
-        // barWidth = (clusterSpan / yearSpan) * gWidth * zoom
-        // minBarWidth = (minClusterSpan / yearSpan) * gWidth * zoom
-        // zoom = minBarWidth / ((minClusterSpan / yearSpan) * gWidth)
-        var baseWidth = (minClusterSpan / yearSpan) * gWidth
-        if (baseWidth < 1) baseWidth = 1
-        var optimalZoom = minBarWidth / baseWidth
-
-        // Clamp to reasonable range
-        return Math.max(minZoom, Math.min(optimalZoom, maxZoom))
-    }
-
     function applyOptimalZoom() {
-        timelineZoom = calculateOptimalZoom()
+        timelineZoom = 1.0
         timelineScrollX = 0
     }
 
@@ -890,10 +840,7 @@ Page {
                     if (currentCount !== lastClusterCount) {
                         lastClusterCount = currentCount
                         collapseAllClusters()
-                        if (gWidth > 0) {
-                            initialZoomApplied = true
-                            applyOptimalZoom()
-                        }
+                        applyOptimalZoom()
                     }
                 }
             }
