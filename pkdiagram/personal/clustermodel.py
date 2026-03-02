@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 from pathlib import Path
@@ -9,6 +8,7 @@ from btcopilot.schema import (
     ClusterPattern,
     asdict,
     from_dict,
+    hash_sarf_dicts,
 )
 from pkdiagram.pyqt import (
     QObject,
@@ -111,7 +111,7 @@ class ClusterModel(QObject):
             self._buildEventMapping()
             self.changed.emit()
             _log.info(f"Loaded {len(self._clusters)} clusters from cache")
-        except Exception as e:
+        except (json.JSONDecodeError, OSError) as e:
             _log.warning(f"Failed to load cluster cache: {e}")
 
     def _saveCache(self):
@@ -131,7 +131,7 @@ class ClusterModel(QObject):
                     indent=2,
                 )
             _log.info(f"Saved {len(self._clusters)} clusters to cache")
-        except Exception as e:
+        except OSError as e:
             _log.warning(f"Failed to save cluster cache: {e}")
 
     def _buildEventMapping(self):
@@ -145,19 +145,17 @@ class ClusterModel(QObject):
 
     @staticmethod
     def _computeLocalCacheKey(events_data: list[dict]) -> str:
-        """Compute cache key matching backend's compute_cache_key logic."""
-        event_data = []
-        for e in events_data:
-            event_data.append({
+        return hash_sarf_dicts([
+            {
                 "id": e.get("id"),
                 "dateTime": e.get("dateTime"),
                 "symptom": e.get("symptom"),
                 "anxiety": e.get("anxiety"),
                 "relationship": e.get("relationship"),
                 "functioning": e.get("functioning"),
-            })
-        content = json.dumps(event_data, sort_keys=True)
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+            }
+            for e in events_data
+        ])
 
     def setCacheDir(self, path: Path):
         self._cacheDir = path
@@ -213,7 +211,7 @@ class ClusterModel(QObject):
 
         # Skip re-detection if events haven't changed (idempotency)
         local_cache_key = self._computeLocalCacheKey(events_data)
-        if local_cache_key == self._cacheKey and self._clusters:
+        if local_cache_key == self._cacheKey and self._cacheKey is not None:
             _log.info(f"Skipping cluster detection: cache key unchanged ({local_cache_key})")
             return
 
