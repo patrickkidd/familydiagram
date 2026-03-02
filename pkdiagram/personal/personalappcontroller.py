@@ -653,9 +653,11 @@ class PersonalAppController(QObject):
         def _do():
             prev_data = self._diagram.getDiagramData() if undo else None
             success = self._doAcceptPDPItem(id)
-            if success and undo:
-                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
-                self._undoStack.push(cmd)
+            if success:
+                self.clusterModel.detect()
+                if undo:
+                    cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
+                    self._undoStack.push(cmd)
             return success
 
         return self._withSaveGuard(_do)
@@ -715,7 +717,6 @@ class PersonalAppController(QObject):
         if success:
             self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
-            self.clusterModel.detect()
         else:
             _log.warning(f"Failed to accept PDP item after retries")
 
